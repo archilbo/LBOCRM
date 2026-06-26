@@ -1383,3 +1383,45 @@ Focused PHP syntax checks, route check, and frontend build passed. Vite still re
 ## Next Recommended Step
 
 Add finance template editing so PDF layout can be adjusted from the app.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-26
+
+## Step Completed
+
+Finance document show page fix
+
+## What Was Changed
+
+Added the missing Inertia page for `Finance/Documents/Show` so direct URLs like `/finance/documents/{id}` no longer fail with `Page not found: Finance/Documents/Show`.
+
+## Files Created
+
+- `resources/js/pages/Finance/Documents/Show.tsx`
+
+## Files Modified
+
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```bash
+php artisan route:list --path=finance/documents
+npm run build
+```
+
+## Build/Test Result
+
+Route check and frontend build passed. Vite still reports the existing large chunk warning.
+
+## How To Test
+
+Open `/finance/documents/2` or click `Voir` from `/finance`. The page should show document summary, totals, line items, generated files, and PDF/Excel/Explorer actions.
+
+## Next Recommended Step
+
+Add edit/payment actions from the show page if users need to work from the document detail screen instead of returning to the finance table.
