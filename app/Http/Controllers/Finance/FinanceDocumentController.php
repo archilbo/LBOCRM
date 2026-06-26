@@ -7,22 +7,22 @@ use App\Http\Requests\Finance\ConvertQuoteToInvoiceRequest;
 use App\Http\Requests\Finance\StoreFinanceDocumentRequest;
 use App\Http\Requests\Finance\UpdateFinanceDocumentRequest;
 use App\Http\Resources\FinanceDocumentResource;
+use App\Http\Resources\PaymentResource;
 use App\Models\Client;
 use App\Models\Dossier;
 use App\Models\FinanceDocument;
 use App\Models\FinanceDocumentItem;
-use App\Models\DocumentTemplate;
+use App\Models\FinanceTemplate;
 use App\Models\Payment;
-use App\Http\Resources\PaymentResource;
-use App\Services\Finance\FinanceCalculator;
+use App\Services\Finance\FinanceExcelExporter;
 use App\Services\Finance\FinanceNumberService;
+use App\Services\Finance\FinancePdfGenerator;
 use App\Services\Finance\FinanceSettingsService;
-use App\Services\FinanceDocumentGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -44,8 +44,8 @@ class FinanceDocumentController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('number', 'like', "%{$search}%")
-                    ->orWhereHas('client', fn($cq) => $cq->where('full_name', 'like', "%{$search}%"))
-                    ->orWhereHas('dossier', fn($dq) => $dq->where('dossier_number', 'like', "%{$search}%"));
+                    ->orWhereHas('client', fn ($cq) => $cq->where('full_name', 'like', "%{$search}%"))
+                    ->orWhereHas('dossier', fn ($dq) => $dq->where('dossier_number', 'like', "%{$search}%"));
             });
         }
 
@@ -77,7 +77,7 @@ class FinanceDocumentController extends Controller
             'clients' => Client::select('id', 'full_name', 'cin', 'address')
                 ->orderBy('full_name')
                 ->get()
-                ->map(fn($c) => [
+                ->map(fn ($c) => [
                     'id' => (string) $c->id,
                     'label' => $c->full_name,
                     'cin' => $c->cin,
@@ -86,7 +86,7 @@ class FinanceDocumentController extends Controller
             'dossiers' => Dossier::select('id', 'client_id', 'dossier_number', 'project_object', 'project_address', 'floor_area', 'land_surface')
                 ->orderBy('dossier_number')
                 ->get()
-                ->map(fn($d) => [
+                ->map(fn ($d) => [
                     'id' => (string) $d->id,
                     'label' => trim($d->dossier_number . ' - ' . ($d->project_object ?? '')),
                     'clientId' => (string) $d->client_id,
@@ -95,14 +95,14 @@ class FinanceDocumentController extends Controller
                     'floorArea' => $d->floor_area,
                     'landSurface' => $d->land_surface,
                 ]),
-            'templates' => DocumentTemplate::query()
+            'templates' => FinanceTemplate::query()
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get()
-                ->map(fn($template) => [
+                ->map(fn ($template) => [
                     'id' => (string) $template->id,
                     'label' => $template->name,
-                    'type' => $template->document_type,
+                    'type' => $template->type,
                 ]),
             'settings' => [
                 'defaultTvaRate' => FinanceSettingsService::getTvaRate(),
@@ -243,76 +243,82 @@ class FinanceDocumentController extends Controller
         $financeDocument->delete();
 
         return redirect()->route('finance.documents.index')
-            ->with('success', "Document {$number} supprimÃƒÂ©.");
+            ->with('success', "Document {$number} supprime.");
     }
 
-    public function generate(FinanceDocument $financeDocument): RedirectResponse
+    public function generate(FinanceDocument $financeDocument, FinancePdfGenerator $pdfGenerator, FinanceExcelExporter $excelExporter): RedirectResponse
     {
         if ($financeDocument->items()->count() === 0) {
-            return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant gÃƒÂ©nÃƒÂ©ration.');
+            return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant generation.');
         }
 
-        $financeDocument->loadMissing(['client', 'dossier', 'items']);
+        try {
+            $pdfGenerator->generate($financeDocument);
+            $excelExporter->generate($financeDocument->refresh());
+
+            return redirect()->back()->with('success', "Document {$financeDocument->number} genere avec succes.");
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Erreur de generation : ' . $e->getMessage());
+        }
+    }
+
+    public function generatePdf(FinanceDocument $financeDocument, FinancePdfGenerator $generator): RedirectResponse
+    {
+        if ($financeDocument->items()->count() === 0) {
+            return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant generation PDF.');
+        }
 
         try {
-            // Delete previous generated files
-            $oldDir = storage_path('app/public/finance/' . $financeDocument->number);
-            if (is_dir($oldDir)) {
-                File::deleteDirectory($oldDir);
-            }
+            $generator->generate($financeDocument);
 
-            $values = FinanceDocumentGenerator::buildDocumentValues($financeDocument);
-            $result = app(FinanceDocumentGenerator::class)->generateFromValues(
-                $financeDocument->type,
-                $financeDocument->number,
-                $values,
-            );
+            return redirect()->back()->with('success', "PDF {$financeDocument->number} genere avec succes.");
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Erreur de generation PDF : ' . $e->getMessage());
+        }
+    }
 
-            $financeDocument->excel_path = $result['xlsx_path'];
-            $financeDocument->pdf_path = $result['pdf_path'];
-            $financeDocument->generated_at = now();
-            $financeDocument->save();
+    public function generateExcel(FinanceDocument $financeDocument, FinanceExcelExporter $exporter): RedirectResponse
+    {
+        if ($financeDocument->items()->count() === 0) {
+            return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant export Excel.');
+        }
 
-            return redirect()->back()->with(
-                'success',
-                "Document {$financeDocument->number} gÃƒÂ©nÃƒÂ©rÃƒÂ© avec succÃƒÂ¨s.",
-            );
-        } catch (\Exception $e) {
-            return redirect()->back()->with(
-                'error',
-                'Erreur de gÃƒÂ©nÃƒÂ©ration : ' . $e->getMessage(),
-            );
+        try {
+            $exporter->generate($financeDocument);
+
+            return redirect()->back()->with('success', "Excel {$financeDocument->number} genere avec succes.");
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Erreur export Excel : ' . $e->getMessage());
         }
     }
 
     public function download(FinanceDocument $financeDocument)
     {
-        if (!$financeDocument->excel_path || !file_exists(storage_path('app/public/' . $financeDocument->excel_path))) {
-            return redirect()->back()->with('error', 'Aucun fichier gÃƒÂ©nÃƒÂ©rÃƒÂ© disponible.');
+        return $this->downloadExcel($financeDocument);
+    }
+
+    public function downloadExcel(FinanceDocument $financeDocument)
+    {
+        if (!$financeDocument->excel_path || !Storage::disk('public')->exists($financeDocument->excel_path)) {
+            return redirect()->back()->with('error', 'Aucun fichier Excel disponible.');
         }
 
-        return response()->download(
-            storage_path('app/public/' . $financeDocument->excel_path),
-            $financeDocument->number . '.xlsx',
-        );
+        return Storage::disk('public')->download($financeDocument->excel_path, $financeDocument->number . '.xlsx');
     }
 
     public function downloadPdf(FinanceDocument $financeDocument)
     {
-        if (!$financeDocument->pdf_path || !file_exists(storage_path('app/public/' . $financeDocument->pdf_path))) {
+        if (!$financeDocument->pdf_path || !Storage::disk('public')->exists($financeDocument->pdf_path)) {
             return redirect()->back()->with('error', 'Aucun PDF disponible.');
         }
 
-        return response()->download(
-            storage_path('app/public/' . $financeDocument->pdf_path),
-            $financeDocument->number . '.pdf',
-        );
+        return Storage::disk('public')->download($financeDocument->pdf_path, $financeDocument->number . '.pdf');
     }
 
     public function accept(FinanceDocument $financeDocument): RedirectResponse
     {
         if (!$financeDocument->isQuote()) {
-            return redirect()->back()->with('error', 'Seul un devis peut ÃƒÂªtre acceptÃƒÂ©.');
+            return redirect()->back()->with('error', 'Seul un devis peut etre accepte.');
         }
 
         $financeDocument->update([
@@ -320,13 +326,13 @@ class FinanceDocumentController extends Controller
             'accepted_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', "Devis {$financeDocument->number} acceptÃƒÂ© !");
+        return redirect()->back()->with('success', "Devis {$financeDocument->number} accepte !");
     }
 
     public function reject(FinanceDocument $financeDocument): RedirectResponse
     {
         if (!$financeDocument->isQuote()) {
-            return redirect()->back()->with('error', 'Seul un devis peut ÃƒÂªtre refusÃƒÂ©.');
+            return redirect()->back()->with('error', 'Seul un devis peut etre refuse.');
         }
 
         $financeDocument->update([
@@ -334,7 +340,7 @@ class FinanceDocumentController extends Controller
             'rejected_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', "Devis {$financeDocument->number} refusÃƒÂ© !");
+        return redirect()->back()->with('success', "Devis {$financeDocument->number} refuse !");
     }
 
     public function cancel(FinanceDocument $financeDocument): RedirectResponse
@@ -343,13 +349,13 @@ class FinanceDocumentController extends Controller
             'status' => 'cancelled',
         ]);
 
-        return redirect()->back()->with('success', "Document {$financeDocument->number} annulÃƒÂ© !");
+        return redirect()->back()->with('success', "Document {$financeDocument->number} annule !");
     }
 
     public function convertToInvoice(ConvertQuoteToInvoiceRequest $request, FinanceDocument $financeDocument): RedirectResponse
     {
         if (!$financeDocument->canConvertToInvoice()) {
-            return redirect()->back()->with('error', 'Ce devis ne peut pas ÃƒÂªtre converti.');
+            return redirect()->back()->with('error', 'Ce devis ne peut pas etre converti.');
         }
 
         $data = $request->validated();
@@ -394,9 +400,6 @@ class FinanceDocumentController extends Controller
         });
 
         return redirect()->route('finance.documents.show', $invoice)
-            ->with('success', "Facture {$invoice->number} crÃƒÂ©ÃƒÂ©e ÃƒÂ  partir du devis {$financeDocument->number} !");
+            ->with('success', "Facture {$invoice->number} creee a partir du devis {$financeDocument->number} !");
     }
 }
-
-
-

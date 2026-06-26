@@ -1,4 +1,6 @@
-﻿import { CheckCircle2, CreditCard, Eye, FileDown, Pencil, RefreshCw, Trash2, XCircle } from 'lucide-react';
+﻿import { router } from '@inertiajs/react';
+import { CheckCircle2, CreditCard, Eye, FileDown, FileSpreadsheet, FileText, Pencil, RefreshCw, Trash2, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
 import { AppTableActions } from '@/components/ui/AppTableActions';
 import type { FinanceDocument } from '@/features/finance/types';
@@ -12,6 +14,29 @@ type FinanceDocumentActionsProps = {
     onPayment: (document: FinanceDocument) => void;
     onDelete: (document: FinanceDocument) => void;
 };
+
+function generateFile(url: string | null | undefined, label: string) {
+    if (!url) {
+        toast.error('Action indisponible.');
+        return;
+    }
+
+    router.put(url, {}, {
+        preserveScroll: true,
+        onStart: () => toast.loading(`${label} en cours...`, { id: label }),
+        onSuccess: () => toast.success(`${label} termine.`, { id: label }),
+        onError: () => toast.error(`${label} impossible.`, { id: label }),
+    });
+}
+
+function downloadFile(url: string | null | undefined) {
+    if (!url) {
+        toast.error('Fichier indisponible.');
+        return;
+    }
+
+    window.open(url, '_blank');
+}
 
 export function FinanceDocumentActions({
     document,
@@ -30,11 +55,24 @@ export function FinanceDocumentActions({
             <AppTableActionButton label="Modifier" tone="edit" onPress={() => onEdit(document)}>
                 <Pencil size={15} />
             </AppTableActionButton>
-            {document.downloadUrl ? (
-                <AppTableActionButton label="Telecharger" tone="documents" onPress={() => window.open(document.downloadUrl || '', '_blank')}>
+            {document.hasPdf || document.pdfDownloadUrl ? (
+                <AppTableActionButton label="Telecharger PDF" tone="documents" onPress={() => downloadFile(document.pdfDownloadUrl)}>
                     <FileDown size={15} />
                 </AppTableActionButton>
-            ) : null}
+            ) : (
+                <AppTableActionButton label="Generer PDF" tone="documents" onPress={() => generateFile(document.generatePdfUrl, 'Generation PDF')}>
+                    <FileText size={15} />
+                </AppTableActionButton>
+            )}
+            {document.hasExcel || document.excelDownloadUrl || document.downloadUrl ? (
+                <AppTableActionButton label="Telecharger Excel" tone="archive" onPress={() => downloadFile(document.excelDownloadUrl || document.downloadUrl)}>
+                    <FileSpreadsheet size={15} />
+                </AppTableActionButton>
+            ) : (
+                <AppTableActionButton label="Generer Excel" tone="archive" onPress={() => generateFile(document.generateExcelUrl, 'Generation Excel')}>
+                    <FileSpreadsheet size={15} />
+                </AppTableActionButton>
+            )}
             {document.type === 'quote' ? (
                 <>
                     <AppTableActionButton label="Accepter" tone="create" onPress={() => onAccept(document)}>

@@ -1197,3 +1197,94 @@ php -l routes/web.php
 ## Next Recommended Step
 
 Reload the app sidebar and confirm Management shows a single Finance item. Click it and verify it opens the live Finance workspace at `/finance`.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-26
+
+## Step Completed
+
+Step 37 - Finance PDF and Excel Export
+
+## What Was Built
+
+Added real PDF and Excel export support for the new finance builder workflow. Finance documents can now generate PDF files with DomPDF and XLSX files with PhpSpreadsheet from the `finance_documents` source of truth.
+
+## Files Created
+
+- `app/Services/Finance/FinanceDocumentRenderData.php`
+- `app/Services/Finance/FinanceTemplateRenderer.php`
+- `app/Services/Finance/FinancePdfGenerator.php`
+- `app/Services/Finance/FinanceExcelExporter.php`
+- `app/Console/Commands/TestFinanceExportCommand.php`
+- `docs/STEP_37_FINANCE_PDF_EXCEL_EXPORT.md`
+
+## Files Modified
+
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `app/Http/Requests/Finance/StoreFinanceDocumentRequest.php`
+- `app/Http/Requests/Finance/UpdateFinanceDocumentRequest.php`
+- `app/Http/Resources/FinanceDocumentResource.php`
+- `resources/js/features/finance/components/FinanceDocumentActions.tsx`
+- `resources/js/features/finance/types.ts`
+- `routes/web.php`
+- `docs/AI_WORK_REPORT.md`
+
+## Database Changes
+
+No migration changes. Validation now correctly checks `template_id` against `finance_templates,id`, matching the existing finance document relation.
+
+## Commands Run
+
+```bash
+php artisan optimize:clear
+composer dump-autoload
+php artisan route:list --path=finance
+php artisan storage:link
+npm run build
+php artisan archilbo:test-finance-export 1
+php artisan test
+```
+
+## New Routes
+
+- `PUT /finance/documents/{financeDocument}/generate-pdf`
+- `PUT /finance/documents/{financeDocument}/generate-excel`
+- `GET /finance/documents/{financeDocument}/download-excel`
+
+Existing compatibility routes remain for generate/download/download-pdf.
+
+## Important Decisions
+
+- Used the existing `finance_templates` table for finance HTML/CSS rendering because this codebase stores finance templates there. The older `document_templates` table is a separate dossier/document lookup table.
+- Kept old finance document generation/download routes compatible while adding explicit PDF and Excel routes.
+- Stored exports under `storage/app/public/finance/{quotes|invoices|receipts}/{number}/`.
+- UI now shows generate actions first, then download actions once files exist.
+
+## Build/Test Result
+
+- `npm run build` passed. Vite still reports the existing large chunk warning.
+- `php artisan archilbo:test-finance-export 1` passed for `FAC-2026-0001`, generating both PDF and XLSX.
+- `php artisan storage:link` reported the link already exists.
+- `php artisan test` failed only on `Tests\Feature\ExampleTest::test_the_application_returns_a_successful_response` because `/` returns `302` while the starter test expects `200`.
+
+## How To Test
+
+1. Open `/finance`.
+2. Create or use a devis/facture with line items.
+3. Click Generate PDF, then Download PDF.
+4. Click Generate Excel, then Download Excel.
+5. Optionally run `php artisan archilbo:test-finance-export {finance_document_id}`.
+
+## Known Issues
+
+- Starter `ExampleTest` should be updated to expect the app's authenticated redirect or replaced with a real application smoke test.
+- Vite large chunk warning remains from the existing app bundle.
+
+## Next Recommended Step
+
+Add payment edit/delete UI and then add proper finance template editing so ARCHI LBO can tune the PDF layout without code changes.

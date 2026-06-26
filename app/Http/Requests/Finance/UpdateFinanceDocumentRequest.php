@@ -26,7 +26,7 @@ class UpdateFinanceDocumentRequest extends FormRequest
             'discount_total' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'terms' => ['nullable', 'string'],
-            'template_id' => ['nullable', 'exists:document_templates,id'],
+            'template_id' => ['nullable', 'exists:finance_templates,id'],
             'items' => ['nullable', 'array', 'min:1'],
             'items.*.title' => ['nullable', 'string', 'max:255'],
             'items.*.description' => ['nullable', 'string'],

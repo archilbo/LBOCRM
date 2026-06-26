@@ -1,4 +1,4 @@
-﻿export type FinanceDocumentType = 'quote' | 'invoice' | 'receipt';
+export type FinanceDocumentType = 'quote' | 'invoice' | 'receipt';
 
 export type FinanceDocumentStatus =
     | 'draft'
@@ -72,8 +72,13 @@ export type FinanceDocument = {
     rejectUrl?: string | null;
     cancelUrl?: string | null;
     convertToInvoiceUrl?: string | null;
+    hasPdf?: boolean;
+    hasExcel?: boolean;
     generateUrl?: string | null;
+    generatePdfUrl?: string | null;
+    generateExcelUrl?: string | null;
     downloadUrl?: string | null;
+    excelDownloadUrl?: string | null;
     pdfDownloadUrl?: string | null;
     paymentUrl?: string | null;
 };

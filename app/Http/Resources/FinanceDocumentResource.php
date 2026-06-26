@@ -69,7 +69,12 @@ class FinanceDocumentResource extends JsonResource
             'cancelUrl' => route('finance.documents.cancel', $this),
             'convertToInvoiceUrl' => $this->isQuote() ? route('finance.documents.convert-to-invoice', $this) : null,
             'generateUrl' => route('finance.documents.generate', $this),
+                        'hasPdf' => (bool) $this->pdf_path,
+            'hasExcel' => (bool) $this->excel_path,
+            'generatePdfUrl' => route('finance.documents.generate-pdf', $this),
+            'generateExcelUrl' => route('finance.documents.generate-excel', $this),
             'downloadUrl' => $this->excel_path ? route('finance.documents.download', $this) : null,
+            'excelDownloadUrl' => $this->excel_path ? route('finance.documents.download-excel', $this) : null,
             'pdfDownloadUrl' => $this->pdf_path ? route('finance.documents.download-pdf', $this) : null,
             'paymentUrl' => $this->isInvoice() ? route('finance.payments.store') : null,
         ];
