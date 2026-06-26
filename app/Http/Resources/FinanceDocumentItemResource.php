@@ -14,14 +14,14 @@ class FinanceDocumentItemResource extends JsonResource
             'position' => $this->position,
             'title' => $this->title,
             'description' => $this->description,
-            'quantity' => $this->quantity,
+            'quantity' => (float) $this->quantity,
             'unit' => $this->unit,
-            'unitPrice' => $this->unit_price,
-            'discountRate' => $this->discount_rate,
-            'tvaRate' => $this->tva_rate,
-            'totalHt' => $this->total_ht,
-            'totalTva' => $this->total_tva,
-            'totalTtc' => $this->total_ttc,
+            'unitPrice' => (float) $this->unit_price,
+            'discountRate' => (float) $this->discount_rate,
+            'tvaRate' => (float) $this->tva_rate,
+            'totalHt' => (float) $this->total_ht,
+            'totalTva' => (float) $this->total_tva,
+            'totalTtc' => (float) $this->total_ttc,
         ];
     }
 }

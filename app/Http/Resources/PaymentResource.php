@@ -12,7 +12,7 @@ class PaymentResource extends JsonResource
         return [
             'id' => $this->id,
             'paymentNumber' => $this->payment_number,
-            'amount' => $this->amount,
+            'amount' => (float) $this->amount,
             'method' => $this->method,
             'reference' => $this->reference,
             'paidAt' => $this->paid_at?->toDateString(),
@@ -24,11 +24,11 @@ class PaymentResource extends JsonResource
             ] : null,
             'client' => $this->client ? [
                 'id' => $this->client->id,
-                'name' => $this->client->name,
+                'name' => $this->client->full_name,
             ] : null,
             'dossier' => $this->dossier ? [
                 'id' => $this->dossier->id,
-                'number' => $this->dossier->number,
+                'number' => $this->dossier->dossier_number,
             ] : null,
             'receiptDocumentId' => $this->receipt_document_id,
             'createdAt' => $this->created_at?->toISOString(),

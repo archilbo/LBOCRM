@@ -1,6 +1,7 @@
 ﻿import { ReactNode } from 'react';
 import { Button, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
 import { X } from 'lucide-react';
+import { cn } from '@/lib/cn';
 
 type AppDrawerProps = {
     isOpen: boolean;
@@ -9,6 +10,7 @@ type AppDrawerProps = {
     description?: string;
     children: ReactNode;
     footer?: ReactNode;
+    panelClassName?: string;
 };
 
 export function AppDrawer({
@@ -18,6 +20,7 @@ export function AppDrawer({
     description,
     children,
     footer,
+    panelClassName,
 }: AppDrawerProps) {
     return (
         <ModalOverlay
@@ -26,7 +29,7 @@ export function AppDrawer({
             className="app-modal-overlay app-drawer-overlay"
             isDismissable
         >
-            <Modal className="app-drawer-panel">
+            <Modal className={cn('app-drawer-panel', panelClassName)}>
                 <Dialog className="flex h-full flex-col outline-none">
                     {({ close }) => (
                         <>
