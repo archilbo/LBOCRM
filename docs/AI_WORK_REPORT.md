@@ -1152,3 +1152,48 @@ php -l app/Http/Controllers/Finance/FinanceDocumentController.php
 ## Next Recommended Step
 
 Reload `/finance/documents`, create a devis and a facture, then verify each appears in its matching tab immediately.
+
+# AI Work Report
+
+## Date
+
+2026-06-26
+
+## Step Completed
+
+Finance navigation/module consolidation
+
+## What Was Changed
+
+Merged the visible Finance experience into one module. The newer live finance workspace is now the primary Finance module because it supports devis, factures, payments, line items, quote conversion, and the live builder workflow.
+
+## Files Modified
+
+- `routes/web.php`
+- `resources/js/components/layout/navigation.ts`
+- `resources/js/lib/appRoutes.ts`
+- `docs/AI_WORK_REPORT.md`
+
+## Important Decisions
+
+- `/finance` now renders `FinanceDocumentController@index`, the live builder workspace.
+- `/finance/documents` remains available as a compatibility alias.
+- The sidebar now shows only one Finance item.
+- `financeDocuments` and `financeSettings` route metadata are hidden from navigation/search so users are not split between multiple finance entries.
+- The legacy `finance_records` backend was kept in place for existing data and backward compatibility, but it is no longer the visible Finance module.
+
+## Commands Run
+
+```bash
+npm run build
+php artisan route:list --path=finance
+php -l routes/web.php
+```
+
+## Build/Test Result
+
+`npm run build` passed. Finance route list and route syntax check passed.
+
+## Next Recommended Step
+
+Reload the app sidebar and confirm Management shows a single Finance item. Click it and verify it opens the live Finance workspace at `/finance`.

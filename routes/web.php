@@ -70,7 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/authorizations/{authorization}/status', [AuthorizationController::class, 'updateStatus'])->name('authorizations.status');
     Route::delete('/authorizations/{authorization}', [AuthorizationController::class, 'destroy'])->name('authorizations.destroy');
 
-    Route::get('/finance', [FinanceController::class, 'index'])->name('finance.index');
+    Route::get('/finance', [FinanceDocumentController::class, 'index'])->name('finance.index');
     Route::post('/finance', [FinanceController::class, 'store'])->name('finance.store');
     Route::put('/finance/{financeRecord}', [FinanceController::class, 'update'])->name('finance.update');
     Route::put('/finance/{financeRecord}/paid', [FinanceController::class, 'markPaid'])->name('finance.paid');

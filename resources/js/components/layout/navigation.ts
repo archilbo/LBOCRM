@@ -1,6 +1,4 @@
-import { appRoutes } from '@/lib/appRoutes';
-import type { AppRoute } from '@/lib/appRoutes';
-import { Users } from 'lucide-react';
+﻿import { appRoutes } from '@/lib/appRoutes';
 
 export type NavigationItem = {
     key: string;
@@ -32,22 +30,9 @@ export const navigationGroups: NavigationGroup[] = [
     },
     {
         labelKey: 'nav.groups.management',
-        items: [
-            ...appRoutes
-                .filter((route) => route.group === 'management' && !['finance', 'financeDocuments', 'financeSettings'].includes(route.key))
-                .map((route) => ({ ...route })),
-            {
-                key: 'financeParent',
-                labelKey: 'nav.finance',
-                icon: appRoutes.find(r => r.key === 'finance')!.icon,
-                enabled: true,
-                children: [
-                    appRoutes.find((r) => r.key === 'finance')!,
-                    appRoutes.find((r) => r.key === 'financeDocuments')!,
-                    appRoutes.find((r) => r.key === 'financeSettings')!,
-                ].filter(Boolean) as AppRoute[],
-            },
-        ],
+        items: appRoutes
+            .filter((route) => route.group === 'management' && !['financeDocuments', 'financeSettings'].includes(route.key))
+            .map((route) => ({ ...route })),
     },
     {
         labelKey: 'nav.groups.administration',

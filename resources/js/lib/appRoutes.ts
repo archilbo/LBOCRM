@@ -1,4 +1,4 @@
-import {
+﻿import {
     Archive,
     BadgeDollarSign,
     Building2,
@@ -119,8 +119,8 @@ export const appRoutes: AppRoute[] = [
         labelKey: 'nav.financeDocuments',
         href: '/finance/documents',
         icon: FileSpreadsheet,
-        enabled: true,
-        searchable: true,
+        enabled: false,
+        searchable: false,
         group: 'management',
     },
     {
@@ -128,8 +128,8 @@ export const appRoutes: AppRoute[] = [
         labelKey: 'nav.financeSettings',
         href: '/finance/settings',
         icon: SlidersHorizontal,
-        enabled: true,
-        searchable: true,
+        enabled: false,
+        searchable: false,
         group: 'management',
     },
     {
@@ -178,3 +178,4 @@ export function isActivePath(currentPath: string, itemPath: string) {
 
     return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }
+
