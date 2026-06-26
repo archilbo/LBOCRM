@@ -176,7 +176,7 @@ export function FinanceDocumentBuilderDrawer({
             onOpenChange={onOpenChange}
             title={title}
             description="Construire le document avec calcul HT, TVA, TTC et apercu en direct."
-            panelClassName="w-[min(1200px,calc(100vw-24px))] max-w-[1200px] sm:w-[min(1200px,calc(100vw-40px))]"
+            panelClassName="!w-[min(1200px,calc(100vw-24px))] !max-w-[1200px] sm:!w-[min(1200px,calc(100vw-40px))]"
             footer={
                 <>
                     <AppButton variant="ghost" onPress={() => onOpenChange(false)}>Annuler</AppButton>
@@ -184,7 +184,7 @@ export function FinanceDocumentBuilderDrawer({
                 </>
             }
         >
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_460px]">
+            <div className="finance-builder-container"><div className="finance-builder-layout">
                 <div className="min-w-0 space-y-5">
                     <div className="grid gap-3 sm:grid-cols-3">
                         <AppSelect
@@ -269,7 +269,8 @@ export function FinanceDocumentBuilderDrawer({
                     notes={form.notes}
                     terms={form.terms}
                 />
-            </div>
+            </div></div>
         </AppDrawer>
     );
 }
+

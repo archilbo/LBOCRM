@@ -1027,3 +1027,44 @@ No new permissions were added.
 ## Next Recommended Step
 
 Browser-test `/finance/documents` end to end, then add payment edit/delete actions and connect finance settings editing if needed.
+
+# AI Work Report
+
+## Date
+
+2026-06-26
+
+## Step Completed
+
+Finance live builder responsive UI correction
+
+## What Was Changed
+
+Fixed the finance document builder drawer layout after visual QA showed the preview overlapping the form on narrow drawer widths.
+
+## Files Modified
+
+- `resources/js/features/finance/drawers/FinanceDocumentBuilderDrawer.tsx`
+- `resources/js/features/finance/components/FinanceDocumentPreview.tsx`
+- `resources/css/app.css`
+- `docs/AI_WORK_REPORT.md`
+
+## Important Decisions
+
+- The two-column builder now uses CSS container queries instead of viewport breakpoints.
+- The preview is only sticky when the drawer container is wide enough.
+- The drawer width now uses important width utility classes so the default drawer CSS does not force the finance builder back to a narrow panel.
+
+## Commands Run
+
+```bash
+npm run build
+```
+
+## Build/Test Result
+
+`npm run build` passed. Vite still reports the existing large chunk warning.
+
+## Next Recommended Step
+
+Reload `/finance/documents`, open Nouveau devis, and confirm the form no longer sits behind the preview.

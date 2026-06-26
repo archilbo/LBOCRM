@@ -43,8 +43,8 @@ export function FinanceDocumentPreview({
     terms,
 }: FinanceDocumentPreviewProps) {
     return (
-        <div className="sticky top-4 rounded-2xl border bg-[var(--surface-2)] p-3">
-            <div className="mx-auto min-h-[640px] max-w-[440px] rounded-xl bg-white p-7 text-slate-950 shadow-xl">
+        <div className="finance-builder-preview rounded-2xl border bg-[var(--surface-2)] p-3">
+            <div className="mx-auto min-h-[520px] max-w-[440px] rounded-xl bg-white p-5 text-slate-950 shadow-xl sm:min-h-[640px] sm:p-7">
                 <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
                     <div>
                         <p className="text-xs font-semibold tracking-[0.22em] text-slate-500">ARCHI LBO</p>
@@ -113,3 +113,4 @@ function PreviewRow({ label, value, strong = false }: { label: string; value: st
         </div>
     );
 }
+

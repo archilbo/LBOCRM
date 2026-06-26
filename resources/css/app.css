@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @plugin "tailwindcss-react-aria-components";
 
 :root {
@@ -475,5 +475,33 @@ body {
 @media (max-width: 1023px) {
     .app-drawer-panel {
         width: min(100vw, 720px);
+    }
+}
+
+/* Step 36 finance live builder */
+.finance-builder-container {
+    container-type: inline-size;
+}
+
+.finance-builder-layout {
+    display: grid;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+.finance-builder-preview {
+    position: static;
+    min-width: 0;
+}
+
+@container (min-width: 980px) {
+    .finance-builder-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+        align-items: start;
+    }
+
+    .finance-builder-preview {
+        position: sticky;
+        top: 1rem;
     }
 }
