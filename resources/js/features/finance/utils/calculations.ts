@@ -83,11 +83,31 @@ export function createEmptyItem(defaultTvaRate: number): FinanceDocumentItem {
     );
 }
 
-export function formatMoney(value: unknown, currency = 'MAD'): string {
-    return new Intl.NumberFormat('fr-MA', {
-        style: 'currency',
-        currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(normalizeNumber(value));
+export function normalizeCurrency(currency: unknown): string {
+    if (typeof currency !== 'string') {
+        return 'MAD';
+    }
+
+    const normalized = currency.trim().toUpperCase();
+
+    return /^[A-Z]{3}$/.test(normalized) ? normalized : 'MAD';
 }
+
+export function formatMoney(value: unknown, currency = 'MAD'): string {
+    const safeCurrency = normalizeCurrency(currency);
+
+    try {
+        return new Intl.NumberFormat('fr-MA', {
+            style: 'currency',
+            currency: safeCurrency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(normalizeNumber(value));
+    } catch {
+        return `${normalizeNumber(value).toLocaleString('fr-MA', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })} MAD`;
+    }
+}
+

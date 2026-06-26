@@ -1068,3 +1068,43 @@ npm run build
 ## Next Recommended Step
 
 Reload `/finance/documents`, open Nouveau devis, and confirm the form no longer sits behind the preview.
+
+# AI Work Report
+
+## Date
+
+2026-06-26
+
+## Step Completed
+
+Finance live builder currency crash fix
+
+## What Was Changed
+
+Fixed a frontend crash where `Intl.NumberFormat` received an invalid currency code such as `2` from finance data/settings.
+
+## Files Modified
+
+- `resources/js/features/finance/utils/calculations.ts`
+- `resources/js/features/finance/drawers/FinanceDocumentBuilderDrawer.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Important Decisions
+
+- Added `normalizeCurrency()` to force any invalid currency value back to `MAD`.
+- Wrapped `formatMoney()` in a safe fallback so finance UI cannot crash from malformed currency input.
+- Normalized builder drawer currency state on create/edit and currency field changes.
+
+## Commands Run
+
+```bash
+npm run build
+```
+
+## Build/Test Result
+
+`npm run build` passed. Vite still reports the existing large chunk warning.
+
+## Next Recommended Step
+
+Reload `/finance/documents`, open Nouveau devis, and verify there are no console errors while editing line items.

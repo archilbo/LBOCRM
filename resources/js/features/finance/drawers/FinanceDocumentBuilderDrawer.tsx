@@ -12,7 +12,7 @@ import { FinanceDocumentPreview } from '@/features/finance/components/FinanceDoc
 import { FinanceItemsTable } from '@/features/finance/components/FinanceItemsTable';
 import { FinanceTotalsBox } from '@/features/finance/components/FinanceTotalsBox';
 import type { ClientOption, DossierOption, FinanceDocument, FinanceDocumentItem, FinanceDocumentType, FinanceSettings, TemplateOption } from '@/features/finance/types';
-import { calculateItem, calculateTotals, createEmptyItem, normalizeNumber } from '@/features/finance/utils/calculations';
+import { calculateItem, calculateTotals, createEmptyItem, normalizeCurrency, normalizeNumber } from '@/features/finance/utils/calculations';
 
 type FinanceDocumentBuilderDrawerProps = {
     isOpen: boolean;
@@ -61,7 +61,7 @@ function createForm(type: FinanceDocumentType, settings: FinanceSettings, docume
             issueDate,
             dueDate: document.dueDate || '',
             validUntil: document.validUntil || '',
-            currency: document.currency || settings.defaultCurrency,
+            currency: normalizeCurrency(document.currency || settings.defaultCurrency),
             tvaRate: normalizeNumber(document.tvaRate || settings.defaultTvaRate),
             discountTotal: normalizeNumber(document.discountTotal),
             notes: document.notes || '',
@@ -80,7 +80,7 @@ function createForm(type: FinanceDocumentType, settings: FinanceSettings, docume
         issueDate,
         dueDate: type === 'invoice' ? addDays(issueDate, settings.defaultPaymentTermsDays) : '',
         validUntil: type === 'quote' ? addDays(issueDate, settings.defaultQuoteValidityDays) : '',
-        currency: settings.defaultCurrency,
+        currency: normalizeCurrency(settings.defaultCurrency),
         tvaRate: settings.defaultTvaRate,
         discountTotal: 0,
         notes: '',
@@ -197,7 +197,7 @@ export function FinanceDocumentBuilderDrawer({
                             selectedKey={form.type}
                             onSelectionChange={(key) => update('type', String(key || 'quote') as FinanceDocumentType)}
                         />
-                        <AppTextField label="Devise" value={form.currency} onChange={(value) => update('currency', value)} />
+                        <AppTextField label="Devise" value={form.currency} onChange={(value) => update('currency', normalizeCurrency(value))} />
                         <AppTextField label="TVA par defaut (%)" type="number" min="0" max="100" step="0.01" value={String(form.tvaRate)} onChange={(value) => update('tvaRate', normalizeNumber(value))} />
                     </div>
 
@@ -273,4 +273,5 @@ export function FinanceDocumentBuilderDrawer({
         </AppDrawer>
     );
 }
+
 
