@@ -96,7 +96,6 @@ class FinanceDocumentController extends Controller
                     'landSurface' => $d->land_surface,
                 ]),
             'templates' => FinanceTemplate::query()
-                ->where('is_active', true)
                 ->orderBy('name')
                 ->get()
                 ->map(fn ($template) => [

@@ -1288,3 +1288,39 @@ Existing compatibility routes remain for generate/download/download-pdf.
 ## Next Recommended Step
 
 Add payment edit/delete UI and then add proper finance template editing so ARCHI LBO can tune the PDF layout without code changes.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-26
+
+## Step Completed
+
+Finance template schema hotfix
+
+## What Was Changed
+
+Removed the `is_active` filter from the finance document template query because the actual `finance_templates` table has `is_default` but no `is_active` column.
+
+## Files Modified
+
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```bash
+php -l app/Http/Controllers/Finance/FinanceDocumentController.php
+php artisan route:list --path=finance/documents
+npm run build
+```
+
+## Build/Test Result
+
+All focused checks passed. Vite still reports the existing large chunk warning.
+
+## Next Recommended Step
+
+Reload `/finance` and confirm the finance page opens without the SQL `is_active` error.
