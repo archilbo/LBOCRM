@@ -24,6 +24,7 @@ type FinanceDocumentBuilderDrawerProps = {
     dossiers: DossierOption[];
     templates: TemplateOption[];
     settings: FinanceSettings;
+    onSaved?: (type: FinanceDocumentType) => void;
 };
 
 type BuilderForm = {
@@ -100,6 +101,7 @@ export function FinanceDocumentBuilderDrawer({
     dossiers,
     templates,
     settings,
+    onSaved,
 }: FinanceDocumentBuilderDrawerProps) {
     const [form, setForm] = useState<BuilderForm>(() => createForm(type, settings, document));
 
@@ -155,8 +157,10 @@ export function FinanceDocumentBuilderDrawer({
 
         const options = {
             preserveScroll: true,
+            preserveState: false,
             onSuccess: () => {
                 toast.success(mode === 'edit' ? 'Document mis a jour.' : 'Document cree.');
+                onSaved?.(form.type);
                 onOpenChange(false);
             },
             onError: () => toast.error('Impossible enregistrer le document.'),
@@ -273,5 +277,8 @@ export function FinanceDocumentBuilderDrawer({
         </AppDrawer>
     );
 }
+
+
+
 
 

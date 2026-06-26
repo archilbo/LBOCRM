@@ -31,7 +31,7 @@ const defaultSettings: FinanceSettings = {
 };
 
 type Paginated<T> = {
-    data: T[];
+    data: T[] | Paginated<T>;
 };
 
 type PageProps = {
@@ -42,14 +42,29 @@ type PageProps = {
     dossiers?: DossierOption[];
     templates?: TemplateOption[];
     settings?: Partial<FinanceSettings>;
+    filters?: { tab?: string };
 };
 
-function unwrap<T>(value?: Paginated<T> | T[]): T[] {
+function unwrap<T>(value?: Paginated<T> | T[] | { data?: unknown }): T[] {
     if (!value) {
         return [];
     }
 
-    return Array.isArray(value) ? value : value.data || [];
+    if (Array.isArray(value)) {
+        return value;
+    }
+
+    const data = value.data;
+
+    if (Array.isArray(data)) {
+        return data as T[];
+    }
+
+    if (data && typeof data === 'object' && 'data' in data) {
+        return unwrap<T>(data as Paginated<T>);
+    }
+
+    return [];
 }
 
 export default function FinanceDocumentsIndex({
@@ -60,11 +75,12 @@ export default function FinanceDocumentsIndex({
     dossiers = [],
     templates = [],
     settings: rawSettings,
+    filters,
 }: PageProps) {
     const documents = unwrap(rawDocuments);
     const payments = unwrap(rawPayments);
     const settings = { ...defaultSettings, ...rawSettings };
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState(filters?.tab || new URLSearchParams(window.location.search).get('tab') || 'overview');
     const [builderOpen, setBuilderOpen] = useState(false);
     const [builderMode, setBuilderMode] = useState<'create' | 'edit'>('create');
     const [builderType, setBuilderType] = useState<FinanceDocumentType>('quote');
@@ -304,6 +320,7 @@ export default function FinanceDocumentsIndex({
                 dossiers={dossiers}
                 templates={templates}
                 settings={settings}
+                onSaved={(savedType) => setActiveTab(savedType === 'quote' ? 'quotes' : savedType === 'invoice' ? 'invoices' : 'overview')}
             />
 
             <PaymentDrawer
@@ -415,4 +432,6 @@ function RecentDocuments({ title, icon, documents }: { title: string; icon: Reac
         </AppCard>
     );
 }
+
+
 

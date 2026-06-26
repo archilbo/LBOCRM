@@ -1108,3 +1108,47 @@ npm run build
 ## Next Recommended Step
 
 Reload `/finance/documents`, open Nouveau devis, and verify there are no console errors while editing line items.
+
+# AI Work Report
+
+## Date
+
+2026-06-26
+
+## Step Completed
+
+Finance document visibility after create fix
+
+## What Was Changed
+
+Fixed the issue where created devis/factures were saved in the database but did not reliably appear in the finance document UI after saving.
+
+## Files Modified
+
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+- `resources/js/features/finance/drawers/FinanceDocumentBuilderDrawer.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Important Decisions
+
+- Finance document index now sends resolved plain arrays to Inertia instead of a paginator/resource hybrid.
+- Create/update redirects now include the target finance tab.
+- The frontend unwrap helper now tolerates nested Inertia resource shapes.
+- The builder switches the active tab to Devis or Factures immediately after save.
+
+## Commands Run
+
+```bash
+npm run build
+php artisan route:list --path=finance/documents
+php -l app/Http/Controllers/Finance/FinanceDocumentController.php
+```
+
+## Build/Test Result
+
+`npm run build` passed. Finance document routes and PHP syntax check passed.
+
+## Next Recommended Step
+
+Reload `/finance/documents`, create a devis and a facture, then verify each appears in its matching tab immediately.

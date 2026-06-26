@@ -49,8 +49,8 @@ class FinanceDocumentController extends Controller
             });
         }
 
-        $paginator = $query->orderBy('created_at', 'desc')->paginate(100);
-        $records = $paginator->through(fn($doc) => new FinanceDocumentResource($doc));
+        $documents = $query->orderBy('created_at', 'desc')->limit(100)->get();
+        $records = FinanceDocumentResource::collection($documents)->resolve($request);
 
         $payments = Payment::with(['document', 'client', 'dossier'])
             ->orderByDesc('paid_at')
@@ -72,7 +72,7 @@ class FinanceDocumentController extends Controller
 
         return Inertia::render('Finance/Documents/Index', [
             'documents' => $records,
-            'payments' => PaymentResource::collection($payments),
+            'payments' => PaymentResource::collection($payments)->resolve($request),
             'metrics' => $metrics,
             'clients' => Client::select('id', 'full_name', 'cin', 'address')
                 ->orderBy('full_name')
@@ -165,8 +165,14 @@ class FinanceDocumentController extends Controller
             return $document;
         });
 
-        return redirect()->route('finance.documents.index')
-            ->with('success', "Document {$document->number} crÃ©Ã© avec succÃ¨s.");
+        return redirect()->route('finance.documents.index', [
+            'tab' => match ($document->type) {
+                'quote' => 'quotes',
+                'invoice' => 'invoices',
+                'receipt' => 'overview',
+                default => 'overview',
+            },
+        ])->with('success', "Document {$document->number} cree avec succes.");
     }
 
     public function show(FinanceDocument $financeDocument): Response
@@ -221,8 +227,14 @@ class FinanceDocumentController extends Controller
             $financeDocument->recalculateTotals()->save();
         });
 
-        return redirect()->route('finance.documents.index')
-            ->with('success', "Document {$financeDocument->number} mis Ã  jour.");
+        return redirect()->route('finance.documents.index', [
+            'tab' => match ($financeDocument->type) {
+                'quote' => 'quotes',
+                'invoice' => 'invoices',
+                'receipt' => 'overview',
+                default => 'overview',
+            },
+        ])->with('success', "Document {$financeDocument->number} mis a jour.");
     }
 
     public function destroy(FinanceDocument $financeDocument): RedirectResponse
@@ -231,13 +243,13 @@ class FinanceDocumentController extends Controller
         $financeDocument->delete();
 
         return redirect()->route('finance.documents.index')
-            ->with('success', "Document {$number} supprimÃ©.");
+            ->with('success', "Document {$number} supprimÃƒÂ©.");
     }
 
     public function generate(FinanceDocument $financeDocument): RedirectResponse
     {
         if ($financeDocument->items()->count() === 0) {
-            return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant gÃ©nÃ©ration.');
+            return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant gÃƒÂ©nÃƒÂ©ration.');
         }
 
         $financeDocument->loadMissing(['client', 'dossier', 'items']);
@@ -263,12 +275,12 @@ class FinanceDocumentController extends Controller
 
             return redirect()->back()->with(
                 'success',
-                "Document {$financeDocument->number} gÃ©nÃ©rÃ© avec succÃ¨s.",
+                "Document {$financeDocument->number} gÃƒÂ©nÃƒÂ©rÃƒÂ© avec succÃƒÂ¨s.",
             );
         } catch (\Exception $e) {
             return redirect()->back()->with(
                 'error',
-                'Erreur de gÃ©nÃ©ration : ' . $e->getMessage(),
+                'Erreur de gÃƒÂ©nÃƒÂ©ration : ' . $e->getMessage(),
             );
         }
     }
@@ -276,7 +288,7 @@ class FinanceDocumentController extends Controller
     public function download(FinanceDocument $financeDocument)
     {
         if (!$financeDocument->excel_path || !file_exists(storage_path('app/public/' . $financeDocument->excel_path))) {
-            return redirect()->back()->with('error', 'Aucun fichier gÃ©nÃ©rÃ© disponible.');
+            return redirect()->back()->with('error', 'Aucun fichier gÃƒÂ©nÃƒÂ©rÃƒÂ© disponible.');
         }
 
         return response()->download(
@@ -300,7 +312,7 @@ class FinanceDocumentController extends Controller
     public function accept(FinanceDocument $financeDocument): RedirectResponse
     {
         if (!$financeDocument->isQuote()) {
-            return redirect()->back()->with('error', 'Seul un devis peut Ãªtre acceptÃ©.');
+            return redirect()->back()->with('error', 'Seul un devis peut ÃƒÂªtre acceptÃƒÂ©.');
         }
 
         $financeDocument->update([
@@ -308,13 +320,13 @@ class FinanceDocumentController extends Controller
             'accepted_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', "Devis {$financeDocument->number} acceptÃ© !");
+        return redirect()->back()->with('success', "Devis {$financeDocument->number} acceptÃƒÂ© !");
     }
 
     public function reject(FinanceDocument $financeDocument): RedirectResponse
     {
         if (!$financeDocument->isQuote()) {
-            return redirect()->back()->with('error', 'Seul un devis peut Ãªtre refusÃ©.');
+            return redirect()->back()->with('error', 'Seul un devis peut ÃƒÂªtre refusÃƒÂ©.');
         }
 
         $financeDocument->update([
@@ -322,7 +334,7 @@ class FinanceDocumentController extends Controller
             'rejected_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', "Devis {$financeDocument->number} refusÃ© !");
+        return redirect()->back()->with('success', "Devis {$financeDocument->number} refusÃƒÂ© !");
     }
 
     public function cancel(FinanceDocument $financeDocument): RedirectResponse
@@ -331,13 +343,13 @@ class FinanceDocumentController extends Controller
             'status' => 'cancelled',
         ]);
 
-        return redirect()->back()->with('success', "Document {$financeDocument->number} annulÃ© !");
+        return redirect()->back()->with('success', "Document {$financeDocument->number} annulÃƒÂ© !");
     }
 
     public function convertToInvoice(ConvertQuoteToInvoiceRequest $request, FinanceDocument $financeDocument): RedirectResponse
     {
         if (!$financeDocument->canConvertToInvoice()) {
-            return redirect()->back()->with('error', 'Ce devis ne peut pas Ãªtre converti.');
+            return redirect()->back()->with('error', 'Ce devis ne peut pas ÃƒÂªtre converti.');
         }
 
         $data = $request->validated();
@@ -382,8 +394,9 @@ class FinanceDocumentController extends Controller
         });
 
         return redirect()->route('finance.documents.show', $invoice)
-            ->with('success', "Facture {$invoice->number} crÃ©Ã©e Ã  partir du devis {$financeDocument->number} !");
+            ->with('success', "Facture {$invoice->number} crÃƒÂ©ÃƒÂ©e ÃƒÂ  partir du devis {$financeDocument->number} !");
     }
 }
+
 
 
