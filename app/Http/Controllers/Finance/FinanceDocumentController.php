@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\Process\Process;
 
 class FinanceDocumentController extends Controller
 {
@@ -312,6 +313,38 @@ class FinanceDocumentController extends Controller
         }
 
         return Storage::disk('public')->download($financeDocument->pdf_path, $financeDocument->number . '.pdf');
+    }
+    public function revealGeneratedFiles(FinanceDocument $financeDocument): RedirectResponse
+    {
+        if (!app()->environment('local')) {
+            return redirect()->back()->with('error', 'Ouverture Explorer disponible uniquement en local.');
+        }
+
+        if (PHP_OS_FAMILY !== 'Windows') {
+            return redirect()->back()->with('error', 'Ouverture Explorer disponible uniquement sur Windows.');
+        }
+
+        $relativePath = $financeDocument->pdf_path ?: $financeDocument->excel_path;
+
+        if (!$relativePath || !Storage::disk('public')->exists($relativePath)) {
+            return redirect()->back()->with('error', 'Aucun fichier genere disponible.');
+        }
+
+        $absolutePath = Storage::disk('public')->path($relativePath);
+        $storageRoot = realpath(Storage::disk('public')->path(''));
+        $realFile = realpath($absolutePath);
+
+        if (!$storageRoot || !$realFile || !str_starts_with($realFile, $storageRoot)) {
+            return redirect()->back()->with('error', 'Emplacement fichier invalide.');
+        }
+
+        try {
+            (new Process(['explorer.exe', '/select,' . $realFile]))->start();
+
+            return redirect()->back()->with('success', 'Dossier genere ouvert dans Explorer.');
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Impossible d ouvrir Explorer : ' . $e->getMessage());
+        }
     }
 
     public function accept(FinanceDocument $financeDocument): RedirectResponse

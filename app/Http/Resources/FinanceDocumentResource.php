@@ -69,7 +69,7 @@ class FinanceDocumentResource extends JsonResource
             'cancelUrl' => route('finance.documents.cancel', $this),
             'convertToInvoiceUrl' => $this->isQuote() ? route('finance.documents.convert-to-invoice', $this) : null,
             'generateUrl' => route('finance.documents.generate', $this),
-                        'hasPdf' => (bool) $this->pdf_path,
+            'hasPdf' => (bool) $this->pdf_path,
             'hasExcel' => (bool) $this->excel_path,
             'generatePdfUrl' => route('finance.documents.generate-pdf', $this),
             'generateExcelUrl' => route('finance.documents.generate-excel', $this),

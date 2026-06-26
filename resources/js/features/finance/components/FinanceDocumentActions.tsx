@@ -1,5 +1,5 @@
-﻿import { router } from '@inertiajs/react';
-import { CheckCircle2, CreditCard, Eye, FileDown, FileSpreadsheet, FileText, Pencil, RefreshCw, Trash2, XCircle } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { CheckCircle2, CreditCard, Eye, FileDown, FileSpreadsheet, FileText, FolderOpen, Pencil, RefreshCw, Trash2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
 import { AppTableActions } from '@/components/ui/AppTableActions';
@@ -29,6 +29,18 @@ function generateFile(url: string | null | undefined, label: string) {
     });
 }
 
+function revealFiles(url: string | null | undefined) {
+    if (!url) {
+        toast.error('Aucun emplacement disponible.');
+        return;
+    }
+
+    router.post(url, {}, {
+        preserveScroll: true,
+        onSuccess: () => toast.success('Emplacement ouvert dans Explorer.'),
+        onError: () => toast.error('Impossible d ouvrir Explorer.'),
+    });
+}
 function downloadFile(url: string | null | undefined) {
     if (!url) {
         toast.error('Fichier indisponible.');
@@ -73,6 +85,11 @@ export function FinanceDocumentActions({
                     <FileSpreadsheet size={15} />
                 </AppTableActionButton>
             )}
+            {document.revealFilesUrl ? (
+                <AppTableActionButton label="Afficher dans Explorer" tone="view" onPress={() => revealFiles(document.revealFilesUrl)}>
+                    <FolderOpen size={15} />
+                </AppTableActionButton>
+            ) : null}
             {document.type === 'quote' ? (
                 <>
                     <AppTableActionButton label="Accepter" tone="create" onPress={() => onAccept(document)}>

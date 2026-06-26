@@ -1324,3 +1324,62 @@ All focused checks passed. Vite still reports the existing large chunk warning.
 ## Next Recommended Step
 
 Reload `/finance` and confirm the finance page opens without the SQL `is_active` error.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-26
+
+## Step Completed
+
+Finance generated files reveal helper
+
+## What Was Changed
+
+Added a local-only Explorer reveal action for generated finance documents. When a PDF or Excel export exists, the finance table shows an `Afficher dans Explorer` action that opens the generated file location on the local Windows machine.
+
+## Files Modified
+
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `app/Http/Resources/FinanceDocumentResource.php`
+- `resources/js/features/finance/components/FinanceDocumentActions.tsx`
+- `resources/js/features/finance/types.ts`
+- `routes/web.php`
+- `docs/AI_WORK_REPORT.md`
+
+## New Routes
+
+- `POST /finance/documents/{financeDocument}/reveal-generated-files`
+
+## Important Decisions
+
+- The reveal action is only exposed in `APP_ENV=local`.
+- The backend only opens files stored under Laravel's configured public storage disk.
+- The route does not expose absolute paths to the frontend.
+- On non-Windows or non-local environments, the route returns a clear error message instead of attempting to open Explorer.
+
+## Commands Run
+
+```bash
+php -l app/Http/Controllers/Finance/FinanceDocumentController.php
+php -l app/Http/Resources/FinanceDocumentResource.php
+php artisan route:list --path=finance/documents
+npm run build
+```
+
+## Build/Test Result
+
+Focused PHP syntax checks, route check, and frontend build passed. Vite still reports the existing large chunk warning.
+
+## How To Test
+
+1. Open `/finance` locally on Windows.
+2. Generate PDF or Excel for a finance document.
+3. Click `Afficher dans Explorer` on that document row.
+4. Windows Explorer should open with the generated file selected.
+
+## Next Recommended Step
+
+Add finance template editing so PDF layout can be adjusted from the app.
