@@ -41,6 +41,8 @@ type PageProps = {
     clients?: ClientOption[];
     dossiers?: DossierOption[];
     templates?: TemplateOption[];
+    defaultTemplates?: Array<TemplateOption & { slug?: string }>;
+    templateEditorUrl?: string;
     settings?: Partial<FinanceSettings>;
     filters?: { tab?: string };
 };
@@ -74,6 +76,8 @@ export default function FinanceDocumentsIndex({
     clients = [],
     dossiers = [],
     templates = [],
+    defaultTemplates = [],
+    templateEditorUrl = '/finance/templates',
     settings: rawSettings,
     filters,
 }: PageProps) {

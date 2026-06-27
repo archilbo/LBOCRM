@@ -104,6 +104,17 @@ class FinanceDocumentController extends Controller
                     'label' => $template->name,
                     'type' => $template->type,
                 ]),
+            'defaultTemplates' => FinanceTemplate::query()
+                ->where('is_default', true)
+                ->orderBy('type')
+                ->get()
+                ->map(fn ($template) => [
+                    'id' => (string) $template->id,
+                    'label' => $template->name,
+                    'type' => $template->type,
+                    'slug' => $template->slug,
+                ]),
+            'templateEditorUrl' => route('finance.templates.index'),
             'settings' => [
                 'defaultTvaRate' => FinanceSettingsService::getTvaRate(),
                 'defaultCurrency' => $currency,

@@ -1544,3 +1544,39 @@ Get-ChildItem resources/js -Recurse -Include *.tsx,*.ts | Select-String -Pattern
 ## Next Recommended Step
 
 Start MySQL and manually validate `/finance/templates`, then generate PDFs for a Devis and Facture to confirm the selected defaults are used.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-27
+
+## Step Completed
+
+Finance templates tab runtime hotfix
+
+## What Was Changed
+
+Fixed `/finance` crashing with `ReferenceError: defaultTemplates is not defined` by adding the missing frontend prop type/destructuring and backend props for default finance templates.
+
+## Files Modified
+
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```bash
+php -l app/Http/Controllers/Finance/FinanceDocumentController.php
+npm run build
+```
+
+## Build/Test Result
+
+Both checks passed. Vite still reports the existing large chunk warning.
+
+## Next Recommended Step
+
+Reload `/finance` and confirm the Templates tab renders the default templates summary and editor link.
