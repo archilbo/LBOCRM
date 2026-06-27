@@ -3,36 +3,46 @@
 namespace App\Http\Requests\Finance;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 class UpdateFinanceSettingsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) Auth::user();
+        $user = $this->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        if (method_exists($user, 'can')) {
+            return $user->can('manage finance') || $user->can('manage users') || $user->hasRole('admin');
+        }
+
+        return true;
     }
 
     public function rules(): array
     {
         return [
-            'company_name' => 'nullable|string|max:255',
-            'company_address' => 'nullable|string',
-            'company_phone' => 'nullable|string|max:50',
-            'company_email' => 'nullable|email|max:255',
-            'company_ice' => 'nullable|string|max:50',
-            'company_cin' => 'nullable|string|max:50',
-            'quote_prefix' => 'nullable|string|max:20',
-            'invoice_prefix' => 'nullable|string|max:20',
-            'receipt_prefix' => 'nullable|string|max:20',
-            'payment_prefix' => 'nullable|string|max:20',
-            'tva_rate' => 'nullable|numeric|min:0|max:100',
-            'currency' => 'nullable|string|max:10',
-            'payment_terms' => 'nullable|string|max:500',
-            'payment_days' => 'nullable|integer|min:0|max:365',
-            'bank_name' => 'nullable|string|max:255',
-            'bank_rib' => 'nullable|string|max:100',
-            'bank_iban' => 'nullable|string|max:100',
-            'bank_bic' => 'nullable|string|max:50',
+            'finance.default_tva_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'finance.default_currency' => ['required', 'string', 'max:10'],
+            'finance.default_payment_terms_days' => ['required', 'integer', 'min:0', 'max:365'],
+            'finance.default_quote_validity_days' => ['required', 'integer', 'min:0', 'max:365'],
+            'finance.default_unit_price_m2' => ['required', 'numeric', 'min:0'],
+            'finance.default_architect_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+
+            'company.company_name' => ['nullable', 'string', 'max:255'],
+            'company.company_address' => ['nullable', 'string', 'max:1000'],
+            'company.company_phone' => ['nullable', 'string', 'max:100'],
+            'company.company_email' => ['nullable', 'email', 'max:255'],
+            'company.company_ice' => ['nullable', 'string', 'max:100'],
+            'company.company_tva' => ['nullable', 'string', 'max:100'],
+            'company.company_patente' => ['nullable', 'string', 'max:100'],
+            'company.company_cnss' => ['nullable', 'string', 'max:100'],
+            'company.company_logo_path' => ['nullable', 'string', 'max:1000'],
+
+            'bank.bank_name' => ['nullable', 'string', 'max:255'],
+            'bank.bank_rib' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

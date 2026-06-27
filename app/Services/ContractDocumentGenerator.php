@@ -58,15 +58,22 @@ class ContractDocumentGenerator
         $client = $dossier?->client;
 
         $rate = (float) ($contract->fee_rate_percent ?? config('archilbo_templates.contracts.default_rate', 0.5));
-        $unitPrice = (float) config('archilbo_templates.contracts.construction_unit_price', 900);
+        $unitPrice = (float) ($contract->price_per_square_meter ?: config('archilbo_templates.contracts.construction_unit_price', 900));
 
         $plancher = (float) ($contract->surface ?: $dossier?->floor_area ?: 0);
         $sup = (float) ($dossier?->land_surface ?: 0);
 
         $estimation = $plancher * $unitPrice;
-        $ht = $estimation * ($rate / 100);
-        $tva = $ht * 0.20;
-        $ttc = $ht + $tva;
+        $ht = (float) $contract->ht;
+        $tva = (float) $contract->tva;
+        $ttc = (float) $contract->ttc;
+
+        if ($ht <= 0 && $ttc <= 0) {
+            $tvaRate = ((float) config('archilbo_templates.contracts.tva_rate', 20)) / 100;
+            $ht = $estimation * ($rate / 100);
+            $tva = $ht * $tvaRate;
+            $ttc = $ht + $tva;
+        }
 
         return [
             'DATE' => now()->format('d/m/Y'),

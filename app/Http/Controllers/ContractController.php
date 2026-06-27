@@ -205,25 +205,38 @@ class ContractController extends Controller
     {
         $dossier = Dossier::query()->findOrFail($data['dossier_id']);
 
+        $calculationMode = ($data['calculation_mode'] ?? 'percentage') === 'forfait'
+            ? 'forfait'
+            : 'percentage';
         $feeRatePercent = (float) ($data['fee_rate_percent'] ?? config('archilbo_templates.contracts.default_rate', 0.5));
         $surface = (float) ($data['surface'] ?? 0);
-        $unitPrice = (float) config('archilbo_templates.contracts.construction_unit_price', 900);
+        $unitPrice = (float) ($data['price_per_square_meter'] ?? config('archilbo_templates.contracts.construction_unit_price', 900));
+        $tvaRate = ((float) config('archilbo_templates.contracts.tva_rate', 20)) / 100;
 
         if ($surface <= 0) {
             $surface = (float) ($dossier->floor_area ?? 0);
         }
 
         $estimation = $surface * $unitPrice;
-        $ht = $estimation * ($feeRatePercent / 100);
-        $tva = $ht * 0.20;
-        $ttc = $ht + $tva;
+
+        if ($calculationMode === 'forfait') {
+            $ttc = max(0, (float) ($data['forfait_ttc'] ?? 0));
+            $ht = $tvaRate > -1 ? $ttc / (1 + $tvaRate) : $ttc;
+            $tva = $ttc - $ht;
+        } else {
+            $ht = $estimation * ($feeRatePercent / 100);
+            $tva = $ht * $tvaRate;
+            $ttc = $ht + $tva;
+        }
 
         return [
             'dossier_id' => $dossier->id,
             'status' => $data['status'] ?? 'draft',
             'surface' => $surface,
             'price_per_square_meter' => $unitPrice,
+            'calculation_mode' => $calculationMode,
             'fee_rate_percent' => $feeRatePercent,
+            'forfait_ttc' => $calculationMode === 'forfait' ? $ttc : null,
             'ht' => $ht,
             'tva' => $tva,
             'ttc' => $ttc,

@@ -8,6 +8,7 @@ import { AppTextField } from '@/components/ui/AppTextField';
 import { AppTextarea } from '@/components/ui/AppTextarea';
 import { FinanceClientDossierFields } from '@/features/finance/components/FinanceClientDossierFields';
 import { FinanceDateFields } from '@/features/finance/components/FinanceDateFields';
+import { FinanceDocumentLockNotice, getFinanceDocumentLockMessage, isFinanceDocumentLocked } from '@/features/finance/components/FinanceDocumentLockNotice';
 import { FinanceDocumentPreview } from '@/features/finance/components/FinanceDocumentPreview';
 import { FinanceItemsTable } from '@/features/finance/components/FinanceItemsTable';
 import { FinanceTotalsBox } from '@/features/finance/components/FinanceTotalsBox';
@@ -104,6 +105,9 @@ export function FinanceDocumentBuilderDrawer({
     onSaved,
 }: FinanceDocumentBuilderDrawerProps) {
     const [form, setForm] = useState<BuilderForm>(() => createForm(type, settings, document));
+    const isLocked = isFinanceDocumentLocked(document);
+    const canEditNumberFields = !isLocked && (document?.lock?.canEditNumberFields ?? true);
+    const lockMessage = isLocked ? getFinanceDocumentLockMessage(document) : undefined;
 
     useEffect(() => {
         if (isOpen) {
@@ -131,7 +135,7 @@ export function FinanceDocumentBuilderDrawer({
     }
 
     function submit() {
-        const payload = {
+        const payload: Record<string, unknown> = {
             type: form.type,
             client_id: form.clientId || null,
             dossier_id: form.dossierId || null,
@@ -154,6 +158,11 @@ export function FinanceDocumentBuilderDrawer({
                 tva_rate: item.tvaRate || form.tvaRate,
             })),
         };
+
+        if (mode === 'edit' && isLocked) {
+            delete payload.type;
+            delete payload.issue_date;
+        }
 
         const options = {
             preserveScroll: true,
@@ -190,6 +199,7 @@ export function FinanceDocumentBuilderDrawer({
         >
             <div className="finance-builder-container"><div className="finance-builder-layout">
                 <div className="min-w-0 space-y-5">
+                    <FinanceDocumentLockNotice document={document} compact />
                     <div className="grid gap-3 sm:grid-cols-3">
                         <AppSelect
                             label="Type"
@@ -199,6 +209,8 @@ export function FinanceDocumentBuilderDrawer({
                                 { id: 'receipt', label: 'Recu' },
                             ]}
                             selectedKey={form.type}
+                            isDisabled={!canEditNumberFields}
+                            description={!canEditNumberFields ? lockMessage : undefined}
                             onSelectionChange={(key) => update('type', String(key || 'quote') as FinanceDocumentType)}
                         />
                         <AppTextField label="Devise" value={form.currency} onChange={(value) => update('currency', normalizeCurrency(value))} />
@@ -219,6 +231,8 @@ export function FinanceDocumentBuilderDrawer({
                         issueDate={form.issueDate}
                         dueDate={form.dueDate}
                         validUntil={form.validUntil}
+                        isIssueDateDisabled={!canEditNumberFields}
+                        issueDateDescription={!canEditNumberFields ? lockMessage : undefined}
                         onChange={(field, value) => update(field, value)}
                     />
 

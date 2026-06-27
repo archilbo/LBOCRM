@@ -12,8 +12,10 @@ use App\Http\Controllers\DossierController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\Finance\DocumentTemplateController;
+use App\Http\Controllers\Finance\DocumentTemplateVersionController;
 use App\Http\Controllers\Finance\FinanceDocumentController;
 use App\Http\Controllers\Finance\FinanceSettingsController;
+use App\Http\Controllers\Finance\CompanyLogoController;
 use App\Http\Controllers\Finance\PaymentController;
 use App\Http\Controllers\GlobalSearchController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +31,11 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/finance/settings', [FinanceSettingsController::class, 'index'])->name('finance.settings.index');
+    Route::put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update');
+    Route::put('/finance/settings/reset', [FinanceSettingsController::class, 'reset'])->name('finance.settings.reset');
+    Route::post('/finance/settings/logo', [CompanyLogoController::class, 'store'])->name('finance.settings.logo.store');
+    Route::delete('/finance/settings/logo', [CompanyLogoController::class, 'destroy'])->name('finance.settings.logo.destroy');
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/global-search', [GlobalSearchController::class, 'index'])->name('global-search.index');
@@ -85,6 +92,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update');
 
     Route::get('/finance/templates', [DocumentTemplateController::class, 'index'])->name('finance.templates.index');
+    Route::get('/finance/templates/{documentTemplate}/versions', [DocumentTemplateVersionController::class, 'index'])->name('finance.templates.versions.index');
+    Route::post('/finance/templates/{documentTemplate}/versions', [DocumentTemplateVersionController::class, 'store'])->name('finance.templates.versions.store');
+    Route::put('/finance/templates/{documentTemplate}/versions/{version}/restore', [DocumentTemplateVersionController::class, 'restore'])->name('finance.templates.versions.restore');
+    Route::delete('/finance/templates/{documentTemplate}/versions/{version}', [DocumentTemplateVersionController::class, 'destroy'])->name('finance.templates.versions.destroy');
     Route::post('/finance/templates', [DocumentTemplateController::class, 'store'])->name('finance.templates.store');
     Route::put('/finance/templates/reset/{type}', [DocumentTemplateController::class, 'resetDefault'])->name('finance.templates.reset');
     Route::get('/finance/templates/{documentTemplate}', [DocumentTemplateController::class, 'show'])->name('finance.templates.show');

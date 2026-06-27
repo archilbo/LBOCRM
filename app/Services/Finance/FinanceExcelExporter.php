@@ -14,8 +14,10 @@ use Throwable;
 
 class FinanceExcelExporter
 {
-    public function __construct(private readonly FinanceDocumentRenderData $renderData)
-    {
+    public function __construct(
+        private readonly FinanceDocumentRenderData $renderData,
+        private readonly FinanceLockedDocumentNumberResolver $numberResolver,
+    ) {
     }
 
     public function generate(FinanceDocument $document): string
@@ -23,6 +25,9 @@ class FinanceExcelExporter
         $spreadsheet = new Spreadsheet();
 
         try {
+            $this->numberResolver->forModel($document, $document->type, 'number', $document->issue_date);
+            $document->refresh()->loadMissing(['client', 'dossier', 'items', 'payments', 'template']);
+
             $data = $this->renderData->toArray($document);
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->setTitle(substr($data['document']['type_label'] . ' ' . $document->number, 0, 31));

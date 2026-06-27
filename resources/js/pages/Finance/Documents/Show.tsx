@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { FinanceDocumentLockBadge, FinanceDocumentLockNotice } from '@/features/finance/components/FinanceDocumentLockNotice';
 import { FinanceMoneyCell } from '@/features/finance/components/FinanceMoneyCell';
 import { FinanceStatusBadge } from '@/features/finance/components/FinanceStatusBadge';
 import type { FinanceDocument } from '@/features/finance/types';
@@ -92,23 +93,21 @@ export default function FinanceDocumentShow({ document: rawDocument }: PageProps
                                 <Download size={16} />
                                 PDF
                             </AppButton>
-                        ) : (
-                            <AppButton variant="secondary" onPress={() => generateFile(document.generatePdfUrl, 'Generation PDF')}>
-                                <FileText size={16} />
-                                Generer PDF
-                            </AppButton>
-                        )}
+                        ) : null}
+                        <AppButton variant="secondary" onPress={() => generateFile(document.generatePdfUrl, 'Generation PDF')}>
+                            <FileText size={16} />
+                            {document.hasPdf ? 'Regenerer PDF' : 'Generer PDF'}
+                        </AppButton>
                         {document.excelDownloadUrl || document.downloadUrl ? (
                             <AppButton variant="secondary" onPress={() => downloadFile(document.excelDownloadUrl || document.downloadUrl)}>
                                 <FileSpreadsheet size={16} />
                                 Excel
                             </AppButton>
-                        ) : (
-                            <AppButton variant="secondary" onPress={() => generateFile(document.generateExcelUrl, 'Generation Excel')}>
-                                <FileSpreadsheet size={16} />
-                                Generer Excel
-                            </AppButton>
-                        )}
+                        ) : null}
+                        <AppButton variant="secondary" onPress={() => generateFile(document.generateExcelUrl, 'Generation Excel')}>
+                            <FileSpreadsheet size={16} />
+                            {document.hasExcel ? 'Regenerer Excel' : 'Generer Excel'}
+                        </AppButton>
                         {document.revealFilesUrl ? (
                             <AppButton variant="secondary" onPress={() => revealFiles(document.revealFilesUrl)}>
                                 <FolderOpen size={16} />
@@ -123,10 +122,17 @@ export default function FinanceDocumentShow({ document: rawDocument }: PageProps
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{document.typeLabel}</p>
-                                <h2 className="mt-2 text-2xl font-semibold">{document.number}</h2>
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                    <h2 className="text-2xl font-semibold">{document.number}</h2>
+                                    <FinanceDocumentLockBadge document={document} />
+                                </div>
                                 <p className="mt-1 text-sm text-[var(--text-muted)]">Date: {document.issueDate || '-'}</p>
                             </div>
                             <FinanceStatusBadge status={document.status} />
+                        </div>
+
+                        <div className="mt-4">
+                            <FinanceDocumentLockNotice document={document} />
                         </div>
 
                         <div className="mt-6 grid gap-4 sm:grid-cols-2">

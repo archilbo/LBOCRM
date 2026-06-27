@@ -67,24 +67,22 @@ export function FinanceDocumentActions({
             <AppTableActionButton label="Modifier" tone="edit" onPress={() => onEdit(document)}>
                 <Pencil size={15} />
             </AppTableActionButton>
-            {document.hasPdf || document.pdfDownloadUrl ? (
+            {document.pdfDownloadUrl ? (
                 <AppTableActionButton label="Telecharger PDF" tone="documents" onPress={() => downloadFile(document.pdfDownloadUrl)}>
                     <FileDown size={15} />
                 </AppTableActionButton>
-            ) : (
-                <AppTableActionButton label="Generer PDF" tone="documents" onPress={() => generateFile(document.generatePdfUrl, 'Generation PDF')}>
-                    <FileText size={15} />
-                </AppTableActionButton>
-            )}
-            {document.hasExcel || document.excelDownloadUrl || document.downloadUrl ? (
+            ) : null}
+            <AppTableActionButton label={document.hasPdf ? 'Regenerer PDF' : 'Generer PDF'} tone="documents" onPress={() => generateFile(document.generatePdfUrl, 'Generation PDF')}>
+                <FileText size={15} />
+            </AppTableActionButton>
+            {document.excelDownloadUrl || document.downloadUrl ? (
                 <AppTableActionButton label="Telecharger Excel" tone="archive" onPress={() => downloadFile(document.excelDownloadUrl || document.downloadUrl)}>
                     <FileSpreadsheet size={15} />
                 </AppTableActionButton>
-            ) : (
-                <AppTableActionButton label="Generer Excel" tone="archive" onPress={() => generateFile(document.generateExcelUrl, 'Generation Excel')}>
-                    <FileSpreadsheet size={15} />
-                </AppTableActionButton>
-            )}
+            ) : null}
+            <AppTableActionButton label={document.hasExcel ? 'Regenerer Excel' : 'Generer Excel'} tone="archive" onPress={() => generateFile(document.generateExcelUrl, 'Generation Excel')}>
+                <FileSpreadsheet size={15} />
+            </AppTableActionButton>
             {document.revealFilesUrl ? (
                 <AppTableActionButton label="Afficher dans Explorer" tone="view" onPress={() => revealFiles(document.revealFilesUrl)}>
                     <FolderOpen size={15} />

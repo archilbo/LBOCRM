@@ -14,6 +14,7 @@ return [
     'contracts' => [
         'default_rate' => env('ARCHI_LBO_DEFAULT_CONTRACT_RATE', '0.5'),
         'construction_unit_price' => env('ARCHI_LBO_CONSTRUCTION_UNIT_PRICE', 900),
+        'tva_rate' => env('ARCHI_LBO_CONTRACT_TVA_RATE', 20),
 
         'templates' => [
             '0_5' => storage_path('app/private/archi-templates/contracts/contrat_architecte_0_5.docx'),

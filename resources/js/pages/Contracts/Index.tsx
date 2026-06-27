@@ -89,6 +89,9 @@ function toBackendPayload(payload: ContractFormPayload) {
         status: payload.status || 'draft',
         surface: payload.surface || null,
         price_per_square_meter: payload.pricePerSquareMeter || null,
+        calculation_mode: payload.calculationMode || 'percentage',
+        fee_rate_percent: payload.feeRatePercent || null,
+        forfait_ttc: payload.calculationMode === 'forfait' ? payload.forfaitTtc || null : null,
         notes: payload.notes || null,
     };
 }
@@ -250,6 +253,15 @@ export default function ContractsIndex({
                 header: 'Surface',
                 cell: ({ row }) => (
                     <AppBadge tone="blue">{row.original.surface} mÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â²</AppBadge>
+                ),
+            },
+            {
+                accessorKey: 'calculationMode',
+                header: 'Mode',
+                cell: ({ row }) => (
+                    <AppBadge tone={row.original.calculationMode === 'forfait' ? 'violet' : 'blue'}>
+                        {row.original.calculationMode === 'forfait' ? 'FORFAIT' : `${row.original.feeRatePercent}%`}
+                    </AppBadge>
                 ),
             },
             {
@@ -443,6 +455,13 @@ export default function ContractsIndex({
                                         </p>
                                         <p className="mt-1 text-xs text-[var(--text-muted)]">
                                             {selectedContract.clientName}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-2xl border bg-[var(--surface)] p-4">
+                                        <p className="text-xs text-[var(--text-muted)]">Calculation</p>
+                                        <p className="mt-1 text-sm font-semibold">
+                                            {selectedContract.calculationMode === 'forfait' ? 'FORFAIT TTC' : `${selectedContract.feeRatePercent}%`}
                                         </p>
                                     </div>
 

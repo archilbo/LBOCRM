@@ -1725,3 +1725,262 @@ No new known issue. The unrelated local `.gitignore` modification was left untou
 ## Next Recommended Step
 
 Open `/finance/templates` and check the compact editor at desktop and laptop widths, then tune exact side rail widths if needed after visual review.
+
+---
+
+## Step 45 - Template Editor UI Polish
+
+Replaced TemplateEditorForm with a stable compact editor using native controls, tabs, warnings and placeholder insertion.
+
+Files:
+- resources/js/features/finance/templates/TemplateEditorForm.tsx
+- docs/STEP_45_TEMPLATE_EDITOR_UI_POLISH.md
+
+---
+
+## Step 46 - Finance Export QA
+
+Added an artisan QA command to generate and verify finance PDF/XLSX exports.
+
+Files:
+- app/Console/Commands/FinanceExportQaCommand.php
+- docs/STEP_46_FINANCE_EXPORT_QA.md
+
+---
+
+## Step 46 - Finance Export QA
+
+Added an artisan QA command to generate and verify finance PDF/XLSX exports.
+
+Files:
+- app/Console/Commands/FinanceExportQaCommand.php
+- docs/STEP_46_FINANCE_EXPORT_QA.md
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-27
+
+## Step Completed
+
+Step 49-A - Finance UI lock awareness backend payload and discovery
+
+## What Was Built
+
+Verified the finance document lock payload used by the UI and refreshed the React discovery report for the next UI lock-awareness patch.
+
+## Files Created
+
+- `app/Services/Finance/FinanceDocumentLockStatePresenter.php`
+- `app/Console/Commands/FinanceUiLockPayloadQaCommand.php`
+- `app/Console/Commands/FinanceUiLockAwarenessDiscoveryCommand.php`
+- `docs/finance-ui-lock-awareness-discovery.md`
+
+## Files Modified
+
+- `app/Http/Resources/FinanceDocumentResource.php`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- Confirmed `FinanceDocumentResource` exposes `numberLocked`, `numberLockedAt`, and `lock`.
+- Confirmed `lock` includes `isLocked`, `lockedAt`, `lockedAtFormatted`, `message`, `blockedFields`, `canEditNumberFields`, `canRegenerateExports`, `canGeneratePdf`, and `canGenerateExcel`.
+- Confirmed locked documents expose UI-safe rules without changing visible document numbering away from `$document->number`.
+
+## UI Discovery
+
+Top React candidates for Step 49-B:
+
+- `resources/js/pages/Finance/Index.tsx`
+- `resources/js/features/finance/types.ts`
+- `resources/js/pages/Finance/Documents/Show.tsx`
+- `resources/js/features/finance/drawers/FinanceDocumentBuilderDrawer.tsx`
+- `resources/js/features/finance/drawers/FinanceDocumentDrawer.tsx`
+- `resources/js/features/finance/components/FinanceDocumentActions.tsx`
+- `resources/js/features/finance/components/FinanceDocumentPreview.tsx`
+
+## Commands Run
+
+```powershell
+php artisan optimize:clear
+php artisan archilbo:finance-numbering-qa
+php artisan archilbo:finance-export-numbering-qa
+php artisan archilbo:finance-real-export-numbering-integration-qa
+php artisan archilbo:finance-export-qa
+php artisan archilbo:finance-document-lock-guard-qa
+php artisan archilbo:finance-ui-lock-payload-qa
+php artisan archilbo:finance-ui-lock-awareness-discovery
+```
+
+## Build/Test Result
+
+All listed finance numbering, export, lock guard, UI payload, and UI discovery commands passed.
+
+## Known Issues
+
+PowerShell still displays mojibake for some legacy command symbols. Command results are pass/fail readable and successful.
+
+The working tree contains many existing uncommitted Step 47/48/49 files and unrelated local changes. No React UI lock-awareness rewrite was done in Step 49-A.
+
+## Next Recommended Step
+
+Step 49-B: patch the discovered React types and finance document UI so locked exported documents show a locked badge/message, disable number/type/issue_date editing, and keep PDF/Excel generate/download actions active.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-27
+
+## Step Completed
+
+Step 49-B - Finance document UI lock awareness
+
+## What Was Built
+
+Updated the finance document UI so locked exported documents clearly show lock state and prevent number-critical edit attempts.
+
+## Files Created
+
+- `resources/js/features/finance/components/FinanceDocumentLockNotice.tsx`
+
+## Files Modified
+
+- `resources/js/features/finance/types.ts`
+- `resources/js/features/finance/components/FinanceDateFields.tsx`
+- `resources/js/features/finance/components/FinanceDocumentActions.tsx`
+- `resources/js/features/finance/drawers/FinanceDocumentBuilderDrawer.tsx`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+- `resources/js/pages/Finance/Documents/Show.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## UI Behavior Added
+
+- Locked documents show a Locked badge in lists, recent cards, show page, and edit drawer.
+- Locked documents show the backend lock message and locked timestamp where available.
+- The edit drawer disables Type and Date emission for locked documents.
+- The edit drawer omits `type` and `issue_date` from locked edit submissions.
+- PDF/Excel generate and regenerate actions remain active.
+- PDF/Excel download actions remain active.
+- Notes, terms, payments, and other safe fields remain editable where the existing UI allows them.
+
+## Commands Run
+
+```powershell
+php artisan optimize:clear
+php artisan archilbo:finance-numbering-qa
+php artisan archilbo:finance-export-numbering-qa
+php artisan archilbo:finance-real-export-numbering-integration-qa
+php artisan archilbo:finance-export-qa
+php artisan archilbo:finance-document-lock-guard-qa
+```
+
+## Build/Test Result
+
+Initial backend QA passed before UI patch. Final frontend/backend QA is listed in the current assistant response.
+
+## Next Recommended Step
+
+Open `/finance`, edit a locked invoice, confirm Type and Date emission are disabled, then regenerate/download PDF and Excel.
+## Step 49-B Final QA Result
+
+Additional commands run after the UI patch:
+
+```powershell
+php -l STEP49_B_RUNNER.php
+git diff --check
+npm run build
+php artisan optimize:clear
+php artisan archilbo:finance-ui-lock-payload-qa
+php artisan archilbo:finance-export-qa
+php artisan archilbo:finance-document-lock-guard-qa
+php artisan archilbo:finance-ui-lock-awareness-discovery
+```
+
+Results:
+
+- `php -l STEP49_B_RUNNER.php` passed.
+- `git diff --check` passed after normalizing `FinanceDocumentResource.php` EOF.
+- `npm run build` passed. Vite still reports the existing large chunk warning.
+- `finance-ui-lock-payload-qa` passed.
+- `finance-export-qa` passed.
+- `finance-document-lock-guard-qa` passed.
+- UI discovery report refreshed at `docs/finance-ui-lock-awareness-discovery.md`.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-27
+
+## Step Completed
+
+Contract FORFAIT calculation mode
+
+## What Was Built
+
+Added a contract calculation mode for fixed client prices. Existing percentage contracts keep the 0.5% / 2% calculation. New FORFAIT contracts accept only a final TTC amount and automatically derive HT and TVA.
+
+## Files Created
+
+- `database/migrations/2026_06_27_160000_add_forfait_mode_to_contracts_table.php`
+- `app/Console/Commands/ContractForfaitCalculationQaCommand.php`
+
+## Files Modified
+
+- `config/archilbo_templates.php`
+- `app/Models/Contract.php`
+- `app/Http/Requests/StoreContractRequest.php`
+- `app/Http/Requests/UpdateContractRequest.php`
+- `app/Http/Resources/ContractResource.php`
+- `app/Http/Controllers/ContractController.php`
+- `app/Services/ContractDocumentGenerator.php`
+- `resources/js/features/contracts/types.ts`
+- `resources/js/features/contracts/drawers/ContractDrawer.tsx`
+- `resources/js/pages/Contracts/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Behavior
+
+- Percentage mode: HT = surface x price/m2 x selected rate / 100, TVA = HT x TVA rate, TTC = HT + TVA.
+- FORFAIT mode: user enters TTC only, HT = TTC / 1.20, TVA = TTC - HT.
+- Contract DOCX generation now uses stored HT/TVA/TTC values, so forfait amounts are preserved in generated templates.
+- The contract form now sends `fee_rate_percent`, fixing the previous selector-submit mismatch.
+
+## Next Recommended Step
+
+Open `/contracts`, create a FORFAIT contract with TTC 12000, confirm HT is 10000 and TVA is 2000, then generate/download the DOCX.
+
+## Contract FORFAIT Final QA Result
+
+Commands run after implementation:
+
+```powershell
+php -l app/Http/Controllers/ContractController.php
+php -l app/Models/Contract.php
+php -l app/Http/Requests/StoreContractRequest.php
+php -l app/Http/Requests/UpdateContractRequest.php
+php -l app/Http/Resources/ContractResource.php
+php -l app/Services/ContractDocumentGenerator.php
+php -l app/Console/Commands/ContractForfaitCalculationQaCommand.php
+php -l database/migrations/2026_06_27_160000_add_forfait_mode_to_contracts_table.php
+php -l CONTRACT_FORFAIT_RUNNER.php
+php artisan migrate
+php artisan archilbo:contract-forfait-calculation-qa 12000
+npm run build
+git diff --check
+php artisan archilbo:test-contract-generation 4
+```
+
+Results:
+
+- PHP lint passed for all touched PHP files.
+- Migration ran successfully.
+- FORFAIT QA passed: TTC 12000 gives HT 10000 and TVA 2000.
+- `npm run build` passed with the existing large chunk warning.
+- `git diff --check` passed.
+- Existing contract generation QA passed for `CTR-2026-0001`, including DOCX and PDF export.

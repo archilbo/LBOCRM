@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\UpdateFinanceSettingsRequest;
+use App\Models\CompanySetting;
 use App\Services\Finance\FinanceSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -11,28 +12,17 @@ use Inertia\Response;
 
 class FinanceSettingsController extends Controller
 {
-    public function index(): Response
+    public function index(FinanceSettingsService $settings): Response
     {
-        return Inertia::render('Finance/Settings', [
-            'settings' => [
-                'company_name' => FinanceSettingsService::getCompanyName(),
-                'company_address' => FinanceSettingsService::getCompanyAddress(),
-                'company_phone' => FinanceSettingsService::getCompanyPhone(),
-                'company_email' => FinanceSettingsService::getCompanyEmail(),
-                'company_ice' => FinanceSettingsService::getCompanyIce(),
-                'company_cin' => FinanceSettingsService::getCompanyCin(),
-                'quote_prefix' => FinanceSettingsService::getQuotePrefix(),
-                'invoice_prefix' => FinanceSettingsService::getInvoicePrefix(),
-                'receipt_prefix' => FinanceSettingsService::getReceiptPrefix(),
-                'payment_prefix' => FinanceSettingsService::getPaymentPrefix(),
-                'tva_rate' => FinanceSettingsService::getTvaRate(),
-                'currency' => FinanceSettingsService::getCurrency(),
-                'payment_terms' => FinanceSettingsService::getDefaultPaymentTerms(),
-                'payment_days' => FinanceSettingsService::getDefaultPaymentDays(),
-                'bank_name' => FinanceSettingsService::getBankName(),
-                'bank_rib' => FinanceSettingsService::getBankRib(),
-                'bank_iban' => FinanceSettingsService::getBankIban(),
-                'bank_bic' => FinanceSettingsService::getBankBic(),
+        return Inertia::render('Finance/Settings/Index', [
+            'settings' => $settings->allGrouped(),
+            'routes' => [
+                'update' => route('finance.settings.update'),
+                'reset' => route('finance.settings.reset'),
+                'templates' => route('finance.templates.index'),
+                'finance' => route('finance.index'),
+                'uploadLogo' => route('finance.settings.logo.store'),
+                'deleteLogo' => route('finance.settings.logo.destroy'),
             ],
         ]);
     }
@@ -41,38 +31,46 @@ class FinanceSettingsController extends Controller
     {
         $data = $request->validated();
 
-        $mappings = [
-            'company_name' => ['group' => 'company', 'key' => 'name', 'type' => 'string'],
-            'company_address' => ['group' => 'company', 'key' => 'address', 'type' => 'string'],
-            'company_phone' => ['group' => 'company', 'key' => 'phone', 'type' => 'string'],
-            'company_email' => ['group' => 'company', 'key' => 'email', 'type' => 'string'],
-            'company_ice' => ['group' => 'company', 'key' => 'ice', 'type' => 'string'],
-            'company_cin' => ['group' => 'company', 'key' => 'cin', 'type' => 'string'],
-            'quote_prefix' => ['group' => 'numbering', 'key' => 'quote_prefix', 'type' => 'string'],
-            'invoice_prefix' => ['group' => 'numbering', 'key' => 'invoice_prefix', 'type' => 'string'],
-            'receipt_prefix' => ['group' => 'numbering', 'key' => 'receipt_prefix', 'type' => 'string'],
-            'payment_prefix' => ['group' => 'numbering', 'key' => 'payment_prefix', 'type' => 'string'],
-            'tva_rate' => ['group' => 'tax', 'key' => 'tva_rate', 'type' => 'decimal'],
-            'currency' => ['group' => 'finance', 'key' => 'currency', 'type' => 'string'],
-            'payment_terms' => ['group' => 'finance', 'key' => 'payment_terms', 'type' => 'string'],
-            'payment_days' => ['group' => 'finance', 'key' => 'payment_days', 'type' => 'integer'],
-            'bank_name' => ['group' => 'bank', 'key' => 'bank_name', 'type' => 'string'],
-            'bank_rib' => ['group' => 'bank', 'key' => 'rib', 'type' => 'string'],
-            'bank_iban' => ['group' => 'bank', 'key' => 'iban', 'type' => 'string'],
-            'bank_bic' => ['group' => 'bank', 'key' => 'bic', 'type' => 'string'],
-        ];
+        $finance = $data['finance'] ?? [];
+        $company = $data['company'] ?? [];
+        $bank = $data['bank'] ?? [];
 
-        foreach ($mappings as $field => $mapping) {
-            if (array_key_exists($field, $data)) {
-                FinanceSettingsService::set(
-                    $mapping['group'],
-                    $mapping['key'],
-                    $data[$field],
-                    $mapping['type'],
-                );
-            }
-        }
+        CompanySetting::setValue('finance', 'default_tva_rate', $finance['default_tva_rate'] ?? 20, 'decimal', 'Default TVA rate');
+        CompanySetting::setValue('finance', 'default_currency', $finance['default_currency'] ?? 'MAD', 'string', 'Default currency');
+        CompanySetting::setValue('finance', 'default_payment_terms_days', $finance['default_payment_terms_days'] ?? 30, 'integer', 'Payment terms days');
+        CompanySetting::setValue('finance', 'default_quote_validity_days', $finance['default_quote_validity_days'] ?? 30, 'integer', 'Quote validity days');
+        CompanySetting::setValue('finance', 'default_unit_price_m2', $finance['default_unit_price_m2'] ?? 900, 'decimal', 'Default unit price m2');
+        CompanySetting::setValue('finance', 'default_architect_rate', $finance['default_architect_rate'] ?? 0.5, 'decimal', 'Default architect rate');
 
-        return redirect()->back()->with('success', 'Paramètres financiers mis à jour avec succès.');
+        CompanySetting::setValue('company', 'company_name', $company['company_name'] ?? '', 'string', 'Company name');
+        CompanySetting::setValue('company', 'company_address', $company['company_address'] ?? '', 'string', 'Company address');
+        CompanySetting::setValue('company', 'company_phone', $company['company_phone'] ?? '', 'string', 'Company phone');
+        CompanySetting::setValue('company', 'company_email', $company['company_email'] ?? '', 'string', 'Company email');
+        CompanySetting::setValue('company', 'company_ice', $company['company_ice'] ?? '', 'string', 'ICE');
+        CompanySetting::setValue('company', 'company_tva', $company['company_tva'] ?? '', 'string', 'TVA');
+        CompanySetting::setValue('company', 'company_patente', $company['company_patente'] ?? '', 'string', 'Patente');
+        CompanySetting::setValue('company', 'company_cnss', $company['company_cnss'] ?? '', 'string', 'CNSS');
+        CompanySetting::setValue('company', 'company_logo_path', $company['company_logo_path'] ?? '', 'string', 'Logo path');
+
+        CompanySetting::setValue('bank', 'bank_name', $bank['bank_name'] ?? '', 'string', 'Bank name');
+        CompanySetting::setValue('bank', 'bank_rib', $bank['bank_rib'] ?? '', 'string', 'Bank RIB');
+
+        return redirect()
+            ->route('finance.settings.index')
+            ->with('success', 'Finance settings updated successfully.');
+    }
+
+    public function reset(): RedirectResponse
+    {
+        CompanySetting::setValue('finance', 'default_tva_rate', 20, 'decimal', 'Default TVA rate');
+        CompanySetting::setValue('finance', 'default_currency', 'MAD', 'string', 'Default currency');
+        CompanySetting::setValue('finance', 'default_payment_terms_days', 30, 'integer', 'Payment terms days');
+        CompanySetting::setValue('finance', 'default_quote_validity_days', 30, 'integer', 'Quote validity days');
+        CompanySetting::setValue('finance', 'default_unit_price_m2', 900, 'decimal', 'Default unit price m2');
+        CompanySetting::setValue('finance', 'default_architect_rate', 0.5, 'decimal', 'Default architect rate');
+
+        return redirect()
+            ->route('finance.settings.index')
+            ->with('success', 'Finance defaults reset successfully.');
     }
 }

@@ -12,6 +12,18 @@ export type FinanceDocumentStatus =
     | 'overdue'
     | 'cancelled';
 
+export type FinanceDocumentLock = {
+    isLocked: boolean;
+    lockedAt: string | null;
+    lockedAtFormatted: string | null;
+    message: string;
+    blockedFields: string[];
+    canEditNumberFields: boolean;
+    canRegenerateExports: boolean;
+    canGeneratePdf: boolean;
+    canGenerateExcel: boolean;
+};
+
 export type FinanceDocumentItem = {
     id?: number;
     position: number;
@@ -32,6 +44,9 @@ export type FinanceDocument = {
     type: FinanceDocumentType;
     typeLabel: string;
     number: string;
+    numberLocked?: boolean;
+    numberLockedAt?: string | null;
+    lock?: FinanceDocumentLock | null;
     status: FinanceDocumentStatus;
     client: { id: number | string; name: string; cin?: string | null; address?: string | null } | null;
     dossier: {
@@ -80,6 +95,7 @@ export type FinanceDocument = {
     downloadUrl?: string | null;
     excelDownloadUrl?: string | null;
     pdfDownloadUrl?: string | null;
+    revealFilesUrl?: string | null;
     paymentUrl?: string | null;
 };
 

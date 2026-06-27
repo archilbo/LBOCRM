@@ -12,6 +12,7 @@ import { AppDataTable } from '@/components/ui/AppDataTable';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { FinanceDocumentActions } from '@/features/finance/components/FinanceDocumentActions';
 import { FinanceMetricCards, type FinanceMetrics } from '@/features/finance/components/FinanceMetricCards';
+import { FinanceDocumentLockBadge, getFinanceDocumentLockedAt } from '@/features/finance/components/FinanceDocumentLockNotice';
 import { FinanceMoneyCell } from '@/features/finance/components/FinanceMoneyCell';
 import { FinanceStatusBadge } from '@/features/finance/components/FinanceStatusBadge';
 import { FinanceTabs } from '@/features/finance/components/FinanceTabs';
@@ -366,12 +367,20 @@ function documentColumn(): ColumnDef<FinanceDocument> {
     return {
         header: 'Numero',
         accessorKey: 'number',
-        cell: ({ row }) => (
-            <div>
-                <p className="font-semibold">{row.original.number}</p>
-                <p className="text-xs text-[var(--text-muted)]">{row.original.typeLabel}</p>
-            </div>
-        ),
+        cell: ({ row }) => {
+            const lockedAt = getFinanceDocumentLockedAt(row.original);
+
+            return (
+                <div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="font-semibold">{row.original.number}</p>
+                        <FinanceDocumentLockBadge document={row.original} compact />
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)]">{row.original.typeLabel}</p>
+                    {lockedAt ? <p className="text-[10px] text-[var(--text-muted)]">Locked: {lockedAt}</p> : null}
+                </div>
+            );
+        },
     };
 }
 
@@ -439,7 +448,10 @@ function RecentDocuments({ title, icon, documents }: { title: string; icon: Reac
                 {documents.length > 0 ? documents.map((document) => (
                     <div key={document.id} className="flex items-center justify-between gap-3 rounded-2xl border bg-[var(--surface)] p-3">
                         <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold">{document.number}</p>
+                            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                                <p className="truncate text-sm font-semibold">{document.number}</p>
+                                <FinanceDocumentLockBadge document={document} compact />
+                            </div>
                             <p className="truncate text-xs text-[var(--text-muted)]">{document.client?.name || '-'}</p>
                         </div>
                         <FinanceMoneyCell value={document.totalTtc} currency={document.currency} />

@@ -13,7 +13,9 @@ export type ContractRow = {
 
     surface: number;
     pricePerSquareMeter: number;
+    calculationMode: 'percentage' | 'forfait' | string;
     feeRatePercent: number;
+    forfaitTtc: number | null;
     ht: number;
     tva: number;
     ttc: number;
@@ -46,6 +48,8 @@ export type ContractFormPayload = {
     status: string;
     surface: string;
     pricePerSquareMeter: string;
+    calculationMode: string;
     feeRatePercent: string;
+    forfaitTtc: string;
     notes: string;
 };

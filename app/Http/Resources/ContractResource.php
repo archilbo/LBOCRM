@@ -26,7 +26,9 @@ class ContractResource extends JsonResource
 
             'surface' => (float) $this->surface,
             'pricePerSquareMeter' => (float) $this->price_per_square_meter,
+            'calculationMode' => $this->calculation_mode ?? 'percentage',
             'feeRatePercent' => (float) ($this->fee_rate_percent ?? 0.5),
+            'forfaitTtc' => $this->forfait_ttc !== null ? (float) $this->forfait_ttc : null,
             'ht' => (float) $this->ht,
             'tva' => (float) $this->tva,
             'ttc' => (float) $this->ttc,

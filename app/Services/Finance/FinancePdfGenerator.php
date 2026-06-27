@@ -10,14 +10,19 @@ use Throwable;
 
 class FinancePdfGenerator
 {
-    public function __construct(private readonly FinanceTemplateRenderer $renderer)
-    {
+    public function __construct(
+        private readonly FinanceTemplateRenderer $renderer,
+        private readonly FinanceLockedDocumentNumberResolver $numberResolver,
+    ) {
     }
 
     public function generate(FinanceDocument $document): string
     {
         try {
             $document->loadMissing(['client', 'dossier', 'items', 'payments', 'template']);
+            $this->numberResolver->forModel($document, $document->type, 'number', $document->issue_date);
+            $document->refresh()->loadMissing(['client', 'dossier', 'items', 'payments', 'template']);
+
             $html = $this->renderer->renderHtml($document);
             $directory = $this->directory($document);
             Storage::disk('public')->makeDirectory($directory);

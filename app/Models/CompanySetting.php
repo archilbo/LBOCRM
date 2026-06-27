@@ -2,13 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CompanySetting extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'group',
         'key',
@@ -25,25 +22,45 @@ class CompanySetting extends Model
 
     public static function getValue(string $group, string $key, mixed $default = null): mixed
     {
-        $setting = static::where('group', $group)->where('key', $key)->first();
+        $setting = static::query()
+            ->where('group', $group)
+            ->where('key', $key)
+            ->first();
 
         if (!$setting) {
             return $default;
         }
 
         return match ($setting->type) {
-            'decimal', 'float' => (float) $setting->value,
-            'integer', 'int' => (int) $setting->value,
-            'boolean', 'bool' => filter_var($setting->value, FILTER_VALIDATE_BOOLEAN),
+            'integer' => (int) $setting->value,
+            'decimal', 'float', 'number' => (float) $setting->value,
+            'boolean' => filter_var($setting->value, FILTER_VALIDATE_BOOLEAN),
+            'json' => json_decode((string) $setting->value, true) ?: $default,
             default => $setting->value,
         };
     }
 
-    public static function setValue(string $group, string $key, mixed $value, string $type = 'string'): void
-    {
-        static::updateOrCreate(
-            ['group' => $group, 'key' => $key],
-            ['value' => (string) $value, 'type' => $type],
+    public static function setValue(
+        string $group,
+        string $key,
+        mixed $value,
+        string $type = 'string',
+        ?string $label = null,
+        ?string $description = null,
+        bool $isPublic = false,
+    ): self {
+        return static::query()->updateOrCreate(
+            [
+                'group' => $group,
+                'key' => $key,
+            ],
+            [
+                'value' => is_array($value) ? json_encode($value) : (string) ($value ?? ''),
+                'type' => $type,
+                'label' => $label,
+                'description' => $description,
+                'is_public' => $isPublic,
+            ],
         );
     }
 }
