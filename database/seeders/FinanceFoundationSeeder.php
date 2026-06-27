@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\CompanySetting;
 use App\Models\FinanceTemplate;
 use App\Models\User;
+use App\Services\Finance\DefaultFinanceTemplateFactory;
 use Illuminate\Database\Seeder;
 
 class FinanceFoundationSeeder extends Seeder
@@ -113,47 +114,21 @@ class FinanceFoundationSeeder extends Seeder
     private function seedDefaultTemplate(): void
     {
         $admin = User::first();
+        $factory = app(DefaultFinanceTemplateFactory::class);
 
         $defaultQuote = FinanceTemplate::updateOrCreate(
             ['slug' => 'default-quote'],
-            [
-                'type' => 'quote',
-                'name' => 'Devis standard',
-                'is_default' => true,
-                'paper_size' => 'A4',
-                'orientation' => 'portrait',
-                'body_html' => $this->getDefaultQuoteHtml(),
-                'css' => $this->getDefaultDocumentCss(),
-                'created_by' => $admin?->id,
-            ],
+            array_merge($factory->quote(), ['slug' => 'default-quote', 'created_by' => $admin?->id]),
         );
 
         $defaultInvoice = FinanceTemplate::updateOrCreate(
             ['slug' => 'default-invoice'],
-            [
-                'type' => 'invoice',
-                'name' => 'Facture standard',
-                'is_default' => true,
-                'paper_size' => 'A4',
-                'orientation' => 'portrait',
-                'body_html' => $this->getDefaultInvoiceHtml(),
-                'css' => $this->getDefaultDocumentCss(),
-                'created_by' => $admin?->id,
-            ],
+            array_merge($factory->invoice(), ['slug' => 'default-invoice', 'created_by' => $admin?->id]),
         );
 
         $defaultReceipt = FinanceTemplate::updateOrCreate(
             ['slug' => 'default-receipt'],
-            [
-                'type' => 'receipt',
-                'name' => 'Reçu standard',
-                'is_default' => true,
-                'paper_size' => 'A4',
-                'orientation' => 'portrait',
-                'body_html' => $this->getDefaultReceiptHtml(),
-                'css' => $this->getDefaultDocumentCss(),
-                'created_by' => $admin?->id,
-            ],
+            array_merge($factory->receipt(), ['slug' => 'default-receipt', 'created_by' => $admin?->id]),
         );
 
         $this->command?->info('Default document templates seeded.');

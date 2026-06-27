@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DossierController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\Finance\DocumentTemplateController;
 use App\Http\Controllers\Finance\FinanceDocumentController;
 use App\Http\Controllers\Finance\FinanceSettingsController;
 use App\Http\Controllers\Finance\PaymentController;
@@ -82,6 +83,16 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/finance/settings', [FinanceSettingsController::class, 'index'])->name('finance.settings');
     Route::put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update');
+
+    Route::get('/finance/templates', [DocumentTemplateController::class, 'index'])->name('finance.templates.index');
+    Route::post('/finance/templates', [DocumentTemplateController::class, 'store'])->name('finance.templates.store');
+    Route::put('/finance/templates/reset/{type}', [DocumentTemplateController::class, 'resetDefault'])->name('finance.templates.reset');
+    Route::get('/finance/templates/{documentTemplate}', [DocumentTemplateController::class, 'show'])->name('finance.templates.show');
+    Route::put('/finance/templates/{documentTemplate}', [DocumentTemplateController::class, 'update'])->name('finance.templates.update');
+    Route::delete('/finance/templates/{documentTemplate}', [DocumentTemplateController::class, 'destroy'])->name('finance.templates.destroy');
+    Route::post('/finance/templates/{documentTemplate}/duplicate', [DocumentTemplateController::class, 'duplicate'])->name('finance.templates.duplicate');
+    Route::put('/finance/templates/{documentTemplate}/default', [DocumentTemplateController::class, 'setDefault'])->name('finance.templates.default');
+    Route::get('/finance/templates/{documentTemplate}/preview', [DocumentTemplateController::class, 'preview'])->name('finance.templates.preview');
 
     Route::get('/finance/documents', [FinanceDocumentController::class, 'index'])->name('finance.documents.index');
     Route::post('/finance/documents', [FinanceDocumentController::class, 'store'])->name('finance.documents.store');

@@ -1425,3 +1425,122 @@ Open `/finance/documents/2` or click `Voir` from `/finance`. The page should sho
 ## Next Recommended Step
 
 Add edit/payment actions from the show page if users need to work from the document detail screen instead of returning to the finance table.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-27
+
+## Step Completed
+
+Step 38 - Editable Finance Template Editor
+
+## What Was Built
+
+Built a standalone finance template editor at `/finance/templates` for Devis, Facture, and Recu templates. The editor manages the existing `finance_templates` table used by PDF generation and keeps the older `document_templates` table untouched.
+
+## Files Created
+
+- `app/Http/Controllers/Finance/DocumentTemplateController.php`
+- `app/Http/Requests/Finance/StoreDocumentTemplateRequest.php`
+- `app/Http/Requests/Finance/UpdateDocumentTemplateRequest.php`
+- `app/Http/Resources/DocumentTemplateResource.php`
+- `app/Services/Finance/FinanceTemplatePlaceholderRegistry.php`
+- `app/Services/Finance/DefaultFinanceTemplateFactory.php`
+- `resources/js/pages/Finance/Templates/Index.tsx`
+- `resources/js/features/finance/templates/TemplateList.tsx`
+- `resources/js/features/finance/templates/TemplateEditorForm.tsx`
+- `resources/js/features/finance/templates/TemplatePlaceholderPanel.tsx`
+- `resources/js/features/finance/templates/TemplatePreviewPanel.tsx`
+- `resources/js/features/finance/templates/TemplateToolbar.tsx`
+- `resources/js/features/finance/templates/templateValidation.ts`
+- `docs/STEP_38_FINANCE_TEMPLATE_EDITOR.md`
+
+## Files Modified
+
+- `app/Services/Finance/FinanceTemplateRenderer.php`
+- `database/seeders/FinanceFoundationSeeder.php`
+- `resources/js/features/finance/types.ts`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+- `routes/web.php`
+- `docs/AI_WORK_REPORT.md`
+
+## Database Changes
+
+No migration changes. The editor uses the existing `finance_templates` schema.
+
+## New Routes
+
+- `GET /finance/templates`
+- `POST /finance/templates`
+- `GET /finance/templates/{documentTemplate}`
+- `PUT /finance/templates/{documentTemplate}`
+- `DELETE /finance/templates/{documentTemplate}`
+- `POST /finance/templates/{documentTemplate}/duplicate`
+- `PUT /finance/templates/{documentTemplate}/default`
+- `PUT /finance/templates/reset/{type}`
+- `GET /finance/templates/{documentTemplate}/preview`
+
+## Important Decisions
+
+- Used `FinanceTemplate` behind `DocumentTemplateController` because PDF export uses `finance_templates`; the old `document_templates` model is for required dossier documents.
+- Kept the editor structured with textareas for HTML/CSS instead of a heavy WYSIWYG editor.
+- Added request-level rejection for script tags and inline JavaScript attributes.
+- Added local live preview and backend preview through the same `FinanceTemplateRenderer` path used by PDF generation.
+- Updated `FinanceFoundationSeeder` to use `DefaultFinanceTemplateFactory` for future consistent defaults.
+
+## Commands Run
+
+```bash
+php -l app/Http/Controllers/Finance/DocumentTemplateController.php
+php -l app/Http/Requests/Finance/StoreDocumentTemplateRequest.php
+php -l app/Http/Requests/Finance/UpdateDocumentTemplateRequest.php
+php -l app/Http/Resources/DocumentTemplateResource.php
+php -l app/Services/Finance/DefaultFinanceTemplateFactory.php
+php -l app/Services/Finance/FinanceTemplatePlaceholderRegistry.php
+php -l app/Services/Finance/FinanceTemplateRenderer.php
+php -l routes/web.php
+php artisan optimize:clear
+composer dump-autoload
+php artisan route:list --path=finance/templates
+php artisan route:list --path=finance
+npm run build
+php artisan archilbo:test-finance-export 1
+Get-ChildItem resources/js -Recurse -Include *.tsx,*.ts | Select-String -Pattern '`r`n|\r\n' -ErrorAction SilentlyContinue
+```
+
+## Build/Test Result
+
+- PHP syntax checks passed.
+- `composer dump-autoload` passed.
+- `php artisan route:list --path=finance/templates` passed and showed 9 template routes.
+- `php artisan route:list --path=finance` passed and showed 40 finance routes.
+- `npm run build` passed. Vite still reports the existing large chunk warning.
+- `php artisan optimize:clear` and `php artisan archilbo:test-finance-export 1` were blocked because MySQL on `127.0.0.1:3306` refused the connection.
+- Newline artifact scan found an older unrelated literal marker in `resources/js/features/clients/drawers/ClientDrawer.tsx`; it was not changed in this step.
+
+## How To Test
+
+1. Start MySQL.
+2. Open `/finance/templates`.
+3. Select a Devis template.
+4. Edit footer/body/CSS.
+5. Save.
+6. Use backend preview.
+7. Duplicate the template.
+8. Set the duplicate as default.
+9. Generate a PDF from an existing Devis/Facture/Recu.
+10. Confirm the selected default template is used.
+11. Try saving `<script>` or `onclick=` and confirm validation blocks it.
+
+## Known Issues
+
+- MySQL was offline during this run, so DB-backed manual testing and PDF export smoke test could not complete.
+- Logo upload is text-only for now.
+- Full template version history is not included.
+
+## Next Recommended Step
+
+Start MySQL and manually validate `/finance/templates`, then generate PDFs for a Devis and Facture to confirm the selected defaults are used.

@@ -83,6 +83,40 @@ export type FinanceDocument = {
     paymentUrl?: string | null;
 };
 
+export type DocumentTemplate = {
+    id: number;
+    type: FinanceDocumentType;
+    typeLabel: string;
+    name: string;
+    slug: string;
+    isDefault: boolean;
+    paperSize: 'A4' | 'A5' | 'Letter' | string;
+    orientation: 'portrait' | 'landscape' | string;
+    headerHtml: string;
+    bodyHtml: string;
+    footerHtml: string;
+    css: string;
+    settings: Record<string, unknown>;
+    logoPath: string;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+    urls: {
+        update: string;
+        delete: string;
+        duplicate: string;
+        setDefault: string;
+        preview: string;
+    };
+};
+
+export type TemplatePlaceholder = {
+    group: string;
+    items: string[];
+};
+
+export type TemplatePreviewData = {
+    html: string;
+};
 export type FinanceSettings = {
     defaultTvaRate: number;
     defaultCurrency: string;

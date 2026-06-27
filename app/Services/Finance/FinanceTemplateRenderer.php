@@ -32,6 +32,19 @@ class FinanceTemplateRenderer
         return $this->renderHtml($document);
     }
 
+    public function renderTemplatePreview(?FinanceTemplate $template, array $data): string
+    {
+        $body = trim((string) ($template?->body_html ?: $this->fallbackBody()));
+        $header = trim((string) ($template?->header_html ?: ''));
+        $footer = trim((string) ($template?->footer_html ?: ''));
+        $css = trim((string) ($template?->css ?: $this->fallbackCss()));
+        $content = $header . $body . $footer;
+        $content = $this->replaceLegacyPlaceholders($content, $data);
+        $content = $this->replacePlaceholders($content, $data);
+
+        return '<!doctype html><html><head><meta charset="utf-8"><style>' . $css . '</style></head><body>' . $content . '</body></html>';
+    }
+
     public function replacePlaceholders(string $html, array $data): string
     {
         $html = str_replace('{{items_table}}', $this->renderItemsTable($data['items'], $data['document']['currency']), $html);
@@ -135,7 +148,7 @@ class FinanceTemplateRenderer
             '{{bank_bic}}' => '',
         ];
 
-                $replacements = [];
+        $replacements = [];
 
         foreach ($legacy as $placeholder => $value) {
             $replacements[$placeholder] = $placeholder === '{{items_rows}}'
@@ -166,6 +179,3 @@ class FinanceTemplateRenderer
         return 'body{font-family:DejaVu Sans,sans-serif;font-size:12px;color:#111}.document{padding:24px}.header{display:table;width:100%;margin-bottom:24px}.header>div{display:table-cell;width:50%;vertical-align:top}.document-title{text-align:right}h1,h2,h3{margin:0 0 8px}.items-table,.payments-table,.totals{width:100%;border-collapse:collapse;margin-top:16px}.items-table th,.items-table td,.payments-table th,.payments-table td,.totals td{border:1px solid #ddd;padding:7px}.items-table th,.payments-table th{background:#f3f4f6}.text-right{text-align:right}.totals{margin-left:auto;width:45%}.total{font-weight:bold;background:#f9fafb}.client-info,.project-info,.notes{margin-top:16px}';
     }
 }
-
-
-

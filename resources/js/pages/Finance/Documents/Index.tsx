@@ -1,6 +1,6 @@
-﻿import { Head, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { FileText, Plus, ReceiptText, WalletCards } from 'lucide-react';
+import { FileText, Plus, ReceiptText, Settings2, WalletCards } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { TabPanel } from 'react-aria-components';
 import { toast } from 'sonner';
@@ -290,10 +290,25 @@ export default function FinanceDocumentsIndex({
 
                     <TabPanel id="templates" className="outline-none">
                         <AppCard className="p-6">
-                            <AppEmptyState
-                                title="Templates finance"
-                                description="Les templates disponibles seront geres dans le module documents. Cette vue reste une synthese finance."
-                            />
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                <div>
+                                    <h2 className="text-base font-semibold">Templates finance</h2>
+                                    <p className="mt-1 text-sm text-[var(--text-muted)]">Modifiez les modeles PDF des devis, factures et recus.</p>
+                                </div>
+                                <AppButton variant="primary" onPress={() => router.visit(templateEditorUrl)}>
+                                    <Settings2 size={16} />
+                                    Ouvrir l editeur
+                                </AppButton>
+                            </div>
+                            <div className="mt-5 grid gap-3 md:grid-cols-3">
+                                {defaultTemplates.length ? defaultTemplates.map((template) => (
+                                    <div key={template.id} className="rounded-2xl border bg-[var(--surface-2)] p-4">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{template.type}</p>
+                                        <p className="mt-2 font-semibold">{template.label}</p>
+                                        <p className="mt-1 text-xs text-[var(--text-muted)]">{template.slug || '-'}</p>
+                                    </div>
+                                )) : <AppEmptyState title="Aucun template defaut" description="Ouvrez l editeur pour recreer les templates par defaut." />}
+                            </div>
                         </AppCard>
                     </TabPanel>
 
@@ -432,6 +447,3 @@ function RecentDocuments({ title, icon, documents }: { title: string; icon: Reac
         </AppCard>
     );
 }
-
-
-
