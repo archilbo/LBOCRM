@@ -1,5 +1,12 @@
+import { autocompletion, CompletionContext } from '@codemirror/autocomplete';
+import { defaultKeymap, indentWithTab } from '@codemirror/commands';
+import { css } from '@codemirror/lang-css';
+import { html } from '@codemirror/lang-html';
+import { EditorView, keymap } from '@codemirror/view';
+import CodeMirror from '@uiw/react-codemirror';
 import { Braces, Code2 } from 'lucide-react';
-import { KeyboardEvent, useMemo } from 'react';
+import { useMemo } from 'react';
+import { oneDark } from '@codemirror/theme-one-dark';
 import type { TemplatePlaceholder } from '@/features/finance/types';
 
 type TemplateCodeEditorProps = {
@@ -26,35 +33,51 @@ const cssSnippets = [
     { label: 'Footer', value: '.legal-footer{margin-top:24px;padding-top:10px;border-top:1px solid #d7dde8;text-align:center;color:#64748b}' },
 ];
 
+function placeholderCompletion(placeholders: string[]) {
+    return (context: CompletionContext) => {
+        const word = context.matchBefore(/\{\{?[\w.]*$/);
+
+        if (!word && !context.explicit) {
+            return null;
+        }
+
+        return {
+            from: word?.from ?? context.pos,
+            options: placeholders.map((placeholder) => ({
+                label: placeholder,
+                type: 'variable',
+                apply: placeholder,
+                detail: 'ARCHI LBO',
+            })),
+        };
+    };
+}
+
 export function TemplateCodeEditor({ label, language, value, onChange, onSave, placeholders, minRows = 18 }: TemplateCodeEditorProps) {
-    const lines = useMemo(() => Math.max(minRows, value.split('\n').length), [minRows, value]);
-    const lineNumbers = useMemo(() => Array.from({ length: lines }, (_, index) => index + 1), [lines]);
     const snippets = language === 'html' ? htmlSnippets : cssSnippets;
-    const commonPlaceholders = placeholders.flatMap((group) => group.items).slice(0, 12);
+    const allPlaceholders = useMemo(() => placeholders.flatMap((group) => group.items), [placeholders]);
+    const commonPlaceholders = allPlaceholders.slice(0, 12);
+    const minHeight = `${Math.max(360, minRows * 20)}px`;
+    const extensions = useMemo(() => [
+        language === 'html' ? html() : css(),
+        EditorView.lineWrapping,
+        autocompletion({ override: [placeholderCompletion(allPlaceholders)] }),
+        keymap.of([
+            { key: 'Mod-s', run: () => { onSave(); return true; } },
+            indentWithTab,
+            ...defaultKeymap,
+        ]),
+        EditorView.theme({
+            '&': { minHeight, fontSize: '12px' },
+            '.cm-content': { minHeight, fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)' },
+            '.cm-gutters': { minHeight },
+            '.cm-scroller': { minHeight, maxHeight: '620px' },
+            '.cm-tooltip': { zIndex: 80 },
+        }),
+    ], [allPlaceholders, language, minHeight, onSave]);
 
     function insertText(text: string) {
         onChange(value ? `${value}\n${text}` : text);
-    }
-
-    function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
-            event.preventDefault();
-            onSave();
-            return;
-        }
-
-        if (event.key === 'Tab') {
-            event.preventDefault();
-            const target = event.currentTarget;
-            const start = target.selectionStart;
-            const end = target.selectionEnd;
-            const next = `${value.slice(0, start)}  ${value.slice(end)}`;
-            onChange(next);
-            window.requestAnimationFrame(() => {
-                target.selectionStart = start + 2;
-                target.selectionEnd = start + 2;
-            });
-        }
     }
 
     return (
@@ -63,9 +86,9 @@ export function TemplateCodeEditor({ label, language, value, onChange, onSave, p
                 <div className="flex items-center gap-2">
                     <Code2 size={15} className="text-sky-300" />
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">{label}</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase text-slate-400">{language}</span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase text-slate-400">CodeMirror · {language}</span>
                 </div>
-                <p className="text-[11px] text-slate-400">Tab = indent · Ctrl+S = save</p>
+                <p className="text-[11px] text-slate-400">Autocomplete · Tab indent · Ctrl+S save</p>
             </div>
 
             <div className="border-b border-white/10 bg-[#0f172a] px-3 py-2">
@@ -81,20 +104,14 @@ export function TemplateCodeEditor({ label, language, value, onChange, onSave, p
                 </div>
             </div>
 
-            <div className="grid max-h-[620px] grid-cols-[48px_minmax(0,1fr)] overflow-auto">
-                <pre aria-hidden className="select-none bg-[#080d1a] px-3 py-3 text-right font-mono text-xs leading-5 text-slate-600">
-                    {lineNumbers.map((number) => <span key={number} className="block">{number}</span>)}
-                </pre>
-                <textarea
-                    value={value}
-                    onChange={(event) => onChange(event.target.value)}
-                    onKeyDown={handleKeyDown}
-                    spellCheck={false}
-                    rows={lines}
-                    className="min-h-[360px] w-full resize-y border-0 bg-[#0b1020] px-3 py-3 font-mono text-xs leading-5 text-slate-100 outline-none placeholder:text-slate-600"
-                    placeholder={language === 'html' ? '<section>...</section>' : '.document-shell { ... }'}
-                />
-            </div>
+            <CodeMirror
+                value={value}
+                height={minHeight}
+                theme={oneDark}
+                basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true, autocompletion: true, bracketMatching: true }}
+                extensions={extensions}
+                onChange={onChange}
+            />
 
             <div className="border-t border-white/10 bg-[#0f172a] px-3 py-2">
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">Quick placeholders</p>

@@ -1622,4 +1622,52 @@ git diff --check
 
 ## Next Recommended Step
 
-Open `/finance/templates` and test editing HTML/CSS with Tab, Ctrl+S, snippets, quick placeholders, and preview.
+Open `/finance/templates` and test editing HTML/CSS with Tab, Ctrl+S, snippets, quick placeholders, and preview.---
+
+# AI Work Report
+
+## Date
+
+2026-06-27
+
+## Step Completed
+
+Finance template editor upgraded with CodeMirror library
+
+## What Was Built
+
+Replaced the handmade template textarea editor with a CodeMirror-powered editor for finance template HTML and CSS editing.
+
+## Files Modified
+
+- `package.json`
+- `package-lock.json`
+- `resources/js/features/finance/templates/TemplateCodeEditor.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Frontend Work
+
+- Added CodeMirror React editor integration.
+- Added HTML and CSS language support.
+- Added dark editor theme, line numbers, fold gutter, active-line highlighting, bracket matching, line wrapping, and Tab indentation.
+- Added placeholder autocomplete for ARCHI LBO finance template variables.
+- Kept snippets, quick placeholder insertion, and Ctrl+S save behavior.
+
+## Commands Run
+
+```bash
+npm install @uiw/react-codemirror @codemirror/lang-html @codemirror/lang-css @codemirror/autocomplete @codemirror/commands @codemirror/view @codemirror/theme-one-dark
+npm run build
+```
+
+## Build/Test Result
+
+`npm run build` passed. Vite still reports the existing large chunk warning.
+
+## Known Issues
+
+No new known issue. The unrelated local `.gitignore` modification was left untouched.
+
+## Next Recommended Step
+
+Open `/finance/templates`, edit both HTML and CSS templates, test placeholder autocomplete inside `{{...}}`, then save and generate a Devis/Facture preview.
