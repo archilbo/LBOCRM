@@ -129,10 +129,10 @@ export default function FinanceTemplatesIndex({ templates: rawTemplates, placeho
                 <TemplateToolbar selectedType={selectedType} onTypeChange={(type) => { setSelectedType(type); const first = templates.find((item) => item.type === type); if (first) selectTemplate(first); }} onCreate={createTemplate} onResetDefault={resetDefault}>
                     {types.map((type) => (
                         <TabPanel key={type} id={type} className="outline-none">
-                            <div className="grid gap-3 xl:grid-cols-[240px_minmax(0,1fr)_340px]">
+                            <div className="grid gap-2 xl:grid-cols-[210px_minmax(0,1fr)_300px]">
                                 <TemplateList templates={visibleTemplates} selectedId={draft?.id} onSelect={selectTemplate} onDuplicate={duplicate} onSetDefault={setDefault} onDelete={deleteTemplate} />
                                 {draft ? <TemplateEditorForm value={draft} placeholders={placeholders} onChange={updateDraft} onSave={save} onReset={() => selectedTemplate && selectTemplate(selectedTemplate)} /> : null}
-                                <div className="sticky top-4 space-y-3 self-start">
+                                <div className="sticky top-3 space-y-2 self-start">
                                     <TemplatePlaceholderPanel placeholders={placeholders} />
                                     <TemplatePreviewPanel html={previewHtml} onRefresh={backendPreview} />
                                 </div>

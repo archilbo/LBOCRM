@@ -27,7 +27,7 @@ const htmlSnippets = [
 ];
 
 const cssSnippets = [
-    { label: 'A4 Base', value: 'body{font-family:DejaVu Sans,Arial,sans-serif;font-size:12px;color:#172033}.document-shell{padding:28px}' },
+    { label: 'A4', value: 'body{font-family:DejaVu Sans,Arial,sans-serif;font-size:12px;color:#172033}.document-shell{padding:28px}' },
     { label: 'Table', value: '.items-table{width:100%;border-collapse:collapse}.items-table th{background:#1a365d;color:#fff}.items-table td,.items-table th{border:1px solid #d7dde8;padding:8px}' },
     { label: 'Right', value: '.text-right{text-align:right}' },
     { label: 'Footer', value: '.legal-footer{margin-top:24px;padding-top:10px;border-top:1px solid #d7dde8;text-align:center;color:#64748b}' },
@@ -53,11 +53,11 @@ function placeholderCompletion(placeholders: string[]) {
     };
 }
 
-export function TemplateCodeEditor({ label, language, value, onChange, onSave, placeholders, minRows = 18 }: TemplateCodeEditorProps) {
+export function TemplateCodeEditor({ label, language, value, onChange, onSave, placeholders, minRows = 14 }: TemplateCodeEditorProps) {
     const snippets = language === 'html' ? htmlSnippets : cssSnippets;
     const allPlaceholders = useMemo(() => placeholders.flatMap((group) => group.items), [placeholders]);
-    const commonPlaceholders = allPlaceholders.slice(0, 12);
-    const minHeight = `${Math.max(360, minRows * 20)}px`;
+    const commonPlaceholders = allPlaceholders.slice(0, 8);
+    const minHeight = `${Math.max(280, minRows * 18)}px`;
     const extensions = useMemo(() => [
         language === 'html' ? html() : css(),
         EditorView.lineWrapping,
@@ -69,9 +69,10 @@ export function TemplateCodeEditor({ label, language, value, onChange, onSave, p
         ]),
         EditorView.theme({
             '&': { minHeight, fontSize: '12px' },
-            '.cm-content': { minHeight, fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)' },
+            '.cm-content': { minHeight, paddingTop: '8px', paddingBottom: '8px', fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)' },
             '.cm-gutters': { minHeight },
-            '.cm-scroller': { minHeight, maxHeight: '620px' },
+            '.cm-line': { paddingLeft: '8px', paddingRight: '8px' },
+            '.cm-scroller': { minHeight, maxHeight: '520px' },
             '.cm-tooltip': { zIndex: 80 },
         }),
     ], [allPlaceholders, language, minHeight, onSave]);
@@ -81,27 +82,29 @@ export function TemplateCodeEditor({ label, language, value, onChange, onSave, p
     }
 
     return (
-        <div className="overflow-hidden rounded-2xl border bg-[#0b1020] text-slate-100 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#111827] px-3 py-2">
-                <div className="flex items-center gap-2">
-                    <Code2 size={15} className="text-sky-300" />
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">{label}</span>
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase text-slate-400">CodeMirror · {language}</span>
+        <div className="overflow-hidden rounded-xl border bg-[#0b1020] text-slate-100 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#101827] px-2.5 py-1.5">
+                <div className="flex min-w-0 items-center gap-2">
+                    <Code2 size={14} className="shrink-0 text-sky-300" />
+                    <span className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-300">{label}</span>
+                    <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[9px] uppercase text-slate-400">CodeMirror / {language}</span>
                 </div>
-                <p className="text-[11px] text-slate-400">Autocomplete · Tab indent · Ctrl+S save</p>
+                <p className="text-[10px] text-slate-500">Tab / Ctrl+S / autocomplete</p>
             </div>
 
-            <div className="border-b border-white/10 bg-[#0f172a] px-3 py-2">
-                <div className="mb-2 flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
-                    <Braces size={13} /> Snippets
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                    {snippets.map((snippet) => (
-                        <button key={snippet.label} type="button" onClick={() => insertText(snippet.value)} className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10">
-                            {snippet.label}
-                        </button>
-                    ))}
-                </div>
+            <div className="flex flex-wrap items-center gap-1 border-b border-white/10 bg-[#0f172a] px-2.5 py-1.5">
+                <span className="mr-1 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500"><Braces size={12} /> Insert</span>
+                {snippets.map((snippet) => (
+                    <button key={snippet.label} type="button" onClick={() => insertText(snippet.value)} className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-200 hover:bg-white/10">
+                        {snippet.label}
+                    </button>
+                ))}
+                <span className="mx-1 h-4 w-px bg-white/10" />
+                {commonPlaceholders.map((placeholder) => (
+                    <button key={placeholder} type="button" onClick={() => insertText(placeholder)} className="rounded-md bg-sky-500/10 px-1.5 py-0.5 font-mono text-[10px] text-sky-200 hover:bg-sky-500/20">
+                        {placeholder}
+                    </button>
+                ))}
             </div>
 
             <CodeMirror
@@ -112,17 +115,6 @@ export function TemplateCodeEditor({ label, language, value, onChange, onSave, p
                 extensions={extensions}
                 onChange={onChange}
             />
-
-            <div className="border-t border-white/10 bg-[#0f172a] px-3 py-2">
-                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">Quick placeholders</p>
-                <div className="flex max-h-20 flex-wrap gap-1.5 overflow-auto">
-                    {commonPlaceholders.map((placeholder) => (
-                        <button key={placeholder} type="button" onClick={() => insertText(placeholder)} className="rounded-lg bg-sky-500/10 px-2 py-1 font-mono text-[11px] text-sky-200 hover:bg-sky-500/20">
-                            {placeholder}
-                        </button>
-                    ))}
-                </div>
-            </div>
         </div>
     );
 }

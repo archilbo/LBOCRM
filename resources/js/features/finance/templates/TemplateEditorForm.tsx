@@ -42,24 +42,26 @@ export function TemplateEditorForm({ value, placeholders, onChange, onSave, onRe
 
     return (
         <AppCard className="overflow-hidden p-0">
-            <div className="border-b bg-[var(--surface-2)] px-4 py-3">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                            <FileCode2 size={16} className="text-[var(--accent)]" />
-                            <h2 className="truncate text-sm font-semibold">{value.name}</h2>
-                            {value.isDefault ? <AppBadge tone="green">Defaut</AppBadge> : null}
+            <div className="border-b bg-[var(--surface-2)] px-3 py-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <FileCode2 size={15} className="shrink-0 text-[var(--accent)]" />
+                        <div className="min-w-0">
+                            <div className="flex min-w-0 items-center gap-2">
+                                <h2 className="truncate text-sm font-semibold leading-5">{value.name}</h2>
+                                {value.isDefault ? <AppBadge tone="green" className="shrink-0 text-[10px]">Defaut</AppBadge> : null}
+                            </div>
+                            <p className="truncate font-mono text-[10px] text-[var(--text-muted)]">{value.slug} / {value.typeLabel}</p>
                         </div>
-                        <p className="mt-1 truncate text-xs text-[var(--text-muted)]">{value.slug} · {value.typeLabel}</p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                        <AppButton size="sm" variant="secondary" onPress={onReset}><RotateCcw size={14} /> Reset</AppButton>
-                        <AppButton size="sm" variant="primary" onPress={onSave} isDisabled={validation.errors.length > 0}><Save size={14} /> Save</AppButton>
+                    <div className="flex items-center gap-1.5">
+                        <AppButton size="sm" variant="secondary" onPress={onReset}><RotateCcw size={13} /> Reset</AppButton>
+                        <AppButton size="sm" variant="primary" onPress={onSave} isDisabled={validation.errors.length > 0}><Save size={13} /> Save</AppButton>
                     </div>
                 </div>
             </div>
 
-            <div className="space-y-3 p-4">
+            <div className="space-y-2 p-3">
                 <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
                     <AppTextField label="Nom" value={value.name} onChange={(name) => update('name', name)} />
                     <AppTextField label="Slug" value={value.slug} onChange={(slug) => update('slug', slug)} />
@@ -69,18 +71,21 @@ export function TemplateEditorForm({ value, placeholders, onChange, onSave, onRe
                     <AppTextField label="Accent" value={String(value.settings?.accent_color || '')} onChange={(accent) => update('settings', { ...value.settings, accent_color: accent })} />
                 </div>
 
-                <div className="flex flex-wrap gap-1 rounded-2xl border bg-[var(--surface-2)] p-1">
-                    {editorTabs.map((tab) => (
-                        <button key={tab.id} type="button" onClick={() => setActiveEditor(tab.id)} className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${activeEditor === tab.id ? 'bg-[var(--accent)] text-[var(--accent-foreground)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]'}`}>
-                            {tab.label}
-                        </button>
-                    ))}
+                <div className="flex items-center justify-between gap-2 rounded-xl border bg-[var(--surface-2)] p-1">
+                    <div className="flex flex-wrap gap-1">
+                        {editorTabs.map((tab) => (
+                            <button key={tab.id} type="button" onClick={() => setActiveEditor(tab.id)} className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${activeEditor === tab.id ? 'bg-[var(--accent)] text-[var(--accent-foreground)] shadow-sm' : 'text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]'}`}>
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    <span className="hidden pr-2 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] sm:inline">{activeTab.language}</span>
                 </div>
 
-                <TemplateCodeEditor label={activeTab.label} language={activeTab.language} value={activeValue} onChange={updateActive} onSave={onSave} placeholders={placeholders} minRows={activeEditor === 'body' ? 22 : 14} />
+                <TemplateCodeEditor label={activeTab.label} language={activeTab.language} value={activeValue} onChange={updateActive} onSave={onSave} placeholders={placeholders} minRows={activeEditor === 'body' ? 18 : 10} />
 
                 {(validation.errors.length || validation.warnings.length) ? (
-                    <div className="grid gap-2 rounded-2xl border bg-[var(--surface-2)] p-3 text-xs md:grid-cols-2">
+                    <div className="grid gap-1.5 rounded-xl border bg-[var(--surface-2)] p-2 text-xs md:grid-cols-2">
                         {validation.errors.map((error) => <p key={error} className="font-medium text-[var(--danger)]">{error}</p>)}
                         {validation.warnings.map((warning) => <p key={warning} className="text-amber-600 dark:text-amber-300">{warning}</p>)}
                         {validation.unsupported.length ? <p className="text-[var(--text-muted)] md:col-span-2">Unsupported: {validation.unsupported.join(', ')}</p> : null}
