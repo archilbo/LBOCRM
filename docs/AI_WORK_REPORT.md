@@ -1580,3 +1580,46 @@ Both checks passed. Vite still reports the existing large chunk warning.
 ## Next Recommended Step
 
 Reload `/finance` and confirm the Templates tab renders the default templates summary and editor link.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-27
+
+## Step Completed
+
+Finance template editor compact IDE polish
+
+## What Was Changed
+
+Improved the finance template editor UI to be more compact and coding-friendly. The editor now has an IDE-style code area with line numbers, dark code surface, Tab indentation, Ctrl+S save, snippets, quick placeholder insert, and compact sticky side panels.
+
+## Files Created
+
+- `resources/js/features/finance/templates/TemplateCodeEditor.tsx`
+
+## Files Modified
+
+- `resources/js/features/finance/templates/TemplateEditorForm.tsx`
+- `resources/js/features/finance/templates/TemplateList.tsx`
+- `resources/js/features/finance/templates/TemplatePlaceholderPanel.tsx`
+- `resources/js/features/finance/templates/TemplatePreviewPanel.tsx`
+- `resources/js/pages/Finance/Templates/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```bash
+npm run build
+git diff --check
+```
+
+## Build/Test Result
+
+`npm run build` passed. Vite still reports the existing large chunk warning.
+
+## Next Recommended Step
+
+Open `/finance/templates` and test editing HTML/CSS with Tab, Ctrl+S, snippets, quick placeholders, and preview.

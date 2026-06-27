@@ -15,26 +15,29 @@ type Props = {
 
 export function TemplateList({ templates, selectedId, onSelect, onDuplicate, onSetDefault, onDelete }: Props) {
     return (
-        <AppCard className="p-4">
-            <h2 className="mb-3 text-sm font-semibold">Templates</h2>
-            <div className="space-y-2">
+        <AppCard className="sticky top-4 max-h-[calc(100vh-120px)] overflow-auto p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold">Templates</h2>
+                <span className="text-xs text-[var(--text-muted)]">{templates.length}</span>
+            </div>
+            <div className="space-y-1.5">
                 {templates.map((template) => (
-                    <div key={template.id} className={`rounded-2xl border p-3 transition ${selectedId === template.id ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]' : 'bg-[var(--surface)]'}`}>
+                    <div key={template.id} className={`rounded-xl border p-2 transition ${selectedId === template.id ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]' : 'bg-[var(--surface)] hover:bg-[var(--surface-2)]'}`}>
                         <button type="button" onClick={() => onSelect(template)} className="w-full text-left">
                             <div className="flex items-center justify-between gap-2">
-                                <p className="truncate text-sm font-semibold">{template.name}</p>
-                                {template.isDefault ? <AppBadge tone="green">Defaut</AppBadge> : null}
+                                <p className="truncate text-sm font-semibold leading-5">{template.name}</p>
+                                {template.isDefault ? <AppBadge tone="green" className="text-[10px]">Defaut</AppBadge> : null}
                             </div>
-                            <p className="mt-1 truncate text-xs text-[var(--text-muted)]">{template.slug}</p>
+                            <p className="truncate font-mono text-[11px] text-[var(--text-muted)]">{template.slug}</p>
                         </button>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            <AppButton size="sm" variant="ghost" onPress={() => onDuplicate(template)}><Copy size={14} /> Copier</AppButton>
-                            <AppButton size="sm" variant="ghost" onPress={() => onSetDefault(template)} isDisabled={template.isDefault}><Star size={14} /> Defaut</AppButton>
-                            <AppButton size="sm" variant="ghost" onPress={() => onDelete(template)}><Trash2 size={14} /> Supprimer</AppButton>
+                        <div className="mt-2 flex gap-1">
+                            <AppButton size="sm" variant="ghost" onPress={() => onDuplicate(template)}><Copy size={13} /></AppButton>
+                            <AppButton size="sm" variant="ghost" onPress={() => onSetDefault(template)} isDisabled={template.isDefault}><Star size={13} /></AppButton>
+                            <AppButton size="sm" variant="ghost" onPress={() => onDelete(template)}><Trash2 size={13} /></AppButton>
                         </div>
                     </div>
                 ))}
-                {templates.length === 0 ? <p className="text-sm text-[var(--text-muted)]">Aucun template.</p> : null}
+                {templates.length === 0 ? <p className="p-2 text-sm text-[var(--text-muted)]">Aucun template.</p> : null}
             </div>
         </AppCard>
     );
