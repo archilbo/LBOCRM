@@ -31,6 +31,7 @@ class StoreDossierRequest extends FormRequest
             'opened_at' => ['nullable', 'date'],
             'closed_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'return_to' => ['nullable', 'string', 'max:2000', 'starts_with:/'],
         ];
     }
 }

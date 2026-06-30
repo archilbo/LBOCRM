@@ -1,39 +1,57 @@
-cd "D:\ARCHI LBO\LBOSM\LBOCRM"
+﻿cd "D:\ARCHI LBO\LBOSM\LBOCRM"
 
-Write-Host "=== STEP 50 PRE-CONTINUE FULL QA ===" -ForegroundColor Cyan
+$ErrorActionPreference = "Stop"
 
-Write-Host "`n=== 1) PHP SYNTAX CHECK IMPORTANT FILES ===" -ForegroundColor Cyan
-php -l app/Services/Finance/FinanceDocumentNumberingService.php
-php -l app/Services/Finance/FinanceDocumentLockGuard.php
-php -l app/Services/Finance/FinanceLockedDocumentNumberResolver.php
-php -l app/Services/Finance/FinanceExportNumberPayloadBuilder.php
-php -l app/Http/Controllers/Finance/FinanceDocumentController.php
-php -l app/Http/Resources/FinanceDocumentResource.php
-php -l app/Models/Contract.php
-php -l app/Models/CompanySetting.php
+Write-Host "STEP 53-Q-A: Finance monthly summary UI audit..." -ForegroundColor Cyan
 
-Write-Host "`n=== 2) CLEAR CACHE + AUTOLOAD ===" -ForegroundColor Cyan
-php artisan optimize:clear
-composer dump-autoload
+function Show-FileWithLines($Path, $MaxLines = 900) {
+    Write-Host ""
+    Write-Host "===== $Path =====" -ForegroundColor Yellow
 
-Write-Host "`n=== 3) RUN ALL ARCHILBO QA COMMANDS ===" -ForegroundColor Cyan
-php artisan archilbo:contract-forfait-calculation-qa
-php artisan archilbo:finance-numbering-qa
-php artisan archilbo:finance-export-numbering-qa
-php artisan archilbo:finance-numbering-lock-qa
-php artisan archilbo:finance-document-lock-guard-qa
-php artisan archilbo:finance-real-export-numbering-integration-qa
-php artisan archilbo:finance-ui-lock-payload-qa
-php artisan archilbo:finance-export-qa
-php artisan archilbo:test-finance-builder
-php artisan archilbo:test-finance-generation
-php artisan archilbo:test-finance-export
-php artisan archilbo:test-contract-generation
+    if (-not (Test-Path $Path)) {
+        Write-Host "MISSING: $Path" -ForegroundColor Red
+        return
+    }
 
-Write-Host "`n=== 4) FRONTEND TYPES / BUILD ===" -ForegroundColor Cyan
-npm run build
+    $i = 1
+    Get-Content $Path -TotalCount $MaxLines | ForEach-Object {
+        "{0,4} | {1}" -f $i, $_
+        $i++
+    }
+}
 
-Write-Host "`n=== 5) FINAL GIT STATUS ===" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "===== FINANCE MONTHLY ROUTES =====" -ForegroundColor Yellow
+php artisan route:list | Select-String -Pattern "finance|monthly|summary|payments|documents"
+
+Write-Host ""
+Write-Host "===== GIT STATUS =====" -ForegroundColor Yellow
 git status --short
 
-Write-Host "`n=== STEP 50 FULL QA DONE ===" -ForegroundColor Green
+Write-Host ""
+Write-Host "===== FINANCE MONTHLY BACKEND =====" -ForegroundColor Yellow
+Show-FileWithLines "app/Services/Finance/FinanceMonthlySummaryService.php" 1000
+Show-FileWithLines "app/Http/Controllers/Finance/FinanceDocumentController.php" 900
+Show-FileWithLines "app/Http/Controllers/Finance/PaymentController.php" 700
+
+Write-Host ""
+Write-Host "===== FINANCE MONTHLY FRONTEND =====" -ForegroundColor Yellow
+Show-FileWithLines "resources/js/features/finance/components/FinanceMonthlySummary.tsx" 1000
+Show-FileWithLines "resources/js/pages/Finance/Documents/Index.tsx" 1000
+Show-FileWithLines "resources/js/features/finance/FinanceTabs.tsx" 500
+Show-FileWithLines "resources/js/features/finance/components/FinanceTabs.tsx" 500
+Show-FileWithLines "resources/js/features/finance/types.ts" 900
+
+Write-Host ""
+Write-Host "===== SEARCH MONTHLY UI USAGE =====" -ForegroundColor Yellow
+Get-ChildItem -Recurse resources/js -Include *.tsx,*.ts |
+    Select-String -Pattern "FinanceMonthlySummary|monthlySummary|monthly|summary|paymentsByMonth|revenueByMonth" |
+    Select-Object Path, LineNumber, Line |
+    Format-List
+
+Write-Host ""
+Write-Host "===== BASELINE BUILD =====" -ForegroundColor Yellow
+npm run build
+
+Write-Host ""
+Write-Host "STEP 53-Q-A audit completed. Send final.txt." -ForegroundColor Green

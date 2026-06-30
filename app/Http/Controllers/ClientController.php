@@ -6,8 +6,11 @@ use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\ClientResource;
 use App\Models\Client;
+use App\Models\DocumentTemplate;
 use App\Models\Intermediary;
+use App\Services\Clients\ClientWorkspaceService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -33,12 +36,24 @@ class ClientController extends Controller
         ]);
     }
 
-    public function show(Client $client): Response
+    public function show(Request $request, Client $client, ClientWorkspaceService $workspaceService): Response
     {
         $client->load(['intermediary', 'dossiers'])->loadCount('dossiers');
+        $selectedDossierId = $request->integer('dossier_id') ?: null;
 
         return Inertia::render('Clients/Show', [
             'client' => ClientResource::make($client)->resolve(),
+            'workspace' => $workspaceService->forClient($client, $selectedDossierId),
+            'documentTemplates' => DocumentTemplate::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get()
+                ->map(fn (DocumentTemplate $template) => [
+                    'id' => (string) $template->id,
+                    'label' => $template->name,
+                    'type' => $template->document_type,
+                ])
+                ->values(),
             'dossiers' => $client->dossiers()
                 ->latest()
                 ->get()

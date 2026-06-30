@@ -27,6 +27,7 @@ class StoreContractRequest extends FormRequest
             'fee_rate_percent' => ['nullable', 'numeric', 'in:0.5,2,0.50,2.00'],
             'forfait_ttc' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'return_to' => ['nullable', 'string', 'max:2000', 'starts_with:/'],
         ];
     }
 }

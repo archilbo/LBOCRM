@@ -65,7 +65,7 @@ export function AuthorizationBoard({ authorization }: AuthorizationBoardProps) {
                 />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                 {items.map((item) => {
                     const Icon = item.icon;
 

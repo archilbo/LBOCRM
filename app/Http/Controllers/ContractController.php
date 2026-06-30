@@ -44,6 +44,12 @@ class ContractController extends Controller
 
         Contract::create($data);
 
+        if ($request->filled('return_to')) {
+            return redirect()
+                ->to($request->string('return_to')->toString())
+                ->with('success', 'Contract created successfully.');
+        }
+
         return redirect()
             ->route('contracts.index')
             ->with('success', 'Contract created successfully.');
@@ -204,6 +210,7 @@ class ContractController extends Controller
     private function prepareContractData(array $data): array
     {
         $dossier = Dossier::query()->findOrFail($data['dossier_id']);
+        unset($data['return_to']);
 
         $calculationMode = ($data['calculation_mode'] ?? 'percentage') === 'forfait'
             ? 'forfait'

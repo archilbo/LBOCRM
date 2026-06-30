@@ -73,7 +73,7 @@ export default function BackendQaIndex({
                     </AppButton>
                 }
             >
-                <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <section className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">
                     <AppCard className="p-4">
                         <p className="text-sm text-[var(--text-muted)]">Database</p>
                         <p className="mt-3 truncate text-2xl font-semibold">{database.database}</p>

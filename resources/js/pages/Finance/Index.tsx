@@ -469,7 +469,7 @@ export default function FinanceIndex({
                     </AppButton>
                 }
             >
-                <section className="grid gap-4 xl:grid-cols-2">
+                <section className="grid gap-5 xl:grid-cols-2">
                     <AppFilterBar
                         label="Finance type"
                         value={typeFilter}
@@ -484,7 +484,7 @@ export default function FinanceIndex({
                         onChange={setStatusFilter}
                     />
                 </section>
-                <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <section className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">
                     {metricCards.map((metric) => (
                         <AppCard key={metric.label} className="p-4">
                             <p className="text-sm text-[var(--text-muted)]">{metric.label}</p>

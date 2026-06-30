@@ -11,5 +11,9 @@
 </head>
 <body>
     @inertia
+    <script>
+        window.csrfToken = '{{ csrf_token() }}';
+        window.userId = {{ auth()->id() ?? 'null' }};
+    </script>
 </body>
 </html>

@@ -1,28 +1,24 @@
 import { Head, router } from '@inertiajs/react';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
     CheckCircle2,
     Download,
     Eye,
     FileText,
+    FolderKanban,
     Pencil,
     Plus,
     RefreshCcw,
+    ScrollText,
+    Search,
     Trash2,
+    X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { useTranslation } from '@/lib/i18n';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormErrors } from '@/lib/formErrors';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppBadge } from '@/components/ui/AppBadge';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
-import { AppDataTable } from '@/components/ui/AppDataTable';
-import { AppFilterBar } from '@/components/ui/AppFilterBar';
-import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
-import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
-import { AppTableActions } from '@/components/ui/AppTableActions';
+import { AppPagination } from '@/components/ui/AppPagination';
 import { ContractDrawer } from '@/features/contracts/drawers/ContractDrawer';
 import type {
     ContractDossierOption,
@@ -31,6 +27,9 @@ import type {
     ContractStatus,
 } from '@/features/contracts/types';
 import { countByValue, filterByValue } from '@/lib/filters';
+import { useTranslation } from '@/lib/i18n';
+
+/* FORCE_CONTRACTS_REDESIGN_53F */
 
 type PageProps = {
     contracts: ContractRow[];
@@ -44,43 +43,33 @@ type PageProps = {
     };
 };
 
-type BadgeTone = 'neutral' | 'blue' | 'green' | 'amber' | 'red' | 'violet';
-
 function formatMoney(value: number) {
-    return new Intl.NumberFormat('en-MA', {
+    return new Intl.NumberFormat('fr-MA', {
         style: 'currency',
         currency: 'MAD',
         maximumFractionDigits: 0,
-    }).format(value);
+    }).format(value || 0);
 }
 
-function getStatusTone(status: ContractStatus): BadgeTone {
-    switch (status) {
-        case 'draft':
-            return 'amber';
-        case 'generated':
-            return 'violet';
-        case 'signed':
-            return 'green';
-        case 'cancelled':
-            return 'red';
-        default:
-            return 'neutral';
-    }
+function formatNumber(value: number) {
+    return new Intl.NumberFormat('fr-MA').format(value || 0);
 }
 
-function getStatusIcon(status: ContractStatus): 'dot' | 'check' | 'clock' | 'warning' {
-    switch (status) {
-        case 'signed':
-            return 'check';
-        case 'cancelled':
-            return 'warning';
-        case 'draft':
-        case 'generated':
-            return 'clock';
-        default:
-            return 'dot';
+function statusClass(status: ContractStatus) {
+    if (status === 'signed') return 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300';
+    if (status === 'generated') return 'border-violet-400/25 bg-violet-400/10 text-violet-300';
+    if (status === 'draft') return 'border-amber-400/25 bg-amber-400/10 text-amber-300';
+    if (status === 'cancelled') return 'border-red-400/25 bg-red-400/10 text-red-300';
+
+    return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300';
+}
+
+function modeLabel(contract: ContractRow) {
+    if (contract.calculationMode === 'forfait') {
+        return 'FORFAIT';
     }
+
+    return `${contract.feeRatePercent}%`;
 }
 
 function toBackendPayload(payload: ContractFormPayload) {
@@ -96,6 +85,202 @@ function toBackendPayload(payload: ContractFormPayload) {
     };
 }
 
+function matchesSearch(contract: ContractRow, query: string) {
+    if (!query.trim()) {
+        return true;
+    }
+
+    return [
+        contract.contractNumber,
+        contract.dossierNumber,
+        contract.projectObject,
+        contract.clientName,
+        contract.clientCin,
+        contract.status,
+        contract.calculationMode,
+        contract.notes,
+    ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(query.trim().toLowerCase());
+}
+
+function downloadGenerated(contract: ContractRow) {
+    window.location.href = contract.generatedDocumentDownloadUrl || `/contracts/${contract.id}/download/generated`;
+}
+
+function downloadPdf(contract: ContractRow) {
+    window.location.href = contract.pdfDownloadUrl || `/contracts/${contract.id}/download/pdf`;
+}
+
+function KpiCard({
+    label,
+    value,
+    detail,
+}: {
+    label: string;
+    value: string | number;
+    detail: string;
+}) {
+    return (
+        <div className="crm-kpi-card">
+            <p className="crm-kpi-label">{label}</p>
+            <p className="crm-kpi-value">{value}</p>
+            <p className="mt-2 truncate text-xs text-[var(--crm-text-soft)]">{detail}</p>
+        </div>
+    );
+}
+
+function FileState({ contract }: { contract: ContractRow }) {
+    return (
+        <div className="grid grid-cols-2 gap-2">
+            <div className={[
+                'crm-panel-soft p-3',
+                contract.hasGeneratedDocument ? 'border-emerald-400/20' : '',
+            ].join(' ')}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">DOCX</p>
+                <p className="mt-1 text-sm font-semibold">{contract.hasGeneratedDocument ? 'Generated' : 'Missing'}</p>
+                <p className="truncate text-xs text-[var(--crm-text-muted)]">{contract.generatedAt || '-'}</p>
+            </div>
+
+            <div className={[
+                'crm-panel-soft p-3',
+                contract.hasPdf ? 'border-emerald-400/20' : '',
+            ].join(' ')}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">PDF</p>
+                <p className="mt-1 text-sm font-semibold">{contract.hasPdf ? 'Exported' : 'Missing'}</p>
+                <p className="truncate text-xs text-[var(--crm-text-muted)]">{contract.pdfPath ? 'Ready' : '-'}</p>
+            </div>
+        </div>
+    );
+}
+
+function ContractDetailPanel({
+    contract,
+    onGenerate,
+    onExportPdf,
+    onMarkSigned,
+    onEdit,
+    onDelete,
+}: {
+    contract: ContractRow | null;
+    onGenerate: (contract: ContractRow) => void;
+    onExportPdf: (contract: ContractRow) => void;
+    onMarkSigned: (contract: ContractRow) => void;
+    onEdit: (contract: ContractRow) => void;
+    onDelete: (contract: ContractRow) => void;
+}) {
+    if (!contract) {
+        return (
+            <aside className="crm-panel p-4">
+                <p className="text-sm font-semibold">Contract details</p>
+                <p className="mt-2 text-sm text-[var(--crm-text-muted)]">
+                    Select a contract to generate, export, sign, or download files.
+                </p>
+            </aside>
+        );
+    }
+
+    return (
+        <aside className="crm-panel overflow-hidden">
+            <div className="border-b border-[var(--crm-border)] p-4">
+                <p className="crm-eyebrow">Selected contract</p>
+                <div className="mt-2 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <h2 className="truncate text-lg font-semibold">{contract.contractNumber}</h2>
+                        <p className="text-sm text-[var(--crm-text-muted)]">{contract.dossierNumber}</p>
+                    </div>
+
+                    <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(contract.status)}`}>
+                        {contract.status}
+                    </span>
+                </div>
+            </div>
+
+            <div className="space-y-5 p-5">
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="crm-panel-soft p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Project</p>
+                        <p className="mt-1 truncate text-sm font-semibold">{contract.projectObject}</p>
+                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{contract.clientName}</p>
+                    </div>
+
+                    <div className="crm-panel-soft p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Mode</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-[var(--crm-gold)]">{modeLabel(contract)}</p>
+                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{contract.surface} m2</p>
+                    </div>
+
+                    <div className="crm-panel-soft p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">HT</p>
+                        <p className="mt-1 truncate text-sm font-semibold">{formatMoney(contract.ht)}</p>
+                        <p className="truncate text-xs text-[var(--crm-text-muted)]">Before tax</p>
+                    </div>
+
+                    <div className="crm-panel-soft p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">TTC</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-[var(--crm-gold)]">{formatMoney(contract.ttc)}</p>
+                        <p className="truncate text-xs text-[var(--crm-text-muted)]">Total contract</p>
+                    </div>
+                </div>
+
+                <FileState contract={contract} />
+
+                {contract.notes ? (
+                    <div className="crm-panel-soft p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Notes</p>
+                        <p className="mt-2 text-sm text-[var(--crm-text-muted)]">{contract.notes}</p>
+                    </div>
+                ) : null}
+
+                <div className="grid gap-2">
+                    <AppButton variant="primary" onPress={() => onGenerate(contract)}>
+                        <RefreshCcw size={15} />
+                        Generate DOCX
+                    </AppButton>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <AppButton variant="secondary" size="sm" onPress={() => downloadGenerated(contract)}>
+                            <Download size={14} />
+                            DOCX
+                        </AppButton>
+
+                        <AppButton variant="secondary" size="sm" onPress={() => downloadPdf(contract)}>
+                            <FileText size={14} />
+                            PDF
+                        </AppButton>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <AppButton variant="secondary" size="sm" onPress={() => onExportPdf(contract)}>
+                            <FileText size={14} />
+                            Export PDF
+                        </AppButton>
+
+                        <AppButton variant="secondary" size="sm" onPress={() => onMarkSigned(contract)}>
+                            <CheckCircle2 size={14} />
+                            Signed
+                        </AppButton>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <AppButton variant="secondary" size="sm" onPress={() => onEdit(contract)}>
+                            <Pencil size={14} />
+                            Edit
+                        </AppButton>
+
+                        <AppButton variant="danger" size="sm" onPress={() => onDelete(contract)}>
+                            <Trash2 size={14} />
+                            Delete
+                        </AppButton>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    );
+}
+
 export default function ContractsIndex({
     contracts,
     dossiers,
@@ -104,16 +289,15 @@ export default function ContractsIndex({
     const { t } = useTranslation();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState('all');
+    const [query, setQuery] = useState('');
     const [formErrors, setFormErrors] = useState<FormErrors>({});
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('create');
     const [selectedContract, setSelectedContract] = useState<ContractRow | null>(
         contracts[0] ?? null,
     );
 
-    const filteredContracts = useMemo(
-        () => filterByValue(contracts, statusFilter, (contract) => contract.status),
-        [contracts, statusFilter],
-    );
+    const [tablePage, setTablePage] = useState(1);
+    const TABLE_PAGE_SIZE = 15;
 
     const statusOptions = useMemo(
         () => [
@@ -125,10 +309,28 @@ export default function ContractsIndex({
         ],
         [contracts],
     );
+
+    const filteredContracts = useMemo(() => {
+        return filterByValue(contracts, statusFilter, (contract) => contract.status)
+            .filter((contract) => matchesSearch(contract, query));
+    }, [contracts, query, statusFilter]);
+
+    useEffect(() => {
+        setTablePage(1);
+    }, [query, statusFilter]);
+
+    const pagedContracts = useMemo(
+        () => filteredContracts.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE),
+        [filteredContracts, tablePage],
+    );
+
+    const selectedVisible = selectedContract && filteredContracts.some((contract) => contract.id === selectedContract.id)
+        ? selectedContract
+        : filteredContracts[0] ?? null;
+
     function openCreateDrawer() {
         setSelectedContract(null);
         setDrawerMode('create');
-        setFormErrors({});
         setFormErrors({});
         setDrawerOpen(true);
     }
@@ -136,7 +338,6 @@ export default function ContractsIndex({
     function openEditDrawer(contract: ContractRow) {
         setSelectedContract(contract);
         setDrawerMode('edit');
-        setFormErrors({});
         setFormErrors({});
         setDrawerOpen(true);
     }
@@ -152,7 +353,10 @@ export default function ContractsIndex({
                     setFormErrors({});
                     toast.success('Contract updated successfully.');
                 },
-                onError: () => toast.error('Please check contract form errors.'),
+                onError: (errors) => {
+                    setFormErrors(errors as FormErrors);
+                    toast.error('Please check contract form errors.');
+                },
             });
 
             return;
@@ -162,13 +366,13 @@ export default function ContractsIndex({
             preserveScroll: true,
             onSuccess: () => {
                 setDrawerOpen(false);
-                    setFormErrors({});
+                setFormErrors({});
                 toast.success('Contract created successfully.');
             },
             onError: (errors) => {
-                    setFormErrors(errors as FormErrors);
-                    toast.error('Please check contract form errors. Maybe this dossier already has a contract.');
-                },
+                setFormErrors(errors as FormErrors);
+                toast.error('Please check contract form errors. Maybe this dossier already has a contract.');
+            },
         });
     }
 
@@ -180,12 +384,12 @@ export default function ContractsIndex({
         });
     }
 
-    function downloadGenerated(contract: ContractRow) {
-        window.location.href = `/contracts/${contract.id}/download/generated`;
-    }
-
-    function downloadPdf(contract: ContractRow) {
-        window.location.href = `/contracts/${contract.id}/download/pdf`;
+    function exportPdf(contract: ContractRow) {
+        router.put(`/contracts/${contract.id}/export-pdf`, {}, {
+            preserveScroll: true,
+            onSuccess: () => toast.success('Contract PDF exported successfully.'),
+            onError: () => toast.error('Contract PDF could not be exported.'),
+        });
     }
 
     function markSigned(contract: ContractRow) {
@@ -197,9 +401,7 @@ export default function ContractsIndex({
     }
 
     function deleteContract(contract: ContractRow) {
-        const confirmed = window.confirm(`Delete ${contract.contractNumber}?`);
-
-        if (!confirmed) {
+        if (!window.confirm(`Delete ${contract.contractNumber}?`)) {
             return;
         }
 
@@ -209,175 +411,6 @@ export default function ContractsIndex({
             onError: () => toast.error('Contract could not be deleted.'),
         });
     }
-
-    const columns = useMemo<ColumnDef<ContractRow, unknown>[]>(
-        () => [
-            {
-                accessorKey: 'contractNumber',
-                header: 'Contract',
-                cell: ({ row }) => (
-                    <div className="app-table-primary-cell">
-                        <div className="flex items-center gap-2">
-                            <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                                <FileText size={15} />
-                            </div>
-
-                            <div className="min-w-0">
-                                <p className="max-w-[220px] truncate text-sm font-semibold">
-                                    {row.original.contractNumber}
-                                </p>
-                                <p className="text-xs text-[var(--text-muted)]">
-                                    {row.original.dossierNumber}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                ),
-            },
-            {
-                accessorKey: 'projectObject',
-                header: 'Project',
-                cell: ({ row }) => (
-                    <div>
-                        <p className="max-w-[240px] truncate text-sm font-medium">
-                            {row.original.projectObject}
-                        </p>
-                        <p className="text-xs text-[var(--text-muted)]">
-                            {row.original.clientName}
-                        </p>
-                    </div>
-                ),
-            },
-            {
-                accessorKey: 'surface',
-                header: 'Surface',
-                cell: ({ row }) => (
-                    <AppBadge tone="blue">{row.original.surface} mÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â²</AppBadge>
-                ),
-            },
-            {
-                accessorKey: 'calculationMode',
-                header: 'Mode',
-                cell: ({ row }) => (
-                    <AppBadge tone={row.original.calculationMode === 'forfait' ? 'violet' : 'blue'}>
-                        {row.original.calculationMode === 'forfait' ? 'FORFAIT' : `${row.original.feeRatePercent}%`}
-                    </AppBadge>
-                ),
-            },
-            {
-                accessorKey: 'ttc',
-                header: 'TTC',
-                cell: ({ row }) => (
-                    <span className="text-sm font-semibold">
-                        {formatMoney(row.original.ttc)}
-                    </span>
-                ),
-            },
-            {
-                accessorKey: 'status',
-                header: 'Status',
-                cell: ({ row }) => (
-                    <AppStatusBadge
-                        label={row.original.status}
-                        tone={getStatusTone(row.original.status)}
-                        icon={getStatusIcon(row.original.status)}
-                    />
-                ),
-            },
-            {
-                accessorKey: 'generatedAt',
-                header: 'Generated',
-                cell: ({ row }) => (
-                    <span className="text-sm text-[var(--text-muted)]">
-                        {row.original.generatedAt || '-'}
-                    </span>
-                ),
-            },
-            {
-                id: 'actions',
-                header: 'Actions',
-                cell: ({ row }) => (
-                    <AppTableActions>
-                        <AppTableActionButton
-                            label="Preview"
-                            tone="view"
-                            onPress={() => setSelectedContract(row.original)}
-                        >
-                            <Eye size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Edit"
-                            tone="edit"
-                            onPress={() => openEditDrawer(row.original)}
-                        >
-                            <Pencil size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Generate"
-                            tone="create"
-                            onPress={() => generateContract(row.original)}
-                        >
-                            <RefreshCcw size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Signed"
-                            tone="archive"
-                            onPress={() => markSigned(row.original)}
-                        >
-                            <CheckCircle2 size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Download DOCX"
-                            tone="documents"
-                            onPress={() => downloadGenerated(row.original)}
-                        >
-                            <Download size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Download PDF"
-                            tone="create"
-                            onPress={() => downloadPdf(row.original)}
-                        >
-                            <FileText size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Delete"
-                            tone="delete"
-                            onPress={() => deleteContract(row.original)}
-                        >
-                            <Trash2 size={15} />
-                        </AppTableActionButton>
-                    </AppTableActions>
-                ),
-            },
-        ],
-        [],
-    );
-
-    const metricCards = [
-        {
-            label: 'Total TTC',
-            value: formatMoney(metrics.totalTtc),
-        },
-        {
-            label: 'Contracts',
-            value: metrics.total,
-        },
-        {
-            label: 'Generated',
-            value: metrics.generated,
-        },
-        {
-            label: 'Signed',
-            value: metrics.signed,
-        },
-    ];
 
     return (
         <>
@@ -394,137 +427,203 @@ export default function ContractsIndex({
                     </AppButton>
                 }
             >
-                <AppFilterBar
-                    label="Contract status"
-                    value={statusFilter}
-                    options={statusOptions}
-                    onChange={setStatusFilter}
-                />
-                <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    {metricCards.map((metric) => (
-                        <AppCard key={metric.label} className="p-4">
-                            <p className="text-sm text-[var(--text-muted)]">{metric.label}</p>
-                            <p className="mt-3 truncate text-2xl font-semibold">{metric.value}</p>
-                        </AppCard>
-                    ))}
+                <section className="crm-kpi-grid max-xl:grid-cols-3 max-md:grid-cols-1">
+                    <KpiCard label="Total TTC" value={formatMoney(metrics.totalTtc)} detail="All contracts value" />
+                    <KpiCard label="Contracts" value={formatNumber(metrics.total)} detail="Total contract records" />
+                    <KpiCard label="Draft" value={formatNumber(metrics.draft)} detail="Need generation" />
+                    <KpiCard label="Generated" value={formatNumber(metrics.generated)} detail="DOCX ready" />
+                    <KpiCard label="Signed" value={formatNumber(metrics.signed)} detail="Signed contracts" />
                 </section>
 
-                <section className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
-                    <div className="min-w-0">
-                        <AppDataTable
-                            data={filteredContracts}
-                            columns={columns}
-                            searchPlaceholder="Search by contract, dossier, project, client, or status..."
-                            emptyTitle="No contracts found"
-                            emptyDescription="Create the first contract from an existing project."
-                            pageSize={8}
-                        />
+                <section className="crm-panel p-4">
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                        <div className="flex flex-wrap gap-2">
+                            {statusOptions.map((option) => {
+                                const active = option.id === statusFilter;
+
+                                return (
+                                    <button
+                                        key={option.id}
+                                        type="button"
+                                        onClick={() => setStatusFilter(option.id)}
+                                        className={[
+                                            'inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition',
+                                            active
+                                                ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]'
+                                                : 'border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]',
+                                        ].join(' ')}
+                                    >
+                                        {option.label}
+                                        <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">{option.count}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="crm-command-input relative w-full xl:w-[390px]">
+                            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
+                            <input
+                                value={query}
+                                onChange={(event) => setQuery(event.target.value)}
+                                placeholder="Search contracts, projects, clients..."
+                                className="h-full w-full bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-[var(--crm-text-soft)]"
+                            />
+                            {query ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setQuery('')}
+                                    className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-[var(--crm-text-soft)] hover:bg-[var(--crm-surface-2)]"
+                                >
+                                    <X size={14} />
+                                </button>
+                            ) : null}
+                        </div>
                     </div>
+                </section>
 
-                    <aside className="min-w-0 space-y-5 2xl:sticky 2xl:top-24 2xl:self-start">
-                        <AppCard className="p-5">
-                            <div className="mb-4 flex items-start gap-3">
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                                    <FileText size={18} />
-                                </div>
-
-                                <div className="min-w-0">
-                                    <h2 className="text-sm font-semibold">Contract preview</h2>
-                                    <p className="mt-1 text-sm text-[var(--text-muted)]">
-                                        Selected contract information.
-                                    </p>
-                                </div>
+                <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+                    <div className="crm-panel overflow-hidden">
+                        <div className="flex items-center justify-between border-b border-[var(--crm-border)] px-5 py-4">
+                            <div>
+                                <p className="text-sm font-semibold">Contract workspace</p>
+                                <p className="text-xs text-[var(--crm-text-muted)]">{filteredContracts.length} visible contract(s)</p>
                             </div>
 
-                            {selectedContract ? (
-                                <div className="space-y-3">
-                                    <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                        <p className="text-xs text-[var(--text-muted)]">Contract</p>
-                                        <p className="mt-1 text-sm font-semibold">
-                                            {selectedContract.contractNumber}
-                                        </p>
-                                        <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                            {selectedContract.dossierNumber}
-                                        </p>
-                                    </div>
+                            <AppButton variant="secondary" size="sm" onPress={() => setStatusFilter('all')}>
+                                Reset
+                            </AppButton>
+                        </div>
 
-                                    <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                        <p className="text-xs text-[var(--text-muted)]">Project</p>
-                                        <p className="mt-1 text-sm font-semibold">
-                                            {selectedContract.projectObject}
-                                        </p>
-                                        <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                            {selectedContract.clientName}
-                                        </p>
-                                    </div>
+                        <div className="app-scrollbar overflow-x-auto">
+                            <table className="crm-table min-w-[1080px]">
+                                <thead>
+                                    <tr>
+                                        <th>Contract</th>
+                                        <th>Project</th>
+                                        <th>Calculation</th>
+                                        <th>Amounts</th>
+                                        <th>Files</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
 
-                                    <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                        <p className="text-xs text-[var(--text-muted)]">Calculation</p>
-                                        <p className="mt-1 text-sm font-semibold">
-                                            {selectedContract.calculationMode === 'forfait' ? 'FORFAIT TTC' : `${selectedContract.feeRatePercent}%`}
-                                        </p>
-                                    </div>
+                                <tbody>
+                                    {filteredContracts.length > 0 ? (
+                                        pagedContracts.map((contract) => {
+                                            const selected = selectedVisible?.id === contract.id;
 
-                                    <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-1">
-                                        <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                            <p className="text-xs text-[var(--text-muted)]">HT</p>
-                                            <p className="mt-1 text-sm font-semibold">
-                                                {formatMoney(selectedContract.ht)}
-                                            </p>
-                                        </div>
+                                            return (
+                                                <tr
+                                                    key={contract.id}
+                                                    className={selected ? 'bg-[color-mix(in_srgb,var(--crm-gold)_8%,transparent)]' : ''}
+                                                    onClick={() => setSelectedContract(contract)}
+                                                >
+                                                    <td>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
+                                                                <ScrollText size={16} />
+                                                            </span>
+                                                            <div className="min-w-0">
+                                                                <p className="max-w-[220px] truncate font-semibold text-[var(--crm-text)]">{contract.contractNumber}</p>
+                                                                <p className="text-xs text-[var(--crm-text-muted)]">{contract.dossierNumber}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
 
-                                        <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                            <p className="text-xs text-[var(--text-muted)]">TVA</p>
-                                            <p className="mt-1 text-sm font-semibold">
-                                                {formatMoney(selectedContract.tva)}
-                                            </p>
-                                        </div>
+                                                    <td>
+                                                        <div className="flex items-start gap-2">
+                                                            <FolderKanban size={14} className="mt-0.5 shrink-0 text-[var(--crm-text-soft)]" />
+                                                            <div className="min-w-0">
+                                                                <p className="max-w-[230px] truncate font-medium text-[var(--crm-text)]">{contract.projectObject}</p>
+                                                                <p className="max-w-[230px] truncate text-xs text-[var(--crm-text-muted)]">{contract.clientName}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
 
-                                        <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                            <p className="text-xs text-[var(--text-muted)]">TTC</p>
-                                            <p className="mt-1 text-sm font-semibold">
-                                                {formatMoney(selectedContract.ttc)}
-                                            </p>
-                                        </div>
-                                    </div>
+                                                    <td>
+                                                        <span className="inline-flex rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface-2)] px-2 py-1 text-[11px] font-semibold text-[var(--crm-gold)]">
+                                                            {modeLabel(contract)}
+                                                        </span>
+                                                        <p className="mt-1 text-xs text-[var(--crm-text-muted)]">{contract.surface} m2</p>
+                                                    </td>
 
-                                    <div className="flex flex-wrap gap-2">
-                                        <AppStatusBadge
-                                            label={selectedContract.status}
-                                            tone={getStatusTone(selectedContract.status)}
-                                            icon={getStatusIcon(selectedContract.status)}
-                                        />
-                                        <AppBadge tone={selectedContract.hasGeneratedDocument ? 'green' : 'amber'}>
-                                            {selectedContract.hasGeneratedDocument ? 'Generated file' : 'No file'}
-                                        </AppBadge>
-                                    </div>
+                                                    <td>
+                                                        <p className="font-semibold text-[var(--crm-text)]">{formatMoney(contract.ttc)}</p>
+                                                        <p className="text-xs text-[var(--crm-text-muted)]">HT {formatMoney(contract.ht)} · TVA {formatMoney(contract.tva)}</p>
+                                                    </td>
 
-                                    <div className="grid gap-2">
-                                        <AppButton
-                                            variant="primary"
-                                            onPress={() => generateContract(selectedContract)}
-                                        >
-                                            <RefreshCcw size={16} />
-                                            Generate
-                                        </AppButton>
+                                                    <td>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            <span className={[
+                                                                'rounded-full border px-2 py-1 text-[11px] font-semibold',
+                                                                contract.hasGeneratedDocument ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300' : 'border-amber-400/25 bg-amber-400/10 text-amber-300',
+                                                            ].join(' ')}>
+                                                                DOCX
+                                                            </span>
+                                                            <span className={[
+                                                                'rounded-full border px-2 py-1 text-[11px] font-semibold',
+                                                                contract.hasPdf ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300' : 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300',
+                                                            ].join(' ')}>
+                                                                PDF
+                                                            </span>
+                                                        </div>
+                                                    </td>
 
-                                        <AppButton
-                                            variant="secondary"
-                                            onPress={() => downloadGenerated(selectedContract)}
-                                        >
-                                            <Download size={16} />
-                                            Download
-                                        </AppButton>
-                                    </div>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-[var(--text-muted)]">
-                                    Select a contract from the table.
-                                </p>
-                            )}
-                        </AppCard>
-                    </aside>
+                                                    <td>
+                                                        <span className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(contract.status)}`}>
+                                                            {contract.status}
+                                                        </span>
+                                                    </td>
+
+                                                    <td>
+                                                        <div className="flex justify-end gap-1">
+                                                            <button type="button" className="crm-action-button" title="Preview" onClick={(event) => { event.stopPropagation(); setSelectedContract(contract); }}>
+                                                                <Eye size={14} />
+                                                            </button>
+                                                            <button type="button" className="crm-action-button" title="Edit" onClick={(event) => { event.stopPropagation(); openEditDrawer(contract); }}>
+                                                                <Pencil size={14} />
+                                                            </button>
+                                                            <button type="button" className="crm-action-button" title="Generate" onClick={(event) => { event.stopPropagation(); generateContract(contract); }}>
+                                                                <RefreshCcw size={14} />
+                                                            </button>
+                                                            <button type="button" className="crm-action-button" title="Download DOCX" onClick={(event) => { event.stopPropagation(); downloadGenerated(contract); }}>
+                                                                <Download size={14} />
+                                                            </button>
+                                                            <button type="button" className="crm-action-button" title="Download PDF" onClick={(event) => { event.stopPropagation(); downloadPdf(contract); }}>
+                                                                <FileText size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={7}>
+                                                <div className="py-10 text-center">
+                                                    <p className="text-sm font-semibold">No contracts found</p>
+                                                    <p className="mt-1 text-sm text-[var(--crm-text-muted)]">Change filters or create a contract from a project.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <ContractDetailPanel
+                        contract={selectedVisible}
+                        onGenerate={generateContract}
+                        onExportPdf={exportPdf}
+                        onMarkSigned={markSigned}
+                        onEdit={openEditDrawer}
+                        onDelete={deleteContract}
+                    />
                 </section>
+
+                <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filteredContracts.length} onChange={setTablePage} />
 
                 <ContractDrawer
                     isOpen={drawerOpen}

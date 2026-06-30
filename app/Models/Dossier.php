@@ -76,4 +76,14 @@ class Dossier extends Model
     {
         return $this->hasOne(ArchiveRecord::class);
     }
+
+    public function workflowRequirements(): HasMany
+    {
+        return $this->hasMany(DossierWorkflowRequirement::class);
+    }
+
+    public function workflowRequirementHistories(): HasMany
+    {
+        return $this->hasMany(DossierWorkflowRequirementHistory::class);
+    }
 }

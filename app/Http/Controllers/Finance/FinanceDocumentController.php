@@ -18,6 +18,7 @@ use App\Services\Finance\FinanceExcelExporter;
 use App\Services\Finance\FinanceNumberService;
 use App\Services\Finance\FinancePdfGenerator;
 use App\Services\Finance\FinanceSettingsService;
+use App\Services\Finance\FinanceMonthlySummaryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +30,7 @@ use Symfony\Component\Process\Process;
 
 class FinanceDocumentController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, FinanceMonthlySummaryService $monthlySummaryService): Response
     {
         $query = FinanceDocument::with(['client', 'dossier', 'items', 'payments'])
             ->withCount('payments');
@@ -53,7 +54,7 @@ class FinanceDocumentController extends Controller
         $documents = $query->orderBy('created_at', 'desc')->limit(100)->get();
         $records = FinanceDocumentResource::collection($documents)->resolve($request);
 
-        $payments = Payment::with(['document', 'client', 'dossier'])
+        $payments = Payment::with(['document', 'client', 'dossier', 'receiptDocument'])
             ->orderByDesc('paid_at')
             ->orderByDesc('created_at')
             ->limit(100)
@@ -74,6 +75,7 @@ class FinanceDocumentController extends Controller
         return Inertia::render('Finance/Documents/Index', [
             'documents' => $records,
             'payments' => PaymentResource::collection($payments)->resolve($request),
+            'monthlySummaries' => $monthlySummaryService->months(),
             'metrics' => $metrics,
             'clients' => Client::select('id', 'full_name', 'cin', 'address')
                 ->orderBy('full_name')

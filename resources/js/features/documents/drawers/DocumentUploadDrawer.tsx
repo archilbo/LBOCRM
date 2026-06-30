@@ -18,6 +18,8 @@ type DocumentUploadDrawerProps = {
     isOpen: boolean;
     dossiers: DossierOption[];
     templates: DocumentTemplateOption[];
+    initialDossierId?: string;
+    initialTemplateId?: string;
     onOpenChange: (isOpen: boolean) => void;
     onSubmit: (payload: DocumentUploadPayload) => void;
     errors?: FormErrors;
@@ -42,6 +44,8 @@ export function DocumentUploadDrawer({
     isOpen,
     dossiers,
     templates,
+    initialDossierId = '',
+    initialTemplateId = '',
     onOpenChange,
     onSubmit,
     errors = {},
@@ -51,10 +55,14 @@ export function DocumentUploadDrawer({
 
     useEffect(() => {
         if (isOpen) {
-            setForm(emptyForm);
+            setForm({
+                ...emptyForm,
+                dossierId: initialDossierId,
+                documentTemplateId: initialTemplateId,
+            });
             setFileName('');
         }
-    }, [isOpen]);
+    }, [initialDossierId, initialTemplateId, isOpen]);
 
     function updateField(field: keyof DocumentUploadPayload, value: string) {
         setForm((current) => ({ ...current, [field]: value }));

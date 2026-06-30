@@ -8,12 +8,10 @@ use App\Http\Requests\Finance\UpdatePaymentRequest;
 use App\Http\Resources\PaymentResource;
 use App\Models\FinanceDocument;
 use App\Models\Payment;
-use App\Services\Finance\FinanceCalculator;
-use App\Services\Finance\FinanceNumberService;
+use App\Services\Finance\PaymentLedgerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,95 +19,71 @@ class PaymentController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Payment::with(['document', 'client', 'dossier']);
+        $query = Payment::with(['document', 'client', 'dossier', 'receiptDocument']);
 
         $paginator = $query->orderBy('created_at', 'desc')->paginate(20);
-        $payments = $paginator->through(fn($p) => new PaymentResource($p));
+        $payments = $paginator->through(fn ($payment) => new PaymentResource($payment));
 
         return Inertia::render('Finance/Payments/Index', [
             'payments' => $payments,
         ]);
     }
 
-    public function store(StorePaymentRequest $request): RedirectResponse
+    public function store(StorePaymentRequest $request, PaymentLedgerService $ledger): RedirectResponse
     {
         $data = $request->validated();
+        $data['created_by'] = Auth::id();
 
-        $payment = DB::transaction(function () use ($data) {
-            $document = FinanceDocument::findOrFail($data['finance_document_id']);
+        $payment = $ledger->recordPayment(
+            FinanceDocument::findOrFail($data['finance_document_id']),
+            $data
+        );
 
-            if (!$document->canRecordPayment()) {
-                throw new \Exception('Ce document ne peut pas recevoir de paiement.');
-            }
+        $receiptNumber = $payment->receiptDocument?->number;
 
-            $payment = Payment::create([
-                'finance_document_id' => $document->id,
-                'client_id' => $document->client_id,
-                'dossier_id' => $document->dossier_id,
-                'payment_number' => FinanceNumberService::nextPaymentNumber(),
-                'amount' => $data['amount'],
-                'method' => $data['method'] ?? null,
-                'reference' => $data['reference'] ?? null,
-                'paid_at' => $data['paid_at'] ?? now(),
-                'notes' => $data['notes'] ?? null,
-                'created_by' => Auth::id(),
-            ]);
-
-            FinanceCalculator::updateInvoicePaymentTotals($document);
-            $document->save();
-
-            return $payment;
-        });
-
-        return back()->with('success', "Paiement {$payment->payment_number} enregistré avec succès !");
+        return back()
+            ->with('success', "Paiement {$payment->payment_number} enregistre avec succes. Recu: {$receiptNumber}")
+            ->with('receipt', $this->receiptFlashPayload($payment));
     }
 
-    public function update(UpdatePaymentRequest $request, Payment $payment): RedirectResponse
+    public function update(UpdatePaymentRequest $request, Payment $payment, PaymentLedgerService $ledger): RedirectResponse
     {
-        $data = $request->validated();
+        $payment = $ledger->updatePayment($payment, $request->validated());
 
-        DB::transaction(function () use ($data, $payment) {
-            $oldDoc = $payment->document;
-            $newDocId = $data['finance_document_id'] ?? $payment->finance_document_id;
-            $newDoc = FinanceDocument::findOrFail($newDocId);
+        $receiptNumber = $payment->receiptDocument?->number;
 
-            $payment->update([
-                'finance_document_id' => $newDocId,
-                'client_id' => $newDoc->client_id ?? $payment->client_id,
-                'dossier_id' => $newDoc->dossier_id ?? $payment->dossier_id,
-                'amount' => $data['amount'] ?? $payment->amount,
-                'method' => $data['method'] ?? $payment->method,
-                'reference' => $data['reference'] ?? $payment->reference,
-                'paid_at' => $data['paid_at'] ?? $payment->paid_at,
-                'notes' => $data['notes'] ?? $payment->notes,
-            ]);
-
-            if ($oldDoc && $oldDoc->id !== $newDocId) {
-                FinanceCalculator::updateInvoicePaymentTotals($oldDoc);
-                $oldDoc->save();
-            }
-
-            FinanceCalculator::updateInvoicePaymentTotals($newDoc);
-            $newDoc->save();
-        });
-
-        return back()->with('success', "Paiement {$payment->payment_number} mis à jour !");
+        return back()->with(
+            'success',
+            "Paiement {$payment->payment_number} mis a jour. Recu: {$receiptNumber}"
+        );
     }
 
-    public function destroy(Payment $payment): RedirectResponse
+    public function destroy(Payment $payment, PaymentLedgerService $ledger): RedirectResponse
     {
         $number = $payment->payment_number;
-        $document = $payment->document;
 
-        DB::transaction(function () use ($payment, $document) {
-            $payment->delete();
+        $ledger->deletePayment($payment);
 
-            if ($document) {
-                FinanceCalculator::updateInvoicePaymentTotals($document);
-                $document->save();
-            }
-        });
+        return back()->with('success', "Paiement {$number} supprime. Le recu lie a ete annule.");
+    }
 
-        return back()->with('success', "Paiement {$number} supprimé !");
+    private function receiptFlashPayload(Payment $payment): ?array
+    {
+        $payment->loadMissing('receiptDocument');
+        $receipt = $payment->receiptDocument;
+
+        if (! $receipt) {
+            return null;
+        }
+
+        return [
+            'paymentNumber' => $payment->payment_number,
+            'number' => $receipt->number,
+            'showUrl' => route('finance.documents.show', $receipt),
+            'generatePdfUrl' => route('finance.documents.generate-pdf', $receipt),
+            'generateExcelUrl' => route('finance.documents.generate-excel', $receipt),
+            'pdfDownloadUrl' => $receipt->pdf_path ? route('finance.documents.download-pdf', $receipt) : null,
+            'excelDownloadUrl' => $receipt->excel_path ? route('finance.documents.download-excel', $receipt) : null,
+        ];
     }
 }

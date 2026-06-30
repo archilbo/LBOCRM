@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
 import type { Key } from 'react-aria-components';
 import { AppButton } from '@/components/ui/AppButton';
@@ -115,7 +116,8 @@ export function ClientDrawer({
                 </>
             }
         >
-            <form id="client-form" className="space-y-6" onSubmit={handleSubmit}>`r`n                <AppFormErrorSummary errors={errors} />
+            <form id="client-form" className="space-y-6" onSubmit={handleSubmit}>
+                <AppFormErrorSummary errors={errors} />
                 <section>
                     <h3 className="mb-3 text-sm font-semibold">{t('clients.form.identity')}</h3>
 
@@ -159,6 +161,16 @@ export function ClientDrawer({
                             onSelectionChange={updateSelect}
                             options={intermediaryOptions}
                         />
+                        <div className="flex items-end">
+                            <AppButton
+                                type="button"
+                                variant="secondary"
+                                className="w-full"
+                                onPress={() => router.visit('/intermediaries')}
+                            >
+                                Gerer les intermediaires
+                            </AppButton>
+                        </div>
                     </div>
                 </section>
 

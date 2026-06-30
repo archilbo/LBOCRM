@@ -32,6 +32,13 @@ class HandleInertiaRequests extends Middleware
                     'permissions' => method_exists($user, 'getAllPermissions')
                         ? $user->getAllPermissions()->pluck('name')->values()
                         : [],
+                    'unread_notifications' => $user->unreadNotifications()->count(),
+                    'unread_messages' => \App\Models\Message::whereHas(
+                        'conversation.participants',
+                        fn ($q) => $q->where('user_id', $user->id),
+                    )->where('user_id', '!=', $user->id)
+                        ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
+                        ->count(),
                 ] : null,
             ],
 
@@ -40,6 +47,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
+                'receipt' => fn () => $request->session()->get('receipt'),
             ],
         ];
     }

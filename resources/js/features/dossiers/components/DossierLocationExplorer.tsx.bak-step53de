@@ -1,0 +1,67 @@
+import { FileSearch, MapPinned } from 'lucide-react';
+import { AppEmptyState } from '@/components/ui/AppEmptyState';
+import type { DossierLocationGroup } from '@/features/dossiers/types';
+import { DossierProvinceGroup } from './DossierProvinceGroup';
+
+type Props = {
+    groups: DossierLocationGroup[];
+};
+
+export function DossierLocationExplorer({ groups }: Props) {
+    if (!groups.length) {
+        return (
+            <AppEmptyState
+                title="No location groups found"
+                description="Create projects with province and commune to see the location explorer."
+            />
+        );
+    }
+
+    const projectsCount = groups.reduce((sum, group) => sum + group.stats.projectsCount, 0);
+    const communesCount = groups.reduce((sum, group) => sum + group.communes.length, 0);
+
+    return (
+        <section className="space-y-4">
+            <div className="crm-panel flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
+                        <MapPinned size={19} />
+                    </span>
+
+                    <div className="min-w-0">
+                        <p className="crm-eyebrow">Location workspace</p>
+                        <h2 className="mt-1 truncate text-lg font-semibold text-[var(--crm-text)]">Projects by province and commune</h2>
+                        <p className="mt-1 text-sm text-[var(--crm-text-muted)]">
+                            Navigate projects geographically while keeping documents and finance visible.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid min-w-[280px] grid-cols-3 gap-2">
+                    <div className="crm-panel-soft px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Provinces</p>
+                        <p className="mt-1 text-sm font-semibold">{groups.length}</p>
+                    </div>
+                    <div className="crm-panel-soft px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Communes</p>
+                        <p className="mt-1 text-sm font-semibold">{communesCount}</p>
+                    </div>
+                    <div className="crm-panel-soft px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Projects</p>
+                        <p className="mt-1 text-sm font-semibold">{projectsCount}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-3">
+                {groups.map((group) => (
+                    <DossierProvinceGroup key={group.province} group={group} />
+                ))}
+            </div>
+
+            <div className="hidden">
+                <FileSearch size={1} />
+            </div>
+        </section>
+    );
+}

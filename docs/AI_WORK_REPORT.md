@@ -1984,3 +1984,1065 @@ Results:
 - `npm run build` passed with the existing large chunk warning.
 - `git diff --check` passed.
 - Existing contract generation QA passed for `CTR-2026-0001`, including DOCX and PDF export.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-29
+
+## Step Completed
+
+Step 50-C verification - Finance sidebar active state and lock badge UI
+
+## What Was Checked
+
+- Verified finance submenu structure in `navigation.ts`.
+- Verified desktop sidebar parent expansion and child active behavior.
+- Verified mobile navigation still highlights Finance across finance pages.
+- Verified finance overview does not render duplicate locked badges.
+- Verified `FinanceDocumentLockNotice.tsx` exports the lock helpers and badge/notice components used by finance pages.
+
+## Files Modified
+
+- `resources/js/lib/appRoutes.ts`
+- `resources/js/components/layout/AppSidebar.tsx`
+- `resources/js/components/layout/AppMobileNav.tsx`
+- `resources/js/locales/en.ts`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Behavior Fixed
+
+- `isActivePath` is now query-aware.
+- `/finance` is treated as the exact finance overview route.
+- `/finance?tab=payments` activates only the Payments finance child.
+- `/finance/documents`, `/finance/templates`, and `/finance/settings` activate only their matching finance child.
+- The Finance parent expands but is not highlighted as the active item.
+- Mobile navigation still treats the whole `/finance` area as Finance.
+- Finance document overview cards now render only the shared locked badge and no old duplicate inline badge.
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan optimize:clear
+php artisan archilbo:finance-ui-lock-payload-qa
+php artisan archilbo:finance-export-qa
+php artisan archilbo:finance-document-lock-guard-qa
+git diff --check -- resources/js/lib/appRoutes.ts resources/js/components/layout/AppSidebar.tsx resources/js/components/layout/AppMobileNav.tsx resources/js/locales/en.ts
+```
+
+## Build/Test Result
+
+- `npm run build` passed. Vite still reports the existing large chunk warning.
+- `php artisan optimize:clear` passed.
+- `archilbo:finance-ui-lock-payload-qa` passed.
+- `archilbo:finance-export-qa` passed.
+- `archilbo:finance-document-lock-guard-qa` passed.
+- `git diff --check` passed with only the existing CRLF notice for `resources/js/locales/en.ts`.
+
+## Known Issues
+
+- The working tree still contains existing uncommitted Step 49/50 files, backup files, and finance/payment changes. They were not reverted or cleaned.
+- `docs/ARCHITECTURE.md` was requested by the general project rules but is not present in this repo.
+
+## Next Recommended Step
+
+Open `/finance`, `/finance?tab=payments`, `/finance/documents`, `/finance/templates`, and `/finance/settings` in the browser and confirm only one finance submenu child is highlighted at a time.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-29
+
+## Step Completed
+
+Step 51-A - Workflow grouping audit and implementation plan
+
+## What Was Built
+
+Created the implementation plan for the next ARCHI LBO workflow improvement:
+
+```txt
+Client -> Projects/Dossiers -> Documents / Contracts / Devis / Factures / Paiements / Archive
+```
+
+The plan also covers:
+
+- Grouping projects by province and commune/city.
+- Showing project owner/client inside grouped views.
+- Grouping business documents by location, client, project, and type.
+- Grouping devis, factures, receipts, and payments by month with finance statistics.
+
+## Files Created
+
+- `docs/WORKFLOW_GROUPING_PLAN.md`
+
+## Files Modified
+
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Audit
+
+- `Client` already has `dossiers`, `financeDocuments`, and `payments`.
+- `Dossier` already has `client`, `documents`, `contract`, `authorization`, `financeDocuments`, `payments`, and `archiveRecord`.
+- `Dossier` already has location fields: `province`, `commune`, and `project_address`.
+- `FinanceDocument` is the current active devis/facture/recu model and links to client/dossier/payments.
+- `Payment` links to finance document, client, dossier, and optional receipt document.
+- `FinanceRecord` still exists as legacy finance workflow and should not be the base for new monthly grouping.
+
+## Frontend Audit
+
+- `Clients/Show.tsx` currently shows client details and linked projects, but not a same-page selected project workspace.
+- `Dossiers/Index.tsx` currently shows a flat dossier table with commune column and workflow filter.
+- `Documents/Index.tsx` currently shows a flat document table with status filter.
+- `Finance/Documents/Index.tsx` is the active finance workspace and should receive the monthly summary later.
+
+## Important Decisions
+
+- Build backend read services before deeper UI work.
+- Keep current CRUD flows and drawers intact.
+- Use `finance_documents` and `payments` for monthly finance grouping.
+- Treat `finance_records` routes as legacy.
+- Do not build a raw file explorer in this step.
+- Add grouping in phases to avoid breaking the finance work that was just stabilized.
+
+## Next Recommended Step
+
+Step 51-B: implement read services and a QA command:
+
+```txt
+ClientWorkspaceService
+DossierLocationGroupingService
+DocumentGroupingService
+FinanceMonthlySummaryService
+archilbo:workflow-grouping-qa
+```
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan optimize:clear
+php artisan route:list --path=clients
+php artisan route:list --path=dossiers
+php artisan route:list --path=documents
+php artisan route:list --path=finance
+php artisan archilbo:finance-ui-lock-payload-qa
+php artisan archilbo:finance-document-lock-guard-qa
+php artisan archilbo:finance-export-qa
+git diff --check -- docs/WORKFLOW_GROUPING_PLAN.md docs/AI_WORK_REPORT.md
+```
+
+## Build/Test Result
+
+- `npm run build` passed. Vite still reports the existing large chunk warning.
+- `php artisan optimize:clear` passed.
+- Client, dossier, document, and finance route lists loaded successfully.
+- `archilbo:finance-ui-lock-payload-qa` passed.
+- `archilbo:finance-document-lock-guard-qa` passed.
+- `archilbo:finance-export-qa` passed.
+- `git diff --check` passed for the docs touched in this step.
+
+## Known Issues
+
+- New docs under `/docs` are ignored by `.gitignore`, so `docs/WORKFLOW_GROUPING_PLAN.md` exists locally but does not appear in normal `git status` unless forced.
+- The working tree still contains many existing uncommitted Step 49/50 files and backup files. They were not reverted or cleaned.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-29
+
+## Step Completed
+
+Step 51-B - Workflow grouping backend read services
+
+## What Was Built
+
+Added backend read services for the new grouped workflow direction:
+
+```txt
+Client -> Projects/Dossiers -> Documents / Devis / Factures / Paiements
+Province -> Commune -> Projects -> Owner
+Documents -> Province -> Commune -> Client -> Project -> Type
+Finance -> Month -> Devis / Factures / Recus / Paiements
+```
+
+## Files Created
+
+- `app/Services/Clients/ClientWorkspaceService.php`
+- `app/Services/Dossiers/DossierLocationGroupingService.php`
+- `app/Services/Documents/DocumentGroupingService.php`
+- `app/Services/Finance/FinanceMonthlySummaryService.php`
+- `app/Console/Commands/WorkflowGroupingQaCommand.php`
+
+## Files Modified
+
+- `docs/WORKFLOW_GROUPING_PLAN.md`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- `ClientWorkspaceService` returns compact client workspace data with projects, selected project, documents, contract, authorization, finance documents, payments, and archive summary.
+- `DossierLocationGroupingService` groups projects by province and commune, including owner/client and finance/document stats.
+- `DocumentGroupingService` groups dossier documents by province, commune, client, project, and document type.
+- `FinanceMonthlySummaryService` groups finance documents and payments by month and calculates monthly totals.
+- `WorkflowGroupingQaCommand` validates all grouping services against raw database counts and sums.
+
+## Commands Run
+
+```powershell
+php -l app\Services\Clients\ClientWorkspaceService.php
+php -l app\Services\Dossiers\DossierLocationGroupingService.php
+php -l app\Services\Documents\DocumentGroupingService.php
+php -l app\Services\Finance\FinanceMonthlySummaryService.php
+php -l app\Console\Commands\WorkflowGroupingQaCommand.php
+php artisan optimize:clear
+php artisan list archilbo
+php artisan archilbo:workflow-grouping-qa
+npm run build
+php artisan archilbo:finance-ui-lock-payload-qa
+php artisan archilbo:finance-document-lock-guard-qa
+php artisan archilbo:finance-export-qa
+```
+
+## Build/Test Result
+
+- PHP lint passed for all new service and command files.
+- `php artisan optimize:clear` passed.
+- New command `archilbo:workflow-grouping-qa` is discovered by Artisan.
+- `archilbo:workflow-grouping-qa` passed:
+  - Client workspace checked for `Mohamed Ouknin`.
+  - Dossier groups checked for 3 projects.
+  - Document groups checked for 2 documents.
+  - Finance monthly groups checked for 1 month, 5,720.00 document TTC, 2,660.00 payments.
+- `npm run build` passed with the existing large chunk warning.
+- Finance lock payload QA passed.
+- Finance lock guard QA passed.
+- Finance export QA passed.
+
+## Known Issues
+
+- `docs/WORKFLOW_GROUPING_PLAN.md` is still ignored by `.gitignore` because `/docs` is ignored for new files.
+- No UI has been wired to the new services yet.
+- The old `finance_records` workflow still exists beside the newer `finance_documents` workflow.
+
+## Next Recommended Step
+
+Step 51-C: wire `ClientWorkspaceService` into `ClientController@show` and upgrade `Clients/Show.tsx` so selecting a client can show their projects and a selected project workspace with documents, devis, factures, payments, and summaries on the same page.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-29
+
+## Step Completed
+
+Step 51-C - Client workspace UI
+
+## What Was Built
+
+The client show page now works as a client-centered workspace:
+
+```txt
+Client
+-> Projects
+-> Selected project
+-> Documents / Devis / Factures / Paiements / Autorisation / Archive
+```
+
+## Files Created
+
+- `resources/js/features/clients/components/ClientProjectsPanel.tsx`
+- `resources/js/features/clients/components/ClientSelectedProjectWorkspace.tsx`
+
+## Files Modified
+
+- `app/Http/Controllers/ClientController.php`
+- `resources/js/features/clients/types.ts`
+- `resources/js/pages/Clients/Show.tsx`
+- `docs/WORKFLOW_GROUPING_PLAN.md`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- `ClientController@show` now receives `Request` and `ClientWorkspaceService`.
+- It accepts `?dossier_id=` as the selected project id.
+- It passes a new `workspace` Inertia prop while keeping the old `client` and `dossiers` props.
+
+## Frontend Work
+
+- Added typed client workspace payloads.
+- Added project selector panel with document, invoice, and paid totals.
+- Added selected project workspace with:
+  - project summary
+  - document list
+  - finance documents list
+  - payment list
+  - authorization summary
+  - archive summary
+  - quick links to dossier and finance
+- Replaced the old linked-project-only client show layout with a two-column workspace.
+
+## Commands Run
+
+```powershell
+php -l app\Http\Controllers\ClientController.php
+npm run build
+php artisan archilbo:workflow-grouping-qa
+php artisan optimize:clear
+php artisan archilbo:finance-ui-lock-payload-qa
+php artisan archilbo:finance-document-lock-guard-qa
+php artisan archilbo:finance-export-qa
+```
+
+## Build/Test Result
+
+- PHP lint passed for `ClientController.php`.
+- `npm run build` passed with the existing large chunk warning.
+- `archilbo:workflow-grouping-qa` passed.
+- `php artisan optimize:clear` passed.
+- Finance UI lock payload QA passed.
+- Finance lock guard QA passed.
+- Finance export QA passed.
+
+## Known Issues
+
+- `docs/WORKFLOW_GROUPING_PLAN.md` is ignored by `.gitignore` because `/docs` is ignored for new files.
+- The client workspace now links to `/finance/documents?dossier_id=...`, but the finance documents page does not yet filter by `dossier_id`. That should be handled in the finance grouping/monthly step.
+
+## Next Recommended Step
+
+Step 51-D: add the grouped dossier location explorer to `Dossiers/Index.tsx`, using `DossierLocationGroupingService` so projects can be viewed by province, commune/city, and owner/client.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-29
+
+## Step Completed
+
+Step 52-A - Intermediaries management module
+
+## What Was Built
+
+Added a real Intermediaries management screen so ARCHI LBO can create and maintain intermediaries, agencies, partners, and apporteurs before selecting them on client records.
+
+## Files Created
+
+- `app/Http/Controllers/IntermediaryController.php`
+- `app/Http/Requests/StoreIntermediaryRequest.php`
+- `app/Http/Requests/UpdateIntermediaryRequest.php`
+- `app/Http/Resources/IntermediaryResource.php`
+- `resources/js/features/intermediaries/types.ts`
+- `resources/js/features/intermediaries/drawers/IntermediaryDrawer.tsx`
+- `resources/js/pages/Intermediaries/Index.tsx`
+
+## Files Modified
+
+- `routes/web.php`
+- `resources/js/lib/appRoutes.ts`
+- `resources/js/locales/en.ts`
+- `resources/js/features/clients/drawers/ClientDrawer.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- Added CRUD routes for `/intermediaries`.
+- Added `IntermediaryController@index/store/update/destroy`.
+- Added form requests for intermediary create/update validation.
+- Added `IntermediaryResource` with code, name, type, contact, active state, client count, and timestamps.
+- New intermediary codes are generated as `INT-{year}-{number}`.
+
+## Frontend Work
+
+- Added `/intermediaries` page with KPI cards and searchable table.
+- Added create/edit drawer for intermediary records.
+- Added colored table action buttons for edit/delete.
+- Added active/inactive status badges.
+- Added sidebar/app route entry for Intermediaries under the main group.
+- Added a client drawer shortcut to manage intermediaries.
+- Existing client create/edit can still select an active intermediary from the existing select.
+
+## Commands Run
+
+```powershell
+php -l app\Http\Controllers\IntermediaryController.php
+php -l app\Http\Requests\StoreIntermediaryRequest.php
+php -l app\Http\Requests\UpdateIntermediaryRequest.php
+php -l app\Http\Resources\IntermediaryResource.php
+php artisan route:list --path=intermediaries
+npm run build
+php artisan optimize:clear
+php artisan archilbo:workflow-grouping-qa
+php artisan archilbo:finance-ui-lock-payload-qa
+php artisan archilbo:finance-document-lock-guard-qa
+php artisan archilbo:finance-export-qa
+git diff --check -- app/Http/Controllers/IntermediaryController.php app/Http/Requests/StoreIntermediaryRequest.php app/Http/Requests/UpdateIntermediaryRequest.php app/Http/Resources/IntermediaryResource.php routes/web.php resources/js/features/intermediaries/types.ts resources/js/features/intermediaries/drawers/IntermediaryDrawer.tsx resources/js/pages/Intermediaries/Index.tsx resources/js/lib/appRoutes.ts resources/js/locales/en.ts resources/js/features/clients/drawers/ClientDrawer.tsx
+```
+
+## Build/Test Result
+
+- PHP lint passed for all new backend files.
+- Intermediary routes were registered successfully.
+- `npm run build` passed with the existing large chunk warning.
+- `php artisan optimize:clear` passed.
+- Workflow grouping QA passed.
+- Finance UI lock payload QA passed.
+- Finance lock guard QA passed.
+- Finance export QA passed.
+- `git diff --check` passed with CRLF warnings only.
+
+## Known Issues
+
+- Intermediaries use the existing database fields: `code`, `name`, `type`, `phone`, `email`, `notes`, and `is_active`. No address field was added in this slice.
+- Client drawer now links to `/intermediaries`; creating an intermediary from inside the same drawer can be added later as a nested quick-create flow.
+
+## Next Recommended Step
+
+Step 52-C: ensure FORFAIT contract generation uses the existing FORFAIT DOCX template from the contract templates folder.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-29
+
+## Step Completed
+
+Step 52-C - FORFAIT contract template selection
+
+## What Was Built
+
+FORFAIT contract generation now uses the dedicated ARCHI LBO forfait DOCX template instead of reusing the percentage-based 0.5% or 2% contract templates.
+
+## Files Created
+
+- None
+
+## Files Modified
+
+- `config/archilbo_templates.php`
+- `app/Services/ContractDocumentGenerator.php`
+- `app/Console/Commands/ContractForfaitCalculationQaCommand.php`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- Added the `forfait` contract template path to the private template configuration.
+- Updated `ContractDocumentGenerator` so contracts with `calculation_mode = forfait` select `CONTRAT_DARCHITECT _FORFAITAIRES.docx`.
+- Kept percentage contracts using the existing `0_5` and `2` templates.
+- Extended the forfait QA command to verify both HT/TVA calculation from TTC and the selected FORFAIT template path.
+
+## Frontend Work
+
+- None in this step. The existing FORFAIT UI now benefits from the backend template routing.
+
+## Commands Run
+
+```powershell
+php -l config\archilbo_templates.php
+php -l app\Services\ContractDocumentGenerator.php
+php -l app\Console\Commands\ContractForfaitCalculationQaCommand.php
+php artisan optimize:clear
+php artisan archilbo:contract-forfait-calculation-qa 12000
+php artisan archilbo:test-contract-generation 4
+npm run build
+git diff --check -- config/archilbo_templates.php app/Services/ContractDocumentGenerator.php app/Console/Commands/ContractForfaitCalculationQaCommand.php docs/AI_WORK_REPORT.md
+```
+
+## Build/Test Result
+
+- PHP lint passed for all modified PHP files.
+- Laravel cache was cleared.
+- FORFAIT calculation QA passed and confirmed this template:
+  `storage/app/private/archi-templates/contracts/CONTRAT_DARCHITECT _FORFAITAIRES.docx`
+- Existing contract generation smoke test passed for contract `CTR-2026-0001`.
+- `npm run build` passed with the existing large chunk warning.
+- Focused `git diff --check` passed.
+
+## Known Issues
+
+- No issue found in this slice.
+
+## Next Recommended Step
+
+Step 52-D: add receipt/recu printing and PDF-save flow after payment creation, with a confirmation modal asking whether to print immediately.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-29
+
+## Step Completed
+
+Step 52-D - Payment receipt quick print/save flow
+
+## What Was Built
+
+After creating a payment, the UI now receives the generated receipt payload and shows a confirmation panel with quick actions to open/print the receipt, generate the receipt PDF, download the PDF when available, or generate/download Excel.
+
+## Files Created
+
+- None
+
+## Files Modified
+
+- `app/Http/Middleware/HandleInertiaRequests.php`
+- `app/Http/Controllers/Finance/PaymentController.php`
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `app/Http/Resources/PaymentResource.php`
+- `resources/js/features/finance/drawers/PaymentDrawer.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- Added `flash.receipt` to Inertia shared props.
+- Payment creation now flashes the new receipt number and secure finance document action URLs.
+- Payment resources now expose receipt show, generate PDF, generate Excel, PDF download, Excel download, and default download URLs.
+- Finance documents index now eager-loads `receiptDocument` for payments so the payments table can reliably show receipt actions.
+
+## Frontend Work
+
+- Payment drawer now preserves page state after payment creation.
+- Added receipt-created modal after successful payment creation.
+- Added actions for opening/printing the receipt, generating PDF, downloading PDF, and handling Excel.
+
+## Commands Run
+
+```powershell
+php -l app\Http\Middleware\HandleInertiaRequests.php
+php -l app\Http\Controllers\Finance\PaymentController.php
+php -l app\Http\Resources\PaymentResource.php
+php -l app\Http\Controllers\Finance\FinanceDocumentController.php
+npm run build
+php artisan optimize:clear
+php artisan archilbo:finance-payment-receipt-payload-qa
+php artisan archilbo:finance-payment-receipt-export-qa
+php artisan archilbo:finance-payment-ledger-receipt-qa
+```
+
+## Build/Test Result
+
+- PHP lint passed for all modified PHP files.
+- `npm run build` passed with the existing large chunk warning.
+- Laravel cache was cleared.
+- Finance payment receipt payload QA passed.
+- Finance payment receipt export QA passed.
+- Finance payment ledger + receipt QA passed.
+
+## Known Issues
+
+- The receipt PDF download button is only available after a PDF has been generated. The modal includes a generate PDF action first.
+- The existing finance document download routes still use the current project storage disk behavior; no storage architecture change was made in this focused UI slice.
+
+## Next Recommended Step
+
+Step 52-E: build the client/dossier workflow stepper foundation for the six ARCHI LBO operational steps, starting with backend config/enums and readonly progress evaluation before adding editable UI controls.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Step 52-E - Client dossier workflow stepper foundation
+
+## What Was Built
+
+Added a read-only six-step ARCHI LBO workflow evaluator for each selected client project/dossier. The client workspace now shows progress across documents, contract, cahier de chantier, Rokhas, bureau d'etude, and permis d'habiter.
+
+## Files Created
+
+- `config/archilbo_workflow.php`
+- `app/Enums/DossierWorkflowStepStatus.php`
+- `app/Services/Dossiers/DossierWorkflowStepperService.php`
+- `resources/js/features/clients/components/ClientProjectWorkflowStepper.tsx`
+
+## Files Modified
+
+- `app/Services/Clients/ClientWorkspaceService.php`
+- `resources/js/features/clients/types.ts`
+- `resources/js/features/clients/components/ClientSelectedProjectWorkspace.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- Added configurable workflow step definitions and French labels.
+- Added workflow step statuses through `DossierWorkflowStepStatus`.
+- Added `DossierWorkflowStepperService` to evaluate dossier readiness from existing documents, contract, and authorization data.
+- Wired workflow progress into the selected project payload from `ClientWorkspaceService`.
+- Kept the evaluator read-only so it does not overwrite dossier status or user decisions.
+
+## Frontend Work
+
+- Added TypeScript types for workflow progress, steps, and requirements.
+- Added `ClientProjectWorkflowStepper` to show global percent, completed step count, each step status, and missing requirements.
+- Rendered the stepper inside the selected client project workspace.
+
+## Commands Run
+
+```powershell
+php -l config\archilbo_workflow.php
+php -l app\Enums\DossierWorkflowStepStatus.php
+php -l app\Services\Dossiers\DossierWorkflowStepperService.php
+php -l app\Services\Clients\ClientWorkspaceService.php
+npm run build
+php artisan optimize:clear
+php artisan tinker --execute "...DossierWorkflowStepperService..."
+```
+
+## Build/Test Result
+
+- PHP lint passed for all new/modified PHP files.
+- `npm run build` passed with the existing large chunk warning.
+- Laravel cache was cleared.
+- Runtime smoke test passed against the first dossier and returned workflow progress.
+
+## Known Issues
+
+- This is read-only progress evaluation. It does not yet create editable workflow records or manual overrides.
+- Cahier de chantier, Rokhas, bureau d'etude, and permis d'habiter are inferred from existing document names/statuses until dedicated tables/forms are added.
+
+## Next Recommended Step
+
+Step 52-F: add editable workflow controls/drawers so staff can mark each requirement done, attach related files, and keep history instead of relying only on inferred document names.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Step 52-F - Editable dossier workflow requirements
+
+## What Was Built
+
+The six-step client/project workflow is now editable. Staff can manually mark each workflow requirement as done or not done from the client project workspace, while the backend still keeps automatic inference from existing documents, contracts, and authorizations.
+
+## Files Created
+
+- `database/migrations/2026_06_30_090000_create_dossier_workflow_requirements_table.php`
+- `app/Models/DossierWorkflowRequirement.php`
+- `app/Http/Requests/UpdateDossierWorkflowRequirementRequest.php`
+- `app/Http/Controllers/DossierWorkflowRequirementController.php`
+- `app/Services/Dossiers/DossierWorkflowRequirementService.php`
+
+## Files Modified
+
+- `app/Models/Dossier.php`
+- `app/Services/Clients/ClientWorkspaceService.php`
+- `app/Services/Dossiers/DossierWorkflowStepperService.php`
+- `routes/web.php`
+- `resources/js/features/clients/types.ts`
+- `resources/js/features/clients/components/ClientProjectWorkflowStepper.tsx`
+- `resources/js/features/clients/components/ClientSelectedProjectWorkspace.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Database Changes
+
+- Added `dossier_workflow_requirements`.
+- One unique manual state per dossier, step key, and requirement key.
+- Stores done state, checked timestamp, user, and notes placeholder.
+
+## Backend Work
+
+- Added update route: `PUT /dossiers/{dossier}/workflow-requirements`.
+- Added form request validation.
+- Added workflow requirement service to validate configured step/requirement keys and upsert manual state.
+- Updated workflow evaluator so manual states override inferred states.
+- Added `workflowRequirements` relation to `Dossier`.
+
+## Frontend Work
+
+- Added manual marker state to workflow requirement types.
+- Added compact action buttons for each workflow requirement in the client project stepper.
+- Buttons toggle requirements through the new same-page route with Inertia.
+
+## Commands Run
+
+```powershell
+php -l database\migrations\2026_06_30_090000_create_dossier_workflow_requirements_table.php
+php -l app\Models\DossierWorkflowRequirement.php
+php -l app\Http\Requests\UpdateDossierWorkflowRequirementRequest.php
+php -l app\Services\Dossiers\DossierWorkflowRequirementService.php
+php -l app\Http\Controllers\DossierWorkflowRequirementController.php
+php artisan migrate
+npm run build
+php artisan tinker --execute "...DossierWorkflowRequirementService..."
+php artisan optimize:clear
+php artisan route:list --path=workflow-requirements
+```
+
+## Build/Test Result
+
+- PHP lint passed for all new backend files.
+- Migration ran successfully.
+- `npm run build` passed with the existing large chunk warning.
+- Runtime smoke test marked the first dossier CIN requirement and the evaluator returned `1/3`.
+- Workflow route is registered.
+
+## Known Issues
+
+- Notes are supported in the backend but the compact UI does not yet expose a notes drawer.
+- There is no workflow history table yet; this slice stores current manual state only.
+
+## Next Recommended Step
+
+Step 52-G: add workflow requirement notes/history and optional file attachment shortcuts so each marked requirement can explain what was done and link to the supporting document.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Step 52-G - Workflow requirement notes and history
+
+## What Was Built
+
+Manual workflow requirement changes now keep a history trail and can carry a short note. The client project stepper displays manual notes, checked date, and checked user metadata when available.
+
+## Files Created
+
+- `database/migrations/2026_06_30_091000_create_dossier_workflow_requirement_histories_table.php`
+- `app/Models/DossierWorkflowRequirementHistory.php`
+
+## Files Modified
+
+- `app/Models/Dossier.php`
+- `app/Models/DossierWorkflowRequirement.php`
+- `app/Services/Clients/ClientWorkspaceService.php`
+- `app/Services/Dossiers/DossierWorkflowRequirementService.php`
+- `app/Services/Dossiers/DossierWorkflowStepperService.php`
+- `resources/js/features/clients/types.ts`
+- `resources/js/features/clients/components/ClientProjectWorkflowStepper.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Database Changes
+
+- Added `dossier_workflow_requirement_histories`.
+- History stores old/new done state, old/new notes, changed user, and changed timestamp.
+- Migration uses explicit short foreign key names for MySQL compatibility.
+
+## Backend Work
+
+- Requirement updates now run in a transaction.
+- Each manual requirement update creates a history row.
+- Workflow evaluator now returns manual notes, checked timestamp, and checked-by user name.
+- Client workspace eager-loads `workflowRequirements.checkedBy`.
+
+## Frontend Work
+
+- Workflow requirement toggle now prompts for an optional note.
+- Requirement cards show note text, checked user, and checked date when present.
+
+## Commands Run
+
+```powershell
+php -l database\migrations\2026_06_30_091000_create_dossier_workflow_requirement_histories_table.php
+php -l app\Models\DossierWorkflowRequirementHistory.php
+php -l app\Services\Dossiers\DossierWorkflowRequirementService.php
+php -l app\Services\Dossiers\DossierWorkflowStepperService.php
+php artisan migrate
+npm run build
+php artisan optimize:clear
+php artisan tinker --execute "...workflow history smoke test..."
+```
+
+## Build/Test Result
+
+- PHP lint passed.
+- `npm run build` passed with the existing large chunk warning.
+- Initial migration attempt failed because MySQL generated a foreign key name longer than the identifier limit.
+- Migration was patched with explicit short foreign key names and then passed.
+- Runtime smoke test passed: evaluator returned `QA workflow note` and history count was `1`.
+- Laravel cache was cleared.
+
+## Known Issues
+
+- File attachment shortcuts are not implemented yet; workflow requirements can explain completion with notes but cannot directly attach/select a supporting file from this card.
+- History is stored but not yet displayed as a full timeline.
+
+## Next Recommended Step
+
+Step 52-H: add a compact workflow history viewer and document shortcut links so users can see who changed each requirement and jump to supporting dossier documents.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Step 52-H - Workflow stepper converted to guided wizard
+
+## What Was Built
+
+Converted the client project workflow from a passive progress grid into a usable guided stepper. The user now works on one active step, opens the relevant module for missing actions, manually marks requirements done, and moves to the next step only when the current step is complete.
+
+## Files Modified
+
+- `app/Services/Dossiers/DossierWorkflowStepperService.php`
+- `resources/js/features/clients/types.ts`
+- `resources/js/features/clients/components/ClientProjectWorkflowStepper.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- Workflow step payload now includes step order.
+- Each step now returns a primary action label and URL.
+- Each requirement now returns an action label and URL.
+- Documents-related actions go to `/documents?dossier_id=...`.
+- Contract actions go to `/contracts?dossier_id=...`.
+- Rokhas/authorization actions go to `/authorizations?dossier_id=...`.
+
+## Frontend Work
+
+- Replaced the all-cards display with a wizard-style stepper.
+- Added horizontal step navigation.
+- Shows only the active step details.
+- Added primary action button for the active step.
+- Added per-requirement action buttons for upload/open/create.
+- Added gated `Etape suivante` button enabled only when the active step is complete.
+
+## Commands Run
+
+```powershell
+php -l app\Services\Dossiers\DossierWorkflowStepperService.php
+npm run build
+php artisan tinker --execute "...workflow action URL smoke test..."
+```
+
+## Build/Test Result
+
+- PHP lint passed.
+- `npm run build` passed with the existing large chunk warning.
+- Runtime smoke test confirmed workflow action URLs and labels are generated.
+
+## Known Issues
+
+- The action buttons currently open the related module page; they do not yet open a targeted upload/create drawer directly inside the workflow card.
+- Documents/contracts pages must honor the `dossier_id` query parameter well for the best workflow experience.
+
+## Next Recommended Step
+
+Step 52-I: make workflow action buttons open focused drawers or filtered pages for the exact requirement, starting with document upload shortcuts for CIN, certificat de propriete, plan cadastral, calcul de contenance, and plan parcellaire.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Step 52-I - Client project workspace UI reorganization
+
+## What Was Built
+
+Reworked the client details page so it is easier to use with many project modules. The page now uses a compact client side rail and a tabbed selected-project workspace instead of showing workflow, documents, finance, records, notes, and identity all at once.
+
+## Files Modified
+
+- `resources/js/pages/Clients/Show.tsx`
+- `resources/js/features/clients/components/ClientSelectedProjectWorkspace.tsx`
+- `resources/js/features/clients/components/ClientProjectWorkflowStepper.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Frontend Work
+
+- Replaced the large identity card stack with a compact client profile side rail.
+- Kept project selection in the side rail.
+- Removed duplicate client notes and quick actions from the main content.
+- Added project workspace tabs:
+  - `Vue generale`
+  - `Workflow`
+  - `Documents`
+  - `Finance`
+  - `Suivi`
+- Made `Workflow` the default selected project tab.
+- Moved documents, finance, payments, authorization, archive, and contract panels into focused tabs.
+- Removed nested panel styling around the workflow wizard so it fits cleanly inside the tab.
+
+## Commands Run
+
+```powershell
+npm run build
+git diff -- resources/js/pages/Clients/Show.tsx resources/js/features/clients/components/ClientSelectedProjectWorkspace.tsx resources/js/features/clients/components/ClientProjectWorkflowStepper.tsx
+```
+
+## Build/Test Result
+
+- `npm run build` passed with the existing large chunk warning.
+
+## Known Issues
+
+- This is a layout reorganization only. Workflow action buttons still open related module pages rather than exact upload/create drawers.
+
+## Next Recommended Step
+
+Step 52-J: connect workflow requirement actions to focused document upload/create drawers or filtered pages for each requirement.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Step 52-J - Same-page quick create from client workspace
+
+## What Was Built
+
+Added quick creation from the client workspace so users can create a project, upload a dossier document, or create a contract without leaving `/clients/{client}`. Drawers are prefilled with the current client/project to avoid reselecting repeated data.
+
+## Files Modified
+
+- `app/Http/Controllers/ClientController.php`
+- `app/Http/Controllers/DossierController.php`
+- `app/Http/Controllers/DocumentController.php`
+- `app/Http/Controllers/ContractController.php`
+- `app/Http/Requests/StoreDossierRequest.php`
+- `app/Http/Requests/StoreDossierDocumentRequest.php`
+- `app/Http/Requests/StoreContractRequest.php`
+- `resources/js/pages/Clients/Show.tsx`
+- `resources/js/features/clients/components/ClientSelectedProjectWorkspace.tsx`
+- `resources/js/features/dossiers/drawers/ProjectDrawer.tsx`
+- `resources/js/features/documents/drawers/DocumentUploadDrawer.tsx`
+- `resources/js/features/contracts/drawers/ContractDrawer.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- Client show now sends active document template options.
+- Dossier, document, and contract store requests accept optional `return_to`.
+- Dossier, document, and contract store actions redirect back to the client workspace when `return_to` is provided.
+
+## Frontend Work
+
+- Added same-page project drawer on the client page.
+- Added same-page document upload drawer on the client page.
+- Added same-page contract drawer on the client page.
+- Project drawer supports an initial client.
+- Document upload drawer supports an initial dossier/template.
+- Contract drawer supports an initial dossier and preloads surface when available.
+- Selected project header now has quick buttons for upload document and create contract.
+- Empty client project workspace can create a new project directly.
+
+## Commands Run
+
+```powershell
+php -l app\Http\Controllers\ClientController.php
+php -l app\Http\Controllers\DossierController.php
+php -l app\Http\Controllers\DocumentController.php
+php -l app\Http\Controllers\ContractController.php
+php -l app\Http\Requests\StoreDossierRequest.php
+php -l app\Http\Requests\StoreDossierDocumentRequest.php
+php -l app\Http\Requests\StoreContractRequest.php
+npm run build
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- PHP lint passed for modified controllers and requests.
+- `npm run build` passed with the existing large chunk warning.
+- Laravel cache was cleared.
+
+## Known Issues
+
+- Finance devis/facture quick-create from the client page is not included yet.
+- Workflow requirement action buttons still open module pages; they do not yet trigger these client-page drawers directly.
+
+## Next Recommended Step
+
+Step 52-K: connect workflow requirement action buttons to open the matching same-page drawer, starting with document upload from each required document row.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Step 52-K - Workflow stepper actions connected to same-page client drawers
+
+## What Was Built
+
+The client/project workflow stepper now works as an action assistant. Requirement buttons can open the current client page drawers instead of navigating away, keeping the user in the same workspace.
+
+## Files Modified
+
+- `resources/js/features/clients/components/ClientProjectWorkflowStepper.tsx`
+- `resources/js/features/clients/components/ClientSelectedProjectWorkspace.tsx`
+- `resources/js/pages/Clients/Show.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Frontend Work
+
+- Added typed workflow action callbacks to the project workflow stepper.
+- Connected document workflow requirements to the same-page document upload drawer.
+- Connected contract workflow actions to the same-page contract drawer.
+- Kept route fallback behavior when the stepper is used without drawer callbacks.
+- Added document template preselection from workflow requirement aliases when a matching template exists.
+- Kept Rokhas-related workflow action routed to the authorization page for now.
+
+## Commands Run
+
+```powershell
+npm run build
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- Vite still reports the existing large bundle warning.
+
+## How To Test
+
+- Open `/clients/{id}`.
+- Select a project.
+- Go to the `Workflow` tab.
+- Click a missing document action such as CIN or Certificat de propriete.
+- Confirm the upload drawer opens on the same page with the selected project already filled.
+- Click the contract step/action and confirm the contract drawer opens with the selected project already filled.
+
+## Known Issues
+
+- Rokhas workflow action still opens the authorization route instead of a specialized inline drawer.
+- Template preselection depends on the available document template names/types matching the workflow aliases.
+
+## Next Recommended Step
+
+Step 52-L: add same-page finance quick actions from the client workspace for devis, facture, payment, and receipt, then group them by month inside the selected project finance tab.

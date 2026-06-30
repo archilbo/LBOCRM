@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class DossierDocumentResource extends JsonResource
 {
@@ -26,7 +25,6 @@ class DossierDocumentResource extends JsonResource
 
             'documentNumber' => $this->document_number,
             'originalFilename' => $this->original_filename,
-            'storedPath' => $this->stored_path,
             'mimeType' => $this->mime_type,
             'sizeBytes' => $this->size_bytes,
             'sizeLabel' => $this->formatSize($this->size_bytes),
@@ -38,7 +36,6 @@ class DossierDocumentResource extends JsonResource
 
             'hasFile' => $hasFile,
             'downloadUrl' => $hasFile ? route('documents.download', $this->id) : null,
-            'publicUrl' => $hasFile ? Storage::disk('public')->url($this->stored_path) : null,
         ];
     }
 

@@ -19,6 +19,7 @@ type ProjectDrawerProps = {
     mode: 'create' | 'edit';
     dossier: DossierRow | null;
     clients: ClientOption[];
+    initialClientId?: string;
     onOpenChange: (isOpen: boolean) => void;
     onSubmit: (payload: DossierFormPayload) => void;
     errors?: FormErrors;
@@ -67,6 +68,7 @@ export function ProjectDrawer({
     mode,
     dossier,
     clients,
+    initialClientId = '',
     onOpenChange,
     onSubmit,
     errors = {},
@@ -98,8 +100,11 @@ export function ProjectDrawer({
             return;
         }
 
-        setForm(emptyForm);
-    }, [dossier, isOpen, mode]);
+        setForm({
+            ...emptyForm,
+            clientId: initialClientId,
+        });
+    }, [dossier, initialClientId, isOpen, mode]);
 
     function updateField(field: keyof DossierFormPayload, value: string) {
         setForm((current) => ({ ...current, [field]: value }));

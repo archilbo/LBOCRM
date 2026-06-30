@@ -1,4 +1,4 @@
-﻿import {
+import {
     Archive,
     BadgeDollarSign,
     Building2,
@@ -7,26 +7,40 @@
     FileText,
     FolderKanban,
     LayoutDashboard,
+    ReceiptText,
+    CalendarDays,
     Settings,
     ShieldCheck,
     SlidersHorizontal,
+    UserRound,
     Users,
+    ListChecks,
+    MessageSquare,
+    Bell,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export type AppRouteKey =
     | 'dashboard'
     | 'clients'
+    | 'intermediaries'
     | 'dossiers'
     | 'documents'
     | 'contracts'
     | 'authorizations'
     | 'finance'
     | 'financeDocuments'
+    | 'financePayments'
+    | 'financeMonthly'
+    | 'financeTemplates'
     | 'financeSettings'
     | 'archives'
     | 'branches'
-    | 'settings';
+    | 'settings'
+    | 'users'
+    | 'tasks'
+    | 'inbox'
+    | 'notifications';
 
 export type AppRouteGroup = 'principal' | 'followUp' | 'management' | 'administration';
 
@@ -56,6 +70,15 @@ export const appRoutes: AppRoute[] = [
         labelKey: 'nav.clients',
         href: '/clients',
         icon: Users,
+        enabled: true,
+        searchable: true,
+        group: 'principal',
+    },
+    {
+        key: 'intermediaries',
+        labelKey: 'nav.intermediaries',
+        href: '/intermediaries',
+        icon: UserRound,
         enabled: true,
         searchable: true,
         group: 'principal',
@@ -106,6 +129,52 @@ export const appRoutes: AppRoute[] = [
         group: 'management',
     },
     {
+        key: 'financeDocuments',
+        labelKey: 'nav.financeDocuments',
+        href: '/finance/documents',
+        icon: FileSpreadsheet,
+        enabled: true,
+        searchable: true,
+        group: 'management',
+    },
+    {
+        key: 'financePayments',
+        labelKey: 'nav.financePayments',
+        href: '/finance/payments',
+        icon: ReceiptText,
+        enabled: true,
+        searchable: true,
+        group: 'management',
+    },
+    {
+        key: 'financeMonthly',
+        labelKey: 'nav.financeMonthly',
+        href: '/finance/documents?tab=monthly',
+        icon: CalendarDays,
+        enabled: true,
+        searchable: true,
+        group: 'management',
+    },
+
+    {
+        key: 'financeTemplates',
+        labelKey: 'nav.financeTemplates',
+        href: '/finance/templates',
+        icon: FileText,
+        enabled: true,
+        searchable: true,
+        group: 'management',
+    },
+    {
+        key: 'financeSettings',
+        labelKey: 'nav.financeSettings',
+        href: '/finance/settings',
+        icon: SlidersHorizontal,
+        enabled: true,
+        searchable: true,
+        group: 'management',
+    },
+    {
         key: 'archives',
         labelKey: 'nav.archives',
         href: '/archives',
@@ -115,22 +184,31 @@ export const appRoutes: AppRoute[] = [
         group: 'management',
     },
     {
-        key: 'financeDocuments',
-        labelKey: 'nav.financeDocuments',
-        href: '/finance/documents',
-        icon: FileSpreadsheet,
-        enabled: false,
-        searchable: false,
+        key: 'tasks',
+        labelKey: 'nav.tasks',
+        href: '/tasks',
+        icon: ListChecks,
+        enabled: true,
+        searchable: true,
+        group: 'followUp',
+    },
+    {
+        key: 'inbox',
+        labelKey: 'nav.inbox',
+        href: '/inbox',
+        icon: MessageSquare,
+        enabled: true,
+        searchable: true,
         group: 'management',
     },
     {
-        key: 'financeSettings',
-        labelKey: 'nav.financeSettings',
-        href: '/finance/settings',
-        icon: SlidersHorizontal,
-        enabled: false,
-        searchable: false,
-        group: 'management',
+        key: 'notifications',
+        labelKey: 'nav.notifications',
+        href: '/notifications',
+        icon: Bell,
+        enabled: true,
+        searchable: true,
+        group: 'administration',
     },
     {
         key: 'users',
@@ -167,15 +245,41 @@ export function isValidHref(href: unknown): href is string {
     return typeof href === 'string' && href.trim().length > 0 && href !== '#';
 }
 
+function splitRoutePath(path: string) {
+    const [pathname, query = ''] = path.split('?');
+
+    return {
+        pathname,
+        query,
+        params: new URLSearchParams(query),
+    };
+}
+
 export function isActivePath(currentPath: string, itemPath: string) {
     if (!isValidHref(itemPath)) {
         return false;
     }
 
-    if (itemPath === '/') {
-        return currentPath === '/';
+    const current = splitRoutePath(currentPath);
+    const item = splitRoutePath(itemPath);
+
+    if (item.pathname === '/') {
+        return current.pathname === '/';
     }
 
-    return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
-}
+    if (item.query) {
+        if (current.pathname !== item.pathname) {
+            return false;
+        }
 
+        return Array.from(item.params.entries()).every(
+            ([key, value]) => current.params.get(key) === value,
+        );
+    }
+
+    if (item.pathname === '/finance') {
+        return current.pathname === '/finance' && !current.query;
+    }
+
+    return current.pathname === item.pathname || current.pathname.startsWith(`${item.pathname}/`);
+}

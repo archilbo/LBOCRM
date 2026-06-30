@@ -1,20 +1,25 @@
 import { Head, router } from '@inertiajs/react';
 import {
-    ArrowLeft,
     Archive,
+    ArrowLeft,
     BadgeDollarSign,
+    Building2,
+    CheckCircle2,
     FileCheck2,
     FileText,
+    FolderKanban,
+    Landmark,
     MapPin,
+    ReceiptText,
     ShieldCheck,
     UserRound,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppBadge } from '@/components/ui/AppBadge';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
-import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
 import type { DossierRow } from '@/features/dossiers/types';
+
+const FORCE_DOSSIER_SHOW_REDESIGN_53M = true;
 
 type DocumentSummary = {
     id: number;
@@ -68,65 +73,111 @@ type PageProps = {
     archiveRecord: ArchiveSummary;
 };
 
-function formatMoney(value: number) {
-    return new Intl.NumberFormat('en-MA', {
-        style: 'currency',
-        currency: 'MAD',
-        maximumFractionDigits: 0,
-    }).format(value);
+function money(value: number) {
+    return `${Number(value || 0).toLocaleString('fr-MA')} MAD`;
 }
 
-function InfoCard({
-    label,
-    value,
-}: {
-    label: string;
-    value: string | number | null | undefined;
-}) {
+function surface(value: number | null) {
+    return value ? `${value} m2` : '-';
+}
+
+function statusClass(status: string) {
+    if (['active', 'verified', 'signed', 'approved', 'paid', 'stored'].includes(status)) {
+        return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300';
+    }
+
+    if (['opened', 'uploaded', 'generated', 'issued', 'submitted'].includes(status)) {
+        return 'border-blue-500/25 bg-blue-500/10 text-blue-300';
+    }
+
+    if (['draft', 'pending', 'missing', 'partially_paid'].includes(status)) {
+        return 'border-amber-500/25 bg-amber-500/10 text-amber-300';
+    }
+
+    return 'border-white/10 bg-white/5 text-[var(--crm-muted)]';
+}
+
+function InfoTile({ label, value }: { label: string; value: string | number | null | undefined }) {
     return (
-        <div className="rounded-2xl border bg-[var(--surface)] p-4">
-            <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
-            <p className="mt-1 truncate text-sm font-semibold">{value || '-'}</p>
+        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
+            <p className="crm-kpi-label">{label}</p>
+            <p className="mt-2 truncate text-sm font-semibold text-[var(--crm-text)]">{value || '-'}</p>
         </div>
     );
 }
 
-function ModuleCard({
-    icon,
+function StatTile({
+    label,
+    value,
+    hint,
+    icon: Icon,
+    tone = 'text-[var(--crm-accent)]',
+}: {
+    label: string;
+    value: string | number;
+    hint: string;
+    icon: LucideIcon;
+    tone?: string;
+}) {
+    return (
+        <div className="crm-kpi-card">
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <p className="crm-kpi-label">{label}</p>
+                    <p className={`crm-kpi-value ${tone}`}>{value}</p>
+                </div>
+                <div className="flex size-10 items-center justify-center rounded-xl bg-white/5">
+                    <Icon size={18} className={tone} />
+                </div>
+            </div>
+            <p className="mt-2 text-xs text-[var(--crm-muted)]">{hint}</p>
+        </div>
+    );
+}
+
+function ModulePanel({
     title,
     description,
-    actionLabel,
     href,
+    actionLabel = 'Open',
+    icon: Icon,
     children,
 }: {
-    icon: React.ReactNode;
     title: string;
     description: string;
-    actionLabel: string;
     href: string;
+    actionLabel?: string;
+    icon: LucideIcon;
     children: React.ReactNode;
 }) {
     return (
-        <AppCard className="min-w-0 p-5">
-            <div className="mb-4 flex items-start justify-between gap-4">
+        <section className="crm-panel overflow-hidden shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--crm-border)] px-5 py-4">
                 <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                        {icon}
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-[var(--crm-accent)]">
+                        <Icon size={18} />
                     </div>
-
                     <div className="min-w-0">
-                        <h2 className="text-sm font-semibold">{title}</h2>
-                        <p className="mt-1 text-sm text-[var(--text-muted)]">{description}</p>
+                        <h2 className="text-sm font-black text-[var(--crm-text)]">{title}</h2>
+                        <p className="mt-1 text-xs text-[var(--crm-muted)]">{description}</p>
                     </div>
                 </div>
 
-                <AppButton size="sm" variant="secondary" onPress={() => router.visit(href)}>
+                <button type="button" className="crm-action-button shrink-0" onClick={() => router.visit(href)}>
                     {actionLabel}
-                </AppButton>
+                </button>
             </div>
 
-            {children}
-        </AppCard>
+            <div className="p-5">{children}</div>
+        </section>
+    );
+}
+
+function EmptyState({ label }: { label: string }) {
+    return (
+        <div className="rounded-xl border border-dashed border-[var(--crm-border)] bg-black/10 px-4 py-10 text-center text-sm text-[var(--crm-muted)]">
+            {label}
+        </div>
     );
 }
 
@@ -142,6 +193,15 @@ export default function DossierShow({
     const paidFinance = financeRecords.reduce((sum, record) => sum + record.paid, 0);
     const remainingFinance = financeRecords.reduce((sum, record) => sum + record.remaining, 0);
 
+    const workflow = [
+        { key: 'client', label: 'Client', active: true },
+        { key: 'documents', label: 'Documents', active: documents.length > 0 || dossier.workflowStep === 'documents' },
+        { key: 'contract', label: 'Contract', active: Boolean(contract) },
+        { key: 'authorization', label: 'Authorization', active: Boolean(authorization) },
+        { key: 'finance', label: 'Finance', active: financeRecords.length > 0 },
+        { key: 'archive', label: 'Archive', active: Boolean(archiveRecord) },
+    ];
+
     return (
         <>
             <Head title={dossier.dossierNumber} />
@@ -154,7 +214,7 @@ export default function DossierShow({
                     <div className="flex flex-wrap gap-2">
                         <AppButton variant="secondary" onPress={() => router.visit('/dossiers')}>
                             <ArrowLeft size={16} />
-                            Back
+                            Projects
                         </AppButton>
 
                         <AppButton variant="primary" onPress={() => router.visit('/contracts')}>
@@ -164,186 +224,254 @@ export default function DossierShow({
                     </div>
                 }
             >
-                <AppCard className="p-5">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="flex items-start gap-4">
-                            <div className="flex size-14 shrink-0 items-center justify-center rounded-3xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                                <FileText size={24} />
-                            </div>
+                <div className="crm-page mx-auto max-w-[1540px] pt-6 xl:pt-8" data-ui-marker={FORCE_DOSSIER_SHOW_REDESIGN_53M ? 'FORCE_DOSSIER_SHOW_REDESIGN_53M' : undefined}>
+                    <section className="crm-panel overflow-hidden shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
+                        <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start">
+                            <div className="flex min-w-0 items-start gap-4">
+                                <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)] text-[var(--crm-accent)]">
+                                    <FolderKanban size={24} />
+                                </div>
 
-                            <div className="min-w-0">
-                                <h1 className="text-xl font-semibold">{dossier.projectObject}</h1>
-                                <p className="mt-1 text-sm text-[var(--text-muted)]">
-                                    {dossier.dossierNumber} Â· {dossier.clientName}
-                                </p>
+                                <div className="min-w-0">
+                                    <p className="crm-eyebrow">Project workspace</p>
+                                    <h1 className="mt-2 truncate text-2xl font-black text-[var(--crm-text)]">
+                                        {dossier.projectObject || dossier.dossierNumber}
+                                    </h1>
+                                    <p className="mt-1 text-sm text-[var(--crm-muted)]">
+                                        {dossier.dossierNumber} / {dossier.clientName}
+                                    </p>
 
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                    <AppStatusBadge
-                                        label={dossier.status}
-                                        tone={dossier.status === 'active' ? 'green' : dossier.status === 'opened' ? 'blue' : 'neutral'}
-                                        icon={dossier.status === 'active' ? 'check' : 'clock'}
-                                    />
-                                    <AppBadge tone="violet">{dossier.workflowStep}</AppBadge>
-                                    <AppBadge tone="blue">{dossier.floorArea ? `${dossier.floorArea} mÂ²` : 'No surface'}</AppBadge>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        <span className={`rounded-full border px-2 py-1 text-xs font-bold ${statusClass(dossier.status)}`}>
+                                            {dossier.status}
+                                        </span>
+                                        <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-1 text-xs font-bold text-violet-300">
+                                            {dossier.workflowStep}
+                                        </span>
+                                        <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-xs font-bold text-blue-300">
+                                            {surface(dossier.floorArea)}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
+
+                            <div className="grid gap-2 text-sm text-[var(--crm-muted)]">
+                                <span className="flex items-center gap-2">
+                                    <UserRound size={15} />
+                                    {dossier.clientNumber} / {dossier.clientCin}
+                                </span>
+                                <span className="flex items-center gap-2">
+                                    <MapPin size={15} />
+                                    {[dossier.province, dossier.commune, dossier.projectAddress].filter(Boolean).join(' / ') || '-'}
+                                </span>
+                                <button
+                                    type="button"
+                                    className="crm-action-button mt-2 justify-center"
+                                    onClick={() => dossier.clientId ? router.visit(`/clients/${dossier.clientId}`) : router.visit('/clients')}
+                                >
+                                    <UserRound size={15} />
+                                    Open client
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="grid gap-2 text-sm">
-                            <div className="flex items-center gap-2 text-[var(--text-muted)]">
-                                <UserRound size={15} />
-                                {dossier.clientNumber} Â· {dossier.clientCin}
-                            </div>
-                            <div className="flex items-center gap-2 text-[var(--text-muted)]">
-                                <MapPin size={15} />
-                                {dossier.projectAddress || '-'}
-                            </div>
+                        <div className="grid border-t border-[var(--crm-border)] md:grid-cols-6">
+                            {workflow.map((step, index) => (
+                                <div key={step.key} className="border-b border-[var(--crm-border)] px-4 py-4 md:border-b-0 md:border-r">
+                                    <div className="flex items-center gap-2">
+                                        <div className={[
+                                            'flex size-7 items-center justify-center rounded-full border text-xs font-black',
+                                            step.active
+                                                ? 'border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)] text-[var(--crm-accent)]'
+                                                : 'border-[var(--crm-border)] bg-black/20 text-[var(--crm-muted)]',
+                                        ].join(' ')}>
+                                            {index + 1}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-xs font-black text-[var(--crm-text)]">{step.label}</p>
+                                            <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--crm-muted)]">
+                                                {step.active ? 'Ready' : 'Pending'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    </div>
-                </AppCard>
+                    </section>
 
-                <section className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-                    <div className="min-w-0 space-y-5">
-                        <AppCard className="p-5">
-                            <div className="mb-4">
-                                <h2 className="text-sm font-semibold">Project information</h2>
-                                <p className="mt-1 text-sm text-[var(--text-muted)]">
-                                    Project data loaded from the database.
-                                </p>
-                            </div>
+                    <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                        <StatTile label="Documents" value={documents.length} hint="Linked project files" icon={FileCheck2} tone="text-blue-300" />
+                        <StatTile label="Finance total" value={money(totalFinance)} hint="All finance records" icon={BadgeDollarSign} />
+                        <StatTile label="Paid" value={money(paidFinance)} hint="Collected amount" icon={ReceiptText} tone="text-emerald-300" />
+                        <StatTile label="Remaining" value={money(remainingFinance)} hint="Still due" icon={Landmark} tone="text-amber-300" />
+                    </section>
 
-                            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                <InfoCard label="Client" value={dossier.clientName} />
-                                <InfoCard label="Dossier number" value={dossier.dossierNumber} />
-                                <InfoCard label="Workflow step" value={dossier.workflowStep} />
-                                <InfoCard label="Province" value={dossier.province} />
-                                <InfoCard label="Commune" value={dossier.commune} />
-                                <InfoCard label="Land title" value={dossier.landTitleNumber} />
-                                <InfoCard label="Land surface" value={dossier.landSurface ? `${dossier.landSurface} mÂ²` : '-'} />
-                                <InfoCard label="Floor area" value={dossier.floorArea ? `${dossier.floorArea} mÂ²` : '-'} />
-                                <InfoCard label="Opened at" value={dossier.openedAt} />
-                            </div>
-                        </AppCard>
+                    <section className="grid min-w-0 items-start gap-5 2xl:grid-cols-[minmax(0,1fr)_400px]">
+                        <main className="grid min-w-0 gap-5">
+                            <section className="crm-panel p-5">
+                                <div className="mb-4">
+                                    <h2 className="text-sm font-black">Project information</h2>
+                                    <p className="mt-1 text-xs text-[var(--crm-muted)]">Project data loaded from the database.</p>
+                                </div>
 
-                        <ModuleCard
-                            icon={<FileCheck2 size={18} />}
-                            title="Documents"
-                            description="Required documents linked to this project."
-                            actionLabel="Open"
-                            href="/documents"
-                        >
-                            <div className="space-y-2">
+                                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                    <InfoTile label="Client" value={dossier.clientName} />
+                                    <InfoTile label="Dossier number" value={dossier.dossierNumber} />
+                                    <InfoTile label="Workflow step" value={dossier.workflowStep} />
+                                    <InfoTile label="Province" value={dossier.province} />
+                                    <InfoTile label="Commune" value={dossier.commune} />
+                                    <InfoTile label="Land title" value={dossier.landTitleNumber} />
+                                    <InfoTile label="Land surface" value={surface(dossier.landSurface)} />
+                                    <InfoTile label="Floor area" value={surface(dossier.floorArea)} />
+                                    <InfoTile label="Opened at" value={dossier.openedAt} />
+                                </div>
+                            </section>
+
+                            <ModulePanel
+                                icon={FileCheck2}
+                                title="Documents"
+                                description="Required documents linked to this project."
+                                actionLabel="Open documents"
+                                href="/documents"
+                            >
                                 {documents.length > 0 ? (
-                                    documents.map((document) => (
-                                        <div key={document.id} className="flex items-center justify-between gap-3 rounded-2xl border bg-[var(--surface)] p-3">
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-semibold">{document.name}</p>
-                                                <p className="text-xs text-[var(--text-muted)]">{document.fileName || 'No file'} Â· {document.uploadedAt || '-'}</p>
+                                    <div className="grid gap-2">
+                                        {documents.map((document) => (
+                                            <div key={document.id} className="grid gap-2 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 py-2 md:grid-cols-[1fr_auto] md:items-center">
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-semibold text-[var(--crm-text)]">{document.name}</p>
+                                                    <p className="text-xs text-[var(--crm-muted)]">{document.fileName || 'No file'} / {document.uploadedAt || '-'}</p>
+                                                </div>
+                                                <span className={`rounded-full border px-2 py-1 text-xs font-bold ${statusClass(document.status)}`}>
+                                                    {document.status}
+                                                </span>
                                             </div>
-                                            <AppBadge tone={document.status === 'verified' ? 'green' : 'amber'}>{document.status}</AppBadge>
-                                        </div>
-                                    ))
+                                        ))}
+                                    </div>
                                 ) : (
-                                    <p className="text-sm text-[var(--text-muted)]">No documents yet.</p>
+                                    <EmptyState label="No documents yet." />
                                 )}
-                            </div>
-                        </ModuleCard>
+                            </ModulePanel>
 
-                        <ModuleCard
-                            icon={<BadgeDollarSign size={18} />}
-                            title="Finance"
-                            description="Finance records linked to this project."
-                            actionLabel="Open"
-                            href="/finance"
-                        >
-                            <div className="grid gap-3 md:grid-cols-3">
-                                <InfoCard label="Total TTC" value={formatMoney(totalFinance)} />
-                                <InfoCard label="Paid" value={formatMoney(paidFinance)} />
-                                <InfoCard label="Remaining" value={formatMoney(remainingFinance)} />
-                            </div>
+                            <ModulePanel
+                                icon={BadgeDollarSign}
+                                title="Finance"
+                                description="Finance records linked to this project."
+                                actionLabel="Open finance"
+                                href="/finance"
+                            >
+                                <div className="mb-3 grid gap-3 md:grid-cols-3">
+                                    <InfoTile label="Total TTC" value={money(totalFinance)} />
+                                    <InfoTile label="Paid" value={money(paidFinance)} />
+                                    <InfoTile label="Remaining" value={money(remainingFinance)} />
+                                </div>
 
-                            <div className="mt-3 space-y-2">
-                                {financeRecords.map((record) => (
-                                    <div key={record.id} className="rounded-2xl border bg-[var(--surface)] p-3">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <p className="text-sm font-semibold">{record.recordNumber}</p>
-                                            <AppBadge tone="blue">{record.status}</AppBadge>
-                                        </div>
-                                        <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                            {record.type} Â· {formatMoney(record.totalTtc)}
+                                {financeRecords.length > 0 ? (
+                                    <div className="grid gap-2">
+                                        {financeRecords.map((record) => (
+                                            <div key={record.id} className="grid gap-2 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 py-2 md:grid-cols-[1fr_auto] md:items-center">
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-semibold text-[var(--crm-text)]">{record.recordNumber}</p>
+                                                    <p className="text-xs text-[var(--crm-muted)]">{record.type} / {record.status}</p>
+                                                </div>
+                                                <div className="text-sm font-black text-[var(--crm-accent)]">{money(record.totalTtc)}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <EmptyState label="No finance records yet." />
+                                )}
+                            </ModulePanel>
+                        </main>
+
+                        <aside className="grid min-w-0 gap-5 2xl:sticky 2xl:top-24">
+                            <ModulePanel
+                                icon={FileText}
+                                title="Contract"
+                                description="Contract state for this project."
+                                actionLabel="Contracts"
+                                href="/contracts"
+                            >
+                                {contract ? (
+                                    <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
+                                        <p className="text-sm font-black text-[var(--crm-text)]">{contract.contractNumber}</p>
+                                        <p className="mt-1 text-xs text-[var(--crm-muted)]">{contract.status} / {money(contract.ttc)}</p>
+                                    </div>
+                                ) : (
+                                    <EmptyState label="No contract yet." />
+                                )}
+                            </ModulePanel>
+
+                            <ModulePanel
+                                icon={ShieldCheck}
+                                title="Authorization"
+                                description="Authorization follow-up."
+                                actionLabel="Authorizations"
+                                href="/authorizations"
+                            >
+                                {authorization ? (
+                                    <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
+                                        <p className="text-sm font-black text-[var(--crm-text)]">{authorization.submissionNumber || authorization.authorizationNumber || '-'}</p>
+                                        <p className="mt-1 text-xs text-[var(--crm-muted)]">{authorization.authorityName || '-'} / {authorization.status}</p>
+                                    </div>
+                                ) : (
+                                    <EmptyState label="No authorization yet." />
+                                )}
+                            </ModulePanel>
+
+                            <ModulePanel
+                                icon={Archive}
+                                title="Archive"
+                                description="Physical archive position."
+                                actionLabel="Archives"
+                                href="/archives"
+                            >
+                                {archiveRecord ? (
+                                    <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
+                                        <p className="text-sm font-black text-[var(--crm-text)]">{archiveRecord.archiveNumber}</p>
+                                        <p className="mt-1 text-xs text-[var(--crm-muted)]">
+                                            {[archiveRecord.room, archiveRecord.shelf, archiveRecord.box, archiveRecord.folder].filter(Boolean).join(' / ') || archiveRecord.status}
                                         </p>
                                     </div>
-                                ))}
-                            </div>
-                        </ModuleCard>
-                    </div>
+                                ) : (
+                                    <EmptyState label="Not archived yet." />
+                                )}
+                            </ModulePanel>
 
-                    <aside className="min-w-0 space-y-5 xl:sticky xl:top-24 xl:self-start">
-                        <ModuleCard
-                            icon={<FileText size={18} />}
-                            title="Contract"
-                            description="Contract state for this project."
-                            actionLabel="Open"
-                            href="/contracts"
-                        >
-                            {contract ? (
-                                <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                    <p className="text-sm font-semibold">{contract.contractNumber}</p>
-                                    <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                        {contract.status} Â· {formatMoney(contract.ttc)}
-                                    </p>
+                            <section className="crm-panel p-5">
+                                <div className="flex items-center gap-2">
+                                    <CheckCircle2 size={15} className="text-[var(--crm-accent)]" />
+                                    <h2 className="text-sm font-black">Notes</h2>
                                 </div>
-                            ) : (
-                                <p className="text-sm text-[var(--text-muted)]">No contract yet.</p>
-                            )}
-                        </ModuleCard>
+                                <p className="mt-3 text-sm leading-6 text-[var(--crm-muted)]">
+                                    {dossier.notes || 'No notes saved.'}
+                                </p>
+                            </section>
 
-                        <ModuleCard
-                            icon={<ShieldCheck size={18} />}
-                            title="Authorization"
-                            description="Authorization follow-up."
-                            actionLabel="Open"
-                            href="/authorizations"
-                        >
-                            {authorization ? (
-                                <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                    <p className="text-sm font-semibold">{authorization.submissionNumber || '-'}</p>
-                                    <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                        {authorization.authorityName || '-'} Â· {authorization.status}
-                                    </p>
+                            <section className="crm-panel p-5">
+                                <div className="flex items-center gap-2">
+                                    <Building2 size={15} className="text-[var(--crm-accent)]" />
+                                    <h2 className="text-sm font-black">Quick navigation</h2>
                                 </div>
-                            ) : (
-                                <p className="text-sm text-[var(--text-muted)]">No authorization yet.</p>
-                            )}
-                        </ModuleCard>
 
-                        <ModuleCard
-                            icon={<Archive size={18} />}
-                            title="Archive"
-                            description="Physical archive position."
-                            actionLabel="Open"
-                            href="/archives"
-                        >
-                            {archiveRecord ? (
-                                <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                    <p className="text-sm font-semibold">{archiveRecord.archiveNumber}</p>
-                                    <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                        {archiveRecord.room || '-'} Â· {archiveRecord.box || '-'}
-                                    </p>
+                                <div className="mt-4 grid gap-2">
+                                    <button type="button" className="crm-action-button justify-center py-3" onClick={() => router.visit('/documents')}>
+                                        <FileCheck2 size={15} />
+                                        Documents
+                                    </button>
+                                    <button type="button" className="crm-action-button justify-center py-3" onClick={() => router.visit('/finance')}>
+                                        <BadgeDollarSign size={15} />
+                                        Finance
+                                    </button>
+                                    <button type="button" className="crm-action-button justify-center py-3" onClick={() => router.visit('/dossiers')}>
+                                        <ArrowLeft size={15} />
+                                        Back to projects
+                                    </button>
                                 </div>
-                            ) : (
-                                <p className="text-sm text-[var(--text-muted)]">Not archived yet.</p>
-                            )}
-                        </ModuleCard>
-
-                        <AppCard className="p-5">
-                            <h2 className="text-sm font-semibold">Notes</h2>
-                            <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-                                {dossier.notes || 'No notes saved.'}
-                            </p>
-                        </AppCard>
-                    </aside>
-                </section>
+                            </section>
+                        </aside>
+                    </section>
+                </div>
             </AppShell>
         </>
     );

@@ -7,13 +7,14 @@ use App\Http\Requests\UpdateDossierRequest;
 use App\Http\Resources\DossierResource;
 use App\Models\Client;
 use App\Models\Dossier;
+use App\Services\Dossiers\DossierLocationGroupingService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DossierController extends Controller
 {
-    public function index(): Response
+    public function index(DossierLocationGroupingService $locationGroupingService): Response
     {
         $dossiers = Dossier::query()
             ->with('client')
@@ -24,6 +25,7 @@ class DossierController extends Controller
 
         return Inertia::render('Dossiers/Index', [
             'dossiers' => DossierResource::collection($dossiers)->resolve(),
+            'locationGroups' => $locationGroupingService->groups(),
             'clients' => $this->clientOptions(),
             'metrics' => [
                 'total' => Dossier::count(),
@@ -102,6 +104,12 @@ class DossierController extends Controller
 
         Dossier::create($data);
 
+        if ($request->filled('return_to')) {
+            return redirect()
+                ->to($request->string('return_to')->toString())
+                ->with('success', 'Project created successfully.');
+        }
+
         return redirect()
             ->route('dossiers.index')
             ->with('success', 'Project created successfully.');
@@ -130,6 +138,7 @@ class DossierController extends Controller
         $data['status'] = $data['status'] ?? 'opened';
         $data['workflow_step'] = $data['workflow_step'] ?? 'client';
         $data['opened_at'] = $data['opened_at'] ?? now()->toDateString();
+        unset($data['return_to']);
 
         if (($data['land_surface'] ?? null) === '') {
             $data['land_surface'] = null;

@@ -186,7 +186,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                         </div>
                     </div>
 
-                    <div className="grid gap-4 xl:grid-cols-[420px_minmax(0,1fr)]">
+                    <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
                         <section className="rounded-2xl border bg-[var(--surface)]">
                             <div className="border-b px-4 py-3">
                                 <h2 className="text-sm font-semibold">Versions</h2>

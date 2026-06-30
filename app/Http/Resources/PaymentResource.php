@@ -2,36 +2,100 @@
 
 namespace App\Http\Resources;
 
+use Illuminate\Http\Resources\MissingValue;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Route;
 
 class PaymentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $receipt = $this->whenLoaded('receiptDocument');
+        $document = $this->whenLoaded('document');
+        $client = $this->whenLoaded('client');
+        $dossier = $this->whenLoaded('dossier');
+        foreach (['document', 'client', 'dossier', 'receipt'] as $relationVariable) {
+            if (isset(${$relationVariable}) && ${$relationVariable} instanceof MissingValue) {
+                ${$relationVariable} = null;
+            }
+        }
+
+
         return [
             'id' => $this->id,
             'paymentNumber' => $this->payment_number,
             'amount' => (float) $this->amount,
             'method' => $this->method,
             'reference' => $this->reference,
-            'paidAt' => $this->paid_at?->toDateString(),
+            'paidAt' => optional($this->paid_at)->format('Y-m-d'),
             'notes' => $this->notes,
-            'document' => $this->document ? [
-                'id' => $this->document->id,
-                'number' => $this->document->number,
-                'type' => $this->document->type,
-            ] : null,
-            'client' => $this->client ? [
-                'id' => $this->client->id,
-                'name' => $this->client->full_name,
-            ] : null,
-            'dossier' => $this->dossier ? [
-                'id' => $this->dossier->id,
-                'number' => $this->dossier->dossier_number,
-            ] : null,
+            'createdAt' => optional($this->created_at)->format('Y-m-d H:i'),
+
+            'financeDocumentId' => $this->finance_document_id,
+            'clientId' => $this->client_id,
+            'dossierId' => $this->dossier_id,
             'receiptDocumentId' => $this->receipt_document_id,
-            'createdAt' => $this->created_at?->toISOString(),
+
+            'document' => $this->when($this->relationLoaded('document') && $document, [
+                'id' => $document?->id,
+                'number' => $document?->number,
+                'type' => $document?->type,
+                'status' => $document?->status,
+                'totalTtc' => (float) ($document?->total_ttc ?? 0),
+                'paidTotal' => (float) ($document?->paid_total ?? 0),
+                'remainingTotal' => (float) ($document?->remaining_total ?? 0),
+            ]),
+
+            'client' => $this->when($this->relationLoaded('client') && $client, [
+                'id' => $client?->id,
+                'name' => $client?->full_name ?? $client?->name ?? null,
+            ]),
+
+            'dossier' => $this->when($this->relationLoaded('dossier') && $dossier, [
+                'id' => $dossier?->id,
+                'number' => $dossier?->dossier_number ?? $dossier?->number ?? null,
+            ]),
+
+            'receipt' => $this->whenLoaded('receiptDocument', function () {
+                $receipt = $this->receiptDocument;
+
+                if (! $receipt) {
+                    return null;
+                }
+
+                return [
+                    'id' => $receipt->id,
+                    'number' => $receipt->number,
+                    'type' => $receipt->type,
+                    'status' => $receipt->status,
+                    'issueDate' => optional($receipt->issue_date)->format('Y-m-d'),
+                    'amount' => (float) ($receipt->total_ttc ?? 0),
+                    'pdfPath' => $receipt->pdf_path,
+                    'excelPath' => $receipt->excel_path,
+                    'urls' => [
+                        'show' => $this->safeRoute('finance.documents.show', ['financeDocument' => $receipt->id]),
+                        'download' => $receipt->excel_path ? $this->safeRoute('finance.documents.download', ['financeDocument' => $receipt->id]) : null,
+                        'pdf' => $receipt->pdf_path ? $this->safeRoute('finance.documents.download-pdf', ['financeDocument' => $receipt->id]) : null,
+                        'excel' => $receipt->excel_path ? $this->safeRoute('finance.documents.download-excel', ['financeDocument' => $receipt->id]) : null,
+                        'generatePdf' => $this->safeRoute('finance.documents.generate-pdf', ['financeDocument' => $receipt->id]),
+                        'generateExcel' => $this->safeRoute('finance.documents.generate-excel', ['financeDocument' => $receipt->id]),
+                    ],
+                ];
+            }),
         ];
+    }
+
+    private function safeRoute(string $name, array $parameters = []): ?string
+    {
+        if (! Route::has($name)) {
+            return null;
+        }
+
+        try {
+            return route($name, $parameters);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

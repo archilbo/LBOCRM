@@ -1,10 +1,12 @@
-﻿import { appRoutes } from '@/lib/appRoutes';
+import { BadgeDollarSign } from 'lucide-react';
+import { appRoutes } from '@/lib/appRoutes';
+import type { AppRoute, AppRouteKey } from '@/lib/appRoutes';
 
 export type NavigationItem = {
     key: string;
     labelKey: string;
     href?: string;
-    icon?: any;
+    icon?: AppRoute['icon'];
     enabled?: boolean;
     badgeKey?: string;
     children?: NavigationItem[];
@@ -13,6 +15,32 @@ export type NavigationItem = {
 export type NavigationGroup = {
     labelKey: string;
     items: NavigationItem[];
+};
+
+function routeByKey(key: AppRouteKey): AppRoute {
+    const route = appRoutes.find((item) => item.key === key);
+
+    if (!route) {
+        throw new Error(`Missing app route: ${key}`);
+    }
+
+    return route;
+}
+
+const financeParent: NavigationItem = {
+    key: 'financeParent',
+    labelKey: 'nav.finance',
+    href: '/finance',
+    icon: BadgeDollarSign,
+    enabled: true,
+    children: [
+        { ...routeByKey('finance'), labelKey: 'nav.financeOverview' },
+        routeByKey('financeDocuments'),
+        routeByKey('financePayments'),
+        routeByKey('financeMonthly'),
+        routeByKey('financeTemplates'),
+        routeByKey('financeSettings'),
+    ],
 };
 
 export const navigationGroups: NavigationGroup[] = [
@@ -30,12 +58,17 @@ export const navigationGroups: NavigationGroup[] = [
     },
     {
         labelKey: 'nav.groups.management',
-        items: appRoutes
-            .filter((route) => route.group === 'management' && !['financeDocuments', 'financeSettings'].includes(route.key))
-            .map((route) => ({ ...route })),
+        items: [
+            financeParent,
+            ...appRoutes
+                .filter((route) => route.group === 'management' && route.key === 'archives')
+                .map((route) => ({ ...route })),
+        ],
     },
     {
         labelKey: 'nav.groups.administration',
-        items: appRoutes.filter((route) => route.group === 'administration'),
+        items: appRoutes
+            .filter((route) => route.group === 'administration')
+            .map((route) => ({ ...route })),
     },
 ];

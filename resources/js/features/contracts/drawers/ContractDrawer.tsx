@@ -19,6 +19,7 @@ type ContractDrawerProps = {
     mode: 'create' | 'edit';
     contract: ContractRow | null;
     dossiers: ContractDossierOption[];
+    initialDossierId?: string;
     onOpenChange: (isOpen: boolean) => void;
     onSubmit: (payload: ContractFormPayload) => void;
     errors?: FormErrors;
@@ -69,6 +70,7 @@ export function ContractDrawer({
     mode,
     contract,
     dossiers,
+    initialDossierId = '',
     onOpenChange,
     onSubmit,
     errors = {},
@@ -111,8 +113,14 @@ export function ContractDrawer({
             return;
         }
 
-        setForm(emptyForm);
-    }, [contract, isOpen, mode]);
+        const initialDossier = dossiers.find((dossier) => dossier.id === initialDossierId);
+
+        setForm({
+            ...emptyForm,
+            dossierId: initialDossierId,
+            surface: initialDossier?.floorArea ? String(initialDossier.floorArea) : '',
+        });
+    }, [contract, dossiers, initialDossierId, isOpen, mode]);
 
     function updateField(field: keyof ContractFormPayload, value: string) {
         setForm((current) => ({ ...current, [field]: value }));

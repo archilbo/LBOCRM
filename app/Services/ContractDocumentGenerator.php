@@ -38,15 +38,18 @@ class ContractDocumentGenerator
 
     private function templatePath(Contract $contract): string
     {
-        $rate = (float) ($contract->fee_rate_percent ?? config('archilbo_templates.contracts.default_rate', 0.5));
-
-        $key = abs($rate - 2.0) < 0.001 ? '2' : '0_5';
+        if ($contract->calculation_mode === 'forfait') {
+            $key = 'forfait';
+        } else {
+            $rate = (float) ($contract->fee_rate_percent ?? config('archilbo_templates.contracts.default_rate', 0.5));
+            $key = abs($rate - 2.0) < 0.001 ? '2' : '0_5';
+        }
 
         $templates = (array) config('archilbo_templates.contracts.templates');
         $path = $templates[$key] ?? null;
 
         if (!$path || !File::exists($path)) {
-            throw new \RuntimeException("Contract template not found for rate $key.");
+            throw new \RuntimeException("Contract template not found for type $key.");
         }
 
         return $path;

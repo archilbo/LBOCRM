@@ -1,0 +1,48 @@
+import { ChevronDown, Map } from 'lucide-react';
+import { useState } from 'react';
+import { AppCard } from '@/components/ui/AppCard';
+import type { DossierLocationGroup } from '@/features/dossiers/types';
+import { DossierCommuneGroup } from './DossierCommuneGroup';
+import { DossierLocationStats } from './DossierLocationStats';
+
+type Props = {
+    group: DossierLocationGroup;
+};
+
+export function DossierProvinceGroup({ group }: Props) {
+    const [open, setOpen] = useState(true);
+
+    return (
+        <AppCard className="overflow-hidden p-0">
+            <button
+                type="button"
+                onClick={() => setOpen((value) => !value)}
+                className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-[var(--surface-2)]"
+            >
+                <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
+                        <Map size={17} />
+                    </span>
+                    <span className="min-w-0">
+                        <span className="block truncate text-base font-semibold">{group.province}</span>
+                        <span className="text-xs text-[var(--text-muted)]">
+                            {group.communes.length} commune(s) · {group.stats.projectsCount} project(s)
+                        </span>
+                    </span>
+                </span>
+                <ChevronDown size={18} className={open ? 'shrink-0 transition' : 'shrink-0 -rotate-90 transition'} />
+            </button>
+
+            {open ? (
+                <div className="space-y-4 border-t border-[var(--border)] p-4">
+                    <DossierLocationStats stats={group.stats} />
+                    <div className="space-y-3">
+                        {group.communes.map((commune) => (
+                            <DossierCommuneGroup key={`${group.province}-${commune.commune}`} group={commune} />
+                        ))}
+                    </div>
+                </div>
+            ) : null}
+        </AppCard>
+    );
+}

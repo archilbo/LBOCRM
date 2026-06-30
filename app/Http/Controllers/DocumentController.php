@@ -8,6 +8,7 @@ use App\Http\Resources\DossierDocumentResource;
 use App\Models\DocumentTemplate;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
+use App\Services\Documents\DocumentGroupingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -16,7 +17,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
-    public function index(): Response
+    public function index(DocumentGroupingService $documentGroupingService): Response
     {
         $documents = DossierDocument::query()
             ->with(['dossier.client', 'template'])
@@ -25,6 +26,7 @@ class DocumentController extends Controller
 
         return Inertia::render('Documents/Index', [
             'documents' => DossierDocumentResource::collection($documents)->resolve(),
+            'documentGroups' => $documentGroupingService->groups(),
             'dossiers' => $this->dossierOptions(),
             'templates' => $this->templateOptions(),
             'metrics' => [
@@ -52,7 +54,7 @@ class DocumentController extends Controller
         ];
 
         if ($file) {
-            $storedPath = $file->store('dossier-documents/' . $dossier->dossier_number, 'public');
+            $storedPath = $file->store('dossier-documents/' . $dossier->dossier_number, 'local');
 
             $payload['document_number'] = $this->nextDocumentNumber();
             $payload['original_filename'] = $file->getClientOriginalName();
@@ -73,12 +75,18 @@ class DocumentController extends Controller
 
         if ($existing) {
             if ($file && $existing->stored_path) {
-                Storage::disk('public')->delete($existing->stored_path);
+                $this->deleteStoredDocument($existing);
             }
 
             $existing->update($payload);
         } else {
             DossierDocument::create($payload);
+        }
+
+        if ($request->filled('return_to')) {
+            return redirect()
+                ->to($request->string('return_to')->toString())
+                ->with('success', 'Document saved successfully.');
         }
 
         return redirect()
@@ -105,9 +113,7 @@ class DocumentController extends Controller
 
     public function destroy(DossierDocument $dossierDocument): RedirectResponse
     {
-        if ($dossierDocument->stored_path) {
-            Storage::disk('public')->delete($dossierDocument->stored_path);
-        }
+        $this->deleteStoredDocument($dossierDocument);
 
         $dossierDocument->delete();
 
@@ -118,16 +124,44 @@ class DocumentController extends Controller
 
     public function download(DossierDocument $dossierDocument): StreamedResponse|RedirectResponse
     {
-        if (!$dossierDocument->stored_path || !Storage::disk('public')->exists($dossierDocument->stored_path)) {
+        $disk = $this->storedDocumentDisk($dossierDocument);
+
+        if (!$disk) {
             return redirect()
                 ->route('documents.index')
                 ->with('error', 'Document file not found.');
         }
 
-        return Storage::disk('public')->download(
+        return Storage::disk($disk)->download(
             $dossierDocument->stored_path,
             $dossierDocument->original_filename ?? 'document'
         );
+    }
+
+    private function storedDocumentDisk(DossierDocument $dossierDocument): ?string
+    {
+        if (!$dossierDocument->stored_path) {
+            return null;
+        }
+
+        if (Storage::disk('local')->exists($dossierDocument->stored_path)) {
+            return 'local';
+        }
+
+        if (Storage::disk('public')->exists($dossierDocument->stored_path)) {
+            return 'public';
+        }
+
+        return null;
+    }
+
+    private function deleteStoredDocument(DossierDocument $dossierDocument): void
+    {
+        $disk = $this->storedDocumentDisk($dossierDocument);
+
+        if ($disk) {
+            Storage::disk($disk)->delete($dossierDocument->stored_path);
+        }
     }
 
     private function dossierOptions(): array

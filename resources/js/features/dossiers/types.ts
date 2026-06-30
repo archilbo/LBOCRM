@@ -54,3 +54,45 @@ export type DossierFormPayload = {
     workflowStep: string;
     notes: string;
 };
+
+export type DossierLocationStats = {
+    projectsCount: number;
+    openCount: number;
+    closedCount: number;
+    documentsCount: number;
+    financeDocumentsCount: number;
+    invoicesTotal: number;
+    paidTotal: number;
+    remainingTotal: number;
+};
+
+export type DossierLocationRow = {
+    id: number;
+    clientId: number;
+    ownerName: string | null;
+    clientNumber: string | null;
+    dossierNumber: string;
+    projectObject: string | null;
+    projectAddress: string | null;
+    province: string | null;
+    commune: string | null;
+    status: string;
+    workflowStep: string;
+    documentsCount: number;
+    financeDocumentsCount: number;
+    invoicesTotal: number;
+    paidTotal: number;
+    remainingTotal: number;
+};
+
+export type DossierCommuneGroup = {
+    commune: string;
+    stats: DossierLocationStats;
+    dossiers: DossierLocationRow[];
+};
+
+export type DossierLocationGroup = {
+    province: string;
+    stats: DossierLocationStats;
+    communes: DossierCommuneGroup[];
+};

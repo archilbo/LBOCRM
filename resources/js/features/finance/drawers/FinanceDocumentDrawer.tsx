@@ -8,6 +8,65 @@ import { AppTextField } from '@/components/ui/AppTextField';
 import { AppTextarea } from '@/components/ui/AppTextarea';
 import type { FormErrors } from '@/lib/formErrors';
 
+type UiLockAwareFinanceDocument = {
+    numberLocked?: boolean;
+    numberLockedAt?: string | null;
+    lock?: {
+        isLocked?: boolean;
+        lockedAtFormatted?: string | null;
+        message?: string;
+        canEditNumberFields?: boolean;
+        canRegenerateExports?: boolean;
+        canGeneratePdf?: boolean;
+        canGenerateExcel?: boolean;
+    } | null;
+};
+
+function isFinanceDocumentLocked(document: UiLockAwareFinanceDocument | null | undefined) {
+    return Boolean(document?.lock?.isLocked ?? document?.numberLocked);
+}
+
+function canEditFinanceDocumentNumberFields(document: UiLockAwareFinanceDocument | null | undefined) {
+    return document?.lock?.canEditNumberFields ?? !isFinanceDocumentLocked(document);
+}
+
+function FinanceDocumentLockedInlineBadge({ document }: { document: UiLockAwareFinanceDocument | null | undefined }) {
+    if (!isFinanceDocumentLocked(document)) {
+        return null;
+    }
+
+    const lockedAt = document?.lock?.lockedAtFormatted ?? document?.numberLockedAt ?? null;
+
+    return (
+        <span
+            className="ml-2 inline-flex items-center rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300"
+            title={lockedAt ? `Locked at ${lockedAt}` : 'Locked after export'}
+        >
+            
+            <FinanceDocumentLockInlineNotice document={document} />
+Locked
+        </span>
+    );
+}
+
+function FinanceDocumentLockInlineNotice({ document }: { document: UiLockAwareFinanceDocument | null | undefined }) {
+    if (!isFinanceDocumentLocked(document)) {
+        return null;
+    }
+
+    const lockedAt = document?.lock?.lockedAtFormatted ?? document?.numberLockedAt ?? null;
+    const message = document?.lock?.message ?? 'Document locked after export. Number, type, and issue date cannot be changed.';
+
+    return (
+        <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+            <div className="font-semibold text-amber-200">Locked document</div>
+            <div className="mt-1 text-amber-100/80">{message}</div>
+            {lockedAt ? <div className="mt-1 text-xs text-amber-100/60">Locked at {lockedAt}</div> : null}
+        </div>
+    );
+}
+
+
 type ClientOption = { id: string; label: string };
 type DossierOption = { id: string; label: string };
 
@@ -96,6 +155,7 @@ type Props = {
     dossiers: DossierOption[];
     onOpenChange: (open: boolean) => void;
     onSubmit: (payload: FinanceDocFormPayload) => void;
+    initialType?: string;
     errors?: FormErrors;
 };
 
@@ -106,6 +166,7 @@ export function FinanceDocumentDrawer({
     dossiers,
     onOpenChange,
     onSubmit,
+    initialType,
     errors = {},
 }: Props) {
     const [form, setForm] = useState<FinanceDocFormPayload>(emptyForm);
@@ -113,10 +174,14 @@ export function FinanceDocumentDrawer({
 
     useEffect(() => {
         if (isOpen && mode === 'create') {
-            setForm({ ...emptyForm, items: [emptyItem(1, '20')] });
+            setForm({
+                ...emptyForm,
+                type: initialType || emptyForm.type,
+                items: [emptyItem(1, emptyForm.tva_rate)],
+            });
             setNextItemKey(2);
         }
-    }, [isOpen, mode]);
+    }, [isOpen, mode, initialType]);
 
     const update = useCallback(
         <K extends keyof FinanceDocFormPayload>(

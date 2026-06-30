@@ -82,7 +82,7 @@ This will be replaced by backend document generation.`,
                 titleKey="frontendQa.title"
                 subtitleKey="frontendQa.subtitle"
             >
-                <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <section className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">
                     <AppCard className="p-4">
                         <p className="text-sm text-[var(--text-muted)]">Active routes</p>
                         <p className="mt-2 text-2xl font-semibold">{activeRoutes.length}</p>

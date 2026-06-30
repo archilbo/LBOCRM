@@ -1,0 +1,140 @@
+[1mdiff --git a/resources/js/lib/appRoutes.ts b/resources/js/lib/appRoutes.ts[m
+[1mindex 0eaedad..9292552 100644[m
+[1m--- a/resources/js/lib/appRoutes.ts[m
+[1m+++ b/resources/js/lib/appRoutes.ts[m
+[36m@@ -1,4 +1,4 @@[m
+[31m-﻿import {[m
+[32m+[m[32mimport {[m
+     Archive,[m
+     BadgeDollarSign,[m
+     Building2,[m
+[36m@@ -7,6 +7,7 @@[m
+     FileText,[m
+     FolderKanban,[m
+     LayoutDashboard,[m
+[32m+[m[32m    ReceiptText,[m
+     Settings,[m
+     ShieldCheck,[m
+     SlidersHorizontal,[m
+[36m@@ -23,10 +24,13 @@[m [mexport type AppRouteKey =[m
+     | 'authorizations'[m
+     | 'finance'[m
+     | 'financeDocuments'[m
+[32m+[m[32m    | 'financePayments'[m
+[32m+[m[32m    | 'financeTemplates'[m
+     | 'financeSettings'[m
+     | 'archives'[m
+     | 'branches'[m
+[31m-    | 'settings';[m
+[32m+[m[32m    | 'settings'[m
+[32m+[m[32m    | 'users';[m
+ [m
+ export type AppRouteGroup = 'principal' | 'followUp' | 'management' | 'administration';[m
+ [m
+[36m@@ -106,21 +110,30 @@[m [mexport const appRoutes: AppRoute[] = [[m
+         group: 'management',[m
+     },[m
+     {[m
+[31m-        key: 'archives',[m
+[31m-        labelKey: 'nav.archives',[m
+[31m-        href: '/archives',[m
+[31m-        icon: Archive,[m
+[32m+[m[32m        key: 'financeDocuments',[m
+[32m+[m[32m        labelKey: 'nav.financeDocuments',[m
+[32m+[m[32m        href: '/finance/documents',[m
+[32m+[m[32m        icon: FileSpreadsheet,[m
+         enabled: true,[m
+         searchable: true,[m
+         group: 'management',[m
+     },[m
+     {[m
+[31m-        key: 'financeDocuments',[m
+[31m-        labelKey: 'nav.financeDocuments',[m
+[31m-        href: '/finance/documents',[m
+[31m-        icon: FileSpreadsheet,[m
+[31m-        enabled: false,[m
+[31m-        searchable: false,[m
+[32m+[m[32m        key: 'financePayments',[m
+[32m+[m[32m        labelKey: 'nav.financePayments',[m
+[32m+[m[32m        href: '/finance/payments',[m
+[32m+[m[32m        icon: ReceiptText,[m
+[32m+[m[32m        enabled: true,[m
+[32m+[m[32m        searchable: true,[m
+[32m+[m[32m        group: 'management',[m
+[32m+[m[32m    },[m
+[32m+[m[32m    {[m
+[32m+[m[32m        key: 'financeTemplates',[m
+[32m+[m[32m        labelKey: 'nav.financeTemplates',[m
+[32m+[m[32m        href: '/finance/templates',[m
+[32m+[m[32m        icon: FileText,[m
+[32m+[m[32m        enabled: true,[m
+[32m+[m[32m        searchable: true,[m
+         group: 'management',[m
+     },[m
+     {[m
+[36m@@ -128,8 +141,17 @@[m [mexport const appRoutes: AppRoute[] = [[m
+         labelKey: 'nav.financeSettings',[m
+         href: '/finance/settings',[m
+         icon: SlidersHorizontal,[m
+[31m-        enabled: false,[m
+[31m-        searchable: false,[m
+[32m+[m[32m        enabled: true,[m
+[32m+[m[32m        searchable: true,[m
+[32m+[m[32m        group: 'management',[m
+[32m+[m[32m    },[m
+[32m+[m[32m    {[m
+[32m+[m[32m        key: 'archives',[m
+[32m+[m[32m        labelKey: 'nav.archives',[m
+[32m+[m[32m        href: '/archives',[m
+[32m+[m[32m        icon: Archive,[m
+[32m+[m[32m        enabled: true,[m
+[32m+[m[32m        searchable: true,[m
+         group: 'management',[m
+     },[m
+     {[m
+[36m@@ -167,15 +189,41 @@[m [mexport function isValidHref(href: unknown): href is string {[m
+     return typeof href === 'string' && href.trim().length > 0 && href !== '#';[m
+ }[m
+ [m
+[32m+[m[32mfunction splitRoutePath(path: string) {[m
+[32m+[m[32m    const [pathname, query = ''] = path.split('?');[m
+[32m+[m
+[32m+[m[32m    return {[m
+[32m+[m[32m        pathname,[m
+[32m+[m[32m        query,[m
+[32m+[m[32m        params: new URLSearchParams(query),[m
+[32m+[m[32m    };[m
+[32m+[m[32m}[m
+[32m+[m
+ export function isActivePath(currentPath: string, itemPath: string) {[m
+     if (!isValidHref(itemPath)) {[m
+         return false;[m
+     }[m
+ [m
+[31m-    if (itemPath === '/') {[m
+[31m-        return currentPath === '/';[m
+[32m+[m[32m    const current = splitRoutePath(currentPath);[m
+[32m+[m[32m    const item = splitRoutePath(itemPath);[m
+[32m+[m
+[32m+[m[32m    if (item.pathname === '/') {[m
+[32m+[m[32m        return current.pathname === '/';[m
+     }[m
+ [m
+[31m-    return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);[m
+[31m-}[m
+[32m+[m[32m    if (item.query) {[m
+[32m+[m[32m        if (current.pathname !== item.pathname) {[m
+[32m+[m[32m            return false;[m
+[32m+[m[32m        }[m
+ [m
+[32m+[m[32m        return Array.from(item.params.entries()).every([m
+[32m+[m[32m            ([key, value]) => current.params.get(key) === value,[m
+[32m+[m[32m        );[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    if (item.pathname === '/finance') {[m
+[32m+[m[32m        return current.pathname === '/finance' && !current.query;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    return current.pathname === item.pathname || current.pathname.startsWith(`${item.pathname}/`);[m
+[32m+[m[32m}[m

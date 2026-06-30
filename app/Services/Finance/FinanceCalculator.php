@@ -46,7 +46,7 @@ class FinanceCalculator
 
     public static function updateInvoicePaymentTotals(FinanceDocument $invoice): FinanceDocument
     {
-        $invoice->paid_total = $invoice->payments->sum('amount');
+        $invoice->paid_total = $invoice->payments()->sum('amount');
         $invoice->remaining_total = $invoice->total_ttc - $invoice->paid_total;
 
         if ($invoice->remaining_total <= 0 && $invoice->total_ttc > 0) {

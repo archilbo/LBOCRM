@@ -1,3 +1,15 @@
+
+export type FinanceDocumentLockState = {
+    isLocked: boolean;
+    lockedAt: string | null;
+    lockedAtFormatted: string | null;
+    message: string;
+    blockedFields: string[];
+    canEditNumberFields: boolean;
+    canRegenerateExports: boolean;
+    canGeneratePdf: boolean;
+    canGenerateExcel: boolean;
+};
 export type FinanceDocumentType = 'quote' | 'invoice' | 'receipt';
 
 export type FinanceDocumentStatus =
@@ -122,6 +134,8 @@ export type DocumentTemplate = {
         duplicate: string;
         setDefault: string;
         preview: string;
+        versions?: string;
+        snapshot?: string;
     };
 };
 
@@ -167,6 +181,27 @@ export type TemplateOption = {
     type: FinanceDocumentType | string;
 };
 
+export type PaymentReceiptUrls = {
+    show: string | null;
+    download: string | null;
+    pdf: string | null;
+    excel: string | null;
+    generatePdf: string | null;
+    generateExcel: string | null;
+};
+
+export type PaymentReceipt = {
+    id: number;
+    number: string;
+    type: 'receipt' | string;
+    status: FinanceDocumentStatus | string;
+    issueDate: string | null;
+    amount: number;
+    pdfPath: string | null;
+    excelPath: string | null;
+    urls: PaymentReceiptUrls;
+};
+
 export type Payment = {
     id: number;
     paymentNumber: string;
@@ -175,10 +210,19 @@ export type Payment = {
     reference: string | null;
     paidAt: string | null;
     notes: string | null;
-    document?: { id: number; number: string; type: string } | null;
+    document?: {
+        id: number;
+        number: string;
+        type: string;
+        status?: string;
+        totalTtc?: number;
+        paidTotal?: number;
+        remainingTotal?: number;
+    } | null;
     client?: { id: number; name: string } | null;
     dossier?: { id: number; number: string } | null;
     receiptDocumentId?: number | null;
+    receipt?: PaymentReceipt | null;
     createdAt?: string | null;
 };
 
@@ -242,4 +286,55 @@ export type FinanceFormPayload = {
     dueDate: string;
     paidAt: string;
     notes: string;
+};
+
+export type FinanceMonthDocumentRow = {
+    id: number;
+    type: FinanceDocumentType | string;
+    number: string;
+    status: FinanceDocumentStatus | string;
+    clientName: string | null;
+    dossierNumber: string | null;
+    province: string | null;
+    commune: string | null;
+    issueDate: string | null;
+    totalTtc: number;
+    paidTotal: number;
+    remainingTotal: number;
+};
+
+export type FinanceMonthPaymentRow = {
+    id: number;
+    paymentNumber: string;
+    documentNumber: string | null;
+    clientName: string | null;
+    dossierNumber: string | null;
+    province: string | null;
+    commune: string | null;
+    amount: number;
+    method: string | null;
+    paidAt: string | null;
+};
+
+export type FinanceMonthSummary = {
+    year: number;
+    month: number;
+    key: string;
+    label: string;
+    currency: string;
+    quotesCount: number;
+    invoicesCount: number;
+    receiptsCount: number;
+    paymentsCount: number;
+    quotesTotalTtc: number;
+    invoicesTotalTtc: number;
+    receiptsTotalTtc: number;
+    paidTotal: number;
+    remainingTotal: number;
+    overdueTotal: number;
+    subtotalHt: number;
+    taxTotal: number;
+    totalTtc: number;
+    documents: FinanceMonthDocumentRow[];
+    payments: FinanceMonthPaymentRow[];
 };

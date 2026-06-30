@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { AppCompactTabs } from '@/components/ui/AppCompactTabs';
 
 export const financeTabs = [
@@ -6,6 +6,7 @@ export const financeTabs = [
     { id: 'quotes', label: 'Devis' },
     { id: 'invoices', label: 'Factures' },
     { id: 'payments', label: 'Paiements' },
+    { id: 'monthly', label: 'Mensuel' },
     { id: 'templates', label: 'Templates' },
     { id: 'settings', label: 'Parametres' },
 ];

@@ -14,7 +14,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminUserSeeder::class,
             RolesAndPermissionsSeeder::class,
-            ArchiLboDemoSeeder::class,
+            ArchiLboMasterSeeder::class,
+            TaskDemoSeeder::class,
+            NotificationsDemoSeeder::class,
         ]);
     }
 }

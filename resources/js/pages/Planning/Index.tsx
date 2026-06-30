@@ -250,7 +250,7 @@ export default function PlanningIndex() {
                     </div>
                 }
             >
-                <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <section className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">
                     {metricCards.map((metric) => {
                         const Icon = metric.icon;
 

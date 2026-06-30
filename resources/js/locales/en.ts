@@ -1,4 +1,4 @@
-﻿export const en = {
+export const en = {
     app: {
         name: 'ARCHI LBO OS',
         shortName: 'ARCHI LBO',
@@ -21,6 +21,7 @@
         },
         dashboard: 'Dashboard',
         clients: 'Clients',
+        intermediaries: 'Intermediaries',
         dossiers: 'Projects',
         contracts: 'Contracts',
         planning: 'Planning',
@@ -28,8 +29,15 @@
         documents: 'Documents',
         archives: 'Archives',
         finance: 'Finance',
-        financeDocuments: 'Finance docs',
+        financeOverview: 'Overview',
+        financePayments: 'Payments',
+        financeMonthly: 'Monthly summary',
+        financeTemplates: 'Templates',
+        financeDocuments: 'Finance documents',
         financeSettings: 'Finance settings',
+        tasks: 'Tasks',
+        inbox: 'Inbox',
+        notifications: 'Notifications',
         users: 'Users',
         branches: 'Branches',
         settings: 'Settings',
@@ -89,9 +97,9 @@
     },
 
     dashboard: {
-        eyebrow: 'Frontend foundation',
-        title: 'Clean React Aria foundation',
-        subtitle: 'React Aria Components, local language files, light/dark theme, and a SaaS CRM shell are ready.',
+        eyebrow: 'Command center',
+        title: 'Dashboard',
+        subtitle: 'Live overview of projects, documents, authorizations, finance, and daily actions.',
         introTitle: 'Interface foundation is ready',
         introText: 'This screen uses local translations instead of static text. The next step is to build the Projects page using the same shared components.',
         metrics: {
@@ -198,6 +206,12 @@
             view: 'Opening client details...',
             createProject: 'Create project action clicked.',
         },
+    },
+
+    intermediaries: {
+        eyebrow: 'Client network',
+        title: 'Intermediaries',
+        subtitle: 'Manage agencies, partners, and people who bring or follow client files.',
     },
 
     dossiers: {

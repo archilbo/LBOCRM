@@ -1,27 +1,24 @@
 import { Head, router } from '@inertiajs/react';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
     Archive,
     CheckCircle2,
+    Circle,
     Eye,
+    FolderKanban,
     FolderOpen,
     Pencil,
     Plus,
     RotateCcw,
+    Search,
     Trash2,
+    X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormErrors } from '@/lib/formErrors';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppBadge } from '@/components/ui/AppBadge';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppCard } from '@/components/ui/AppCard';
-import { AppDataTable } from '@/components/ui/AppDataTable';
-import { AppFilterBar } from '@/components/ui/AppFilterBar';
-import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
-import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
-import { AppTableActions } from '@/components/ui/AppTableActions';
+import { AppPagination } from '@/components/ui/AppPagination';
 import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
 import { countByValue, filterByValue } from '@/lib/filters';
 import type {
@@ -30,6 +27,8 @@ import type {
     ArchiveRecordRow,
     ArchiveStatus,
 } from '@/features/archives/types';
+
+/* FORCE_ARCHIVES_REDESIGN_53I */
 
 type PageProps = {
     archiveRecords: ArchiveRecordRow[];
@@ -43,38 +42,27 @@ type PageProps = {
     };
 };
 
-type BadgeTone = 'neutral' | 'blue' | 'green' | 'amber' | 'red' | 'violet';
+type ViewMode = 'workspace' | 'storage';
 
-function getStatusTone(status: ArchiveStatus): BadgeTone {
-    switch (status) {
-        case 'ready_to_archive':
-            return 'amber';
-        case 'stored':
-            return 'green';
-        case 'checked_out':
-            return 'blue';
-        case 'returned':
-            return 'violet';
-        case 'lost':
-            return 'red';
-        default:
-            return 'neutral';
-    }
+function statusClass(status: ArchiveStatus) {
+    if (status === 'stored') return 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300';
+    if (status === 'checked_out') return 'border-sky-400/25 bg-sky-400/10 text-sky-300';
+    if (status === 'returned') return 'border-violet-400/25 bg-violet-400/10 text-violet-300';
+    if (status === 'lost') return 'border-red-400/25 bg-red-400/10 text-red-300';
+
+    return 'border-amber-400/25 bg-amber-400/10 text-amber-300';
 }
 
-function getStatusIcon(status: ArchiveStatus): 'dot' | 'check' | 'clock' | 'warning' {
-    switch (status) {
-        case 'stored':
-        case 'returned':
-            return 'check';
-        case 'checked_out':
-            return 'clock';
-        case 'ready_to_archive':
-        case 'lost':
-            return 'warning';
-        default:
-            return 'dot';
-    }
+function statusLabel(status: ArchiveStatus) {
+    const labels: Record<string, string> = {
+        ready_to_archive: 'Ready',
+        stored: 'Stored',
+        checked_out: 'Checked out',
+        returned: 'Returned',
+        lost: 'Lost',
+    };
+
+    return labels[status] ?? status;
 }
 
 function toBackendPayload(payload: ArchiveFormPayload) {
@@ -93,6 +81,402 @@ function toBackendPayload(payload: ArchiveFormPayload) {
     };
 }
 
+function matchesSearch(record: ArchiveRecordRow, query: string) {
+    if (!query.trim()) {
+        return true;
+    }
+
+    return [
+        record.archiveNumber,
+        record.dossierNumber,
+        record.projectObject,
+        record.clientName,
+        record.clientCin,
+        record.locationLabel,
+        record.room,
+        record.shelf,
+        record.box,
+        record.folder,
+        record.status,
+        record.requestedBy,
+        record.notes,
+    ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(query.trim().toLowerCase());
+}
+
+function archiveFlow(record: ArchiveRecordRow) {
+    return [
+        { key: 'ready', label: 'Ready', done: true, date: record.createdAt },
+        {
+            key: 'stored',
+            label: 'Stored',
+            done: Boolean(record.inDate) || ['stored', 'checked_out', 'returned'].includes(record.status),
+            date: record.inDate,
+        },
+        {
+            key: 'checked_out',
+            label: 'Checked out',
+            done: Boolean(record.outDate) || ['checked_out', 'returned'].includes(record.status),
+            date: record.outDate,
+        },
+        {
+            key: 'returned',
+            label: 'Returned',
+            done: Boolean(record.returnedAt) || record.status === 'returned',
+            date: record.returnedAt,
+        },
+    ];
+}
+
+function KpiCard({
+    label,
+    value,
+    detail,
+}: {
+    label: string;
+    value: string | number;
+    detail: string;
+}) {
+    return (
+        <div className="crm-kpi-card">
+            <p className="crm-kpi-label">{label}</p>
+            <p className="crm-kpi-value">{value}</p>
+            <p className="mt-2 truncate text-xs text-[var(--crm-text-soft)]">{detail}</p>
+        </div>
+    );
+}
+
+function ColumnButton({
+    active,
+    title,
+    subtitle,
+    onClick,
+}: {
+    active: boolean;
+    title: string;
+    subtitle: string;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={[
+                'flex w-full items-center justify-between gap-3 border-b border-[var(--crm-border)] px-3 py-3 text-left transition',
+                active
+                    ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]'
+                    : 'text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-hover)] hover:text-[var(--crm-text)]',
+            ].join(' ')}
+        >
+            <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold">{title}</span>
+                <span className="block truncate text-xs opacity-75">{subtitle}</span>
+            </span>
+        </button>
+    );
+}
+
+function ArchiveTimeline({ record }: { record: ArchiveRecordRow }) {
+    return (
+        <div className="space-y-2">
+            {archiveFlow(record).map((item) => (
+                <div key={item.key} className="flex items-center gap-3">
+                    <span className={[
+                        'flex size-7 shrink-0 items-center justify-center rounded-full border',
+                        item.done
+                            ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]'
+                            : 'border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text-soft)]',
+                    ].join(' ')}>
+                        {item.done ? <CheckCircle2 size={14} /> : <Circle size={14} />}
+                    </span>
+
+                    <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">{item.label}</p>
+                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{item.date || '-'}</p>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function ArchiveDetailPanel({
+    record,
+    onEdit,
+    onDelete,
+    onUpdateStatus,
+}: {
+    record: ArchiveRecordRow | null;
+    onEdit: (record: ArchiveRecordRow) => void;
+    onDelete: (record: ArchiveRecordRow) => void;
+    onUpdateStatus: (record: ArchiveRecordRow, status: string) => void;
+}) {
+    if (!record) {
+        return (
+            <aside className="crm-panel p-4">
+                <p className="text-sm font-semibold">Archive details</p>
+                <p className="mt-2 text-sm text-[var(--crm-text-muted)]">
+                    Select an archive record to see location, status, and checkout history.
+                </p>
+            </aside>
+        );
+    }
+
+    return (
+        <aside className="crm-panel overflow-hidden">
+            <div className="border-b border-[var(--crm-border)] p-4">
+                <p className="crm-eyebrow">Selected archive</p>
+                <div className="mt-2 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <h2 className="truncate text-lg font-semibold">{record.archiveNumber}</h2>
+                        <p className="text-sm text-[var(--crm-text-muted)]">{record.dossierNumber}</p>
+                    </div>
+
+                    <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(record.status)}`}>
+                        {statusLabel(record.status)}
+                    </span>
+                </div>
+            </div>
+
+            <div className="space-y-5 p-5">
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="crm-panel-soft p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Project</p>
+                        <p className="mt-1 truncate text-sm font-semibold">{record.projectObject}</p>
+                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{record.clientName}</p>
+                    </div>
+
+                    <div className="crm-panel-soft p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Location</p>
+                        <p className="mt-1 truncate text-sm font-semibold">{record.locationLabel || '-'}</p>
+                        <p className="truncate text-xs text-[var(--crm-text-muted)]">Room / shelf / box / folder</p>
+                    </div>
+
+                    <div className="crm-panel-soft p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Checked out</p>
+                        <p className="mt-1 truncate text-sm font-semibold">{record.outDate || '-'}</p>
+                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{record.requestedBy || 'No requester'}</p>
+                    </div>
+
+                    <div className="crm-panel-soft p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Returned</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-[var(--crm-gold)]">{record.returnedAt || '-'}</p>
+                        <p className="truncate text-xs text-[var(--crm-text-muted)]">Return tracking</p>
+                    </div>
+                </div>
+
+                <div className="crm-panel-soft p-3">
+                    <div className="mb-3 flex items-center justify-between">
+                        <p className="text-sm font-semibold">Archive flow</p>
+                        <p className="text-xs text-[var(--crm-text-muted)]">
+                            {archiveFlow(record).filter((item) => item.done).length}/4 done
+                        </p>
+                    </div>
+                    <ArchiveTimeline record={record} />
+                </div>
+
+                <div className="crm-panel-soft p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Notes</p>
+                    <p className="mt-2 max-h-32 overflow-y-auto whitespace-pre-line text-sm leading-6 text-[var(--crm-text-muted)]">
+                        {record.notes || 'No notes.'}
+                    </p>
+                </div>
+
+                <div className="grid gap-2">
+                    <AppButton variant="primary" onPress={() => onUpdateStatus(record, 'stored')}>
+                        <CheckCircle2 size={15} />
+                        Mark stored
+                    </AppButton>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <AppButton variant="secondary" size="sm" onPress={() => onUpdateStatus(record, 'checked_out')}>
+                            <FolderOpen size={14} />
+                            Check out
+                        </AppButton>
+
+                        <AppButton variant="secondary" size="sm" onPress={() => onUpdateStatus(record, 'returned')}>
+                            <RotateCcw size={14} />
+                            Returned
+                        </AppButton>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <AppButton variant="secondary" size="sm" onPress={() => onEdit(record)}>
+                            <Pencil size={14} />
+                            Edit
+                        </AppButton>
+
+                        <AppButton variant="danger" size="sm" onPress={() => onDelete(record)}>
+                            <Trash2 size={14} />
+                            Delete
+                        </AppButton>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    );
+}
+
+function StorageBrowser({
+    records,
+    onSelect,
+}: {
+    records: ArchiveRecordRow[];
+    onSelect: (record: ArchiveRecordRow) => void;
+}) {
+    const roomNames = useMemo(() => {
+        const rooms = Array.from(new Set(records.map((record) => record.room || 'No room')));
+        return rooms.length ? rooms : ['No room'];
+    }, [records]);
+
+    const [selectedRoom, setSelectedRoom] = useState(roomNames[0] ?? 'No room');
+
+    const recordsInRoom = useMemo(
+        () => records.filter((record) => (record.room || 'No room') === selectedRoom),
+        [records, selectedRoom],
+    );
+
+    const shelfNames = useMemo(() => {
+        const shelves = Array.from(new Set(recordsInRoom.map((record) => record.shelf || 'No shelf')));
+        return shelves.length ? shelves : ['No shelf'];
+    }, [recordsInRoom]);
+
+    const [selectedShelf, setSelectedShelf] = useState(shelfNames[0] ?? 'No shelf');
+    const [query, setQuery] = useState('');
+
+    const recordsInShelf = useMemo(() => {
+        const normalizedShelf = selectedShelf || shelfNames[0] || 'No shelf';
+
+        return recordsInRoom
+            .filter((record) => (record.shelf || 'No shelf') === normalizedShelf)
+            .filter((record) => matchesSearch(record, query));
+    }, [query, recordsInRoom, selectedShelf, shelfNames]);
+
+    function chooseRoom(room: string) {
+        const nextRecords = records.filter((record) => (record.room || 'No room') === room);
+        const nextShelf = nextRecords[0]?.shelf || 'No shelf';
+
+        setSelectedRoom(room);
+        setSelectedShelf(nextShelf);
+        setQuery('');
+    }
+
+    return (
+        <section className="crm-panel overflow-hidden">
+            <div className="grid min-h-[620px] grid-cols-1 xl:grid-cols-[220px_220px_minmax(0,1fr)]">
+                <aside className="border-b border-[var(--crm-border)] xl:border-b-0 xl:border-r">
+                    <div className="border-b border-[var(--crm-border)] p-3">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Rooms</p>
+                        <p className="text-xs text-[var(--crm-text-muted)]">{roomNames.length} room(s)</p>
+                    </div>
+
+                    <div className="app-scrollbar max-h-[560px] overflow-y-auto">
+                        {roomNames.map((room) => {
+                            const count = records.filter((record) => (record.room || 'No room') === room).length;
+
+                            return (
+                                <ColumnButton
+                                    key={room}
+                                    active={selectedRoom === room}
+                                    title={room}
+                                    subtitle={`${count} archive(s)`}
+                                    onClick={() => chooseRoom(room)}
+                                />
+                            );
+                        })}
+                    </div>
+                </aside>
+
+                <aside className="border-b border-[var(--crm-border)] xl:border-b-0 xl:border-r">
+                    <div className="border-b border-[var(--crm-border)] p-3">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Shelves</p>
+                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{selectedRoom}</p>
+                    </div>
+
+                    <div className="app-scrollbar max-h-[560px] overflow-y-auto">
+                        {shelfNames.map((shelf) => {
+                            const count = recordsInRoom.filter((record) => (record.shelf || 'No shelf') === shelf).length;
+
+                            return (
+                                <ColumnButton
+                                    key={`${selectedRoom}-${shelf}`}
+                                    active={selectedShelf === shelf}
+                                    title={shelf}
+                                    subtitle={`${count} archive(s)`}
+                                    onClick={() => {
+                                        setSelectedShelf(shelf);
+                                        setQuery('');
+                                    }}
+                                />
+                            );
+                        })}
+                    </div>
+                </aside>
+
+                <main className="min-w-0">
+                    <div className="flex flex-col gap-3 border-b border-[var(--crm-border)] p-4 xl:flex-row xl:items-center xl:justify-between">
+                        <div>
+                            <p className="crm-eyebrow">Storage browser</p>
+                            <h2 className="mt-1 truncate text-lg font-semibold">{selectedRoom} / {selectedShelf}</h2>
+                            <p className="mt-1 text-sm text-[var(--crm-text-muted)]">{recordsInShelf.length} visible archive(s)</p>
+                        </div>
+
+                        <div className="crm-command-input relative w-full xl:w-[340px]">
+                            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
+                            <input
+                                value={query}
+                                onChange={(event) => setQuery(event.target.value)}
+                                placeholder="Search archives in shelf..."
+                                className="h-full w-full bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-[var(--crm-text-soft)]"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="app-scrollbar max-h-[560px] space-y-3 overflow-y-auto p-4">
+                        {recordsInShelf.length > 0 ? recordsInShelf.map((record) => (
+                            <button
+                                key={record.id}
+                                type="button"
+                                onClick={() => onSelect(record)}
+                                className="crm-panel-soft w-full p-3 text-left transition hover:border-[var(--crm-gold)]"
+                            >
+                                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-3">
+                                            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
+                                                <Archive size={16} />
+                                            </span>
+                                            <div className="min-w-0">
+                                                <p className="truncate text-sm font-semibold">{record.archiveNumber}</p>
+                                                <p className="truncate text-xs text-[var(--crm-text-muted)]">{record.projectObject}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(record.status)}`}>
+                                            {statusLabel(record.status)}
+                                        </span>
+                                        <span className="text-xs text-[var(--crm-text-muted)]">{record.locationLabel}</span>
+                                    </div>
+                                </div>
+                            </button>
+                        )) : (
+                            <div className="py-16 text-center">
+                                <p className="text-sm font-semibold">No archives found</p>
+                                <p className="mt-1 text-sm text-[var(--crm-text-muted)]">Choose another shelf or clear search.</p>
+                            </div>
+                        )}
+                    </div>
+                </main>
+            </div>
+        </section>
+    );
+}
+
 export default function ArchivesIndex({
     archiveRecords,
     dossiers,
@@ -100,15 +484,15 @@ export default function ArchivesIndex({
 }: PageProps) {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState('all');
+    const [query, setQuery] = useState('');
+    const [viewMode, setViewMode] = useState<ViewMode>('workspace');
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('create');
     const [selectedArchive, setSelectedArchive] = useState<ArchiveRecordRow | null>(
         archiveRecords[0] ?? null,
     );
-
-    const filteredArchiveRecords = useMemo(
-        () => filterByValue(archiveRecords, statusFilter, (record) => record.status),
-        [archiveRecords, statusFilter],
-    );
+    const [formErrors, setFormErrors] = useState<FormErrors>({});
+    const [tablePage, setTablePage] = useState(1);
+    const TABLE_PAGE_SIZE = 15;
 
     const statusOptions = useMemo(
         () => [
@@ -121,6 +505,25 @@ export default function ArchivesIndex({
         ],
         [archiveRecords],
     );
+
+    const filteredArchiveRecords = useMemo(() => {
+        return filterByValue(archiveRecords, statusFilter, (record) => record.status)
+            .filter((record) => matchesSearch(record, query));
+    }, [archiveRecords, query, statusFilter]);
+
+    useEffect(() => {
+        setTablePage(1);
+    }, [query, statusFilter, viewMode]);
+
+    const pagedArchiveRecords = useMemo(
+        () => filteredArchiveRecords.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE),
+        [filteredArchiveRecords, tablePage],
+    );
+
+    const selectedVisible = selectedArchive && filteredArchiveRecords.some((record) => record.id === selectedArchive.id)
+        ? selectedArchive
+        : filteredArchiveRecords[0] ?? null;
+
     function openCreateDrawer() {
         setSelectedArchive(null);
         setDrawerMode('create');
@@ -143,9 +546,13 @@ export default function ArchivesIndex({
                 preserveScroll: true,
                 onSuccess: () => {
                     setDrawerOpen(false);
+                    setFormErrors({});
                     toast.success('Archive record updated successfully.');
                 },
-                onError: () => toast.error('Please check archive form errors.'),
+                onError: (errors) => {
+                    setFormErrors(errors as FormErrors);
+                    toast.error('Please check archive form errors.');
+                },
             });
 
             return;
@@ -155,21 +562,20 @@ export default function ArchivesIndex({
             preserveScroll: true,
             onSuccess: () => {
                 setDrawerOpen(false);
+                setFormErrors({});
                 toast.success('Archive record created successfully.');
             },
             onError: (errors) => {
-                    setFormErrors(errors as FormErrors);
-                    toast.error('Please check archive form errors. Maybe this dossier already has an archive record.');
-                },
+                setFormErrors(errors as FormErrors);
+                toast.error('Please check archive form errors. Maybe this dossier already has an archive record.');
+            },
         });
     }
 
     function updateStatus(record: ArchiveRecordRow, status: string) {
         router.put(
             `/archives/${record.id}/status`,
-            {
-                status,
-            },
+            { status },
             {
                 preserveScroll: true,
                 onSuccess: () => toast.success('Archive status updated.'),
@@ -179,9 +585,7 @@ export default function ArchivesIndex({
     }
 
     function deleteRecord(record: ArchiveRecordRow) {
-        const confirmed = window.confirm(`Delete ${record.archiveNumber}?`);
-
-        if (!confirmed) {
+        if (!window.confirm(`Delete ${record.archiveNumber}?`)) {
             return;
         }
 
@@ -191,160 +595,6 @@ export default function ArchivesIndex({
             onError: () => toast.error('Archive record could not be deleted.'),
         });
     }
-
-    const columns = useMemo<ColumnDef<ArchiveRecordRow, unknown>[]>(
-        () => [
-            {
-                accessorKey: 'archiveNumber',
-                header: 'Archive',
-                cell: ({ row }) => (
-                    <div className="app-table-primary-cell">
-                        <div className="flex items-center gap-2">
-                            <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                                <Archive size={15} />
-                            </div>
-
-                            <div className="min-w-0">
-                                <p className="max-w-[220px] truncate text-sm font-semibold">
-                                    {row.original.archiveNumber}
-                                </p>
-                                <p className="text-xs text-[var(--text-muted)]">
-                                    {row.original.dossierNumber}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                ),
-            },
-            {
-                accessorKey: 'projectObject',
-                header: 'Project',
-                cell: ({ row }) => (
-                    <div>
-                        <p className="max-w-[240px] truncate text-sm font-medium">
-                            {row.original.projectObject}
-                        </p>
-                        <p className="text-xs text-[var(--text-muted)]">
-                            {row.original.clientName}
-                        </p>
-                    </div>
-                ),
-            },
-            {
-                accessorKey: 'locationLabel',
-                header: 'Location',
-                cell: ({ row }) => (
-                    <span className="max-w-[220px] truncate text-sm text-[var(--text-muted)]">
-                        {row.original.locationLabel}
-                    </span>
-                ),
-            },
-            {
-                accessorKey: 'status',
-                header: 'Status',
-                cell: ({ row }) => (
-                    <AppStatusBadge
-                        label={row.original.status}
-                        tone={getStatusTone(row.original.status)}
-                        icon={getStatusIcon(row.original.status)}
-                    />
-                ),
-            },
-            {
-                accessorKey: 'inDate',
-                header: 'In date',
-                cell: ({ row }) => (
-                    <span className="text-sm text-[var(--text-muted)]">
-                        {row.original.inDate || '-'}
-                    </span>
-                ),
-            },
-            {
-                accessorKey: 'outDate',
-                header: 'Out date',
-                cell: ({ row }) => (
-                    <span className="text-sm text-[var(--text-muted)]">
-                        {row.original.outDate || '-'}
-                    </span>
-                ),
-            },
-            {
-                id: 'actions',
-                header: 'Actions',
-                cell: ({ row }) => (
-                    <AppTableActions>
-                        <AppTableActionButton
-                            label="Preview"
-                            tone="view"
-                            onPress={() => setSelectedArchive(row.original)}
-                        >
-                            <Eye size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Edit"
-                            tone="edit"
-                            onPress={() => openEditDrawer(row.original)}
-                        >
-                            <Pencil size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Stored"
-                            tone="create"
-                            onPress={() => updateStatus(row.original, 'stored')}
-                        >
-                            <CheckCircle2 size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Checked out"
-                            tone="documents"
-                            onPress={() => updateStatus(row.original, 'checked_out')}
-                        >
-                            <FolderOpen size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Returned"
-                            tone="archive"
-                            onPress={() => updateStatus(row.original, 'returned')}
-                        >
-                            <RotateCcw size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Delete"
-                            tone="delete"
-                            onPress={() => deleteRecord(row.original)}
-                        >
-                            <Trash2 size={15} />
-                        </AppTableActionButton>
-                    </AppTableActions>
-                ),
-            },
-        ],
-        [],
-    );
-
-    const metricCards = [
-        {
-            label: 'Archives',
-            value: metrics.total,
-        },
-        {
-            label: 'Ready',
-            value: metrics.ready,
-        },
-        {
-            label: 'Stored',
-            value: metrics.stored,
-        },
-        {
-            label: 'Checked out',
-            value: metrics.checkedOut,
-        },
-    ];
 
     return (
         <>
@@ -361,145 +611,221 @@ export default function ArchivesIndex({
                     </AppButton>
                 }
             >
-                <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    {metricCards.map((metric) => (
-                        <AppCard key={metric.label} className="p-4">
-                            <p className="text-sm text-[var(--text-muted)]">{metric.label}</p>
-                            <p className="mt-3 text-2xl font-semibold">{metric.value}</p>
-                        </AppCard>
-                    ))}
+                <section className="crm-kpi-grid max-xl:grid-cols-3 max-md:grid-cols-1">
+                    <KpiCard label="Archives" value={metrics.total} detail="Total physical archive records" />
+                    <KpiCard label="Ready" value={metrics.ready} detail="Waiting storage" />
+                    <KpiCard label="Stored" value={metrics.stored} detail="Inside archive room" />
+                    <KpiCard label="Checked out" value={metrics.checkedOut} detail="Currently outside" />
+                    <KpiCard label="Returned" value={metrics.returned} detail="Back from checkout" />
                 </section>
 
-                <section className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
-                    <div className="min-w-0">
-                        <AppDataTable
-                            data={filteredArchiveRecords}
-                            columns={columns}
-                            searchPlaceholder="Search by archive number, project, client, location, or status..."
-                            emptyTitle="No archive records found"
-                            emptyDescription="Create the first archive record from a completed project."
-                            pageSize={8}
-                        />
-                    </div>
+                <section className="crm-panel p-4">
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                        <div className="flex flex-wrap gap-2">
+                            {statusOptions.map((option) => {
+                                const active = option.id === statusFilter;
 
-                    <aside className="min-w-0 space-y-5 2xl:sticky 2xl:top-24 2xl:self-start">
-                        <AppCard className="p-5">
-                            <div className="mb-4 flex items-start gap-3">
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                                    <Archive size={18} />
-                                </div>
+                                return (
+                                    <button
+                                        key={option.id}
+                                        type="button"
+                                        onClick={() => setStatusFilter(option.id)}
+                                        className={[
+                                            'inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition',
+                                            active
+                                                ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]'
+                                                : 'border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]',
+                                        ].join(' ')}
+                                    >
+                                        {option.label}
+                                        <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">{option.count}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
 
-                                <div className="min-w-0">
-                                    <h2 className="text-sm font-semibold">Archive preview</h2>
-                                    <p className="mt-1 text-sm text-[var(--text-muted)]">
-                                        Selected archive record information.
-                                    </p>
-                                </div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <div className="crm-command-input relative w-full sm:w-[390px]">
+                                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
+                                <input
+                                    value={query}
+                                    onChange={(event) => setQuery(event.target.value)}
+                                    placeholder="Search archives, projects, locations..."
+                                    className="h-full w-full bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-[var(--crm-text-soft)]"
+                                />
+                                {query ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setQuery('')}
+                                        className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-[var(--crm-text-soft)] hover:bg-[var(--crm-surface-2)]"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                ) : null}
                             </div>
 
-                            {selectedArchive ? (
-                                <div className="space-y-3">
-                                    <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                        <p className="text-xs text-[var(--text-muted)]">Archive</p>
-                                        <p className="mt-1 text-sm font-semibold">
-                                            {selectedArchive.archiveNumber}
-                                        </p>
-                                        <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                            {selectedArchive.dossierNumber} Ãƒâ€šÃ‚Â· {selectedArchive.clientName}
-                                        </p>
-                                    </div>
-
-                                    <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                        <p className="text-xs text-[var(--text-muted)]">Project</p>
-                                        <p className="mt-1 text-sm font-semibold">
-                                            {selectedArchive.projectObject}
-                                        </p>
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                            <p className="text-xs text-[var(--text-muted)]">Location</p>
-                                            <p className="mt-1 text-sm font-semibold">
-                                                {selectedArchive.locationLabel}
-                                            </p>
-                                        </div>
-
-                                        <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-1">
-                                            <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                                <p className="text-xs text-[var(--text-muted)]">In date</p>
-                                                <p className="mt-1 text-sm font-semibold">
-                                                    {selectedArchive.inDate || '-'}
-                                                </p>
-                                            </div>
-
-                                            <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                                <p className="text-xs text-[var(--text-muted)]">Out date</p>
-                                                <p className="mt-1 text-sm font-semibold">
-                                                    {selectedArchive.outDate || '-'}
-                                                </p>
-                                            </div>
-
-                                            <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                                <p className="text-xs text-[var(--text-muted)]">Returned</p>
-                                                <p className="mt-1 text-sm font-semibold">
-                                                    {selectedArchive.returnedAt || '-'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-2">
-                                        <AppStatusBadge
-                                            label={selectedArchive.status}
-                                            tone={getStatusTone(selectedArchive.status)}
-                                            icon={getStatusIcon(selectedArchive.status)}
-                                        />
-                                        <AppBadge tone="blue">
-                                            {selectedArchive.requestedBy || 'No requester'}
-                                        </AppBadge>
-                                    </div>
-
-                                    <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                        <p className="text-xs text-[var(--text-muted)]">Notes</p>
-                                        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--text-muted)]">
-                                            {selectedArchive.notes || 'No notes.'}
-                                        </p>
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <AppButton
-                                            variant="primary"
-                                            onPress={() => updateStatus(selectedArchive, 'stored')}
-                                        >
-                                            <CheckCircle2 size={16} />
-                                            Mark stored
-                                        </AppButton>
-
-                                        <AppButton
-                                            variant="secondary"
-                                            onPress={() => updateStatus(selectedArchive, 'checked_out')}
-                                        >
-                                            <FolderOpen size={16} />
-                                            Check out
-                                        </AppButton>
-
-                                        <AppButton
-                                            variant="secondary"
-                                            onPress={() => updateStatus(selectedArchive, 'returned')}
-                                        >
-                                            <RotateCcw size={16} />
-                                            Mark returned
-                                        </AppButton>
-                                    </div>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-[var(--text-muted)]">
-                                    Select an archive record from the table.
-                                </p>
-                            )}
-                        </AppCard>
-                    </aside>
+                            <div className="inline-flex rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] p-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setViewMode('workspace')}
+                                    className={[
+                                        'h-8 rounded-md px-3 text-xs font-semibold transition',
+                                        viewMode === 'workspace'
+                                            ? 'bg-[var(--crm-gold)] text-black'
+                                            : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]',
+                                    ].join(' ')}
+                                >
+                                    Workspace
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setViewMode('storage')}
+                                    className={[
+                                        'h-8 rounded-md px-3 text-xs font-semibold transition',
+                                        viewMode === 'storage'
+                                            ? 'bg-[var(--crm-gold)] text-black'
+                                            : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]',
+                                    ].join(' ')}
+                                >
+                                    Storage
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </section>
+
+                {viewMode === 'storage' ? (
+                    <StorageBrowser records={filteredArchiveRecords} onSelect={setSelectedArchive} />
+                ) : (
+                    <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+                        <div className="crm-panel overflow-hidden">
+                            <div className="flex items-center justify-between border-b border-[var(--crm-border)] px-5 py-4">
+                                <div>
+                                    <p className="text-sm font-semibold">Archive workspace</p>
+                                    <p className="text-xs text-[var(--crm-text-muted)]">{filteredArchiveRecords.length} visible archive(s)</p>
+                                </div>
+
+                                <AppButton variant="secondary" size="sm" onPress={() => setStatusFilter('all')}>
+                                    Reset
+                                </AppButton>
+                            </div>
+
+                            <div className="app-scrollbar overflow-x-auto">
+                                <table className="crm-table min-w-[1080px]">
+                                    <thead>
+                                        <tr>
+                                            <th>Archive</th>
+                                            <th>Project</th>
+                                            <th>Location</th>
+                                            <th>Status</th>
+                                            <th>Dates</th>
+                                            <th>Requester</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {pagedArchiveRecords.length > 0 ? (
+                                            pagedArchiveRecords.map((record) => {
+                                                const selected = selectedVisible?.id === record.id;
+
+                                                return (
+                                                    <tr
+                                                        key={record.id}
+                                                        className={selected ? 'bg-[color-mix(in_srgb,var(--crm-gold)_8%,transparent)]' : ''}
+                                                        onClick={() => setSelectedArchive(record)}
+                                                    >
+                                                        <td>
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
+                                                                    <Archive size={16} />
+                                                                </span>
+                                                                <div className="min-w-0">
+                                                                    <p className="max-w-[220px] truncate font-semibold text-[var(--crm-text)]">{record.archiveNumber}</p>
+                                                                    <p className="text-xs text-[var(--crm-text-muted)]">{record.dossierNumber}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td>
+                                                            <div className="flex items-start gap-2">
+                                                                <FolderKanban size={14} className="mt-0.5 shrink-0 text-[var(--crm-text-soft)]" />
+                                                                <div className="min-w-0">
+                                                                    <p className="max-w-[230px] truncate font-medium text-[var(--crm-text)]">{record.projectObject}</p>
+                                                                    <p className="max-w-[230px] truncate text-xs text-[var(--crm-text-muted)]">{record.clientName}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td>
+                                                            <p className="max-w-[220px] truncate font-medium text-[var(--crm-text)]">{record.locationLabel || '-'}</p>
+                                                            <p className="max-w-[220px] truncate text-xs text-[var(--crm-text-muted)]">
+                                                                Room {record.room || '-'} / Shelf {record.shelf || '-'}
+                                                            </p>
+                                                        </td>
+
+                                                        <td>
+                                                            <span className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(record.status)}`}>
+                                                                {statusLabel(record.status)}
+                                                            </span>
+                                                        </td>
+
+                                                        <td>
+                                                            <p className="text-xs text-[var(--crm-text-muted)]">In: {record.inDate || '-'}</p>
+                                                            <p className="text-xs text-[var(--crm-text-muted)]">Out: {record.outDate || '-'}</p>
+                                                        </td>
+
+                                                        <td>
+                                                            <p className="max-w-[150px] truncate text-[var(--crm-text-muted)]">{record.requestedBy || '-'}</p>
+                                                        </td>
+
+                                                        <td>
+                                                            <div className="flex justify-end gap-1">
+                                                                <button type="button" className="crm-action-button" title="Preview" onClick={(event) => { event.stopPropagation(); setSelectedArchive(record); }}>
+                                                                    <Eye size={14} />
+                                                                </button>
+                                                                <button type="button" className="crm-action-button" title="Edit" onClick={(event) => { event.stopPropagation(); openEditDrawer(record); }}>
+                                                                    <Pencil size={14} />
+                                                                </button>
+                                                                <button type="button" className="crm-action-button" title="Stored" onClick={(event) => { event.stopPropagation(); updateStatus(record, 'stored'); }}>
+                                                                    <CheckCircle2 size={14} />
+                                                                </button>
+                                                                <button type="button" className="crm-action-button" title="Checked out" onClick={(event) => { event.stopPropagation(); updateStatus(record, 'checked_out'); }}>
+                                                                    <FolderOpen size={14} />
+                                                                </button>
+                                                                <button type="button" className="crm-action-button" title="Returned" onClick={(event) => { event.stopPropagation(); updateStatus(record, 'returned'); }}>
+                                                                    <RotateCcw size={14} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={7}>
+                                                    <div className="py-10 text-center">
+                                                        <p className="text-sm font-semibold">No archive records found</p>
+                                                        <p className="mt-1 text-sm text-[var(--crm-text-muted)]">Change filters or create a new archive record.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <ArchiveDetailPanel
+                            record={selectedVisible}
+                            onEdit={openEditDrawer}
+                            onDelete={deleteRecord}
+                            onUpdateStatus={updateStatus}
+                        />
+
+                        <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filteredArchiveRecords.length} onChange={setTablePage} />
+                    </section>
+                )}
 
                 <ArchiveDrawer
                     isOpen={drawerOpen}
@@ -508,7 +834,7 @@ export default function ArchivesIndex({
                     dossiers={dossiers}
                     onOpenChange={setDrawerOpen}
                     onSubmit={handleSubmit}
-                errors={formErrors}
+                    errors={formErrors}
                 />
             </AppShell>
         </>
