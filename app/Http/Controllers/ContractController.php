@@ -7,9 +7,11 @@ use App\Http\Requests\UpdateContractRequest;
 use App\Http\Resources\ContractResource;
 use App\Models\Contract;
 use App\Models\Dossier;
+use App\Notifications\ContractNotification;
 use App\Services\ContractDocumentGenerator;
 use App\Services\WordDocumentConverter;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,7 +44,9 @@ class ContractController extends Controller
         $data = $this->prepareContractData($request->validated());
         $data['contract_number'] = $this->nextContractNumber();
 
-        Contract::create($data);
+        $contract = Contract::create($data);
+
+        $request->user()->notify(new ContractNotification($contract, 'created', 'Contract created: ' . $contract->contract_number));
 
         if ($request->filled('return_to')) {
             return redirect()
@@ -58,6 +62,8 @@ class ContractController extends Controller
     public function update(UpdateContractRequest $request, Contract $contract): RedirectResponse
     {
         $contract->update($this->prepareContractData($request->validated()));
+
+        $request->user()->notify(new ContractNotification($contract->fresh(), 'updated', 'Contract updated: ' . $contract->contract_number));
 
         return redirect()
             ->route('contracts.index')
@@ -79,7 +85,7 @@ class ContractController extends Controller
             ->with('success', 'Contract deleted successfully.');
     }
 
-    public function generate(Contract $contract): RedirectResponse
+    public function generate(Request $request, Contract $contract): RedirectResponse
     {
         try {
             $paths = app(ContractDocumentGenerator::class)->generate($contract);
@@ -89,6 +95,8 @@ class ContractController extends Controller
                 'generated_document_path' => $paths['docx_path'],
                 'generated_at' => now(),
             ]);
+
+            $request->user()->notify(new ContractNotification($contract->fresh(), 'generated', 'Contract generated: ' . $contract->contract_number));
 
             return redirect()
                 ->route('contracts.index')
@@ -129,12 +137,14 @@ class ContractController extends Controller
         }
     }
 
-    public function markSigned(Contract $contract): RedirectResponse
+    public function markSigned(Request $request, Contract $contract): RedirectResponse
     {
         $contract->update([
             'status' => 'signed',
             'signed_at' => now(),
         ]);
+
+        $request->user()->notify(new ContractNotification($contract->fresh(), 'signed', 'Contract signed: ' . $contract->contract_number));
 
         return redirect()
             ->route('contracts.index')

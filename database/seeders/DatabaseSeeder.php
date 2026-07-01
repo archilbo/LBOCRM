@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
             TaskDemoSeeder::class,
             NotificationsDemoSeeder::class,
             CalendarDemoSeeder::class,
+            ChatDemoSeeder::class,
+            DemoDataSeeder::class,
         ]);
     }
 }

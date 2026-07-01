@@ -2,16 +2,23 @@
 import { AppCard } from '@/components/ui/AppCard';
 import { AppBadge } from '@/components/ui/AppBadge';
 import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
-import { PlanningTaskRow, planningTasks } from '@/features/planning/data/mockPlanning';
 import { useTranslation } from '@/lib/i18n';
 
+type PlanningTaskRow = {
+    id: number; title: string; type: string; dossierNumber: string;
+    projectObject: string; client: string; cin: string; assignee: string;
+    priority: string; status: string; startsAt: string; dueDate: string;
+    dayKey: string; progress: number; updatedAt: string; nextAction: string;
+};
+
 type PlanningBoardProps = {
+    tasks: PlanningTaskRow[];
     onSelectTask: (task: PlanningTaskRow) => void;
 };
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
-export function PlanningBoard({ onSelectTask }: PlanningBoardProps) {
+export function PlanningBoard({ tasks, onSelectTask }: PlanningBoardProps) {
     const { t } = useTranslation();
 
     return (
@@ -31,7 +38,7 @@ export function PlanningBoard({ onSelectTask }: PlanningBoardProps) {
             <div className="app-scrollbar min-w-0 overflow-x-auto pb-1">
                 <div className="grid min-w-[980px] grid-cols-7 gap-3">
                     {days.map((day) => {
-                        const tasks = planningTasks.filter((task) => task.dayKey === day);
+                        const dayTasks = tasks.filter((task) => task.dayKey === day);
 
                         return (
                             <div
@@ -42,11 +49,11 @@ export function PlanningBoard({ onSelectTask }: PlanningBoardProps) {
                                     <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                                         {t(`planningWorkspace.board.${day}`)}
                                     </p>
-                                    <AppBadge tone="neutral">{tasks.length}</AppBadge>
+                                    <AppBadge tone="neutral">{dayTasks.length}</AppBadge>
                                 </div>
 
                                 <div className="space-y-2">
-                                    {tasks.map((task) => (
+                                    {dayTasks.map((task) => (
                                         <button
                                             key={task.id}
                                             type="button"

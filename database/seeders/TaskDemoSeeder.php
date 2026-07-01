@@ -41,22 +41,24 @@ class TaskDemoSeeder extends Seeder
                 default => 0,
             };
 
-            $task = Task::create([
-                'task_number' => 'TASK-' . date('Y') . '-' . str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT),
-                'title' => $data['title'],
-                'status' => $status,
-                'priority' => $data['priority'],
-                'category' => $data['category'],
-                'progress' => $progress,
-                'due_date' => $data['due'],
-                'created_by' => $admin->id,
-                'assigned_by' => $admin->id,
-                'completed_at' => $status === 'completed' ? now() : null,
-            ]);
+            $taskNum = 'TASK-' . date('Y') . '-' . str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT);
+            $task = Task::updateOrCreate(
+                ['task_number' => $taskNum],
+                [
+                    'title' => $data['title'],
+                    'status' => $status,
+                    'priority' => $data['priority'],
+                    'category' => $data['category'],
+                    'progress' => $progress,
+                    'due_date' => $data['due'],
+                    'created_by' => $admin->id,
+                    'assigned_by' => $admin->id,
+                    'completed_at' => $status === 'completed' ? now() : null,
+                ]);
 
             $assignee = $i % 2 === 0 ? $manager : $staff;
-            $task->assignees()->attach([$assignee->id]);
-            $task->watchers()->attach([$admin->id]);
+            $task->assignees()->syncWithoutDetaching([$assignee->id]);
+            $task->watchers()->syncWithoutDetaching([$admin->id]);
 
             if (isset($data['checklist'])) {
                 foreach ($data['checklist'] as $j => $itemTitle) {
@@ -81,24 +83,36 @@ class TaskDemoSeeder extends Seeder
             }
         }
 
-        $conversation = Conversation::create(['type' => 'direct']);
-        $conversation->participants()->createMany([
-            ['user_id' => $admin->id],
-            ['user_id' => $manager->id],
-        ]);
-        Message::create(['conversation_id' => $conversation->id, 'user_id' => $admin->id, 'body' => 'Hi, please review the pending documents for Villa Al Amal.']);
-        Message::create(['conversation_id' => $conversation->id, 'user_id' => $manager->id, 'body' => 'Sure, I will review them today and get back to you.']);
-        $conversation->update(['last_message_at' => now()]);
+        $conv1 = $this->findOrCreateDirect($admin->id, $manager->id);
+        if ($conv1->messages()->count() === 0) {
+            Message::create(['conversation_id' => $conv1->id, 'user_id' => $admin->id, 'body' => 'Hi, please review the pending documents for Villa Al Amal.']);
+            Message::create(['conversation_id' => $conv1->id, 'user_id' => $manager->id, 'body' => 'Sure, I will review them today and get back to you.']);
+            $conv1->update(['last_message_at' => now()]);
+        }
 
-        $conv2 = Conversation::create(['type' => 'direct']);
-        $conv2->participants()->createMany([
-            ['user_id' => $admin->id],
-            ['user_id' => $staff->id],
-        ]);
-        Message::create(['conversation_id' => $conv2->id, 'user_id' => $staff->id, 'body' => 'I have completed the site measurements for Villa Al Hanaa.']);
-        Message::create(['conversation_id' => $conv2->id, 'user_id' => $admin->id, 'body' => 'Great work! Please upload the report to the dossier documents.']);
-        $conv2->update(['last_message_at' => now()]);
+        $conv2 = $this->findOrCreateDirect($admin->id, $staff->id);
+        if ($conv2->messages()->count() === 0) {
+            Message::create(['conversation_id' => $conv2->id, 'user_id' => $staff->id, 'body' => 'I have completed the site measurements for Villa Al Hanaa.']);
+            Message::create(['conversation_id' => $conv2->id, 'user_id' => $admin->id, 'body' => 'Great work! Please upload the report to the dossier documents.']);
+            $conv2->update(['last_message_at' => now()]);
+        }
 
         $this->command->info('TaskDemoSeeder: 10 tasks, ' . TaskChecklistItem::count() . ' checklist items, ' . TaskComment::count() . ' comments, 2 conversations, 4 messages created.');
+    }
+
+    private function findOrCreateDirect(int $uid1, int $uid2): Conversation
+    {
+        $existing = Conversation::where('type', 'direct')
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $uid1))
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $uid2))
+            ->first();
+        if ($existing) return $existing;
+
+        $conv = Conversation::create(['type' => 'direct', 'last_message_at' => now()]);
+        $conv->participants()->createMany([
+            ['user_id' => $uid1],
+            ['user_id' => $uid2],
+        ]);
+        return $conv;
     }
 }

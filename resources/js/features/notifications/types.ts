@@ -6,4 +6,19 @@ export type NotificationRow = {
     isRead: boolean;
     createdAt: string;
     createdAtHuman: string;
+    actionUrl: string | null;
+};
+
+export type NotificationModule = 'tasks' | 'requests' | 'documents' | 'contracts' | 'finance' | 'calendar' | 'system';
+
+export type NotificationSeverity = 'info' | 'success' | 'warning' | 'urgent';
+
+export type EnrichedNotification = NotificationRow & {
+    module: NotificationModule;
+    severity: NotificationSeverity;
+    title: string;
+    body: string | null;
+    entityLabel: string | null;
+    entityType: string | null;
+    entityId: number | null;
 };

@@ -101,7 +101,7 @@ export function AppSidebar() {
 
     return (
         <aside className={[
-            'crm-sidebar hidden h-screen shrink-0 overflow-hidden lg:sticky lg:top-0 lg:flex lg:flex-col transition-all duration-300',
+            'crm-sidebar hidden h-full shrink-0 overflow-hidden lg:flex lg:flex-col transition-all duration-300',
             sidebarCollapsed ? 'w-[72px]' : 'w-[264px]',
         ].join(' ')}>
             <div className={[
@@ -150,7 +150,7 @@ export function AppSidebar() {
                 </div>
             ) : null}
 
-            <nav className="crm-scroll-thin flex-1 space-y-6 overflow-y-auto px-3 py-4">
+            <nav className="crm-scroll-thin scrollbar-none flex-1 space-y-6 overflow-y-auto px-3 py-4">
                 {navigationGroups.map((group) => (
                     <section key={group.labelKey}>
                         {!sidebarCollapsed ? (

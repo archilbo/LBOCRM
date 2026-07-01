@@ -1,4 +1,4 @@
-﻿import { Head, router } from '@inertiajs/react';
+﻿import { Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
     AlertTriangle,
@@ -24,14 +24,34 @@ import { AppTableActions } from '@/components/ui/AppTableActions';
 import { PlanningBoard } from '@/features/planning/components/PlanningBoard';
 import { PlanningFocusPanel } from '@/features/planning/components/PlanningFocusPanel';
 import { PlanningTimeline } from '@/features/planning/components/PlanningTimeline';
-import {
-    PlanningPriority,
-    PlanningStatus,
-    PlanningTaskRow,
-    getPlanningMetrics,
-    planningTasks,
-} from '@/features/planning/data/mockPlanning';
 import { useTranslation } from '@/lib/i18n';
+
+type PlanningStatus = 'pending' | 'active' | 'completed' | 'blocked' | 'overdue';
+type PlanningPriority = 'low' | 'normal' | 'high' | 'urgent';
+
+type PlanningTaskRow = {
+    id: number;
+    title: string;
+    type: string;
+    dossierNumber: string;
+    projectObject: string;
+    client: string;
+    cin: string;
+    assignee: string;
+    priority: PlanningPriority;
+    status: PlanningStatus;
+    startsAt: string;
+    dueDate: string;
+    dayKey: string;
+    progress: number;
+    updatedAt: string;
+    nextAction: string;
+};
+
+type PageProps = {
+    tasks: PlanningTaskRow[];
+    metrics: { total: number; active: number; overdue: number; completed: number };
+};
 
 const statusTone: Record<PlanningStatus, 'neutral' | 'blue' | 'green' | 'amber' | 'red' | 'violet'> = {
     pending: 'amber',
@@ -66,8 +86,9 @@ function ProgressCell({ value }: { value: number }) {
 
 export default function PlanningIndex() {
     const { t } = useTranslation();
-    const metrics = getPlanningMetrics();
-    const [selectedTask, setSelectedTask] = useState<PlanningTaskRow | null>(planningTasks[0]);
+    const page = usePage<PageProps>();
+    const { tasks, metrics } = page.props;
+    const [selectedTask, setSelectedTask] = useState<PlanningTaskRow | null>(tasks[0] || null);
 
     const columns = useMemo<ColumnDef<PlanningTaskRow, unknown>[]>(
         () => [
@@ -161,10 +182,7 @@ export default function PlanningIndex() {
                         <AppTableActionButton
                             label={t('actions.view')}
                             tone="view"
-                            onPress={() => {
-                                setSelectedTask(row.original);
-                                toast.info(t('planningWorkspace.toast.view'));
-                            }}
+                            onPress={() => setSelectedTask(row.original)}
                         >
                             <Eye size={15} />
                         </AppTableActionButton>
@@ -272,12 +290,12 @@ export default function PlanningIndex() {
                     })}
                 </section>
 
-                <PlanningBoard onSelectTask={setSelectedTask} />
+                <PlanningBoard tasks={tasks} onSelectTask={setSelectedTask} />
 
                 <section className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="min-w-0 space-y-5">
                         <AppDataTable
-                            data={planningTasks}
+                            data={tasks}
                             columns={columns}
                             searchPlaceholder={t('planningWorkspace.searchPlaceholder')}
                             emptyTitle={t('planningWorkspace.emptyTitle')}

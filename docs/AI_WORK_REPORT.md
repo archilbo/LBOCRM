@@ -3636,3 +3636,213 @@ php artisan optimize:clear
 ## Next Recommended Step
 
 Add task request creation drawer from `/tasks` and `/task-requests`, using real users/clients/dossiers instead of fake data.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-01
+
+## Step Completed
+
+Inbox premium chat polish pass
+
+## What Was Built
+
+- Added shared chat helpers for conversation names, initials, online status, and last-message previews.
+- Fixed generic `Conversation` labels by deriving direct/group names from real participants and subject.
+- Updated inbox workspace height to fill the available viewport and reduce empty black space.
+- Reused the shared naming logic in inbox notifications, mobile header, conversation list, message thread, and forward modal.
+- Kept existing text/image messaging routes and current backend behavior unchanged.
+
+## Files Created
+
+- `resources/js/features/chat/helpers.ts`
+
+## Files Modified
+
+- `resources/js/pages/Inbox/Index.tsx`
+- `resources/js/features/inbox/components/ConversationList.tsx`
+- `resources/js/features/inbox/components/MessageThread.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php -l app/Http/Resources/ConversationResource.php
+php -l app/Http/Resources/MessageResource.php
+php -l app/Http/Controllers/ConversationController.php
+php -l app/Http/Controllers/MessageController.php
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed with the existing large bundle warning.
+- PHP lint passed for checked chat backend files.
+- `php artisan optimize:clear` passed.
+
+## Next Recommended Step
+
+Continue inbox polish with compact desktop header actions, stronger mobile back behavior inside the thread header, and visual QA in browser.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-01
+
+## Step Completed
+
+Inbox chat naming, online status, and bubble polish
+
+## What Was Built
+
+- Exposed `currentUserId` directly from the inbox controller.
+- Exposed `lastSeenAt` and `isOnline` through `UserResource`.
+- Added `last_seen_at` fillable/cast support on `User`.
+- Loaded last-message attachments for conversation previews so image previews can say `Photo` or `N photos`.
+- Hardened chat helper fallbacks so direct chats do not show `Direct conversation` when participants exist.
+- Fixed message edit/delete callbacks in `MessageThread` to update parent message state safely.
+- Polished conversation row selected/unread states with gold accent, stronger preview text, and gold unread badge.
+- Polished message bubbles with grouped incoming avatar/name, darker gold outgoing bubbles, subtle chat background, header actions, and a cleaner composer bar.
+
+## Files Modified
+
+- `app/Http/Controllers/ConversationController.php`
+- `app/Http/Resources/UserResource.php`
+- `app/Models/User.php`
+- `resources/js/features/chat/types.ts`
+- `resources/js/features/chat/helpers.ts`
+- `resources/js/pages/Inbox/Index.tsx`
+- `resources/js/features/inbox/components/ConversationList.tsx`
+- `resources/js/features/inbox/components/MessageThread.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+php -l app/Http/Controllers/ConversationController.php
+php -l app/Http/Resources/UserResource.php
+php -l app/Models/User.php
+php artisan optimize:clear
+npm run build
+```
+
+## Build/Test Result
+
+- PHP lint passed.
+- `php artisan optimize:clear` passed.
+- `npm run build` passed with the existing large bundle warning.
+
+## Next Recommended Step
+
+Open `/inbox` in browser and visually verify full-height layout, real direct conversation names, online dots, image previews, and mobile chat/list switching.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-01
+
+## Step Completed
+
+Inbox 3-pane workspace and archive-aware chat
+
+## What Was Built
+
+- Added backend `displayName` and `avatarInitials` to `ConversationResource`.
+- Added backend validation requiring message text or at least one image.
+- Added backend reply safety so reply targets must belong to the same conversation.
+- Added `ConversationInfoPanel` as the desktop right pane with members, status, shared images, and archive/unarchive action.
+- Added archive-aware inbox tabs: Active, Archived, Unread, Direct, Groups.
+- Added archived conversation loading through the existing `/inbox/archived` route.
+- Added page-level archive/unarchive state updates without full page reload.
+- Expanded conversation search to include display name, participant name/email, subject, and last message body.
+
+## Files Created
+
+- `resources/js/features/inbox/components/ConversationInfoPanel.tsx`
+
+## Files Modified
+
+- `app/Http/Controllers/ConversationController.php`
+- `app/Http/Controllers/MessageController.php`
+- `app/Http/Resources/ConversationResource.php`
+- `app/Http/Requests/Chat/StoreMessageRequest.php`
+- `resources/js/features/chat/types.ts`
+- `resources/js/features/chat/helpers.ts`
+- `resources/js/pages/Inbox/Index.tsx`
+- `resources/js/features/inbox/components/ConversationList.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+php -l app/Http/Controllers/ConversationController.php
+php -l app/Http/Controllers/MessageController.php
+php -l app/Http/Resources/ConversationResource.php
+php -l app/Http/Requests/Chat/StoreMessageRequest.php
+npm run build
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- PHP lint passed.
+- `npm run build` passed with the existing large bundle warning.
+- `php artisan optimize:clear` passed.
+
+## Next Recommended Step
+
+Browser QA `/inbox`: confirm Active/Archived tabs, archive/unarchive state, right info panel, real display names, search, send/reply/image flows, and mobile behavior.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-01
+
+## Step Completed
+
+Inbox forward message fix
+
+## What Was Fixed
+
+- Fixed the forward endpoint so it no longer uses `StoreMessageRequest`.
+- Forward validation now only requires a valid `target_conversation_id`.
+- Image-only messages can now be forwarded without failing the send-message body/image validation.
+- Forward UI now shows success/error toast instead of silently swallowing failures.
+
+## Files Modified
+
+- `app/Http/Controllers/MessageController.php`
+- `resources/js/features/inbox/components/MessageThread.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+php -l app/Http/Controllers/MessageController.php
+php artisan optimize:clear
+npm run build
+```
+
+## Build/Test Result
+
+- PHP lint passed.
+- `php artisan optimize:clear` passed.
+- `npm run build` passed with the existing large bundle warning.
+
+## Next Recommended Step
+
+Manually forward a text message and an image-only message in `/inbox` to confirm both succeed.

@@ -56,6 +56,8 @@
 
 html,
 body {
+    height: 100%;
+    overflow: hidden;
     background:
         radial-gradient(circle at top left, rgb(246 183 37 / 0.06), transparent 28rem),
         radial-gradient(circle at top right, rgb(127 176 255 / 0.04), transparent 24rem),
@@ -64,11 +66,20 @@ body {
 }
 
 body {
+    margin: 0;
     font-family: var(--crm-font-sans);
 }
 
+#app {
+    height: 100%;
+    overflow: hidden;
+}
+
 .crm-shell {
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     background:
         linear-gradient(180deg, rgb(255 255 255 / 0.018), transparent 180px),
         var(--crm-bg);
@@ -103,6 +114,13 @@ body {
     display: grid;
     gap: 8px;
     align-content: start;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.crm-page::-webkit-scrollbar {
+    display: none;
 }
 
 .crm-topbar {
@@ -388,4 +406,49 @@ body {
     .crm-table th {
         padding-inline: 10px;
     }
+}
+
+.scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
+}
+
+@keyframes typing-dot {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-3px); }
+}
+
+.typing-dot {
+    animation: typing-dot 1.4s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes msg-slide-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.msg-slide-in {
+    animation: msg-slide-in 0.2s ease-out;
+}
+
+@keyframes badge-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.badge-pulse {
+    animation: badge-pulse 0.4s ease-in-out;
 }

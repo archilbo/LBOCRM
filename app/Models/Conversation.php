@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Conversation extends Model
 {
     protected $fillable = [
-        'type', 'subject',
+        'type', 'subject', 'category',
         'task_id', 'dossier_id', 'client_id', 'finance_document_id',
         'last_message_at',
     ];

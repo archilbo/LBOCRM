@@ -112,7 +112,7 @@ class TaskChatQaCommand extends Command
             resource_path('js/features/tasks/components/TaskDetailDrawer.tsx'),
             resource_path('js/features/tasks/components/TaskCreateDrawer.tsx'),
             resource_path('js/features/tasks/components/TaskFilters.tsx'),
-            resource_path('js/features/tasks/components/TaskList.tsx'),
+            resource_path('js/features/tasks/components/TaskListView.tsx'),
             resource_path('js/features/tasks/components/TaskCalendar.tsx'),
         ];
         foreach ($files as $file) {

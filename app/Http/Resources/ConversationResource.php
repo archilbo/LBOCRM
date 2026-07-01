@@ -11,16 +11,44 @@ class ConversationResource extends JsonResource
     public function toArray(Request $request): array
     {
         $user = $request->user();
+        $participants = $this->relationLoaded('participants') ? $this->participants : $this->participants()->with('user')->get();
+        $otherParticipants = $participants->filter(fn ($participant) => $participant->user_id !== $user?->id);
+        $participantNames = $otherParticipants
+            ->map(fn ($participant) => $participant->user?->name)
+            ->filter()
+            ->values();
+        $displayName = $this->type === 'group'
+            ? ($this->subject ?: $participantNames->implode(', '))
+            : ($participantNames->first() ?: $this->subject);
+        $displayName = $displayName ?: 'Conversation #' . $this->id;
+
         $participant = $this->relationLoaded('participants')
             ? $this->participants->firstWhere('user_id', $user?->id)
             : $this->participants()->where('user_id', $user?->id)->first();
+
+        $onlineCount = $participants->filter(fn ($p) => $p->user?->last_seen_at && now()->diffInMinutes($p->user->last_seen_at, true) < 5)->count();
 
         return [
             'id' => $this->id,
             'type' => $this->type,
             'subject' => $this->subject,
-            'participants' => ConversationParticipantResource::collection($this->whenLoaded('participants')),
-            'lastMessage' => new MessageResource($this->whenLoaded('messages', fn () => $this->messages->last())),
+            'category' => $this->category,
+            'customCategory' => $this->custom_category,
+            'displayName' => $displayName,
+            'avatarInitials' => collect(explode(' ', $displayName))
+                ->filter()
+                ->take(2)
+                ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
+                ->implode('') ?: '?',
+            'participants' => $this->whenLoaded('participants', fn () =>
+                ConversationParticipantResource::collection($this->participants)->resolve()
+            ) ?? [],
+            'participantsCount' => $participants->count(),
+            'onlineCount' => $onlineCount,
+            'lastMessage' => $this->whenLoaded('messages', function () {
+                $first = $this->messages->first();
+                return $first ? (new MessageResource($first))->resolve() : null;
+            }),
             'lastMessageAt' => optional($this->last_message_at)->toISOString(),
             'unreadCount' => $this->when($user, function () use ($user) {
                 return Message::where('conversation_id', $this->id)
@@ -29,6 +57,7 @@ class ConversationResource extends JsonResource
                     ->count();
             }),
             'createdAt' => $this->created_at?->toISOString(),
+            'archivedAt' => $participant ? optional($participant->archived_at)->toISOString() : null,
         ];
     }
 }

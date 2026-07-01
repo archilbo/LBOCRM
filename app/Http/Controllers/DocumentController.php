@@ -8,6 +8,7 @@ use App\Http\Resources\DossierDocumentResource;
 use App\Models\DocumentTemplate;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
+use App\Notifications\DocumentNotification;
 use App\Services\Documents\DocumentGroupingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -79,8 +80,14 @@ class DocumentController extends Controller
             }
 
             $existing->update($payload);
+            if ($file) {
+                $request->user()->notify(new DocumentNotification($existing->fresh(), 'uploaded', 'Document uploaded: ' . ($payload['original_filename'] ?? $existing->document_number)));
+            }
         } else {
-            DossierDocument::create($payload);
+            $doc = DossierDocument::create($payload);
+            if ($file) {
+                $request->user()->notify(new DocumentNotification($doc, 'uploaded', 'Document uploaded: ' . ($payload['original_filename'] ?? $doc->document_number)));
+            }
         }
 
         if ($request->filled('return_to')) {
@@ -105,6 +112,8 @@ class DocumentController extends Controller
             'notes' => $data['notes'] ?? $dossierDocument->notes,
             'verified_at' => $data['status'] === 'verified' ? now() : $dossierDocument->verified_at,
         ]);
+
+        $request->user()->notify(new DocumentNotification($dossierDocument->fresh(), 'status_changed', 'Document status changed to: ' . $data['status']));
 
         return redirect()
             ->route('documents.index')

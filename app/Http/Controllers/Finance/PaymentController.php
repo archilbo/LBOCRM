@@ -8,6 +8,7 @@ use App\Http\Requests\Finance\UpdatePaymentRequest;
 use App\Http\Resources\PaymentResource;
 use App\Models\FinanceDocument;
 use App\Models\Payment;
+use App\Notifications\FinanceDocumentNotification;
 use App\Services\Finance\PaymentLedgerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,10 +35,10 @@ class PaymentController extends Controller
         $data = $request->validated();
         $data['created_by'] = Auth::id();
 
-        $payment = $ledger->recordPayment(
-            FinanceDocument::findOrFail($data['finance_document_id']),
-            $data
-        );
+        $financeDocument = FinanceDocument::findOrFail($data['finance_document_id']);
+        $payment = $ledger->recordPayment($financeDocument, $data);
+
+        $request->user()->notify(new FinanceDocumentNotification($financeDocument, 'payment_received', 'Payment received: ' . number_format((float) ($data['amount'] ?? 0), 2) . ' for ' . $financeDocument->number));
 
         $receiptNumber = $payment->receiptDocument?->number;
 

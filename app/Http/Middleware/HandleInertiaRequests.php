@@ -39,6 +39,16 @@ class HandleInertiaRequests extends Middleware
                     )->where('user_id', '!=', $user->id)
                         ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
                         ->count(),
+                    'recent_notifications' => \App\Http\Resources\NotificationResource::collection(
+                        $user->notifications()->latest()->take(20)->get()
+                    )->resolve(),
+                    'recent_conversations' => \App\Http\Resources\ConversationResource::collection(
+                        \App\Models\Conversation::whereHas('participants', fn ($q) => $q->where('user_id', $user->id)->whereNull('archived_at'))
+                            ->with(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)])
+                            ->orderByDesc('last_message_at')
+                            ->take(8)
+                            ->get()
+                    )->resolve(),
                 ] : null,
             ],
 

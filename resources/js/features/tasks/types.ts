@@ -36,6 +36,9 @@ export type TaskRow = {
     client: { id: number; name: string } | null;
     createdAt: string;
     updatedAt: string;
+    comments?: TaskCommentRow[];
+    attachments?: TaskAttachmentRow[];
+    activityLogs?: TaskActivityLogRow[];
 };
 
 export type UserOption = {
@@ -137,6 +140,14 @@ export type TaskCommentRow = {
     user: { id: number; name: string } | null;
     createdAt: string;
     updatedAt: string;
+};
+
+export type TaskActivityLogRow = {
+    id: number;
+    action: string;
+    description: string | null;
+    user: { id: number; name: string } | null;
+    createdAt: string;
 };
 
 export type TaskAttachmentRow = {

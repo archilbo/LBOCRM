@@ -1,5 +1,5 @@
-import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import type { TaskRow, TaskStatus } from '@/features/tasks/types';
 import { COLUMNS, IMPACT_COLORS, IMPACT_LABELS, PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS, STATUS_DOT_COLORS, STATUS_LABELS, TYPE_LABELS } from '@/features/tasks/types';
 
@@ -9,7 +9,55 @@ type Props = {
     onStatusChange: (task: TaskRow, status: string) => void;
 };
 
+const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+
 export function TaskTable({ tasks, onTaskClick, onStatusChange }: Props) {
+    const [sortField, setSortField] = useState<string>('');
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+    const sorted = useMemo(() => {
+        if (!sortField) return tasks;
+        return [...tasks].sort((a, b) => {
+            const aVal = a[sortField as keyof TaskRow];
+            const bVal = b[sortField as keyof TaskRow];
+            if (sortField === 'priority') {
+                const ao = PRIORITY_ORDER[a.priority] ?? 99;
+                const bo = PRIORITY_ORDER[b.priority] ?? 99;
+                return sortDir === 'asc' ? ao - bo : bo - ao;
+            }
+            const aStr = aVal == null ? '' : String(aVal);
+            const bStr = bVal == null ? '' : String(bVal);
+            const cmp = aStr.localeCompare(bStr);
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
+    }, [tasks, sortField, sortDir]);
+
+    function toggleSort(field: string) {
+        if (sortField === field) {
+            setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortField(field);
+            setSortDir('asc');
+        }
+    }
+
+    function SortHeader({ field, label, className }: { field: string; label: string; className?: string }) {
+        const active = sortField === field;
+        return (
+            <th className={className}>
+                <button type="button" onClick={() => toggleSort(field)}
+                    className="inline-flex items-center gap-1 transition hover:text-[var(--crm-text)]">
+                    {label}
+                    {active ? (
+                        sortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
+                    ) : (
+                        <ChevronsUpDown size={10} className="opacity-30" />
+                    )}
+                </button>
+            </th>
+        );
+    }
+
     if (tasks.length === 0) {
         return (
             <div className="flex items-center justify-center rounded-xl border border-dashed border-[var(--crm-border)] bg-[var(--crm-elevated)] py-16">
@@ -23,19 +71,19 @@ export function TaskTable({ tasks, onTaskClick, onStatusChange }: Props) {
             <table className="w-full">
                 <thead>
                     <tr className="border-b border-[var(--crm-border)] bg-[var(--crm-surface)]">
-                        <th className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]">Task</th>
+                        <SortHeader field="title" label="Task" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
                         <th className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] md:table-cell">Assigned</th>
                         <th className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] lg:table-cell">Project</th>
-                        <th className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] xl:table-cell">Category</th>
-                        <th className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]">Priority</th>
-                        <th className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] lg:table-cell">Progress</th>
-                        <th className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]">Status</th>
-                        <th className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]">Due date</th>
+                        <SortHeader field="category" label="Category" className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] xl:table-cell" />
+                        <SortHeader field="priority" label="Priority" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
+                        <SortHeader field="progress" label="Progress" className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] lg:table-cell" />
+                        <SortHeader field="status" label="Status" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
+                        <SortHeader field="dueDate" label="Due date" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
                         <th className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]">Actions</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--crm-border)]">
-                    {tasks.map((task) => (
+                    {sorted.map((task) => (
                         <tr key={task.id} onClick={() => onTaskClick(task)} className="cursor-pointer bg-[var(--crm-elevated)] transition hover:bg-[var(--crm-surface)]">
                             <td className="px-4 py-3">
                                 <p className="max-w-[220px] truncate text-sm font-semibold text-[var(--crm-text)]">{task.title}</p>

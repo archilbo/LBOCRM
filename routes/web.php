@@ -167,6 +167,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/tasks', [\App\Http\Controllers\TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tasks', [\App\Http\Controllers\TaskController::class, 'store'])->name('tasks.store');
     Route::get('/tasks/{task}', [\App\Http\Controllers\TaskController::class, 'show'])->name('tasks.show');
+    Route::get('/tasks/{task}/detail', [\App\Http\Controllers\TaskController::class, 'detail'])->name('tasks.detail');
     Route::put('/tasks/{task}', [\App\Http\Controllers\TaskController::class, 'update'])->name('tasks.update');
     Route::delete('/tasks/{task}', [\App\Http\Controllers\TaskController::class, 'destroy'])->name('tasks.destroy');
     Route::put('/tasks/{task}/status', [\App\Http\Controllers\TaskController::class, 'updateStatus'])->name('tasks.status');
@@ -196,10 +197,19 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/inbox', [\App\Http\Controllers\ConversationController::class, 'index'])->name('inbox.index');
     Route::post('/inbox', [\App\Http\Controllers\ConversationController::class, 'store'])->name('inbox.store');
+    Route::get('/inbox/archived', [\App\Http\Controllers\ConversationController::class, 'archived'])->name('inbox.archived');
     Route::get('/inbox/{conversation}', [\App\Http\Controllers\ConversationController::class, 'show'])->name('inbox.show');
     Route::post('/inbox/{conversation}/messages', [\App\Http\Controllers\MessageController::class, 'store'])->name('inbox.messages.store');
     Route::put('/inbox/{conversation}/messages/{message}', [\App\Http\Controllers\MessageController::class, 'update'])->name('inbox.messages.update');
     Route::delete('/inbox/{conversation}/messages/{message}', [\App\Http\Controllers\MessageController::class, 'destroy'])->name('inbox.messages.destroy');
+    Route::post('/inbox/{conversation}/messages/{message}/forward', [\App\Http\Controllers\MessageController::class, 'forward'])->name('inbox.messages.forward');
+    Route::post('/inbox/{conversation}/typing', [\App\Http\Controllers\MessageController::class, 'typing'])->name('inbox.typing');
+    Route::get('/inbox/{conversation}/typing', [\App\Http\Controllers\MessageController::class, 'typingUsers'])->name('inbox.typing.users');
+    Route::put('/inbox/{conversation}', [\App\Http\Controllers\ConversationController::class, 'update'])->name('inbox.update');
+    Route::post('/inbox/{conversation}/participants', [\App\Http\Controllers\ConversationController::class, 'addParticipant'])->name('inbox.participants.add');
+    Route::delete('/inbox/{conversation}/participants/{user}', [\App\Http\Controllers\ConversationController::class, 'removeParticipant'])->name('inbox.participants.remove');
+    Route::post('/inbox/{conversation}/archive', [\App\Http\Controllers\ConversationController::class, 'archive'])->name('inbox.archive');
+    Route::post('/inbox/{conversation}/unarchive', [\App\Http\Controllers\ConversationController::class, 'unarchive'])->name('inbox.unarchive');
 
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
@@ -221,4 +231,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/calendar/events/{calendarEvent}/reminders', [CalendarReminderController::class, 'store'])->name('calendar.events.reminders.store');
     Route::put('/calendar/reminders/{calendarReminder}/snooze', [CalendarReminderController::class, 'snooze'])->name('calendar.reminders.snooze');
     Route::put('/calendar/reminders/{calendarReminder}/dismiss', [CalendarReminderController::class, 'dismiss'])->name('calendar.reminders.dismiss');
+
+    Route::get('/planning', [\App\Http\Controllers\PlanningController::class, 'index'])->name('planning.index');
 });

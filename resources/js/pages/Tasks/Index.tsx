@@ -104,6 +104,20 @@ export default function TasksIndex({ tasks, users, activeFilter, activeCategory,
         return items;
     }, [localTasks, query, category, priorityFilter, filter]);
 
+    const PAGE_SIZE = 50;
+    const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        setPage(1);
+    }, [query, category, priorityFilter, filter]);
+
+    const pageTasks = useMemo(() => {
+        return filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    }, [filtered, page]);
+
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const showPagination = totalPages > 1 && (viewMode === 'table' || viewMode === 'list' || viewMode === 'timeline' || viewMode === 'calendar');
+
     const columns = useMemo(() => {
         const map: Record<string, TaskRow[]> = {};
         for (const col of COLUMNS) map[col] = [];
@@ -112,6 +126,15 @@ export default function TasksIndex({ tasks, users, activeFilter, activeCategory,
         }
         return map;
     }, [filtered]);
+
+    const pageColumns = useMemo(() => {
+        const map: Record<string, TaskRow[]> = {};
+        for (const col of COLUMNS) map[col] = [];
+        for (const t of pageTasks) {
+            if (map[t.status]) map[t.status].push(t);
+        }
+        return map;
+    }, [pageTasks]);
 
     useEffect(() => {
         setFilter(activeFilter);
@@ -219,32 +242,19 @@ export default function TasksIndex({ tasks, users, activeFilter, activeCategory,
         return avatars;
     }, [localTasks]);
 
-    const viewSwitcher = (
-        <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] p-0.5">
-            {([
-                { id: 'overview' as ViewMode, label: 'Overview', icon: LayoutDashboard },
-                { id: 'board' as ViewMode, label: 'Board', icon: Columns3 },
-                { id: 'list' as ViewMode, label: 'List', icon: List },
-                { id: 'table' as ViewMode, label: 'Table', icon: Table2 },
-                { id: 'timeline' as ViewMode, label: 'Timeline', icon: Timeline },
-                { id: 'calendar' as ViewMode, label: 'Calendar', icon: CalendarDays },
-            ]).map((tab) => {
-                const Icon = tab.icon;
-                return (
-                    <button key={tab.id} type="button" onClick={() => setViewMode(tab.id)}
-                        className={`inline-flex h-7 items-center gap-1 rounded-md px-2 text-[10px] font-semibold transition ${viewMode === tab.id ? 'bg-[var(--crm-gold)] text-black' : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
-                        <Icon size={12} />
-                        <span className="hidden md:inline">{tab.label}</span>
-                    </button>
-                );
-            })}
-        </div>
-    );
+    const TABS: { id: ViewMode; label: string; icon: typeof LayoutDashboard }[] = [
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'board', label: 'Board', icon: Columns3 },
+        { id: 'list', label: 'List', icon: List },
+        { id: 'table', label: 'Table', icon: Table2 },
+        { id: 'timeline', label: 'Timeline', icon: Timeline },
+        { id: 'calendar', label: 'Calendar', icon: CalendarDays },
+    ];
 
     return (
         <>
             <Head title="Tasks" />
-            <AppShell eyebrowKey="nav.tasks" titleKey="nav.tasks" subtitleKey="Tasks and workflow management"
+            <AppShell eyebrowKey="nav.tasks" titleKey="nav.tasks" subtitleKey="Track and organize all office operations in one place."
                 action={
                     <div className="flex flex-wrap items-center gap-2">
                         <div className="hidden sm:flex -space-x-1.5 mr-1">
@@ -262,16 +272,18 @@ export default function TasksIndex({ tasks, users, activeFilter, activeCategory,
                 }
             >
                 <div className="crm-page">
-                    {/* Premium page header */}
-                    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <h1 className="text-lg font-bold text-[var(--crm-text)]">Tasks</h1>
-                            <p className="mt-0.5 text-xs text-[var(--crm-muted)]">Track and organize all office operations in one place.</p>
-                            <p className="mt-0.5 text-[10px] text-[var(--crm-muted)]">Last sync: just now &middot; {localTasks.length} tasks</p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            {viewSwitcher}
-                        </div>
+                    {/* Tab bar */}
+                    <div className="mb-4 flex gap-1 border-b border-[var(--crm-border)]">
+                        {TABS.map((tab) => {
+                            const Icon = tab.icon;
+                            return (
+                                <button key={tab.id} type="button" onClick={() => setViewMode(tab.id)}
+                                    className={`flex items-center gap-1.5 border-b-2 px-3 pb-2 pt-1 text-xs font-semibold transition ${viewMode === tab.id ? 'border-[var(--crm-gold)] text-[var(--crm-gold)]' : 'border-transparent text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
+                                    <Icon size={14} />
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     <TaskFilters
@@ -291,17 +303,57 @@ export default function TasksIndex({ tasks, users, activeFilter, activeCategory,
                         {viewMode === 'overview' ? (
                             <TaskOverview tasks={filtered} onTaskClick={setSelectedTask} userId={undefined} />
                         ) : viewMode === 'board' ? (
-                            <TaskBoard columns={columns} onTaskClick={setSelectedTask} onCreateInStatus={handleCreateInStatus} />
+                            <TaskBoard columns={columns} onTaskClick={setSelectedTask} onCreateInStatus={handleCreateInStatus} onStatusChange={updateStatus} />
                         ) : viewMode === 'list' ? (
-                            <TaskListView columns={columns} onTaskClick={setSelectedTask} onStatusChange={updateStatus} />
+                            <TaskListView columns={pageColumns} onTaskClick={setSelectedTask} onStatusChange={updateStatus} />
                         ) : viewMode === 'table' ? (
-                            <TaskTable tasks={filtered} onTaskClick={setSelectedTask} onStatusChange={updateStatus} />
+                            <TaskTable tasks={pageTasks} onTaskClick={setSelectedTask} onStatusChange={updateStatus} />
                         ) : viewMode === 'timeline' ? (
-                            <TaskTimeline tasks={filtered} onTaskClick={setSelectedTask} />
+                            <TaskTimeline tasks={pageTasks} onTaskClick={setSelectedTask} />
                         ) : (
-                            <TaskCalendar tasks={filtered} onTaskClick={setSelectedTask} />
+                            <TaskCalendar tasks={pageTasks} onTaskClick={setSelectedTask} />
                         )}
                     </div>
+
+                    {showPagination ? (
+                        <div className="mt-4 flex items-center justify-between rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-4 py-3">
+                            <span className="text-xs text-[var(--crm-text-muted)]">
+                                Showing {(page - 1) * PAGE_SIZE + 1}&ndash;{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+                            </span>
+                            <div className="flex items-center gap-1">
+                                <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                                    className="flex h-7 items-center rounded-lg border border-[var(--crm-border)] px-2.5 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)] disabled:opacity-40 disabled:pointer-events-none">
+                                    Prev
+                                </button>
+                                {(() => {
+                                    const pages: (number | string)[] = [];
+                                    const start = Math.max(1, page - 2);
+                                    const end = Math.min(totalPages, page + 2);
+                                    if (start > 1) { pages.push(1); if (start > 2) pages.push('...'); }
+                                    for (let i = start; i <= end; i++) pages.push(i);
+                                    if (end < totalPages) { if (end < totalPages - 1) pages.push('...'); pages.push(totalPages); }
+                                    return pages.map((p, i) =>
+                                        typeof p === 'string' ? (
+                                            <span key={`e${i}`} className="px-1 text-[10px] text-[var(--crm-text-muted)]">{p}</span>
+                                        ) : (
+                                            <button key={p} type="button" onClick={() => setPage(p)}
+                                                className={`flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-semibold transition ${
+                                                    p === page
+                                                        ? 'bg-[var(--crm-gold)] text-black'
+                                                        : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'
+                                                }`}>
+                                                {p}
+                                            </button>
+                                        )
+                                    );
+                                })()}
+                                <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                                    className="flex h-7 items-center rounded-lg border border-[var(--crm-border)] px-2.5 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)] disabled:opacity-40 disabled:pointer-events-none">
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    ) : null}
 
                     <TaskCreateDrawer
                         isOpen={createOpen}

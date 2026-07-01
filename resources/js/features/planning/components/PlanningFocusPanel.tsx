@@ -4,8 +4,14 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppBadge } from '@/components/ui/AppBadge';
 import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
-import { PlanningTaskRow } from '@/features/planning/data/mockPlanning';
 import { useTranslation } from '@/lib/i18n';
+
+type PlanningTaskRow = {
+    id: number; title: string; type: string; dossierNumber: string;
+    projectObject: string; client: string; cin: string; assignee: string;
+    priority: string; status: string; startsAt: string; dueDate: string;
+    dayKey: string; progress: number; updatedAt: string; nextAction: string;
+};
 
 type PlanningFocusPanelProps = {
     task: PlanningTaskRow | null;

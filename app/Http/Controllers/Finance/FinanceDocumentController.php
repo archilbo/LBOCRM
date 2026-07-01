@@ -8,6 +8,7 @@ use App\Http\Requests\Finance\StoreFinanceDocumentRequest;
 use App\Http\Requests\Finance\UpdateFinanceDocumentRequest;
 use App\Http\Resources\FinanceDocumentResource;
 use App\Http\Resources\PaymentResource;
+use App\Notifications\FinanceDocumentNotification;
 use App\Models\Client;
 use App\Models\Dossier;
 use App\Models\FinanceDocument;
@@ -135,7 +136,7 @@ class FinanceDocumentController extends Controller
     {
         $data = $request->validated();
 
-        $document = DB::transaction(function () use ($data) {
+        $document = DB::transaction(function () use ($data, $request) {
             $number = FinanceNumberService::nextDocumentNumber($data['type']);
 
             $document = FinanceDocument::create([
@@ -177,6 +178,8 @@ class FinanceDocumentController extends Controller
 
             return $document;
         });
+
+        $request->user()->notify(new FinanceDocumentNotification($document, 'created', ucfirst($document->type) . ' created: ' . $document->number));
 
         return redirect()->route('finance.documents.index', [
             'tab' => match ($document->type) {
@@ -259,7 +262,7 @@ class FinanceDocumentController extends Controller
             ->with('success', "Document {$number} supprime.");
     }
 
-    public function generate(FinanceDocument $financeDocument, FinancePdfGenerator $pdfGenerator, FinanceExcelExporter $excelExporter): RedirectResponse
+    public function generate(Request $request, FinanceDocument $financeDocument, FinancePdfGenerator $pdfGenerator, FinanceExcelExporter $excelExporter): RedirectResponse
     {
         if ($financeDocument->items()->count() === 0) {
             return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant generation.');
@@ -268,6 +271,8 @@ class FinanceDocumentController extends Controller
         try {
             $pdfGenerator->generate($financeDocument);
             $excelExporter->generate($financeDocument->refresh());
+
+            $request->user()->notify(new FinanceDocumentNotification($financeDocument, 'generated', ucfirst($financeDocument->type) . ' generated: ' . $financeDocument->number));
 
             return redirect()->back()->with('success', "Document {$financeDocument->number} genere avec succes.");
         } catch (\Throwable $e) {
@@ -360,7 +365,7 @@ class FinanceDocumentController extends Controller
         }
     }
 
-    public function accept(FinanceDocument $financeDocument): RedirectResponse
+    public function accept(Request $request, FinanceDocument $financeDocument): RedirectResponse
     {
         if (!$financeDocument->isQuote()) {
             return redirect()->back()->with('error', 'Seul un devis peut etre accepte.');
@@ -371,10 +376,12 @@ class FinanceDocumentController extends Controller
             'accepted_at' => now(),
         ]);
 
+        $request->user()->notify(new FinanceDocumentNotification($financeDocument->fresh(), 'accepted', 'Quote accepted: ' . $financeDocument->number));
+
         return redirect()->back()->with('success', "Devis {$financeDocument->number} accepte !");
     }
 
-    public function reject(FinanceDocument $financeDocument): RedirectResponse
+    public function reject(Request $request, FinanceDocument $financeDocument): RedirectResponse
     {
         if (!$financeDocument->isQuote()) {
             return redirect()->back()->with('error', 'Seul un devis peut etre refuse.');
@@ -385,14 +392,18 @@ class FinanceDocumentController extends Controller
             'rejected_at' => now(),
         ]);
 
+        $request->user()->notify(new FinanceDocumentNotification($financeDocument->fresh(), 'rejected', 'Quote rejected: ' . $financeDocument->number));
+
         return redirect()->back()->with('success', "Devis {$financeDocument->number} refuse !");
     }
 
-    public function cancel(FinanceDocument $financeDocument): RedirectResponse
+    public function cancel(Request $request, FinanceDocument $financeDocument): RedirectResponse
     {
         $financeDocument->update([
             'status' => 'cancelled',
         ]);
+
+        $request->user()->notify(new FinanceDocumentNotification($financeDocument->fresh(), 'cancelled', ucfirst($financeDocument->type) . ' cancelled: ' . $financeDocument->number));
 
         return redirect()->back()->with('success', "Document {$financeDocument->number} annule !");
     }
@@ -443,6 +454,8 @@ class FinanceDocumentController extends Controller
 
             return $invoice;
         });
+
+        $request->user()->notify(new FinanceDocumentNotification($invoice, 'converted', 'Quote converted to invoice: ' . $invoice->number));
 
         return redirect()->route('finance.documents.show', $invoice)
             ->with('success', "Facture {$invoice->number} creee a partir du devis {$financeDocument->number} !");

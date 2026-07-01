@@ -6,30 +6,51 @@ import { useTranslation } from '@/lib/i18n';
 
 type AppShellProps = {
     eyebrowKey?: string;
-    titleKey: string;
+    titleKey?: string;
     subtitleKey?: string;
     action?: ReactNode;
     children: ReactNode;
+    fullBleed?: boolean;
 };
 
-export function AppShell({ eyebrowKey, titleKey, subtitleKey, action, children }: AppShellProps) {
+export function AppShell({ eyebrowKey, titleKey, subtitleKey, action, children, fullBleed }: AppShellProps) {
     const { t } = useTranslation();
 
+    if (fullBleed) {
+        return (
+            <div className="crm-shell text-[var(--crm-text)]">
+                <div className="flex flex-1 min-h-0 overflow-hidden">
+                    <AppSidebar />
+
+                    <div className="min-w-0 flex flex-1 flex-col">
+                        <AppTopbar />
+
+                        <main className="flex-1 min-h-0 overflow-hidden">
+                            {children}
+                        </main>
+                    </div>
+                </div>
+
+                <AppMobileNav />
+            </div>
+        );
+    }
+
     return (
-        <div className="crm-shell min-h-screen text-[var(--crm-text)]">
-            <div className="flex min-h-screen">
+        <div className="crm-shell text-[var(--crm-text)]">
+            <div className="flex flex-1 min-h-0 overflow-hidden">
                 <AppSidebar />
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex flex-1 flex-col">
                     <AppTopbar />
 
-                    <main className="crm-page pb-28 lg:pb-[var(--crm-page-pad)]">
+                    <main className="crm-page flex-1 min-h-0 pb-28 lg:pb-[var(--crm-page-pad)]">
                         <header className="crm-panel-flat px-5 py-4">
                             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                                 <div className="min-w-0">
                                     {eyebrowKey ? <p className="crm-eyebrow">{t(eyebrowKey)}</p> : null}
                                     <h1 className="mt-2 text-[24px] font-bold leading-none tracking-[-0.02em] text-[var(--crm-text)]">
-                                        {t(titleKey)}
+                                        {t(titleKey ?? '')}
                                     </h1>
                                     {subtitleKey ? (
                                         <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--crm-text-muted)]">

@@ -1,22 +1,11 @@
-import { router, usePage } from '@inertiajs/react';
-import { Bell, CalendarDays, LogOut, MessageSquare, Plus } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { CalendarDays, LogOut, Plus } from 'lucide-react';
+import { MessagePopover } from '@/features/inbox/components/MessagePopover';
+import { NotificationPopover } from '@/features/notifications/components/NotificationPopover';
 import { AppGlobalSearch } from '@/components/layout/AppGlobalSearch';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
-function UnreadBadge({ count }: { count: number }) {
-    if (count <= 0) return null;
-    return (
-        <span className="absolute -right-1 -top-1 flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
-            {count > 99 ? '99+' : count}
-        </span>
-    );
-}
-
 export function AppTopbar() {
-    const { auth } = usePage().props as { auth: { user?: { unread_notifications?: number; unread_messages?: number } } };
-    const unreadNotifs = auth?.user?.unread_notifications ?? 0;
-    const unreadChats = auth?.user?.unread_messages ?? 0;
-
     function handleLogout() {
         router.post('/logout');
     }
@@ -49,25 +38,9 @@ export function AppTopbar() {
                         <CalendarDays size={15} />
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={() => router.visit('/inbox')}
-                        className="crm-action-button relative hidden h-9 w-9 px-0 sm:inline-flex"
-                        title="Messages"
-                    >
-                        <MessageSquare size={15} />
-                        <UnreadBadge count={unreadChats} />
-                    </button>
+                    <MessagePopover />
 
-                    <button
-                        type="button"
-                        onClick={() => router.visit('/notifications')}
-                        className="crm-action-button relative h-9 w-9 px-0 sm:inline-flex"
-                        title="Notifications"
-                    >
-                        <Bell size={15} />
-                        <UnreadBadge count={unreadNotifs} />
-                    </button>
+                    <NotificationPopover />
 
                     <ThemeToggle />
 

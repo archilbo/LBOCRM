@@ -1,141 +1,136 @@
-﻿cd "D:\ARCHI LBO\LBOSM\LBOCRM"
+﻿$ErrorActionPreference = "Continue"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-$ErrorActionPreference = "Stop"
+$ProjectPath = "D:\ARCHI LBO\LBOSM\LBOCRM"
+Set-Location $ProjectPath
 
-$out = ".\tasks_improve_audit.txt"
-$sb = New-Object System.Text.StringBuilder
+$OutDir = ".ai-context"
+$MainFile = "$OutDir\REALTIME_CHAT_CONTEXT.md"
+$MaxPartChars = 18000
 
-function Add-Line($Text = "") {
-    [void]$script:sb.AppendLine([string]$Text)
+New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+$Builder = New-Object System.Text.StringBuilder
+
+function Add-Text($Text) { [void]$Builder.AppendLine([string]$Text) }
+
+function Add-CommandOutput($Title, $Command) {
+    Add-Text "`n# $Title`n"
+    Add-Text "``````text"
+    try { Add-Text (Invoke-Expression $Command 2>&1 | Out-String) }
+    catch { Add-Text "ERROR: $($_.Exception.Message)" }
+    Add-Text "``````"
 }
 
-function Add-Section($Title) {
-    Add-Line ""
-    Add-Line "===== $Title ====="
-    Add-Line ""
-}
-
-function Add-CommandOutput($Title, $ScriptBlock) {
-    Add-Section $Title
-    try {
-        $result = & $ScriptBlock 2>&1 | Out-String -Width 260
-        Add-Line $result
-    } catch {
-        Add-Line "ERROR: $($_.Exception.Message)"
-    }
-}
-
-function Add-File($Path, $MaxLines = 1600) {
-    Add-Section $Path
-
-    if (-not (Test-Path $Path)) {
-        Add-Line "MISSING: $Path"
+function Add-File($Path) {
+    if (-not (Test-Path $Path)) { return }
+    $item = Get-Item $Path
+    if ($item.Length -gt 250KB) {
+        Add-Text "`n# FILE SKIPPED: $Path - too large"
         return
     }
 
+    Add-Text "`n# FILE: $Path`n"
+    Add-Text "``````$($item.Extension.TrimStart('.'))"
     try {
-        $i = 1
-        Get-Content $Path -TotalCount $MaxLines | ForEach-Object {
-            Add-Line ("{0,4} | {1}" -f $i, $_)
-            $i++
-        }
+        Add-Text ([System.IO.File]::ReadAllText((Resolve-Path $Path), [System.Text.Encoding]::UTF8))
     } catch {
-        Add-Line "ERROR READING FILE: $($_.Exception.Message)"
+        Add-Text (Get-Content $Path -Raw)
+    }
+    Add-Text "``````"
+}
+
+Add-Text "# ARCHI LBO OS Realtime Chat Context"
+Add-Text "Generated: $(Get-Date)"
+
+Add-CommandOutput "Git Status" "git status --short"
+Add-CommandOutput "Inbox/Broadcast Routes" "php artisan route:list | Select-String -Pattern 'inbox|message|conversation|broadcast|channel|reverb'"
+Add-CommandOutput "Composer Realtime Packages" "composer show | Select-String -Pattern 'reverb|pusher|broadcast|queue'"
+Add-CommandOutput "NPM Realtime Packages" "npm ls laravel-echo pusher-js socket.io-client --depth=0"
+Add-CommandOutput "Broadcast Config Files Found" "Get-ChildItem config,routes,app,resources/js -Recurse -File | Where-Object { $_.Name -match 'broadcast|channel|echo|reverb|MessageSent|Typing|Conversation' } | Select-Object FullName"
+Add-CommandOutput "Realtime Text Search" "Get-ChildItem app,routes,resources/js,config,bootstrap -Recurse -File | Where-Object { $_.FullName -notmatch '\\vendor\\|\\node_modules\\|\\storage\\|\\public\\build\\' } | Select-String -Pattern 'Echo|Reverb|Pusher|broadcast|ShouldBroadcast|PrivateChannel|PresenceChannel|whisper|typing|MessageSent|conversation\\.' | Select-Object Path,LineNumber,Line"
+
+$files = @(
+    "composer.json",
+    "package.json",
+    "vite.config.ts",
+    "bootstrap/app.php",
+    "config/broadcasting.php",
+    "config/reverb.php",
+    "routes/channels.php",
+    "routes/web.php",
+    "resources/js/app.tsx",
+    "resources/js/bootstrap.ts",
+    "resources/js/bootstrap.js",
+    "resources/js/echo.ts",
+    "resources/js/lib/echo.ts",
+    "resources/js/components/layout/AppTopbar.tsx",
+    "resources/js/pages/Inbox/Index.tsx",
+    "resources/js/features/inbox/components/ConversationList.tsx",
+    "resources/js/features/inbox/components/MessageThread.tsx",
+    "resources/js/features/chat/types.ts",
+    "app/Http/Controllers/ConversationController.php",
+    "app/Http/Controllers/MessageController.php",
+    "app/Http/Resources/ConversationResource.php",
+    "app/Http/Resources/MessageResource.php",
+    "app/Services/Chat/ChatService.php",
+    "app/Models/Conversation.php",
+    "app/Models/Message.php",
+    "app/Models/MessageAttachment.php",
+    "app/Notifications/ChatMessageNotification.php",
+    "app/Events/MessageSent.php",
+    "app/Events/MessageTyping.php"
+)
+
+foreach ($file in $files) { Add-File $file }
+
+Add-Text "`n# Safe .env realtime keys only`n"
+Add-Text "``````text"
+$envKeys = @(
+    "BROADCAST_CONNECTION",
+    "BROADCAST_DRIVER",
+    "QUEUE_CONNECTION",
+    "REVERB_APP_ID",
+    "REVERB_HOST",
+    "REVERB_PORT",
+    "REVERB_SCHEME",
+    "VITE_REVERB_HOST",
+    "VITE_REVERB_PORT",
+    "VITE_REVERB_SCHEME",
+    "VITE_REVERB_APP_KEY",
+    "PUSHER_HOST",
+    "PUSHER_PORT",
+    "PUSHER_SCHEME",
+    "VITE_PUSHER_HOST",
+    "VITE_PUSHER_PORT",
+    "VITE_PUSHER_SCHEME",
+    "VITE_PUSHER_APP_KEY"
+)
+if (Test-Path ".env") {
+    $envContent = Get-Content ".env"
+    foreach ($key in $envKeys) {
+        $line = $envContent | Where-Object { $_ -match "^$key=" } | Select-Object -First 1
+        if ($line) {
+            if ($line -match "KEY|SECRET") {
+                Add-Text "$key=***masked***"
+            } else {
+                Add-Text $line
+            }
+        }
     }
 }
+Add-Text "``````"
 
-Add-Section "TASKS IMPROVEMENT AUDIT"
-Add-Line "Generated: $(Get-Date)"
-Add-Line "Project: D:\ARCHI LBO\LBOSM\LBOCRM"
+$fullPath = Join-Path (Get-Location) $MainFile
+[System.IO.File]::WriteAllText($fullPath, $Builder.ToString(), [System.Text.Encoding]::UTF8)
 
-Add-CommandOutput "GIT STATUS" { git status --short }
-
-Add-CommandOutput "TASK ROUTES" {
-    php artisan route:list | Select-String -Pattern "tasks|task-requests|workload|operations|inbox|notifications"
+$content = [System.IO.File]::ReadAllText($fullPath, [System.Text.Encoding]::UTF8)
+$part = 1
+for ($i = 0; $i -lt $content.Length; $i += $MaxPartChars) {
+    $length = [Math]::Min($MaxPartChars, $content.Length - $i)
+    $partFile = "$OutDir\REALTIME_CHAT_CONTEXT_PART_$part.md"
+    [System.IO.File]::WriteAllText((Join-Path (Get-Location) $partFile), $content.Substring($i, $length), [System.Text.Encoding]::UTF8)
+    $part++
 }
 
-Add-CommandOutput "PACKAGE DND / UI LIBRARIES" {
-    Get-Content .\package.json | Select-String -Pattern "dnd|drag|sortable|beautiful|fullcalendar|react-aria|lucide"
-}
-
-Add-CommandOutput "SEARCH TASK UI KEYWORDS" {
-    Get-ChildItem -Recurse resources/js -Include *.tsx,*.ts |
-        Select-String -Pattern "drag|drop|draggable|onDrop|onDrag|is_note|commentsCount|attachmentsCount|suggestion|Suggestion|bulk|selected|localStorage|TaskCard|TaskBoard|TaskDetailDrawer" |
-        Select-Object Path, LineNumber, Line |
-        Format-List
-}
-
-Add-CommandOutput "SEARCH TASK BACKEND KEYWORDS" {
-    Get-ChildItem -Recurse app,routes,database -Include *.php |
-        Select-String -Pattern "is_note|comments_count|attachments_count|TaskSuggestion|suggestions|bulk|TaskResource|TaskMutationService|TaskActivityService|TaskNotificationService" |
-        Select-Object Path, LineNumber, Line |
-        Format-List
-}
-
-Add-File "routes/web.php" 1600
-Add-File "package.json" 600
-Add-File "config/archilbo_operations.php" 1000
-
-Add-File "app/Models/Task.php" 1400
-Add-File "app/Models/TaskComment.php" 800
-Add-File "app/Models/TaskAttachment.php" 800
-Add-File "app/Models/TaskSuggestion.php" 800
-Add-File "app/Http/Controllers/TaskController.php" 1800
-Add-File "app/Http/Controllers/TaskCommentController.php" 1200
-Add-File "app/Http/Controllers/TaskChecklistController.php" 1200
-Add-File "app/Http/Controllers/TaskAttachmentController.php" 1200
-Add-File "app/Http/Controllers/TaskSuggestionController.php" 1200
-Add-File "app/Http/Resources/TaskResource.php" 1600
-Add-File "app/Http/Resources/TaskCommentResource.php" 1000
-Add-File "app/Http/Resources/TaskAttachmentResource.php" 1000
-Add-File "app/Http/Resources/TaskSuggestionResource.php" 1000
-Add-File "app/Http/Requests/Task/StoreTaskRequest.php" 1000
-Add-File "app/Http/Requests/Task/UpdateTaskRequest.php" 1000
-Add-File "app/Policies/TaskPolicy.php" 1200
-
-Add-Section "TASK SERVICES"
-Get-ChildItem -Recurse app/Services/Task -Include *.php |
-    ForEach-Object {
-        $relative = $_.FullName.Replace((Get-Location).Path + "\", "")
-        Add-File $relative 1400
-    }
-
-Add-Section "TASK FRONTEND PAGES"
-Add-File "resources/js/pages/Tasks/Index.tsx" 2200
-Add-File "resources/js/pages/TaskRequests/Index.tsx" 1400
-Add-File "resources/js/pages/Workload/Index.tsx" 1400
-Add-File "resources/js/pages/Operations/Reports.tsx" 1400
-
-Add-Section "TASK FRONTEND COMPONENTS"
-Add-File "resources/js/features/tasks/types.ts" 1600
-Add-File "resources/js/features/tasks/components/TaskBoard.tsx" 1800
-Add-File "resources/js/features/tasks/components/TaskCard.tsx" 1800
-Add-File "resources/js/features/tasks/components/TaskDetailDrawer.tsx" 2400
-Add-File "resources/js/features/tasks/components/TaskCreateDrawer.tsx" 1800
-Add-File "resources/js/features/tasks/components/TaskFilters.tsx" 1400
-Add-File "resources/js/features/tasks/components/TaskList.tsx" 1800
-Add-File "resources/js/features/tasks/components/TaskCalendar.tsx" 1600
-Add-File "resources/js/features/tasks/components/TaskRequestCreateDrawer.tsx" 1600
-
-Add-Section "LAYOUT / THEME"
-Add-File "resources/js/lib/appRoutes.ts" 1200
-Add-File "resources/js/components/layout/navigation.ts" 1000
-Add-File "resources/js/components/layout/AppTopbar.tsx" 1000
-Add-File "resources/js/locales/en.ts" 1400
-Add-File "resources/css/app.css" 2000
-Add-File "resources/css/archilbo-theme.css" 1400
-
-Add-CommandOutput "BASELINE BUILD" { npm run build }
-Add-CommandOutput "CACHE CLEAR" { php artisan optimize:clear }
-
-Add-CommandOutput "TASK QA COMMAND" {
-    php artisan app:qa-tasks-chat
-}
-
-Add-Section "DONE"
-Add-Line "Send this file content: tasks_improve_audit.txt"
-
-$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-[System.IO.File]::WriteAllText((Join-Path (Get-Location) $out), $sb.ToString(), $utf8NoBom)
-
-Write-Host "DONE. Report written to: tasks_improve_audit.txt" -ForegroundColor Green
+Write-Host "`nDONE" -ForegroundColor Green
+Get-ChildItem $OutDir -Filter "REALTIME_CHAT_CONTEXT_PART_*.md" | Select-Object Name,Length | Format-Table -AutoSize

@@ -8,6 +8,7 @@ use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use App\Services\Task\TaskMutationService;
 use App\Services\Task\TaskQueryService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -53,6 +54,23 @@ class TaskController extends Controller
         return Inertia::render('Tasks/Show', [
             'task' => new TaskResource($task),
         ]);
+    }
+
+    public function detail(Task $task): JsonResponse
+    {
+        $this->authorize('view', $task);
+
+        $task->load([
+            'creator', 'assigner', 'assignees', 'watchers',
+            'checklistItems.completedBy',
+            'comments.user',
+            'attachments.user',
+            'activityLogs.user',
+            'dossier', 'client', 'document', 'financeDocument', 'contract', 'authorization', 'archiveRecord',
+        ]);
+        $task->loadCount(['comments', 'attachments']);
+
+        return response()->json(new TaskResource($task));
     }
 
     public function update(UpdateTaskRequest $request, Task $task): RedirectResponse

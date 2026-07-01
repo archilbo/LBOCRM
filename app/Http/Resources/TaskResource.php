@@ -35,6 +35,7 @@ class TaskResource extends JsonResource
             'checklistItems' => $this->whenLoaded('checklistItems', fn () => TaskChecklistItemResource::collection($this->checklistItems)->resolve(), []),
             'comments' => TaskCommentResource::collection($this->whenLoaded('comments')),
             'attachments' => TaskAttachmentResource::collection($this->whenLoaded('attachments')),
+            'activityLogs' => TaskActivityResource::collection($this->whenLoaded('activityLogs')),
             'commentsCount' => (int) ($this->whenCounted('comments') ?? 0),
             'attachmentsCount' => (int) ($this->whenCounted('attachments') ?? 0),
             'dossierId' => $this->dossier_id,

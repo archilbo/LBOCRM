@@ -5,7 +5,10 @@ namespace App\Services\Chat;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\Message;
+use App\Models\MessageAttachment;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class ChatService
 {
@@ -27,13 +30,23 @@ class ChatService
         return $conversation;
     }
 
-    public function sendMessage(Conversation $conversation, User $user, string $body): Message
-    {
+    public function sendMessage(
+        Conversation $conversation,
+        User $user,
+        ?string $body = null,
+        array $images = [],
+        ?int $replyToMessageId = null,
+        bool $isForwarded = false,
+    ): Message {
         $message = Message::create([
             'conversation_id' => $conversation->id,
             'user_id' => $user->id,
             'body' => $body,
+            'reply_to_message_id' => $replyToMessageId,
+            'is_forwarded' => $isForwarded,
         ]);
+
+        $this->storeAttachments($message, $user, $images);
 
         $conversation->update(['last_message_at' => now()]);
 
@@ -41,6 +54,51 @@ class ChatService
             ->where('user_id', '!=', $user->id)
             ->each(fn (ConversationParticipant $p) => $p->user->notify(
                 new \App\Notifications\ChatMessageNotification($conversation, $message, $user)
+            ));
+
+        return $message;
+    }
+
+    public function forwardMessage(Conversation $targetConversation, User $user, Message $originalMessage): Message
+    {
+        $images = $originalMessage->attachments()->get()->map(function (MessageAttachment $att) {
+            $path = 'message-attachments/' . $att->message_id . '/' . $att->filename;
+            if (Storage::disk($att->disk ?? 'public')->exists($path)) {
+                $localPath = Storage::disk($att->disk ?? 'public')->path($path);
+                return new UploadedFile($localPath, $att->original_filename, $att->mime_type, null, true);
+            }
+            return null;
+        })->filter()->values()->toArray();
+
+        $message = Message::create([
+            'conversation_id' => $targetConversation->id,
+            'user_id' => $user->id,
+            'body' => $originalMessage->body,
+            'is_forwarded' => true,
+            'forwarded_from_message_id' => $originalMessage->id,
+        ]);
+
+        foreach ($images as $image) {
+            if ($image instanceof UploadedFile) {
+                $storedPath = $image->store('message-attachments/' . $message->id, 'public');
+                MessageAttachment::create([
+                    'message_id' => $message->id,
+                    'user_id' => $user->id,
+                    'filename' => basename($storedPath),
+                    'original_filename' => $image->getClientOriginalName(),
+                    'mime_type' => $image->getMimeType(),
+                    'size' => $image->getSize(),
+                    'disk' => 'public',
+                ]);
+            }
+        }
+
+        $targetConversation->update(['last_message_at' => now()]);
+
+        $targetConversation->participants()
+            ->where('user_id', '!=', $user->id)
+            ->each(fn (ConversationParticipant $p) => $p->user->notify(
+                new \App\Notifications\ChatMessageNotification($targetConversation, $message, $user)
             ));
 
         return $message;
@@ -65,5 +123,28 @@ class ChatService
             ->where('user_id', '!=', $user->id)
             ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
             ->count();
+    }
+
+    public function updateLastSeen(User $user): void
+    {
+        $user->update(['last_seen_at' => now()]);
+    }
+
+    protected function storeAttachments(Message $message, User $user, array $images): void
+    {
+        foreach ($images as $image) {
+            if ($image instanceof UploadedFile) {
+                $storedPath = $image->store('message-attachments/' . $message->id, 'public');
+                MessageAttachment::create([
+                    'message_id' => $message->id,
+                    'user_id' => $user->id,
+                    'filename' => basename($storedPath),
+                    'original_filename' => $image->getClientOriginalName(),
+                    'mime_type' => $image->getMimeType(),
+                    'size' => $image->getSize(),
+                    'disk' => 'public',
+                ]);
+            }
+        }
     }
 }

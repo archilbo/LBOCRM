@@ -34,6 +34,11 @@ function KpiCard({ icon: Icon, label, value, sub, accent }: { icon: typeof Flame
 }
 
 export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const weekEnd = new Date(today); weekEnd.setDate(today.getDate() + 7);
+    const weekEndStr = weekEnd.toISOString().slice(0, 10);
+
     const metrics = useMemo(() => {
         const open = tasks.filter(isOpen);
         const overdueT = tasks.filter(isOverdue);
@@ -42,9 +47,10 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
         const review = open.filter((t) => t.status === 'in_review');
         const completed = tasks.filter((t) => t.status === 'completed');
         const cancelled = tasks.filter((t) => t.status === 'cancelled');
-        const myTasks = userId ? tasks.filter((t) => t.assignees?.some((a) => a.id === userId)) : [];
-        return { open, overdueT, urgent, blocked, review, completed, cancelled, myTasks };
-    }, [tasks, userId]);
+        const pending = tasks.filter((t) => t.status === 'not_started');
+        const dueThisWeek = tasks.filter((t) => t.dueDate && t.dueDate >= todayStr && t.dueDate <= weekEndStr && isOpen(t));
+        return { open, overdueT, urgent, blocked, review, completed, cancelled, pending, dueThisWeek };
+    }, [tasks]);
 
     const statusCounts = useMemo(() => {
         const map: Record<string, { count: number; label: string }> = {};
@@ -54,7 +60,6 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
         return map;
     }, [tasks]);
 
-    const today = new Date().toISOString().slice(0, 10);
     const weekDays = useMemo(() => {
         const days: { date: string; label: string; tasks: TaskRow[] }[] = [];
         const now = new Date();
@@ -84,12 +89,11 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
     return (
         <div className="space-y-4">
             {/* KPI Row */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 <KpiCard icon={ListTodo} label="Open" value={metrics.open.length} sub="Active operational work" accent="blue" />
                 <KpiCard icon={CheckCircle2} label="Completed" value={metrics.completed.length} sub="Finished tasks" accent="green" />
-                <KpiCard icon={Clock3} label="Pending" value={metrics.open.length - metrics.in_progress?.length || 0} sub="Not yet started" accent="gold" />
-                <KpiCard icon={CalendarDays} label="Due this week" value={tasks.filter((t) => t.dueDate && t.dueDate >= today && new Date(t.dueDate) <= new Date(Date.now() + 7 * 86400000) && isOpen(t)).length} sub="Upcoming deadlines" accent="amber" />
-                <KpiCard icon={Flame} label="Urgent" value={metrics.urgent.length} sub={metrics.urgent.length ? 'Needs immediate attention' : 'No urgent items'} accent={metrics.urgent.length ? 'red' : 'green'} />
+                <KpiCard icon={Clock3} label="Pending" value={metrics.pending.length} sub="Not yet started" accent="gold" />
+                <KpiCard icon={CalendarDays} label="Upcoming" value={metrics.dueThisWeek.length} sub="Due within 7 days" accent="amber" />
                 <KpiCard icon={AlertTriangle} label="Overdue" value={metrics.overdueT.length} sub={metrics.overdueT.length ? 'Past due date' : 'All on track'} accent={metrics.overdueT.length ? 'red' : 'green'} />
             </div>
 

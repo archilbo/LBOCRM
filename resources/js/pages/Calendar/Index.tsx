@@ -151,6 +151,7 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
             .then((r) => {
                 if (!r.ok) throw new Error('Move failed');
                 toast.success('Event moved.');
+                router.reload({ only: ['events', 'users'] });
             })
             .catch(() => {
                 arg.revert();
@@ -170,6 +171,7 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
             .then((r) => {
                 if (!r.ok) throw new Error('Resize failed');
                 toast.success('Event resized.');
+                router.reload({ only: ['events', 'users'] });
             })
             .catch(() => {
                 arg.revert();
