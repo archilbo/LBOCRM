@@ -18,6 +18,7 @@ class ConversationController extends Controller
 
     public function index(Request $request): Response
     {
+        abort_unless($request->user()->can('view inbox') || $request->user()->can('manage inbox') || $request->user()->hasRole('admin'), 403);
         $user = $request->user();
         $conversations = Conversation::whereHas('participants', fn ($q) => $q->where('user_id', $user->id))
             ->with([
@@ -40,6 +41,7 @@ class ConversationController extends Controller
 
     public function show(Request $request, Conversation $conversation)
     {
+        $this->authorize('view', $conversation);
         $conversation->load(['participants.user', 'messages.user', 'messages.reads', 'messages.attachments']);
         $this->chatService->markAsRead($conversation, $request->user());
 
@@ -59,6 +61,7 @@ class ConversationController extends Controller
 
     public function store(StoreConversationRequest $request)
     {
+        $this->authorize('create', Conversation::class);
         $data = $request->validated();
         $userIds = $data['user_ids'];
 

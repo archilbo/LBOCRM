@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Http\Requests\Calendar;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class UpdateCalendarEventRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'type' => ['nullable', 'string', 'in:task,note,reminder,meeting,deadline,client_follow_up,finance_follow_up,authorization_follow_up,contract_follow_up,archive_follow_up'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'status' => ['nullable', 'string', 'in:scheduled,in_progress,completed,cancelled,overdue'],
+            'priority' => ['nullable', 'string', 'in:low,medium,high,urgent'],
+            'color' => ['nullable', 'string', 'max:7'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'all_day' => ['nullable', 'boolean'],
+            'timezone' => ['nullable', 'string', 'max:64'],
+            'visibility' => ['nullable', 'string', 'in:private,assigned_users,team,admins'],
+            'owner_id' => ['nullable', 'exists:users,id'],
+            'client_id' => ['nullable', 'exists:clients,id'],
+            'dossier_id' => ['nullable', 'exists:dossiers,id'],
+            'dossier_document_id' => ['nullable', 'exists:dossier_documents,id'],
+            'finance_document_id' => ['nullable', 'exists:finance_documents,id'],
+            'contract_id' => ['nullable', 'exists:contracts,id'],
+            'authorization_id' => ['nullable', 'exists:authorizations,id'],
+            'archive_record_id' => ['nullable', 'exists:archive_records,id'],
+            'participant_ids' => ['nullable', 'array'],
+            'participant_ids.*' => ['integer', 'exists:users,id'],
+            'reminder_offset' => ['nullable', 'integer'],
+        ];
+    }
+}

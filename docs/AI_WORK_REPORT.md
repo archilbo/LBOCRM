@@ -2038,6 +2038,45 @@ git diff --check -- resources/js/lib/appRoutes.ts resources/js/components/layout
 
 - `npm run build` passed. Vite still reports the existing large chunk warning.
 - `php artisan optimize:clear` passed.
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-01
+
+## Step Completed
+
+Compact task filters and 4-column board
+
+## What Was Fixed
+
+- Replaced always-visible scope/module chips with compact dropdown controls.
+- Kept search, scope, module, view switcher, and reset in one tight command row.
+- Reduced vertical space used by filters.
+- Changed the task board desktop layout to 4 columns instead of 7 columns.
+- Preserved responsive behavior on smaller screens.
+
+## Files Modified
+
+- `resources/js/features/tasks/components/TaskFilters.tsx`
+- `resources/js/features/tasks/components/TaskBoard.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan archilbo:operations-foundation-qa
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed with the existing large bundle warning.
+- `archilbo:operations-foundation-qa` passed.
+- `php artisan optimize:clear` passed.
 - `archilbo:finance-ui-lock-payload-qa` passed.
 - `archilbo:finance-export-qa` passed.
 - `archilbo:finance-document-lock-guard-qa` passed.
@@ -3046,3 +3085,554 @@ npm run build
 ## Next Recommended Step
 
 Step 52-L: add same-page finance quick actions from the client workspace for devis, facture, payment, and receipt, then group them by month inside the selected project finance tab.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Phase 54-A - Operations Center audit only
+
+## What Was Checked
+
+- Current authenticated routes for tasks, inbox, and notifications.
+- Existing User model roles and notification support.
+- Sidebar/topbar navigation files.
+- Existing operations migrations, models, controllers, resources, policies, services, and frontend pages.
+- Existing dashboard command-center data pattern.
+- CRM models available for linking tasks to business records.
+
+## Findings
+
+- A first operations foundation already exists: `tasks`, assignees, watchers, checklist items, comments, attachments, activity logs, suggestions, conversations, messages, reads, attachments, and database notifications.
+- Existing pages exist for `/tasks`, `/inbox`, and `/notifications`.
+- Topbar already shows unread notification and unread message counts.
+- Dashboard already includes task/message widgets through `DashboardCommandCenterService`.
+- Roles use Spatie, but current permissions do not yet include task/inbox/notification/workload/report permissions.
+- Missing requested operation areas: task requests/intake, workload page, operations reports, richer task fields, task type/impact/reviewed/blocking fields, task request policies/resources/controllers, workload/report services.
+
+## Important Gaps For Phase 54-B
+
+- Extend task schema instead of duplicating existing tables.
+- Add missing operations permissions to `RolesAndPermissionsSeeder`.
+- Add missing models/tables for task requests and richer operations reporting.
+- Add missing policies: task request, message, notification.
+- Keep controllers thin by moving more task query/write logic into services/actions.
+
+## Commands Run
+
+```powershell
+php artisan route:list --path=tasks
+php artisan route:list --path=inbox
+php artisan route:list --path=notifications
+```
+
+## Build/Test Result
+
+- No build was run because this was audit-only per the Phase 54-A prompt.
+- Route list commands passed for tasks, inbox, and notifications.
+
+## Known Issues
+
+- `docs/FRONTEND_STRUCTURE.md` is not present in this repo.
+- `docs/ARCHITECTURE.md` and other older planning docs requested by the global agent instructions are not present at the repo root; current docs are split under `docs/backend`, `docs/frontend`, `docs/merise`, and step files.
+- `TaskController@index` currently contains query/filter logic and a suggestion generation call; this should move into services/actions during cleanup.
+
+## Next Recommended Step
+
+Phase 54-B: extend the existing operations foundation with missing migrations, enums/config, permissions, policies, request intake model/table, workload/report service skeletons, and a focused QA command.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Phase 54-B - Operations Center backend foundation extension
+
+## What Was Built
+
+Extended the existing Tasks/Inbox/Notifications foundation instead of creating duplicate modules. The Operations Center now has a stronger backend contract for typed CRM-linked tasks, request intake, permissions, workload summaries, reports, and QA.
+
+## Files Created
+
+- `config/archilbo_operations.php`
+- `database/migrations/2026_06_30_120000_extend_operations_center_foundation.php`
+- `app/Models/TaskRequest.php`
+- `app/Http/Resources/TaskRequestResource.php`
+- `app/Policies/TaskRequestPolicy.php`
+- `app/Policies/MessagePolicy.php`
+- `app/Policies/NotificationPolicy.php`
+- `app/Services/Task/TaskRequestService.php`
+- `app/Services/Task/WorkloadService.php`
+- `app/Services/Task/OperationsReportService.php`
+- `app/Console/Commands/OperationsFoundationQaCommand.php`
+
+## Files Modified
+
+- `app/Models/Task.php`
+- `app/Models/User.php`
+- `app/Http/Controllers/TaskController.php`
+- `app/Http/Requests/Task/StoreTaskRequest.php`
+- `app/Http/Requests/Task/UpdateTaskRequest.php`
+- `app/Http/Resources/TaskResource.php`
+- `database/seeders/RolesAndPermissionsSeeder.php`
+- `resources/js/features/tasks/types.ts`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- Added shared operations config for task statuses, types, categories, priorities, impacts, and request statuses/types.
+- Extended `tasks` with type, impact, reviewed timestamp, blocked reason, estimated/actual minutes, recurrence rule, and linked conversation id.
+- Added `task_requests` table for intake/request workflow.
+- Added `TaskRequest` model and resource.
+- Added task request, message, and notification policies.
+- Added workload and operations report service skeletons.
+- Added task request numbering/creation service.
+- Added `tasksAssigned` and `tasksWatching` relations on `User`.
+- Updated task validation to use `config/archilbo_operations.php`.
+- Updated task resource and frontend task types for the richer data contract.
+- Added operations permissions to `RolesAndPermissionsSeeder`.
+
+## Commands Run
+
+```powershell
+php -l config\archilbo_operations.php
+php -l database\migrations\2026_06_30_120000_extend_operations_center_foundation.php
+php -l app\Models\Task.php
+php -l app\Models\TaskRequest.php
+php -l app\Models\User.php
+php -l app\Http\Requests\Task\StoreTaskRequest.php
+php -l app\Http\Requests\Task\UpdateTaskRequest.php
+php -l app\Http\Resources\TaskResource.php
+php -l app\Http\Resources\TaskRequestResource.php
+php -l app\Policies\TaskRequestPolicy.php
+php -l app\Policies\MessagePolicy.php
+php -l app\Policies\NotificationPolicy.php
+php -l app\Services\Task\TaskRequestService.php
+php -l app\Services\Task\WorkloadService.php
+php -l app\Services\Task\OperationsReportService.php
+php -l app\Console\Commands\OperationsFoundationQaCommand.php
+php -l app\Http\Controllers\TaskController.php
+php -l database\seeders\RolesAndPermissionsSeeder.php
+php artisan migrate
+php artisan db:seed --class=RolesAndPermissionsSeeder
+php artisan optimize:clear
+php artisan archilbo:operations-foundation-qa
+npm run build
+```
+
+## Build/Test Result
+
+- PHP lint passed for all touched PHP files.
+- Migration passed.
+- Operations permissions were seeded.
+- `php artisan optimize:clear` passed.
+- `php artisan archilbo:operations-foundation-qa` passed.
+- `npm run build` passed with the existing large bundle warning.
+
+## Known Issues
+
+- No task request routes/pages are connected yet; this was backend foundation only.
+- Workload and operations reports have service skeletons but no pages yet.
+- Existing task UI is still the old board/list/calendar and needs Phase 54-D polish.
+
+## Next Recommended Step
+
+Phase 54-C: add task request CRUD/actions, move task query/write logic out of `TaskController`, wire policies into controllers, and expose backend payloads for task board/list/workload/report UI.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Phase 54-C - Operations Center task request routes, service cleanup, and policy wiring
+
+## What Was Built
+
+Operations Center backend behavior is now more usable and safer. Task list/mutation logic was moved out of `TaskController`, task requests have real routes/actions, workload and operations report pages are reachable, and task/inbox/notification controllers now enforce authorization.
+
+## Files Created
+
+- `app/Services/Task/TaskQueryService.php`
+- `app/Services/Task/TaskMutationService.php`
+- `app/Http/Requests/Task/StoreTaskRequestRequest.php`
+- `app/Http/Requests/Task/UpdateTaskRequestRequest.php`
+- `app/Http/Controllers/TaskRequestController.php`
+- `app/Http/Controllers/WorkloadController.php`
+- `app/Http/Controllers/OperationsReportController.php`
+- `resources/js/pages/TaskRequests/Index.tsx`
+- `resources/js/pages/Workload/Index.tsx`
+- `resources/js/pages/Operations/Reports.tsx`
+
+## Files Modified
+
+- `routes/web.php`
+- `app/Http/Controllers/TaskController.php`
+- `app/Http/Controllers/TaskCommentController.php`
+- `app/Http/Controllers/TaskChecklistController.php`
+- `app/Http/Controllers/TaskAttachmentController.php`
+- `app/Http/Controllers/ConversationController.php`
+- `app/Http/Controllers/MessageController.php`
+- `app/Http/Controllers/NotificationController.php`
+- `app/Http/Requests/Task/StoreTaskRequest.php`
+- `app/Http/Requests/Task/UpdateTaskRequest.php`
+- `app/Policies/TaskPolicy.php`
+- `app/Policies/ConversationPolicy.php`
+- `app/Providers/AppServiceProvider.php`
+- `app/Services/Task/TaskRequestService.php`
+- `app/Console/Commands/OperationsFoundationQaCommand.php`
+- `resources/js/lib/appRoutes.ts`
+- `resources/js/locales/en.ts`
+- `docs/AI_WORK_REPORT.md`
+
+## Backend Work
+
+- Added task request index/store/update/accept/reject/convert routes.
+- Added workload and operations report routes.
+- Moved task index filtering into `TaskQueryService`.
+- Moved task create/update/status mutation logic into `TaskMutationService`.
+- Added task request store/update form requests.
+- Added policy checks to task, task comments, checklist, attachments, inbox, messages, and notifications.
+- Registered `NotificationPolicy` explicitly for Laravel database notifications.
+- Extended operations QA to verify new route names.
+
+## Frontend Work
+
+- Added compact placeholder pages for task requests, workload, and operations reports.
+- Added sidebar/app route entries for Requests, Workload, and Operations reports.
+- Added locale labels for the new routes.
+
+## Commands Run
+
+```powershell
+php -l app\Http\Controllers\TaskController.php
+php -l app\Http\Controllers\TaskRequestController.php
+php -l app\Http\Controllers\WorkloadController.php
+php -l app\Http\Controllers\OperationsReportController.php
+php -l app\Services\Task\TaskQueryService.php
+php -l app\Services\Task\TaskMutationService.php
+php -l app\Services\Task\TaskRequestService.php
+php -l app\Http\Requests\Task\StoreTaskRequest.php
+php -l app\Http\Requests\Task\UpdateTaskRequest.php
+php -l app\Http\Requests\Task\StoreTaskRequestRequest.php
+php -l app\Http\Requests\Task\UpdateTaskRequestRequest.php
+php -l app\Policies\TaskPolicy.php
+php -l app\Policies\ConversationPolicy.php
+php -l app\Providers\AppServiceProvider.php
+php -l app\Console\Commands\OperationsFoundationQaCommand.php
+php artisan route:list --path=task-requests
+php artisan route:list --path=workload
+php artisan route:list --path=operations
+php artisan archilbo:operations-foundation-qa
+npm run build
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- PHP lint passed for all checked files.
+- Task request, workload, and operations report routes are registered.
+- `archilbo:operations-foundation-qa` passed.
+- `npm run build` passed with the existing large bundle warning.
+- `php artisan optimize:clear` passed.
+
+## Known Issues
+
+- Task request, workload, and operations report pages are functional placeholders, not final polished Operations UI.
+- Task request creation still needs a drawer/form UI.
+- Task board UI still needs Phase 54-D density/polish and better use of type/impact fields.
+
+## Next Recommended Step
+
+Phase 54-D: redesign the Tasks page into the dense Operations board/list/calendar/workload experience, using the existing real task payload and new operations config.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Phase 54-D - Dense Operations task workspace polish
+
+## What Was Built
+
+Upgraded `/tasks` from a basic task page into a denser Operations workspace with immediate operational signals and clearer task cards.
+
+## Files Modified
+
+- `resources/js/pages/Tasks/Index.tsx`
+- `resources/js/features/tasks/types.ts`
+- `resources/js/features/tasks/components/TaskBoard.tsx`
+- `resources/js/features/tasks/components/TaskCard.tsx`
+- `resources/js/features/tasks/components/TaskFilters.tsx`
+- `resources/js/features/tasks/components/TaskList.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Frontend Work
+
+- Added top Operations metrics for open, urgent/critical, blocked, overdue, and review tasks.
+- Added quick header buttons to Requests and Workload.
+- Made task board horizontally scroll with denser fixed-width columns.
+- Upgraded task cards with type, impact, priority, linked record, checklist progress, blocker reason, comments, and attachments.
+- Added filters for Watching and Blocked.
+- Added icon-based board/list/calendar view switcher.
+- Extended task list columns with type and impact.
+- Added shared task type and impact label/color maps.
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan archilbo:operations-foundation-qa
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed with the existing large bundle warning.
+- `archilbo:operations-foundation-qa` passed.
+- `php artisan optimize:clear` passed.
+
+## Known Issues
+
+- Task create drawer does not yet expose type/impact/linked CRM fields.
+- Task request creation still needs a drawer/form UI.
+- Calendar view is still grouped-list style, not a full monthly calendar.
+
+## Next Recommended Step
+
+Phase 54-E: upgrade task drawer/detail, checklist, comments, activity timeline, attachments, linked CRM record buttons, and task request creation drawer.
+---
+
+# AI Work Report
+
+## Date
+
+2026-06-30
+
+## Step Completed
+
+Operations task UI behavior fix
+
+## What Was Fixed
+
+- Marking a task completed now updates local task state immediately, so the card moves into the Completed column without waiting for a visible full refresh.
+- Checklist checkbox toggles now update the open task drawer instantly and recalculate progress locally.
+- Failed status/checklist updates roll back the local UI state and show an error toast.
+
+## Files Modified
+
+- `resources/js/pages/Tasks/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan archilbo:operations-foundation-qa
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed with the existing large bundle warning.
+- `archilbo:operations-foundation-qa` passed.
+- `php artisan optimize:clear` passed.
+
+## Next Recommended Step
+
+Continue Phase 54-E: upgrade task drawer/detail with comments, checklist editing, activity timeline, attachments, linked CRM record buttons, and task request creation drawer.
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-01
+
+## Step Completed
+
+Tasks layout no-scroll polish
+
+## What Was Fixed
+
+- Removed the horizontal board scrollbar.
+- Removed per-column vertical scrollbars.
+- Changed the task board to a responsive wrapping grid.
+- Reworked the filters into a cleaner command-bar layout.
+- Made search larger and more useful.
+- Grouped filters into `Scope` and `Module` sections.
+- Tightened KPI cards to reduce wasted vertical space.
+
+## Files Modified
+
+- `resources/js/pages/Tasks/Index.tsx`
+- `resources/js/features/tasks/components/TaskBoard.tsx`
+- `resources/js/features/tasks/components/TaskFilters.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan archilbo:operations-foundation-qa
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed with the existing large bundle warning.
+- `archilbo:operations-foundation-qa` passed.
+- `php artisan optimize:clear` passed.
+
+## Next Recommended Step
+
+Continue Phase 54-E with the task detail drawer and task request creation drawer.
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-01
+
+## Step Completed
+
+Modern task filter panel polish
+
+## What Was Fixed
+
+- Reworked the task filter block into a modern segmented command surface.
+- Added a `Focus filters` header with helper text.
+- Added a Reset action for scope/module/search.
+- Converted filter chips to rounded modern pills with stronger active state.
+- Balanced Scope and Module groups to avoid the large empty middle gap.
+
+## Files Modified
+
+- `resources/js/features/tasks/components/TaskFilters.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan archilbo:operations-foundation-qa
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed with the existing large bundle warning.
+- `archilbo:operations-foundation-qa` passed.
+- `php artisan optimize:clear` passed.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-01
+
+## Step Completed
+
+Phase 54-E task detail workspace
+
+## What Was Built
+
+- Upgraded the task detail drawer from a read-only panel into a compact task workspace.
+- Added linked record navigation for client, dossier, and conversation.
+- Added task metadata using shared task maps instead of duplicate hardcoded labels.
+- Added checklist creation from inside the drawer.
+- Added comment creation from inside the drawer.
+- Added attachment upload from inside the drawer.
+- Added compact collaboration and activity context sections.
+
+## Files Modified
+
+- `resources/js/features/tasks/components/TaskDetailDrawer.tsx`
+- `resources/js/pages/Tasks/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan archilbo:operations-foundation-qa
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed with the existing large bundle warning.
+- `archilbo:operations-foundation-qa` passed.
+- `php artisan optimize:clear` passed.
+
+## Next Recommended Step
+
+Continue with task request conversion flow: approve a request, create/link a task, and keep the request status synchronized.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-01
+
+## Step Completed
+
+Phase 54-F task request conversion flow
+
+## What Was Built
+
+- Moved task request to task mapping into `config/archilbo_operations.php`.
+- Moved request conversion into `TaskRequestService` to keep the controller thin.
+- Added backend guards so rejected/converted task requests cannot be changed by direct POST.
+- Improved `/task-requests` with status filters, labels, counts, clearer linked client/dossier context, and safer action states.
+
+## Files Modified
+
+- `config/archilbo_operations.php`
+- `app/Services/Task/TaskRequestService.php`
+- `app/Http/Controllers/TaskRequestController.php`
+- `resources/js/pages/TaskRequests/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+php -l app/Services/Task/TaskRequestService.php
+php -l app/Http/Controllers/TaskRequestController.php
+php -l config/archilbo_operations.php
+npm run build
+php artisan archilbo:operations-foundation-qa
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- PHP lint passed.
+- `npm run build` passed with the existing large bundle warning.
+- `archilbo:operations-foundation-qa` passed.
+- `php artisan optimize:clear` passed.
+
+## Next Recommended Step
+
+Add task request creation drawer from `/tasks` and `/task-requests`, using real users/clients/dossiers instead of fake data.

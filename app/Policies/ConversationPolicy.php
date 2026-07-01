@@ -14,6 +14,6 @@ class ConversationPolicy
 
     public function create(User $user): bool
     {
-        return true;
+        return $user->can('view inbox') || $user->can('manage inbox') || $user->hasRole('admin');
     }
 }

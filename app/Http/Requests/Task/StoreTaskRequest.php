@@ -17,11 +17,19 @@ class StoreTaskRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'status' => ['required', Rule::in(['not_started', 'in_progress', 'in_review', 'completed', 'blocked', 'cancelled'])],
-            'priority' => ['required', Rule::in(['low', 'medium', 'high', 'urgent'])],
-            'category' => ['required', Rule::in(['documents', 'client_follow_up', 'contract', 'authorization', 'finance', 'archive', 'general_admin'])],
+            'type' => ['nullable', Rule::in(config('archilbo_operations.task_types', []))],
+            'status' => ['required', Rule::in(config('archilbo_operations.task_statuses', []))],
+            'priority' => ['required', Rule::in(config('archilbo_operations.task_priorities', []))],
+            'impact' => ['nullable', Rule::in(config('archilbo_operations.task_impacts', []))],
+            'category' => ['required', Rule::in(config('archilbo_operations.task_categories', []))],
+            'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
             'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'reviewed_at' => ['nullable', 'date'],
+            'blocked_reason' => ['nullable', 'string'],
+            'estimated_minutes' => ['nullable', 'integer', 'min:0'],
+            'actual_minutes' => ['nullable', 'integer', 'min:0'],
+            'recurrence_rule' => ['nullable', 'string', 'max:255'],
             'assignee_ids' => ['nullable', 'array'],
             'assignee_ids.*' => ['exists:users,id'],
             'watcher_ids' => ['nullable', 'array'],
@@ -33,7 +41,8 @@ class StoreTaskRequest extends FormRequest
             'contract_id' => ['nullable', 'exists:contracts,id'],
             'authorization_id' => ['nullable', 'exists:authorizations,id'],
             'archive_record_id' => ['nullable', 'exists:archive_records,id'],
-            'metadata' => ['nullable', 'json'],
+            'conversation_id' => ['nullable', 'exists:conversations,id'],
+            'metadata' => ['nullable', 'array'],
         ];
     }
 }

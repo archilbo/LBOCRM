@@ -13,11 +13,12 @@ class Task extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'task_number', 'title', 'description', 'status', 'priority', 'progress',
+        'task_number', 'title', 'description', 'type', 'status', 'priority', 'impact', 'progress',
         'category', 'start_date', 'due_date', 'completed_at',
+        'reviewed_at', 'blocked_reason', 'estimated_minutes', 'actual_minutes', 'recurrence_rule',
         'created_by', 'assigned_by',
         'dossier_id', 'client_id', 'dossier_document_id',
-        'finance_document_id', 'contract_id', 'authorization_id', 'archive_record_id',
+        'finance_document_id', 'contract_id', 'authorization_id', 'archive_record_id', 'conversation_id',
         'metadata',
     ];
 
@@ -26,6 +27,9 @@ class Task extends Model
         'start_date' => 'date',
         'due_date' => 'date',
         'completed_at' => 'datetime',
+        'reviewed_at' => 'datetime',
+        'estimated_minutes' => 'integer',
+        'actual_minutes' => 'integer',
         'metadata' => 'json',
     ];
 
@@ -44,4 +48,5 @@ class Task extends Model
     public function contract(): BelongsTo { return $this->belongsTo(Contract::class); }
     public function authorization(): BelongsTo { return $this->belongsTo(Authorization::class); }
     public function archiveRecord(): BelongsTo { return $this->belongsTo(ArchiveRecord::class); }
+    public function conversation(): BelongsTo { return $this->belongsTo(Conversation::class); }
 }

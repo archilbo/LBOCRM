@@ -12,6 +12,7 @@ class NotificationController extends Controller
 {
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', \Illuminate\Notifications\DatabaseNotification::class);
         $user = $request->user();
         $filter = $request->query('filter', 'all');
 
@@ -33,6 +34,7 @@ class NotificationController extends Controller
     public function markAsRead(Request $request, string $id): RedirectResponse
     {
         $notification = $request->user()->notifications()->findOrFail($id);
+        $this->authorize('update', $notification);
         $notification->markAsRead();
 
         return redirect()->back();
@@ -40,6 +42,7 @@ class NotificationController extends Controller
 
     public function markAllAsRead(Request $request): RedirectResponse
     {
+        $this->authorize('viewAny', \Illuminate\Notifications\DatabaseNotification::class);
         $request->user()->unreadNotifications->markAsRead();
         return redirect()->back();
     }

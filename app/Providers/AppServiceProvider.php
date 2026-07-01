@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use App\Models\DocumentTemplate;
+use App\Policies\NotificationPolicy;
 use App\Observers\DocumentTemplateObserver;
+use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(DatabaseNotification::class, NotificationPolicy::class);
         DocumentTemplate::observe(DocumentTemplateObserver::class);
         //
     }

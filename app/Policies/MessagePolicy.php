@@ -2,24 +2,30 @@
 
 namespace App\Policies;
 
-use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 
 class MessagePolicy
 {
-    public function create(User $user, Conversation $conversation): bool
+    public function view(User $user, Message $message): bool
     {
-        return $conversation->participants()->where('user_id', $user->id)->exists();
+        return $message->conversation
+            ? $message->conversation->participants()->where('user_id', $user->id)->exists()
+            : false;
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->can('manage inbox') || $user->can('view inbox') || $user->hasRole('admin');
     }
 
     public function update(User $user, Message $message): bool
     {
-        return $message->user_id === $user->id && $message->created_at->diffInMinutes(now()) < 15;
+        return $message->user_id === $user->id || $user->can('manage inbox') || $user->hasRole('admin');
     }
 
     public function delete(User $user, Message $message): bool
     {
-        return $message->user_id === $user->id || $user->hasRole('admin');
+        return $message->user_id === $user->id || $user->can('manage inbox') || $user->hasRole('admin');
     }
 }

@@ -23,6 +23,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage authorizations',
             'manage finance',
             'manage archives',
+            'view tasks',
+            'manage tasks',
+            'view task requests',
+            'manage task requests',
+            'view inbox',
+            'manage inbox',
+            'view notifications',
+            'manage notifications',
+            'view workload',
+            'view operations reports',
             'manage users',
             'view qa',
         ];
@@ -71,6 +81,16 @@ class RolesAndPermissionsSeeder extends Seeder
                 'manage authorizations',
                 'manage finance',
                 'manage archives',
+                'view tasks',
+                'manage tasks',
+                'view task requests',
+                'manage task requests',
+                'view inbox',
+                'manage inbox',
+                'view notifications',
+                'manage notifications',
+                'view workload',
+                'view operations reports',
                 'view qa',
             ])
         );
@@ -85,12 +105,22 @@ class RolesAndPermissionsSeeder extends Seeder
                 'manage authorizations',
                 'manage finance',
                 'manage archives',
+                'view tasks',
+                'manage tasks',
+                'view task requests',
+                'manage task requests',
+                'view inbox',
+                'manage inbox',
+                'view notifications',
             ])
         );
 
         $viewer->syncPermissions(
             $permissionModels->whereIn('name', [
                 'view dashboard',
+                'view tasks',
+                'view inbox',
+                'view notifications',
             ])
         );
 

@@ -17,6 +17,7 @@ import {
     ListChecks,
     MessageSquare,
     Bell,
+    FilePlus2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -39,6 +40,10 @@ export type AppRouteKey =
     | 'settings'
     | 'users'
     | 'tasks'
+    | 'calendar'
+    | 'taskRequests'
+    | 'workload'
+    | 'operationsReports'
     | 'inbox'
     | 'notifications';
 
@@ -188,6 +193,42 @@ export const appRoutes: AppRoute[] = [
         labelKey: 'nav.tasks',
         href: '/tasks',
         icon: ListChecks,
+        enabled: true,
+        searchable: true,
+        group: 'followUp',
+    },
+    {
+        key: 'calendar',
+        labelKey: 'nav.calendar',
+        href: '/calendar',
+        icon: CalendarDays,
+        enabled: true,
+        searchable: true,
+        group: 'followUp',
+    },
+    {
+        key: 'taskRequests',
+        labelKey: 'nav.taskRequests',
+        href: '/task-requests',
+        icon: FilePlus2,
+        enabled: true,
+        searchable: true,
+        group: 'followUp',
+    },
+    {
+        key: 'workload',
+        labelKey: 'nav.workload',
+        href: '/workload',
+        icon: Users,
+        enabled: true,
+        searchable: true,
+        group: 'followUp',
+    },
+    {
+        key: 'operationsReports',
+        labelKey: 'nav.operationsReports',
+        href: '/operations/reports',
+        icon: CalendarDays,
         enabled: true,
         searchable: true,
         group: 'followUp',

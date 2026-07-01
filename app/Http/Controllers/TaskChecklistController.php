@@ -15,11 +15,13 @@ class TaskChecklistController extends Controller
 
     public function index(Task $task)
     {
+        $this->authorize('view', $task);
         return $task->checklistItems()->orderBy('position')->get();
     }
 
     public function store(StoreChecklistRequest $request, Task $task): RedirectResponse
     {
+        $this->authorize('update', $task);
         $item = $task->checklistItems()->create([
             'label' => $request->validated('label'),
             'position' => $task->checklistItems()->count(),
@@ -32,6 +34,9 @@ class TaskChecklistController extends Controller
 
     public function toggle(Task $task, TaskChecklistItem $item): RedirectResponse
     {
+        $this->authorize('updateStatus', $task);
+        abort_unless($item->task_id === $task->id, 404);
+
         $item->update([
             'is_done' => ! $item->is_done,
             'completed_by' => $item->is_done ? null : request()->user()->id,
@@ -50,6 +55,8 @@ class TaskChecklistController extends Controller
 
     public function destroy(Task $task, TaskChecklistItem $item): RedirectResponse
     {
+        $this->authorize('update', $task);
+        abort_unless($item->task_id === $task->id, 404);
         $item->delete();
         return redirect()->back()->with('success', 'Checklist item removed.');
     }
