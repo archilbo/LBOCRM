@@ -39,8 +39,11 @@ function getInitialSidebarCollapsed(): boolean {
         return false;
     }
 
-    const stored = window.localStorage.getItem('archilbo-sidebar-collapsed');
-    return stored === 'true';
+    const stored = window.localStorage.getItem('archi-sidebar-collapsed') || window.localStorage.getItem('archilbo-sidebar-collapsed');
+    if (stored === 'true') return true;
+    if (stored === 'false') return false;
+
+    return window.matchMedia('(min-width: 768px) and (max-width: 1279px)').matches;
 }
 
 export function ThemeProvider({ children }: PropsWithChildren) {
@@ -53,7 +56,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     }, [theme]);
 
     useEffect(() => {
-        window.localStorage.setItem('archilbo-sidebar-collapsed', String(sidebarCollapsed));
+        window.localStorage.setItem('archi-sidebar-collapsed', String(sidebarCollapsed));
     }, [sidebarCollapsed]);
 
     const value = useMemo<ThemeContextValue>(

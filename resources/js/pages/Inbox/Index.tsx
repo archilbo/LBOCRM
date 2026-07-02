@@ -44,6 +44,53 @@ function getQueryParams() {
     };
 }
 
+function isTempMessage(message: MessageRow) {
+    return Number(message.id) < 0;
+}
+
+function isLikelyOptimisticMatch(temp: MessageRow, real: MessageRow) {
+    if (!isTempMessage(temp)) return false;
+    if (temp.userId !== real.userId) return false;
+    if ((temp.body || '') !== (real.body || '')) return false;
+
+    const tempTime = new Date(temp.createdAt).getTime();
+    const realTime = new Date(real.createdAt).getTime();
+
+    return Math.abs(realTime - tempTime) < 15000;
+}
+
+function upsertMessage(prev: MessageRow[], incoming: MessageRow) {
+    let replaced = false;
+
+    const next = prev
+        .filter((message) => String(message.id) !== String(incoming.id))
+        .map((message) => {
+            if (isLikelyOptimisticMatch(message, incoming)) {
+                replaced = true;
+                return incoming;
+            }
+
+            return message;
+        });
+
+    if (!replaced) {
+        next.push(incoming);
+    }
+
+    const unique = new Map<string, MessageRow>();
+    for (const message of next) {
+        unique.set(String(message.id), message);
+    }
+
+    return Array.from(unique.values()).sort((a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+}
+
+function upsertMessages(prev: MessageRow[], incoming: MessageRow[]) {
+    return incoming.reduce((next, message) => upsertMessage(next, message), prev);
+}
+
 export default function InboxIndex({ conversations: _conversations, users, currentUserId: pageCurrentUserId, unreadCount: _unreadCount }: PageProps) {
     const authUser = (usePage().props.auth?.user as { id: number; name: string } | undefined) || { id: 0, name: '' };
     const currentUserId = pageCurrentUserId || authUser.id;
@@ -63,6 +110,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
     const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
     const [highlightMsgId, setHighlightMsgId] = useState<number | null>(null);
     const [newMsgAvailable, setNewMsgAvailable] = useState(false);
+    const [infoPanelCollapsed, setInfoPanelCollapsed] = useState(false);
 
     const prevLastMsgIds = useRef<Record<number, number | null>>({});
     const selectedConvRef = useRef<ConversationRow | null>(null);
@@ -156,7 +204,17 @@ export default function InboxIndex({ conversations: _conversations, users, curre
 
         fetch('/inbox/archived')
             .then((response) => response.json())
-            .then((data) => setArchivedConversations(data.conversations || []))
+            .then((data) => {
+                const fetched = (data.conversations || []) as ConversationRow[];
+                setArchivedConversations((prev) => {
+                    const merged = new Map<number, ConversationRow>();
+                    for (const item of prev) merged.set(item.id, item);
+                    for (const item of fetched) merged.set(item.id, item);
+                    return Array.from(merged.values())
+                        .filter((item) => item.archivedAt)
+                        .sort((a, b) => new Date(b.lastMessageAt || b.createdAt || 0).getTime() - new Date(a.lastMessageAt || a.createdAt || 0).getTime());
+                });
+            })
             .catch(() => toast.error('Failed to load archived conversations'));
     }, [convTab]);
 
@@ -195,27 +253,35 @@ export default function InboxIndex({ conversations: _conversations, users, curre
     useEffect(() => {
         const e = echo();
         const channel = e.private(`user.${currentUserId}.inbox`);
-        channel.listen('.inbox.updated', (payload: any) => {
-            console.debug('[chat] inbox.updated', payload);
-            if (payload.conversation) {
-                const conv = payload.conversation as ConversationRow;
-                setConversations((prev) => {
-                    const exists = prev.some((c) => c.id === conv.id);
-                    const next = exists
-                        ? prev.map((c) => c.id === conv.id ? { ...c, ...conv } : c)
-                        : [conv, ...prev];
-                    return next.sort((a, b) => {
-                        const ad = new Date(a.lastMessageAt || a.updatedAt || 0).getTime();
-                        const bd = new Date(b.lastMessageAt || b.updatedAt || 0).getTime();
-                        return bd - ad;
-                    });
+
+        const applyInboxUpdate = (payload: any) => {
+            if (!payload.conversation) return;
+
+            const conv = payload.conversation as ConversationRow;
+            setConversations((prev) => {
+                const exists = prev.some((c) => c.id === conv.id);
+                const next = exists
+                    ? prev.map((c) => c.id === conv.id ? { ...c, ...conv } : c)
+                    : [conv, ...prev];
+                return next.sort((a, b) => {
+                    const ad = new Date(a.lastMessageAt || a.updatedAt || 0).getTime();
+                    const bd = new Date(b.lastMessageAt || b.updatedAt || 0).getTime();
+                    return bd - ad;
                 });
-                if (selectedConvRef.current?.id === conv.id) {
-                    setSelectedConv((current) => current ? { ...current, ...conv, unreadCount: 0 } : current);
-                }
+            });
+            if (selectedConvRef.current?.id === conv.id) {
+                setSelectedConv((current) => current ? { ...current, ...conv, unreadCount: 0 } : current);
             }
+        };
+
+        channel.error((error: any) => console.error('[chat] inbox subscription error', currentUserId, error));
+        channel.listen('.inbox.updated', applyInboxUpdate);
+        channel.listenToAll((event: string, payload: any) => {
+            if (event.replace(/^\./, '') === 'inbox.updated') applyInboxUpdate(payload);
         });
+
         return () => {
+            channel.stopListening('.inbox.updated', applyInboxUpdate);
             echo().leave(`user.${currentUserId}.inbox`);
         };
     }, [currentUserId]);
@@ -223,28 +289,22 @@ export default function InboxIndex({ conversations: _conversations, users, curre
     // Subscribe to active conversation via Echo
     useEffect(() => {
         if (!selectedConv) return;
-        console.debug('[chat] subscribing conversation', selectedConv.id);
         const channel = echo().private(`conversation.${selectedConv.id}`);
 
-        channel.listen('.message.created', (payload: any) => {
-            console.debug('[chat] received message.created', payload);
-            const msg = payload.message as MessageRow;
-            const incomingConversationId = Number(payload.conversationId || selectedConv.id);
+        const applyMessageCreated = (payload: any) => {
+            const msg = payload.message as MessageRow | undefined;
+            if (!msg) return;
 
+            const incomingConversationId = Number(payload.conversationId || selectedConv.id);
             if (incomingConversationId !== selectedConvRef.current?.id) {
-                console.debug('[chat] ignored message for another conversation', incomingConversationId, selectedConvRef.current?.id);
                 return;
             }
 
-            setMessages((prev) => {
-                if (prev.some((m) => m.id === msg.id)) return prev;
-                return [...prev, msg];
-            });
-
+            setMessages((prev) => upsertMessage(prev, msg));
             setConversations((prev) => prev.map((c) =>
                 c.id === incomingConversationId
                     ? { ...c, lastMessage: msg, lastMessageAt: msg.createdAt }
-                    : c
+                    : c,
             ));
 
             if (msg.userId !== currentUserId && !nearBottomRef.current) {
@@ -255,24 +315,40 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                     document.getElementById(`msg-${msg.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'end' });
                 });
             }
-        });
+        };
 
-        channel.listen('.message.updated', (payload: any) => {
-            console.debug('[chat] received message.updated', payload);
-            const msg = payload.message as MessageRow;
-            setMessages((prev) => prev.map((m) => m.id === msg.id ? msg : m));
-        });
+        const applyMessageUpdated = (payload: any) => {
+            const msg = payload.message as MessageRow | undefined;
+            if (!msg) return;
+            setMessages((prev) => upsertMessage(prev, msg));
+        };
 
-        channel.listen('.message.deleted', (payload: any) => {
-            console.debug('[chat] received message.deleted', payload);
-            const { messageId } = payload;
+        const applyMessageDeleted = (payload: any) => {
+            const messageId = Number(payload.messageId);
+            if (!messageId) return;
             setMessages((prev) => prev.filter((m) => m.id !== messageId));
-        });
+        };
+
+        const applyConversationEvent = (event: string, payload: any) => {
+            const normalizedEvent = event.replace(/^\./, '');
+            if (normalizedEvent === 'message.created') applyMessageCreated(payload);
+            if (normalizedEvent === 'message.updated') applyMessageUpdated(payload);
+            if (normalizedEvent === 'message.deleted') applyMessageDeleted(payload);
+        };
+
+        channel.error((error: any) => console.error('[chat] conversation subscription error', selectedConv.id, error));
+        channel.listen('.message.created', applyMessageCreated);
+        channel.listen('.message.updated', applyMessageUpdated);
+        channel.listen('.message.deleted', applyMessageDeleted);
+        channel.listenToAll(applyConversationEvent);
 
         return () => {
+            channel.stopListening('.message.created', applyMessageCreated);
+            channel.stopListening('.message.updated', applyMessageUpdated);
+            channel.stopListening('.message.deleted', applyMessageDeleted);
             echo().leave(`conversation.${selectedConv.id}`);
         };
-    }, [selectedConv?.id]);
+    }, [selectedConv?.id, currentUserId]);
 
     // Reset new message available when user scrolls to bottom
     useEffect(() => {
@@ -288,7 +364,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
         fetch(`/inbox/${conv.id}?page=1`)
             .then((r) => r.json())
             .then((data) => {
-                setMessages((data.messages || []).reverse());
+                setMessages(upsertMessages([], (data.messages || []).reverse()));
                 setPaginator(data.paginator || null);
                 setConversations((prev) => prev.map((c) =>
                     c.id === conv.id ? { ...c, unreadCount: 0 } : c
@@ -305,7 +381,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
         fetch(`/inbox/${selectedConv.id}?page=${nextPage}`)
             .then((r) => r.json())
             .then((data) => {
-                setMessages((prev) => [...(data.messages || []).reverse(), ...prev]);
+                setMessages((prev) => upsertMessages(prev, (data.messages || []).reverse()));
                 setPaginator(data.paginator || null);
             })
             .catch(() => toast.error('Failed to load older messages'))
@@ -330,7 +406,10 @@ export default function InboxIndex({ conversations: _conversations, users, curre
         })
             .then((response) => {
                 if (!response.ok) throw new Error('Archive failed');
-                const updated = { ...conv, archivedAt: nextArchived ? new Date().toISOString() : null };
+                return response.json();
+            })
+            .then((data) => {
+                const updated = (data.conversation || { ...conv, archivedAt: nextArchived ? new Date().toISOString() : null }) as ConversationRow;
 
                 if (nextArchived) {
                     setConversations((prev) => prev.filter((item) => item.id !== conv.id));
@@ -344,6 +423,10 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                 } else {
                     setArchivedConversations((prev) => prev.filter((item) => item.id !== conv.id));
                     setConversations((prev) => [updated, ...prev.filter((item) => item.id !== conv.id)]);
+                    if (selectedConv?.id === conv.id) {
+                        setSelectedConv(updated);
+                        setConvTab('active');
+                    }
                     toast.success('Conversation restored.');
                 }
             })
@@ -374,7 +457,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             updatedAt: new Date().toISOString(),
         };
 
-        setMessages((prev) => [...prev, optimisticMsg]);
+        setMessages((prev) => upsertMessage(prev, optimisticMsg));
         nearBottomRef.current = true;
         setNewMsgAvailable(false);
 
@@ -409,7 +492,12 @@ export default function InboxIndex({ conversations: _conversations, users, curre
         return promise
             .then((r) => r.json())
             .then((msg: MessageRow) => {
-                setMessages((prev) => prev.map((item) => item.id === tempId ? msg : item));
+                setMessages((prev) => {
+                    const withoutTempAndDuplicate = prev.filter((item) =>
+                        String(item.id) !== String(tempId) && String(item.id) !== String(msg.id),
+                    );
+                    return upsertMessage(withoutTempAndDuplicate, msg);
+                });
                 setConversations((prev) => prev.map((c) =>
                     c.id === selectedConv!.id
                         ? { ...c, lastMessage: msg, lastMessageAt: msg.createdAt }
@@ -455,10 +543,10 @@ export default function InboxIndex({ conversations: _conversations, users, curre
     return (
         <>
             <Head title="Messages" />
-            <AppShell fullBleed>
-                <div className="flex h-full w-full overflow-hidden">
-                    {/* Conversation sidebar */}
-                    <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} w-full flex-col border-r border-[var(--crm-border)] bg-[var(--crm-elevated)] md:flex md:w-[360px] lg:w-[380px]`}>
+            <AppShell fullBleed hideMobileNav={selectedConv !== null}>
+                <div className="flex h-full min-h-0 w-full overflow-hidden">
+                    {/* Conversation sidebar — mobile: full width when list, hidden when chat; md+: fixed width */}
+                    <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} h-full min-w-0 w-full flex-col border-r border-[var(--crm-border)] bg-[var(--crm-elevated)] lg:flex lg:w-[360px] xl:w-[380px] ${mobileView === 'list' ? 'app-safe-bottom lg:pb-0' : ''}`}>
                         <ConversationList
                             conversations={filteredConvs}
                             selectedConvId={selectedConv?.id ?? null}
@@ -473,11 +561,12 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                         />
                     </div>
 
-                    {/* Chat area */}
-                    <div className={`${mobileView === 'list' ? 'hidden' : 'flex'} flex-1 flex-col min-w-0 md:flex`}>
+                    {/* Chat area — mobile: full width when chat, hidden when list; md+: flex */}
+                    <div className={`${mobileView === 'list' ? 'hidden' : 'flex'} min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex`}>
                         {selectedConv ? (
                             <>
-                                <div className="flex items-center gap-3 border-b border-[var(--crm-border)] bg-[var(--crm-surface)] px-4 py-3 md:hidden">
+                                {/* Mobile back button + header */}
+                                <div className="flex shrink-0 items-center gap-3 border-b border-[var(--crm-border)] bg-[var(--crm-surface)] px-4 py-3 lg:hidden">
                                     <button type="button" onClick={goToConversationList}
                                         className="flex size-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]">
                                         <ArrowLeft size={18} />
@@ -489,7 +578,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                                         <p className="truncate text-sm font-semibold text-[var(--crm-text)]">{conversationName(selectedConv, currentUserId)}</p>
                                     </div>
                                 </div>
-                                <div className="relative flex-1 flex flex-col min-h-0">
+                                <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
                                     <MessageThread
                                         conversation={selectedConv}
                                         conversations={conversations}
@@ -500,7 +589,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                                         currentUserId={currentUserId}
                                         onSend={sendMessage}
                                         onLoadOlder={loadOlderMessages}
-                                        onMessageUpdate={(message) => setMessages((prev) => prev.map((item) => item.id === message.id ? message : item))}
+                                        onMessageUpdate={(message) => setMessages((prev) => upsertMessage(prev, message))}
                                         onMessageDelete={(messageId) => setMessages((prev) => prev.filter((item) => item.id !== messageId))}
                                         onScroll={handleScroll}
                                     />
@@ -516,7 +605,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                                 </div>
                             </>
                         ) : (
-                            <div className="hidden flex-1 items-center justify-center md:flex">
+                            <div className="hidden flex-1 items-center justify-center lg:flex">
                                 <div className="text-center">
                                     <MessageSquare size={40} className="mx-auto text-[var(--crm-muted)]" />
                                     <p className="mt-3 text-sm text-[var(--crm-text-muted)]">Select a conversation</p>
@@ -530,6 +619,8 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                         messages={messages}
                         currentUserId={currentUserId}
                         onArchiveToggle={toggleArchive}
+                        collapsed={infoPanelCollapsed}
+                        onToggleCollapsed={() => setInfoPanelCollapsed((value) => !value)}
                     />
                 </div>
 
@@ -545,13 +636,6 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                     onSubmit={handleNewConv}
                 />
             </AppShell>
-
-            {import.meta.env.DEV ? (
-                <div className="fixed bottom-2 right-2 z-[200] flex items-center gap-2 rounded-full bg-black/80 px-3 py-1 text-[9px] text-white/80 font-mono">
-                    <span>UID:{currentUserId}</span>
-                    <span>CID:{selectedConv?.id ?? '-'}</span>
-                </div>
-            ) : null}
         </>
     );
 }

@@ -15,10 +15,8 @@ export function useTyping(conversationId: number | null, currentUserId: number, 
         }
 
         const channel = echo().private(`conversation.${conversationId}`);
-        console.debug('[chat] typing subscribe', conversationId);
 
         const handler = (payload: any) => {
-            console.debug('[chat] typing received', payload);
 
             const userId = Number(payload?.user?.id);
             if (!userId || userId === currentUserId) return;
@@ -43,9 +41,18 @@ export function useTyping(conversationId: number | null, currentUserId: number, 
             }, 2200);
         };
 
+        const allEventsHandler = (event: string, payload: any) => {
+            const normalizedEvent = event.replace(/^\./, '');
+            if (normalizedEvent === 'client-typing') handler(payload);
+        };
+
+        channel.error((error: any) => console.error('[chat] typing subscription error', conversationId, error));
         channel.listenForWhisper('typing', handler);
+        channel.listenToAll(allEventsHandler);
 
         return () => {
+            channel.stopListeningForWhisper('typing', handler);
+            channel.stopListeningToAll(allEventsHandler);
             Object.values(timersRef.current).forEach(clearTimeout);
             timersRef.current = {};
             setTypingUsers([]);
@@ -59,7 +66,6 @@ export function useTyping(conversationId: number | null, currentUserId: number, 
         if (now - lastSentRef.current < 700) return;
         lastSentRef.current = now;
 
-        console.debug('[chat] typing sent', conversationId, currentUserId, currentUserName);
 
         echo().private(`conversation.${conversationId}`).whisper('typing', {
             user: {

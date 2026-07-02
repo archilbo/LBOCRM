@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    ArrowUpDown,
     BadgeDollarSign,
     CheckCircle2,
     Download,
@@ -8,6 +9,7 @@ import {
     FileText,
     Pencil,
     Plus,
+    RefreshCw,
     ReceiptText,
     Search,
     Settings2,
@@ -337,27 +339,51 @@ function FinanceDocumentWorkspace({
     const [query, setQuery] = useState('');
     const filtered = useMemo(() => documents.filter((document) => documentMatches(document, query)), [documents, query]);
     const [tablePage, setTablePage] = useState(1);
+    const [selectedRows, setSelectedRows] = useState<number[]>([]);
     const TABLE_PAGE_SIZE = 15;
     useEffect(() => { setTablePage(1); }, [query]);
     const pagedFiltered = useMemo(() => filtered.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE), [filtered, tablePage]);
     const selectedVisible = selected && filtered.some((document) => document.id === selected.id) ? selected : filtered[0] ?? null;
+    const allPageRowsSelected = pagedFiltered.length > 0 && pagedFiltered.every((document) => selectedRows.includes(document.id));
+
+    function toggleRow(documentId: number) {
+        setSelectedRows((current) => (
+            current.includes(documentId)
+                ? current.filter((id) => id !== documentId)
+                : [...current, documentId]
+        ));
+    }
+
+    function togglePageRows() {
+        setSelectedRows((current) => {
+            const pageIds = pagedFiltered.map((document) => document.id);
+
+            if (pageIds.every((id) => current.includes(id))) {
+                return current.filter((id) => !pageIds.includes(id));
+            }
+
+            return Array.from(new Set([...current, ...pageIds]));
+        });
+    }
+
+    function statusVariant(status: string) {
+        if (status === 'paid' || status === 'accepted') return 'crm-reference-status-success';
+        if (status === 'issued' || status === 'sent') return 'crm-reference-status-info';
+        if (status === 'partially_paid' || status === 'draft') return 'crm-reference-status-warning';
+        if (status === 'overdue' || status === 'rejected' || status === 'cancelled') return 'crm-reference-status-danger';
+
+        return 'crm-reference-status-muted';
+    }
 
     return (
-        <section className="space-y-5">
-            <div className="crm-panel p-4">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
-                        <p className="text-sm font-semibold">Finance document workspace</p>
-                        <p className="text-xs text-[var(--crm-text-muted)]">{filtered.length} visible document(s)</p>
-                    </div>
-
-                    <div className="crm-command-input relative w-full xl:w-[420px]">
-                        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
+        <section className="crm-reference-table-shell">
+            <div className="crm-reference-toolbar">
+                    <div className="crm-reference-search">
+                        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
                         <input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
-                            placeholder={searchPlaceholder}
-                            className="h-full w-full bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-[var(--crm-text-soft)]"
+                            placeholder="Search..."
                         />
                         {query ? (
                             <button
@@ -369,60 +395,100 @@ function FinanceDocumentWorkspace({
                             </button>
                         ) : null}
                     </div>
-                </div>
+
+                    <div className="crm-reference-toolbar-actions">
+                        <button type="button" className="crm-reference-button" onClick={() => router.reload({ only: ['documents'] })}>
+                            <RefreshCw size={13} />
+                            Update
+                        </button>
+                        <button type="button" className="crm-reference-button">
+                            <Settings2 size={13} />
+                            Filter
+                        </button>
+                        <button type="button" className="crm-reference-button">
+                            <ArrowUpDown size={13} />
+                            Sort
+                        </button>
+                    </div>
+
+                    <div className="hidden text-xs font-semibold text-[var(--crm-text-muted)] md:block">
+                        {filtered.length} document(s)
+                    </div>
             </div>
 
-            <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-                <div className="crm-panel overflow-hidden">
-                    <div className="app-scrollbar overflow-x-auto">
-                        <table className="crm-table min-w-[1080px]">
+                <div className="crm-reference-table-card">
+                    <div className="crm-reference-table-scroll">
+                        <table className="crm-reference-table">
                             <thead>
                                 <tr>
-                                    <th>Document</th>
-                                    <th>Client / Dossier</th>
-                                    <th>Status</th>
-                                    <th>Total</th>
-                                    <th>Paid</th>
-                                    <th>Remaining</th>
-                                    <th>Files</th>
-                                    <th>Actions</th>
+                                    <th className="w-10">
+                                        <input
+                                            aria-label="Select visible finance documents"
+                                            type="checkbox"
+                                            className="crm-reference-check"
+                                            checked={allPageRowsSelected}
+                                            onChange={togglePageRows}
+                                        />
+                                    </th>
+                                    <th><span className="crm-reference-header-cell"><ReceiptText size={13} /> Document <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
+                                    <th><span className="crm-reference-header-cell"><BadgeDollarSign size={13} /> Type</span></th>
+                                    <th><span className="crm-reference-header-cell"><FileText size={13} /> Client / Dossier <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
+                                    <th><span className="crm-reference-header-cell"><CheckCircle2 size={13} /> Status <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
+                                    <th><span className="crm-reference-header-cell"><WalletCards size={13} /> Total</span></th>
+                                    <th><span className="crm-reference-header-cell"><WalletCards size={13} /> Paid</span></th>
+                                    <th><span className="crm-reference-header-cell"><WalletCards size={13} /> Remaining</span></th>
+                                    <th><span className="crm-reference-header-cell"><Download size={13} /> Files</span></th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filtered.length > 0 ? (
                                     pagedFiltered.map((document) => {
                                         const rowSelected = selectedVisible?.id === document.id;
+                                        const rowChecked = selectedRows.includes(document.id);
 
                                         return (
                                             <tr
                                                 key={document.id}
-                                                className={rowSelected ? 'bg-[color-mix(in_srgb,var(--crm-gold)_8%,transparent)]' : ''}
+                                                className={rowSelected || rowChecked ? 'is-selected' : ''}
                                                 onClick={() => onSelect(document)}
                                             >
                                                 <td>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
+                                                    <input
+                                                        aria-label={`Select ${document.number}`}
+                                                        type="checkbox"
+                                                        className="crm-reference-check"
+                                                        checked={rowChecked}
+                                                        onClick={(event) => event.stopPropagation()}
+                                                        onChange={() => toggleRow(document.id)}
+                                                    />
+                                                </td>
+                                                <td>
+                                                    <div className="inline-flex max-w-[190px] items-center gap-2">
+                                                        <span className="crm-reference-avatar">
                                                             <ReceiptText size={16} />
                                                         </span>
                                                         <div className="min-w-0">
                                                             <div className="flex flex-wrap items-center gap-1.5">
-                                                                <p className="max-w-[190px] truncate font-semibold text-[var(--crm-text)]">{document.number}</p>
+                                                                <p className="max-w-[150px] truncate font-semibold text-[var(--crm-text)]">{document.number}</p>
                                                                 <FinanceDocumentLockBadge document={document} compact />
                                                             </div>
-                                                            <p className="text-xs text-[var(--crm-text-muted)]">{document.typeLabel || typeLabel(document.type)}</p>
                                                         </div>
                                                     </div>
                                                 </td>
+                                                <td>{document.typeLabel || typeLabel(document.type)}</td>
                                                 <td>
-                                                    <p className="max-w-[200px] truncate font-medium text-[var(--crm-text)]">{document.client?.name || '-'}</p>
-                                                    <p className="max-w-[200px] truncate text-xs text-[var(--crm-text-muted)]">{document.dossier?.number || '-'} {document.dossier?.projectObject || ''}</p>
+                                                    <p className="max-w-[220px] truncate font-medium text-[var(--crm-text)]">{document.client?.name || '-'}</p>
+                                                    <p className="max-w-[220px] truncate text-[10px] text-[var(--crm-text-soft)]">{document.dossier?.number || '-'} {document.dossier?.projectObject || ''}</p>
                                                 </td>
                                                 <td>
-                                                    <FinanceStatusBadge status={document.status} />
+                                                    <span className={`crm-reference-status ${statusVariant(document.status)}`}>
+                                                        {document.status}
+                                                    </span>
                                                 </td>
                                                 <td className="font-semibold">{formatMoney(document.totalTtc, currency)}</td>
-                                                <td className="text-emerald-300">{formatMoney(document.paidTotal, currency)}</td>
-                                                <td className={document.remainingTotal > 0 ? 'text-red-300' : 'text-[var(--crm-text-muted)]'}>
+                                                <td className="text-[var(--crm-success)]">{formatMoney(document.paidTotal, currency)}</td>
+                                                <td className={document.remainingTotal > 0 ? 'text-[var(--crm-danger)]' : 'text-[var(--crm-text-muted)]'}>
                                                     {formatMoney(document.remainingTotal, currency)}
                                                 </td>
                                                 <td>
@@ -430,20 +496,20 @@ function FinanceDocumentWorkspace({
                                                 </td>
                                                 <td>
                                                     <div className="flex justify-end gap-1">
-                                                        <button type="button" className="crm-action-button" title="Open" onClick={(event) => { event.stopPropagation(); router.visit(`/finance/documents/${document.id}`); }}>
+                                                        <button type="button" className="crm-reference-kebab" title="Open" onClick={(event) => { event.stopPropagation(); router.visit(`/finance/documents/${document.id}`); }}>
                                                             <Eye size={14} />
                                                         </button>
-                                                        <button type="button" className="crm-action-button" title="Edit" onClick={(event) => { event.stopPropagation(); actions.onEdit(document); }}>
+                                                        <button type="button" className="crm-reference-kebab" title="Edit" onClick={(event) => { event.stopPropagation(); actions.onEdit(document); }}>
                                                             <Pencil size={14} />
                                                         </button>
-                                                        <button type="button" className="crm-action-button" title="Generate PDF" onClick={(event) => { event.stopPropagation(); actions.onGeneratePdf(document); }}>
+                                                        <button type="button" className="crm-reference-kebab" title="Generate PDF" onClick={(event) => { event.stopPropagation(); actions.onGeneratePdf(document); }}>
                                                             <FileText size={14} />
                                                         </button>
-                                                        <button type="button" className="crm-action-button" title="Generate Excel" onClick={(event) => { event.stopPropagation(); actions.onGenerateExcel(document); }}>
+                                                        <button type="button" className="crm-reference-kebab" title="Generate Excel" onClick={(event) => { event.stopPropagation(); actions.onGenerateExcel(document); }}>
                                                             <FileSpreadsheet size={14} />
                                                         </button>
                                                         {document.type === 'invoice' ? (
-                                                            <button type="button" className="crm-action-button" title="Payment" onClick={(event) => { event.stopPropagation(); actions.onPayment(document); }}>
+                                                            <button type="button" className="crm-reference-kebab" title="Payment" onClick={(event) => { event.stopPropagation(); actions.onPayment(document); }}>
                                                                 <WalletCards size={14} />
                                                             </button>
                                                         ) : null}
@@ -454,9 +520,9 @@ function FinanceDocumentWorkspace({
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan={8}>
+                                        <td colSpan={10}>
                                             <div className="py-10 text-center">
-                                                <p className="text-sm font-semibold">No finance documents found</p>
+                                                <p className="text-sm font-semibold text-[var(--crm-text)]">No finance documents found</p>
                                                 <p className="mt-1 text-sm text-[var(--crm-text-muted)]">Change search or create a new document.</p>
                                             </div>
                                         </td>
@@ -465,12 +531,34 @@ function FinanceDocumentWorkspace({
                             </tbody>
                         </table>
                     </div>
+
+                    <div className="crm-reference-mobile-list">
+                        {pagedFiltered.map((document) => (
+                            <article key={document.id} className="crm-reference-mobile-card">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-bold">{document.number}</p>
+                                        <p className="text-xs text-[var(--crm-text-muted)]">{document.client?.name || '-'} / {document.dossier?.number || '-'}</p>
+                                    </div>
+                                    <span className={`crm-reference-status ${statusVariant(document.status)}`}>
+                                        {document.status}
+                                    </span>
+                                </div>
+                                <div className="mt-3 grid gap-1 text-xs text-[var(--crm-text-muted)]">
+                                    <span>Total: {formatMoney(document.totalTtc, currency)}</span>
+                                    <span>Paid: {formatMoney(document.paidTotal, currency)}</span>
+                                    <span>Remaining: {formatMoney(document.remainingTotal, currency)}</span>
+                                </div>
+                                <div className="mt-3 flex gap-2">
+                                    <button type="button" className="crm-reference-button flex-1" onClick={() => router.visit(`/finance/documents/${document.id}`)}>Open</button>
+                                    <button type="button" className="crm-reference-button" onClick={() => actions.onEdit(document)}>Edit</button>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+
+                    <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filtered.length} onChange={setTablePage} variant="reference" />
                 </div>
-
-                <FinanceDocumentDetailPanel document={selectedVisible} actions={actions} />
-            </section>
-
-            <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filtered.length} onChange={setTablePage} />
         </section>
     );
 }

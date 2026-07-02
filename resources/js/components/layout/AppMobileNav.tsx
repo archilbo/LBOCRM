@@ -21,8 +21,8 @@ export function AppMobileNav() {
     }
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--crm-border)] bg-[color-mix(in_srgb,var(--crm-bg-2)_94%,transparent)] px-2 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-xl lg:hidden">
-            <div className="grid grid-cols-6 gap-1">
+        <nav id="app-bottom-nav">
+            <div className="scrollbar-none flex h-full items-center gap-1 overflow-x-auto px-2 pt-1">
                 {mobileItems.map((item) => {
                     const Icon = item.icon;
                     const active = item.key === 'finance'
@@ -35,14 +35,14 @@ export function AppMobileNav() {
                             type="button"
                             onClick={() => goTo(item.href, item.enabled)}
                             className={[
-                                'flex min-w-0 flex-col items-center justify-center rounded-[var(--crm-radius-md)] px-1 py-2 text-[10px] font-bold transition',
+                                'flex h-11 min-w-[68px] shrink-0 flex-col items-center justify-center rounded-[var(--crm-radius-md)] px-2 py-1.5 text-[10px] font-bold transition',
                                 active
                                     ? 'bg-[var(--crm-gold)] text-black'
                                     : 'text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-2)] hover:text-[var(--crm-text)]',
                             ].join(' ')}
                         >
                             <Icon size={17} />
-                            <span className="mt-1 max-w-full truncate">{t(item.labelKey)}</span>
+                            <span className="mt-0.5 max-w-full truncate leading-tight">{t(item.labelKey)}</span>
                         </button>
                     );
                 })}

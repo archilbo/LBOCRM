@@ -7,13 +7,16 @@ import { createRoot } from 'react-dom/client';
 import { AppToastProvider } from '@/providers/AppToastProvider';
 import { AppFlashToasts } from '@/components/layout/AppFlashToasts';
 import { ThemeProvider } from '@/providers/ThemeProvider';
-import { configureEcho } from '@laravel/echo-react';
+import { configureEcho, echo } from '@laravel/echo-react';
 
 const reverbKey = import.meta.env.VITE_REVERB_APP_KEY || 'local';
 const reverbHost = import.meta.env.VITE_REVERB_HOST || '127.0.0.1';
 const reverbPort = import.meta.env.VITE_REVERB_PORT || '8080';
 const reverbScheme = import.meta.env.VITE_REVERB_SCHEME || 'http';
 const useTLS = reverbScheme === 'https';
+const csrfToken = (window as any).csrfToken
+    || document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content
+    || '';
 
 configureEcho({
     broadcaster: 'reverb',
@@ -24,8 +27,16 @@ configureEcho({
     forceTLS: useTLS,
     enabledTransports: useTLS ? ['wss', 'ws'] : ['ws'],
     authEndpoint: '/broadcasting/auth',
-    csrfToken: (window as any).csrfToken || '',
+    csrfToken,
+    auth: {
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    },
 });
+
+
 
 createInertiaApp({
     title: (title) => title ? `${title} - ARCHI LBO OS` : 'ARCHI LBO OS',

@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ConversationParticipant extends Model
 {
-    protected $fillable = ['conversation_id', 'user_id', 'last_read_at', 'typing_at'];
+    protected $fillable = ['conversation_id', 'user_id', 'last_read_at', 'typing_at', 'archived_at'];
 
-    protected $casts = ['joined_at' => 'datetime', 'last_read_at' => 'datetime', 'typing_at' => 'datetime'];
+    protected $casts = ['joined_at' => 'datetime', 'last_read_at' => 'datetime', 'typing_at' => 'datetime', 'archived_at' => 'datetime'];
 
     public function conversation(): BelongsTo { return $this->belongsTo(Conversation::class); }
     public function user(): BelongsTo { return $this->belongsTo(User::class); }

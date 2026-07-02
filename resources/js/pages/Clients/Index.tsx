@@ -1,13 +1,21 @@
 import { Head, router } from '@inertiajs/react';
 import {
     ArrowRight,
+    ArrowUpDown,
     BriefcaseBusiness,
+    Building2,
+    CalendarDays,
+    CheckCircle2,
+    FileText,
     FolderKanban,
     Mail,
+    MoreVertical,
     Pencil,
     Phone,
     Plus,
+    RefreshCw,
     Search,
+    SlidersHorizontal,
     Trash2,
     UserRound,
 } from 'lucide-react';
@@ -88,6 +96,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     const [statusFilter, setStatusFilter] = useState<'all' | ClientStatus>('all');
     const [query, setQuery] = useState('');
     const [tablePage, setTablePage] = useState(1);
+    const [selectedRows, setSelectedRows] = useState<number[]>([]);
     const TABLE_PAGE_SIZE = 15;
 
     const filteredClients = useMemo(() => {
@@ -124,6 +133,8 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     const activeClient = selectedClient && filteredClients.some((client) => client.id === selectedClient.id)
         ? selectedClient
         : filteredClients[0] ?? clients[0] ?? null;
+
+    const allPageRowsSelected = pagedClients.length > 0 && pagedClients.every((client) => selectedRows.includes(client.id));
 
     const statusOptions = [
         { id: 'all' as const, label: 'All', count: clients.length },
@@ -190,6 +201,26 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
         });
     }
 
+    function toggleRow(clientId: number) {
+        setSelectedRows((current) => (
+            current.includes(clientId)
+                ? current.filter((id) => id !== clientId)
+                : [...current, clientId]
+        ));
+    }
+
+    function togglePageRows() {
+        setSelectedRows((current) => {
+            const pageIds = pagedClients.map((client) => client.id);
+
+            if (pageIds.every((id) => current.includes(id))) {
+                return current.filter((id) => !pageIds.includes(id));
+            }
+
+            return Array.from(new Set([...current, ...pageIds]));
+        });
+    }
+
     return (
         <>
             <Head title="Clients" />
@@ -229,110 +260,120 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                         </div>
                     </section>
 
-<section className="crm-panel p-4">
-                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                            <div className="flex flex-wrap gap-2">
+                    <section className="crm-reference-table-shell">
+                        <div className="crm-reference-toolbar">
+                            <div className="crm-reference-search">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" size={14} />
+                                <input
+                                    value={query}
+                                    onChange={(event) => setQuery(event.target.value)}
+                                    placeholder="Search..."
+                                />
+                            </div>
+
+                            <div className="crm-reference-toolbar-actions">
+                                <button type="button" className="crm-reference-button" onClick={() => router.reload({ only: ['clients'] })}>
+                                    <RefreshCw size={13} />
+                                    Update
+                                </button>
+                                <button type="button" className="crm-reference-button">
+                                    <SlidersHorizontal size={13} />
+                                    Filter
+                                </button>
+                                <button type="button" className="crm-reference-button">
+                                    <ArrowUpDown size={13} />
+                                    Sort
+                                </button>
+                            </div>
+
+                            <div className="crm-reference-filter-bar">
                                 {statusOptions.map((option) => (
                                     <button
                                         key={option.id}
                                         type="button"
                                         onClick={() => setStatusFilter(option.id)}
                                         className={[
-                                            'inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition',
-                                            statusFilter === option.id
-                                                ? 'border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_22%,transparent)] text-[var(--crm-accent)]'
-                                                : 'border-[var(--crm-border)] bg-[var(--crm-elevated)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]',
+                                            'crm-reference-filter',
+                                            statusFilter === option.id ? 'crm-reference-filter-active' : '',
                                         ].join(' ')}
                                     >
                                         {option.label}
-                                        <span className="rounded-full bg-black/25 px-2 py-0.5 text-xs">{option.count}</span>
+                                        <span>{option.count}</span>
                                     </button>
                                 ))}
                             </div>
 
-                            <div className="relative min-w-0 xl:w-[420px]">
-                                <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]" size={16} />
-                                <input
-                                    value={query}
-                                    onChange={(event) => setQuery(event.target.value)}
-                                    placeholder="Search clients, CIN, phone, email..."
-                                    className="crm-command-input h-11 w-full pl-11"
-                                />
-                            </div>
+                            <button type="button" className="crm-reference-button crm-reference-button-primary" onClick={openCreateDrawer}>
+                                <Plus size={13} />
+                                Add Client
+                            </button>
                         </div>
-                    </section>
 
-                    <section className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,1fr)_380px]">
-                        <div className="crm-panel min-w-0 overflow-hidden">
-                            <div className="flex items-center justify-between border-b border-[var(--crm-border)] px-5 py-4">
-                                <div>
-                                    <h2 className="text-sm font-semibold text-[var(--crm-text)]">Client workspace</h2>
-                                    <p className="text-xs text-[var(--crm-muted)]">{filteredClients.length} visible client(s)</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={openCreateDrawer}
-                                    className="crm-action-button border-[var(--crm-border)] text-[var(--crm-accent)]"
-                                >
-                                    <Plus size={14} />
-                                    Client
-                                </button>
-                            </div>
-
-                            <div className="overflow-x-auto">
-                                <table className="crm-table">
+                        <div className="crm-reference-table-card">
+                            <div className="crm-reference-table-scroll">
+                                <table className="crm-reference-table">
                                     <thead>
                                         <tr>
-                                            <th>Client</th>
-                                            <th>CIN</th>
-                                            <th>Contact</th>
-                                            <th>Intermediary</th>
-                                            <th>Projects</th>
-                                            <th>Status</th>
-                                            <th>Updated</th>
+                                            <th className="w-10">
+                                                <input
+                                                    aria-label="Select visible clients"
+                                                    type="checkbox"
+                                                    className="crm-reference-check"
+                                                    checked={allPageRowsSelected}
+                                                    onChange={togglePageRows}
+                                                />
+                                            </th>
+                                            <th><span className="crm-reference-header-cell"><UserRound size={13} /> Client Name <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
+                                            <th><span className="crm-reference-header-cell"><FileText size={13} /> CIN <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
+                                            <th><span className="crm-reference-header-cell"><Phone size={13} /> Contact</span></th>
+                                            <th><span className="crm-reference-header-cell"><Building2 size={13} /> Intermediary <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
+                                            <th><span className="crm-reference-header-cell"><BriefcaseBusiness size={13} /> Project</span></th>
+                                            <th><span className="crm-reference-header-cell"><CheckCircle2 size={13} /> Status <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
+                                            <th><span className="crm-reference-header-cell"><CalendarDays size={13} /> Updated <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
                                             <th className="text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {pagedClients.map((client) => {
-                                            const selected = activeClient?.id === client.id;
+                                            const selected = selectedRows.includes(client.id);
+                                            const statusVariant = client.status === 'active'
+                                                ? 'crm-reference-status-success'
+                                                : client.status === 'inactive'
+                                                    ? 'crm-reference-status-warning'
+                                                    : 'crm-reference-status-muted';
 
                                             return (
-                                                <tr
-                                                    key={client.id}
-                                                    onClick={() => setSelectedClient(client)}
-                                                    className={selected ? 'bg-[color-mix(in_srgb,var(--crm-accent)_12%,transparent)]' : undefined}
-                                                >
+                                                <tr key={client.id} className={selected ? 'is-selected' : undefined}>
                                                     <td>
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-xs font-black text-[var(--crm-accent)]">
-                                                                {initials(client)}
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <p className="max-w-[220px] truncate font-semibold text-[var(--crm-text)]">{client.fullName}</p>
-                                                                <p className="text-xs text-[var(--crm-muted)]">{client.clientNumber}</p>
-                                                            </div>
-                                                        </div>
+                                                        <input
+                                                            aria-label={`Select ${client.fullName}`}
+                                                            type="checkbox"
+                                                            className="crm-reference-check"
+                                                            checked={selected}
+                                                            onChange={() => toggleRow(client.id)}
+                                                        />
                                                     </td>
                                                     <td>
-                                                        <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-xs font-semibold text-blue-300">
-                                                            {client.cin || '-'}
-                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex max-w-[190px] items-center gap-2 text-left"
+                                                            onClick={() => router.visit(`/clients/${client.id}`)}
+                                                        >
+                                                            <span className="crm-reference-avatar">{initials(client)}</span>
+                                                            <span className="truncate font-semibold text-[var(--crm-text)]">{client.fullName}</span>
+                                                        </button>
                                                     </td>
+                                                    <td>{client.cin || '-'}</td>
                                                     <td>
-                                                        <div className="grid gap-1 text-xs text-[var(--crm-muted)]">
+                                                        <div className="grid gap-0.5">
                                                             <span>{formatContact(client.phone)}</span>
-                                                            <span>{formatContact(client.email)}</span>
+                                                            <span className="truncate text-[10px] text-[var(--crm-text-soft)]">{formatContact(client.email)}</span>
                                                         </div>
                                                     </td>
                                                     <td>{client.intermediaryName || '-'}</td>
+                                                    <td>{client.projectsCount} project(s)</td>
                                                     <td>
-                                                        <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-300">
-                                                            {client.projectsCount} project(s)
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusClass(client.status)}`}>
+                                                        <span className={`crm-reference-status ${statusVariant}`}>
                                                             {client.status}
                                                         </span>
                                                     </td>
@@ -341,33 +382,17 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                                                         <div className="flex justify-end gap-2">
                                                             <button
                                                                 type="button"
-                                                                className="crm-action-button"
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    router.visit(`/clients/${client.id}`);
-                                                                }}
+                                                                className="crm-reference-kebab"
+                                                                onClick={() => setSelectedClient(client)}
                                                             >
-                                                                Open
+                                                                <MoreVertical size={14} />
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                className="crm-action-button"
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    openEditDrawer(client);
-                                                                }}
+                                                                className="crm-reference-kebab"
+                                                                onClick={() => openEditDrawer(client)}
                                                             >
-                                                                <Pencil size={14} />
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className="crm-action-button text-red-300"
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    deleteClient(client);
-                                                                }}
-                                                            >
-                                                                <Trash2 size={14} />
+                                                                <Pencil size={13} />
                                                             </button>
                                                         </div>
                                                     </td>
@@ -378,86 +403,45 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                                 </table>
                             </div>
 
+                            <div className="crm-reference-mobile-list">
+                                {pagedClients.map((client) => (
+                                    <article key={client.id} className="crm-reference-mobile-card">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="truncate text-sm font-bold">{client.fullName}</p>
+                                                <p className="text-xs text-[var(--crm-text-muted)]">{client.clientNumber} / {client.cin || '-'}</p>
+                                            </div>
+                                            <span className={`crm-reference-status ${client.status === 'active' ? 'crm-reference-status-success' : 'crm-reference-status-muted'}`}>
+                                                {client.status}
+                                            </span>
+                                        </div>
+                                        <div className="mt-3 grid gap-1 text-xs text-[var(--crm-text-muted)]">
+                                            <span>{formatContact(client.phone)}</span>
+                                            <span>{client.projectsCount} project(s)</span>
+                                            <span>{client.intermediaryName || 'No intermediary'}</span>
+                                        </div>
+                                        <div className="mt-3 flex gap-2">
+                                            <button type="button" className="crm-reference-button flex-1" onClick={() => router.visit(`/clients/${client.id}`)}>Open</button>
+                                            <button type="button" className="crm-reference-button" onClick={() => openEditDrawer(client)}>Edit</button>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+
                             {filteredClients.length === 0 ? (
-                                <div className="px-4 py-12 text-center text-sm text-[var(--crm-muted)]">
+                                <div className="px-4 py-12 text-center text-sm text-[var(--crm-text-muted)]">
                                     No clients match the current filters.
                                 </div>
                             ) : null}
+
+                            <AppPagination
+                                page={tablePage}
+                                pageSize={TABLE_PAGE_SIZE}
+                                total={filteredClients.length}
+                                onChange={setTablePage}
+                                variant="reference"
+                            />
                         </div>
-
-                        <aside className="crm-panel h-fit overflow-hidden">
-                            {activeClient ? (
-                                <>
-                                    <div className="border-b border-[var(--crm-border)] p-4">
-                                        <p className="crm-eyebrow">Selected client</p>
-                                        <div className="mt-3 flex items-start gap-3">
-                                            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)] text-sm font-black text-[var(--crm-accent)]">
-                                                {initials(activeClient)}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h2 className="truncate text-lg font-black text-[var(--crm-text)]">{activeClient.fullName}</h2>
-                                                <p className="text-sm text-[var(--crm-muted)]">{activeClient.clientNumber}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-3 p-4">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
-                                                <p className="crm-kpi-label">CIN</p>
-                                                <p className="mt-2 truncate text-sm font-bold">{activeClient.cin || '-'}</p>
-                                            </div>
-                                            <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
-                                                <p className="crm-kpi-label">Projects</p>
-                                                <p className="mt-2 text-sm font-bold text-[var(--crm-accent)]">{activeClient.projectsCount}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
-                                            <p className="crm-kpi-label">Contact</p>
-                                            <div className="mt-3 grid gap-2 text-sm text-[var(--crm-muted)]">
-                                                <span className="flex items-center gap-2"><Phone size={14} />{formatContact(activeClient.phone)}</span>
-                                                <span className="flex items-center gap-2"><Mail size={14} />{formatContact(activeClient.email)}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
-                                            <p className="crm-kpi-label">Intermediary</p>
-                                            <p className="mt-2 text-sm font-semibold">{activeClient.intermediaryName || '-'}</p>
-                                        </div>
-
-                                        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
-                                            <p className="crm-kpi-label">Address</p>
-                                            <p className="mt-2 text-sm leading-5 text-[var(--crm-muted)]">{activeClient.address || 'No address saved.'}</p>
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => router.visit(`/clients/${activeClient.id}`)}
-                                            className="crm-action-button justify-center border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)] py-3 text-[var(--crm-accent)]"
-                                        >
-                                            Open client workspace
-                                            <ArrowRight size={15} />
-                                        </button>
-
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button type="button" className="crm-action-button justify-center py-3" onClick={() => openEditDrawer(activeClient)}>
-                                                <Pencil size={15} />
-                                                Edit
-                                            </button>
-                                            <button type="button" className="crm-action-button justify-center py-3" onClick={() => router.visit('/dossiers')}>
-                                                <FolderKanban size={15} />
-                                                Project
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="p-8 text-center text-sm text-[var(--crm-muted)]">Select a client.</div>
-                            )}
-                        </aside>
-
-                        <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filteredClients.length} onChange={setTablePage} />
                     </section>
                 </div>
 

@@ -429,7 +429,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                 ) : (
                     <div className="flex items-center gap-1">
                         <button type="button" onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }} className="flex size-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:text-[var(--crm-gold)] transition"><Search size={14} /></button>
-                        <button type="button" onClick={() => setInfoPanelOpen(!infoPanelOpen)} className="flex size-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:text-[var(--crm-gold)] transition"><Info size={14} /></button>
+                        <button type="button" onClick={() => setInfoPanelOpen(!infoPanelOpen)} className="flex size-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:text-[var(--crm-gold)] transition xl:hidden"><Info size={14} /></button>
                         {isGroup ? <button type="button" onClick={openGroupSettings} className="flex size-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:text-[var(--crm-gold)] transition"><Settings size={14} /></button> : null}
                     </div>
                 )}
@@ -520,24 +520,29 @@ export function MessageThread({ conversation, conversations, messages, loading, 
 
                     {/* Typing indicator */}
                     {typingUsers.length > 0 && !editingMsg ? (
-                        <div className="flex items-center gap-2 border-t border-[var(--crm-border)] bg-[var(--crm-surface)] px-4 py-1.5 shrink-0">
-                            <div className="flex items-center gap-1">
+                        <div className="border-t border-[var(--crm-border)] bg-gradient-to-r from-[color-mix(in_srgb,var(--crm-gold)_6%,transparent)] via-[var(--crm-surface)] to-[var(--crm-surface)] px-4 py-2 shrink-0">
+                            <div className="typing-indicator inline-flex max-w-full items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--crm-gold)_28%,var(--crm-border))] bg-[color-mix(in_srgb,var(--crm-surface-2)_82%,black)] px-2.5 py-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+                                <div className="flex -space-x-1.5">
                                 {typingUsers.slice(0, 2).map((u) => (
-                                    <span key={u.id} className="flex size-5 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[7px] font-bold text-[var(--crm-gold)]">
+                                    <span key={u.id} className="typing-avatar flex size-6 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--crm-gold)_36%,var(--crm-border))] bg-[var(--crm-gold-soft)] text-[8px] font-black text-[var(--crm-gold)]">
                                         {u.name.charAt(0).toUpperCase()}
                                     </span>
                                 ))}
-                            </div>
-                            <p className="text-[10px] text-[var(--crm-text-muted)]">
-                                {typingUsers.length === 1 ? `${typingUsers[0].name} is typing` :
-                                    typingUsers.length === 2 ? `${typingUsers[0].name} and ${typingUsers[1].name} are typing` :
-                                    `${typingUsers[0].name} and ${typingUsers.length - 1} others are typing`}
-                                <span className="inline-flex items-center gap-0.5 ml-1">
-                                    <span className="typing-dot size-1 rounded-full bg-[var(--crm-muted)]" />
-                                    <span className="typing-dot size-1 rounded-full bg-[var(--crm-muted)]" />
-                                    <span className="typing-dot size-1 rounded-full bg-[var(--crm-muted)]" />
+                                </div>
+                                <p className="min-w-0 truncate text-[11px] font-semibold text-[var(--crm-text-muted)]">
+                                    <span className="text-[var(--crm-text)]">
+                                        {typingUsers.length === 1 ? typingUsers[0].name :
+                                            typingUsers.length === 2 ? `${typingUsers[0].name} + ${typingUsers[1].name}` :
+                                            `${typingUsers[0].name} + ${typingUsers.length - 1}`}
+                                    </span>
+                                    <span className="ml-1">is typing</span>
+                                </p>
+                                <span className="typing-dots ml-0.5 inline-flex items-end gap-1 rounded-full bg-black/20 px-1.5 py-1" aria-hidden="true">
+                                    <span className="typing-dot" />
+                                    <span className="typing-dot" />
+                                    <span className="typing-dot" />
                                 </span>
-                            </p>
+                            </div>
                         </div>
                     ) : null}
 
@@ -561,7 +566,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
 
                 {/* Info panel */}
                 {infoPanelOpen ? (
-                    <div className="w-72 shrink-0 border-l border-[var(--crm-border)] bg-[var(--crm-surface)] overflow-y-auto scrollbar-none">
+                    <div className="w-72 shrink-0 border-l border-[var(--crm-border)] bg-[var(--crm-surface)] overflow-y-auto scrollbar-none xl:hidden">
                         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--crm-border)]">
                             <p className="text-xs font-bold text-[var(--crm-text)]">Info</p>
                             <button type="button" onClick={() => setInfoPanelOpen(false)} className="text-[var(--crm-muted)] hover:text-[var(--crm-text)]"><X size={14} /></button>
@@ -598,10 +603,6 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                         return <div className="grid grid-cols-3 gap-1">{images.map((img) => <img key={img.id} src={img.url!} alt="" className="aspect-square rounded-lg object-cover" />)}</div>;
                                     })()}
                                 </div>
-                                <div className="space-y-1.5">
-                                    <button type="button" onClick={() => { fetch(`/inbox/${conversation.id}/archive`, { method: 'POST', headers: { 'X-CSRF-TOKEN': (window as any).csrfToken || '' } }).then(() => window.location.reload()); }}
-                                        className="w-full rounded-lg bg-[var(--crm-surface-2)] px-3 py-2 text-[10px] font-semibold text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] transition text-left">Archive conversation</button>
-                                </div>
                             </div>
                         ) : (
                             <div className="p-4 space-y-4">
@@ -617,10 +618,6 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                         if (images.length === 0) return <p className="text-[10px] text-[var(--crm-text-muted)]">No shared images yet.</p>;
                                         return <div className="grid grid-cols-3 gap-1">{images.map((img) => <img key={img.id} src={img.url!} alt="" className="aspect-square rounded-lg object-cover" />)}</div>;
                                     })()}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <button type="button" onClick={() => { fetch(`/inbox/${conversation.id}/archive`, { method: 'POST', headers: { 'X-CSRF-TOKEN': (window as any).csrfToken || '' } }).then(() => window.location.reload()); }}
-                                        className="w-full rounded-lg bg-[var(--crm-surface-2)] px-3 py-2 text-[10px] font-semibold text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] transition text-left">Archive conversation</button>
                                 </div>
                             </div>
                         )}
@@ -673,4 +670,3 @@ export function MessageThread({ conversation, conversations, messages, loading, 
         </div>
     );
 }
-

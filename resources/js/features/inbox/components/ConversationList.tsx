@@ -1,4 +1,4 @@
-import { Archive, Hash, MessageSquare, Plus, Search, Users, X } from 'lucide-react';
+import { Archive, ArchiveRestore, Hash, MessageSquare, Plus, Search, Users, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ConversationRow } from '@/features/chat/types';
 import { CATEGORY_OPTIONS, getAvatarTone, getCategoryMeta, getConversationDisplayName, getConversationInitials, getLastMessagePreview, formatConversationTime } from '@/features/inbox/utils';
@@ -201,11 +201,11 @@ export function ConversationList({ conversations, selectedConvId, search, onSear
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
-                                    {!conv.archivedAt && rowHoverId === conv.id ? (
+                                    {rowHoverId === conv.id ? (
                                         <button type="button" onClick={(e) => { e.stopPropagation(); onArchiveToggle?.(conv); }}
                                             className="flex size-6 items-center justify-center rounded-md text-[var(--crm-text-muted)] hover:text-[var(--crm-gold)] transition"
-                                            title="Archive">
-                                            <Archive size={12} />
+                                            title={conv.archivedAt ? 'Unarchive' : 'Archive'}>
+                                            {conv.archivedAt ? <ArchiveRestore size={12} /> : <Archive size={12} />}
                                         </button>
                                     ) : null}
                                     {conv.unreadCount > 0 ? (

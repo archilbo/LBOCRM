@@ -11,68 +11,62 @@ type AppShellProps = {
     action?: ReactNode;
     children: ReactNode;
     fullBleed?: boolean;
+    hideMobileNav?: boolean;
 };
 
-export function AppShell({ eyebrowKey, titleKey, subtitleKey, action, children, fullBleed }: AppShellProps) {
+export function AppShell({ eyebrowKey, titleKey, subtitleKey, action, children, fullBleed, hideMobileNav }: AppShellProps) {
     const { t } = useTranslation();
+    const shellClass = hideMobileNav ? 'crm-shell no-bottom-nav' : 'crm-shell';
 
-    if (fullBleed) {
+    function renderShell(inner: ReactNode) {
         return (
-            <div className="crm-shell text-[var(--crm-text)]">
-                <div className="flex flex-1 min-h-0 overflow-hidden">
-                    <AppSidebar />
+            <div className={shellClass}>
+                <AppSidebar />
 
-                    <div className="min-w-0 flex flex-1 flex-col">
-                        <AppTopbar />
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                    <AppTopbar />
 
-                        <main className="flex-1 min-h-0 overflow-hidden">
-                            {children}
-                        </main>
-                    </div>
+                    {inner}
                 </div>
 
-                <AppMobileNav />
+                {!hideMobileNav ? <AppMobileNav /> : null}
             </div>
         );
     }
 
-    return (
-        <div className="crm-shell text-[var(--crm-text)]">
-            <div className="flex flex-1 min-h-0 overflow-hidden">
-                <AppSidebar />
+    if (fullBleed) {
+        return renderShell(
+            <main className="flex-1 min-h-0 overflow-hidden">
+                {children}
+            </main>
+        );
+    }
 
-                <div className="min-w-0 flex flex-1 flex-col">
-                    <AppTopbar />
+    return renderShell(
+        <main className="crm-page flex-1 min-h-0 pb-28 lg:pb-[var(--crm-page-pad)]">
+            <header className="crm-panel-flat px-5 py-4">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="min-w-0">
+                        {eyebrowKey ? <p className="crm-eyebrow">{t(eyebrowKey)}</p> : null}
+                        <h1 className="mt-2 text-[24px] font-bold leading-none tracking-[-0.02em] text-[var(--crm-text)]">
+                            {t(titleKey ?? '')}
+                        </h1>
+                        {subtitleKey ? (
+                            <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--crm-text-muted)]">
+                                {t(subtitleKey)}
+                            </p>
+                        ) : null}
+                    </div>
 
-                    <main className="crm-page flex-1 min-h-0 pb-28 lg:pb-[var(--crm-page-pad)]">
-                        <header className="crm-panel-flat px-5 py-4">
-                            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                                <div className="min-w-0">
-                                    {eyebrowKey ? <p className="crm-eyebrow">{t(eyebrowKey)}</p> : null}
-                                    <h1 className="mt-2 text-[24px] font-bold leading-none tracking-[-0.02em] text-[var(--crm-text)]">
-                                        {t(titleKey ?? '')}
-                                    </h1>
-                                    {subtitleKey ? (
-                                        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--crm-text-muted)]">
-                                            {t(subtitleKey)}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                {action ? (
-                                    <div className="flex shrink-0 flex-wrap items-center gap-2">
-                                        {action}
-                                    </div>
-                                ) : null}
-                            </div>
-                        </header>
-
-                        {children}
-                    </main>
+                    {action ? (
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                            {action}
+                        </div>
+                    ) : null}
                 </div>
-            </div>
+            </header>
 
-            <AppMobileNav />
-        </div>
+            {children}
+        </main>
     );
 }

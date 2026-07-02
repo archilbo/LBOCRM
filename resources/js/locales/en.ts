@@ -45,6 +45,8 @@ export const en = {
         users: 'Users',
         branches: 'Branches',
         settings: 'Settings',
+        search: 'Search',
+        logout: 'Logout',
     },
     calendar: {
         eyebrow: 'Operations calendar',

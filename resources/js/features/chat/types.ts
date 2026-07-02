@@ -4,6 +4,7 @@ export type ParticipantUser = {
     email?: string;
     avatarUrl?: string | null;
     lastSeenAt?: string | null;
+    isOnline?: boolean;
 };
 
 export type ConversationParticipant = {

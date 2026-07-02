@@ -153,12 +153,17 @@ class ConversationController extends Controller
         $participant = $conversation->participants()->where('user_id', $request->user()->id)->first();
         if ($participant) {
             $participant->update(['archived_at' => now()]);
+            $conversation->load(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)]);
             try { broadcast(new InboxUpdated($participant->user_id, [
                 'eventType' => 'conversation_archived',
                 'conversationId' => $conversation->id,
+                'conversation' => (new ConversationResource($conversation))->resolve(),
             ])); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
         }
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'conversation' => (new ConversationResource($conversation->loadMissing(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)])))->resolve(),
+        ]);
     }
 
     public function unarchive(Request $request, Conversation $conversation): JsonResponse
@@ -167,12 +172,17 @@ class ConversationController extends Controller
         $participant = $conversation->participants()->where('user_id', $request->user()->id)->first();
         if ($participant) {
             $participant->update(['archived_at' => null]);
+            $conversation->load(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)]);
             try { broadcast(new InboxUpdated($participant->user_id, [
                 'eventType' => 'conversation_unarchived',
                 'conversationId' => $conversation->id,
+                'conversation' => (new ConversationResource($conversation))->resolve(),
             ])); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
         }
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'conversation' => (new ConversationResource($conversation->loadMissing(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)])))->resolve(),
+        ]);
     }
 
     public function archived(Request $request): JsonResponse

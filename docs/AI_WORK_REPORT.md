@@ -3846,3 +3846,462 @@ npm run build
 ## Next Recommended Step
 
 Manually forward a text message and an image-only message in `/inbox` to confirm both succeed.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Inbox realtime message dedupe and diagnostics
+
+## What Was Fixed
+
+- Added a single message upsert/reconciliation path for optimistic messages, API responses, realtime broadcasts, and older-message pagination.
+- Prevented duplicate message rows when the sender receives both the HTTP response and the `message.created` broadcast.
+- Kept realtime messages inserted immediately even when the user is scrolled up; the floating new-message button now only controls visibility/scrolling.
+- Added explicit inbox/conversation realtime diagnostic logs using the requested `[chat] ...` labels.
+- Confirmed typing hook already sends/receives full user payloads, ignores the current user, and does not leave the shared Echo channel on cleanup.
+
+## Files Modified
+
+- `resources/js/pages/Inbox/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- `php artisan optimize:clear` passed.
+- Vite still reports the existing large bundle warning.
+
+## How To Test
+
+- Open `/inbox` as two different users in separate browser sessions.
+- Confirm both users log `[chat] subscribe conversation` for the same conversation.
+- Send messages both directions and confirm they appear instantly with no duplicate key warnings.
+- Type in one browser and confirm the other browser logs `[chat] typing received` and shows the typing indicator.
+
+## Known Issues
+
+- Full two-user browser QA was not run from this terminal session.
+
+## Next Recommended Step
+
+Run the two-browser Reverb test and then remove or gate temporary `console.debug` logs once realtime is confirmed stable.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Inbox realtime subscription fallback and Echo diagnostics
+
+## What Was Fixed
+
+- Added explicit Echo private auth headers for `/broadcasting/auth`.
+- Added Echo connection status diagnostics with Reverb host/port.
+- Added subscription success/error diagnostics for inbox, active conversation, and typing channels.
+- Added `listenToAll` fallback routing for inbox updates and message created/updated/deleted events.
+- Added `listenToAll` fallback routing for `client-typing` whispers.
+- Cleaned typing listener cleanup without leaving the shared conversation channel.
+
+## Files Modified
+
+- `resources/js/app.tsx`
+- `resources/js/pages/Inbox/Index.tsx`
+- `resources/js/features/inbox/components/useTyping.ts`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- `php artisan optimize:clear` passed.
+- Vite still reports the existing large bundle warning.
+
+## How To Test
+
+- Restart Vite/Reverb/browser sessions.
+- Open `/inbox` as two different users in separate browser profiles.
+- Confirm console logs show `echo connection connected`, `subscribed inbox`, `subscribed conversation`, and `typing subscribed`.
+- Send a message and confirm the receiving browser logs `conversation event message.created` or `received message.created`.
+- Type in one browser and confirm the other logs `typing channel event client-typing` or `typing received`.
+
+## Known Issues
+
+- If subscription success logs do not appear, the next fix is channel auth/session debugging.
+- If success logs appear but no event logs appear, the next fix is backend broadcast delivery/event naming.
+
+## Next Recommended Step
+
+Run the two-browser test and use the new console logs to identify any remaining break in the realtime chain.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Inbox realtime private-channel auth bootstrap fix
+
+## What Was Fixed
+
+- Moved `window.csrfToken`, `window.userId`, and `window.Laravel.csrfToken` before the Vite app script.
+- Added the standard `<meta name="csrf-token">` tag to the Inertia root view.
+- Updated Echo setup to read CSRF from `window.csrfToken` or the meta tag.
+- This fixes the likely cause where Echo configured private-channel auth before the CSRF token existed, causing messages to save but realtime subscriptions/typing to fail.
+
+## Files Modified
+
+- `resources/views/app.blade.php`
+- `resources/js/app.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- `php artisan optimize:clear` passed.
+- Vite still reports the existing large bundle warning.
+
+## How To Test
+
+- Restart `npm run dev`, `php artisan serve`, and Reverb.
+- Hard refresh both browser sessions.
+- Confirm console logs show subscription success instead of subscription errors.
+- Send a message and type between two different users.
+
+## Known Issues
+
+- Browser two-user realtime QA still needs to be confirmed manually.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Inbox typing indicator UI polish
+
+## What Was Changed
+
+- Replaced the flat typing status row with a compact modern typing bubble.
+- Added overlapping user initials for active typers.
+- Improved typing animation with entrance motion, avatar pulse, and gold bouncing dots.
+- Kept the existing realtime typing hook and message logic unchanged.
+
+## Files Modified
+
+- `resources/js/features/inbox/components/MessageThread.tsx`
+- `resources/css/archilbo-theme.css`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- Vite still reports the existing large bundle warning.
+
+## Next Recommended Step
+
+Browser-check `/inbox` typing on desktop and mobile widths to confirm the bubble feels compact beside the composer.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Inbox online status, archive toggle, and duplicate info panel cleanup
+
+## What Was Changed
+
+- Added frontend `isOnline` support to chat user types.
+- Updated the conversation info panel to show online status from `isOnline` or recent `lastSeenAt`.
+- Added an online status pill and member online indicators in the right info panel.
+- Kept one desktop details panel by hiding the internal thread info drawer on XL screens.
+- Removed duplicate archive buttons from the internal/mobile info drawer.
+- Updated conversation list row action to archive or unarchive depending on current state.
+- Restored conversations now move back to the Active tab when unarchived while selected.
+
+## Files Modified
+
+- `resources/js/features/chat/types.ts`
+- `resources/js/features/inbox/components/ConversationInfoPanel.tsx`
+- `resources/js/features/inbox/components/ConversationList.tsx`
+- `resources/js/features/inbox/components/MessageThread.tsx`
+- `resources/js/pages/Inbox/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- Vite still reports the existing large bundle warning.
+
+## Next Recommended Step
+
+Browser-check `/inbox`: verify one desktop info panel, online dots/statuses, archive/unarchive from rows and right panel, and mobile info drawer behavior.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Inbox archived conversations persistence and collapsible info panel
+
+## What Was Fixed
+
+- Fixed archived conversations not appearing by adding `archived_at` to `ConversationParticipant` fillable/casts.
+- Archive and unarchive endpoints now return the updated `ConversationResource`.
+- Archive broadcasts now include the updated conversation payload.
+- Archived tab fetch now merges server results with locally archived conversations and filters by `archivedAt`.
+- Right conversation info panel can now collapse to a slim rail and expand again.
+
+## Files Modified
+
+- `app/Models/ConversationParticipant.php`
+- `app/Http/Controllers/ConversationController.php`
+- `resources/js/features/inbox/components/ConversationInfoPanel.tsx`
+- `resources/js/pages/Inbox/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+php -l app/Models/ConversationParticipant.php
+php -l app/Http/Controllers/ConversationController.php
+npm run build
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- PHP lint passed.
+- `npm run build` passed.
+- `php artisan optimize:clear` passed.
+- Vite still reports the existing large bundle warning.
+
+## Next Recommended Step
+
+Browser-check `/inbox`: archive a conversation, open Archived tab, restore it, and test collapsing/expanding the right info panel.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Compact CRM table foundation and Clients page pilot
+
+## What Was Changed
+
+- Added reusable compact CRM table shell, toolbar, filter chips, search field, selected row, avatar chip, and mobile record card styles.
+- Updated the Clients index to use the shared compact table toolbar pattern.
+- Added responsive mobile client cards so the Clients list stays usable on small screens instead of relying only on horizontal table scrolling.
+- Kept existing backend data, routes, drawers, filters, pagination, and client actions unchanged.
+
+## Files Modified
+
+- `resources/css/archilbo-theme.css`
+- `resources/js/pages/Clients/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- Vite still reports the existing large bundle warning.
+
+## Next Recommended Step
+
+Apply the same compact table shell to Projects/Dossiers, Intermediaries, Documents, Finance documents, Archives, and Users one page at a time.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Reference-matched table UI foundation and Clients table conversion
+
+## What Was Changed
+
+- Analyzed the provided reference tables and matched their main structure: light table island, top toolbar, search, update/filter/sort buttons, primary add button, icon headers, selectable rows, compact status pills, row action buttons, mobile cards, and footer pagination.
+- Added reusable `crm-reference-*` table classes without replacing the existing dark CRM card/table styles.
+- Added a `reference` variant to `AppPagination` for table footer pagination.
+- Converted the Clients list table to the reference-style layout while keeping real backend data, drawer creation/editing, filtering, search, and pagination.
+- Converted the shared `AppDataTable` component to use the same reference table shell so pages already using the shared component inherit the new header/footer/table rhythm.
+
+## Files Modified
+
+- `resources/css/archilbo-theme.css`
+- `resources/js/components/ui/AppDataTable.tsx`
+- `resources/js/components/ui/AppPagination.tsx`
+- `resources/js/pages/Clients/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- Vite still reports the existing large bundle warning.
+
+## Next Recommended Step
+
+Browser-check `/clients`, then apply the same reference table shell to Dossiers/Projects next.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Finance documents table matched to reference table layout
+
+## What Was Changed
+
+- Converted the Finance Documents workspace from the old dark table plus right detail panel into the reference-style table island.
+- Added toolbar actions matching the reference idea: search, update, filter, and sort.
+- Added selectable rows, icon table headers, compact status pills, clean row action buttons, mobile cards, and reference footer pagination.
+- Kept real finance document data, existing document actions, drawer flows, PDF/Excel generation, and payment action routing unchanged.
+
+## Files Modified
+
+- `resources/css/archilbo-theme.css`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- Vite still reports the existing large bundle warning.
+
+## Next Recommended Step
+
+Browser-check `/finance/documents`; then apply the same reference table layout to Payments and Dossiers/Projects.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Reference table system recolored to ARCHI LBO dark/gold theme
+
+## What Was Changed
+
+- Kept the reference table layout structure but replaced the white SaaS colors with ARCHI LBO dark surfaces, muted borders, and gold accents.
+- Removed hardcoded light colors from the shared table component, reference pagination, Clients table, and Finance Documents table.
+- Preserved compact toolbar, icon headers, selectable rows, status pills, row actions, and footer pagination.
+
+## Files Modified
+
+- `resources/css/archilbo-theme.css`
+- `resources/js/components/ui/AppDataTable.tsx`
+- `resources/js/components/ui/AppPagination.tsx`
+- `resources/js/pages/Clients/Index.tsx`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- Vite still reports the existing large bundle warning.
+
+## Next Recommended Step
+
+Browser-check `/finance/documents` and `/clients` to confirm the table layout matches the reference while staying dark/gold.
