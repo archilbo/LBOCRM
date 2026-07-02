@@ -1,6 +1,7 @@
 import { router, usePage } from '@inertiajs/react';
+import { echo } from '@laravel/echo-react';
 import { ExternalLink, MessageSquare, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, Dialog, DialogTrigger, Popover } from 'react-aria-components';
 import type { ConversationRow } from '@/features/chat/types';
 import { getAvatarTone, getCategoryMeta, getConversationDisplayName, getConversationInitials, getLastMessagePreview, formatConversationTime } from '@/features/inbox/utils';
@@ -90,9 +91,26 @@ export function MessagePopover() {
     const [activeTab, setActiveTab] = useState<'recent' | 'unread' | 'direct' | 'groups'>('recent');
 
     const { auth } = usePage().props as { auth: { user?: { recent_conversations?: ConversationRow[]; unread_messages?: number; id?: number } } };
-    const convs = auth?.user?.recent_conversations ?? [];
-    const unreadCount = auth?.user?.unread_messages ?? 0;
+    const [convs, setConvs] = useState<ConversationRow[]>(auth?.user?.recent_conversations ?? []);
+    const [unreadCount, setUnreadCount] = useState(auth?.user?.unread_messages ?? 0);
     const currentUserId = auth?.user?.id ?? 0;
+
+    useEffect(() => {
+        setConvs(auth?.user?.recent_conversations ?? []);
+        setUnreadCount(auth?.user?.unread_messages ?? 0);
+    }, [auth?.user?.recent_conversations, auth?.user?.unread_messages]);
+
+    useEffect(() => {
+        if (!currentUserId) return;
+        const e = echo();
+        const channel = e.private(`user.${currentUserId}.inbox`);
+        channel.listen('.inbox.updated', () => {
+            router.reload({ only: ['conversations', 'unreadCount'], preserveState: true, preserveScroll: true });
+        });
+        return () => {
+            e.leaveChannel(`private-user.${currentUserId}.inbox`);
+        };
+    }, [currentUserId]);
 
     const filtered = useMemo(() => {
         if (activeTab === 'recent') return convs;

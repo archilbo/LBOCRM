@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { echo } from '@laravel/echo-react';
 import { AppShell } from '@/components/layout/AppShell';
 import type { FormErrors } from '@/lib/formErrors';
 import type { ChatUserOption, ConversationRow, MessageRow } from '@/features/chat/types';
@@ -63,8 +64,6 @@ export default function InboxIndex({ conversations: _conversations, users, curre
     const [highlightMsgId, setHighlightMsgId] = useState<number | null>(null);
     const [newMsgAvailable, setNewMsgAvailable] = useState(false);
 
-    const pollListRef = useRef<ReturnType<typeof setInterval>>();
-    const pollConvRef = useRef<ReturnType<typeof setInterval>>();
     const prevLastMsgIds = useRef<Record<number, number | null>>({});
     const selectedConvRef = useRef<ConversationRow | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -192,38 +191,87 @@ export default function InboxIndex({ conversations: _conversations, users, curre
         }
     }, [conversations, selectedConv?.id]);
 
-    // Poll conversations list every 15s
+    // Subscribe to inbox updates via Echo
     useEffect(() => {
-        pollListRef.current = setInterval(() => {
-            router.reload({ only: ['conversations', 'unreadCount'], preserveState: true, preserveScroll: true });
-        }, 15000);
-        return () => clearInterval(pollListRef.current);
-    }, []);
-
-    // Poll selected conversation messages every 8s
-    useEffect(() => {
-        if (!selectedConv || loading) return;
-        pollConvRef.current = setInterval(() => {
-            fetch(`/inbox/${selectedConv.id}?page=1`)
-                .then((r) => r.json())
-                .then((data) => {
-                    const newMessages: MessageRow[] = (data.messages || []).reverse();
-                    setMessages((prev) => {
-                        const prevIds = new Set(prev.map((m) => m.id));
-                        const added = newMessages.filter((m) => !prevIds.has(m.id));
-                        if (added.length === 0) return prev;
-                        if (isNearBottom()) {
-                            return [...prev, ...added];
-                        } else {
-                            setNewMsgAvailable(true);
-                            return prev;
-                        }
+        const e = echo();
+        const channel = e.private(`user.${currentUserId}.inbox`);
+        channel.listen('.inbox.updated', (payload: any) => {
+            console.debug('[chat] inbox.updated', payload);
+            if (payload.conversation) {
+                const conv = payload.conversation as ConversationRow;
+                setConversations((prev) => {
+                    const exists = prev.some((c) => c.id === conv.id);
+                    const next = exists
+                        ? prev.map((c) => c.id === conv.id ? { ...c, ...conv } : c)
+                        : [conv, ...prev];
+                    return next.sort((a, b) => {
+                        const ad = new Date(a.lastMessageAt || a.updatedAt || 0).getTime();
+                        const bd = new Date(b.lastMessageAt || b.updatedAt || 0).getTime();
+                        return bd - ad;
                     });
-                    setPaginator(data.paginator || null);
-                })
-                .catch(() => {});
-        }, 8000);
-        return () => clearInterval(pollConvRef.current);
+                });
+                if (selectedConvRef.current?.id === conv.id) {
+                    setSelectedConv((current) => current ? { ...current, ...conv, unreadCount: 0 } : current);
+                }
+            }
+        });
+        return () => {
+            echo().leave(`user.${currentUserId}.inbox`);
+        };
+    }, [currentUserId]);
+
+    // Subscribe to active conversation via Echo
+    useEffect(() => {
+        if (!selectedConv) return;
+        console.debug('[chat] subscribing conversation', selectedConv.id);
+        const channel = echo().private(`conversation.${selectedConv.id}`);
+
+        channel.listen('.message.created', (payload: any) => {
+            console.debug('[chat] received message.created', payload);
+            const msg = payload.message as MessageRow;
+            const incomingConversationId = Number(payload.conversationId || selectedConv.id);
+
+            if (incomingConversationId !== selectedConvRef.current?.id) {
+                console.debug('[chat] ignored message for another conversation', incomingConversationId, selectedConvRef.current?.id);
+                return;
+            }
+
+            setMessages((prev) => {
+                if (prev.some((m) => m.id === msg.id)) return prev;
+                return [...prev, msg];
+            });
+
+            setConversations((prev) => prev.map((c) =>
+                c.id === incomingConversationId
+                    ? { ...c, lastMessage: msg, lastMessageAt: msg.createdAt }
+                    : c
+            ));
+
+            if (msg.userId !== currentUserId && !nearBottomRef.current) {
+                setNewMsgAvailable(true);
+            } else {
+                setNewMsgAvailable(false);
+                requestAnimationFrame(() => {
+                    document.getElementById(`msg-${msg.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                });
+            }
+        });
+
+        channel.listen('.message.updated', (payload: any) => {
+            console.debug('[chat] received message.updated', payload);
+            const msg = payload.message as MessageRow;
+            setMessages((prev) => prev.map((m) => m.id === msg.id ? msg : m));
+        });
+
+        channel.listen('.message.deleted', (payload: any) => {
+            console.debug('[chat] received message.deleted', payload);
+            const { messageId } = payload;
+            setMessages((prev) => prev.filter((m) => m.id !== messageId));
+        });
+
+        return () => {
+            echo().leave(`conversation.${selectedConv.id}`);
+        };
     }, [selectedConv?.id]);
 
     // Reset new message available when user scrolls to bottom
@@ -497,6 +545,13 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                     onSubmit={handleNewConv}
                 />
             </AppShell>
+
+            {import.meta.env.DEV ? (
+                <div className="fixed bottom-2 right-2 z-[200] flex items-center gap-2 rounded-full bg-black/80 px-3 py-1 text-[9px] text-white/80 font-mono">
+                    <span>UID:{currentUserId}</span>
+                    <span>CID:{selectedConv?.id ?? '-'}</span>
+                </div>
+            ) : null}
         </>
     );
 }

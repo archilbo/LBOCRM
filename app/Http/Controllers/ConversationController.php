@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\Chat\InboxUpdated;
 use App\Http\Requests\Chat\StoreConversationRequest;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
+use App\Models\ConversationParticipant;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\Chat\ChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -124,6 +127,10 @@ class ConversationController extends Controller
         }
 
         $conversation->participants()->create(['user_id' => $request->user_id]);
+        try { broadcast(new InboxUpdated($request->user_id, [
+            'eventType' => 'participant_added',
+            'conversationId' => $conversation->id,
+        ])); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
         return response()->json(['success' => true]);
     }
 
@@ -133,6 +140,10 @@ class ConversationController extends Controller
         abort_unless($conversation->type === 'group', 400, 'Only groups can have participants removed.');
 
         $conversation->participants()->where('user_id', $user->id)->delete();
+        try { broadcast(new InboxUpdated($user->id, [
+            'eventType' => 'participant_removed',
+            'conversationId' => $conversation->id,
+        ])); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
         return response()->json(['success' => true]);
     }
 
@@ -142,6 +153,10 @@ class ConversationController extends Controller
         $participant = $conversation->participants()->where('user_id', $request->user()->id)->first();
         if ($participant) {
             $participant->update(['archived_at' => now()]);
+            try { broadcast(new InboxUpdated($participant->user_id, [
+                'eventType' => 'conversation_archived',
+                'conversationId' => $conversation->id,
+            ])); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
         }
         return response()->json(['success' => true]);
     }
@@ -152,6 +167,10 @@ class ConversationController extends Controller
         $participant = $conversation->participants()->where('user_id', $request->user()->id)->first();
         if ($participant) {
             $participant->update(['archived_at' => null]);
+            try { broadcast(new InboxUpdated($participant->user_id, [
+                'eventType' => 'conversation_unarchived',
+                'conversationId' => $conversation->id,
+            ])); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
         }
         return response()->json(['success' => true]);
     }

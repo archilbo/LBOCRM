@@ -2,12 +2,16 @@
 
 namespace App\Services\Chat;
 
+use App\Events\Chat\InboxUpdated;
+use App\Events\Chat\MessageCreated;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\Message;
 use App\Models\MessageAttachment;
 use App\Models\User;
+use App\Http\Resources\ConversationResource;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ChatService
@@ -56,6 +60,19 @@ class ChatService
                 new \App\Notifications\ChatMessageNotification($conversation, $message, $user)
             ));
 
+        $message->load(['user', 'attachments', 'replyTo.user', 'forwardedFrom.user', 'reads']);
+        try { broadcast(new MessageCreated($message)); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
+
+        $conversation->load(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)]);
+        $convResource = (new ConversationResource($conversation))->resolve();
+        $conversation->participants()
+            ->where('user_id', '!=', $user->id)
+            ->each(fn (ConversationParticipant $p) => $this->broadcastInboxSafely($p->user_id, [
+                'eventType' => 'message_created',
+                'conversation' => $convResource,
+                'unreadCount' => $this->unreadCount($p->user),
+            ]));
+
         return $message;
     }
 
@@ -101,6 +118,19 @@ class ChatService
                 new \App\Notifications\ChatMessageNotification($targetConversation, $message, $user)
             ));
 
+        $message->load(['user', 'attachments', 'replyTo.user', 'forwardedFrom.user', 'reads']);
+        try { broadcast(new MessageCreated($message)); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
+
+        $targetConversation->load(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)]);
+        $convResource = (new ConversationResource($targetConversation))->resolve();
+        $targetConversation->participants()
+            ->where('user_id', '!=', $user->id)
+            ->each(fn (ConversationParticipant $p) => $this->broadcastInboxSafely($p->user_id, [
+                'eventType' => 'message_created',
+                'conversation' => $convResource,
+                'unreadCount' => $this->unreadCount($p->user),
+            ]));
+
         return $message;
     }
 
@@ -128,6 +158,11 @@ class ChatService
     public function updateLastSeen(User $user): void
     {
         $user->update(['last_seen_at' => now()]);
+    }
+
+    protected function broadcastInboxSafely(int $userId, array $payload): void
+    {
+        try { broadcast(new InboxUpdated($userId, $payload)); } catch (\Throwable $e) { Log::debug('Inbox broadcast failed: ' . $e->getMessage()); }
     }
 
     protected function storeAttachments(Message $message, User $user, array $images): void

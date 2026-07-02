@@ -2,14 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\Chat\InboxUpdated;
+use App\Events\Chat\MessageDeleted;
+use App\Events\Chat\MessageUpdated;
 use App\Http\Requests\Chat\StoreMessageRequest;
+use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
+use App\Models\ConversationParticipant;
 use App\Models\Message;
 use App\Services\Chat\ChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class MessageController extends Controller
 {
@@ -57,7 +63,9 @@ class MessageController extends Controller
             'edited_at' => now(),
         ]);
 
-        $message->load(['user', 'attachments', 'replyTo.user', 'reads']);
+        $message->load(['user', 'attachments', 'replyTo.user', 'reads', 'forwardedFrom.user']);
+
+        try { broadcast(new MessageUpdated($message))->toOthers(); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
 
         return response()->json(new MessageResource($message));
     }
@@ -67,8 +75,25 @@ class MessageController extends Controller
         $this->authorize('view', $conversation);
         $this->authorize('delete', $message);
         abort_unless($message->conversation_id === $conversation->id, 404);
+        $convId = $message->conversation_id;
         $message->delete();
+        try { broadcast(new MessageDeleted($message->id, $convId))->toOthers(); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
+        $conversation->participants()
+            ->where('user_id', '!=', $request->user()->id)
+            ->each(fn (ConversationParticipant $p) => $this->inboxSafely($p->user_id, $message->id, $convId, $p->user));
         return response()->json(['success' => true]);
+    }
+
+    protected function inboxSafely(int $userId, int $messageId, int $convId, $user): void
+    {
+        try {
+            broadcast(new InboxUpdated($userId, [
+                'eventType' => 'message_deleted',
+                'messageId' => $messageId,
+                'conversationId' => $convId,
+                'unreadCount' => $this->chatService->unreadCount($user),
+            ]));
+        } catch (\Throwable $e) { Log::debug('Inbox broadcast failed: ' . $e->getMessage()); }
     }
 
     public function forward(Request $request, Conversation $conversation, Message $message): JsonResponse

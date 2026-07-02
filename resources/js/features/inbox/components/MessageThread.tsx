@@ -221,7 +221,12 @@ export function MessageThread({ conversation, conversations, messages, loading, 
     const [searchResults, setSearchResults] = useState<number[]>([]);
     const [searchIndex, setSearchIndex] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { typingUsers, sendTyping } = useTyping(conversation?.id ?? null, currentUserId);
+    const authUser = (usePage().props.auth?.user as { id: number; name: string } | undefined) || { id: 0, name: '' };
+    const { typingUsers, sendTyping } = useTyping(
+        conversation?.id ?? null,
+        currentUserId,
+        authUser?.name || 'User',
+    );
 
     useEffect(() => {
         if (messages.length > 0) {
@@ -546,13 +551,6 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                 className="min-h-[36px] w-full resize-none rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface-2)] px-3 py-2 text-xs text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)]" style={{ lineHeight: '1.4' }} />
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                            {text.trim().length > 0 && !editingMsg ? (
-                                <div className="flex items-center gap-0.5">
-                                    <span className="typing-dot size-1 rounded-full bg-[var(--crm-gold)]" />
-                                    <span className="typing-dot size-1 rounded-full bg-[var(--crm-gold)]" />
-                                    <span className="typing-dot size-1 rounded-full bg-[var(--crm-gold)]" />
-                                </div>
-                            ) : null}
                             <button type="button" onClick={editingMsg ? handleUpdate : handleSend} disabled={!canSend || sending}
                                 className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold)] text-black disabled:opacity-40 transition hover:brightness-110 hover:-translate-y-0.5 active:translate-y-0">
                                 {sending ? <div className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent" /> : editingMsg ? <Check size={16} /> : <Send size={16} />}

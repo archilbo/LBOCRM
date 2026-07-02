@@ -1,42 +1,73 @@
+import { echo } from '@laravel/echo-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type TypingUser = { id: number; name: string };
 
-export function useTyping(conversationId: number | null, currentUserId: number) {
+export function useTyping(conversationId: number | null, currentUserId: number, currentUserName: string) {
     const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+    const timersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
     const lastSentRef = useRef(0);
-    const pollRef = useRef<ReturnType<typeof setInterval>>();
 
-    // Poll for other users typing every 3 seconds
     useEffect(() => {
-        if (!conversationId) { setTypingUsers([]); return; }
+        if (!conversationId) {
+            setTypingUsers([]);
+            return;
+        }
 
-        const poll = () => {
-            fetch(`/inbox/${conversationId}/typing`)
-                .then((r) => r.json())
-                .then((data) => {
-                    const others = (data.typing || []).filter((u: TypingUser) => u.id !== currentUserId);
-                    setTypingUsers(others);
-                })
-                .catch(() => {});
+        const channel = echo().private(`conversation.${conversationId}`);
+        console.debug('[chat] typing subscribe', conversationId);
+
+        const handler = (payload: any) => {
+            console.debug('[chat] typing received', payload);
+
+            const userId = Number(payload?.user?.id);
+            if (!userId || userId === currentUserId) return;
+
+            const user = {
+                id: userId,
+                name: payload?.user?.name || 'User',
+            };
+
+            setTypingUsers((prev) => {
+                const without = prev.filter((item) => item.id !== user.id);
+                return [...without, user];
+            });
+
+            if (timersRef.current[user.id]) {
+                clearTimeout(timersRef.current[user.id]);
+            }
+
+            timersRef.current[user.id] = setTimeout(() => {
+                setTypingUsers((prev) => prev.filter((item) => item.id !== user.id));
+                delete timersRef.current[user.id];
+            }, 2200);
         };
 
-        poll();
-        pollRef.current = setInterval(poll, 3000);
-        return () => { clearInterval(pollRef.current); setTypingUsers([]); };
+        channel.listenForWhisper('typing', handler);
+
+        return () => {
+            Object.values(timersRef.current).forEach(clearTimeout);
+            timersRef.current = {};
+            setTypingUsers([]);
+        };
     }, [conversationId, currentUserId]);
 
-    // Send typing signal (debounced to every 3 seconds)
     const sendTyping = useCallback(() => {
-        if (!conversationId) return;
+        if (!conversationId || !currentUserId) return;
+
         const now = Date.now();
-        if (now - lastSentRef.current < 3000) return;
+        if (now - lastSentRef.current < 700) return;
         lastSentRef.current = now;
-        fetch(`/inbox/${conversationId}/typing`, {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': (window as any).csrfToken || '' },
-        }).catch(() => {});
-    }, [conversationId]);
+
+        console.debug('[chat] typing sent', conversationId, currentUserId, currentUserName);
+
+        echo().private(`conversation.${conversationId}`).whisper('typing', {
+            user: {
+                id: currentUserId,
+                name: currentUserName || 'User',
+            },
+        });
+    }, [conversationId, currentUserId, currentUserName]);
 
     return { typingUsers, sendTyping };
 }
