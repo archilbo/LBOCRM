@@ -3,6 +3,31 @@
 @plugin "tailwindcss-react-aria-components";
 @import './calendar.css';
 
+@theme {
+    --color-bg: var(--background);
+    --color-surface: var(--surface);
+    --color-surface-2: var(--surface-2);
+    --color-surface-3: var(--surface-3);
+    --color-border: var(--border);
+    --color-border-strong: var(--border-strong);
+    --color-muted: var(--text-muted);
+    --color-subtle: var(--text-subtle);
+    --color-accent: var(--accent);
+    --color-accent-fg: var(--accent-foreground);
+    --color-gold: var(--accent);
+    --color-danger: var(--danger);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-info: var(--info);
+
+    --radius-xs: 6px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-pill: 999px;
+}
+
 :root {
     color-scheme: light;
 
@@ -431,18 +456,55 @@ samp {
     outline: none;
 }
 
-/* STEP_15_GLOBAL_POLISH */
+/* =============================================
+   Global shell sizing
+   Body does NOT scroll — shell handles all
+   ============================================= */
 html {
     scroll-behavior: smooth;
 }
 
-body {
-    overflow-x: hidden;
+html,
+body,
+#app {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
 }
 
+body {
+    margin: 0;
+    overscroll-behavior: none;
+    background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 8%, transparent), transparent 32rem),
+        var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    letter-spacing: -0.006em;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+code, pre, kbd, samp {
+    font-family: var(--font-mono);
+}
+
+* {
+    border-color: var(--border);
+}
+
+::selection {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* =============================================
+   Scrollbar utility (single definition)
+   ============================================= */
 .app-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--text-muted) 35%, transparent) transparent;
+    scrollbar-color: color-mix(in srgb, var(--text-muted) 28%, transparent) transparent;
 }
 
 .app-scrollbar::-webkit-scrollbar {
@@ -459,28 +521,41 @@ body {
     background: transparent;
 }
 
-.react-aria-Table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
+/* =============================================
+   Mobile safe area — bottom nav padding
+   ============================================= */
+.app-safe-bottom {
+    padding-bottom: calc(var(--mobile-bottom-nav-h) + env(safe-area-inset-bottom, 0px));
 }
 
-.react-aria-Cell,
-.react-aria-Column {
-    vertical-align: middle;
+/* Legacy CSS — kept for backward compat */
+.crm-shell {
+    min-height: 0;
+    max-height: 100dvh;
+    overflow: hidden;
 }
 
-.app-table-primary-cell {
-    min-width: 0;
+.crm-shell > .flex-1,
+.crm-shell > div[class*="flex-1"] {
+    min-height: 0;
 }
 
-@media (max-width: 1023px) {
-    .app-drawer-panel {
-        width: min(100vw, 720px);
+.crm-topbar {
+    flex: 0 0 var(--crm-topbar-h);
+}
+
+.crm-page {
+    box-sizing: border-box;
+    min-height: 0;
+}
+
+@media (min-width: 768px) {
+    .crm-page {
+        padding-bottom: var(--crm-page-pad);
     }
 }
 
-/* Step 36 finance live builder */
+/* Finance builder — keep */
 .finance-builder-container {
     container-type: inline-size;
 }
@@ -508,6 +583,7 @@ body {
     }
 }
 
+/* Login no-scroll — kept for login page */
 html.login-no-scroll,
 body.login-no-scroll {
     width: 100%;

@@ -11,10 +11,10 @@ export function AppTopbar() {
     }
 
     return (
-        <header className="crm-topbar shrink-0">
-            <div className="flex h-full items-center gap-1.5 px-3 lg:gap-3 lg:px-6">
+        <header className="flex h-[var(--crm-topbar-h)] shrink-0 items-center border-b border-[var(--crm-border)] bg-[color-mix(in_srgb,var(--crm-bg-2)_92%,transparent)] px-3 backdrop-blur-[18px] lg:px-6">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 lg:gap-3">
                 <div className="min-w-0 flex-1">
-                    <div className="max-w-[340px] lg:max-w-[620px]">
+                    <div className="max-w-[280px] sm:max-w-[340px] lg:max-w-[620px]">
                         <AppGlobalSearch />
                     </div>
                 </div>
@@ -23,7 +23,7 @@ export function AppTopbar() {
                     <button
                         type="button"
                         onClick={() => router.visit('/dossiers')}
-                        className="crm-action-button-primary crm-action-button hidden sm:inline-flex h-8 lg:h-9"
+                        className="flex h-8 shrink-0 items-center justify-center gap-2 rounded-[var(--crm-radius-sm)] border border-[var(--crm-border)] bg-[var(--crm-gold)] px-3 text-[12px] font-bold text-black transition hover:bg-[#ffc63a] max-sm:hidden lg:h-9"
                     >
                         <Plus size={14} />
                         <span className="hidden lg:inline">New</span>
@@ -32,7 +32,7 @@ export function AppTopbar() {
                     <button
                         type="button"
                         onClick={() => router.visit('/finance/documents?tab=monthly')}
-                        className="crm-action-button hidden md:inline-flex h-8 w-8 px-0 lg:h-9 lg:w-auto lg:px-3"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--crm-radius-sm)] border border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text)] transition hover:border-[var(--crm-border-strong)] hover:bg-[var(--crm-surface-2)] max-md:hidden lg:h-9 lg:w-auto lg:px-3"
                         title="Monthly summary"
                     >
                         <CalendarDays size={14} />
@@ -48,7 +48,7 @@ export function AppTopbar() {
                     <button
                         type="button"
                         onClick={handleLogout}
-                        className="crm-action-button h-8 w-8 px-0 lg:h-9 lg:w-9"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--crm-radius-sm)] border border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text)] transition hover:border-[var(--crm-border-strong)] hover:bg-[var(--crm-surface-2)] lg:h-9 lg:w-9"
                         aria-label="Logout"
                         title="Logout"
                     >

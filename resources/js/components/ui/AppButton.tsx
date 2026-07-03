@@ -1,33 +1,26 @@
-﻿import { Button, type ButtonProps } from 'react-aria-components';
+﻿import { Button as HeroButton, type ButtonProps as HeroButtonProps } from '@heroui/react';
 import { cn } from '@/lib/cn';
 
-type AppButtonProps = ButtonProps & {
-    variant?: 'default' | 'primary' | 'secondary' | 'danger' | 'ghost';
-    size?: 'sm' | 'md';
+type AppButtonProps = HeroButtonProps & {
+    variant?: 'solid' | 'bordered' | 'light' | 'flat' | 'ghost' | 'shadow';
+    color?: 'default' | 'primary' | 'danger' | 'success' | 'warning';
+    size?: 'sm' | 'md' | 'lg';
 };
 
 export function AppButton({
     className,
-    variant = 'default',
+    variant = 'solid',
+    color = 'default',
     size = 'md',
     ...props
 }: AppButtonProps) {
     return (
-        <Button
+        <HeroButton
             {...props}
-            className={cn(
-                'react-aria-Button',
-                size === 'sm' && 'h-8 px-3 text-xs',
-                variant === 'primary' &&
-                    'border-transparent bg-[var(--accent)] text-[var(--accent-foreground)] data-[hovered]:bg-[var(--accent-hover)] data-[pressed]:bg-[var(--accent-pressed)]',
-                variant === 'secondary' &&
-                    'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] data-[hovered]:bg-[var(--surface-2)]',
-                variant === 'danger' &&
-                    'border-transparent bg-[var(--danger)] text-white data-[hovered]:bg-[var(--danger-hover)]',
-                variant === 'ghost' &&
-                    'border-transparent bg-transparent data-[hovered]:bg-[var(--surface-2)]',
-                className,
-            )}
+            variant={variant}
+            color={color === 'primary' ? 'warning' : color}
+            size={size}
+            className={cn(className)}
         />
     );
 }

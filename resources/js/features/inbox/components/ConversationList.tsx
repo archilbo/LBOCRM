@@ -202,11 +202,13 @@ export function ConversationList({ conversations, selectedConvId, search, onSear
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                     {rowHoverId === conv.id ? (
-                                        <button type="button" onClick={(e) => { e.stopPropagation(); onArchiveToggle?.(conv); }}
-                                            className="flex size-6 items-center justify-center rounded-md text-[var(--crm-text-muted)] hover:text-[var(--crm-gold)] transition"
+                                        <span role="button" tabIndex={0}
+                                            onClick={(e) => { e.stopPropagation(); onArchiveToggle?.(conv); }}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onArchiveToggle?.(conv); } }}
+                                            className="flex size-6 cursor-pointer items-center justify-center rounded-md text-[var(--crm-text-muted)] transition hover:text-[var(--crm-gold)]"
                                             title={conv.archivedAt ? 'Unarchive' : 'Archive'}>
                                             {conv.archivedAt ? <ArchiveRestore size={12} /> : <Archive size={12} />}
-                                        </button>
+                                        </span>
                                     ) : null}
                                     {conv.unreadCount > 0 ? (
                                         <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">

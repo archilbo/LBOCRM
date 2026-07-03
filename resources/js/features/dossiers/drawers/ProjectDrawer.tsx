@@ -13,6 +13,7 @@ import type {
 } from '@/features/dossiers/types';
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
+import { dossierStatusOptions, dossierWorkflowOptions } from '@/config/statuses';
 
 type ProjectDrawerProps = {
     isOpen: boolean;
@@ -29,7 +30,7 @@ const emptyForm: DossierFormPayload = {
     clientId: '',
     projectObject: '',
     description: '',
-    address: '',
+    projectAddress: '',
     province: '',
     commune: '',
     landTitleNumber: '',
@@ -37,29 +38,11 @@ const emptyForm: DossierFormPayload = {
     floorArea: '',
     status: 'opened',
     workflowStep: 'client',
+    notes: '',
 };
 
-const statusOptions = [
-    { id: 'opened', label: 'Opened' },
-    { id: 'active', label: 'Active' },
-    { id: 'paused', label: 'Paused' },
-    { id: 'closed', label: 'Closed' },
-];
-
-const workflowOptions = [
-    { id: 'client', label: 'Client' },
-    { id: 'documents', label: 'Documents' },
-    { id: 'contract', label: 'Contract' },
-    { id: 'authorization', label: 'Authorization' },
-    { id: 'finance', label: 'Finance' },
-    { id: 'archive', label: 'Archive' },
-];
-
 function stringValue(value: unknown): string {
-    if (value === null || value === undefined) {
-        return '';
-    }
-
+    if (value === null || value === undefined) return '';
     return String(value);
 }
 
@@ -76,18 +59,15 @@ export function ProjectDrawer({
     const [form, setForm] = useState<DossierFormPayload>(emptyForm);
 
     useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
+        if (!isOpen) return;
 
         if (mode === 'edit' && dossier) {
             const current = dossier as unknown as Record<string, unknown>;
-
             setForm({
                 clientId: stringValue(current.clientId),
                 projectObject: stringValue(current.projectObject),
                 description: stringValue(current.description),
-                address: stringValue(current.address),
+                projectAddress: stringValue(current.projectAddress || current.address || ''),
                 province: stringValue(current.province),
                 commune: stringValue(current.commune),
                 landTitleNumber: stringValue(current.landTitleNumber),
@@ -95,15 +75,12 @@ export function ProjectDrawer({
                 floorArea: stringValue(current.floorArea),
                 status: stringValue(current.status) || 'opened',
                 workflowStep: stringValue(current.workflowStep) || 'client',
+                notes: stringValue(current.notes),
             });
-
             return;
         }
 
-        setForm({
-            ...emptyForm,
-            clientId: initialClientId,
-        });
+        setForm({ ...emptyForm, clientId: initialClientId });
     }, [dossier, initialClientId, isOpen, mode]);
 
     function updateField(field: keyof DossierFormPayload, value: string) {
@@ -130,7 +107,6 @@ export function ProjectDrawer({
                     <AppButton variant="secondary" onPress={() => onOpenChange(false)}>
                         Cancel
                     </AppButton>
-
                     <AppButton variant="primary" type="submit" form="project-form">
                         Save
                     </AppButton>
@@ -142,7 +118,6 @@ export function ProjectDrawer({
 
                 <section>
                     <h3 className="mb-3 text-sm font-semibold">Client and workflow</h3>
-
                     <div className="grid gap-4">
                         <AppSelect
                             label="Client"
@@ -152,21 +127,19 @@ export function ProjectDrawer({
                             options={clients}
                             error={firstError(errors, 'client_id')}
                         />
-
                         <div className="grid gap-4 md:grid-cols-2">
                             <AppSelect
                                 label="Status"
                                 selectedKey={form.status}
                                 onSelectionChange={(value) => updateSelect('status', value)}
-                                options={statusOptions}
+                                options={dossierStatusOptions}
                                 error={firstError(errors, 'status')}
                             />
-
                             <AppSelect
                                 label="Workflow step"
                                 selectedKey={form.workflowStep}
                                 onSelectionChange={(value) => updateSelect('workflowStep', value)}
-                                options={workflowOptions}
+                                options={dossierWorkflowOptions}
                                 error={firstError(errors, 'workflow_step')}
                             />
                         </div>
@@ -175,7 +148,6 @@ export function ProjectDrawer({
 
                 <section>
                     <h3 className="mb-3 text-sm font-semibold">Project information</h3>
-
                     <div className="grid gap-4">
                         <AppTextField
                             label="Project object"
@@ -184,7 +156,6 @@ export function ProjectDrawer({
                             onChange={(value) => updateField('projectObject', value)}
                             error={firstError(errors, 'project_object')}
                         />
-
                         <AppTextarea
                             label="Description"
                             value={form.description}
@@ -196,15 +167,13 @@ export function ProjectDrawer({
 
                 <section>
                     <h3 className="mb-3 text-sm font-semibold">Location</h3>
-
                     <div className="grid gap-4">
                         <AppTextField
                             label="Address"
-                            value={form.address}
-                            onChange={(value) => updateField('address', value)}
+                            value={form.projectAddress}
+                            onChange={(value) => updateField('projectAddress', value)}
                             error={firstError(errors, 'project_address', 'address')}
                         />
-
                         <div className="grid gap-4 md:grid-cols-2">
                             <AppTextField
                                 label="Province"
@@ -212,7 +181,6 @@ export function ProjectDrawer({
                                 onChange={(value) => updateField('province', value)}
                                 error={firstError(errors, 'province')}
                             />
-
                             <AppTextField
                                 label="Commune"
                                 value={form.commune}
@@ -225,7 +193,6 @@ export function ProjectDrawer({
 
                 <section>
                     <h3 className="mb-3 text-sm font-semibold">Land and surface</h3>
-
                     <div className="grid gap-4 md:grid-cols-3">
                         <AppTextField
                             label="Land title number"
@@ -233,14 +200,12 @@ export function ProjectDrawer({
                             onChange={(value) => updateField('landTitleNumber', value)}
                             error={firstError(errors, 'land_title_number')}
                         />
-
                         <AppTextField
                             label="Land surface"
                             value={form.landSurface}
                             onChange={(value) => updateField('landSurface', value)}
                             error={firstError(errors, 'land_surface')}
                         />
-
                         <AppTextField
                             label="Floor area"
                             value={form.floorArea}
@@ -248,6 +213,16 @@ export function ProjectDrawer({
                             error={firstError(errors, 'floor_area')}
                         />
                     </div>
+                </section>
+
+                <section>
+                    <h3 className="mb-3 text-sm font-semibold">Notes</h3>
+                    <AppTextarea
+                        label="Internal notes"
+                        value={form.notes}
+                        onChange={(value) => updateField('notes', value)}
+                        error={firstError(errors, 'notes')}
+                    />
                 </section>
             </form>
         </AppDrawer>

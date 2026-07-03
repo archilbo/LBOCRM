@@ -18,6 +18,7 @@ import type { FormErrors } from '@/lib/formErrors';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppModal } from '@/components/ui/AppModal';
 import { AppPagination } from '@/components/ui/AppPagination';
 import { AuthorizationDrawer } from '@/features/authorizations/drawers/AuthorizationDrawer';
 import { countByValue, filterByValue } from '@/lib/filters';
@@ -313,6 +314,7 @@ export default function AuthorizationsIndex({
     );
     const [formErrors, setFormErrors] = useState<FormErrors>({});
     const [tablePage, setTablePage] = useState(1);
+    const [deleteTarget, setDeleteTarget] = useState<AuthorizationRow | null>(null);
     const TABLE_PAGE_SIZE = 15;
 
     const statusOptions = useMemo(
@@ -406,13 +408,18 @@ export default function AuthorizationsIndex({
     }
 
     function deleteAuthorization(authorization: AuthorizationRow) {
-        if (!window.confirm(`Delete authorization for ${authorization.dossierNumber}?`)) {
-            return;
-        }
+        setDeleteTarget(authorization);
+        return;
+    }
 
-        router.delete(`/authorizations/${authorization.id}`, {
+    function confirmDelete() {
+        if (!deleteTarget) return;
+        router.delete(`/authorizations/${deleteTarget.id}`, {
             preserveScroll: true,
-            onSuccess: () => toast.success('Authorization deleted successfully.'),
+            onSuccess: () => {
+                setDeleteTarget(null);
+                toast.success('Authorization deleted successfully.');
+            },
             onError: () => toast.error('Authorization could not be deleted.'),
         });
     }
@@ -633,6 +640,21 @@ export default function AuthorizationsIndex({
                     onSubmit={handleSubmit}
                     errors={formErrors}
                 />
+
+                <AppModal
+                    isOpen={!!deleteTarget}
+                    onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+                    title="Delete authorization?"
+                    size="sm"
+                >
+                    <p className="mb-5 text-sm text-[var(--text-muted)]">
+                        Delete authorization for <strong>{deleteTarget?.dossierNumber}</strong>? This action cannot be undone.
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <AppButton variant="secondary" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
+                        <AppButton variant="danger" onPress={confirmDelete}>Delete</AppButton>
+                    </div>
+                </AppModal>
             </AppShell>
         </>
     );

@@ -21,6 +21,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppDataTable } from '@/components/ui/AppDataTable';
 import { AppFilterBar } from '@/components/ui/AppFilterBar';
+import { AppModal } from '@/components/ui/AppModal';
 import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
 import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
 import { AppTableActions } from '@/components/ui/AppTableActions';
@@ -142,6 +143,7 @@ export default function FinanceIndex({
     const [selectedRecord, setSelectedRecord] = useState<FinanceRecordRow | null>(
         financeRecords[0] ?? null,
     );
+    const [deleteTarget, setDeleteTarget] = useState<FinanceRecordRow | null>(null);
     const [formErrors, setFormErrors] = useState<FormErrors>({});
 
     const filteredFinanceRecords = useMemo(() => {
@@ -225,16 +227,11 @@ export default function FinanceIndex({
         });
     }
 
-    function deleteRecord(record: FinanceRecordRow) {
-        const confirmed = window.confirm(`Delete ${record.recordNumber}?`);
-
-        if (!confirmed) {
-            return;
-        }
-
-        router.delete(`/finance/${record.id}`, {
+    function confirmDelete() {
+        if (!deleteTarget) return;
+        router.delete(`/finance/${deleteTarget.id}`, {
             preserveScroll: true,
-            onSuccess: () => toast.success('Finance record deleted successfully.'),
+            onSuccess: () => { toast.success('Finance record deleted successfully.'); setDeleteTarget(null); },
             onError: () => toast.error('Finance record could not be deleted.'),
         });
     }
@@ -420,7 +417,7 @@ export default function FinanceIndex({
                         <AppTableActionButton
                             label="Delete"
                             tone="delete"
-                            onPress={() => deleteRecord(row.original)}
+                            onPress={() => setDeleteTarget(row.original)}
                         >
                             <Trash2 size={15} />
                         </AppTableActionButton>
@@ -667,6 +664,22 @@ export default function FinanceIndex({
                     onSubmit={handleSubmit}
                     errors={formErrors}
                 />
+
+                <AppModal
+                    isOpen={!!deleteTarget}
+                    onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+                    title="Delete record?"
+                    size="sm"
+                >
+                    <p className="mb-5 text-sm text-[var(--text-muted)]">
+                        Are you sure you want to delete <strong>{deleteTarget?.recordNumber}</strong>?
+                        This action cannot be undone.
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <AppButton variant="secondary" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
+                        <AppButton variant="danger" onPress={confirmDelete}>Delete</AppButton>
+                    </div>
+                </AppModal>
             </AppShell>
         </>
     );

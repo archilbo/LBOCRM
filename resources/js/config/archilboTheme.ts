@@ -1,8 +1,10 @@
 export const archilboTheme = {
     layout: {
-        sidebarWidth: 264,
-        topbarHeight: 72,
-        pagePadding: 28,
+        sidebarWidth: 248,
+        sidebarRailWidth: 56,
+        topbarHeight: 64,
+        mobileBottomNavHeight: 72,
+        pagePadding: 32,
         pagePaddingCompact: 16,
         rightPanelWidth: 360,
         maxContentWidth: 1600,
@@ -23,25 +25,33 @@ export const archilboTheme = {
         tableRowHeight: 52,
         sidebarItemHeight: 42,
     },
-    colors: {
-        bg: '#070808',
-        bgElevated: '#0b0c0d',
-        surface: '#101111',
-        surface2: '#151513',
-        surface3: '#1b1a16',
-        border: '#2b2921',
-        borderStrong: '#3a3528',
-        text: '#f5f1e8',
-        textMuted: '#a9a294',
-        textSoft: '#756f64',
-        accent: '#f6b725',
-        accent2: '#d79516',
-        success: '#4ade80',
-        warning: '#f6b725',
-        danger: '#fb5c5c',
-        info: '#7fb0ff',
-        violet: '#a78bfa',
-    },
 } as const;
 
 export type ArchilboTheme = typeof archilboTheme;
+
+export function applyArchilboTheme(root: HTMLElement = document.documentElement) {
+    const { layout, radius, spacing } = archilboTheme;
+
+    const variables: Record<string, string> = {
+        '--crm-sidebar-w': `${layout.sidebarWidth}px`,
+        '--crm-sidebar-rail-w': `${layout.sidebarRailWidth}px`,
+        '--crm-topbar-h': `${layout.topbarHeight}px`,
+        '--app-topbar-h': `${layout.topbarHeight}px`,
+        '--mobile-bottom-nav-h': `${layout.mobileBottomNavHeight}px`,
+        '--crm-right-panel-w': `${layout.rightPanelWidth}px`,
+        '--crm-page-pad': `${layout.pagePadding}px`,
+        '--crm-page-gap': `${spacing.pageGap}px`,
+        '--crm-panel-gap': `${spacing.panelGap}px`,
+        '--crm-card-pad': `${spacing.cardPadding}px`,
+        '--crm-card-pad-sm': `${spacing.compactCardPadding}px`,
+        '--crm-radius-xs': `${radius.xs}px`,
+        '--crm-radius-sm': `${radius.sm}px`,
+        '--crm-radius-md': `${radius.md}px`,
+        '--crm-radius-lg': `${radius.lg}px`,
+        '--crm-radius-xl': `${radius.xl}px`,
+    };
+
+    Object.entries(variables).forEach(([key, value]) => {
+        root.style.setProperty(key, value);
+    });
+}

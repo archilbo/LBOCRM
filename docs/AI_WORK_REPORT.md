@@ -4305,3 +4305,299 @@ npm run build
 ## Next Recommended Step
 
 Browser-check `/finance/documents` and `/clients` to confirm the table layout matches the reference while staying dark/gold.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+Shell overflow and page clipping fix
+
+## What Was Changed
+
+- Tightened the main app shell so the sidebar, topbar, and page content stay inside one `100dvh` flex layout.
+- Fixed normal pages using mobile bottom padding until `lg`; desktop/tablet pages now use normal page padding from `md` upward.
+- Added final CSS hardening for `html`, `body`, `#app`, `.crm-shell`, `.crm-topbar`, and `.crm-page` to prevent top/bottom drift and clipped content.
+
+## Files Modified
+
+- `resources/js/components/layout/AppShell.tsx`
+- `resources/css/app.css`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- `php artisan optimize:clear` passed.
+- Vite still reports the existing large bundle warning.
+
+## How To Test
+
+- Open `/finance` and confirm the page starts under the topbar without extra top offset.
+- Check desktop, tablet width, and mobile width for no clipped bottom content.
+- On mobile, confirm bottom nav only appears where expected and does not cover full-screen inbox chat.
+
+## Next Recommended Step
+
+Browser-check the shell at 1440px, 1024px, 768px, and mobile width; then continue table cleanup for other index pages.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+New frontend Phase 0 audit and backup
+
+## What Was Done
+
+- Read `docs/PROJECT_RULES.md` and `docs/new frontend.md`.
+- Created a full frontend backup: `resources_BACKUP_20260702-113055`.
+- Audited current frontend foundation, shared components, shell files, and Projects/Dossiers page.
+- No backend files, routes, controllers, models, or database files were changed.
+- No page migration was started yet.
+
+## Current Frontend Structure
+
+- App entry: `resources/js/app.tsx`.
+- Main shell: `resources/js/components/layout/AppShell.tsx`.
+- Navigation: `resources/js/components/layout/AppSidebar.tsx`, `AppTopbar.tsx`, `AppMobileNav.tsx`.
+- Shared UI components already exist under `resources/js/components/ui/`.
+- Shared helpers/config currently include `resources/js/lib/cn.ts`, `appRoutes.ts`, `filters.ts`, `i18n.ts`, and form helpers.
+- Projects UI is currently implemented as `resources/js/pages/Dossiers/Index.tsx` with real Inertia props.
+
+## HeroUI / UI Library Status
+
+- HeroUI is not installed in `package.json`.
+- The local project rule says the UI stack is Tailwind CSS + React Aria Components and explicitly says not to use other UI kits.
+- Phase 1 should therefore use the existing React Aria shared components unless the project rules are intentionally changed first.
+
+## Tailwind Status
+
+- Tailwind v4 is installed through `tailwindcss` and `@tailwindcss/vite`.
+- No `tailwind.config.*` file was found; styling is currently tokenized through CSS files, mostly `resources/css/app.css` and `resources/css/archilbo-theme.css`.
+- Existing dark/gold theme tokens are active and should be preserved.
+
+## Projects Page Map
+
+Old/current data props:
+- `dossiers`
+- `locationGroups`
+- `clients`
+- `metrics`
+
+Old/current actions:
+- Create project drawer.
+- Edit project drawer.
+- Delete project with confirmation.
+- Open project details route.
+- Open linked documents route.
+- Open linked finance documents route.
+- Search, workflow filters, workspace/location switch, pagination.
+
+Must preserve:
+- Existing Inertia props and routes.
+- `ProjectDrawer` create/edit submissions.
+- Existing search/filter/pagination behavior.
+- Location explorer behavior.
+- Real backend data only.
+
+## Exact Files Recommended For Phase 1
+
+- `resources/js/config/statuses.ts` for shared status labels, tones, and workflow steps.
+- `resources/js/config/navigation.ts` or keep/clean `resources/js/lib/appRoutes.ts` as the single navigation source.
+- `resources/js/components/ui/AppPageHeader.tsx` to standardize headers/actions.
+- `resources/js/components/ui/AppToolbar.tsx` to standardize search/filter/sort/action rows.
+- `resources/js/components/ui/AppDataTable.tsx` to support row click, optional selection, toolbar slots, and working filters without fake buttons.
+- `resources/js/components/ui/AppDrawer.tsx` only if drawer sizing/preview mode needs standardization.
+- `resources/css/archilbo-theme.css` only for central tokens and shared table/card/sidebar classes.
+
+## Commands Run
+
+```powershell
+Copy-Item "resources" "resources_BACKUP_20260702-113055" -Recurse
+```
+
+## Build/Test Result
+
+- Build was not run because Phase 0 only created a backup and audit/report notes.
+
+## Next Recommended Step
+
+Start Phase 1 with the shared config/component cleanup only; do not migrate Projects until those shared pieces are stable.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+New frontend rules and dependency setup before Phase 1
+
+## What Was Changed
+
+- Updated `docs/PROJECT_RULES.md` to align with `docs/new frontend.md`.
+- Installed HeroUI v3 and its motion dependency.
+- Added `resources/js/providers/AppProviders.tsx` to centralize app-level providers.
+- Imported HeroUI global styles before the local ARCHI LBO CSS so the dark/gold theme can override component styling.
+- Kept existing React Aria components valid for gradual migration.
+- Did not migrate Projects/Dossiers yet.
+- Did not change backend, routes, controllers, models, or database files.
+
+## Files Created
+
+- `resources/js/providers/AppProviders.tsx`
+
+## Files Modified
+
+- `docs/PROJECT_RULES.md`
+- `docs/AI_WORK_REPORT.md`
+- `package.json`
+- `package-lock.json`
+- `resources/js/app.tsx`
+
+## Dependencies Added
+
+- `@heroui/react` v3.2.1
+- `framer-motion`
+
+## Important Decisions
+
+- HeroUI v3.2.1 does not expose a `HeroUIProvider` export in the installed package, so setup uses the available global styles plus existing app providers.
+- Future frontend work should use HeroUI components where useful through shared wrappers, while preserving existing React Aria components until migration.
+
+## Commands Run
+
+```powershell
+npm install @heroui/react framer-motion
+npm run build
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- Vite still reports the existing large bundle warning.
+
+## Next Recommended Step
+
+Start Phase 1: shared frontend foundation cleanup with central statuses/navigation and shared toolbar/table/header improvements before migrating Projects.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+New frontend Phase 1 foundation config cleanup
+
+## What Was Changed
+
+- Added a shared navigation config bridge so active layout/search/mobile navigation imports use `resources/js/config/navigation.ts`.
+- Added shared dossier status/workflow/readiness config in `resources/js/config/statuses.ts`.
+- Replaced hardcoded dossier workflow labels, status classes, readiness checks, and drawer select options with the shared config.
+- Kept Projects/Dossiers behavior unchanged: create/edit/delete/search/filter/location/pagination routes still use existing logic.
+- Did not migrate the Projects UI yet.
+- Did not change backend, routes, controllers, models, or database files.
+
+## Files Created
+
+- `resources/js/config/navigation.ts`
+- `resources/js/config/statuses.ts`
+
+## Files Modified
+
+- `resources/js/components/layout/AppSidebar.tsx`
+- `resources/js/components/layout/AppMobileNav.tsx`
+- `resources/js/components/layout/navigation.ts`
+- `resources/js/components/layout/AppGlobalSearch.tsx`
+- `resources/js/pages/FrontendQa/Index.tsx`
+- `resources/js/pages/Dossiers/Index.tsx`
+- `resources/js/features/dossiers/drawers/ProjectDrawer.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- `php artisan optimize:clear` passed.
+- Vite still reports the existing large bundle warning.
+
+## Next Recommended Step
+
+Start Phase 2/3 shell and shared component cleanup, then migrate Projects/Dossiers as the first pilot page.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-02
+
+## Step Completed
+
+New frontend Phase 2 shell/theme foundation wiring
+
+## What Was Changed
+
+- Made `archilboTheme` an active frontend theme source by applying its tokens to CSS variables from `ThemeProvider`.
+- Aligned shared theme dimensions with the current shell: sidebar rail, expanded sidebar, topbar, mobile bottom nav, and page padding.
+- Updated `AppPageHeader` to use CRM dark/gold tokens instead of generic app tokens.
+- Updated `AppShell` to use the shared `AppPageHeader` instead of duplicated header markup.
+- Did not migrate Projects/Dossiers UI yet.
+- Did not change backend, routes, controllers, models, or database files.
+
+## Files Modified
+
+- `resources/js/config/archilboTheme.ts`
+- `resources/js/providers/ThemeProvider.tsx`
+- `resources/js/components/ui/AppPageHeader.tsx`
+- `resources/js/components/layout/AppShell.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php artisan optimize:clear
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- `php artisan optimize:clear` passed.
+- Vite still reports the existing large bundle warning.
+
+## Next Recommended Step
+
+Continue Phase 3 shared component cleanup: standardize toolbar/table/drawer primitives, then start the Projects/Dossiers pilot redesign.

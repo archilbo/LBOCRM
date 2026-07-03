@@ -41,6 +41,10 @@ class ArchiveController extends Controller
 
         ArchiveRecord::create($data);
 
+        if ($request->filled('return_to')) {
+            return redirect()->to($request->string('return_to')->toString())->with('success', 'Archive record created successfully.');
+        }
+
         return redirect()
             ->route('archives.index')
             ->with('success', 'Archive record created successfully.');
@@ -49,6 +53,10 @@ class ArchiveController extends Controller
     public function update(UpdateArchiveRecordRequest $request, ArchiveRecord $archiveRecord): RedirectResponse
     {
         $archiveRecord->update($this->prepareArchiveData($request->validated()));
+
+        if ($request->filled('return_to')) {
+            return redirect()->to($request->string('return_to')->toString())->with('success', 'Archive record updated successfully.');
+        }
 
         return redirect()
             ->route('archives.index')
@@ -78,6 +86,10 @@ class ArchiveController extends Controller
         }
 
         $archiveRecord->update($payload);
+
+        if ($request->filled('return_to')) {
+            return redirect()->to($request->string('return_to')->toString())->with('success', 'Archive status updated successfully.');
+        }
 
         return redirect()
             ->route('archives.index')

@@ -20,3 +20,61 @@ export type IntermediaryFormPayload = {
     notes: string;
     isActive: boolean;
 };
+
+export type ClientBrief = {
+    id: number;
+    fullName: string;
+    clientNumber: string;
+    cin: string | null;
+    phone: string | null;
+    email: string | null;
+    status: string;
+    projectsCount: number;
+    createdAt: string | null;
+    updatedAt: string | null;
+};
+
+export type ProjectBrief = {
+    id: number;
+    dossierNumber: string;
+    projectObject: string | null;
+    clientName: string | null;
+    status: string;
+    workflowStep: string;
+    commune: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+};
+
+export type MonthlyCount = {
+    month: string;
+    count: number;
+};
+
+export type StatusCount = {
+    status: string;
+    count: number;
+};
+
+export type IntermediaryShowMetrics = {
+    totalClients: number;
+    activeClients: number;
+    inactiveClients: number;
+    archivedClients: number;
+    totalProjects: number;
+    activeProjects: number;
+    archivedProjects: number;
+    latestClientName: string | null;
+    latestClientDate: string | null;
+};
+
+export type IntermediaryShowProps = {
+    intermediary: IntermediaryRow;
+    metrics: IntermediaryShowMetrics;
+    monthlyClients: MonthlyCount[];
+    monthlyProjects: MonthlyCount[];
+    clientStatusBreakdown: StatusCount[];
+    projectStatusBreakdown: StatusCount[];
+    clients: ClientBrief[];
+    projects: ProjectBrief[];
+};

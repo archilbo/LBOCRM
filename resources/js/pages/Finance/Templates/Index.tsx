@@ -14,6 +14,8 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppModal } from '@/components/ui/AppModal';
 import type { DocumentTemplate, FinanceDocumentType, TemplatePlaceholder } from '@/features/finance/types';
 
 type PageProps = {
@@ -155,6 +157,7 @@ export default function FinanceTemplatesIndex({
 
     const dirty = isDirty(draft, selectedTemplate);
     const variables = placeholderItems(placeholders);
+    const [deleteTarget, setDeleteTarget] = useState<DocumentTemplate | null>(null);
 
     useEffect(() => {
         if (!selectedTemplate) {
@@ -245,12 +248,15 @@ export default function FinanceTemplatesIndex({
     }
 
     function deleteTemplate(template: DocumentTemplate) {
-        if (!window.confirm(`Delete "${template.name}"?`)) return;
+        setDeleteTarget(template);
+    }
 
-        router.delete(template.urls.delete, {
+    function confirmDelete() {
+        if (!deleteTarget) return;
+        router.delete(`/finance/templates/${deleteTarget.id}`, {
             preserveScroll: true,
-            onSuccess: () => toast.success('Template deleted.'),
-            onError: () => toast.error('Could not delete template.'),
+            onSuccess: () => { toast.success('Template deleted.'); setDeleteTarget(null); },
+            onError: () => toast.error('Template could not be deleted.'),
         });
     }
 
@@ -538,6 +544,20 @@ export default function FinanceTemplatesIndex({
                         </aside>
                     </section>
                 </div>
+                <AppModal
+                    isOpen={!!deleteTarget}
+                    onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+                    title="Delete template?"
+                    size="sm"
+                >
+                    <p className="mb-5 text-sm text-[var(--text-muted)]">
+                        Delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <AppButton variant="secondary" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
+                        <AppButton variant="danger" onPress={confirmDelete}>Delete</AppButton>
+                    </div>
+                </AppModal>
             </AppShell>
         </>
     );

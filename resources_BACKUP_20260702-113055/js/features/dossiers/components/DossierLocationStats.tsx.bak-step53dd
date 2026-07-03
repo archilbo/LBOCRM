@@ -1,0 +1,52 @@
+import { AppCard } from '@/components/ui/AppCard';
+import type { DossierLocationStats as DossierLocationStatsType } from '@/features/dossiers/types';
+
+type Props = {
+    stats: DossierLocationStatsType;
+    compact?: boolean;
+};
+
+function money(value: number) {
+    return new Intl.NumberFormat('fr-MA', {
+        style: 'currency',
+        currency: 'MAD',
+        maximumFractionDigits: 0,
+    }).format(value || 0);
+}
+
+export function DossierLocationStats({ stats, compact = false }: Props) {
+    const items = [
+        { label: 'Projects', value: stats.projectsCount },
+        { label: 'Open', value: stats.openCount },
+        { label: 'Closed', value: stats.closedCount },
+        { label: 'Documents', value: stats.documentsCount },
+        { label: 'Finance docs', value: stats.financeDocumentsCount },
+        { label: 'Invoices', value: money(stats.invoicesTotal) },
+        { label: 'Paid', value: money(stats.paidTotal) },
+        { label: 'Remaining', value: money(stats.remainingTotal) },
+    ];
+
+    if (compact) {
+        return (
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                {items.slice(0, 4).map((item) => (
+                    <div key={item.label} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{item.label}</p>
+                        <p className="mt-1 truncate text-sm font-semibold">{item.value}</p>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {items.map((item) => (
+                <AppCard key={item.label} className="p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{item.label}</p>
+                    <p className="mt-1 truncate text-sm font-semibold">{item.value}</p>
+                </AppCard>
+            ))}
+        </div>
+    );
+}

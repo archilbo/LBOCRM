@@ -5,12 +5,13 @@ type AppMetricCardProps = {
     icon?: ReactNode;
     label: string;
     value: number | string;
+    detail?: string;
     trend?: string;
     trendUp?: boolean;
     className?: string;
 };
 
-export function AppMetricCard({ icon, label, value, trend, trendUp, className }: AppMetricCardProps) {
+export function AppMetricCard({ icon, label, value, detail, trend, trendUp, className }: AppMetricCardProps) {
     return (
         <div className={cn('app-surface p-4', className)}>
             <div className="flex items-start justify-between gap-3">
@@ -29,6 +30,12 @@ export function AppMetricCard({ icon, label, value, trend, trendUp, className }:
                     </p>
                 </div>
             </div>
+
+            {detail ? (
+                <p className="mt-2 truncate text-xs text-[var(--text-muted)]">
+                    {detail}
+                </p>
+            ) : null}
 
             {trend ? (
                 <p className={cn('mt-2 text-xs font-medium', trendUp ? 'text-[var(--success)]' : 'text-[var(--danger)]')}>

@@ -22,6 +22,7 @@ class UpdateContractRequest extends FormRequest
                 'exists:dossiers,id',
                 Rule::unique('contracts', 'dossier_id')->ignore($contractId),
             ],
+            'contract_number' => ['nullable', 'string', 'max:50', Rule::unique('contracts', 'contract_number')->ignore($contractId)],
             'status' => ['nullable', 'string', 'max:50'],
             'surface' => ['nullable', 'numeric', 'min:0'],
             'price_per_square_meter' => ['nullable', 'numeric', 'min:0'],

@@ -1,6 +1,7 @@
 import type { Key } from 'react';
 import { useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/cn';
 
 export type AppSelectOption = {
     id: Key;
@@ -21,7 +22,6 @@ type AppSelectProps = {
     isDisabled?: boolean;
     isRequired?: boolean;
     className?: string;
-    buttonClassName?: string;
 };
 
 export function AppSelect({
@@ -35,8 +35,7 @@ export function AppSelect({
     onSelectionChange,
     isDisabled = false,
     isRequired = false,
-    className = '',
-    buttonClassName = '',
+    className,
 }: AppSelectProps) {
     const keyMap = useMemo(() => {
         return new Map(options.map((option) => [String(option.id), option.id]));
@@ -44,36 +43,20 @@ export function AppSelect({
 
     const selectProps =
         selectedKey !== undefined
-            ? {
-                  value: selectedKey === null ? '' : String(selectedKey),
-              }
-            : {
-                  defaultValue: defaultSelectedKey !== undefined ? String(defaultSelectedKey) : '',
-              };
+            ? { value: selectedKey === null ? '' : String(selectedKey) }
+            : { defaultValue: defaultSelectedKey !== undefined ? String(defaultSelectedKey) : '' };
 
     function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
         const value = event.target.value;
-
-        if (!value) {
-            onSelectionChange?.(null);
-            return;
-        }
-
-        onSelectionChange?.(keyMap.get(value) ?? value);
+        onSelectionChange?.(value ? (keyMap.get(value) ?? value) : null);
     }
 
     return (
-        <div
-            className={[
-                'flex min-w-0 flex-col gap-1.5',
-                isDisabled ? 'opacity-60' : '',
-                className,
-            ].join(' ')}
-        >
+        <div className={cn('flex min-w-0 flex-col gap-1.5', isDisabled && 'opacity-60', className)}>
             {label ? (
-                <label className="text-xs font-semibold text-[var(--text)]">
+                <label className="text-xs font-semibold text-[var(--foreground)]">
                     {label}
-                    {isRequired ? <span className="ml-1 text-red-500">*</span> : null}
+                    {isRequired ? <span className="ml-1 text-[var(--danger)]">*</span> : null}
                 </label>
             ) : null}
 
@@ -83,25 +66,20 @@ export function AppSelect({
                     disabled={isDisabled}
                     required={isRequired}
                     onChange={handleChange}
-                    className={[
-                        'h-10 w-full min-w-0 appearance-none rounded-2xl border bg-[var(--surface)] px-3 pr-10 text-sm text-[var(--text)] outline-none transition',
+                    className={cn(
+                        'h-10 w-full min-w-0 appearance-none rounded-[var(--radius-md)] border bg-[var(--surface)] px-3 pr-10 text-sm text-[var(--foreground)] outline-none transition',
                         'border-[var(--border)] hover:border-[var(--accent)]',
                         'focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]',
                         'disabled:cursor-not-allowed disabled:opacity-60',
-                        error ? 'border-red-500/70' : '',
-                        buttonClassName,
-                    ].join(' ')}
+                        error && 'border-[var(--danger)]',
+                    )}
                 >
                     <option value="" disabled>
                         {placeholder}
                     </option>
 
                     {options.map((option) => (
-                        <option
-                            key={String(option.id)}
-                            value={String(option.id)}
-                            disabled={option.isDisabled}
-                        >
+                        <option key={String(option.id)} value={String(option.id)} disabled={option.isDisabled}>
                             {option.label}
                         </option>
                     ))}
@@ -113,13 +91,13 @@ export function AppSelect({
                 />
             </div>
 
-            {description ? (
+            {description && !error ? (
                 <p className="text-xs text-[var(--text-muted)]">{description}</p>
             ) : null}
 
-            {error ? <p className="text-xs font-medium text-red-500">{error}</p> : null}
+            {error ? (
+                <p className="text-xs font-medium text-[var(--danger)]">{error}</p>
+            ) : null}
         </div>
     );
 }
-
-export default AppSelect;

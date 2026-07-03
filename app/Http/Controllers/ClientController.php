@@ -42,6 +42,7 @@ class ClientController extends Controller
         $selectedDossierId = $request->integer('dossier_id') ?: null;
 
         return Inertia::render('Clients/Show', [
+            'tab' => $request->query('tab', 'overview'),
             'client' => ClientResource::make($client)->resolve(),
             'workspace' => $workspaceService->forClient($client, $selectedDossierId),
             'documentTemplates' => DocumentTemplate::query()
@@ -66,6 +67,7 @@ class ClientController extends Controller
                     'updatedAt' => optional($dossier->updated_at)->diffForHumans(),
                 ])
                 ->values(),
+            'intermediaries' => $this->intermediaryOptions(),
         ]);
     }
 

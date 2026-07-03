@@ -1,0 +1,204 @@
+import { Head, router } from '@inertiajs/react';
+import {
+    ArrowLeft,
+    BriefcaseBusiness,
+    FolderKanban,
+    Mail,
+    MapPin,
+    Phone,
+    UserRound,
+} from 'lucide-react';
+import { AppShell } from '@/components/layout/AppShell';
+import { AppButton } from '@/components/ui/AppButton';
+import { ClientProjectsPanel } from '@/features/clients/components/ClientProjectsPanel';
+import { ClientSelectedProjectWorkspace } from '@/features/clients/components/ClientSelectedProjectWorkspace';
+import type { ClientRow, ClientWorkspace } from '@/features/clients/types';
+
+const FORCE_CLIENT_SHOW_REDESIGN_53J = true;
+
+type DossierSummary = {
+    id: number;
+    dossierNumber: string;
+    projectObject: string;
+    status: string;
+    workflowStep: string;
+    updatedAt: string | null;
+};
+
+type PageProps = {
+    client: ClientRow;
+    dossiers: DossierSummary[];
+    workspace: ClientWorkspace;
+};
+
+function InfoTile({ label, value }: { label: string; value: string | number | null | undefined }) {
+    return (
+        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
+            <p className="crm-kpi-label">{label}</p>
+            <p className="mt-2 truncate text-sm font-semibold text-[var(--crm-text)]">{value || '-'}</p>
+        </div>
+    );
+}
+
+function initials(client: ClientRow) {
+    const first = client.firstName?.charAt(0) ?? '';
+    const last = client.lastName?.charAt(0) ?? '';
+
+    return `${first}${last}`.trim() || client.fullName.slice(0, 2).toUpperCase();
+}
+
+export default function ClientShow({ client, dossiers, workspace }: PageProps) {
+    const selectedProject = workspace?.selectedProject ?? null;
+    const projects = workspace?.projects ?? dossiers.map((dossier) => ({
+        id: dossier.id,
+        clientId: client.id,
+        clientName: client.fullName,
+        dossierNumber: dossier.dossierNumber,
+        projectObject: dossier.projectObject,
+        projectAddress: null,
+        province: null,
+        commune: null,
+        status: dossier.status,
+        workflowStep: dossier.workflowStep,
+        documentsCount: 0,
+        financeDocumentsCount: 0,
+        paymentsCount: 0,
+        quotesTotal: 0,
+        invoicesTotal: 0,
+        paidTotal: 0,
+        remainingTotal: 0,
+        updatedAt: dossier.updatedAt,
+    }));
+
+    return (
+        <>
+            <Head title={client.fullName} />
+
+            <AppShell
+                eyebrowKey="clients.eyebrow"
+                titleKey="clients.title"
+                subtitleKey="clients.subtitle"
+                action={
+                    <div className="flex flex-wrap gap-2">
+                        <AppButton variant="secondary" onPress={() => router.visit('/clients')}>
+                            <ArrowLeft size={16} />
+                            Clients
+                        </AppButton>
+                        <AppButton variant="primary" onPress={() => router.visit('/dossiers')}>
+                            <FolderKanban size={16} />
+                            New project
+                        </AppButton>
+                    </div>
+                }
+            >
+                <div className="crm-page" data-ui-marker={FORCE_CLIENT_SHOW_REDESIGN_53J ? 'FORCE_CLIENT_SHOW_REDESIGN_53J' : undefined}>
+                    <section className="crm-panel overflow-hidden">
+                        <div className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_460px] xl:items-center">
+                            <div className="flex min-w-0 items-start gap-4">
+                                <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)] text-lg font-black text-[var(--crm-accent)]">
+                                    {initials(client)}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="crm-eyebrow">Client workspace</p>
+                                    <h1 className="mt-2 truncate text-2xl font-black text-[var(--crm-text)]">{client.fullName}</h1>
+                                    <p className="mt-1 text-sm text-[var(--crm-muted)]">{client.clientNumber} / {client.cin || 'No CIN'}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2 text-sm text-[var(--crm-muted)]">
+                                <span className="flex items-center gap-2"><Phone size={15} />{client.phone || '-'}</span>
+                                <span className="flex items-center gap-2"><Mail size={15} />{client.email || '-'}</span>
+                                <span className="flex items-center gap-2"><MapPin size={15} />{client.address || '-'}</span>
+                            </div>
+                        </div>
+
+                        <div className="grid border-t border-[var(--crm-border)] md:grid-cols-4">
+                            <div className="border-b border-[var(--crm-border)] p-4 md:border-b-0 md:border-r">
+                                <p className="crm-kpi-label">Status</p>
+                                <p className="mt-2 text-lg font-black capitalize text-emerald-300">{client.status}</p>
+                            </div>
+                            <div className="border-b border-[var(--crm-border)] p-4 md:border-b-0 md:border-r">
+                                <p className="crm-kpi-label">Projects</p>
+                                <p className="mt-2 text-lg font-black text-[var(--crm-accent)]">{projects.length}</p>
+                            </div>
+                            <div className="border-b border-[var(--crm-border)] p-4 md:border-b-0 md:border-r">
+                                <p className="crm-kpi-label">Intermediary</p>
+                                <p className="mt-2 truncate text-sm font-bold">{client.intermediaryName || '-'}</p>
+                            </div>
+                            <div className="p-4">
+                                <p className="crm-kpi-label">Updated</p>
+                                <p className="mt-2 text-sm font-bold">{client.updatedAt || '-'}</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="grid min-w-0 gap-4 2xl:grid-cols-[360px_minmax(0,1fr)]">
+                        <aside className="grid min-w-0 gap-4">
+                            <section className="crm-panel p-4">
+                                <div className="mb-4 flex items-center gap-2">
+                                    <UserRound size={16} className="text-[var(--crm-accent)]" />
+                                    <h2 className="text-sm font-bold">Identity</h2>
+                                </div>
+                                <div className="grid gap-3">
+                                    <InfoTile label="First name" value={client.firstName} />
+                                    <InfoTile label="Last name" value={client.lastName} />
+                                    <InfoTile label="Father" value={client.fatherName} />
+                                    <InfoTile label="Mother" value={client.motherName} />
+                                    <InfoTile label="CNI expiration" value={client.cniExpirationDate} />
+                                    <InfoTile label="Created" value={client.createdAt} />
+                                </div>
+                            </section>
+
+                            <section className="crm-panel p-4">
+                                <div className="mb-4 flex items-center gap-2">
+                                    <BriefcaseBusiness size={16} className="text-[var(--crm-accent)]" />
+                                    <h2 className="text-sm font-bold">Projects</h2>
+                                </div>
+                                <ClientProjectsPanel
+                                    clientId={client.id}
+                                    projects={projects}
+                                    selectedProjectId={selectedProject?.id ?? null}
+                                />
+                            </section>
+                        </aside>
+
+                        <main className="grid min-w-0 gap-4">
+                            <ClientSelectedProjectWorkspace project={selectedProject} />
+
+                            <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                                <div className="crm-panel p-4">
+                                    <h2 className="text-sm font-bold">Client notes</h2>
+                                    <p className="mt-3 text-sm leading-6 text-[var(--crm-muted)]">
+                                        {client.notes || 'No notes saved.'}
+                                    </p>
+                                </div>
+
+                                <div className="crm-panel p-4">
+                                    <h2 className="text-sm font-bold">Quick actions</h2>
+                                    <div className="mt-4 grid gap-2">
+                                        <button
+                                            type="button"
+                                            className="crm-action-button justify-center border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)] py-3 text-[var(--crm-accent)]"
+                                            onClick={() => router.visit('/dossiers')}
+                                        >
+                                            <FolderKanban size={15} />
+                                            Create project
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="crm-action-button justify-center py-3"
+                                            onClick={() => router.visit('/clients')}
+                                        >
+                                            <ArrowLeft size={15} />
+                                            Back to clients
+                                        </button>
+                                    </div>
+                                </div>
+                            </section>
+                        </main>
+                    </section>
+                </div>
+            </AppShell>
+        </>
+    );
+}

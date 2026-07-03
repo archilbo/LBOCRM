@@ -1,6 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
-import { appRoutes, isActivePath, isValidHref } from '@/lib/appRoutes';
+import { appRoutes, isActivePath, isValidHref } from '@/config/navigation';
 import { useTranslation } from '@/lib/i18n';
 
 const mobileRouteKeys = ['dashboard', 'clients', 'dossiers', 'documents', 'finance', 'archives', 'tasks', 'inbox'];
@@ -21,8 +21,11 @@ export function AppMobileNav() {
     }
 
     return (
-        <nav id="app-bottom-nav">
-            <div className="scrollbar-none flex h-full items-center gap-1 overflow-x-auto px-2 pt-1">
+        <nav
+            id="app-bottom-nav"
+            className="fixed bottom-0 left-0 right-0 z-50 hidden h-[var(--mobile-bottom-nav-h)] border-t border-[var(--crm-border)] bg-[color-mix(in_srgb,var(--crm-bg-2)_94%,transparent)] px-2 pt-1 backdrop-blur-[18px] max-md:flex pb-[env(safe-area-inset-bottom,0px)]"
+        >
+            <div className="scrollbar-none flex h-full w-full items-center gap-1 overflow-x-auto">
                 {mobileItems.map((item) => {
                     const Icon = item.icon;
                     const active = item.key === 'finance'

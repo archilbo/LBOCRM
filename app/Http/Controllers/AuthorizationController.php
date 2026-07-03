@@ -39,6 +39,10 @@ class AuthorizationController extends Controller
     {
         ProjectAuthorization::create($this->prepareAuthorizationData($request->validated()));
 
+        if ($request->filled('return_to')) {
+            return redirect()->to($request->string('return_to')->toString())->with('success', 'Authorization created successfully.');
+        }
+
         return redirect()
             ->route('authorizations.index')
             ->with('success', 'Authorization created successfully.');
@@ -47,6 +51,10 @@ class AuthorizationController extends Controller
     public function update(UpdateAuthorizationRequest $request, ProjectAuthorization $authorization): RedirectResponse
     {
         $authorization->update($this->prepareAuthorizationData($request->validated()));
+
+        if ($request->filled('return_to')) {
+            return redirect()->to($request->string('return_to')->toString())->with('success', 'Authorization updated successfully.');
+        }
 
         return redirect()
             ->route('authorizations.index')
@@ -76,6 +84,10 @@ class AuthorizationController extends Controller
         }
 
         $authorization->update($payload);
+
+        if ($request->filled('return_to')) {
+            return redirect()->to($request->string('return_to')->toString())->with('success', 'Authorization status updated successfully.');
+        }
 
         return redirect()
             ->route('authorizations.index')

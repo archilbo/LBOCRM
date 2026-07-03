@@ -8,6 +8,7 @@ use App\Http\Resources\DossierResource;
 use App\Models\Client;
 use App\Models\Dossier;
 use App\Services\Dossiers\DossierLocationGroupingService;
+use App\Services\Dossiers\DossierWorkflowStepperService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,20 +24,32 @@ class DossierController extends Controller
             ->latest()
             ->get();
 
+        $monthlyProjects = Dossier::query()
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month")
+            ->selectRaw('COUNT(*) as count')
+            ->where('created_at', '>=', now()->subMonths(12))
+            ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
+            ->orderBy('month')
+            ->get()
+            ->map(fn ($item) => ['month' => $item->month, 'count' => (int) $item->count])
+            ->values();
+
         return Inertia::render('Dossiers/Index', [
             'dossiers' => DossierResource::collection($dossiers)->resolve(),
             'locationGroups' => $locationGroupingService->groups(),
             'clients' => $this->clientOptions(),
+            'monthlyProjects' => $monthlyProjects,
             'metrics' => [
                 'total' => Dossier::count(),
                 'active' => Dossier::where('status', 'active')->count(),
                 'opened' => Dossier::where('status', 'opened')->count(),
                 'closed' => Dossier::where('status', 'closed')->count(),
+                'documentsTotal' => (int) $dossiers->sum('documents_count'),
             ],
         ]);
     }
 
-    public function show(Dossier $dossier): Response
+    public function show(Dossier $dossier, DossierWorkflowStepperService $workflowStepper): Response
     {
         $dossier
             ->load([
@@ -50,8 +63,11 @@ class DossierController extends Controller
             ->loadCount(['documents', 'financeRecords'])
             ->loadExists(['contract', 'authorization', 'archiveRecord']);
 
+        $workflow = $workflowStepper->evaluate($dossier);
+
         return Inertia::render('Dossiers/Show', [
             'dossier' => DossierResource::make($dossier)->resolve(),
+            'workflow' => $workflow,
             'documents' => $dossier->documents
                 ->map(fn ($document) => [
                     'id' => $document->id,

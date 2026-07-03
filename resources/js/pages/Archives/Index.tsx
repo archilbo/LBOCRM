@@ -18,6 +18,7 @@ import type { FormErrors } from '@/lib/formErrors';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppModal } from '@/components/ui/AppModal';
 import { AppPagination } from '@/components/ui/AppPagination';
 import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
 import { countByValue, filterByValue } from '@/lib/filters';
@@ -493,6 +494,7 @@ export default function ArchivesIndex({
     const [formErrors, setFormErrors] = useState<FormErrors>({});
     const [tablePage, setTablePage] = useState(1);
     const TABLE_PAGE_SIZE = 15;
+    const [deleteTarget, setDeleteTarget] = useState<ArchiveRecordRow | null>(null);
 
     const statusOptions = useMemo(
         () => [
@@ -585,13 +587,18 @@ export default function ArchivesIndex({
     }
 
     function deleteRecord(record: ArchiveRecordRow) {
-        if (!window.confirm(`Delete ${record.archiveNumber}?`)) {
-            return;
-        }
+        setDeleteTarget(record);
+        return;
+    }
 
-        router.delete(`/archives/${record.id}`, {
+    function confirmDelete() {
+        if (!deleteTarget) return;
+        router.delete(`/archives/${deleteTarget.id}`, {
             preserveScroll: true,
-            onSuccess: () => toast.success('Archive record deleted successfully.'),
+            onSuccess: () => {
+                setDeleteTarget(null);
+                toast.success('Archive record deleted successfully.');
+            },
             onError: () => toast.error('Archive record could not be deleted.'),
         });
     }
@@ -836,6 +843,20 @@ export default function ArchivesIndex({
                     onSubmit={handleSubmit}
                     errors={formErrors}
                 />
+                <AppModal
+                    isOpen={!!deleteTarget}
+                    onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+                    title="Delete archive record?"
+                    size="sm"
+                >
+                    <p className="mb-5 text-sm text-[var(--text-muted)]">
+                        Delete <strong>{deleteTarget?.archiveNumber}</strong>? This action cannot be undone.
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <AppButton variant="secondary" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
+                        <AppButton variant="danger" onPress={confirmDelete}>Delete</AppButton>
+                    </div>
+                </AppModal>
             </AppShell>
         </>
     );

@@ -1,4 +1,4 @@
-﻿import { ReactNode } from 'react';
+﻿import { type ReactNode } from 'react';
 import { Inbox } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -10,17 +10,11 @@ type AppEmptyStateProps = {
     className?: string;
 };
 
-export function AppEmptyState({
-    title,
-    description,
-    icon,
-    action,
-    className,
-}: AppEmptyStateProps) {
+export function AppEmptyState({ title, description, icon, action, className }: AppEmptyStateProps) {
     return (
         <div
             className={cn(
-                'flex flex-col items-center justify-center rounded-2xl border border-dashed bg-[var(--surface)] px-6 py-12 text-center',
+                'flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center',
                 className,
             )}
         >
@@ -28,12 +22,10 @@ export function AppEmptyState({
                 {icon ?? <Inbox size={20} />}
             </div>
 
-            <h3 className="mt-4 text-sm font-semibold">{title}</h3>
+            <h3 className="mt-4 text-sm font-semibold text-[var(--foreground)]">{title}</h3>
 
             {description ? (
-                <p className="mt-1 max-w-md text-sm text-[var(--text-muted)]">
-                    {description}
-                </p>
+                <p className="mt-1 max-w-md text-sm text-[var(--text-muted)]">{description}</p>
             ) : null}
 
             {action ? <div className="mt-5">{action}</div> : null}

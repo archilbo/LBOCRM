@@ -3,6 +3,8 @@ import { ArrowLeft, Clock, Eye, FileText, RotateCcw, Save, Trash2 } from 'lucide
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppModal } from '@/components/ui/AppModal';
 
 type Template = {
     id: number;
@@ -92,6 +94,7 @@ function htmlPreview(version: TemplateVersion): string {
 
 export default function FinanceTemplateVersions({ template, versions, routes }: PageProps) {
     const [selectedVersionId, setSelectedVersionId] = useState<number | null>(versions[0]?.id || null);
+    const [actionTarget, setActionTarget] = useState<{ action: 'restore' | 'delete'; version: TemplateVersion } | null>(null);
 
     const selectedVersion = useMemo(() => {
         return versions.find((version) => version.id === selectedVersionId) || versions[0] || null;
@@ -110,31 +113,31 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
     }
 
     function restoreVersion(version: TemplateVersion) {
-        if (!window.confirm(`Restore version #${version.versionNumber}? Current template will be saved as a new version before restore.`)) {
-            return;
-        }
-
-        router.put(
-            version.urls.restore,
-            {},
-            {
-                preserveScroll: true,
-                onSuccess: () => toast.success('Version restored.'),
-                onError: () => toast.error('Could not restore version.'),
-            },
-        );
+        setActionTarget({ action: 'restore', version });
+        return;
     }
 
     function deleteVersion(version: TemplateVersion) {
-        if (!window.confirm(`Delete version #${version.versionNumber}?`)) {
-            return;
-        }
+        setActionTarget({ action: 'delete', version });
+        return;
+    }
 
-        router.delete(version.urls.delete, {
-            preserveScroll: true,
-            onSuccess: () => toast.success('Version deleted.'),
-            onError: () => toast.error('Could not delete version.'),
-        });
+    function handleConfirmAction() {
+        if (!actionTarget) return;
+        const { action, version } = actionTarget;
+        if (action === 'restore') {
+            router.post(`/finance/templates/${template.id}/versions/${version.id}/restore`, {}, {
+                preserveScroll: true,
+                onSuccess: () => { toast.success('Version restored.'); setActionTarget(null); },
+                onError: () => toast.error('Version could not be restored.'),
+            });
+        } else if (action === 'delete') {
+            router.delete(`/finance/templates/${template.id}/versions/${version.id}`, {
+                preserveScroll: true,
+                onSuccess: () => { toast.success('Version deleted.'); setActionTarget(null); },
+                onError: () => toast.error('Version could not be deleted.'),
+            });
+        }
     }
 
     return (
@@ -344,6 +347,25 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                         </section>
                     </div>
                 </div>
+                <AppModal
+                    isOpen={!!actionTarget}
+                    onOpenChange={(open) => { if (!open) setActionTarget(null); }}
+                    title={actionTarget?.action === 'restore' ? 'Restore version?' : 'Delete version?'}
+                    size="sm"
+                >
+                    <p className="mb-5 text-sm text-[var(--text-muted)]">
+                        {actionTarget?.action === 'restore'
+                            ? <>Restore version <strong>#{actionTarget.version.versionNumber}</strong>? Current template will be saved as a new version before restore.</>
+                            : <>Delete version <strong>#{actionTarget.version.versionNumber}</strong>? This action cannot be undone.</>
+                        }
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <AppButton variant="secondary" onPress={() => setActionTarget(null)}>Cancel</AppButton>
+                        <AppButton variant="danger" onPress={handleConfirmAction}>
+                            {actionTarget?.action === 'restore' ? 'Restore' : 'Delete'}
+                        </AppButton>
+                    </div>
+                </AppModal>
             </AppShell>
         </>
     );

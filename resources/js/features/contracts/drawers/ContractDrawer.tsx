@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import type { Key } from 'react-aria-components';
+import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
@@ -13,6 +14,7 @@ import type {
 } from '@/features/contracts/types';
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
+import { cn } from '@/lib/cn';
 
 type ContractDrawerProps = {
     isOpen: boolean;
@@ -23,6 +25,7 @@ type ContractDrawerProps = {
     onOpenChange: (isOpen: boolean) => void;
     onSubmit: (payload: ContractFormPayload) => void;
     errors?: FormErrors;
+    isSubmitting?: boolean;
 };
 
 const emptyForm: ContractFormPayload = {
@@ -53,6 +56,12 @@ const feeRateOptions = [
     { id: '2', label: '2%' },
 ];
 
+const createSteps = [
+    { key: 'project', label: 'Project' },
+    { key: 'calculation', label: 'Calculation' },
+    { key: 'review', label: 'Review' },
+];
+
 function parseAmount(value: string): number {
     return Number(String(value || '0').replace(',', '.')) || 0;
 }
@@ -74,8 +83,10 @@ export function ContractDrawer({
     onOpenChange,
     onSubmit,
     errors = {},
+    isSubmitting = false,
 }: ContractDrawerProps) {
     const [form, setForm] = useState<ContractFormPayload>(emptyForm);
+    const [step, setStep] = useState(0);
 
     const dossierOptions = useMemo(
         () =>
@@ -91,6 +102,7 @@ export function ContractDrawer({
 
     useEffect(() => {
         if (!isOpen) {
+            setStep(0);
             return;
         }
 
@@ -109,12 +121,10 @@ export function ContractDrawer({
                 forfaitTtc: contract.forfaitTtc ? String(contract.forfaitTtc) : '',
                 notes: contract.notes || '',
             });
-
             return;
         }
 
         const initialDossier = dossiers.find((dossier) => dossier.id === initialDossierId);
-
         setForm({
             ...emptyForm,
             dossierId: initialDossierId,
@@ -143,131 +153,334 @@ export function ContractDrawer({
     const tva = isForfait ? parseAmount(form.forfaitTtc) - ht : ht * 0.2;
     const ttc = isForfait ? parseAmount(form.forfaitTtc) : ht + tva;
 
+    function handleNext() {
+        if (step < createSteps.length - 1) setStep((s) => s + 1);
+    }
+
+    function handleBack() {
+        if (step > 0) setStep((s) => s - 1);
+    }
+
+    const isLastStep = step === createSteps.length - 1;
+
+    const stepContent = () => {
+        if (mode === 'edit') {
+            return (
+                <>
+                    <section>
+                        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+                            <span className="flex size-6 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[11px] font-bold text-[var(--accent)]">1</span>
+                            Project and status
+                        </h3>
+                        <div className="grid gap-4">
+                            <AppSelect
+                                label="Dossier / Project"
+                                placeholder="Select dossier"
+                                selectedKey={form.dossierId}
+                                onSelectionChange={(value) => updateSelect('dossierId', value)}
+                                options={dossierOptions}
+                                error={firstError(errors, 'dossier_id')}
+                            />
+                            <AppSelect
+                                label="Status"
+                                selectedKey={form.status}
+                                onSelectionChange={(value) => updateSelect('status', value)}
+                                options={statusOptions}
+                                error={firstError(errors, 'status')}
+                            />
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+                            <span className="flex size-6 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[11px] font-bold text-[var(--accent)]">2</span>
+                            Calculation
+                        </h3>
+                        <div className="grid gap-4">
+                            <AppSelect
+                                label="Calculation mode"
+                                selectedKey={form.calculationMode}
+                                onSelectionChange={(value) => updateSelect('calculationMode', value)}
+                                options={calculationModeOptions}
+                                error={firstError(errors, 'calculation_mode')}
+                            />
+                            {isForfait ? (
+                                <AppTextField
+                                    label="FORFAIT TTC"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={form.forfaitTtc}
+                                    onChange={(value) => updateField('forfaitTtc', value)}
+                                    description="Enter only the final TTC amount. HT and TVA are calculated automatically."
+                                    error={firstError(errors, 'forfait_ttc')}
+                                />
+                            ) : (
+                                <AppSelect
+                                    label="Contract rate"
+                                    selectedKey={form.feeRatePercent}
+                                    onSelectionChange={(value) => updateSelect('feeRatePercent', value)}
+                                    options={feeRateOptions}
+                                    error={firstError(errors, 'fee_rate_percent')}
+                                />
+                            )}
+                        </div>
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <AppTextField
+                                label="Surface"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={form.surface}
+                                onChange={(value) => updateField('surface', value)}
+                                error={firstError(errors, 'surface')}
+                            />
+                            <AppTextField
+                                label="Price / m2"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={form.pricePerSquareMeter}
+                                onChange={(value) => updateField('pricePerSquareMeter', value)}
+                                error={firstError(errors, 'price_per_square_meter')}
+                            />
+                        </div>
+                        <CalculationSummary ht={ht} tva={tva} ttc={ttc} />
+                    </section>
+
+                    <section>
+                        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+                            <span className="flex size-6 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[11px] font-bold text-[var(--accent)]">3</span>
+                            Notes
+                        </h3>
+                        <AppTextarea
+                            label="Notes"
+                            value={form.notes}
+                            onChange={(value) => updateField('notes', value)}
+                            error={firstError(errors, 'notes')}
+                        />
+                    </section>
+                </>
+            );
+        }
+
+        switch (step) {
+            case 0:
+                return (
+                    <section>
+                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Select project and set initial status</h3>
+                        <div className="grid gap-4">
+                            <AppSelect
+                                label="Dossier / Project"
+                                placeholder="Select dossier"
+                                selectedKey={form.dossierId}
+                                onSelectionChange={(value) => updateSelect('dossierId', value)}
+                                options={dossierOptions}
+                                error={firstError(errors, 'dossier_id')}
+                            />
+                            <AppSelect
+                                label="Status"
+                                selectedKey={form.status}
+                                onSelectionChange={(value) => updateSelect('status', value)}
+                                options={statusOptions}
+                                error={firstError(errors, 'status')}
+                            />
+                        </div>
+                    </section>
+                );
+            case 1:
+                return (
+                    <section>
+                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Configure calculation parameters</h3>
+                        <div className="grid gap-4">
+                            <AppSelect
+                                label="Calculation mode"
+                                selectedKey={form.calculationMode}
+                                onSelectionChange={(value) => updateSelect('calculationMode', value)}
+                                options={calculationModeOptions}
+                                error={firstError(errors, 'calculation_mode')}
+                            />
+                            {isForfait ? (
+                                <AppTextField
+                                    label="FORFAIT TTC"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={form.forfaitTtc}
+                                    onChange={(value) => updateField('forfaitTtc', value)}
+                                    description="Enter only the final TTC amount. HT and TVA are calculated automatically."
+                                    error={firstError(errors, 'forfait_ttc')}
+                                />
+                            ) : (
+                                <AppSelect
+                                    label="Contract rate"
+                                    selectedKey={form.feeRatePercent}
+                                    onSelectionChange={(value) => updateSelect('feeRatePercent', value)}
+                                    options={feeRateOptions}
+                                    error={firstError(errors, 'fee_rate_percent')}
+                                />
+                            )}
+                        </div>
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <AppTextField
+                                label="Surface"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={form.surface}
+                                onChange={(value) => updateField('surface', value)}
+                                error={firstError(errors, 'surface')}
+                            />
+                            <AppTextField
+                                label="Price / m2"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={form.pricePerSquareMeter}
+                                onChange={(value) => updateField('pricePerSquareMeter', value)}
+                                error={firstError(errors, 'price_per_square_meter')}
+                            />
+                        </div>
+                        <CalculationSummary ht={ht} tva={tva} ttc={ttc} />
+                    </section>
+                );
+            case 2:
+                return (
+                    <section>
+                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Review and confirm</h3>
+
+                        <div className="mb-4 space-y-3">
+                            <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                                <span className="text-xs text-[var(--text-muted)]">Project</span>
+                                <span className="text-[13px] font-medium text-[var(--foreground)]">
+                                    {dossiers.find((d) => d.id === form.dossierId)?.label || form.dossierId || '-'}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                                <span className="text-xs text-[var(--text-muted)]">Status</span>
+                                <span className="text-[13px] font-medium capitalize text-[var(--foreground)]">{form.status}</span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                                <span className="text-xs text-[var(--text-muted)]">Mode</span>
+                                <span className="text-[13px] font-medium capitalize text-[var(--foreground)]">{form.calculationMode}</span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                                <span className="text-xs text-[var(--text-muted)]">Surface</span>
+                                <span className="text-[13px] font-medium text-[var(--foreground)]">{form.surface || '-'} m&sup2;</span>
+                            </div>
+                        </div>
+
+                        <CalculationSummary ht={ht} tva={tva} ttc={ttc} />
+
+                        <div className="mt-4">
+                            <AppTextarea
+                                label="Notes"
+                                value={form.notes}
+                                onChange={(value) => updateField('notes', value)}
+                                error={firstError(errors, 'notes')}
+                            />
+                        </div>
+                    </section>
+                );
+            default:
+                return null;
+        }
+    };
+
+    const drawerFooter = () => {
+        if (mode === 'edit') {
+            return (
+                <>
+                    <AppButton variant="secondary" onPress={() => onOpenChange(false)} isDisabled={isSubmitting}>Cancel</AppButton>
+                    <AppButton variant="primary" type="submit" form="contract-form" isLoading={isSubmitting}>Save changes</AppButton>
+                </>
+            );
+        }
+
+        return (
+            <>
+                {step > 0 ? (
+                    <AppButton variant="secondary" onPress={handleBack} isDisabled={isSubmitting}>
+                        <ChevronLeft size={15} /> Back
+                    </AppButton>
+                ) : <div />}
+                {isLastStep ? (
+                    <AppButton variant="primary" type="submit" form="contract-form" isLoading={isSubmitting}>
+                        <Check size={15} /> {isSubmitting ? 'Creating...' : 'Create contract'}
+                    </AppButton>
+                ) : (
+                    <AppButton variant="primary" onPress={handleNext} isDisabled={isSubmitting}>
+                        Next <ChevronRight size={15} />
+                    </AppButton>
+                )}
+            </>
+        );
+    };
+
     return (
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
             title={mode === 'create' ? 'Create contract' : 'Edit contract'}
-            description="Save contract calculation to the database. Use FORFAIT when the client has a fixed TTC price."
-            footer={
-                <>
-                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>
-                        Cancel
-                    </AppButton>
-
-                    <AppButton variant="primary" type="submit" form="contract-form">
-                        Save
-                    </AppButton>
-                </>
-            }
+            description={mode === 'create' ? 'Set up a new contract calculation in a few steps.' : 'Update contract details and recalculate amounts.'}
+            footer={drawerFooter()}
         >
-            <form id="contract-form" className="space-y-6" onSubmit={handleSubmit}>
+            <form id="contract-form" className="flex flex-col gap-6" onSubmit={handleSubmit}>
                 <AppFormErrorSummary errors={errors} />
 
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">Project and status</h3>
-
-                    <div className="grid gap-4">
-                        <AppSelect
-                            label="Dossier / Project"
-                            placeholder="Select dossier"
-                            selectedKey={form.dossierId}
-                            onSelectionChange={(value) => updateSelect('dossierId', value)}
-                            options={dossierOptions}
-                            error={firstError(errors, 'dossier_id')}
-                        />
-
-                        <AppSelect
-                            label="Status"
-                            selectedKey={form.status}
-                            onSelectionChange={(value) => updateSelect('status', value)}
-                            options={statusOptions}
-                            error={firstError(errors, 'status')}
-                        />
+                {mode === 'create' ? (
+                    <div className="flex items-center gap-2">
+                        {createSteps.map((s, i) => (
+                            <div key={s.key} className="flex items-center gap-2 flex-1">
+                                <div className={cn(
+                                    'flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition',
+                                    i < step ? 'bg-emerald-500/20 text-emerald-400' :
+                                    i === step ? 'bg-[var(--accent)]/20 text-[var(--accent)]' :
+                                    'bg-[var(--surface-2)] text-[var(--text-muted)]',
+                                )}>
+                                    {i < step ? <Check size={12} /> : i + 1}
+                                </div>
+                                <span className={cn(
+                                    'text-[11px] font-semibold transition hidden sm:inline',
+                                    i === step ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)]',
+                                )}>
+                                    {s.label}
+                                </span>
+                                {i < createSteps.length - 1 ? (
+                                    <div className={cn(
+                                        'ml-2 flex-1 h-px transition',
+                                        i < step ? 'bg-emerald-500/40' : 'bg-[var(--border)]',
+                                    )} />
+                                ) : null}
+                            </div>
+                        ))}
                     </div>
-                </section>
+                ) : null}
 
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">Calculation</h3>
-
-                    <div className="grid gap-4">
-                        <AppSelect
-                            label="Calculation mode"
-                            selectedKey={form.calculationMode}
-                            onSelectionChange={(value) => updateSelect('calculationMode', value)}
-                            options={calculationModeOptions}
-                            error={firstError(errors, 'calculation_mode')}
-                        />
-
-                        {isForfait ? (
-                            <AppTextField
-                                label="FORFAIT TTC"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={form.forfaitTtc}
-                                onChange={(value) => updateField('forfaitTtc', value)}
-                                description="Enter only the final TTC amount. HT and TVA are calculated automatically."
-                                error={firstError(errors, 'forfait_ttc')}
-                            />
-                        ) : (
-                            <AppSelect
-                                label="Contract rate"
-                                selectedKey={form.feeRatePercent}
-                                onSelectionChange={(value) => updateSelect('feeRatePercent', value)}
-                                options={feeRateOptions}
-                                error={firstError(errors, 'fee_rate_percent')}
-                            />
-                        )}
-                    </div>
-
-                    <div className="mt-4 grid gap-4 md:grid-cols-2">
-                        <AppTextField
-                            label="Surface"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={form.surface}
-                            onChange={(value) => updateField('surface', value)}
-                            error={firstError(errors, 'surface')}
-                        />
-
-                        <AppTextField
-                            label="Price / m2"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={form.pricePerSquareMeter}
-                            onChange={(value) => updateField('pricePerSquareMeter', value)}
-                            error={firstError(errors, 'price_per_square_meter')}
-                        />
-                    </div>
-
-                    <div className="mt-4 grid gap-2 rounded-2xl border bg-[var(--surface-2)] p-4 text-sm sm:grid-cols-3">
-                        <div>
-                            <p className="text-xs text-[var(--text-muted)]">HT</p>
-                            <p className="mt-1 font-semibold">{formatMoney(ht)}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-[var(--text-muted)]">TVA 20%</p>
-                            <p className="mt-1 font-semibold">{formatMoney(tva)}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-[var(--text-muted)]">TTC</p>
-                            <p className="mt-1 font-semibold">{formatMoney(ttc)}</p>
-                        </div>
-                    </div>
-                </section>
-
-                <section>
-                    <AppTextarea
-                        label="Notes"
-                        value={form.notes}
-                        onChange={(value) => updateField('notes', value)}
-                        error={firstError(errors, 'notes')}
-                    />
-                </section>
+                {stepContent()}
             </form>
         </AppDrawer>
+    );
+}
+
+function CalculationSummary({ ht, tva, ttc }: { ht: number; tva: number; ttc: number }) {
+    return (
+        <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Summary</p>
+            <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-lg bg-[var(--surface-2)] p-3">
+                    <p className="text-[10px] text-[var(--text-muted)]">HT</p>
+                    <p className="mt-0.5 text-base font-semibold text-[var(--foreground)]">{formatMoney(ht)}</p>
+                </div>
+                <div className="rounded-lg bg-[var(--surface-2)] p-3">
+                    <p className="text-[10px] text-[var(--text-muted)]">TVA 20%</p>
+                    <p className="mt-0.5 text-base font-semibold text-[var(--foreground)]">{formatMoney(tva)}</p>
+                </div>
+                <div className="rounded-lg bg-[color-mix(in_srgb,var(--accent)_9%,var(--surface-2))] p-3">
+                    <p className="text-[10px] text-[var(--accent)]">TTC</p>
+                    <p className="mt-0.5 text-base font-bold text-[var(--accent)]">{formatMoney(ttc)}</p>
+                </div>
+            </div>
+        </div>
     );
 }

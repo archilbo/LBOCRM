@@ -1,20 +1,15 @@
-import { router } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
 import type { Key } from 'react-aria-components';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
 import { AppDrawer } from '@/components/ui/AppDrawer';
+import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
 import { AppSelect } from '@/components/ui/AppSelect';
-import { AppTextField } from '@/components/ui/AppTextField';
 import { AppTextarea } from '@/components/ui/AppTextarea';
+import { AppTextField } from '@/components/ui/AppTextField';
+import { useTranslation } from '@/lib/i18n';
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
-import type {
-    ClientFormPayload,
-    ClientRow,
-    IntermediaryOption,
-} from '@/features/clients/types';
-import { useTranslation } from '@/lib/i18n';
+import type { ClientFormPayload, ClientRow, IntermediaryOption } from '@/features/clients/types';
 
 type ClientDrawerProps = {
     isOpen: boolean;
@@ -27,36 +22,17 @@ type ClientDrawerProps = {
 };
 
 const emptyForm: ClientFormPayload = {
-    firstName: '',
-    lastName: '',
-    cin: '',
-    phone: '',
-    email: '',
-    address: '',
-    fatherName: '',
-    motherName: '',
-    cniExpirationDate: '',
-    intermediaryId: '',
-    notes: '',
+    firstName: '', lastName: '', cin: '', phone: '', email: '',
+    address: '', fatherName: '', motherName: '', cniExpirationDate: '',
+    intermediaryId: '', notes: '',
 };
 
-export function ClientDrawer({
-    isOpen,
-    mode,
-    client,
-    intermediaries,
-    onOpenChange,
-    onSubmit,
-    errors = {},
-}: ClientDrawerProps) {
+export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChange, onSubmit, errors = {} }: ClientDrawerProps) {
     const { t } = useTranslation();
     const [form, setForm] = useState<ClientFormPayload>(emptyForm);
 
     useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
-
+        if (!isOpen) return;
         if (mode === 'edit' && client) {
             setForm({
                 firstName: client.firstName ?? '',
@@ -73,16 +49,11 @@ export function ClientDrawer({
             });
             return;
         }
-
         setForm(emptyForm);
     }, [client, isOpen, mode]);
 
     function updateField(field: keyof ClientFormPayload, value: string) {
-        setForm((current) => ({ ...current, [field]: value }));
-    }
-
-    function updateSelect(value: Key | null) {
-        setForm((current) => ({ ...current, intermediaryId: value ? String(value) : '' }));
+        setForm((prev) => ({ ...prev, [field]: value }));
     }
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -90,138 +61,115 @@ export function ClientDrawer({
         onSubmit(form);
     }
 
-    const intermediaryOptions = [
-        {
-            id: '',
-            label: t('clientFormExtra.none'),
-        },
-        ...intermediaries,
-    ];
+    const title = mode === 'create' ? t('clients.drawer.createTitle') : t('clients.drawer.editTitle');
+    const description = mode === 'create' ? t('clients.drawer.createDescription') : t('clients.drawer.editDescription');
 
     return (
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            title={mode === 'create' ? t('clients.drawer.createTitle') : t('clients.drawer.editTitle')}
-            description={mode === 'create' ? t('clients.drawer.createDescription') : t('clients.drawer.editDescription')}
+            title={title}
+            description={description}
             footer={
                 <>
-                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>
-                        {t('actions.cancel')}
+                    <AppButton variant="bordered" onPress={() => onOpenChange(false)}>
+                        {t('clients.cancel')}
                     </AppButton>
-
-                    <AppButton variant="primary" type="submit" form="client-form">
-                        {t('actions.save')}
+                    <AppButton variant="solid" color="primary" type="submit" form="client-form">
+                        {mode === 'create' ? t('clients.create') : t('clients.save')}
                     </AppButton>
                 </>
             }
         >
-            <form id="client-form" className="space-y-6" onSubmit={handleSubmit}>
+            <form id="client-form" onSubmit={handleSubmit} className="space-y-6">
                 <AppFormErrorSummary errors={errors} />
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">{t('clients.form.identity')}</h3>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <AppTextField
-                            label={t('clients.form.firstName')}
-                            placeholder={t('clients.form.firstNamePlaceholder')}
-                            error={firstError(errors, 'first_name')}
-                            value={form.firstName}
-                            onChange={(value) => updateField('firstName', value)}
-                        />
-                        <AppTextField
-                            label={t('clients.form.lastName')}
-                            placeholder={t('clients.form.lastNamePlaceholder')}
-                            error={firstError(errors, 'last_name')}
-                            value={form.lastName}
-                            onChange={(value) => updateField('lastName', value)}
-                        />
+                {/* ── Identity section ── */}
+                <div>
+                    <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                        {t('clients.form.identity')}
+                    </p>
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                            <AppTextField
+                                label={t('clients.form.firstName')}
+                                placeholder={t('clients.form.firstNamePlaceholder')}
+                                value={form.firstName}
+                                onChange={(v) => updateField('firstName', v)}
+                                error={errors.first_name}
+                            />
+                            <AppTextField
+                                label={t('clients.form.lastName')}
+                                placeholder={t('clients.form.lastNamePlaceholder')}
+                                value={form.lastName}
+                                onChange={(v) => updateField('lastName', v)}
+                                error={errors.last_name}
+                            />
+                        </div>
                         <AppTextField
                             label={t('clients.form.cin')}
                             placeholder={t('clients.form.cinPlaceholder')}
-                            error={firstError(errors, 'cin')}
                             value={form.cin}
-                            onChange={(value) => updateField('cin', value)}
+                            onChange={(v) => updateField('cin', v)}
+                            error={errors.cin}
                         />
-                        <AppTextField
-                            label={t('clients.form.fatherName')}
-                            value={form.fatherName}
-                            onChange={(value) => updateField('fatherName', value)}
-                        />
-                        <AppTextField
-                            label={t('clientFormExtra.motherName')}
-                            value={form.motherName}
-                            onChange={(value) => updateField('motherName', value)}
-                        />
-                        <AppSelect
-                            label={t('clientFormExtra.intermediary')}
-                            placeholder={t('clientFormExtra.intermediaryPlaceholder')}
-                            error={firstError(errors, 'intermediary_id')}
-                            selectedKey={form.intermediaryId}
-                            onSelectionChange={updateSelect}
-                            options={intermediaryOptions}
-                        />
-                        <div className="flex items-end">
-                            <AppButton
-                                type="button"
-                                variant="secondary"
-                                className="w-full"
-                                onPress={() => router.visit('/intermediaries')}
-                            >
-                                Gerer les intermediaires
-                            </AppButton>
-                        </div>
                     </div>
-                </section>
+                </div>
 
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">{t('clients.form.contact')}</h3>
-
-                    <div className="grid gap-4 md:grid-cols-2">
+                {/* ── Contact section ── */}
+                <div>
+                    <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                        {t('clients.form.contact')}
+                    </p>
+                    <div className="space-y-3">
                         <AppTextField
                             label={t('clients.form.phone')}
                             placeholder={t('clients.form.phonePlaceholder')}
-                            error={firstError(errors, 'phone')}
                             value={form.phone}
-                            onChange={(value) => updateField('phone', value)}
+                            onChange={(v) => updateField('phone', v)}
+                            error={errors.phone}
                         />
                         <AppTextField
                             label={t('clients.form.email')}
                             placeholder={t('clients.form.emailPlaceholder')}
-                            error={firstError(errors, 'email')}
                             value={form.email}
-                            onChange={(value) => updateField('email', value)}
+                            onChange={(v) => updateField('email', v)}
+                            error={errors.email}
                         />
-                        <div className="md:col-span-2">
-                            <AppTextField
-                                label={t('clients.form.address')}
-                                placeholder={t('clients.form.addressPlaceholder')}
-                                value={form.address}
-                                onChange={(value) => updateField('address', value)}
-                            />
-                        </div>
-                    </div>
-                </section>
-
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">{t('clients.form.extra')}</h3>
-
-                    <div className="grid gap-4 md:grid-cols-2">
                         <AppTextField
-                            label={t('clients.form.cniExpirationDate')}
-                            value={form.cniExpirationDate}
-                            onChange={(value) => updateField('cniExpirationDate', value)}
+                            label={t('clients.form.address')}
+                            placeholder={t('clients.form.addressPlaceholder')}
+                            value={form.address}
+                            onChange={(v) => updateField('address', v)}
+                            error={errors.address}
                         />
-                        <div className="md:col-span-2">
-                            <AppTextarea
-                                label={t('clients.form.notes')}
-                                placeholder={t('clients.form.notesPlaceholder')}
-                                value={form.notes}
-                                onChange={(value) => updateField('notes', value)}
-                            />
-                        </div>
                     </div>
-                </section>
+                </div>
+
+                {/* ── Relationship section ── */}
+                <div>
+                    <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                        {t('clients.form.extra')}
+                    </p>
+                    <div className="space-y-3">
+                        <AppSelect
+                            label={t('clients.form.intermediaryName')}
+                            placeholder={t('clients.selectIntermediary')}
+                            options={intermediaries}
+                            selectedKey={form.intermediaryId || null}
+                            onSelectionChange={(key: Key | null) => updateField('intermediaryId', key ? String(key) : '')}
+                            error={errors.intermediary_id}
+                        />
+                        <AppTextarea
+                            label={t('clients.form.notes')}
+                            placeholder={t('clients.form.notesPlaceholder')}
+                            value={form.notes}
+                            onChange={(v) => updateField('notes', v)}
+                            error={errors.notes}
+                            rows={3}
+                        />
+                    </div>
+                </div>
             </form>
         </AppDrawer>
     );

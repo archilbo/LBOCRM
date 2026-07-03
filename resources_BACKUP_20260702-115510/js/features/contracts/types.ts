@@ -1,0 +1,55 @@
+export type ContractStatus = 'draft' | 'generated' | 'signed' | 'cancelled' | string;
+
+export type ContractRow = {
+    id: number;
+    dossierId: string;
+    dossierNumber: string;
+    projectObject: string;
+    clientName: string;
+    clientCin: string;
+
+    contractNumber: string;
+    status: ContractStatus;
+
+    surface: number;
+    pricePerSquareMeter: number;
+    calculationMode: 'percentage' | 'forfait' | string;
+    feeRatePercent: number;
+    forfaitTtc: number | null;
+    ht: number;
+    tva: number;
+    ttc: number;
+
+    generatedDocumentPath: string | null;
+    pdfPath: string | null;
+    generatedAt: string | null;
+    signedAt: string | null;
+    updatedAt: string | null;
+    createdAt: string | null;
+    notes: string | null;
+
+    hasGeneratedDocument: boolean;
+    hasPdf: boolean;
+    generatedDocumentDownloadUrl: string | null;
+    pdfDownloadUrl: string | null;
+    generatedDocumentPublicUrl: string | null;
+    pdfPublicUrl: string | null;
+};
+
+export type ContractDossierOption = {
+    id: string;
+    label: string;
+    floorArea: number | null;
+    hasContract: boolean;
+};
+
+export type ContractFormPayload = {
+    dossierId: string;
+    status: string;
+    surface: string;
+    pricePerSquareMeter: string;
+    calculationMode: string;
+    feeRatePercent: string;
+    forfaitTtc: string;
+    notes: string;
+};

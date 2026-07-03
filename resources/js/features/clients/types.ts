@@ -130,7 +130,13 @@ export type ClientProjectContract = {
     id: number;
     number: string;
     status: string;
+    surface: number | null;
+    pricePerSquareMeter: number | null;
+    calculationMode: string | null;
+    feeRatePercent: number | null;
+    forfaitTtc: number | null;
     ttc: number;
+    notes: string | null;
     createdAt: string | null;
     generatedAt: string | null;
     signedAt: string | null;

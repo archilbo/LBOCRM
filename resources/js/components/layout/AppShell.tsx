@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { AppMobileNav } from '@/components/layout/AppMobileNav';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { AppTopbar } from '@/components/layout/AppTopbar';
+import { AppPageContainer } from '@/components/ui/AppPageContainer';
+import { AppPageHeader } from '@/components/ui/AppPageHeader';
 import { useTranslation } from '@/lib/i18n';
 
 type AppShellProps = {
@@ -16,57 +18,41 @@ type AppShellProps = {
 
 export function AppShell({ eyebrowKey, titleKey, subtitleKey, action, children, fullBleed, hideMobileNav }: AppShellProps) {
     const { t } = useTranslation();
-    const shellClass = hideMobileNav ? 'crm-shell no-bottom-nav' : 'crm-shell';
 
-    function renderShell(inner: ReactNode) {
-        return (
-            <div className={shellClass}>
+    return (
+        <div className="flex h-screen w-screen overflow-hidden bg-[var(--background)]">
+            <div className="hidden shrink-0 md:flex flex-col p-3">
                 <AppSidebar />
-
-                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                    <AppTopbar />
-
-                    {inner}
-                </div>
-
-                {!hideMobileNav ? <AppMobileNav /> : null}
             </div>
-        );
-    }
 
-    if (fullBleed) {
-        return renderShell(
-            <main className="flex-1 min-h-0 overflow-hidden">
-                {children}
-            </main>
-        );
-    }
+            <div className="flex min-w-0 flex-1 flex-col h-screen overflow-hidden">
+                <AppTopbar />
 
-    return renderShell(
-        <main className="crm-page flex-1 min-h-0 pb-28 lg:pb-[var(--crm-page-pad)]">
-            <header className="crm-panel-flat px-5 py-4">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                    <div className="min-w-0">
-                        {eyebrowKey ? <p className="crm-eyebrow">{t(eyebrowKey)}</p> : null}
-                        <h1 className="mt-2 text-[24px] font-bold leading-none tracking-[-0.02em] text-[var(--crm-text)]">
-                            {t(titleKey ?? '')}
-                        </h1>
-                        {subtitleKey ? (
-                            <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--crm-text-muted)]">
-                                {t(subtitleKey)}
-                            </p>
-                        ) : null}
-                    </div>
+                {fullBleed ? (
+                    <main className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+                        {children}
+                    </main>
+                ) : (
+                    <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+                        <AppPageContainer>
+                            {eyebrowKey || titleKey ? (
+                                <header className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-sm">
+                                    <AppPageHeader
+                                        eyebrow={eyebrowKey ? t(eyebrowKey) : undefined}
+                                        title={t(titleKey ?? '')}
+                                        subtitle={subtitleKey ? t(subtitleKey) : undefined}
+                                        actions={action}
+                                    />
+                                </header>
+                            ) : null}
 
-                    {action ? (
-                        <div className="flex shrink-0 flex-wrap items-center gap-2">
-                            {action}
-                        </div>
-                    ) : null}
-                </div>
-            </header>
+                            {children}
+                        </AppPageContainer>
+                    </main>
+                )}
+            </div>
 
-            {children}
-        </main>
+            {!hideMobileNav ? <AppMobileNav /> : null}
+        </div>
     );
 }

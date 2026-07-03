@@ -1,0 +1,314 @@
+import { router } from '@inertiajs/react';
+import type { ReactNode } from 'react';
+import {
+    Archive,
+    BadgeDollarSign,
+    FileCheck2,
+    FileText,
+    FolderOpen,
+    Landmark,
+    ReceiptText,
+    ShieldCheck,
+    WalletCards,
+} from 'lucide-react';
+import { AppBadge } from '@/components/ui/AppBadge';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppCard } from '@/components/ui/AppCard';
+import { AppEmptyState } from '@/components/ui/AppEmptyState';
+import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
+import type {
+    ClientProjectDocument,
+    ClientProjectFinanceDocument,
+    ClientProjectPayment,
+    ClientSelectedProjectWorkspace as SelectedProject,
+} from '@/features/clients/types';
+
+type ClientSelectedProjectWorkspaceProps = {
+    project: SelectedProject | null;
+};
+
+type Tone = 'neutral' | 'blue' | 'green' | 'amber' | 'red' | 'violet';
+
+function formatMoney(value: number, currency = 'MAD') {
+    return new Intl.NumberFormat('fr-MA', {
+        style: 'currency',
+        currency,
+        maximumFractionDigits: 0,
+    }).format(value || 0);
+}
+
+function statusTone(status: string): Tone {
+    if (['paid', 'verified', 'active', 'opened', 'approved'].includes(status)) {
+        return 'green';
+    }
+
+    if (['draft', 'missing', 'partially_paid'].includes(status)) {
+        return 'amber';
+    }
+
+    if (['rejected', 'cancelled', 'overdue'].includes(status)) {
+        return 'red';
+    }
+
+    return 'blue';
+}
+
+function typeLabel(type: string) {
+    switch (type) {
+        case 'quote':
+            return 'Devis';
+        case 'invoice':
+            return 'Facture';
+        case 'receipt':
+            return 'Recu';
+        default:
+            return type;
+    }
+}
+
+function StatCard({
+    label,
+    value,
+    icon,
+}: {
+    label: string;
+    value: string | number;
+    icon: ReactNode;
+}) {
+    return (
+        <div className="rounded-2xl border bg-[var(--surface)] p-4">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                {icon}
+                {label}
+            </div>
+            <p className="mt-2 truncate text-lg font-semibold">{value}</p>
+        </div>
+    );
+}
+
+function DocumentList({ documents }: { documents: ClientProjectDocument[] }) {
+    if (documents.length === 0) {
+        return (
+            <AppEmptyState
+                title="Aucun document"
+                description="Les documents du dossier apparaitront ici."
+                icon={<FileCheck2 size={20} />}
+                className="py-8"
+            />
+        );
+    }
+
+    return (
+        <div className="space-y-2">
+            {documents.slice(0, 6).map((document) => (
+                <div key={document.id} className="flex items-center justify-between gap-3 rounded-2xl border bg-[var(--surface)] p-3">
+                    <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">{document.name}</p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                            {document.documentNumber || 'Sans numero'} - {document.originalFilename || 'Sans fichier'}
+                        </p>
+                    </div>
+                    <AppStatusBadge
+                        label={document.status}
+                        tone={statusTone(document.status)}
+                        icon={document.status === 'verified' ? 'check' : 'dot'}
+                    />
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function FinanceDocumentList({ documents, currency }: { documents: ClientProjectFinanceDocument[]; currency: string }) {
+    if (documents.length === 0) {
+        return (
+            <AppEmptyState
+                title="Aucun document finance"
+                description="Les devis, factures et recus apparaitront ici."
+                icon={<ReceiptText size={20} />}
+                className="py-8"
+            />
+        );
+    }
+
+    return (
+        <div className="space-y-2">
+            {documents.slice(0, 8).map((document) => (
+                <div key={document.id} className="flex items-center justify-between gap-3 rounded-2xl border bg-[var(--surface)] p-3">
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-semibold">{document.number}</p>
+                            <AppBadge tone="violet">{typeLabel(document.type)}</AppBadge>
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                            {document.issueDate || 'Sans date'} - reste {formatMoney(document.remainingTotal, currency)}
+                        </p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-sm font-semibold">{formatMoney(document.totalTtc, currency)}</p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">{document.status}</p>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function PaymentList({ payments, currency }: { payments: ClientProjectPayment[]; currency: string }) {
+    if (payments.length === 0) {
+        return (
+            <AppEmptyState
+                title="Aucun paiement"
+                description="Les paiements enregistres apparaitront ici."
+                icon={<WalletCards size={20} />}
+                className="py-8"
+            />
+        );
+    }
+
+    return (
+        <div className="space-y-2">
+            {payments.slice(0, 6).map((payment) => (
+                <div key={payment.id} className="flex items-center justify-between gap-3 rounded-2xl border bg-[var(--surface)] p-3">
+                    <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">{payment.paymentNumber}</p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                            {payment.documentNumber || 'Document non lie'} - {payment.method || 'Mode non renseigne'}
+                        </p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-sm font-semibold">{formatMoney(payment.amount, currency)}</p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">{payment.paidAt || '-'}</p>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+export function ClientSelectedProjectWorkspace({ project }: ClientSelectedProjectWorkspaceProps) {
+    if (!project) {
+        return (
+            <AppCard className="p-5">
+                <AppEmptyState
+                    title="Selectionner un projet"
+                    description="Choisissez un projet du client pour voir son workspace."
+                    icon={<FolderOpen size={20} />}
+                />
+            </AppCard>
+        );
+    }
+
+    const quotes = project.financeDocuments.filter((document) => document.type === 'quote');
+    const invoices = project.financeDocuments.filter((document) => document.type === 'invoice');
+
+    return (
+        <div className="space-y-5">
+            <AppCard className="p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="truncate text-lg font-semibold">{project.projectObject || 'Projet sans objet'}</h2>
+                            <AppStatusBadge label={project.status} tone={statusTone(project.status)} icon="dot" />
+                        </div>
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">
+                            {project.dossierNumber} - {project.workflowStep}
+                        </p>
+                        <p className="mt-2 text-sm text-[var(--text-muted)]">
+                            {project.projectAddress || 'Adresse projet non renseignee'}
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        <AppButton variant="secondary" onPress={() => router.visit(`/dossiers/${project.id}`)}>
+                            <FolderOpen size={16} />
+                            Ouvrir dossier
+                        </AppButton>
+                        <AppButton variant="primary" onPress={() => router.visit(`/finance/documents?dossier_id=${project.id}`)}>
+                            <BadgeDollarSign size={16} />
+                            Finance
+                        </AppButton>
+                    </div>
+                </div>
+            </AppCard>
+
+            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard label="Documents" value={project.documentsCount} icon={<FileText size={14} />} />
+                <StatCard label="Devis" value={`${quotes.length} - ${formatMoney(project.quotesTotal, project.currency)}`} icon={<ReceiptText size={14} />} />
+                <StatCard label="Factures" value={formatMoney(project.invoicesTotal, project.currency)} icon={<Landmark size={14} />} />
+                <StatCard label="Paiements" value={formatMoney(project.paidTotal, project.currency)} icon={<WalletCards size={14} />} />
+            </section>
+
+            <section className="grid gap-5 2xl:grid-cols-2">
+                <AppCard className="p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                            <h3 className="text-sm font-semibold">Documents</h3>
+                            <p className="mt-1 text-sm text-[var(--text-muted)]">Pieces et documents du dossier.</p>
+                        </div>
+                        <AppBadge tone="blue">{project.documents.length}</AppBadge>
+                    </div>
+                    <DocumentList documents={project.documents} />
+                </AppCard>
+
+                <AppCard className="p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                            <h3 className="text-sm font-semibold">Devis, factures et recus</h3>
+                            <p className="mt-1 text-sm text-[var(--text-muted)]">Documents finance lies au projet.</p>
+                        </div>
+                        <AppBadge tone="violet">{project.financeDocuments.length}</AppBadge>
+                    </div>
+                    <FinanceDocumentList documents={project.financeDocuments} currency={project.currency} />
+                </AppCard>
+            </section>
+
+            <section className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
+                <AppCard className="p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                            <h3 className="text-sm font-semibold">Paiements</h3>
+                            <p className="mt-1 text-sm text-[var(--text-muted)]">Historique des paiements du projet.</p>
+                        </div>
+                        <AppBadge tone="green">{project.payments.length}</AppBadge>
+                    </div>
+                    <PaymentList payments={project.payments} currency={project.currency} />
+                </AppCard>
+
+                <div className="space-y-5">
+                    <AppCard className="p-5">
+                        <div className="mb-4 flex items-center gap-2">
+                            <ShieldCheck size={16} className="text-[var(--accent)]" />
+                            <h3 className="text-sm font-semibold">Autorisation</h3>
+                        </div>
+                        {project.authorization ? (
+                            <div className="space-y-2 text-sm text-[var(--text-muted)]">
+                                <AppStatusBadge label={project.authorization.status} tone={statusTone(project.authorization.status)} icon="dot" />
+                                <p>Depot: {project.authorization.submissionNumber || '-'}</p>
+                                <p>Autorisation: {project.authorization.authorizationNumber || '-'}</p>
+                                <p>Autorite: {project.authorization.authorityName || '-'}</p>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-[var(--text-muted)]">Aucune autorisation liee.</p>
+                        )}
+                    </AppCard>
+
+                    <AppCard className="p-5">
+                        <div className="mb-4 flex items-center gap-2">
+                            <Archive size={16} className="text-[var(--accent)]" />
+                            <h3 className="text-sm font-semibold">Archive</h3>
+                        </div>
+                        {project.archiveRecord ? (
+                            <div className="space-y-2 text-sm text-[var(--text-muted)]">
+                                <p className="font-semibold text-[var(--text)]">{project.archiveRecord.archiveNumber}</p>
+                                <AppStatusBadge label={project.archiveRecord.status} tone={statusTone(project.archiveRecord.status)} icon="archive" />
+                            </div>
+                        ) : (
+                            <p className="text-sm text-[var(--text-muted)]">Aucune archive liee.</p>
+                        )}
+                    </AppCard>
+                </div>
+            </section>
+        </div>
+    );
+}

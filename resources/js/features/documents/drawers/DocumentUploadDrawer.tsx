@@ -23,6 +23,7 @@ type DocumentUploadDrawerProps = {
     onOpenChange: (isOpen: boolean) => void;
     onSubmit: (payload: DocumentUploadPayload) => void;
     errors?: FormErrors;
+    isSubmitting?: boolean;
 };
 
 const emptyForm: DocumentUploadPayload = {
@@ -49,9 +50,11 @@ export function DocumentUploadDrawer({
     onOpenChange,
     onSubmit,
     errors = {},
+    isSubmitting = false,
 }: DocumentUploadDrawerProps) {
     const [form, setForm] = useState<DocumentUploadPayload>(emptyForm);
     const [fileName, setFileName] = useState('');
+    const [fileError, setFileError] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -61,6 +64,7 @@ export function DocumentUploadDrawer({
                 documentTemplateId: initialTemplateId,
             });
             setFileName('');
+            setFileError('');
         }
     }, [initialDossierId, initialTemplateId, isOpen]);
 
@@ -78,11 +82,15 @@ export function DocumentUploadDrawer({
     function handleFileChange(fileList: FileList | null) {
         const file = fileList?.[0] ?? null;
 
-        setForm((current) => ({
-            ...current,
-            file,
-        }));
+        if (file && file.size > 20 * 1024 * 1024) {
+            setFileError('File is too large. Maximum size is 20 MB.');
+            setForm((current) => ({ ...current, file: null }));
+            setFileName('');
+            return;
+        }
 
+        setFileError('');
+        setForm((current) => ({ ...current, file }));
         setFileName(file?.name ?? '');
     }
 
@@ -99,12 +107,12 @@ export function DocumentUploadDrawer({
             description="Attach a document to a project/dossier."
             footer={
                 <>
-                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>
+                    <AppButton variant="secondary" onPress={() => onOpenChange(false)} isDisabled={isSubmitting}>
                         Cancel
                     </AppButton>
 
-                    <AppButton variant="primary" type="submit" form="document-upload-form">
-                        Save document
+                    <AppButton variant="primary" type="submit" form="document-upload-form" isLoading={isSubmitting}>
+                        {isSubmitting ? 'Saving...' : 'Save document'}
                     </AppButton>
                 </>
             }
@@ -145,29 +153,32 @@ export function DocumentUploadDrawer({
                 </section>
 
                 <section>
-                    <h3 className="mb-3 text-sm font-semibold">File</h3>
+                    <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">File</p>
 
-                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed bg-[var(--surface)] p-6 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
-                        <UploadCloud size={26} className="text-[var(--accent)]" />
+                    {fileName ? (
+                        <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                            <UploadCloud size={20} className="shrink-0 text-[var(--accent)]" />
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-[13px] font-medium text-[var(--foreground)]">{fileName}</p>
+                                <p className="text-[11px] text-[var(--text-muted)]">File selected</p>
+                            </div>
+                            <button type="button" onClick={() => { setFileName(''); setForm((f) => ({ ...f, file: null })); }}
+                                className="flex size-7 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[11px] text-[var(--text-muted)] transition hover:border-red-400/30 hover:text-red-400">
+                                Remove
+                            </button>
+                        </div>
+                    ) : (
+                        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] p-5 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
+                            <UploadCloud size={22} className="text-[var(--accent)]" />
+                            <span className="mt-2 text-[13px] font-medium text-[var(--foreground)]">Choose file</span>
+                            <span className="mt-0.5 text-[11px] text-[var(--text-muted)]">PDF, image, DOCX, or office file. Max 20 MB.</span>
+                            <input type="file" className="hidden" onChange={(event) => handleFileChange(event.target.files)} />
+                        </label>
+                    )}
 
-                        <span className="mt-3 text-sm font-semibold">
-                            {fileName || 'Choose file'}
-                        </span>
-
-                        <span className="mt-1 text-xs text-[var(--text-muted)]">
-                            PDF, image, DOCX, or office file. Max 20 MB.
-                        </span>
-
-                        <input
-                            type="file"
-                            className="hidden"
-                            onChange={(event) => handleFileChange(event.target.files)}
-                        />
-                    </label>
-
-                    {firstError(errors, 'file') ? (
+                    {fileError || firstError(errors, 'file') ? (
                         <p className="mt-2 text-xs font-medium text-[var(--danger)]">
-                            {firstError(errors, 'file')}
+                            {fileError || firstError(errors, 'file')}
                         </p>
                     ) : null}
                 </section>

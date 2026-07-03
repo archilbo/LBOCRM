@@ -17,9 +17,11 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppModal } from '@/components/ui/AppModal';
 import { FinanceDocumentLockBadge, FinanceDocumentLockNotice } from '@/features/finance/components/FinanceDocumentLockNotice';
 import type { FinanceDocument, FinanceDocumentItem, Payment } from '@/features/finance/types';
 
@@ -151,6 +153,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
     const items = document.items ?? [];
     const payments = document.payments ?? [];
     const locked = Boolean(document.lock?.isLocked ?? document.numberLocked);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     function putAction(url: string | null | undefined, successMessage: string) {
         if (!url) {
@@ -188,10 +191,12 @@ export default function FinanceDocumentShow({ document }: PageProps) {
     }
 
     function deleteDocument() {
-        if (!document.deleteUrl || !window.confirm(`Delete ${document.number}?`)) {
-            return;
-        }
+        if (!document.deleteUrl) return;
+        setShowDeleteConfirm(true);
+    }
 
+    function confirmDelete() {
+        if (!document.deleteUrl) return;
         router.delete(document.deleteUrl, {
             onSuccess: () => {
                 toast.success('Document deleted.');
@@ -502,6 +507,21 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                     </section>
                 </div>
             </AppShell>
+
+            <AppModal
+                isOpen={showDeleteConfirm}
+                onOpenChange={setShowDeleteConfirm}
+                title="Delete document?"
+                size="sm"
+            >
+                <p className="mb-5 text-sm text-[var(--text-muted)]">
+                    Delete <strong>{document.number}</strong>? This action cannot be undone.
+                </p>
+                <div className="flex justify-end gap-2">
+                    <AppButton variant="secondary" onPress={() => setShowDeleteConfirm(false)}>Cancel</AppButton>
+                    <AppButton variant="danger" onPress={confirmDelete}>Delete</AppButton>
+                </div>
+            </AppModal>
         </>
     );
 }

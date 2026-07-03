@@ -11,9 +11,12 @@ export type DossierDocumentRow = {
     documentNumber: string | null;
     status: DocumentStatus;
     originalFilename: string | null;
+    mimeType?: string | null;
     sizeLabel?: string | null;
     uploadedAt: string | null;
+    verifiedAt?: string | null;
     downloadUrl?: string | null;
+    hasFile?: boolean;
     notes?: string | null;
 };
 
@@ -55,7 +58,13 @@ export type DocumentGroupRow = {
     documentNumber: string | null;
     status: DocumentStatus;
     originalFilename: string | null;
+    mimeType?: string | null;
+    sizeLabel?: string | null;
     uploadedAt: string | null;
+    verifiedAt?: string | null;
+    downloadUrl?: string | null;
+    hasFile?: boolean;
+    notes?: string | null;
 };
 
 export type DocumentTypeGroup = {

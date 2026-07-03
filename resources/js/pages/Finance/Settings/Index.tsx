@@ -14,6 +14,7 @@ import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useMemo, u
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppModal } from '@/components/ui/AppModal';
 
 const FORCE_FINANCE_SETTINGS_REDESIGN_53O = true;
 
@@ -258,6 +259,8 @@ export default function FinanceSettingsIndex({ settings, routes }: PageProps) {
 
     const [form, setForm] = useState<FinanceSettingsForm>(initialForm);
     const [processing, setProcessing] = useState(false);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [showRemoveLogoConfirm, setShowRemoveLogoConfirm] = useState(false);
 
     const isDirty = useMemo(() => !sameForm(form, initialForm), [form, initialForm]);
 
@@ -302,15 +305,16 @@ export default function FinanceSettingsIndex({ settings, routes }: PageProps) {
     }
 
     function resetDefaults() {
-        if (!window.confirm('Reset finance defaults? Company and bank information will not be changed.')) {
-            return;
-        }
+        setShowResetConfirm(true);
+    }
 
+    function confirmResetDefaults() {
         router.put(routes.reset, {}, {
             preserveScroll: true,
             onSuccess: () => toast.success('Finance defaults reset.'),
             onError: () => toast.error('Could not reset finance defaults.'),
         });
+        setShowResetConfirm(false);
     }
 
     function uploadLogo(event: ChangeEvent<HTMLInputElement>) {
@@ -335,15 +339,16 @@ export default function FinanceSettingsIndex({ settings, routes }: PageProps) {
     }
 
     function deleteLogo() {
-        if (!window.confirm('Remove company logo?')) {
-            return;
-        }
+        setShowRemoveLogoConfirm(true);
+    }
 
+    function confirmDeleteLogo() {
         router.delete(routes.deleteLogo, {
             preserveScroll: true,
             onSuccess: () => toast.success('Logo removed.'),
             onError: () => toast.error('Could not remove logo.'),
         });
+        setShowRemoveLogoConfirm(false);
     }
 
     return (
@@ -540,6 +545,22 @@ export default function FinanceSettingsIndex({ settings, routes }: PageProps) {
                         </aside>
                     </section>
                 </form>
+
+                <AppModal isOpen={showResetConfirm} onOpenChange={setShowResetConfirm} title="Reset finance defaults">
+                    <p>Reset finance defaults? Company and bank information will not be changed.</p>
+                    <div className="mt-4 flex justify-end gap-2">
+                        <AppButton variant="secondary" onPress={() => setShowResetConfirm(false)}>Cancel</AppButton>
+                        <AppButton variant="primary" onPress={confirmResetDefaults}>Reset</AppButton>
+                    </div>
+                </AppModal>
+
+                <AppModal isOpen={showRemoveLogoConfirm} onOpenChange={setShowRemoveLogoConfirm} title="Remove company logo">
+                    <p>Remove company logo?</p>
+                    <div className="mt-4 flex justify-end gap-2">
+                        <AppButton variant="secondary" onPress={() => setShowRemoveLogoConfirm(false)}>Cancel</AppButton>
+                        <AppButton variant="danger" onPress={confirmDeleteLogo}>Remove</AppButton>
+                    </div>
+                </AppModal>
             </AppShell>
         </>
     );

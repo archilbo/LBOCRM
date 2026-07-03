@@ -1,57 +1,148 @@
 import { router, usePage } from '@inertiajs/react';
 import {
-    Archive, Bell, Building2, CalendarDays, ChevronRight, FileCheck2, FilePlus2, FileText,
-    LayoutDashboard, ListChecks, LogOut, MessageSquare, PanelLeftClose, PanelLeftOpen,
-    Search, Settings, ShieldCheck, SlidersHorizontal, UserRound, Users, FolderKanban,
-    BadgeDollarSign, Check,
+    BadgeDollarSign, Building2, ChevronDown, ChevronRight, FolderKanban,
+    HelpCircle, LogOut, PanelLeftClose, PanelLeftOpen, Search, Settings, Check,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import type { AppRoute } from '@/lib/appRoutes';
-import { appRoutes, isActivePath, isValidHref } from '@/lib/appRoutes';
+import type { AppRoute } from '@/config/navigation';
+import { appRoutes, isActivePath, isValidHref } from '@/config/navigation';
+import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
 import { useTheme } from '@/providers/ThemeProvider';
 
-type NavItem = AppRoute & { section?: string };
+const EXPANDED = 236;
+const RAIL = 64;
 
-const navSections: { label: string; items: AppRoute[] }[] = [
-    {
-        label: 'nav.groups.principal',
-        items: appRoutes.filter((r) => r.group === 'principal'),
-    },
-    {
-        label: 'nav.groups.followUp',
-        items: appRoutes.filter((r) => r.group === 'followUp'),
-    },
-    {
-        label: 'nav.groups.management',
-        items: appRoutes.filter((r) => r.group === 'management'),
-    },
-    {
-        label: 'nav.groups.administration',
-        items: appRoutes.filter((r) => r.group === 'administration'),
-    },
+const routeMap = new Map(appRoutes.map((r) => [r.key, r]));
+function getRoute(key: string): AppRoute | undefined {
+    return routeMap.get(key);
+}
+
+const mainItems = [
+    { key: 'dashboard' as const },
+    { key: 'clients' as const, shortcut: '#1' },
+    { key: 'intermediaries' as const, shortcut: '#2' },
+    { key: 'dossiers' as const, shortcut: '#3' },
 ];
 
-const wsDots: { labelKey: string; label: string; color: string; href: string }[] = [
-    { labelKey: 'ws-operations', label: 'Operations', color: 'var(--crm-gold)', href: '/dossiers' },
-    { labelKey: 'ws-finance', label: 'Finance', color: '#34d399', href: '/finance' },
-    { labelKey: 'ws-documents', label: 'Documents', color: '#60a5fa', href: '/documents' },
-    { labelKey: 'ws-tasks', label: 'Tasks', color: '#a78bfa', href: '/tasks' },
+const followUpItems: { key: string }[] = [
+    { key: 'documents' },
+    { key: 'contracts' },
+    { key: 'authorizations' },
+    { key: 'tasks' },
+    { key: 'calendar' },
+    { key: 'taskRequests' },
+    { key: 'workload' },
+    { key: 'operationsReports' },
 ];
+
+const financeChildren: { key: string; labelKey?: string }[] = [
+    { key: 'finance', labelKey: 'nav.financeOverview' },
+    { key: 'financeDocuments' },
+    { key: 'financePayments' },
+    { key: 'financeMonthly' },
+    { key: 'financeTemplates' },
+    { key: 'financeSettings' },
+];
+
+const statusDots = [
+    { label: 'Active dossiers', color: '#22c55e' },
+    { label: 'Finance', color: '#f59e0b' },
+    { label: 'Blocked', color: '#ef4444' },
+    { label: 'Archive', color: '#8b5cf6' },
+];
+
+/* ── Group keys for collapsed rail popovers ── */
+const operationsGroupKeys = [
+    'documents', 'contracts', 'authorizations', 'tasks',
+    'calendar', 'taskRequests', 'workload', 'operationsReports',
+] as const;
+
+const financeGroupKeys = [
+    'finance', 'financeDocuments', 'financePayments',
+    'financeMonthly', 'financeTemplates', 'financeSettings',
+] as const;
+
+function isGroupActive(keys: readonly string[], isActive: (r: AppRoute) => boolean): boolean {
+    return keys.some((key) => {
+        const route = routeMap.get(key);
+        return route && route.enabled && isActive(route);
+    });
+}
+
+function SectionLabel({ label }: { label: string }) {
+    return (
+        <p className="mb-1 mt-[18px] px-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-subtle">
+            {label}
+        </p>
+    );
+}
+
+function NavItem({ route, shortcut, isActive, goTo, t }: {
+    route: AppRoute;
+    shortcut?: string;
+    isActive: (r: AppRoute) => boolean;
+    goTo: (href: string, enabled: boolean) => void;
+    t: (key: string) => string;
+}) {
+    const Icon = route.icon;
+    const active = isActive(route);
+
+    return (
+        <button type="button"
+            onClick={() => goTo(route.href, route.enabled)}
+            className={cn(
+                'flex h-8 w-full items-center gap-[10px] rounded-lg px-2 text-left text-[13px] font-medium transition',
+                active
+                    ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-foreground'
+                    : 'text-muted hover:bg-surface-2 hover:text-foreground',
+            )}>
+            <span className="flex size-4 shrink-0 items-center justify-center">
+                <Icon size={16} />
+            </span>
+            <span className="min-w-0 flex-1 truncate">{t(route.labelKey)}</span>
+            {shortcut ? (
+                <span className="shrink-0 text-[10px] font-medium text-subtle">{shortcut}</span>
+            ) : null}
+        </button>
+    );
+}
+
+function renderNavItem(routeKey: string, opts: {
+    isActive: (r: AppRoute) => boolean;
+    goTo: (href: string, enabled: boolean) => void;
+    t: (key: string) => string;
+    shortcut?: string;
+}) {
+    const route = getRoute(routeKey);
+    if (!route || !route.enabled) return null;
+    return <NavItem key={routeKey} route={route} {...opts} />;
+}
 
 export function AppSidebar() {
     const { t } = useTranslation();
     const { sidebarCollapsed, toggleSidebar } = useTheme();
-    const page = usePage();
-    const currentPath = page.url;
-    const authUser = ((page.props as any).auth?.user || {}) as { id?: number; name?: string; email?: string };
-    const unreadCount = ((page.props as any).auth?.user?.unread_messages as number) || 0;
+    const { url: currentPath, props } = usePage();
+    const authUser = ((props as any).auth?.user || {}) as { id?: number; name?: string; email?: string };
+    const unreadCount = ((props as any).auth?.user?.unread_messages as number) || 0;
 
     const [wsOpen, setWsOpen] = useState(false);
     const [userOpen, setUserOpen] = useState(false);
+    const [financeOpen, setFinanceOpen] = useState(false);
     const wsRef = useRef<HTMLDivElement>(null);
     const userRef = useRef<HTMLDivElement>(null);
+    const prevPath = useRef(currentPath);
+
+    const isFinanceRoute = currentPath === '/finance' || currentPath.startsWith('/finance/');
+    useEffect(() => {
+        if (prevPath.current !== currentPath) {
+            if (isFinanceRoute) setFinanceOpen(true);
+            prevPath.current = currentPath;
+        }
+    }, [currentPath, isFinanceRoute]);
+
+    const showFinanceChildren = financeOpen || isFinanceRoute;
 
     useEffect(() => {
         function close(e: MouseEvent) {
@@ -68,282 +159,551 @@ export function AppSidebar() {
         return () => document.removeEventListener('keydown', esc);
     }, []);
 
-    function goTo(href: string, enabled: boolean) {
+    const goTo = useCallback((href: string, enabled: boolean) => {
         if (!enabled || !isValidHref(href)) {
-            toast.info('This module is not ready yet.');
+            toast.info(t('app.soon'));
             return;
         }
         router.visit(href);
-    }
+    }, [t]);
 
-    function isActive(item: AppRoute) {
+    const isActive = useCallback((item: AppRoute) => {
         return item.enabled && isActivePath(currentPath, item.href);
+    }, [currentPath]);
+
+    const navOpts = { isActive, goTo, t };
+
+    const userInitial = (authUser?.name || 'U').charAt(0).toUpperCase();
+
+    /* ── Collapsed rail: fixed flyout/tooltip state ── */
+    const flyoutTimerRef = useRef<number | null>(null);
+    const flyoutRef = useRef<HTMLDivElement>(null);
+    const [flyout, setFlyout] = useState<{
+        type: 'tooltip' | 'flyout';
+        label: string;
+        icon?: React.ReactNode;
+        x: number;
+        y: number;
+        items?: { key: string; labelKey?: string }[];
+    } | null>(null);
+
+    function cancelHide() { if (flyoutTimerRef.current) clearTimeout(flyoutTimerRef.current); }
+
+    function hideFlyout(delay = 120) {
+        cancelHide();
+        flyoutTimerRef.current = window.setTimeout(() => setFlyout(null), delay);
     }
 
-    /* ---------- Collapsed Rail ---------- */
-    if (sidebarCollapsed) {
-        const allItems = appRoutes.filter((r) => r.enabled && r.icon);
-        return (
-            <aside className="crm-sidebar crm-sidebar-rail hidden h-full shrink-0 flex-col overflow-hidden md:flex">
-                <div className="flex shrink-0 flex-col items-center gap-2 border-b border-[var(--crm-border)] py-3">
-                    <button type="button" onClick={() => goTo('/', true)}
-                        className="flex size-8 items-center justify-center rounded-[9px] bg-[var(--crm-gold)] text-black"
-                        aria-label="ARCHI LBO OS">
-                        <Building2 size={15} />
-                    </button>
+    useEffect(() => {
+        if (!flyout) return;
+        function esc(e: KeyboardEvent) { if (e.key === 'Escape') setFlyout(null); }
+        document.addEventListener('keydown', esc);
+        return () => document.removeEventListener('keydown', esc);
+    }, [flyout]);
 
-                    <div className="group relative">
+    /* ================================================================
+       COLLAPSED RAIL
+       ================================================================ */
+    if (sidebarCollapsed) {
+        const opsActive = isGroupActive(operationsGroupKeys, isActive);
+        const financeActive = isGroupActive(financeGroupKeys, isActive);
+
+        const railBtn = (active: boolean) =>
+            cn(
+                'mx-auto flex size-9 items-center justify-center rounded-xl transition',
+                active
+                    ? 'bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-accent'
+                    : 'text-muted hover:bg-surface-2 hover:text-foreground',
+            );
+
+        function handleEnter(e: React.MouseEvent<HTMLButtonElement>, label: string, opts?: {
+            icon?: React.ReactNode;
+            items?: { key: string; labelKey?: string }[];
+        }) {
+            if (flyoutTimerRef.current) clearTimeout(flyoutTimerRef.current);
+            const rect = e.currentTarget.getBoundingClientRect();
+            setFlyout({
+                type: opts?.items ? 'flyout' : 'tooltip',
+                label,
+                icon: opts?.icon,
+                x: rect.right + 10,
+                y: rect.top,
+                items: opts?.items,
+            });
+        }
+
+        function handleLeave() {
+            hideFlyout(120);
+        }
+
+        function renderFlyoutItem({ key, labelKey }: { key: string; labelKey?: string }) {
+            const route = routeMap.get(key);
+            if (!route || !route.enabled) return null;
+            const Icon = route.icon;
+            const active = isActive(route);
+            return (
+                <button key={key} type="button"
+                    onClick={() => { goTo(route.href, route.enabled); setFlyout(null); }}
+                    className={cn(
+                        'flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] font-medium transition',
+                        active
+                            ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-foreground'
+                            : 'text-muted hover:bg-surface-2 hover:text-foreground',
+                    )}>
+                    <span className="flex size-[15px] shrink-0 items-center justify-center">
+                        <Icon size={15} />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{t(labelKey || route.labelKey)}</span>
+                </button>
+            );
+        }
+
+        return (
+            <>
+                <aside
+                    className="flex flex-1 flex-col overflow-visible rounded-[14px] border bg-surface shadow-sm"
+                    style={{ width: RAIL }}
+                >
+                    {/* ── Top: logo + expand ── */}
+                    <div className="flex shrink-0 flex-col items-center gap-[6px] border-b border-border px-2 py-3">
+                        <button type="button" onClick={() => goTo('/', true)}
+                            onMouseEnter={(e) => handleEnter(e, t('app.name'))}
+                            onMouseLeave={handleLeave}
+                            className="flex size-9 items-center justify-center rounded-[10px] bg-accent text-accent-fg"
+                            aria-label={t('app.name')}>
+                            <Building2 size={18} />
+                        </button>
                         <button type="button" onClick={toggleSidebar}
-                            className="flex size-8 items-center justify-center rounded-lg border border-[var(--crm-border)] text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]"
+                            onMouseEnter={(e) => handleEnter(e, 'Expand')}
+                            onMouseLeave={handleLeave}
+                            className="flex size-8 items-center justify-center rounded-lg border border-border text-subtle transition hover:border-accent hover:text-accent"
                             aria-label="Expand sidebar">
                             <PanelLeftOpen size={15} />
                         </button>
-                        <div className="crm-sidebar-tooltip">Expand sidebar</div>
                     </div>
-                </div>
 
-                {/* Nav icons */}
-                <nav className="flex-1 overflow-y-auto scrollbar-none py-3 space-y-1">
-                    {allItems.map((item) => {
-                        const Icon = item.icon;
-                        const active = isActive(item);
-                        const showDot = item.key === 'inbox' && unreadCount > 0;
-                        return (
-                            <div key={item.key} className="relative flex items-center justify-center group">
-                                <button type="button" onClick={() => goTo(item.href, item.enabled)}
-                                    className={`crm-nav-item-rail ${active ? 'crm-nav-item-rail-active' : ''}`}
-                                    aria-label={t(item.labelKey)}>
+                    {/* ── Primary nav ── */}
+                    <nav className="flex-1 space-y-[6px] overflow-y-auto px-2 py-3 scrollbar-none">
+                        {/* Dashboard */}
+                        {(() => {
+                            const route = getRoute('dashboard');
+                            if (!route || !route.enabled) return null;
+                            const Icon = route.icon;
+                            const active = isActive(route);
+                            return (
+                                <button type="button"
+                                    onClick={() => goTo(route.href, route.enabled)}
+                                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
+                                    onMouseLeave={handleLeave}
+                                    className={railBtn(active)}
+                                    aria-label={t(route.labelKey)}>
                                     <Icon size={16} />
-                                    {showDot ? (
-                                        <span className="absolute right-[6px] top-[4px] size-2 rounded-full bg-red-500" />
+                                </button>
+                            );
+                        })()}
+
+                        {/* Clients */}
+                        {(() => {
+                            const route = getRoute('clients');
+                            if (!route || !route.enabled) return null;
+                            const Icon = route.icon;
+                            const active = isActive(route);
+                            return (
+                                <button type="button"
+                                    onClick={() => goTo(route.href, route.enabled)}
+                                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
+                                    onMouseLeave={handleLeave}
+                                    className={railBtn(active)}
+                                    aria-label={t(route.labelKey)}>
+                                    <Icon size={16} />
+                                </button>
+                            );
+                        })()}
+
+                        {/* Dossiers */}
+                        {(() => {
+                            const route = getRoute('dossiers');
+                            if (!route || !route.enabled) return null;
+                            const Icon = route.icon;
+                            const active = isActive(route);
+                            return (
+                                <button type="button"
+                                    onClick={() => goTo(route.href, route.enabled)}
+                                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
+                                    onMouseLeave={handleLeave}
+                                    className={railBtn(active)}
+                                    aria-label={t(route.labelKey)}>
+                                    <Icon size={16} />
+                                </button>
+                            );
+                        })()}
+
+                        {/* Operations group flyout */}
+                        <button type="button"
+                            onMouseEnter={(e) => handleEnter(e, 'Operations', {
+                                icon: <FolderKanban size={16} />,
+                                items: operationsGroupKeys.map((k) => ({ key: k })),
+                            })}
+                            onMouseLeave={handleLeave}
+                            className={railBtn(opsActive)}
+                            aria-label="Operations">
+                            <FolderKanban size={16} />
+                        </button>
+
+                        {/* Finance group flyout */}
+                        <button type="button"
+                            onMouseEnter={(e) => handleEnter(e, 'Finance', {
+                                icon: <BadgeDollarSign size={16} />,
+                                items: financeGroupKeys.map((k) => ({
+                                    key: k,
+                                    labelKey: k === 'finance' ? 'nav.financeOverview' : undefined,
+                                })),
+                            })}
+                            onMouseLeave={handleLeave}
+                            className={railBtn(financeActive)}
+                            aria-label="Finance">
+                            <BadgeDollarSign size={16} />
+                        </button>
+
+                        {/* Inbox */}
+                        {(() => {
+                            const route = getRoute('inbox');
+                            if (!route || !route.enabled) return null;
+                            const Icon = route.icon;
+                            const active = isActive(route);
+                            return (
+                                <button type="button"
+                                    onClick={() => goTo(route.href, route.enabled)}
+                                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
+                                    onMouseLeave={handleLeave}
+                                    className={railBtn(active)}
+                                    aria-label={t(route.labelKey)}>
+                                    <Icon size={16} />
+                                    {unreadCount > 0 ? (
+                                        <span className="absolute right-[5px] top-[3px] size-2 rounded-full bg-danger" />
                                     ) : null}
                                 </button>
-                                <div className="crm-sidebar-tooltip">{t(item.labelKey)}</div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })()}
 
-                    {/* Workspace color dots */}
-                    <div className="border-t border-[var(--crm-border)] my-2 mx-3" />
-                    {wsDots.map((w) => (
-                        <div key={w.labelKey} className="relative flex items-center justify-center group">
-                            <button type="button"
-                                onClick={() => goTo(w.href, true)}
-                                className="flex h-8 w-8 items-center justify-center mx-auto rounded-lg hover:bg-[rgba(255,255,255,0.04)] transition"
-                                aria-label={w.label}>
-                                <span className="crm-ws-dot" style={{ background: w.color }} />
+                        {/* Notifications */}
+                        {(() => {
+                            const route = getRoute('notifications');
+                            if (!route || !route.enabled) return null;
+                            const Icon = route.icon;
+                            const active = isActive(route);
+                            return (
+                                <button type="button"
+                                    onClick={() => goTo(route.href, route.enabled)}
+                                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
+                                    onMouseLeave={handleLeave}
+                                    className={railBtn(active)}
+                                    aria-label={t(route.labelKey)}>
+                                    <Icon size={16} />
+                                </button>
+                            );
+                        })()}
+                    </nav>
+
+                    {/* ── Bottom: settings, user, logout ── */}
+                    <div className="shrink-0 border-t border-border px-2 py-2">
+                        <div className="flex flex-col items-center gap-[6px]">
+                            <button type="button" onClick={() => goTo('/settings', false)}
+                                onMouseEnter={(e) => handleEnter(e, t('nav.settings'))}
+                                onMouseLeave={handleLeave}
+                                className="flex size-9 items-center justify-center rounded-xl text-muted transition hover:bg-surface-2 hover:text-foreground"
+                                aria-label={t('nav.settings')}>
+                                <Settings size={16} />
                             </button>
-                            <div className="crm-sidebar-tooltip">{w.label}</div>
-                        </div>
-                    ))}
-                </nav>
 
-                {/* User avatar bottom */}
-                <div className="shrink-0 border-t border-[var(--crm-border)] py-2">
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="group relative">
                             <button type="button" onClick={() => setUserOpen((o) => !o)}
-                                className="flex size-8 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[10px] font-bold text-[var(--crm-gold)]"
+                                onMouseEnter={(e) => handleEnter(e, authUser?.name || 'User')}
+                                onMouseLeave={handleLeave}
+                                className="flex size-9 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-xs font-bold text-accent"
                                 aria-label={authUser?.name || 'User'}>
-                                {(authUser?.name || 'U').charAt(0).toUpperCase()}
+                                {userInitial}
                             </button>
-                            <div className="crm-sidebar-tooltip">{authUser?.name || 'User'}</div>
-                        </div>
 
-                        <div className="group relative">
-                            <button type="button" onClick={() => router.visit('/settings')}
-                                className="flex size-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-2)] hover:text-[var(--crm-gold)]"
-                                aria-label="Settings">
-                                <Settings size={15} />
-                            </button>
-                            <div className="crm-sidebar-tooltip">Settings</div>
-                        </div>
-
-                        <div className="group relative">
                             <button type="button" onClick={() => router.post('/logout')}
-                                className="flex size-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-2)] hover:text-[var(--crm-danger)]"
-                                aria-label="Logout">
-                                <LogOut size={15} />
+                                onMouseEnter={(e) => handleEnter(e, t('nav.logout'))}
+                                onMouseLeave={handleLeave}
+                                className="flex size-9 items-center justify-center rounded-xl text-muted transition hover:bg-surface-2 hover:text-danger"
+                                aria-label={t('nav.logout')}>
+                                <LogOut size={16} />
                             </button>
-                            <div className="crm-sidebar-tooltip">Logout</div>
                         </div>
                     </div>
+                </aside>
 
-                    <div className="relative flex items-center justify-center group">
-                    <button type="button" onClick={() => setUserOpen((o) => !o)}
-                        className="hidden"
-                        aria-label={authUser?.name || 'User'}>
-                        User
-                    </button>
+                {/* ── Fixed tooltip ── */}
+                {flyout?.type === 'tooltip' ? (
+                    <div
+                        style={{ position: 'fixed', left: flyout.x, top: flyout.y + 6, zIndex: 99999 }}
+                        className="pointer-events-none whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs text-white shadow-xl"
+                    >
+                        {flyout.label}
+                    </div>
+                ) : null}
 
-                    {/* User popover */}
-                    {userOpen ? (
-                        <div ref={userRef} className="absolute bottom-12 left-2 z-[60] crm-popover-card">
-                            <div className="flex items-center gap-3 border-b border-[var(--crm-border)] px-3 py-3">
-                                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-xs font-bold text-[var(--crm-gold)]">
-                                    {(authUser?.name || 'U').charAt(0).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-xs font-bold text-[var(--crm-text)] truncate">{authUser?.name || 'User'}</p>
-                                    <p className="text-[9px] text-[var(--crm-text-muted)] truncate">{authUser?.email || ''}</p>
-                                </div>
-                            </div>
-                            <div className="p-1.5 space-y-0.5">
-                                <button type="button" onClick={() => { router.visit('/settings'); setUserOpen(false); }}
-                                    className="crm-popover-item">
-                                    <Settings size={14} /> {t('nav.settings')}
-                                </button>
-                                <button type="button" onClick={() => { router.post('/logout'); setUserOpen(false); }}
-                                    className="crm-popover-item">
-                                    <LogOut size={14} /> {t('nav.logout')}
-                                </button>
+                {/* ── Fixed flyout menu ── */}
+                {flyout?.type === 'flyout' && flyout.items?.length ? (
+                    <div
+                        ref={flyoutRef}
+                        style={{ position: 'fixed', left: flyout.x, top: flyout.y + 4, zIndex: 99999 }}
+                        className="w-[240px] rounded-xl border border-border bg-surface p-2 shadow-xl"
+                        onMouseEnter={cancelHide}
+                        onMouseLeave={() => hideFlyout()}
+                    >
+                        <div className="mb-1 flex items-center gap-2.5 border-b border-border px-1 pb-2">
+                            <span className="flex size-7 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                                {flyout.icon || null}
+                            </span>
+                            <div>
+                                <p className="text-[13px] font-semibold text-foreground">{flyout.label}</p>
+                                <p className="text-[10px] text-muted">Quick access</p>
                             </div>
                         </div>
-                    ) : null}
+                        <div className="space-y-0.5">
+                            {flyout.items.map(renderFlyoutItem)}
+                        </div>
                     </div>
-                </div>
-            </aside>
+                ) : null}
+            </>
         );
     }
 
-    /* ---------- Expanded Sidebar ---------- */
+    /* ================================================================
+       EXPANDED SIDEBAR
+       ================================================================ */
     return (
-        <aside className="crm-sidebar crm-sidebar-expanded hidden h-full shrink-0 flex-col overflow-hidden md:flex">
-            {/* Brand top */}
-            <div className="flex h-12 items-center justify-between border-b border-[var(--crm-border)] px-3">
-                <div className="relative" ref={wsRef}>
-                    <button type="button" onClick={() => setWsOpen((o) => !o)}
-                        className="flex items-center gap-2.5 text-left group">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--crm-gold)] text-black">
-                            <Building2 size={14} />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-[11px] font-bold leading-tight text-[var(--crm-text)]">ARCHI LBO <span className="text-[var(--crm-gold)]">OS</span></p>
-                            <p className="text-[9px] text-[var(--crm-text-muted)] leading-tight">{t('app.description')}</p>
-                        </div>
-                        <ChevronRight size={12} className="shrink-0 text-[var(--crm-text-soft)] ml-auto group-hover:text-[var(--crm-text)] transition" />
-                    </button>
-
-                    {wsOpen ? (
-                        <div className="absolute left-0 top-full mt-1 z-[60] crm-popover-card">
-                            <div className="p-1.5 space-y-0.5">
-                                <div className="flex items-center gap-2.5 px-3 py-2">
-                                    <div className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--crm-gold)] text-black">
-                                        <Building2 size={14} />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-xs font-bold text-[var(--crm-text)]">ARCHI LBO OS</p>
-                                        <p className="text-[9px] text-[var(--crm-text-muted)]">{t('app.description')}</p>
-                                    </div>
-                                    <Check size={14} className="shrink-0 text-[var(--crm-gold)]" />
-                                </div>
-                            </div>
-                            <div className="crm-popover-divider" />
-                            <div className="p-1.5 space-y-0.5">
-                                {wsDots.map((w) => (
-                                    <button key={w.labelKey} type="button" onClick={() => { goTo(w.href, true); setWsOpen(false); }}
-                                        className="crm-popover-item">
-                                        <span className="crm-ws-dot" style={{ background: w.color }} />
-                                        {w.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ) : null}
-                </div>
+        <aside
+            className="flex flex-1 flex-col overflow-hidden rounded-[14px] border bg-surface shadow-sm"
+            style={{ width: EXPANDED }}
+        >
+            {/* ── Workspace header ── */}
+            <div className="relative shrink-0 border-b border-border" ref={wsRef}>
+                <button type="button" onClick={() => setWsOpen((o) => !o)}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-surface-2">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-accent text-accent-fg">
+                        <Building2 size={16} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-semibold leading-tight text-foreground">
+                            ARCHI LBO <span className="text-accent">OS</span>
+                        </p>
+                        <p className="truncate text-[11px] leading-tight text-muted">
+                            {t('app.description')}
+                        </p>
+                    </div>
+                    <ChevronDown size={13} className={cn('shrink-0 text-subtle transition', wsOpen && 'rotate-180')} />
+                </button>
 
                 <button type="button" onClick={toggleSidebar}
-                    className="flex size-6 items-center justify-center rounded-md text-[var(--crm-text-soft)] hover:text-[var(--crm-text)] transition"
-                    title="Collapse sidebar" aria-label="Collapse sidebar">
-                    <PanelLeftClose size={14} />
+                    className="absolute right-2 top-1/2 -translate-y-1/2 flex size-6 items-center justify-center rounded-md text-subtle transition hover:bg-surface-2 hover:text-foreground"
+                    title="Collapse" aria-label="Collapse">
+                    <PanelLeftClose size={13} />
                 </button>
+
+                {wsOpen ? (
+                    <div className="absolute left-3 right-3 top-full z-[60] mt-1 rounded-xl border border-border bg-surface p-1.5 shadow-lg">
+                        <div className="flex items-center gap-2.5 border-b border-border px-2.5 py-2">
+                            <div className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-accent text-accent-fg">
+                                <Building2 size={14} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs font-semibold text-foreground">ARCHI LBO OS</p>
+                                <p className="truncate text-[10px] text-muted">{t('app.description')}</p>
+                            </div>
+                            <Check size={13} className="shrink-0 text-accent" />
+                        </div>
+                    </div>
+                ) : null}
             </div>
 
-            {/* Search */}
-            <div className="px-3 py-2.5">
+            {/* ── Search ── */}
+            <div className="shrink-0 px-3 py-2.5">
                 <div className="relative">
-                    <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)] pointer-events-none" />
-                    <input type="text" placeholder={`${t('nav.search')}...`}
-                        className="crm-sb-search pl-7 pr-2" />
+                    <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-subtle" />
+                    <input type="text" placeholder={t('nav.search')}
+                        className="h-8 w-full rounded-lg border border-border bg-surface-2 pl-7 pr-2 text-[12px] text-foreground outline-none transition placeholder:text-subtle focus:border-accent/50" />
                 </div>
             </div>
 
-            {/* Nav sections */}
-            <nav className="flex-1 overflow-y-auto scrollbar-none px-2 pb-2">
-                {navSections.map((section) => {
-                    const items = section.items.filter((r) => r.enabled && r.icon);
-                    if (items.length === 0) return null;
+            {/* ── Navigation ── */}
+            <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-2 scrollbar-none">
+                {/* Main */}
+                <SectionLabel label={t('nav.groups.principal')} />
+                {mainItems.map(({ key, shortcut }) => (
+                    <NavItem key={key} route={getRoute(key)!} shortcut={shortcut} {...navOpts} />
+                ))}
+
+                {/* Follow-up */}
+                <SectionLabel label={t('nav.groups.followUp')} />
+                {followUpItems.map(({ key }) => renderNavItem(key, navOpts))}
+
+                {/* Management */}
+                <SectionLabel label={t('nav.groups.management')} />
+
+                {/* Finance expandable */}
+                {(() => {
+                    const fr = routeMap.get('finance');
+                    if (!fr || !fr.enabled) return null;
+                    const Icon = fr.icon;
+                    const active = isActive(fr);
                     return (
-                        <div key={section.label} className="mb-3">
-                            <p className="crm-sidebar-section">{t(section.label)}</p>
-                            <div className="space-y-0.5">
-                                {items.map((item) => {
-                                    const Icon = item.icon;
-                                    const active = isActive(item);
-                                    const showDot = item.key === 'inbox' && unreadCount > 0;
-                                    return (
-                                        <button key={item.key} type="button" onClick={() => goTo(item.href, item.enabled)}
-                                            className={`crm-nav-item w-full ${active ? 'crm-nav-item-active' : ''} ${!item.enabled ? 'opacity-40 cursor-not-allowed' : ''}`}>
-                                            <span className="relative">
-                                                <Icon size={15} />
-                                                {showDot ? (
-                                                    <span className="absolute -right-1 -top-1 size-2 rounded-full bg-red-500" />
-                                                ) : null}
-                                            </span>
-                                            <span className="min-w-0 flex-1 truncate text-left">{t(item.labelKey)}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                        <div key="finance-group">
+                            <button type="button"
+                                onClick={() => goTo(fr.href, fr.enabled)}
+                                className={cn(
+                                    'flex h-8 w-full items-center gap-[10px] rounded-lg px-2 text-left text-[13px] font-medium transition',
+                                    active
+                                        ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-foreground'
+                                        : 'text-muted hover:bg-surface-2 hover:text-foreground',
+                                )}>
+                                <span className="flex size-4 shrink-0 items-center justify-center">
+                                    <Icon size={16} />
+                                </span>
+                                <span className="min-w-0 flex-1 truncate">{t(fr.labelKey)}</span>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); setFinanceOpen((o) => !o); }}
+                                    className="flex size-5 items-center justify-center rounded text-subtle hover:text-foreground"
+                                    aria-label="Toggle finance">
+                                    <ChevronRight size={12} className={cn('transition', showFinanceChildren && 'rotate-90')} />
+                                </button>
+                            </button>
+                            {showFinanceChildren ? (
+                                <div className="ml-0.5 mt-0.5 space-y-0.5 border-l border-border pl-2">
+                                    {financeChildren.map(({ key, labelKey }) => {
+                                        const cr = routeMap.get(key);
+                                        if (!cr || !cr.enabled) return null;
+                                        const ChildIcon = cr.icon;
+                                        const childActive = isActive(cr);
+                                        return (
+                                            <button key={key} type="button"
+                                                onClick={() => goTo(cr.href, cr.enabled)}
+                                                className={cn(
+                                                    'flex h-7 w-full items-center gap-2 rounded-lg pl-2 pr-2 text-left text-[12px] font-medium transition',
+                                                    childActive
+                                                        ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-foreground'
+                                                        : 'text-muted hover:bg-surface-2 hover:text-foreground',
+                                                )}>
+                                                <span className="flex size-3.5 shrink-0 items-center justify-center">
+                                                    <ChildIcon size={13} />
+                                                </span>
+                                                <span className="min-w-0 flex-1 truncate">
+                                                    {t(labelKey || cr.labelKey)}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : null}
                         </div>
                     );
-                })}
+                })()}
 
-{/* Quick Spaces */}
-                <p className="crm-sidebar-section">Quick Spaces</p>
-                <div className="space-y-0.5">
-                    {wsDots.map((w) => (
-                        <button key={w.labelKey} type="button" onClick={() => goTo(w.href, true)}
-                            className="crm-nav-item w-full">
-                        <span className="crm-ws-dot" style={{ background: w.color }} />
-                        <span className="min-w-0 flex-1 truncate text-left">{w.label}</span>
+                {/* Archives */}
+                {(() => {
+                    const route = routeMap.get('archives');
+                    if (!route || !route.enabled) return null;
+                    return <NavItem key="archives" route={route} {...navOpts} />;
+                })()}
+
+                {/* Inbox */}
+                {(() => {
+                    const route = routeMap.get('inbox');
+                    if (!route || !route.enabled) return null;
+                    const Icon = route.icon;
+                    const active = isActive(route);
+                    const showDot = unreadCount > 0;
+                    return (
+                        <button key="inbox" type="button"
+                            onClick={() => goTo(route.href, route.enabled)}
+                            className={cn(
+                                'flex h-8 w-full items-center gap-[10px] rounded-lg px-2 text-left text-[13px] font-medium transition',
+                                active
+                                    ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-foreground'
+                                    : 'text-muted hover:bg-surface-2 hover:text-foreground',
+                            )}>
+                            <span className="relative flex size-4 shrink-0 items-center justify-center">
+                                <Icon size={16} />
+                                {showDot ? <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-danger" /> : null}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate">{t(route.labelKey)}</span>
+                            {showDot ? (
+                                <span className="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                            ) : null}
                         </button>
+                    );
+                })()}
+
+                {/* Administration */}
+                <SectionLabel label={t('nav.groups.administration')} />
+                {['notifications', 'users'].map((k) => renderNavItem(k, navOpts))}
+
+                {/* ── Projects / Status dots ── */}
+                <SectionLabel label="PROJECTS" />
+                <div className="space-y-0.5">
+                    {statusDots.map((dot) => (
+                        <div key={dot.label}
+                            className="flex h-7 items-center gap-[10px] rounded-lg px-2 text-[12px] font-medium text-muted">
+                            <span className="block size-2 shrink-0 rounded-sm" style={{ background: dot.color }} />
+                            <span className="min-w-0 flex-1 truncate">{dot.label}</span>
+                        </div>
                     ))}
                 </div>
             </nav>
 
-            {/* User footer */}
-            <div className="relative shrink-0 border-t border-[var(--crm-border)] px-3 py-2.5" ref={userRef}>
+            {/* ── Bottom: settings, help, user ── */}
+            <div className="relative shrink-0 border-t border-border" ref={userRef}>
+                <div className="flex items-center gap-0.5 border-b border-border px-2 py-1">
+                    <button type="button" onClick={() => goTo('/settings', false)}
+                        className="flex h-7 flex-1 items-center gap-2 rounded-md px-2 text-[12px] font-medium text-muted transition hover:bg-surface-2 hover:text-foreground">
+                        <Settings size={14} />
+                        {t('nav.settings')}
+                    </button>
+                    <button type="button"
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-subtle transition hover:bg-surface-2 hover:text-foreground"
+                        title="Help" aria-label="Help">
+                        <HelpCircle size={14} />
+                    </button>
+                </div>
+
                 <button type="button" onClick={() => setUserOpen((o) => !o)}
-                    className="flex w-full items-center gap-2.5 text-left group">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[10px] font-bold text-[var(--crm-gold)]">
-                        {(authUser?.name || 'U').charAt(0).toUpperCase()}
+                    className="flex h-11 w-full items-center gap-2.5 px-3 transition hover:bg-surface-2">
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[10px] font-bold text-accent">
+                        {userInitial}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-bold text-[var(--crm-text)] leading-tight truncate">{authUser?.name || 'User'}</p>
-                        <p className="text-[9px] text-[var(--crm-text-muted)] leading-tight truncate">{authUser?.email || ''}</p>
+                        <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
+                            {authUser?.name || 'User'}
+                        </p>
+                        <p className="truncate text-[11px] leading-tight text-muted">
+                            {authUser?.email || ''}
+                        </p>
                     </div>
-                    <ChevronRight size={12} className="shrink-0 text-[var(--crm-text-soft)] group-hover:text-[var(--crm-text)] transition" />
+                    <ChevronRight size={12} className={cn('shrink-0 text-subtle transition', userOpen && 'rotate-90')} />
                 </button>
 
                 {userOpen ? (
-                    <div className="absolute bottom-full left-2 mb-1 z-[60] crm-popover-card" style={{ minWidth: '190px' }}>
-                        <div className="flex items-center gap-3 border-b border-[var(--crm-border)] px-3 py-3">
-                            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-xs font-bold text-[var(--crm-gold)]">
-                                {(authUser?.name || 'U').charAt(0).toUpperCase()}
+                    <div className="absolute bottom-full left-2 right-2 z-[60] mb-1 rounded-xl border border-border bg-surface p-1.5 shadow-lg">
+                        <div className="flex items-center gap-2.5 border-b border-border px-2.5 py-2">
+                            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[10px] font-bold text-accent">
+                                {userInitial}
                             </div>
-                            <div className="min-w-0">
-                                <p className="text-xs font-bold text-[var(--crm-text)] truncate">{authUser?.name || 'User'}</p>
-                                <p className="text-[9px] text-[var(--crm-text-muted)] truncate">{authUser?.email || ''}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs font-semibold text-foreground">{authUser?.name || 'User'}</p>
+                                <p className="truncate text-[10px] text-muted">{authUser?.email || ''}</p>
                             </div>
                         </div>
-                        <div className="p-1.5 space-y-0.5">
+                        <div className="mt-1 space-y-0.5">
                             <button type="button" onClick={() => { router.visit('/settings'); setUserOpen(false); }}
-                                className="crm-popover-item">
+                                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted transition hover:bg-surface-2 hover:text-foreground">
                                 <Settings size={14} /> {t('nav.settings')}
                             </button>
                             <button type="button" onClick={() => { router.post('/logout'); setUserOpen(false); }}
-                                className="crm-popover-item">
+                                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted transition hover:bg-surface-2 hover:text-danger">
                                 <LogOut size={14} /> {t('nav.logout')}
                             </button>
                         </div>

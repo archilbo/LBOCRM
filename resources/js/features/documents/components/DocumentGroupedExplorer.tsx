@@ -1,278 +1,233 @@
 import { router } from '@inertiajs/react';
 import {
-    ChevronRight,
-    Download,
-    Eye,
-    FileCheck2,
-    FileText,
-    FolderKanban,
-    MapPinned,
-    Search,
-    UserRound,
+    Building2, CheckCircle2, ChevronRight, Download, Eye, FileCheck2, FileText,
+    FolderKanban, MapPinned, MoreHorizontal, Search, Trash2, UserRound, X, XCircle,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppEmptyState } from '@/components/ui/AppEmptyState';
+import { StatusPill } from '@/components/ui/StatusPill';
+import { cn } from '@/lib/cn';
 import type {
-    DocumentClientGroup,
-    DocumentCommuneGroup,
-    DocumentGroupRow,
-    DocumentLocationGroup,
-    DocumentProjectGroup,
-    DocumentStatus,
-    DocumentTypeGroup,
+    DocumentClientGroup, DocumentCommuneGroup, DocumentGroupRow,
+    DocumentLocationGroup, DocumentProjectGroup, DocumentTypeGroup,
 } from '@/features/documents/types';
-
-/* COLUMN_DOCUMENT_BROWSER_53EC */
 
 type Props = {
     groups: DocumentLocationGroup[];
+    onPreview?: (doc: DocumentGroupRow) => void;
 };
 
 type Level = 'clients' | 'projects' | 'types';
 
-function statusClass(status: DocumentStatus) {
-    if (status === 'verified') return 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300';
-    if (status === 'uploaded') return 'border-sky-400/25 bg-sky-400/10 text-sky-300';
-    if (status === 'missing') return 'border-amber-400/25 bg-amber-400/10 text-amber-300';
-    if (status === 'rejected') return 'border-red-400/25 bg-red-400/10 text-red-300';
+const STATUS_COLORS: Record<string, 'success' | 'primary' | 'warning' | 'danger' | 'default'> = {
+    verified: 'success',
+    uploaded: 'primary',
+    missing: 'warning',
+    rejected: 'danger',
+};
 
-    return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300';
+function fileTypeColor(mimeType: string | null | undefined): string {
+    if (!mimeType) return 'bg-[var(--surface-2)] text-[var(--text-muted)]';
+    if (mimeType === 'application/pdf') return 'bg-rose-500/10 text-rose-400';
+    if (mimeType.includes('wordprocessingml')) return 'bg-sky-500/10 text-sky-400';
+    if (mimeType.includes('spreadsheetml')) return 'bg-emerald-500/10 text-emerald-400';
+    if (mimeType.startsWith('image/')) return 'bg-violet-500/10 text-violet-400';
+    return 'bg-[var(--surface-2)] text-[var(--text-muted)]';
 }
 
-function searchDocument(document: DocumentGroupRow, query: string) {
-    if (!query.trim()) {
-        return true;
-    }
-
-    return [
-        document.templateName,
-        document.documentType,
-        document.documentNumber,
-        document.originalFilename,
-        document.status,
-        document.dossierNumber,
-        document.projectObject,
-        document.clientName,
-    ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(query.trim().toLowerCase());
+function searchDocument(doc: DocumentGroupRow, query: string) {
+    if (!query.trim()) return true;
+    return [doc.templateName, doc.documentType, doc.documentNumber, doc.originalFilename,
+        doc.status, doc.dossierNumber, doc.projectObject, doc.clientName]
+        .filter(Boolean).join(' ').toLowerCase().includes(query.trim().toLowerCase());
 }
 
-function ColumnButton({
-    active,
-    icon,
-    title,
-    subtitle,
-    onClick,
-}: {
-    active: boolean;
-    icon?: React.ReactNode;
-    title: string;
-    subtitle: string;
-    onClick: () => void;
-}) {
+function flattenClientDocs(client: DocumentClientGroup): DocumentGroupRow[] {
+    return client.projects.flatMap((p) => p.types.flatMap((t) => t.documents));
+}
+
+function flattenProjectDocs(project: DocumentProjectGroup): DocumentGroupRow[] {
+    return project.types.flatMap((t) => t.documents);
+}
+
+function RowMenu({ doc, onPreview }: { doc: DocumentGroupRow; onPreview?: (d: DocumentGroupRow) => void }) {
+    const [open, setOpen] = useState(false);
+
+    useEffect(() => {
+        if (!open) return;
+        function close() { setOpen(false); }
+        document.addEventListener('mousedown', close);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+        return () => { document.removeEventListener('mousedown', close); };
+    }, [open]);
+
     return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={[
-                'flex w-full items-center justify-between gap-3 border-b border-[var(--crm-border)] px-3 py-3 text-left transition',
-                active
-                    ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]'
-                    : 'text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-hover)] hover:text-[var(--crm-text)]',
-            ].join(' ')}
-        >
-            <span className="flex min-w-0 items-center gap-2">
-                {icon ? <span className="shrink-0">{icon}</span> : null}
-                <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold">{title}</span>
-                    <span className="block truncate text-xs opacity-75">{subtitle}</span>
-                </span>
-            </span>
-
-            <ChevronRight size={15} className="shrink-0" />
-        </button>
-    );
-}
-
-function DocumentCard({ document }: { document: DocumentGroupRow }) {
-    return (
-        <article className="crm-panel-soft p-3 transition hover:border-[var(--crm-gold)]">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-3">
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
-                            <FileText size={16} />
-                        </span>
-
-                        <div className="min-w-0">
-                            <h3 className="truncate text-sm font-semibold text-[var(--crm-text)]">
-                                {document.templateName || document.originalFilename || 'Document'}
-                            </h3>
-                            <p className="text-xs text-[var(--crm-text-muted)]">
-                                {document.documentNumber || document.documentType || 'No number'}
-                            </p>
-                        </div>
-                    </div>
-
-                    <p className="mt-2 truncate text-xs text-[var(--crm-text-soft)]">
-                        {document.originalFilename || 'No uploaded file'}
-                    </p>
-                </div>
-
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <span className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(document.status)}`}>
-                        {document.status}
-                    </span>
-
-                    <AppButton variant="secondary" size="sm" onPress={() => router.visit(`/dossiers/${document.dossierId}`)}>
-                        <Eye size={14} />
-                        Project
-                    </AppButton>
-
-                    <button
-                        type="button"
-                        className="crm-action-button"
-                        title="Download"
-                        onClick={() => window.location.assign(`/documents/${document.id}/download`)}
-                    >
-                        <Download size={14} />
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setOpen(!open)}
+                className={cn(
+                    'flex size-7 items-center justify-center rounded-lg border transition',
+                    open
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                        : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                )}>
+                <MoreHorizontal size={13} />
+            </button>
+            {open && (
+                <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
+                    <button type="button" onClick={() => { setOpen(false); onPreview?.(doc); }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                        <Eye size={14} /> Preview
+                    </button>
+                    {doc.status !== 'verified' && (
+                        <button type="button" onClick={() => { router.put(`/documents/${doc.id}/status`, { status: 'verified' }, { preserveScroll: true, onSuccess: () => toast.success('Document verified.'), onError: () => toast.error('Could not update status.') }); setOpen(false); }}
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                            <CheckCircle2 size={14} /> Mark verified
+                        </button>
+                    )}
+                    <button type="button" onClick={() => { window.open(`/documents/${doc.id}/download`, '_blank'); setOpen(false); }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                        <Download size={14} /> Download
+                    </button>
+                    <button type="button" onClick={() => { router.visit(`/dossiers/${doc.dossierId}`); setOpen(false); }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                        <FolderKanban size={14} /> Open project
+                    </button>
+                    <button type="button" onClick={() => { router.put(`/documents/${doc.id}/status`, { status: 'missing' }, { preserveScroll: true, onSuccess: () => toast.success('Marked as missing.'), onError: () => toast.error('Could not update.') }); setOpen(false); }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-amber-400 transition hover:bg-amber-400/10">
+                        <XCircle size={14} /> Mark missing
+                    </button>
+                    <div className="my-1 border-t border-[var(--border)]" />
+                    <button type="button" onClick={() => { if (confirm('Delete this document? This cannot be undone.')) { router.delete(`/documents/${doc.id}`, { preserveScroll: true, onSuccess: () => toast.success('Document deleted.'), onError: () => toast.error('Could not delete.') }); } setOpen(false); }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--danger)] transition hover:bg-[var(--danger)]/10">
+                        <Trash2 size={14} /> Delete
                     </button>
                 </div>
-            </div>
-
-            <div className="mt-3 grid gap-2 md:grid-cols-3">
-                <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Project</p>
-                    <p className="mt-1 truncate text-sm font-semibold">{document.dossierNumber || '-'}</p>
-                    <p className="truncate text-xs text-[var(--crm-text-muted)]">{document.projectObject || '-'}</p>
-                </div>
-
-                <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Client</p>
-                    <p className="mt-1 truncate text-sm font-semibold">{document.clientName || '-'}</p>
-                </div>
-
-                <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Uploaded</p>
-                    <p className="mt-1 truncate text-sm font-semibold">{document.uploadedAt || '-'}</p>
-                </div>
-            </div>
-        </article>
+            )}
+        </div>
     );
 }
 
-function flattenClientDocuments(client: DocumentClientGroup): DocumentGroupRow[] {
-    return client.projects.flatMap((project) =>
-        project.types.flatMap((type) => type.documents),
+function DocumentBrowserCard({ doc, onPreview }: { doc: DocumentGroupRow; onPreview?: (d: DocumentGroupRow) => void }) {
+    const mimeColor = fileTypeColor(null);
+    return (
+        <div onClick={() => onPreview?.(doc)}
+            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm transition hover:border-[var(--accent)]/30 hover:shadow-md">
+            <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2.5">
+                    <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg text-[var(--accent)]', mimeColor)}>
+                        <FileText size={15} />
+                    </span>
+                    <div className="min-w-0">
+                        <p className="truncate text-[13px] font-medium text-[var(--foreground)]">
+                            {doc.templateName || doc.originalFilename || 'Document'}
+                        </p>
+                        <p className="truncate text-[11px] text-[var(--text-muted)]">{doc.documentNumber || doc.documentType || 'No number'}</p>
+                    </div>
+                </div>
+                <RowMenu doc={doc} onPreview={onPreview} />
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+                <StatusPill label={doc.status} color={STATUS_COLORS[doc.status] || 'default'} size="sm" />
+                {doc.originalFilename && (
+                    <span className="truncate text-[10px] text-[var(--text-subtle)]">{doc.originalFilename}</span>
+                )}
+            </div>
+            <div className="mt-2 grid grid-cols-3 gap-2 border-t border-[var(--border)] pt-2 text-[10px] text-[var(--text-muted)]">
+                <div><span className="text-[var(--text-subtle)]">Project</span> {doc.dossierNumber || '-'}</div>
+                <div><span className="text-[var(--text-subtle)]">Client</span> {doc.clientName || '-'}</div>
+                <div><span className="text-[var(--text-subtle)]">Uploaded</span> {doc.uploadedAt || '-'}</div>
+            </div>
+        </div>
     );
 }
 
-function flattenProjectDocuments(project: DocumentProjectGroup): DocumentGroupRow[] {
-    return project.types.flatMap((type) => type.documents);
-}
-
-export function DocumentGroupedExplorer({ groups }: Props) {
+export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
     const [selectedProvince, setSelectedProvince] = useState(groups[0]?.province ?? '');
-    const selectedProvinceGroup = groups.find((group) => group.province === selectedProvince) ?? groups[0] ?? null;
+    const selectedProvinceGroup = useMemo(
+        () => groups.find((g) => g.province === selectedProvince) ?? groups[0] ?? null,
+        [groups, selectedProvince],
+    );
 
     const [selectedCommune, setSelectedCommune] = useState(selectedProvinceGroup?.communes[0]?.commune ?? '');
-    const selectedCommuneGroup = selectedProvinceGroup?.communes.find((commune) => commune.commune === selectedCommune)
-        ?? selectedProvinceGroup?.communes[0]
-        ?? null;
+    const selectedCommuneGroup = useMemo(
+        () => selectedProvinceGroup?.communes.find((c) => c.commune === selectedCommune)
+            ?? selectedProvinceGroup?.communes[0] ?? null,
+        [selectedProvinceGroup, selectedCommune],
+    );
 
     const [level, setLevel] = useState<Level>('clients');
     const [selectedClient, setSelectedClient] = useState(selectedCommuneGroup?.clients[0]?.clientName ?? '');
-    const activeClient = selectedCommuneGroup?.clients.find((client) => client.clientName === selectedClient)
-        ?? selectedCommuneGroup?.clients[0]
-        ?? null;
+    const activeClient = useMemo(
+        () => selectedCommuneGroup?.clients.find((c) => c.clientName === selectedClient)
+            ?? selectedCommuneGroup?.clients[0] ?? null,
+        [selectedCommuneGroup, selectedClient],
+    );
 
     const [selectedProject, setSelectedProject] = useState(activeClient?.projects[0]?.dossierNumber ?? '');
-    const activeProject = activeClient?.projects.find((project) => project.dossierNumber === selectedProject)
-        ?? activeClient?.projects[0]
-        ?? null;
+    const activeProject = useMemo(
+        () => activeClient?.projects.find((p) => p.dossierNumber === selectedProject)
+            ?? activeClient?.projects[0] ?? null,
+        [activeClient, selectedProject],
+    );
 
     const [selectedType, setSelectedType] = useState(activeProject?.types[0]?.type ?? '');
-    const activeType = activeProject?.types.find((type) => type.type === selectedType)
-        ?? activeProject?.types[0]
-        ?? null;
+    const activeType = useMemo(
+        () => activeProject?.types.find((t) => t.type === selectedType)
+            ?? activeProject?.types[0] ?? null,
+        [activeProject, selectedType],
+    );
 
     const [query, setQuery] = useState('');
+    const searchRef = useRef<HTMLInputElement>(null);
 
     const documents = useMemo(() => {
         let rows: DocumentGroupRow[] = [];
-
-        if (level === 'clients' && activeClient) {
-            rows = flattenClientDocuments(activeClient);
-        }
-
-        if (level === 'projects' && activeProject) {
-            rows = flattenProjectDocuments(activeProject);
-        }
-
-        if (level === 'types' && activeType) {
-            rows = activeType.documents;
-        }
-
-        return rows.filter((document) => searchDocument(document, query));
+        if (level === 'clients' && activeClient) rows = flattenClientDocs(activeClient);
+        if (level === 'projects' && activeProject) rows = flattenProjectDocs(activeProject);
+        if (level === 'types' && activeType) rows = activeType.documents;
+        return rows.filter((d) => searchDocument(d, query));
     }, [activeClient, activeProject, activeType, level, query]);
 
-    if (!groups.length) {
-        return (
-            <AppEmptyState
-                title="No document groups found"
-                description="Upload project documents to see province, commune, client, project, and type grouping."
-            />
-        );
-    }
-
     function chooseProvince(group: DocumentLocationGroup) {
-        const firstCommune = group.communes[0] ?? null;
-        const firstClient = firstCommune?.clients[0] ?? null;
-        const firstProject = firstClient?.projects[0] ?? null;
-        const firstType = firstProject?.types[0] ?? null;
-
+        const fc = group.communes[0]?.clients[0];
+        const fp = fc?.projects[0];
+        const ft = fp?.types[0];
         setSelectedProvince(group.province);
-        setSelectedCommune(firstCommune?.commune ?? '');
-        setSelectedClient(firstClient?.clientName ?? '');
-        setSelectedProject(firstProject?.dossierNumber ?? '');
-        setSelectedType(firstType?.type ?? '');
+        setSelectedCommune(group.communes[0]?.commune ?? '');
+        setSelectedClient(fc?.clientName ?? '');
+        setSelectedProject(fp?.dossierNumber ?? '');
+        setSelectedType(ft?.type ?? '');
         setLevel('clients');
         setQuery('');
     }
 
     function chooseCommune(commune: DocumentCommuneGroup) {
-        const firstClient = commune.clients[0] ?? null;
-        const firstProject = firstClient?.projects[0] ?? null;
-        const firstType = firstProject?.types[0] ?? null;
-
+        const fc = commune.clients[0];
+        const fp = fc?.projects[0];
+        const ft = fp?.types[0];
         setSelectedCommune(commune.commune);
-        setSelectedClient(firstClient?.clientName ?? '');
-        setSelectedProject(firstProject?.dossierNumber ?? '');
-        setSelectedType(firstType?.type ?? '');
+        setSelectedClient(fc?.clientName ?? '');
+        setSelectedProject(fp?.dossierNumber ?? '');
+        setSelectedType(ft?.type ?? '');
         setLevel('clients');
         setQuery('');
     }
 
     function chooseClient(client: DocumentClientGroup) {
-        const firstProject = client.projects[0] ?? null;
-        const firstType = firstProject?.types[0] ?? null;
-
+        const fp = client.projects[0];
+        const ft = fp?.types[0];
         setSelectedClient(client.clientName);
-        setSelectedProject(firstProject?.dossierNumber ?? '');
-        setSelectedType(firstType?.type ?? '');
+        setSelectedProject(fp?.dossierNumber ?? '');
+        setSelectedType(ft?.type ?? '');
         setLevel('clients');
         setQuery('');
     }
 
     function chooseProject(project: DocumentProjectGroup) {
-        const firstType = project.types[0] ?? null;
-
+        const ft = project.types[0];
         setSelectedProject(project.dossierNumber);
-        setSelectedType(firstType?.type ?? '');
+        setSelectedType(ft?.type ?? '');
         setLevel('projects');
         setQuery('');
     }
@@ -283,151 +238,205 @@ export function DocumentGroupedExplorer({ groups }: Props) {
         setQuery('');
     }
 
-    return (
-        <section className="crm-panel overflow-hidden">
-            <div className="grid min-h-[640px] grid-cols-1 xl:grid-cols-[210px_210px_250px_minmax(0,1fr)]">
-                <aside className="border-b border-[var(--crm-border)] xl:border-b-0 xl:border-r">
-                    <div className="border-b border-[var(--crm-border)] p-3">
-                        <div className="flex items-center gap-2">
-                            <span className="flex size-8 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
-                                <MapPinned size={15} />
-                            </span>
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Provinces</p>
-                                <p className="text-xs text-[var(--crm-text-muted)]">{groups.length} province(s)</p>
-                            </div>
-                        </div>
+    function PaneHeader({ icon, label, subtitle }: { icon: React.ReactNode; label: string; subtitle: string }) {
+        return (
+            <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                    <span className="text-[var(--accent)] shrink-0">{icon}</span>
+                    <div className="min-w-0">
+                        <p className="truncate text-[12px] font-semibold text-[var(--foreground)]">{label}</p>
+                        <p className="truncate text-[10px] text-[var(--text-muted)]">{subtitle}</p>
                     </div>
+                </div>
+            </div>
+        );
+    }
 
-                    <div className="app-scrollbar max-h-[580px] overflow-y-auto">
-                        {groups.map((group) => (
-                            <ColumnButton
-                                key={group.province}
+    function PaneRow({ active, icon, title, subtitle, onClick }: {
+        active: boolean; icon?: React.ReactNode; title: string; subtitle: string; onClick: () => void;
+    }) {
+        return (
+            <button type="button" onClick={onClick}
+                className={cn(
+                    'relative flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition',
+                    active ? 'bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]' : 'hover:bg-[var(--surface-2)]',
+                )}>
+                {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--accent)]" />}
+                {icon && (
+                    <span className={cn(
+                        'flex size-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold',
+                        active ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)]',
+                    )}>{icon}</span>
+                )}
+                <div className="min-w-0 flex-1">
+                    <p className={cn('truncate text-[12px] font-medium', active ? 'text-[var(--accent)]' : 'text-[var(--foreground)]')}>{title}</p>
+                    <p className="truncate text-[10px] text-[var(--text-muted)]">{subtitle}</p>
+                </div>
+                <ChevronRight size={13} className="shrink-0 text-[var(--text-subtle)]" />
+            </button>
+        );
+    }
+
+    function EmptyPane({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+        return (
+            <div className="flex flex-col items-center gap-2 px-4 py-14 text-center">
+                <span className="text-[var(--text-muted)]/30">{icon}</span>
+                <p className="text-[12px] font-medium text-[var(--foreground)]">{title}</p>
+                <p className="text-[10px] text-[var(--text-muted)]">{description}</p>
+            </div>
+        );
+    }
+
+    const summary = selectedProvinceGroup?.stats;
+
+    return (
+        <div className="flex flex-col gap-4">
+            {summary && (
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
+                        <MapPinned size={13} className="text-[var(--accent)]" />
+                        <span className="font-medium text-[var(--foreground)]">{selectedProvinceGroup?.province}</span>
+                        <span>/</span>
+                        <span className="font-medium text-[var(--accent)]">{selectedCommuneGroup?.commune || '-'}</span>
+                    </div>
+                    <span className="hidden sm:inline text-[10px] text-[var(--text-subtle)]">|</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">{documents.length} document(s)</span>
+                </div>
+            )}
+
+            <div className="hidden xl:grid xl:grid-cols-[220px_240px_260px_minmax(0,1fr)] xl:rounded-xl xl:border xl:border-[var(--border)] xl:bg-[var(--surface)] xl:shadow-sm xl:overflow-hidden" style={{ maxHeight: 'calc(100vh - 240px)' }}>
+                {/* Province */}
+                <aside className="border-r border-[var(--border)] flex flex-col">
+                    <PaneHeader icon={<MapPinned size={14} />} label="Provinces" subtitle={`${groups.length} total`} />
+                    <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                        {groups.length > 0 ? groups.map((group) => (
+                            <PaneRow key={group.province}
                                 active={selectedProvinceGroup?.province === group.province}
-                                icon={<MapPinned size={14} />}
+                                icon={<span>{group.province.charAt(0)}</span>}
                                 title={group.province}
                                 subtitle={`${group.communes.length} communes · ${group.stats.documentsCount} docs`}
                                 onClick={() => chooseProvince(group)}
                             />
-                        ))}
+                        )) : <EmptyPane icon={<MapPinned size={24} />} title="No provinces" description="No document data available." />}
                     </div>
                 </aside>
 
-                <aside className="border-b border-[var(--crm-border)] xl:border-b-0 xl:border-r">
-                    <div className="border-b border-[var(--crm-border)] p-3">
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Communes</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{selectedProvinceGroup?.province}</p>
-                    </div>
-
-                    <div className="app-scrollbar max-h-[580px] overflow-y-auto">
-                        {(selectedProvinceGroup?.communes ?? []).map((commune) => (
-                            <ColumnButton
-                                key={`${selectedProvinceGroup?.province}-${commune.commune}`}
-                                active={selectedCommuneGroup?.commune === commune.commune}
-                                title={commune.commune}
-                                subtitle={`${commune.clients.length} clients · ${commune.stats.documentsCount} docs`}
-                                onClick={() => chooseCommune(commune)}
-                            />
-                        ))}
-                    </div>
-                </aside>
-
-                <aside className="border-b border-[var(--crm-border)] xl:border-b-0 xl:border-r">
-                    <div className="border-b border-[var(--crm-border)] p-3">
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Scope</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">Client / project / type</p>
-                    </div>
-
-                    <div className="app-scrollbar max-h-[580px] overflow-y-auto">
-                        <div className="border-b border-[var(--crm-border)] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">
-                            Clients
-                        </div>
-                        {(selectedCommuneGroup?.clients ?? []).map((client) => (
-                            <ColumnButton
-                                key={`${selectedCommuneGroup?.commune}-${client.clientName}`}
-                                active={level === 'clients' && activeClient?.clientName === client.clientName}
-                                icon={<UserRound size={14} />}
-                                title={client.clientName}
-                                subtitle={`${client.projects.length} projects · ${client.stats.documentsCount} docs`}
-                                onClick={() => chooseClient(client)}
-                            />
-                        ))}
-
-                        {activeClient ? (
-                            <>
-                                <div className="border-b border-[var(--crm-border)] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">
-                                    Projects
-                                </div>
-                                {activeClient.projects.map((project) => (
-                                    <ColumnButton
-                                        key={`${activeClient.clientName}-${project.dossierNumber}`}
-                                        active={level === 'projects' && activeProject?.dossierNumber === project.dossierNumber}
-                                        icon={<FolderKanban size={14} />}
-                                        title={project.projectObject || project.dossierNumber}
-                                        subtitle={`${project.types.length} types · ${project.stats.documentsCount} docs`}
-                                        onClick={() => chooseProject(project)}
-                                    />
-                                ))}
-                            </>
-                        ) : null}
-
-                        {activeProject ? (
-                            <>
-                                <div className="border-b border-[var(--crm-border)] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">
-                                    Types
-                                </div>
-                                {activeProject.types.map((type) => (
-                                    <ColumnButton
-                                        key={`${activeProject.dossierNumber}-${type.type}`}
-                                        active={level === 'types' && activeType?.type === type.type}
-                                        icon={<FileCheck2 size={14} />}
-                                        title={type.type}
-                                        subtitle={`${type.stats.documentsCount} docs`}
-                                        onClick={() => chooseType(type)}
-                                    />
-                                ))}
-                            </>
-                        ) : null}
-                    </div>
-                </aside>
-
-                <main className="min-w-0">
-                    <div className="flex flex-col gap-3 border-b border-[var(--crm-border)] p-4 xl:flex-row xl:items-center xl:justify-between">
-                        <div className="min-w-0">
-                            <p className="crm-eyebrow">Document browser</p>
-                            <h2 className="mt-1 truncate text-lg font-semibold">
-                                {selectedProvinceGroup?.province || '-'} / {selectedCommuneGroup?.commune || '-'}
-                            </h2>
-                            <p className="mt-1 text-sm text-[var(--crm-text-muted)]">
-                                {documents.length} visible document(s). Select province, commune, then client/project/type.
-                            </p>
-                        </div>
-
-                        <div className="crm-command-input relative w-full xl:w-[340px]">
-                            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
-                            <input
-                                value={query}
-                                onChange={(event) => setQuery(event.target.value)}
-                                placeholder="Search documents in scope..."
-                                className="h-full w-full bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-[var(--crm-text-soft)]"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="app-scrollbar max-h-[580px] space-y-3 overflow-y-auto p-4">
-                        {documents.length > 0 ? (
-                            documents.map((document) => (
-                                <DocumentCard key={document.id} document={document} />
+                {/* Commune */}
+                <aside className="border-r border-[var(--border)] flex flex-col">
+                    <PaneHeader icon={<Building2 size={14} />} label="Communes" subtitle={selectedProvinceGroup?.province || 'Select a province'} />
+                    <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                        {selectedProvinceGroup ? (
+                            selectedProvinceGroup.communes.map((commune) => (
+                                <PaneRow key={commune.commune}
+                                    active={selectedCommuneGroup?.commune === commune.commune}
+                                    icon={<span>{commune.commune.charAt(0)}</span>}
+                                    title={commune.commune}
+                                    subtitle={`${commune.clients.length} clients · ${commune.stats.documentsCount} docs`}
+                                    onClick={() => chooseCommune(commune)}
+                                />
                             ))
+                        ) : <EmptyPane icon={<Building2 size={24} />} title="Select a province" description="to view communes" />}
+                    </div>
+                </aside>
+
+                {/* Scope */}
+                <aside className="border-r border-[var(--border)] flex flex-col">
+                    <PaneHeader icon={<FileCheck2 size={14} />} label="Scope" subtitle="Client / project / type" />
+                    <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                        {selectedCommuneGroup ? (
+                            <>
+                                <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Clients</div>
+                                {selectedCommuneGroup.clients.map((client) => (
+                                    <PaneRow key={client.clientName}
+                                        active={level === 'clients' && activeClient?.clientName === client.clientName}
+                                        icon={<UserRound size={12} />}
+                                        title={client.clientName}
+                                        subtitle={`${client.projects.length} projects · ${client.stats.documentsCount} docs`}
+                                        onClick={() => chooseClient(client)}
+                                    />
+                                ))}
+                                {activeClient && (
+                                    <>
+                                        <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Projects</div>
+                                        {activeClient.projects.map((project) => (
+                                            <PaneRow key={project.dossierNumber}
+                                                active={level === 'projects' && activeProject?.dossierNumber === project.dossierNumber}
+                                                icon={<FolderKanban size={12} />}
+                                                title={project.projectObject || project.dossierNumber}
+                                                subtitle={`${project.types.length} types · ${project.stats.documentsCount} docs`}
+                                                onClick={() => chooseProject(project)}
+                                            />
+                                        ))}
+                                    </>
+                                )}
+                                {activeProject && (
+                                    <>
+                                        <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Types</div>
+                                        {activeProject.types.map((type) => (
+                                            <PaneRow key={type.type}
+                                                active={level === 'types' && activeType?.type === type.type}
+                                                icon={<FileText size={12} />}
+                                                title={type.type}
+                                                subtitle={`${type.stats.documentsCount} docs`}
+                                                onClick={() => chooseType(type)}
+                                            />
+                                        ))}
+                                    </>
+                                )}
+                            </>
+                        ) : <EmptyPane icon={<FileCheck2 size={24} />} title="Select a commune" description="to browse documents by scope" />}
+                    </div>
+                </aside>
+
+                {/* Document browser */}
+                <main className="flex flex-col min-w-0">
+                    <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2.5">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Document browser</p>
+                                <p className="truncate text-[12px] font-medium text-[var(--foreground)]">
+                                    {selectedProvinceGroup?.province && selectedCommuneGroup?.commune
+                                        ? `${selectedProvinceGroup.province} / ${selectedCommuneGroup.commune}`
+                                        : 'Select location'}
+                                </p>
+                            </div>
+                            <div className="relative w-[180px] shrink-0">
+                                <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                                <input ref={searchRef} type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+                                    placeholder="Search documents..."
+                                    className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-[11px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]" />
+                                {query ? (
+                                    <button type="button" onClick={() => setQuery('')}
+                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--foreground)]">
+                                        <X size={10} />
+                                    </button>
+                                ) : null}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2" style={{ scrollbarWidth: 'thin' }}>
+                        {selectedCommuneGroup ? (
+                            documents.length > 0 ? (
+                                documents.map((doc) => (
+                                    <DocumentBrowserCard key={doc.id} doc={doc} onPreview={onPreview} />
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center gap-2 py-16 text-center">
+                                    <FileText size={28} className="text-[var(--text-muted)]/30" />
+                                    <p className="text-[12px] font-medium text-[var(--foreground)]">No documents found</p>
+                                    <p className="text-[10px] text-[var(--text-muted)]">Choose another scope or clear search.</p>
+                                </div>
+                            )
                         ) : (
-                            <div className="py-16 text-center">
-                                <p className="text-sm font-semibold">No documents found</p>
-                                <p className="mt-1 text-sm text-[var(--crm-text-muted)]">Choose another scope or clear search.</p>
+                            <div className="flex flex-col items-center gap-2 py-16 text-center">
+                                <Building2 size={28} className="text-[var(--text-muted)]/30" />
+                                <p className="text-[12px] font-medium text-[var(--foreground)]">Select a commune</p>
+                                <p className="text-[10px] text-[var(--text-muted)]">to browse documents</p>
                             </div>
                         )}
                     </div>
                 </main>
             </div>
-        </section>
+        </div>
     );
 }

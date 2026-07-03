@@ -1,0 +1,47 @@
+export const archilboTheme = {
+    layout: {
+        sidebarWidth: 264,
+        topbarHeight: 72,
+        pagePadding: 28,
+        pagePaddingCompact: 16,
+        rightPanelWidth: 360,
+        maxContentWidth: 1600,
+    },
+    radius: {
+        xs: 6,
+        sm: 8,
+        md: 12,
+        lg: 16,
+        xl: 20,
+        pill: 999,
+    },
+    spacing: {
+        pageGap: 18,
+        panelGap: 14,
+        cardPadding: 16,
+        compactCardPadding: 12,
+        tableRowHeight: 52,
+        sidebarItemHeight: 42,
+    },
+    colors: {
+        bg: '#070808',
+        bgElevated: '#0b0c0d',
+        surface: '#101111',
+        surface2: '#151513',
+        surface3: '#1b1a16',
+        border: '#2b2921',
+        borderStrong: '#3a3528',
+        text: '#f5f1e8',
+        textMuted: '#a9a294',
+        textSoft: '#756f64',
+        accent: '#f6b725',
+        accent2: '#d79516',
+        success: '#4ade80',
+        warning: '#f6b725',
+        danger: '#fb5c5c',
+        info: '#7fb0ff',
+        violet: '#a78bfa',
+    },
+} as const;
+
+export type ArchilboTheme = typeof archilboTheme;

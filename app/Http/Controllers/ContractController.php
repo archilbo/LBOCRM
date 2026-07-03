@@ -42,7 +42,7 @@ class ContractController extends Controller
     public function store(StoreContractRequest $request): RedirectResponse
     {
         $data = $this->prepareContractData($request->validated());
-        $data['contract_number'] = $this->nextContractNumber();
+        $data['contract_number'] = $data['contract_number'] ?? $this->nextContractNumber();
 
         $contract = Contract::create($data);
 
@@ -64,6 +64,10 @@ class ContractController extends Controller
         $contract->update($this->prepareContractData($request->validated()));
 
         $request->user()->notify(new ContractNotification($contract->fresh(), 'updated', 'Contract updated: ' . $contract->contract_number));
+
+        if ($request->filled('return_to')) {
+            return redirect()->to($request->string('return_to')->toString())->with('success', 'Contract updated successfully.');
+        }
 
         return redirect()
             ->route('contracts.index')
@@ -98,10 +102,17 @@ class ContractController extends Controller
 
             $request->user()->notify(new ContractNotification($contract->fresh(), 'generated', 'Contract generated: ' . $contract->contract_number));
 
+            if ($request->filled('return_to')) {
+                return redirect()->to($request->string('return_to')->toString())->with('success', 'Contract DOCX generated successfully.');
+            }
+
             return redirect()
                 ->route('contracts.index')
                 ->with('success', 'Contract DOCX generated successfully.');
         } catch (\Throwable $e) {
+            if ($request->filled('return_to')) {
+                return redirect()->to($request->string('return_to')->toString())->with('error', 'Failed to generate contract: ' . $e->getMessage());
+            }
             return redirect()
                 ->route('contracts.index')
                 ->with('error', 'Failed to generate contract: ' . $e->getMessage());
@@ -145,6 +156,10 @@ class ContractController extends Controller
         ]);
 
         $request->user()->notify(new ContractNotification($contract->fresh(), 'signed', 'Contract signed: ' . $contract->contract_number));
+
+        if ($request->filled('return_to')) {
+            return redirect()->to($request->string('return_to')->toString())->with('success', 'Contract marked as signed.');
+        }
 
         return redirect()
             ->route('contracts.index')
