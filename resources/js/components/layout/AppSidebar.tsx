@@ -564,11 +564,12 @@ export function AppSidebar() {
                                     <Icon size={16} />
                                 </span>
                                 <span className="min-w-0 flex-1 truncate">{t(fr.labelKey)}</span>
-                                <button type="button" onClick={(e) => { e.stopPropagation(); setFinanceOpen((o) => !o); }}
-                                    className="flex size-5 items-center justify-center rounded text-subtle hover:text-foreground"
+                                <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); setFinanceOpen((o) => !o); }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); setFinanceOpen((o) => !o); } }}
+                                    className="flex size-5 cursor-pointer items-center justify-center rounded text-subtle hover:text-foreground"
                                     aria-label="Toggle finance">
                                     <ChevronRight size={12} className={cn('transition', showFinanceChildren && 'rotate-90')} />
-                                </button>
+                                </span>
                             </button>
                             {showFinanceChildren ? (
                                 <div className="ml-0.5 mt-0.5 space-y-0.5 border-l border-border pl-2">

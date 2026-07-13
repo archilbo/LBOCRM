@@ -3853,6 +3853,149 @@ Manually forward a text message and an image-only message in `/inbox` to confirm
 
 ## Date
 
+2026-07-04
+
+## Step Completed
+
+Fixed task table action dropdown background.
+
+## What Was Built
+
+- Made the task table status action dropdown use an opaque dark CRM background.
+- Strengthened the dropdown shadow/ring so table rows no longer bleed visually through the menu.
+
+## Files Created
+
+- None.
+
+## Files Modified
+
+- `resources/js/features/tasks/components/TaskTable.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+## Database Changes
+
+- None.
+
+## Commands Run
+
+```powershell
+npm run build
+npm.cmd run build
+```
+
+## New Routes
+
+- None.
+
+## New Permissions
+
+- None.
+
+## Important Decisions
+
+- Kept the existing handmade table menu and changed only the visual surface class.
+- Used an opaque dark CRM surface instead of the semi-transparent elevated token in this overlay context.
+
+## How To Test
+
+1. Open Tasks.
+2. Switch to Table view.
+3. Click the `Move` action on a row.
+4. Confirm the menu background is solid and readable over the table.
+
+## Known Issues
+
+- `npm run build` is blocked by PowerShell execution policy for `npm.ps1`; `npm.cmd run build` passes.
+- Vite still reports the existing large chunk warning.
+
+## Next Recommended Step
+
+Review the task card/list action menus for the same overlay opacity issue.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-04
+
+## Step Completed
+
+Fixed login internal server error from chat preview query.
+
+## What Was Built
+
+- Replaced Laravel's per-parent eager-load `messages.latest().limit(1)` pattern for conversation previews.
+- Added a reusable `ChatService::loadLatestMessagePreviews()` method that uses a grouped latest message ID query and attaches one preview message to each conversation.
+- Updated Inertia shared auth data to use a lazy `recent_conversations` prop and the safe preview loader.
+- Updated inbox archive/unarchive/list paths to use the same safe preview loader.
+
+## Files Created
+
+- None.
+
+## Files Modified
+
+- `app/Services/Chat/ChatService.php`
+- `app/Http/Middleware/HandleInertiaRequests.php`
+- `app/Http/Controllers/ConversationController.php`
+- `docs/AI_WORK_REPORT.md`
+
+## Database Changes
+
+- None.
+
+## Commands Run
+
+```powershell
+C:\tools\php-8.5.8\php.exe -l app\Services\Chat\ChatService.php
+C:\tools\php-8.5.8\php.exe -l app\Http\Middleware\HandleInertiaRequests.php
+C:\tools\php-8.5.8\php.exe -l app\Http\Controllers\ConversationController.php
+C:\tools\php-8.5.8\php.exe artisan optimize:clear
+C:\tools\php-8.5.8\php.exe artisan route:list --except-vendor
+C:\tools\php-8.5.8\php.exe -r "..."
+C:\tools\php-8.5.8\php.exe artisan serve --host=127.0.0.1 --port=8010
+curl.exe -I http://127.0.0.1:8010/login
+C:\tools\php-8.5.8\php.exe artisan test
+```
+
+## New Routes
+
+- None.
+
+## New Permissions
+
+- None.
+
+## Important Decisions
+
+- Kept `ConversationResource` unchanged by preserving its expected loaded `messages` relation shape.
+- Avoided changing SQL mode globally; fixed the application query instead.
+- Used `MAX(id)` for latest message previews because message IDs are monotonic and avoids unsupported window/eager-limit SQL on the local MySQL/MariaDB setup.
+
+## How To Test
+
+1. Run `php artisan optimize:clear`.
+2. Run `php artisan serve`.
+3. Open `http://127.0.0.1:8000/login`.
+4. Confirm the login page renders instead of the `Illuminate\Database\QueryException`.
+
+## Known Issues
+
+- Full `php artisan test` still has the existing `Tests\Feature\ExampleTest::test_the_application_returns_a_successful_response` failure because `/` returns `302` to login instead of the test's expected `200`.
+
+## Next Recommended Step
+
+Create or confirm a local admin user, then test authenticated inbox and dashboard pages with the same local database.
+
+---
+
+# AI Work Report
+
+## Date
+
 2026-07-02
 
 ## Step Completed
@@ -4601,3 +4744,80 @@ php artisan optimize:clear
 ## Next Recommended Step
 
 Continue Phase 3 shared component cleanup: standardize toolbar/table/drawer primitives, then start the Projects/Dossiers pilot redesign.
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-04
+
+## Step Completed
+
+Fixed local PHP/Laravel serve runtime.
+
+## What Was Built
+
+- Repaired the broken XAMPP PHP configuration that pointed extensions to an unresolved `${XAMPP_LITE_ROOT}` path.
+- Installed official PHP 8.5.8 x64 NTS under `C:\tools\php-8.5.8`.
+- Enabled required PHP extensions for the Laravel app: curl, fileinfo, gd, intl, mbstring, mysqli, openssl, pdo_mysql, pdo_sqlite, sqlite3, and zip.
+- Updated the user PATH to prefer `C:\tools\php-8.5.8` before the older XAMPP PHP.
+- Created the missing local MySQL database `archi_lbo_os`.
+- Ran all Laravel migrations successfully.
+- Verified `php artisan serve` starts and redirects `/` to `/login`.
+
+## Files Created
+
+- None inside the project.
+
+## Files Modified
+
+- `docs/AI_WORK_REPORT.md`
+
+## Database Changes
+
+- Created local MySQL database `archi_lbo_os`.
+- Ran pending migrations for the local development database.
+
+## Commands Run
+
+```powershell
+php -v
+php --ini
+C:\tools\php-8.5.8\php.exe artisan --version
+C:\tools\php-8.5.8\php.exe artisan about
+C:\xampp\apps\mysql\bin\mysql.exe -u root -e "CREATE DATABASE IF NOT EXISTS `archi_lbo_os` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+C:\tools\php-8.5.8\php.exe artisan migrate --force
+C:\tools\php-8.5.8\php.exe artisan serve --host=127.0.0.1 --port=8000
+curl.exe -I --max-redirs 0 http://127.0.0.1:8000
+```
+
+## New Routes
+
+- None.
+
+## New Permissions
+
+- None.
+
+## Important Decisions
+
+- Kept XAMPP MySQL in use.
+- Switched PHP CLI to official PHP 8.5.8 x64 because the installed Composer dependencies require PHP `>= 8.4.1` and a 64-bit build.
+- Left application code unchanged.
+
+## How To Test
+
+1. Open a new PowerShell window so the updated user PATH is loaded.
+2. Run `php -v` and confirm PHP 8.5.8 x64.
+3. Run `php artisan serve`.
+4. Open `http://127.0.0.1:8000` and confirm it redirects to `/login`.
+
+## Known Issues
+
+- Existing PowerShell windows may still use the old XAMPP PHP until restarted.
+- XAMPP PHP 8.3.13 x86 remains installed but is no longer suitable for this project.
+
+## Next Recommended Step
+
+Seed or create a local admin user if login access is needed on the freshly migrated database.

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ScanCinRequest;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\ClientResource;
@@ -9,6 +10,8 @@ use App\Models\Client;
 use App\Models\DocumentTemplate;
 use App\Models\Intermediary;
 use App\Services\Clients\ClientWorkspaceService;
+use App\Services\GeminiOcrService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -99,6 +102,16 @@ class ClientController extends Controller
         return redirect()
             ->route('clients.index')
             ->with('success', 'Client deleted successfully.');
+    }
+
+    public function scanCin(ScanCinRequest $request, GeminiOcrService $ocrService): JsonResponse
+    {
+        $result = $ocrService->extractBoth(
+            $request->file('front_image')->getRealPath(),
+            $request->file('back_image')->getRealPath(),
+        );
+
+        return response()->json($result);
     }
 
     private function prepareClientData(array $data): array

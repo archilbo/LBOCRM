@@ -11,6 +11,7 @@ use App\Models\MessageAttachment;
 use App\Models\User;
 use App\Http\Resources\ConversationResource;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -63,7 +64,8 @@ class ChatService
         $message->load(['user', 'attachments', 'replyTo.user', 'forwardedFrom.user', 'reads']);
         try { broadcast(new MessageCreated($message)); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
 
-        $conversation->load(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)]);
+        $conversation->load(['participants.user']);
+        $this->loadLatestMessagePreviews(collect([$conversation]));
         $convResource = (new ConversationResource($conversation))->resolve();
         $conversation->participants()
             ->where('user_id', '!=', $user->id)
@@ -121,7 +123,8 @@ class ChatService
         $message->load(['user', 'attachments', 'replyTo.user', 'forwardedFrom.user', 'reads']);
         try { broadcast(new MessageCreated($message)); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
 
-        $targetConversation->load(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)]);
+        $targetConversation->load(['participants.user']);
+        $this->loadLatestMessagePreviews(collect([$targetConversation]));
         $convResource = (new ConversationResource($targetConversation))->resolve();
         $targetConversation->participants()
             ->where('user_id', '!=', $user->id)
@@ -158,6 +161,35 @@ class ChatService
     public function updateLastSeen(User $user): void
     {
         $user->update(['last_seen_at' => now()]);
+    }
+
+    public function loadLatestMessagePreviews(Collection $conversations): Collection
+    {
+        $conversationIds = $conversations->pluck('id')->filter()->values();
+
+        if ($conversationIds->isEmpty()) {
+            return $conversations;
+        }
+
+        $latestMessageIds = Message::query()
+            ->selectRaw('MAX(id) as id')
+            ->whereIn('conversation_id', $conversationIds)
+            ->groupBy('conversation_id')
+            ->pluck('id');
+
+        $messages = Message::query()
+            ->with(['user', 'attachments', 'forwardedFrom.user'])
+            ->whereIn('id', $latestMessageIds)
+            ->get()
+            ->keyBy('conversation_id');
+
+        $conversations->each(function (Conversation $conversation) use ($messages): void {
+            $message = $messages->get($conversation->id);
+
+            $conversation->setRelation('messages', $message ? collect([$message]) : collect());
+        });
+
+        return $conversations;
     }
 
     protected function broadcastInboxSafely(int $userId, array $payload): void

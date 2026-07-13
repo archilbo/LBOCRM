@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreDossierDocumentRequest;
 use App\Http\Requests\UpdateDossierDocumentStatusRequest;
 use App\Http\Resources\DossierDocumentResource;
+use App\Models\Client;
 use App\Models\DocumentTemplate;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
@@ -28,6 +29,7 @@ class DocumentController extends Controller
         return Inertia::render('Documents/Index', [
             'documents' => DossierDocumentResource::collection($documents)->resolve(),
             'documentGroups' => $documentGroupingService->groups(),
+            'clients' => $this->clientOptions(),
             'dossiers' => $this->dossierOptions(),
             'templates' => $this->templateOptions(),
             'metrics' => [
@@ -182,6 +184,20 @@ class DocumentController extends Controller
             ->map(fn (Dossier $dossier) => [
                 'id' => (string) $dossier->id,
                 'label' => $dossier->dossier_number . ' - ' . $dossier->project_object . ' - ' . ($dossier->client?->full_name ?? '-'),
+                'clientId' => (string) ($dossier->client_id ?? $dossier->client?->id ?? ''),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function clientOptions(): array
+    {
+        return Client::query()
+            ->orderBy('full_name')
+            ->get()
+            ->map(fn (Client $client) => [
+                'id' => (string) $client->id,
+                'label' => $client->client_number . ' - ' . $client->full_name,
             ])
             ->values()
             ->all();

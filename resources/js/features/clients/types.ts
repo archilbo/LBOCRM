@@ -23,12 +23,32 @@ export type ClientRow = {
     notes: string | null;
 };
 
+export type CinScanResult = {
+    document_type: string;
+    recto: {
+        cin_number: string | null;
+        last_name: string | null;
+        first_name: string | null;
+        date_of_birth: string | null;
+        place_of_birth: string | null;
+        expiry_date: string | null;
+        can_number: string | null;
+    };
+    verso: {
+        sex: string | null;
+        civil_status_number: string | null;
+        filiation: string | null;
+        address: string | null;
+    };
+};
+
 export type IntermediaryOption = {
     id: string;
     label: string;
 };
 
 export type ClientFormPayload = {
+    civility: string;
     firstName: string;
     lastName: string;
     cin: string;

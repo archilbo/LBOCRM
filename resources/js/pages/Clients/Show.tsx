@@ -1,8 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import {
-    ArrowLeft, CheckCircle2, FileText, FolderKanban, Mail, MapPin, Phone, Pencil, Trash2,
+    ArrowLeft, CheckCircle2, FileText, FolderKanban, Mail, MapPin, Phone, Pencil, Plus, Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
@@ -13,8 +13,14 @@ import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
 import type { ClientFormPayload, ClientRow, ClientStatus, ClientWorkspace } from '@/features/clients/types';
 import type { DossierWorkflowRequirement, DossierWorkflowStep } from '@/features/clients/types';
+import type { DossierFormPayload } from '@/features/dossiers/types';
+import type { FinanceDocumentType } from '@/features/finance/types';
 import { ClientDrawer } from '@/features/clients/drawers/ClientDrawer';
+import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
+import { FinanceDocumentBuilderDrawer } from '@/features/finance/drawers/FinanceDocumentBuilderDrawer';
 import { AppWorkflowStepper, type WorkflowRequirementActionContext } from '@/components/ui/AppWorkflowStepper';
+import { DocumentUploadDrawer } from '@/features/documents/drawers/DocumentUploadDrawer';
+import type { DocumentUploadPayload } from '@/features/documents/types';
 import { UploadDocumentDrawer } from '@/features/clients/components/UploadDocumentDrawer';
 import { ContractDrawer } from '@/features/clients/components/ContractDrawer';
 import { AuthorizationDrawer } from '@/features/clients/components/AuthorizationDrawer';
@@ -50,6 +56,7 @@ type PageProps = {
     dossiers: DossierSummary[];
     workspace: ClientWorkspace;
     intermediaries: { id: string; label: string }[];
+    documentTemplates: { id: string; label: string; type?: string | null }[];
     tab?: string;
 };
 
@@ -62,7 +69,7 @@ function initials(client: ClientRow) {
 function toBackendPayload(payload: ClientFormPayload, status: ClientStatus = 'active') {
     return {
         intermediary_id: payload.intermediaryId || null,
-        civility: 'Mr',
+        civility: payload.civility || null,
         first_name: payload.firstName || null,
         last_name: payload.lastName || null,
         cin: payload.cin || null,
@@ -89,7 +96,7 @@ const TABS: { id: TabId; labelKey: string }[] = [
     { id: 'activity', labelKey: 'clients.show.activity' },
 ];
 
-export default function ClientShow({ client, dossiers, workspace, intermediaries, tab }: PageProps) {
+export default function ClientShow({ client, dossiers, workspace, intermediaries, documentTemplates, tab }: PageProps) {
     const { t } = useTranslation();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -104,6 +111,13 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
     const [contractDrawerOpen, setContractDrawerOpen] = useState(false);
     const [authDrawerOpen, setAuthDrawerOpen] = useState(false);
     const [archiveDrawerOpen, setArchiveDrawerOpen] = useState(false);
+
+    const [projectDrawerOpen, setProjectDrawerOpen] = useState(false);
+    const [projectFormErrors, setProjectFormErrors] = useState<FormErrors>({});
+    const [financeDrawerOpen, setFinanceDrawerOpen] = useState(false);
+    const [financeDrawerType, setFinanceDrawerType] = useState<FinanceDocumentType>('quote');
+    const [standaloneContractOpen, setStandaloneContractOpen] = useState(false);
+    const [standaloneUploadOpen, setStandaloneUploadOpen] = useState(false);
 
     const [confirmActionOpen, setConfirmActionOpen] = useState(false);
     const [confirmActionConfig, setConfirmActionConfig] = useState<{
@@ -245,6 +259,53 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
     const latestProject = selectedProject || projects[0] || null;
     const workflowPercent = selectedProject?.workflow?.percent ?? null;
 
+    const dossierOptions = useMemo(() => dossiers.map((d) => ({
+        id: String(d.id),
+        label: d.dossierNumber,
+        clientId: String(client.id),
+        projectObject: d.projectObject || null,
+        address: null,
+        floorArea: null,
+        landSurface: null,
+    })), [client.id, dossiers]);
+
+    function handleProjectSubmit(payload: DossierFormPayload) {
+        router.post('/dossiers', payload, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setProjectDrawerOpen(false);
+                setProjectFormErrors({});
+                toast.success('Project created successfully.');
+                router.reload({ only: ['dossiers', 'workspace'], preserveScroll: true });
+            },
+            onError: (errors) => {
+                setProjectFormErrors(errors as FormErrors);
+                toast.error('Please check project form errors.');
+            },
+        });
+    }
+
+    function afterCreateReload() {
+        router.reload({ only: ['dossiers', 'workspace'], preserveScroll: true });
+    }
+
+    const [isDocUploading, setIsDocUploading] = useState(false);
+    function handleDocumentUpload(payload: DocumentUploadPayload) {
+        setIsDocUploading(true);
+        const formData = new FormData();
+        formData.append('dossier_id', payload.dossierId);
+        formData.append('document_template_id', payload.documentTemplateId || '');
+        formData.append('status', payload.status || 'uploaded');
+        formData.append('notes', payload.notes || '');
+        if (payload.file) formData.append('file', payload.file);
+        router.post('/documents', formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => { setStandaloneUploadOpen(false); setIsDocUploading(false); toast.success('Document uploaded.'); afterCreateReload(); },
+            onError: () => { setIsDocUploading(false); toast.error('Please check document form errors.'); },
+        });
+    }
+
     return (
         <>
             <Head title={client.fullName} />
@@ -361,7 +422,26 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
                 {/* ── Tab content ── */}
                 <div className="min-h-[200px]">
                     {activeTab === 'overview' && (
-                        <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="space-y-4">
+                            <div className="flex flex-wrap gap-2">
+                                <AppButton variant="solid" color="primary" size="sm" onPress={() => { setProjectDrawerOpen(true); }}>
+                                    <Plus size={14} /> New project
+                                </AppButton>
+                                {projects.length > 0 ? (
+                                    <AppButton variant="bordered" size="sm" onPress={() => { setStandaloneContractOpen(true); }}>
+                                        <Plus size={14} /> New contract
+                                    </AppButton>
+                                ) : null}
+                                <AppButton variant="bordered" size="sm" onPress={() => { setFinanceDrawerType('quote'); setFinanceDrawerOpen(true); }}>
+                                    <Plus size={14} /> New finance
+                                </AppButton>
+                                {projects.length > 0 ? (
+                                    <AppButton variant="bordered" size="sm" onPress={() => { setStandaloneUploadOpen(true); }}>
+                                        <Plus size={14} /> Upload document
+                                    </AppButton>
+                                ) : null}
+                            </div>
+                            <div className="grid gap-4 lg:grid-cols-2">
                             {/* Client Snapshot */}
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
                                 <div className="flex items-start gap-4">
@@ -568,6 +648,7 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
                                 </p>
                             </div>
                         </div>
+                        </div>
                     )}
 
                     {activeTab === 'workflow' && (
@@ -623,6 +704,11 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
                             ) : projects.length === 0 ? (
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
                                     <AppEmptyState title={t('clients.show.noProjectWorkflow')} description={t('clients.show.noProjectWorkflowDesc')} />
+                                    <div className="mt-4 flex justify-center">
+                                        <AppButton variant="solid" color="primary" size="sm" onPress={() => { setProjectDrawerOpen(true); }}>
+                                            <Plus size={14} /> Create a project
+                                        </AppButton>
+                                    </div>
                                 </div>
                             ) : selectedProject && !selectedProject.workflow ? (
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
@@ -633,7 +719,16 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
                     )}
 
                     {activeTab === 'projects' && (
-                        projects.length > 0 ? (
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[13px] font-semibold text-[var(--foreground)]">
+                                    {projects.length} {t('clients.show.projects').toLowerCase()}
+                                </p>
+                                <AppButton variant="solid" color="primary" size="sm" onPress={() => { setProjectDrawerOpen(true); }}>
+                                    <Plus size={14} /> New project
+                                </AppButton>
+                            </div>
+                            {projects.length > 0 ? (
                             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                 {projects.map((project) => {
                                     const isSelected = selectedProject?.id === project.id;
@@ -703,11 +798,20 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
                                 <AppEmptyState title={t('clients.show.noProjects')} description={t('clients.show.noProjectsDesc')} />
                             </div>
-                        )
+                        )}
+                        </div>
                     )}
 
                     {activeTab === 'documents' && (
                         <div className="space-y-5">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.documents')}</p>
+                                {projects.length > 0 ? (
+                                    <AppButton variant="solid" color="primary" size="sm" onPress={() => { setStandaloneUploadOpen(true); }}>
+                                        <Plus size={14} /> Upload document
+                                    </AppButton>
+                                ) : null}
+                            </div>
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
                                 <h3 className="mb-3 text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.sharedDocuments')}</h3>
                                 <p className="mb-4 text-[11px] text-[var(--text-muted)]">{t('clients.show.sharedDocumentsDesc')}</p>
@@ -792,8 +896,16 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
                     )}
 
                     {activeTab === 'finance' && (
-                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
-                            <AppEmptyState title={t('clients.show.noFinance')} description={t('clients.show.noFinanceDesc')} />
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[13px] font-semibold text-[var(--foreground)]">Finance</p>
+                                <AppButton variant="solid" color="primary" size="sm" onPress={() => { setFinanceDrawerType('quote'); setFinanceDrawerOpen(true); }}>
+                                    <Plus size={14} /> New finance item
+                                </AppButton>
+                            </div>
+                            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
+                                <AppEmptyState title={t('clients.show.noFinance')} description={t('clients.show.noFinanceDesc')} />
+                            </div>
                         </div>
                     )}
 
@@ -857,6 +969,62 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
                 <ArchiveDrawer
                     isOpen={archiveDrawerOpen}
                     onOpenChange={setArchiveDrawerOpen}
+                    project={selectedProject}
+                    clientId={client.id}
+                />
+
+                {/* ── Project drawer (create) ── */}
+                <ProjectDrawer
+                    isOpen={projectDrawerOpen}
+                    mode="create"
+                    dossier={null}
+                    clients={[{ id: String(client.id), label: client.fullName }]}
+                    initialClientId={String(client.id)}
+                    onOpenChange={setProjectDrawerOpen}
+                    onSubmit={handleProjectSubmit}
+                    errors={projectFormErrors}
+                />
+
+                {/* ── Finance document builder drawer ── */}
+                <FinanceDocumentBuilderDrawer
+                    isOpen={financeDrawerOpen}
+                    onOpenChange={setFinanceDrawerOpen}
+                    mode="create"
+                    type={financeDrawerType}
+                    clients={[{ id: String(client.id), label: client.fullName, cin: client.cin, address: client.address }]}
+                    dossiers={dossierOptions}
+                    templates={[]}
+                    settings={{
+                        defaultTvaRate: 20,
+                        defaultCurrency: 'MAD',
+                        defaultPaymentTermsDays: 30,
+                        defaultQuoteValidityDays: 30,
+                        defaultUnitPriceM2: 900,
+                        defaultArchitectRate: 0.5,
+                        companyInfo: {},
+                        bankInfo: {},
+                    }}
+                    defaultClientId={String(client.id)}
+                    onSaved={afterCreateReload}
+                />
+
+                {/* ── Standalone upload document drawer ── */}
+                <DocumentUploadDrawer
+                    isOpen={standaloneUploadOpen}
+                    clients={[{ id: String(client.id), label: client.fullName }]}
+                    dossiers={dossierOptions}
+                    templates={documentTemplates}
+                    initialClientId={String(client.id)}
+                    initialDossierId={selectedProject ? String(selectedProject.id) : dossiers[0] ? String(dossiers[0].id) : ''}
+                    onOpenChange={setStandaloneUploadOpen}
+                    onSubmit={handleDocumentUpload}
+                    isSubmitting={isDocUploading}
+                />
+
+                {/* ── Standalone contract drawer ── */}
+                <ContractDrawer
+                    isOpen={standaloneContractOpen}
+                    onOpenChange={setStandaloneContractOpen}
                     project={selectedProject}
                     clientId={client.id}
                 />

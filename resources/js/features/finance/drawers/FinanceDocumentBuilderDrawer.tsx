@@ -85,6 +85,7 @@ type FinanceDocumentBuilderDrawerProps = {
     templates: TemplateOption[];
     settings: FinanceSettings;
     onSaved?: (type: FinanceDocumentType) => void;
+    defaultClientId?: string;
 };
 
 type BuilderForm = {
@@ -111,7 +112,7 @@ function addDays(date: string, days: number): string {
     return value.toISOString().slice(0, 10);
 }
 
-function createForm(type: FinanceDocumentType, settings: FinanceSettings, document?: FinanceDocument | null): BuilderForm {
+function createForm(type: FinanceDocumentType, settings: FinanceSettings, document?: FinanceDocument | null, defaultClientId?: string): BuilderForm {
     const issueDate = document?.issueDate || today();
 
     if (document) {
@@ -136,7 +137,7 @@ function createForm(type: FinanceDocumentType, settings: FinanceSettings, docume
 
     return {
         type,
-        clientId: '',
+        clientId: defaultClientId || '',
         dossierId: '',
         issueDate,
         dueDate: type === 'invoice' ? addDays(issueDate, settings.defaultPaymentTermsDays) : '',
@@ -162,17 +163,18 @@ export function FinanceDocumentBuilderDrawer({
     templates,
     settings,
     onSaved,
+    defaultClientId,
 }: FinanceDocumentBuilderDrawerProps) {
-    const [form, setForm] = useState<BuilderForm>(() => createForm(type, settings, document));
+    const [form, setForm] = useState<BuilderForm>(() => createForm(type, settings, document, defaultClientId));
     const isLocked = isFinanceDocumentLocked(document);
     const canEditNumberFields = !isLocked && (document?.lock?.canEditNumberFields ?? true);
     const lockMessage = isLocked ? getFinanceDocumentLockMessage(document) : undefined;
 
     useEffect(() => {
         if (isOpen) {
-            setForm(createForm(type, settings, document));
+            setForm(createForm(type, settings, document, defaultClientId));
         }
-    }, [document, isOpen, settings, type]);
+    }, [defaultClientId, document, isOpen, settings, type]);
 
     const totals = useMemo(
         () => calculateTotals(form.items, form.discountTotal, form.tvaRate),

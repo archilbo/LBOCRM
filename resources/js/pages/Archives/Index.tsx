@@ -2,24 +2,25 @@ import { Head, router } from '@inertiajs/react';
 import {
     Archive,
     CheckCircle2,
-    Circle,
     Eye,
     FolderKanban,
     FolderOpen,
     Pencil,
     Plus,
+    RefreshCw,
     RotateCcw,
     Search,
     Trash2,
     X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormErrors } from '@/lib/formErrors';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
-import { AppPagination } from '@/components/ui/AppPagination';
+import { StatusPill } from '@/components/ui/StatusPill';
 import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
 import { countByValue, filterByValue } from '@/lib/filters';
 import type {
@@ -28,8 +29,8 @@ import type {
     ArchiveRecordRow,
     ArchiveStatus,
 } from '@/features/archives/types';
-
-/* FORCE_ARCHIVES_REDESIGN_53I */
+import { cn } from '@/lib/cn';
+import { useTranslation } from '@/lib/i18n';
 
 type PageProps = {
     archiveRecords: ArchiveRecordRow[];
@@ -45,25 +46,12 @@ type PageProps = {
 
 type ViewMode = 'workspace' | 'storage';
 
-function statusClass(status: ArchiveStatus) {
-    if (status === 'stored') return 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300';
-    if (status === 'checked_out') return 'border-sky-400/25 bg-sky-400/10 text-sky-300';
-    if (status === 'returned') return 'border-violet-400/25 bg-violet-400/10 text-violet-300';
-    if (status === 'lost') return 'border-red-400/25 bg-red-400/10 text-red-300';
-
-    return 'border-amber-400/25 bg-amber-400/10 text-amber-300';
-}
-
-function statusLabel(status: ArchiveStatus) {
-    const labels: Record<string, string> = {
-        ready_to_archive: 'Ready',
-        stored: 'Stored',
-        checked_out: 'Checked out',
-        returned: 'Returned',
-        lost: 'Lost',
-    };
-
-    return labels[status] ?? status;
+function statusConfig(status: ArchiveStatus) {
+    if (status === 'stored') return { color: 'success' as const, label: 'Stored' };
+    if (status === 'checked_out') return { color: 'primary' as const, label: 'Checked out' };
+    if (status === 'returned') return { color: 'warning' as const, label: 'Returned' };
+    if (status === 'lost') return { color: 'danger' as const, label: 'Lost' };
+    return { color: 'default' as const, label: 'Ready' };
 }
 
 function toBackendPayload(payload: ArchiveFormPayload) {
@@ -132,71 +120,23 @@ function archiveFlow(record: ArchiveRecordRow) {
     ];
 }
 
-function KpiCard({
-    label,
-    value,
-    detail,
-}: {
-    label: string;
-    value: string | number;
-    detail: string;
-}) {
-    return (
-        <div className="crm-kpi-card">
-            <p className="crm-kpi-label">{label}</p>
-            <p className="crm-kpi-value">{value}</p>
-            <p className="mt-2 truncate text-xs text-[var(--crm-text-soft)]">{detail}</p>
-        </div>
-    );
-}
-
-function ColumnButton({
-    active,
-    title,
-    subtitle,
-    onClick,
-}: {
-    active: boolean;
-    title: string;
-    subtitle: string;
-    onClick: () => void;
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={[
-                'flex w-full items-center justify-between gap-3 border-b border-[var(--crm-border)] px-3 py-3 text-left transition',
-                active
-                    ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]'
-                    : 'text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-hover)] hover:text-[var(--crm-text)]',
-            ].join(' ')}
-        >
-            <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold">{title}</span>
-                <span className="block truncate text-xs opacity-75">{subtitle}</span>
-            </span>
-        </button>
-    );
-}
-
 function ArchiveTimeline({ record }: { record: ArchiveRecordRow }) {
     return (
         <div className="space-y-2">
             {archiveFlow(record).map((item) => (
                 <div key={item.key} className="flex items-center gap-3">
-                    <span className={[
+                    <span className={cn(
                         'flex size-7 shrink-0 items-center justify-center rounded-full border',
                         item.done
-                            ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]'
-                            : 'border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text-soft)]',
-                    ].join(' ')}>
-                        {item.done ? <CheckCircle2 size={14} /> : <Circle size={14} />}
+                            ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-400'
+                            : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-subtle)]',
+                    )}>
+                        {item.done ? <CheckCircle2 size={14} /> : <Archive size={14} />}
                     </span>
 
                     <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">{item.label}</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{item.date || '-'}</p>
+                        <p className="truncate text-sm font-semibold text-[var(--foreground)]">{item.label}</p>
+                        <p className="truncate text-xs text-[var(--text-muted)]">{item.date || '-'}</p>
                     </div>
                 </div>
             ))}
@@ -217,71 +157,71 @@ function ArchiveDetailPanel({
 }) {
     if (!record) {
         return (
-            <aside className="crm-panel p-4">
-                <p className="text-sm font-semibold">Archive details</p>
-                <p className="mt-2 text-sm text-[var(--crm-text-muted)]">
+            <aside className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+                <p className="text-sm font-semibold text-[var(--foreground)]">Archive details</p>
+                <p className="mt-2 text-sm text-[var(--text-muted)]">
                     Select an archive record to see location, status, and checkout history.
                 </p>
             </aside>
         );
     }
 
+    const cfg = statusConfig(record.status);
+
     return (
-        <aside className="crm-panel overflow-hidden">
-            <div className="border-b border-[var(--crm-border)] p-4">
-                <p className="crm-eyebrow">Selected archive</p>
+        <aside className="rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm overflow-hidden">
+            <div className="border-b border-[var(--border)] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Selected archive</p>
                 <div className="mt-2 flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                        <h2 className="truncate text-lg font-semibold">{record.archiveNumber}</h2>
-                        <p className="text-sm text-[var(--crm-text-muted)]">{record.dossierNumber}</p>
+                        <h2 className="truncate text-lg font-semibold text-[var(--foreground)]">{record.archiveNumber}</h2>
+                        <p className="text-sm text-[var(--text-muted)]">{record.dossierNumber}</p>
                     </div>
 
-                    <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(record.status)}`}>
-                        {statusLabel(record.status)}
-                    </span>
+                    <StatusPill label={cfg.label} color={cfg.color} size="sm" />
                 </div>
             </div>
 
             <div className="space-y-5 p-5">
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="crm-panel-soft p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Project</p>
-                        <p className="mt-1 truncate text-sm font-semibold">{record.projectObject}</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{record.clientName}</p>
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-subtle)]">Project</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{record.projectObject}</p>
+                        <p className="truncate text-xs text-[var(--text-muted)]">{record.clientName}</p>
                     </div>
 
-                    <div className="crm-panel-soft p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Location</p>
-                        <p className="mt-1 truncate text-sm font-semibold">{record.locationLabel || '-'}</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">Room / shelf / box / folder</p>
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-subtle)]">Location</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{record.locationLabel || '-'}</p>
+                        <p className="truncate text-xs text-[var(--text-muted)]">Room / shelf / box / folder</p>
                     </div>
 
-                    <div className="crm-panel-soft p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Checked out</p>
-                        <p className="mt-1 truncate text-sm font-semibold">{record.outDate || '-'}</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{record.requestedBy || 'No requester'}</p>
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-subtle)]">Checked out</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{record.outDate || '-'}</p>
+                        <p className="truncate text-xs text-[var(--text-muted)]">{record.requestedBy || 'No requester'}</p>
                     </div>
 
-                    <div className="crm-panel-soft p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Returned</p>
-                        <p className="mt-1 truncate text-sm font-semibold text-[var(--crm-gold)]">{record.returnedAt || '-'}</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">Return tracking</p>
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-subtle)]">Returned</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{record.returnedAt || '-'}</p>
+                        <p className="truncate text-xs text-[var(--text-muted)]">Return tracking</p>
                     </div>
                 </div>
 
-                <div className="crm-panel-soft p-3">
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
                     <div className="mb-3 flex items-center justify-between">
-                        <p className="text-sm font-semibold">Archive flow</p>
-                        <p className="text-xs text-[var(--crm-text-muted)]">
+                        <p className="text-sm font-semibold text-[var(--foreground)]">Archive flow</p>
+                        <p className="text-xs text-[var(--text-muted)]">
                             {archiveFlow(record).filter((item) => item.done).length}/4 done
                         </p>
                     </div>
                     <ArchiveTimeline record={record} />
                 </div>
 
-                <div className="crm-panel-soft p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Notes</p>
-                    <p className="mt-2 max-h-32 overflow-y-auto whitespace-pre-line text-sm leading-6 text-[var(--crm-text-muted)]">
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-subtle)]">Notes</p>
+                    <p className="mt-2 max-h-32 overflow-y-auto whitespace-pre-line text-sm leading-6 text-[var(--text-muted)]">
                         {record.notes || 'No notes.'}
                     </p>
                 </div>
@@ -365,13 +305,43 @@ function StorageBrowser({
         setQuery('');
     }
 
+    function ColumnButton({
+        active,
+        title,
+        subtitle,
+        onClick,
+    }: {
+        active: boolean;
+        title: string;
+        subtitle: string;
+        onClick: () => void;
+    }) {
+        return (
+            <button
+                type="button"
+                onClick={onClick}
+                className={cn(
+                    'flex w-full items-center justify-between gap-3 border-b border-[var(--border)] px-3 py-3 text-left transition',
+                    active
+                        ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]'
+                        : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                )}
+            >
+                <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">{title}</span>
+                    <span className="block truncate text-xs opacity-75">{subtitle}</span>
+                </span>
+            </button>
+        );
+    }
+
     return (
-        <section className="crm-panel overflow-hidden">
+        <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
             <div className="grid min-h-[620px] grid-cols-1 xl:grid-cols-[220px_220px_minmax(0,1fr)]">
-                <aside className="border-b border-[var(--crm-border)] xl:border-b-0 xl:border-r">
-                    <div className="border-b border-[var(--crm-border)] p-3">
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Rooms</p>
-                        <p className="text-xs text-[var(--crm-text-muted)]">{roomNames.length} room(s)</p>
+                <aside className="border-b border-[var(--border)] xl:border-b-0 xl:border-r">
+                    <div className="border-b border-[var(--border)] p-3">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-subtle)]">Rooms</p>
+                        <p className="text-xs text-[var(--text-muted)]">{roomNames.length} room(s)</p>
                     </div>
 
                     <div className="app-scrollbar max-h-[560px] overflow-y-auto">
@@ -391,10 +361,10 @@ function StorageBrowser({
                     </div>
                 </aside>
 
-                <aside className="border-b border-[var(--crm-border)] xl:border-b-0 xl:border-r">
-                    <div className="border-b border-[var(--crm-border)] p-3">
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Shelves</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{selectedRoom}</p>
+                <aside className="border-b border-[var(--border)] xl:border-b-0 xl:border-r">
+                    <div className="border-b border-[var(--border)] p-3">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-subtle)]">Shelves</p>
+                        <p className="truncate text-xs text-[var(--text-muted)]">{selectedRoom}</p>
                     </div>
 
                     <div className="app-scrollbar max-h-[560px] overflow-y-auto">
@@ -418,57 +388,58 @@ function StorageBrowser({
                 </aside>
 
                 <main className="min-w-0">
-                    <div className="flex flex-col gap-3 border-b border-[var(--crm-border)] p-4 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex flex-col gap-3 border-b border-[var(--border)] p-4 xl:flex-row xl:items-center xl:justify-between">
                         <div>
-                            <p className="crm-eyebrow">Storage browser</p>
-                            <h2 className="mt-1 truncate text-lg font-semibold">{selectedRoom} / {selectedShelf}</h2>
-                            <p className="mt-1 text-sm text-[var(--crm-text-muted)]">{recordsInShelf.length} visible archive(s)</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Storage browser</p>
+                            <h2 className="mt-1 truncate text-lg font-semibold text-[var(--foreground)]">{selectedRoom} / {selectedShelf}</h2>
+                            <p className="mt-1 text-sm text-[var(--text-muted)]">{recordsInShelf.length} visible archive(s)</p>
                         </div>
 
-                        <div className="crm-command-input relative w-full xl:w-[340px]">
-                            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
+                        <div className="relative w-full xl:w-[340px]">
+                            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input
                                 value={query}
                                 onChange={(event) => setQuery(event.target.value)}
                                 placeholder="Search archives in shelf..."
-                                className="h-full w-full bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-[var(--crm-text-soft)]"
+                                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-9 text-[13px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
                             />
                         </div>
                     </div>
 
                     <div className="app-scrollbar max-h-[560px] space-y-3 overflow-y-auto p-4">
-                        {recordsInShelf.length > 0 ? recordsInShelf.map((record) => (
-                            <button
-                                key={record.id}
-                                type="button"
-                                onClick={() => onSelect(record)}
-                                className="crm-panel-soft w-full p-3 text-left transition hover:border-[var(--crm-gold)]"
-                            >
-                                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-3">
-                                            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
-                                                <Archive size={16} />
-                                            </span>
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-semibold">{record.archiveNumber}</p>
-                                                <p className="truncate text-xs text-[var(--crm-text-muted)]">{record.projectObject}</p>
+                        {recordsInShelf.length > 0 ? recordsInShelf.map((record) => {
+                            const cfg = statusConfig(record.status);
+                            return (
+                                <button
+                                    key={record.id}
+                                    type="button"
+                                    onClick={() => onSelect(record)}
+                                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3 text-left transition hover:border-[var(--accent)]/40"
+                                >
+                                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-3">
+                                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
+                                                    <Archive size={16} />
+                                                </span>
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-semibold text-[var(--foreground)]">{record.archiveNumber}</p>
+                                                    <p className="truncate text-xs text-[var(--text-muted)]">{record.projectObject}</p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(record.status)}`}>
-                                            {statusLabel(record.status)}
-                                        </span>
-                                        <span className="text-xs text-[var(--crm-text-muted)]">{record.locationLabel}</span>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <StatusPill label={cfg.label} color={cfg.color} size="sm" />
+                                            <span className="text-xs text-[var(--text-muted)]">{record.locationLabel}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            </button>
-                        )) : (
+                                </button>
+                            );
+                        }) : (
                             <div className="py-16 text-center">
-                                <p className="text-sm font-semibold">No archives found</p>
-                                <p className="mt-1 text-sm text-[var(--crm-text-muted)]">Choose another shelf or clear search.</p>
+                                <p className="text-sm font-semibold text-[var(--foreground)]">No archives found</p>
+                                <p className="mt-1 text-sm text-[var(--text-muted)]">Choose another shelf or clear search.</p>
                             </div>
                         )}
                     </div>
@@ -483,6 +454,7 @@ export default function ArchivesIndex({
     dossiers,
     metrics,
 }: PageProps) {
+    const { t } = useTranslation();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState('all');
     const [query, setQuery] = useState('');
@@ -491,9 +463,8 @@ export default function ArchivesIndex({
     const [selectedArchive, setSelectedArchive] = useState<ArchiveRecordRow | null>(
         archiveRecords[0] ?? null,
     );
+    const [previewArchive, setPreviewArchive] = useState<ArchiveRecordRow | null>(null);
     const [formErrors, setFormErrors] = useState<FormErrors>({});
-    const [tablePage, setTablePage] = useState(1);
-    const TABLE_PAGE_SIZE = 15;
     const [deleteTarget, setDeleteTarget] = useState<ArchiveRecordRow | null>(null);
 
     const statusOptions = useMemo(
@@ -513,18 +484,17 @@ export default function ArchivesIndex({
             .filter((record) => matchesSearch(record, query));
     }, [archiveRecords, query, statusFilter]);
 
-    useEffect(() => {
-        setTablePage(1);
-    }, [query, statusFilter, viewMode]);
-
-    const pagedArchiveRecords = useMemo(
-        () => filteredArchiveRecords.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE),
-        [filteredArchiveRecords, tablePage],
-    );
-
     const selectedVisible = selectedArchive && filteredArchiveRecords.some((record) => record.id === selectedArchive.id)
         ? selectedArchive
         : filteredArchiveRecords[0] ?? null;
+
+    const metricCards = useMemo(() => [
+        { label: 'Total archives', value: metrics.total, detail: 'All physical archive records', icon: <Archive size={16} /> },
+        { label: 'Ready', value: metrics.ready, detail: 'Waiting storage' },
+        { label: 'Stored', value: metrics.stored, detail: 'Inside archive room' },
+        { label: 'Checked out', value: metrics.checkedOut, detail: 'Currently outside' },
+        { label: 'Returned', value: metrics.returned, detail: 'Back from checkout' },
+    ], [metrics]);
 
     function openCreateDrawer() {
         setSelectedArchive(null);
@@ -607,109 +577,101 @@ export default function ArchivesIndex({
         <>
             <Head title="Archives" />
 
-            <AppShell
-                eyebrowKey="archives.eyebrow"
-                titleKey="archives.title"
-                subtitleKey="archives.subtitle"
-                action={
-                    <AppButton variant="primary" onPress={openCreateDrawer}>
-                        <Plus size={16} />
-                        New archive
-                    </AppButton>
-                }
-            >
-                <section className="crm-kpi-grid max-xl:grid-cols-3 max-md:grid-cols-1">
-                    <KpiCard label="Archives" value={metrics.total} detail="Total physical archive records" />
-                    <KpiCard label="Ready" value={metrics.ready} detail="Waiting storage" />
-                    <KpiCard label="Stored" value={metrics.stored} detail="Inside archive room" />
-                    <KpiCard label="Checked out" value={metrics.checkedOut} detail="Currently outside" />
-                    <KpiCard label="Returned" value={metrics.returned} detail="Back from checkout" />
-                </section>
-
-                <section className="crm-panel p-4">
-                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                        <div className="flex flex-wrap gap-2">
-                            {statusOptions.map((option) => {
-                                const active = option.id === statusFilter;
-
-                                return (
-                                    <button
-                                        key={option.id}
-                                        type="button"
-                                        onClick={() => setStatusFilter(option.id)}
-                                        className={[
-                                            'inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition',
-                                            active
-                                                ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]'
-                                                : 'border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]',
-                                        ].join(' ')}
-                                    >
-                                        {option.label}
-                                        <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">{option.count}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <div className="crm-command-input relative w-full sm:w-[390px]">
-                                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
-                                <input
-                                    value={query}
-                                    onChange={(event) => setQuery(event.target.value)}
-                                    placeholder="Search archives, projects, locations..."
-                                    className="h-full w-full bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-[var(--crm-text-soft)]"
-                                />
-                                {query ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => setQuery('')}
-                                        className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-[var(--crm-text-soft)] hover:bg-[var(--crm-surface-2)]"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                ) : null}
-                            </div>
-
-                            <div className="inline-flex rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] p-1">
-                                <button
-                                    type="button"
-                                    onClick={() => setViewMode('workspace')}
-                                    className={[
-                                        'h-8 rounded-md px-3 text-xs font-semibold transition',
-                                        viewMode === 'workspace'
-                                            ? 'bg-[var(--crm-gold)] text-black'
-                                            : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]',
-                                    ].join(' ')}
-                                >
-                                    Workspace
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setViewMode('storage')}
-                                    className={[
-                                        'h-8 rounded-md px-3 text-xs font-semibold transition',
-                                        viewMode === 'storage'
-                                            ? 'bg-[var(--crm-gold)] text-black'
-                                            : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]',
-                                    ].join(' ')}
-                                >
-                                    Storage
-                                </button>
-                            </div>
-                        </div>
+            <AppShell>
+                <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
+                            {t('archivesWorkspace.eyebrow')}
+                        </p>
+                        <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">
+                            {t('archivesWorkspace.title')}
+                        </h1>
+                        <p className="mt-1 max-w-3xl text-sm text-[var(--text-muted)]">
+                            {t('archivesWorkspace.subtitle')}
+                        </p>
                     </div>
+                    <AppButton variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={openCreateDrawer}>
+                        <Plus size={15} /> {t('archivesWorkspace.newArchive')}
+                    </AppButton>
+                </header>
+
+                <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                    {metricCards.map((card) => (
+                        <div key={card.label} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition hover:border-[var(--accent)]/40 hover:shadow-md">
+                            <div className={cn(
+                                'mb-2 flex size-9 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]',
+                                card.label === 'Ready' && metrics.ready > 0 ? 'text-amber-500' : '',
+                                card.label === 'Stored' && metrics.stored > 0 ? 'text-emerald-500' : '',
+                                card.label === 'Checked out' && metrics.checkedOut > 0 ? 'text-sky-500' : '',
+                                card.label === 'Returned' && metrics.returned > 0 ? 'text-violet-500' : '',
+                            )}>
+                                {card.icon || <Archive size={16} />}
+                            </div>
+                            <p className="text-[12px] font-medium text-[var(--text-muted)]">{card.label}</p>
+                            <p className={cn('mt-0.5 text-2xl font-semibold text-[var(--foreground)]')}>{card.value}</p>
+                            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{card.detail}</p>
+                        </div>
+                    ))}
                 </section>
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative flex-1 min-w-[200px] max-w-sm">
+                        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder={t('archivesWorkspace.searchPlaceholder')}
+                            className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-8 text-[13px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+                        />
+                        {query ? (
+                            <button type="button" onClick={() => setQuery('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--foreground)]">
+                                <X size={13} />
+                            </button>
+                        ) : null}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        {statusOptions.map((option) => (
+                            <button key={option.id} type="button" onClick={() => setStatusFilter(option.id)}
+                                className={cn(
+                                    'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition',
+                                    statusFilter === option.id
+                                        ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]'
+                                        : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--foreground)]',
+                                )}>
+                                {option.label}
+                                <span className="rounded-full bg-black/20 px-1.5 py-0.5 text-[10px]">{option.count}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    <button type="button" onClick={() => { setViewMode(viewMode === 'workspace' ? 'storage' : 'workspace'); }}
+                        className={cn(
+                            'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition',
+                            viewMode === 'storage'
+                                ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]'
+                                : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--foreground)]',
+                        )}>
+                        {viewMode === 'storage' ? 'Workspace' : 'Storage'}
+                    </button>
+
+                    <button type="button" onClick={() => router.reload({ preserveScroll: true })}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 text-[12px] font-medium text-[var(--text-muted)] transition hover:text-[var(--foreground)]">
+                        <RefreshCw size={13} />
+                    </button>
+                </div>
 
                 {viewMode === 'storage' ? (
                     <StorageBrowser records={filteredArchiveRecords} onSelect={setSelectedArchive} />
                 ) : (
                     <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-                        <div className="crm-panel overflow-hidden">
-                            <div className="flex items-center justify-between border-b border-[var(--crm-border)] px-5 py-4">
+                        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                            <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
                                 <div>
-                                    <p className="text-sm font-semibold">Archive workspace</p>
-                                    <p className="text-xs text-[var(--crm-text-muted)]">{filteredArchiveRecords.length} visible archive(s)</p>
+                                    <p className="text-sm font-semibold text-[var(--foreground)]">Archive workspace</p>
+                                    <p className="text-xs text-[var(--text-muted)]">{filteredArchiveRecords.length} visible archive(s)</p>
                                 </div>
 
                                 <AppButton variant="secondary" size="sm" onPress={() => setStatusFilter('all')}>
@@ -718,89 +680,110 @@ export default function ArchivesIndex({
                             </div>
 
                             <div className="app-scrollbar overflow-x-auto">
-                                <table className="crm-table min-w-[1080px]">
+                                <table className="w-full">
                                     <thead>
-                                        <tr>
-                                            <th>Archive</th>
-                                            <th>Project</th>
-                                            <th>Location</th>
-                                            <th>Status</th>
-                                            <th>Dates</th>
-                                            <th>Requester</th>
-                                            <th>Actions</th>
+                                        <tr className="border-b border-[var(--border)]">
+                                            {[
+                                                { key: 'archive', label: t('archivesWorkspace.table.archive') },
+                                                { key: 'project', label: t('archivesWorkspace.table.project') },
+                                                { key: 'location', label: t('archivesWorkspace.table.location') },
+                                                { key: 'status', label: t('archivesWorkspace.table.status') },
+                                                { key: 'dates', label: 'Dates' },
+                                                { key: 'requester', label: 'Requester' },
+                                                { key: null, label: '' },
+                                            ].map((col) => (
+                                                <th key={col.label || 'actions'}
+                                                    className="h-10 px-3 text-[12px] font-semibold text-[var(--text-muted)] text-left whitespace-nowrap">
+                                                    {col.label}
+                                                </th>
+                                            ))}
                                         </tr>
                                     </thead>
 
                                     <tbody>
-                                        {pagedArchiveRecords.length > 0 ? (
-                                            pagedArchiveRecords.map((record) => {
+                                        {filteredArchiveRecords.length > 0 ? (
+                                            filteredArchiveRecords.map((record) => {
                                                 const selected = selectedVisible?.id === record.id;
+                                                const cfg = statusConfig(record.status);
 
                                                 return (
                                                     <tr
                                                         key={record.id}
-                                                        className={selected ? 'bg-[color-mix(in_srgb,var(--crm-gold)_8%,transparent)]' : ''}
-                                                        onClick={() => setSelectedArchive(record)}
+                                                        className={cn(
+                                                            'border-b border-[var(--border)] transition last:border-0 cursor-pointer',
+                                                            selected
+                                                                ? 'bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]'
+                                                                : 'hover:bg-[var(--surface-2)]',
+                                                        )}
+                                                        onClick={() => { setSelectedArchive(record); setPreviewArchive(record); }}
                                                     >
-                                                        <td>
+                                                        <td className="px-3 py-2.5">
                                                             <div className="flex items-center gap-3">
-                                                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
+                                                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
                                                                     <Archive size={16} />
                                                                 </span>
                                                                 <div className="min-w-0">
-                                                                    <p className="max-w-[220px] truncate font-semibold text-[var(--crm-text)]">{record.archiveNumber}</p>
-                                                                    <p className="text-xs text-[var(--crm-text-muted)]">{record.dossierNumber}</p>
+                                                                    <p className="max-w-[220px] truncate font-semibold text-[var(--foreground)]">{record.archiveNumber}</p>
+                                                                    <p className="text-xs text-[var(--text-muted)]">{record.dossierNumber}</p>
                                                                 </div>
                                                             </div>
                                                         </td>
 
-                                                        <td>
+                                                        <td className="px-3 py-2.5">
                                                             <div className="flex items-start gap-2">
-                                                                <FolderKanban size={14} className="mt-0.5 shrink-0 text-[var(--crm-text-soft)]" />
+                                                                <FolderKanban size={14} className="mt-0.5 shrink-0 text-[var(--text-subtle)]" />
                                                                 <div className="min-w-0">
-                                                                    <p className="max-w-[230px] truncate font-medium text-[var(--crm-text)]">{record.projectObject}</p>
-                                                                    <p className="max-w-[230px] truncate text-xs text-[var(--crm-text-muted)]">{record.clientName}</p>
+                                                                    <p className="max-w-[230px] truncate font-medium text-[var(--foreground)]">{record.projectObject}</p>
+                                                                    <p className="max-w-[230px] truncate text-xs text-[var(--text-muted)]">{record.clientName}</p>
                                                                 </div>
                                                             </div>
                                                         </td>
 
-                                                        <td>
-                                                            <p className="max-w-[220px] truncate font-medium text-[var(--crm-text)]">{record.locationLabel || '-'}</p>
-                                                            <p className="max-w-[220px] truncate text-xs text-[var(--crm-text-muted)]">
+                                                        <td className="px-3 py-2.5">
+                                                            <p className="max-w-[220px] truncate font-medium text-[var(--foreground)]">{record.locationLabel || '-'}</p>
+                                                            <p className="max-w-[220px] truncate text-xs text-[var(--text-muted)]">
                                                                 Room {record.room || '-'} / Shelf {record.shelf || '-'}
                                                             </p>
                                                         </td>
 
-                                                        <td>
-                                                            <span className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(record.status)}`}>
-                                                                {statusLabel(record.status)}
-                                                            </span>
+                                                        <td className="px-3 py-2.5">
+                                                            <StatusPill label={cfg.label} color={cfg.color} size="sm" />
                                                         </td>
 
-                                                        <td>
-                                                            <p className="text-xs text-[var(--crm-text-muted)]">In: {record.inDate || '-'}</p>
-                                                            <p className="text-xs text-[var(--crm-text-muted)]">Out: {record.outDate || '-'}</p>
+                                                        <td className="px-3 py-2.5">
+                                                            <p className="text-xs text-[var(--text-muted)]">In: {record.inDate || '-'}</p>
+                                                            <p className="text-xs text-[var(--text-muted)]">Out: {record.outDate || '-'}</p>
                                                         </td>
 
-                                                        <td>
-                                                            <p className="max-w-[150px] truncate text-[var(--crm-text-muted)]">{record.requestedBy || '-'}</p>
+                                                        <td className="px-3 py-2.5">
+                                                            <p className="max-w-[150px] truncate text-[var(--text-muted)]">{record.requestedBy || '-'}</p>
                                                         </td>
 
-                                                        <td>
+                                                        <td className="px-3 py-2.5">
                                                             <div className="flex justify-end gap-1">
-                                                                <button type="button" className="crm-action-button" title="Preview" onClick={(event) => { event.stopPropagation(); setSelectedArchive(record); }}>
+                                                                <button type="button" className={cn(
+                                                                    'flex size-8 items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                                                                )} title="Preview" onClick={(event) => { event.stopPropagation(); setPreviewArchive(record); }}>
                                                                     <Eye size={14} />
                                                                 </button>
-                                                                <button type="button" className="crm-action-button" title="Edit" onClick={(event) => { event.stopPropagation(); openEditDrawer(record); }}>
+                                                                <button type="button" className={cn(
+                                                                    'flex size-8 items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                                                                )} title="Edit" onClick={(event) => { event.stopPropagation(); openEditDrawer(record); }}>
                                                                     <Pencil size={14} />
                                                                 </button>
-                                                                <button type="button" className="crm-action-button" title="Stored" onClick={(event) => { event.stopPropagation(); updateStatus(record, 'stored'); }}>
+                                                                <button type="button" className={cn(
+                                                                    'flex size-8 items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                                                                )} title="Stored" onClick={(event) => { event.stopPropagation(); updateStatus(record, 'stored'); }}>
                                                                     <CheckCircle2 size={14} />
                                                                 </button>
-                                                                <button type="button" className="crm-action-button" title="Checked out" onClick={(event) => { event.stopPropagation(); updateStatus(record, 'checked_out'); }}>
+                                                                <button type="button" className={cn(
+                                                                    'flex size-8 items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                                                                )} title="Checked out" onClick={(event) => { event.stopPropagation(); updateStatus(record, 'checked_out'); }}>
                                                                     <FolderOpen size={14} />
                                                                 </button>
-                                                                <button type="button" className="crm-action-button" title="Returned" onClick={(event) => { event.stopPropagation(); updateStatus(record, 'returned'); }}>
+                                                                <button type="button" className={cn(
+                                                                    'flex size-8 items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                                                                )} title="Returned" onClick={(event) => { event.stopPropagation(); updateStatus(record, 'returned'); }}>
                                                                     <RotateCcw size={14} />
                                                                 </button>
                                                             </div>
@@ -812,8 +795,8 @@ export default function ArchivesIndex({
                                             <tr>
                                                 <td colSpan={7}>
                                                     <div className="py-10 text-center">
-                                                        <p className="text-sm font-semibold">No archive records found</p>
-                                                        <p className="mt-1 text-sm text-[var(--crm-text-muted)]">Change filters or create a new archive record.</p>
+                                                        <p className="text-sm font-semibold text-[var(--foreground)]">{t('archivesWorkspace.emptyTitle')}</p>
+                                                        <p className="mt-1 text-sm text-[var(--text-muted)]">{t('archivesWorkspace.emptyDescription')}</p>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -829,10 +812,21 @@ export default function ArchivesIndex({
                             onDelete={deleteRecord}
                             onUpdateStatus={updateStatus}
                         />
-
-                        <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filteredArchiveRecords.length} onChange={setTablePage} />
                     </section>
                 )}
+
+                <AppDrawer
+                    isOpen={!!previewArchive}
+                    onOpenChange={(open) => { if (!open) setPreviewArchive(null); }}
+                    title={previewArchive?.archiveNumber || ''}
+                    classNames={{ base: 'max-w-[480px]' }}
+                >
+                    {previewArchive ? (
+                        <ArchivePreviewContent record={previewArchive} onEdit={openEditDrawer}
+                            onDelete={() => { setDeleteTarget(previewArchive); setPreviewArchive(null); }}
+                            onUpdateStatus={updateStatus} />
+                    ) : null}
+                </AppDrawer>
 
                 <ArchiveDrawer
                     isOpen={drawerOpen}
@@ -843,6 +837,7 @@ export default function ArchivesIndex({
                     onSubmit={handleSubmit}
                     errors={formErrors}
                 />
+
                 <AppModal
                     isOpen={!!deleteTarget}
                     onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
@@ -853,11 +848,108 @@ export default function ArchivesIndex({
                         Delete <strong>{deleteTarget?.archiveNumber}</strong>? This action cannot be undone.
                     </p>
                     <div className="flex justify-end gap-2">
-                        <AppButton variant="secondary" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
-                        <AppButton variant="danger" onPress={confirmDelete}>Delete</AppButton>
+                        <AppButton variant="bordered" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
+                        <AppButton color="danger" variant="solid" onPress={confirmDelete}>Delete</AppButton>
                     </div>
                 </AppModal>
             </AppShell>
         </>
+    );
+}
+
+function ArchivePreviewContent({ record, onEdit, onDelete, onUpdateStatus }: {
+    record: ArchiveRecordRow;
+    onEdit: (record: ArchiveRecordRow) => void;
+    onDelete: (record: ArchiveRecordRow) => void;
+    onUpdateStatus: (record: ArchiveRecordRow, status: string) => void;
+}) {
+    const cfg = statusConfig(record.status);
+
+    return (
+        <div className="space-y-5 pb-8">
+            <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
+                    <Archive size={18} />
+                </span>
+                <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
+                        {record.archiveNumber}
+                        <StatusPill label={cfg.label} color={cfg.color} size="sm" />
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)]">{record.projectObject || '-'}</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Project</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{record.projectObject || '-'}</p>
+                    <p className="truncate text-xs text-[var(--text-muted)]">{record.clientName || ''}</p>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Dossier</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{record.dossierNumber || '-'}</p>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Location</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{record.locationLabel || '-'}</p>
+                    <p className="truncate text-xs text-[var(--text-muted)]">Room {record.room || '-'} / Shelf {record.shelf || '-'}</p>
+                </div>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Requester</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{record.requestedBy || '-'}</p>
+                </div>
+            </div>
+
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Dates</p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-lg bg-[var(--surface-2)] p-2">
+                        <p className="text-[10px] text-[var(--text-muted)]">In</p>
+                        <p className="text-sm font-semibold text-[var(--foreground)]">{record.inDate || '-'}</p>
+                    </div>
+                    <div className="rounded-lg bg-[var(--surface-2)] p-2">
+                        <p className="text-[10px] text-[var(--text-muted)]">Out</p>
+                        <p className="text-sm font-semibold text-[var(--foreground)]">{record.outDate || '-'}</p>
+                    </div>
+                    <div className="rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface-2))] p-2">
+                        <p className="text-[10px] text-[var(--accent)]">Returned</p>
+                        <p className="text-sm font-semibold text-[var(--accent)]">{record.returnedAt || '-'}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Archive flow</p>
+                <ArchiveTimeline record={record} />
+            </div>
+
+            {record.notes ? (
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Notes</p>
+                    <p className="text-sm text-[var(--text-muted)]">{record.notes}</p>
+                </div>
+            ) : null}
+
+            <div className="flex flex-col gap-2">
+                <AppButton variant="solid" color="primary" size="sm" onPress={() => { onEdit(record); }}>
+                    <Pencil size={14} /> Edit archive
+                </AppButton>
+                <AppButton variant="solid" color="primary" size="sm" onPress={() => onUpdateStatus(record, 'stored')}>
+                    <CheckCircle2 size={14} /> Mark stored
+                </AppButton>
+                <div className="grid grid-cols-2 gap-2">
+                    <AppButton variant="bordered" size="sm" onPress={() => onUpdateStatus(record, 'checked_out')}>
+                        <FolderOpen size={14} /> Check out
+                    </AppButton>
+                    <AppButton variant="bordered" size="sm" onPress={() => onUpdateStatus(record, 'returned')}>
+                        <RotateCcw size={14} /> Returned
+                    </AppButton>
+                </div>
+                <AppButton variant="solid" color="danger" size="sm" onPress={() => onDelete(record)}>
+                    <Trash2 size={14} /> Delete archive
+                </AppButton>
+            </div>
+        </div>
     );
 }

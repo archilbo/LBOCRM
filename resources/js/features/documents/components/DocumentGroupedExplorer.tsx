@@ -53,12 +53,16 @@ function flattenProjectDocs(project: DocumentProjectGroup): DocumentGroupRow[] {
 
 function RowMenu({ doc, onPreview }: { doc: DocumentGroupRow; onPreview?: (d: DocumentGroupRow) => void }) {
     const [open, setOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!open) return;
-        function close() { setOpen(false); }
+        function close(e: MouseEvent) {
+            if (menuRef.current && e.target instanceof Node && menuRef.current.contains(e.target)) return;
+            setOpen(false);
+        }
         document.addEventListener('mousedown', close);
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
         return () => { document.removeEventListener('mousedown', close); };
     }, [open]);
 
@@ -74,7 +78,7 @@ function RowMenu({ doc, onPreview }: { doc: DocumentGroupRow; onPreview?: (d: Do
                 <MoreHorizontal size={13} />
             </button>
             {open && (
-                <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
+                <div ref={menuRef} className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
                     <button type="button" onClick={() => { setOpen(false); onPreview?.(doc); }}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                         <Eye size={14} /> Preview

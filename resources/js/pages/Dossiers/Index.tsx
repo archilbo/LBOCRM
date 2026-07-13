@@ -121,10 +121,10 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, metri
     const hasActiveFilters = workflowFilter !== 'all' || query.trim() !== '';
 
     const metricCards = [
-        { label: 'Total projects', value: metrics.total, detail: 'All registered dossiers', icon: <FolderKanban size={16} /> },
-        { label: 'Active', value: metrics.active, detail: 'In current workflow' },
-        { label: 'Opened', value: metrics.opened, detail: 'Newly started' },
-        { label: 'Closed', value: metrics.closed, detail: 'Completed dossiers' },
+        { label: 'Total projects', value: metrics.total, detail: 'All registered dossiers', icon: <FolderKanban size={16} />, accent: undefined as string | undefined },
+        { label: 'Active', value: metrics.active, detail: 'In current workflow', accent: metrics.active > 0 ? 'text-emerald-500' : 'text-[var(--text-muted)]' },
+        { label: 'Opened', value: metrics.opened, detail: 'Newly started', accent: 'text-[var(--accent)]' },
+        { label: 'Closed', value: metrics.closed, detail: 'Completed dossiers', accent: metrics.closed > 0 ? 'text-[var(--text-muted)]' : undefined },
     ];
 
     function toggleSort(field: SortField) {
@@ -265,18 +265,16 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, metri
                         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                             {metricCards.map((card) => (
                                 <div key={card.label}
-                                    className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-                                    <div className="flex items-start justify-between gap-3">
-                                        {card.icon ? (
-                                            <div className="flex size-9 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]">
-                                                {card.icon}
-                                            </div>
-                                        ) : <div />}
-                                    </div>
-                                    <p className="mt-3 text-[12px] font-medium text-[var(--text-muted)]">{card.label}</p>
-                                    <p className="mt-0.5 text-2xl font-semibold text-[var(--foreground)]">{card.value}</p>
+                                    className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition hover:border-[var(--accent)]/40 hover:shadow-md">
+                                    {card.icon ? (
+                                        <div className={cn('mb-2 flex size-9 items-center justify-center rounded-lg bg-[var(--surface-2)]', card.accent || 'text-[var(--text-muted)]')}>
+                                            {card.icon}
+                                        </div>
+                                    ) : null}
+                                    <p className="text-[12px] font-medium text-[var(--text-muted)]">{card.label}</p>
+                                    <p className={cn('mt-0.5 text-2xl font-semibold text-[var(--foreground)]', card.accent)}>{card.value}</p>
                                     {card.detail ? (
-                                        <p className="mt-1 text-[11px] text-[var(--text-muted)]">{card.detail}</p>
+                                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{card.detail}</p>
                                     ) : null}
                                 </div>
                             ))}

@@ -25,7 +25,7 @@ type PageProps = {
 function toBackendPayload(payload: ClientFormPayload, status: ClientStatus = 'active') {
     return {
         intermediary_id: payload.intermediaryId || null,
-        civility: 'Mr',
+        civility: payload.civility || null,
         first_name: payload.firstName || null,
         last_name: payload.lastName || null,
         cin: payload.cin || null,

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import type { Key } from 'react-aria-components';
 import { UploadCloud } from 'lucide-react';
 import { AppButton } from '@/components/ui/AppButton';
@@ -7,6 +7,7 @@ import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppTextarea } from '@/components/ui/AppTextarea';
 import type {
+    ClientOption,
     DocumentTemplateOption,
     DocumentUploadPayload,
     DossierOption,
@@ -16,8 +17,10 @@ import { firstError } from '@/lib/formErrors';
 
 type DocumentUploadDrawerProps = {
     isOpen: boolean;
+    clients: ClientOption[];
     dossiers: DossierOption[];
     templates: DocumentTemplateOption[];
+    initialClientId?: string;
     initialDossierId?: string;
     initialTemplateId?: string;
     onOpenChange: (isOpen: boolean) => void;
@@ -43,8 +46,10 @@ const statusOptions = [
 
 export function DocumentUploadDrawer({
     isOpen,
+    clients,
     dossiers,
     templates,
+    initialClientId = '',
     initialDossierId = '',
     initialTemplateId = '',
     onOpenChange,
@@ -53,6 +58,7 @@ export function DocumentUploadDrawer({
     isSubmitting = false,
 }: DocumentUploadDrawerProps) {
     const [form, setForm] = useState<DocumentUploadPayload>(emptyForm);
+    const [selectedClientId, setSelectedClientId] = useState(initialClientId);
     const [fileName, setFileName] = useState('');
     const [fileError, setFileError] = useState('');
 
@@ -63,10 +69,18 @@ export function DocumentUploadDrawer({
                 dossierId: initialDossierId,
                 documentTemplateId: initialTemplateId,
             });
+            setSelectedClientId(initialClientId);
             setFileName('');
             setFileError('');
         }
-    }, [initialDossierId, initialTemplateId, isOpen]);
+    }, [initialClientId, initialDossierId, initialTemplateId, isOpen]);
+
+    const filteredDossiers = useMemo(() => {
+        if (!selectedClientId) return [];
+        return dossiers.filter((d) => d.clientId === selectedClientId);
+    }, [dossiers, selectedClientId]);
+
+    const dossierSelectDisabled = !selectedClientId;
 
     function updateField(field: keyof DocumentUploadPayload, value: string) {
         setForm((current) => ({ ...current, [field]: value }));
@@ -77,6 +91,22 @@ export function DocumentUploadDrawer({
             ...current,
             [field]: value ? String(value) : '',
         }));
+    }
+
+    function handleClientChange(value: Key | null) {
+        const clientId = value ? String(value) : '';
+        setSelectedClientId(clientId);
+        if (clientId !== selectedClientId) {
+            const currentDossierBelongsToClient = clientId
+                ? dossiers.some((d) => d.id === form.dossierId && d.clientId === clientId)
+                : false;
+            if (!currentDossierBelongsToClient) {
+                setForm((current) => ({
+                    ...current,
+                    dossierId: '',
+                }));
+            }
+        }
     }
 
     function handleFileChange(fileList: FileList | null) {
@@ -125,22 +155,34 @@ export function DocumentUploadDrawer({
 
                     <div className="grid gap-4">
                         <AppSelect
-                            label="Dossier / Project"
-                            placeholder="Select dossier"
-                            selectedKey={form.dossierId}
-                            onSelectionChange={(value) => updateSelect('dossierId', value)}
-                            options={dossiers}
-                            error={firstError(errors, 'dossier_id')}
+                            label="Client"
+                            placeholder="Select client"
+                            selectedKey={selectedClientId}
+                            onSelectionChange={handleClientChange}
+                            options={clients}
+                            error={firstError(errors, 'client_id')}
                         />
 
                         <AppSelect
-                            label="Document template"
-                            placeholder="Select document type"
-                            selectedKey={form.documentTemplateId}
-                            onSelectionChange={(value) => updateSelect('documentTemplateId', value)}
-                            options={templates}
-                            error={firstError(errors, 'document_template_id')}
+                            label="Dossier / Project"
+                            placeholder={dossierSelectDisabled ? 'Select a client first' : 'Select dossier'}
+                            selectedKey={form.dossierId}
+                            onSelectionChange={(value) => updateSelect('dossierId', value)}
+                            options={filteredDossiers}
+                            isDisabled={dossierSelectDisabled}
+                            error={firstError(errors, 'dossier_id')}
                         />
+
+                        {templates.length > 0 && (
+                            <AppSelect
+                                label="Document template"
+                                placeholder="Select document type"
+                                selectedKey={form.documentTemplateId}
+                                onSelectionChange={(value) => updateSelect('documentTemplateId', value)}
+                                options={templates}
+                                error={firstError(errors, 'document_template_id')}
+                            />
+                        )}
 
                         <AppSelect
                             label="Status"

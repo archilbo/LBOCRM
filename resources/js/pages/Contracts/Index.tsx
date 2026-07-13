@@ -134,8 +134,8 @@ export default function ContractsIndex({ contracts, dossiers, metrics }: PagePro
 
     function generateDocument(contractId: number, type: 'pdf' | 'docx') {
         setGeneratingId(contractId);
-        const url = type === 'pdf' ? `/contracts/${contractId}/generate-pdf` : `/contracts/${contractId}/generate`;
-        router.post(url, {}, {
+        const url = type === 'pdf' ? `/contracts/${contractId}/export-pdf` : `/contracts/${contractId}/generate`;
+        router.put(url, {}, {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success(type === 'pdf' ? 'PDF generated successfully.' : 'Document generated successfully.');

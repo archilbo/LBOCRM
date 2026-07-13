@@ -144,11 +144,11 @@ function StatusMenu({ task, onStatusChange }: { task: TaskRow; onStatusChange: (
                 <ChevronDown size={11} /> Move
             </button>
             {open ? (
-                <div className="absolute right-0 top-8 z-50 w-40 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-1 shadow-2xl shadow-black/40">
+                <div className="absolute right-0 top-8 z-50 w-40 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[#11100d] p-1 shadow-2xl shadow-black/80 ring-1 ring-black/60">
                     {COLUMNS.filter((s) => s !== task.status).map((status) => (
                         <button key={status} type="button" onClick={() => { setOpen(false); onStatusChange(task, status); }}
-                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-[var(--crm-text)] transition hover:bg-[var(--crm-surface)]">
-                            <span className={`size-2 rounded-full ${STATUS_DOT_COLORS[status]}`} />
+                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-[var(--crm-text)] transition hover:border-[rgba(216,177,92,0.35)] hover:bg-[#211b12] hover:text-[var(--crm-gold)] focus-visible:border-[rgba(216,177,92,0.5)] focus-visible:bg-[#211b12] focus-visible:text-[var(--crm-gold)] focus-visible:outline-none">
+                            <span className={`size-2 rounded-full  ${STATUS_DOT_COLORS[status]}`} />
                             {STATUS_LABELS[status as TaskStatus]}
                         </button>
                     ))}

@@ -59,6 +59,7 @@ Route::middleware('auth')->group(function () {
         'update',
         'destroy',
     ]);
+    Route::post('/clients/scan-cin', [ClientController::class, 'scanCin'])->name('clients.scan-cin')->withoutMiddleware([\App\Http\Middleware\HandleInertiaRequests::class]);
 
     Route::resource('intermediaries', IntermediaryController::class)->only([
         'index',

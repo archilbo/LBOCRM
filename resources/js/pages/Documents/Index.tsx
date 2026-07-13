@@ -15,7 +15,7 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { DocumentUploadDrawer } from '@/features/documents/drawers/DocumentUploadDrawer';
 import { DocumentGroupedExplorer } from '@/features/documents/components/DocumentGroupedExplorer';
 import type {
-    DocumentStatus, DocumentTemplateOption, DocumentUploadPayload,
+    ClientOption, DocumentStatus, DocumentTemplateOption, DocumentUploadPayload,
     DocumentLocationGroup, DossierDocumentRow, DossierOption,
 } from '@/features/documents/types';
 import { cn } from '@/lib/cn';
@@ -24,6 +24,7 @@ import { useTranslation } from '@/lib/i18n';
 type PageProps = {
     documents: DossierDocumentRow[];
     documentGroups: DocumentLocationGroup[];
+    clients: ClientOption[];
     dossiers: DossierOption[];
     templates: DocumentTemplateOption[];
     metrics: { total: number; uploaded: number; verified: number; missing: number; templates: number };
@@ -55,7 +56,7 @@ function hasSearchMatch(document: DossierDocumentRow, query: string) {
         .filter(Boolean).join(' ').toLowerCase().includes(query.trim().toLowerCase());
 }
 
-export default function DocumentsIndex({ documents, documentGroups, dossiers, templates, metrics }: PageProps) {
+export default function DocumentsIndex({ documents, documentGroups, clients, dossiers, templates, metrics }: PageProps) {
     const { t } = useTranslation();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState('all');
@@ -103,6 +104,10 @@ export default function DocumentsIndex({ documents, documentGroups, dossiers, te
         if (!openMenuId) return;
         function close(e: MouseEvent | KeyboardEvent) {
             if (e instanceof KeyboardEvent && e.key === 'Escape') { setOpenMenuId(null); return; }
+            if ((e as MouseEvent).target instanceof Node) {
+                const target = (e as MouseEvent).target as Node;
+                if (target instanceof Element && target.closest('[data-dropdown]')) return;
+            }
             setOpenMenuId(null);
         }
         document.addEventListener('mousedown', close);
@@ -156,7 +161,7 @@ export default function DocumentsIndex({ documents, documentGroups, dossiers, te
                     <MoreHorizontal size={15} />
                 </button>
                 {isOpen && (
-                    <div className="absolute right-0 top-full z-50 mt-1 min-w-[170px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl"
+                    <div data-dropdown className="absolute right-0 top-full z-50 mt-1 min-w-[170px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl"
                         onClick={(e) => e.stopPropagation()}>
                         <button type="button" onClick={() => { setPreviewDoc(doc); setOpenMenuId(null); }}
                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
@@ -493,7 +498,7 @@ export default function DocumentsIndex({ documents, documentGroups, dossiers, te
                                                             <MoreHorizontal size={15} />
                                                         </button>
                                                         {openMenuId === doc.id && (
-                                                            <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl"
+                                                            <div data-dropdown className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl"
                                                                 onClick={(e) => e.stopPropagation()}>
                                                                 <button type="button" onClick={() => { setPreviewDoc(doc); setOpenMenuId(null); }}
                                                                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] hover:bg-[var(--surface-2)]">
@@ -533,6 +538,7 @@ export default function DocumentsIndex({ documents, documentGroups, dossiers, te
 
                 <DocumentUploadDrawer
                     isOpen={drawerOpen}
+                    clients={clients}
                     dossiers={dossiers}
                     templates={templates}
                     onOpenChange={setDrawerOpen}

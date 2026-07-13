@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use App\Services\Chat\ChatService;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -42,12 +43,14 @@ class HandleInertiaRequests extends Middleware
                     'recent_notifications' => \App\Http\Resources\NotificationResource::collection(
                         $user->notifications()->latest()->take(20)->get()
                     )->resolve(),
-                    'recent_conversations' => \App\Http\Resources\ConversationResource::collection(
-                        \App\Models\Conversation::whereHas('participants', fn ($q) => $q->where('user_id', $user->id)->whereNull('archived_at'))
-                            ->with(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)])
-                            ->orderByDesc('last_message_at')
-                            ->take(8)
-                            ->get()
+                    'recent_conversations' => fn () => \App\Http\Resources\ConversationResource::collection(
+                        app(ChatService::class)->loadLatestMessagePreviews(
+                            \App\Models\Conversation::whereHas('participants', fn ($q) => $q->where('user_id', $user->id)->whereNull('archived_at'))
+                                ->with(['participants.user'])
+                                ->orderByDesc('last_message_at')
+                                ->take(8)
+                                ->get()
+                        )
                     )->resolve(),
                 ] : null,
             ],

@@ -23,6 +23,12 @@ export type DossierDocumentRow = {
 export type DossierOption = {
     id: string;
     label: string;
+    clientId: string;
+};
+
+export type ClientOption = {
+    id: string;
+    label: string;
 };
 
 export type DocumentTemplateOption = {

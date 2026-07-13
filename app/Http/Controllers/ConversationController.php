@@ -28,10 +28,10 @@ class ConversationController extends Controller
         $conversations = Conversation::whereHas('participants', fn ($q) => $q->where('user_id', $user->id)->whereNull('archived_at'))
             ->with([
                 'participants.user',
-                'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1),
             ])
             ->orderByDesc('last_message_at')
             ->get();
+        $this->chatService->loadLatestMessagePreviews($conversations);
 
         $users = User::where('id', '!=', $user->id)->orderBy('name')->get()->map(fn (User $u) => [
             'id' => $u->id, 'name' => $u->name, 'email' => $u->email,
@@ -153,16 +153,20 @@ class ConversationController extends Controller
         $participant = $conversation->participants()->where('user_id', $request->user()->id)->first();
         if ($participant) {
             $participant->update(['archived_at' => now()]);
-            $conversation->load(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)]);
+            $conversation->load(['participants.user']);
+            $this->chatService->loadLatestMessagePreviews(collect([$conversation]));
             try { broadcast(new InboxUpdated($participant->user_id, [
                 'eventType' => 'conversation_archived',
                 'conversationId' => $conversation->id,
                 'conversation' => (new ConversationResource($conversation))->resolve(),
             ])); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
         }
+        $conversation->loadMissing(['participants.user']);
+        $this->chatService->loadLatestMessagePreviews(collect([$conversation]));
+
         return response()->json([
             'success' => true,
-            'conversation' => (new ConversationResource($conversation->loadMissing(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)])))->resolve(),
+            'conversation' => (new ConversationResource($conversation))->resolve(),
         ]);
     }
 
@@ -172,16 +176,20 @@ class ConversationController extends Controller
         $participant = $conversation->participants()->where('user_id', $request->user()->id)->first();
         if ($participant) {
             $participant->update(['archived_at' => null]);
-            $conversation->load(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)]);
+            $conversation->load(['participants.user']);
+            $this->chatService->loadLatestMessagePreviews(collect([$conversation]));
             try { broadcast(new InboxUpdated($participant->user_id, [
                 'eventType' => 'conversation_unarchived',
                 'conversationId' => $conversation->id,
                 'conversation' => (new ConversationResource($conversation))->resolve(),
             ])); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
         }
+        $conversation->loadMissing(['participants.user']);
+        $this->chatService->loadLatestMessagePreviews(collect([$conversation]));
+
         return response()->json([
             'success' => true,
-            'conversation' => (new ConversationResource($conversation->loadMissing(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)])))->resolve(),
+            'conversation' => (new ConversationResource($conversation))->resolve(),
         ]);
     }
 
@@ -189,9 +197,10 @@ class ConversationController extends Controller
     {
         $user = $request->user();
         $conversations = Conversation::whereHas('participants', fn ($q) => $q->where('user_id', $user->id)->whereNotNull('archived_at'))
-            ->with(['participants.user', 'messages' => fn ($q) => $q->with(['user', 'attachments', 'forwardedFrom.user'])->latest()->limit(1)])
+            ->with(['participants.user'])
             ->orderByDesc('last_message_at')
             ->get();
+        $this->chatService->loadLatestMessagePreviews($conversations);
 
         return response()->json([
             'conversations' => ConversationResource::collection($conversations)->resolve(),
