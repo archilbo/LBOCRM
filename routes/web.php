@@ -22,6 +22,7 @@ use App\Http\Controllers\Finance\DocumentTemplateVersionController;
 use App\Http\Controllers\Finance\FinanceDocumentController;
 use App\Http\Controllers\Finance\FinanceSettingsController;
 use App\Http\Controllers\Finance\CompanyLogoController;
+use App\Http\Controllers\Finance\ExpenseController;
 use App\Http\Controllers\Finance\PaymentController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\IntermediaryController;
@@ -149,6 +150,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/finance/payments', [PaymentController::class, 'store'])->name('finance.payments.store');
     Route::put('/finance/payments/{payment}', [PaymentController::class, 'update'])->name('finance.payments.update');
     Route::delete('/finance/payments/{payment}', [PaymentController::class, 'destroy'])->name('finance.payments.destroy');
+
+    Route::get('/finance/expenses', [ExpenseController::class, 'index'])->name('finance.expenses.index');
+    Route::post('/finance/expenses', [ExpenseController::class, 'store'])->name('finance.expenses.store');
+    Route::put('/finance/expenses/{expense}', [ExpenseController::class, 'update'])->name('finance.expenses.update');
+    Route::delete('/finance/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('finance.expenses.destroy');
 
     Route::get('/archives', [ArchiveController::class, 'index'])->name('archives.index');
     Route::post('/archives', [ArchiveController::class, 'store'])->name('archives.store');

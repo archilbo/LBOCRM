@@ -297,11 +297,12 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
         formData.append('document_template_id', payload.documentTemplateId || '');
         formData.append('status', payload.status || 'uploaded');
         formData.append('notes', payload.notes || '');
+        formData.append('return_to', window.location.pathname);
         if (payload.file) formData.append('file', payload.file);
         router.post('/documents', formData, {
             forceFormData: true,
             preserveScroll: true,
-            onSuccess: () => { setStandaloneUploadOpen(false); setIsDocUploading(false); toast.success('Document uploaded.'); afterCreateReload(); },
+            onSuccess: () => { setStandaloneUploadOpen(false); setIsDocUploading(false); toast.success('Document uploaded.'); },
             onError: () => { setIsDocUploading(false); toast.error('Please check document form errors.'); },
         });
     }

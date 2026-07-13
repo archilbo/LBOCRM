@@ -1,22 +1,15 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    Copy,
-    FileText,
-    History,
-    LayoutTemplate,
-    Plus,
-    RefreshCcw,
-    Save,
-    Sparkles,
-    Star,
-    Trash2,
-} from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Code, FileText } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import type { DocumentTemplate, FinanceDocumentType, TemplatePlaceholder } from '@/features/finance/types';
+import { TemplatePreviewPanel } from './TemplatePreviewPanel';
+import { TemplateList } from './components/TemplateList';
+import { TemplateToolbar } from './components/TemplateToolbar';
+import { TemplateEditorForm } from './components/TemplateEditorForm';
 
 type PageProps = {
     templates?: DocumentTemplate[] | { data?: DocumentTemplate[] };
@@ -31,11 +24,12 @@ type PageProps = {
 };
 
 type TemplateDraft = DocumentTemplate;
+type EditorSection = 'bodyHtml' | 'headerHtml' | 'footerHtml' | 'css';
 
-const documentTypes: Array<{ type: FinanceDocumentType; label: string; hint: string }> = [
-    { type: 'quote', label: 'Devis', hint: 'Client offers' },
-    { type: 'invoice', label: 'Factures', hint: 'Billing documents' },
-    { type: 'receipt', label: 'Recus', hint: 'Payment receipts' },
+const documentTypes: Array<{ type: FinanceDocumentType; label: string }> = [
+    { type: 'quote', label: 'Devis' },
+    { type: 'invoice', label: 'Factures' },
+    { type: 'receipt', label: 'Recus' },
 ];
 
 function unwrapTemplates(value?: DocumentTemplate[] | { data?: DocumentTemplate[] }): DocumentTemplate[] {
@@ -94,7 +88,6 @@ function renderPreview(template: TemplateDraft, sampleData: Record<string, unkno
             if (!carry || typeof carry !== 'object') return undefined;
             return (carry as Record<string, unknown>)[part];
         }, sampleData);
-
         return value?.toString() || '';
     });
 
@@ -121,10 +114,6 @@ function isDirty(draft: TemplateDraft | null, selected: DocumentTemplate | null)
     return JSON.stringify(templatePayload(draft)) !== JSON.stringify(templatePayload(selected));
 }
 
-function placeholderItems(placeholders: TemplatePlaceholder[]): string[] {
-    return placeholders.flatMap((group) => Array.isArray(group.items) ? group.items : []);
-}
-
 export default function FinanceTemplatesIndex({
     templates: rawTemplates,
     placeholders,
@@ -138,7 +127,7 @@ export default function FinanceTemplatesIndex({
 
     const [selectedType, setSelectedType] = useState<FinanceDocumentType>(initialType);
     const visibleTemplates = useMemo(
-        () => templates.filter((template) => template.type === selectedType),
+        () => templates.filter((t) => t.type === selectedType),
         [templates, selectedType],
     );
 
@@ -148,36 +137,88 @@ export default function FinanceTemplatesIndex({
     });
 
     const selectedTemplate = useMemo(
-        () => visibleTemplates.find((template) => template.id === selectedId) || visibleTemplates[0] || null,
+        () => visibleTemplates.find((t) => t.id === selectedId) || visibleTemplates[0] || null,
         [selectedId, visibleTemplates],
     );
 
-    const [draft, setDraft] = useState<TemplateDraft | null>(() => selectedTemplate ? cloneTemplate(selectedTemplate) : null);
-    const [previewHtml, setPreviewHtml] = useState(() => draft ? renderPreview(draft, sampleData) : '');
+    const [draft, setDraft] = useState<TemplateDraft | null>(() =>
+        selectedTemplate ? cloneTemplate(selectedTemplate) : null,
+    );
+    const [rawPreviewHtml, setRawPreviewHtml] = useState(() =>
+        draft ? renderPreview(draft, sampleData) : '',
+    );
 
     const dirty = isDirty(draft, selectedTemplate);
-    const variables = placeholderItems(placeholders);
     const [deleteTarget, setDeleteTarget] = useState<DocumentTemplate | null>(null);
+    const [showStarterModal, setShowStarterModal] = useState(false);
+    const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('tpl_left_collapsed') === '1');
+    const [previewCollapsed, setPreviewCollapsed] = useState(() => localStorage.getItem('tpl_preview_collapsed') === '1');
+    const [activeSection, setActiveSection] = useState<EditorSection>('bodyHtml');
+
+    // Debounce preview (400ms)
+    const [previewHtml, setPreviewHtml] = useState(rawPreviewHtml);
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    useEffect(() => {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => setPreviewHtml(rawPreviewHtml), 400);
+        return () => clearTimeout(debounceRef.current);
+    }, [rawPreviewHtml]);
+
+    useEffect(() => {
+        localStorage.setItem('tpl_left_collapsed', leftCollapsed ? '1' : '0');
+    }, [leftCollapsed]);
+
+    useEffect(() => {
+        localStorage.setItem('tpl_preview_collapsed', previewCollapsed ? '1' : '0');
+    }, [previewCollapsed]);
 
     useEffect(() => {
         if (!selectedTemplate) {
             setDraft(null);
-            setPreviewHtml('');
+            setRawPreviewHtml('');
+            setActiveSection('bodyHtml');
             return;
         }
-
         const next = cloneTemplate(selectedTemplate);
         setDraft(next);
-        setPreviewHtml(renderPreview(next, sampleData));
+        setRawPreviewHtml(renderPreview(next, sampleData));
     }, [selectedTemplate?.id]);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        function handleKeyDown(e: KeyboardEvent) {
+            const ctrl = e.ctrlKey || e.metaKey;
+            if (ctrl && e.key === 's') {
+                e.preventDefault();
+                save();
+                return;
+            }
+            if (ctrl && ['1', '2', '3', '4'].includes(e.key)) {
+                e.preventDefault();
+                const sections: EditorSection[] = ['bodyHtml', 'headerHtml', 'footerHtml', 'css'];
+                const idx = parseInt(e.key, 10) - 1;
+                if (idx < sections.length) setActiveSection(sections[idx]);
+                return;
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [draft, dirty]);
+
+    const typeCounts = useMemo(() => {
+        const counts: Record<string, number> = {};
+        for (const t of templates) {
+            counts[t.type] = (counts[t.type] || 0) + 1;
+        }
+        return counts;
+    }, [templates]);
 
     function selectType(type: FinanceDocumentType) {
         if (dirty && !window.confirm('Unsaved changes will be lost. Continue?')) return;
-
-        const first = templates.find((template) => template.type === type);
+        const first = templates.find((t) => t.type === type);
         setSelectedType(type);
         setSelectedId(first?.id);
-
+        setActiveSection('bodyHtml');
         const url = new URL(window.location.href);
         url.searchParams.set('type', type);
         if (first) url.searchParams.set('template', String(first.id));
@@ -187,11 +228,10 @@ export default function FinanceTemplatesIndex({
 
     function selectTemplate(template: DocumentTemplate) {
         if (dirty && !window.confirm('Unsaved changes will be lost. Continue?')) return;
-
         setSelectedId(template.id);
         setDraft(cloneTemplate(template));
-        setPreviewHtml(renderPreview(template, sampleData));
-
+        setRawPreviewHtml(renderPreview(template, sampleData));
+        setActiveSection('bodyHtml');
         const url = new URL(window.location.href);
         url.searchParams.set('type', template.type);
         url.searchParams.set('template', String(template.id));
@@ -202,12 +242,11 @@ export default function FinanceTemplatesIndex({
         if (!draft) return;
         const next = { ...draft, ...patch };
         setDraft(next);
-        setPreviewHtml(renderPreview(next, sampleData));
+        setRawPreviewHtml(renderPreview(next, sampleData));
     }
 
     function save() {
         if (!draft) return;
-
         router.put(draft.urls.update, templatePayload(draft), {
             preserveScroll: true,
             onSuccess: () => toast.success('Template saved.'),
@@ -216,17 +255,25 @@ export default function FinanceTemplatesIndex({
     }
 
     function createTemplate() {
+        setShowStarterModal(true);
+    }
+
+    function createFromStarter(starter: { name: string; slug: string; bodyHtml: string }) {
+        setShowStarterModal(false);
         router.post(routes.store, {
             type: selectedType,
-            name: `New ${selectedType} template`,
-            slug: `new-${selectedType}-template`,
-            body_html: '{{items_table}}',
+            name: starter.name,
+            slug: starter.slug,
+            header_html: '',
+            body_html: starter.bodyHtml,
+            footer_html: '',
+            css: '',
             paper_size: 'A4',
             orientation: 'portrait',
             is_default: false,
         }, {
             preserveScroll: true,
-            onSuccess: () => toast.success('Template created.'),
+            onSuccess: () => toast.success(`Template "${starter.name}" created.`),
             onError: () => toast.error('Could not create template.'),
         });
     }
@@ -256,7 +303,7 @@ export default function FinanceTemplatesIndex({
         router.delete(`/finance/templates/${deleteTarget.id}`, {
             preserveScroll: true,
             onSuccess: () => { toast.success('Template deleted.'); setDeleteTarget(null); },
-            onError: () => toast.error('Template could not be deleted.'),
+            onError: () => toast.error('Could not delete template.'),
         });
     }
 
@@ -270,280 +317,177 @@ export default function FinanceTemplatesIndex({
 
     async function exactPreview() {
         if (!draft?.urls.preview) return;
-
         try {
             const response = await fetch(draft.urls.preview, { headers: { Accept: 'application/json' } });
             const data = await response.json() as { html?: string };
-            setPreviewHtml(data.html || renderPreview(draft, sampleData));
+            setRawPreviewHtml(data.html || renderPreview(draft, sampleData));
             toast.success('Exact preview loaded.');
         } catch {
             toast.error('Exact preview failed.');
         }
     }
 
+    const STARTER_TEMPLATES = [
+        {
+            name: 'Minimal',
+            slug: 'minimal-template',
+            description: 'Clean layout with basic header and items table',
+            bodyHtml: '<h1>{{company_name}}</h1>\n<p>{{client_name}}</p>\n{{items_table}}\n<p>Total: {{total_ttc}}</p>',
+        },
+        {
+            name: 'Classic',
+            slug: 'classic-template',
+            description: 'Traditional document with header/footer sections',
+            bodyHtml: '<div class="header">{{company_name}} — {{document_number}}</div>\n{{items_table}}\n<div class="footer">Page {{page_number}}</div>',
+        },
+        {
+            name: 'Modern',
+            slug: 'modern-template',
+            description: 'Modern design with accent colors and columns',
+            bodyHtml: '<section class="hero">{{company_name}}</section>\n<section>{{client_name}} — {{document_date}}</section>\n{{items_table}}\n<hr/>\n<p><strong>Total TTC:</strong> {{total_ttc}}</p>',
+        },
+    ];
+
+    // Mobile tab state
+    const [mobileTab, setMobileTab] = useState<'templates' | 'editor' | 'preview'>('editor');
+
+    function renderMainContent() {
+        if (draft) {
+            return (
+                <TemplateEditorForm
+                    draft={draft}
+                    onUpdate={updateDraft}
+                    placeholders={placeholders}
+                    activeSection={activeSection}
+                    onSectionChange={setActiveSection}
+                />
+            );
+        }
+        return (
+            <div className="flex min-h-0 flex-1 items-center justify-center text-center">
+                <div>
+                    <FileText className="mx-auto text-[var(--accent)]" size={28} />
+                    <h2 className="mt-2 text-sm font-semibold text-[var(--text)]">No template selected</h2>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">Create or reset a default template.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <>
             <Head title="Finance templates" />
 
-            <AppShell
-                eyebrowKey="financeWorkspace.eyebrow"
-                titleKey="financeWorkspace.title"
-                subtitleKey="financeWorkspace.subtitle"
-            >
-                <div className="crm-page FORCE_FINANCE_TEMPLATES_REDESIGN_53P">
-                    <section className="crm-panel">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div>
-                                <p className="crm-kpi-label">TEMPLATE STUDIO</p>
-                                <h1 className="mt-2 text-2xl font-semibold">Finance templates</h1>
-                                <p className="mt-1 text-sm text-[var(--text-muted)]">
-                                    Manage Devis, Factures and Recus templates using backend data, live variables and PDF-ready preview.
-                                </p>
-                            </div>
+            <AppShell fullBleed>
+                <div className="flex h-full w-full flex-col min-h-0">
+                    <TemplateToolbar
+                        selectedType={selectedType}
+                        documentTypes={documentTypes}
+                        typeCounts={typeCounts}
+                        onSelectType={selectType}
+                        templatesTotal={templates.length}
+                        variablesTotal={placeholders.reduce((s, g) => s + g.items.length, 0)}
+                        draftName={draft?.name}
+                        dirty={dirty}
+                        onNew={createTemplate}
+                        onSave={save}
+                        onExactPreview={exactPreview}
+                        onVersions={draft?.urls.versions ? () => router.visit(draft.urls.versions!) : undefined}
+                        onDuplicate={() => draft && duplicateTemplate(draft)}
+                        onDelete={() => draft && deleteTemplate(draft)}
+                        onSetDefault={() => draft && setDefault(draft)}
+                        onResetDefault={resetDefault}
+                    />
 
-                            <div className="flex flex-wrap gap-2">
-                                <button type="button" onClick={createTemplate} className="crm-action-button bg-[var(--accent)] text-black">
-                                    <Plus size={15} />
-                                    New template
+                    {/* Desktop 3-pane layout — fills all width */}
+                    <div className="hidden xl:flex flex-1 min-h-0 w-full">
+                        <TemplateList
+                            templates={visibleTemplates}
+                            selectedId={selectedId}
+                            onSelect={selectTemplate}
+                            collapsed={leftCollapsed}
+                            onToggleCollapse={() => setLeftCollapsed((v) => !v)}
+                        />
+
+                        <div className="flex min-w-[480px] flex-1 flex-col min-h-0 bg-[var(--surface)]">
+                            {renderMainContent()}
+                        </div>
+
+                        <TemplatePreviewPanel
+                            html={previewHtml}
+                            onRefresh={() => void exactPreview()}
+                            paperSize={(draft?.paperSize as 'A4' | 'A5' | 'Letter') || 'A4'}
+                            orientation={(draft?.orientation as 'portrait' | 'landscape') || 'portrait'}
+                            collapsed={previewCollapsed}
+                            onToggleCollapse={() => setPreviewCollapsed((v) => !v)}
+                        />
+                    </div>
+
+                    {/* Tablet: 1024-1279px — preview collapsed by default */}
+                    <div className="hidden lg:flex xl:hidden flex-1 min-h-0 w-full">
+                        <TemplateList
+                            templates={visibleTemplates}
+                            selectedId={selectedId}
+                            onSelect={selectTemplate}
+                            collapsed={leftCollapsed}
+                            onToggleCollapse={() => setLeftCollapsed((v) => !v)}
+                        />
+                        <div className="flex min-w-0 flex-1 flex-col min-h-0 bg-[var(--surface)]">
+                            {renderMainContent()}
+                        </div>
+                        <TemplatePreviewPanel
+                            html={previewHtml}
+                            onRefresh={() => void exactPreview()}
+                            paperSize={(draft?.paperSize as 'A4' | 'A5' | 'Letter') || 'A4'}
+                            orientation={(draft?.orientation as 'portrait' | 'landscape') || 'portrait'}
+                            collapsed={true}
+                        />
+                    </div>
+
+                    {/* Mobile tabbed layout (<1024px) */}
+                    <div className="flex flex-col min-h-0 flex-1 lg:hidden">
+                        <div className="flex border-b border-[var(--border)] bg-[var(--surface-2)]">
+                            {(['templates', 'editor', 'preview'] as const).map((tab) => (
+                                <button
+                                    key={tab}
+                                    type="button"
+                                    onClick={() => setMobileTab(tab)}
+                                    className={`flex-1 py-2 text-center text-xs font-medium transition ${
+                                        mobileTab === tab
+                                            ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
+                                            : 'text-[var(--text-muted)]'
+                                    }`}
+                                >
+                                    {tab === 'templates' ? 'Templates' : tab === 'editor' ? 'Editor' : 'Preview'}
                                 </button>
-                                <button type="button" onClick={resetDefault} className="crm-action-button">
-                                    <RefreshCcw size={15} />
-                                    Reset default
-                                </button>
-                            </div>
+                            ))}
                         </div>
-
-                        <div className="crm-kpi-grid mt-5">
-                            <div className="crm-kpi-card">
-                                <p className="crm-kpi-label">Templates</p>
-                                <p className="crm-kpi-value">{templates.length}</p>
-                                <p className="text-xs text-[var(--text-muted)]">All document types</p>
-                            </div>
-                            <div className="crm-kpi-card">
-                                <p className="crm-kpi-label">Selected type</p>
-                                <p className="crm-kpi-value">{documentTypes.find((item) => item.type === selectedType)?.label}</p>
-                                <p className="text-xs text-[var(--text-muted)]">{visibleTemplates.length} template(s)</p>
-                            </div>
-                            <div className="crm-kpi-card">
-                                <p className="crm-kpi-label">Variables</p>
-                                <p className="crm-kpi-value">{variables.length}</p>
-                                <p className="text-xs text-[var(--text-muted)]">Available placeholders</p>
-                            </div>
-                            <div className="crm-kpi-card">
-                                <p className="crm-kpi-label">Default</p>
-                                <p className="crm-kpi-value">{visibleTemplates.filter((item) => item.isDefault).length}</p>
-                                <p className="text-xs text-[var(--text-muted)]">For current type</p>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section className="crm-panel">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex flex-wrap gap-2">
-                                {documentTypes.map((item) => {
-                                    const active = item.type === selectedType;
-                                    const count = templates.filter((template) => template.type === item.type).length;
-
-                                    return (
-                                        <button
-                                            key={item.type}
-                                            type="button"
-                                            onClick={() => selectType(item.type)}
-                                            className={[
-                                                'rounded-xl border px-4 py-2 text-left text-sm transition',
-                                                active
-                                                    ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent)]'
-                                                    : 'text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]',
-                                            ].join(' ')}
-                                        >
-                                            <span className="font-semibold">{item.label}</span>
-                                            <span className="ml-2 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-xs">{count}</span>
-                                            <span className="block text-[11px] text-[var(--text-muted)]">{item.hint}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {draft ? (
-                                <div className="flex flex-wrap gap-2">
-                                    {dirty ? <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-400">Unsaved</span> : null}
-                                    <button type="button" onClick={() => void exactPreview()} className="crm-action-button">
-                                        <Sparkles size={15} />
-                                        Exact preview
-                                    </button>
-                                    {draft.urls.versions ? (
-                                        <button type="button" onClick={() => router.visit(draft.urls.versions!)} className="crm-action-button">
-                                            <History size={15} />
-                                            Versions
-                                        </button>
-                                    ) : null}
-                                    <button type="button" onClick={save} disabled={!dirty} className="crm-action-button bg-[var(--accent)] text-black disabled:opacity-40">
-                                        <Save size={15} />
-                                        Save
-                                    </button>
-                                </div>
-                            ) : null}
-                        </div>
-                    </section>
-
-                    <section className="grid gap-6 xl:grid-cols-[310px_minmax(0,1fr)_430px]">
-                        <aside className="crm-panel self-start">
-                            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-                                <div>
-                                    <h2 className="font-semibold">Templates</h2>
-                                    <p className="text-xs text-[var(--text-muted)]">{visibleTemplates.length} visible</p>
-                                </div>
-                                <LayoutTemplate className="text-[var(--accent)]" size={18} />
-                            </div>
-
-                            <div className="max-h-[720px] overflow-auto p-2">
-                                {visibleTemplates.map((template) => {
-                                    const active = selectedTemplate?.id === template.id;
-
-                                    return (
-                                        <button
-                                            key={template.id}
-                                            type="button"
-                                            onClick={() => selectTemplate(template)}
-                                            className={[
-                                                'mb-2 w-full rounded-xl border p-3 text-left transition',
-                                                active
-                                                    ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]'
-                                                    : 'hover:border-[var(--accent)]',
-                                            ].join(' ')}
-                                        >
-                                            <div className="flex items-start justify-between gap-2">
-                                                <div className="min-w-0">
-                                                    <p className="truncate font-semibold">{template.name}</p>
-                                                    <p className="truncate text-xs text-[var(--text-muted)]">{template.slug}</p>
-                                                </div>
-                                                {template.isDefault ? <Star className="shrink-0 fill-[var(--accent)] text-[var(--accent)]" size={15} /> : null}
-                                            </div>
-                                            <div className="mt-3 flex flex-wrap gap-1 text-[10px] font-bold uppercase">
-                                                <span className="rounded-full bg-[var(--surface-2)] px-2 py-1">{template.paperSize}</span>
-                                                <span className="rounded-full bg-[var(--surface-2)] px-2 py-1">{template.orientation}</span>
-                                                <span className="rounded-full bg-[var(--surface-2)] px-2 py-1">{template.updatedAt || 'No update'}</span>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </aside>
-
-                        <main className="crm-panel min-w-0">
-                            {draft ? (
-                                <>
-                                    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
-                                        <div>
-                                            <p className="crm-kpi-label">EDITOR</p>
-                                            <h2 className="text-lg font-semibold">{draft.name}</h2>
-                                            <p className="text-xs text-[var(--text-muted)]">{draft.typeLabel} / {draft.slug}</p>
-                                        </div>
-
-                                        <div className="flex flex-wrap gap-2">
-                                            <button type="button" onClick={() => setDefault(draft)} className="crm-action-button">
-                                                <Star size={15} />
-                                                Default
-                                            </button>
-                                            <button type="button" onClick={() => duplicateTemplate(draft)} className="crm-action-button">
-                                                <Copy size={15} />
-                                                Duplicate
-                                            </button>
-                                            <button type="button" onClick={() => deleteTemplate(draft)} className="crm-action-button text-red-400">
-                                                <Trash2 size={15} />
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-3 p-4 lg:grid-cols-2">
-                                        <label className="space-y-1">
-                                            <span className="text-xs font-semibold text-[var(--text-muted)]">Name</span>
-                                            <input className="crm-command-input w-full" value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} />
-                                        </label>
-
-                                        <label className="space-y-1">
-                                            <span className="text-xs font-semibold text-[var(--text-muted)]">Slug</span>
-                                            <input className="crm-command-input w-full" value={draft.slug} onChange={(event) => updateDraft({ slug: event.target.value })} />
-                                        </label>
-
-                                        <label className="space-y-1">
-                                            <span className="text-xs font-semibold text-[var(--text-muted)]">Paper</span>
-                                            <select className="crm-command-input w-full" value={draft.paperSize} onChange={(event) => updateDraft({ paperSize: event.target.value })}>
-                                                <option value="A4">A4</option>
-                                                <option value="A5">A5</option>
-                                                <option value="Letter">Letter</option>
-                                            </select>
-                                        </label>
-
-                                        <label className="space-y-1">
-                                            <span className="text-xs font-semibold text-[var(--text-muted)]">Orientation</span>
-                                            <select className="crm-command-input w-full" value={draft.orientation} onChange={(event) => updateDraft({ orientation: event.target.value })}>
-                                                <option value="portrait">Portrait</option>
-                                                <option value="landscape">Landscape</option>
-                                            </select>
-                                        </label>
-                                    </div>
-
-                                    <div className="grid gap-3 px-4 pb-4">
-                                        {[
-                                            ['Header HTML', 'headerHtml'],
-                                            ['Body HTML', 'bodyHtml'],
-                                            ['Footer HTML', 'footerHtml'],
-                                            ['CSS', 'css'],
-                                        ].map(([label, key]) => (
-                                            <label key={key} className="space-y-1">
-                                                <span className="text-xs font-semibold text-[var(--text-muted)]">{label}</span>
-                                                <textarea
-                                                    className="min-h-[130px] w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 font-mono text-xs outline-none focus:border-[var(--accent)]"
-                                                    value={(draft as unknown as Record<string, string>)[key] || ''}
-                                                    onChange={(event) => updateDraft({ [key]: event.target.value } as Partial<TemplateDraft>)}
-                                                />
-                                            </label>
-                                        ))}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="flex min-h-[520px] items-center justify-center p-6 text-center">
-                                    <div>
-                                        <FileText className="mx-auto text-[var(--accent)]" size={32} />
-                                        <h2 className="mt-3 font-semibold">No template selected</h2>
-                                        <p className="mt-1 text-sm text-[var(--text-muted)]">Create or reset a default template.</p>
-                                    </div>
-                                </div>
-                            )}
-                        </main>
-
-                        <aside className="space-y-4">
-                            <div className="crm-panel overflow-hidden">
-                                <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-                                    <div>
-                                        <h2 className="font-semibold">Preview</h2>
-                                        <p className="text-xs text-[var(--text-muted)]">Live rendered document</p>
-                                    </div>
-                                    <Sparkles className="text-[var(--accent)]" size={17} />
-                                </div>
-                                <iframe
-                                    title="Template preview"
-                                    className="h-[520px] w-full bg-white"
-                                    srcDoc={previewHtml}
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                            {mobileTab === 'templates' ? (
+                                <TemplateList
+                                    templates={visibleTemplates}
+                                    selectedId={selectedId}
+                                    onSelect={(t) => { selectTemplate(t); setMobileTab('editor'); }}
+                                    collapsed={false}
+                                    onToggleCollapse={() => {}}
                                 />
-                            </div>
-
-                            <div className="crm-panel p-4">
-                                <h2 className="font-semibold">Variables</h2>
-                                <p className="mt-1 text-xs text-[var(--text-muted)]">Clicking is not required. Copy variables manually into HTML.</p>
-                                <div className="mt-3 flex max-h-[220px] flex-wrap gap-2 overflow-auto">
-                                    {variables.map((item) => (
-                                        <code key={item} className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--text-muted)]">
-                                            {'{{'}{item}{'}}'}
-                                        </code>
-                                    ))}
+                            ) : mobileTab === 'editor' ? (
+                                <div className="flex flex-col h-full min-h-0 bg-[var(--surface)]">
+                                    {renderMainContent()}
                                 </div>
-                            </div>
-                        </aside>
-                    </section>
+                            ) : (
+                                <TemplatePreviewPanel
+                                    html={previewHtml}
+                                    onRefresh={() => void exactPreview()}
+                                    paperSize={(draft?.paperSize as 'A4' | 'A5' | 'Letter') || 'A4'}
+                                    orientation={(draft?.orientation as 'portrait' | 'landscape') || 'portrait'}
+                                    collapsed={false}
+                                />
+                            )}
+                        </div>
+                    </div>
                 </div>
+
                 <AppModal
                     isOpen={!!deleteTarget}
                     onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
@@ -556,6 +500,36 @@ export default function FinanceTemplatesIndex({
                     <div className="flex justify-end gap-2">
                         <AppButton variant="secondary" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
                         <AppButton variant="danger" onPress={confirmDelete}>Delete</AppButton>
+                    </div>
+                </AppModal>
+
+                <AppModal
+                    isOpen={showStarterModal}
+                    onOpenChange={setShowStarterModal}
+                    title="Choose a starter template"
+                    size="md"
+                >
+                    <p className="mb-4 text-sm text-[var(--text-muted)]">
+                        Pick a starting point for your new {documentTypes.find((d) => d.type === selectedType)?.label} template.
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                        {STARTER_TEMPLATES.map((starter) => (
+                            <button
+                                key={starter.slug}
+                                type="button"
+                                onClick={() => createFromStarter(starter)}
+                                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left transition hover:border-[var(--accent)]"
+                            >
+                                <div className="mb-2 flex size-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
+                                    <Code size={18} />
+                                </div>
+                                <h3 className="font-semibold text-[var(--text)]">{starter.name}</h3>
+                                <p className="mt-1 text-xs text-[var(--text-muted)]">{starter.description}</p>
+                            </button>
+                        ))}
+                    </div>
+                    <div className="mt-4 flex justify-end gap-2">
+                        <AppButton variant="secondary" onPress={() => setShowStarterModal(false)}>Cancel</AppButton>
                     </div>
                 </AppModal>
             </AppShell>

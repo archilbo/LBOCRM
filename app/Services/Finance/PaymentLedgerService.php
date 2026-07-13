@@ -196,7 +196,6 @@ class PaymentLedgerService
             'quantity' => 1,
             'unit' => 'payment',
             'unit_price' => (float) $payment->amount,
-            'tva_rate' => 0,
         ]);
 
         $item->calculateTotals();

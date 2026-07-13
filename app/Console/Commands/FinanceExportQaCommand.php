@@ -276,11 +276,9 @@ class FinanceExportQaCommand extends Command
                 'quantity' => 1,
                 'unit' => 'forfait',
                 'unit_price' => 8000,
-                'discount_rate' => 0,
-                'tva_rate' => 20,
                 'total_ht' => 8000,
-                'total_tva' => 1600,
-                'total_ttc' => 9600,
+                'total_tva' => 0,
+                'total_ttc' => 8000,
             ],
             [
                 'title' => 'Suivi dossier administratif',
@@ -288,11 +286,9 @@ class FinanceExportQaCommand extends Command
                 'quantity' => 1,
                 'unit' => 'forfait',
                 'unit_price' => 2000,
-                'discount_rate' => 0,
-                'tva_rate' => 20,
                 'total_ht' => 2000,
-                'total_tva' => 400,
-                'total_ttc' => 2400,
+                'total_tva' => 0,
+                'total_ttc' => 2000,
             ],
         ];
 

@@ -66,8 +66,6 @@ class FinanceDocumentRenderData
                     'unit' => $item->unit ?? '',
                     'unit_price' => (float) $item->unit_price,
                     'unit_price_display' => $this->money((float) $item->unit_price, $currency),
-                    'discount_rate' => (float) $item->discount_rate,
-                    'tva_rate' => (float) $item->tva_rate,
                     'total_ht' => (float) $item->total_ht,
                     'total_ht_display' => $this->money((float) $item->total_ht, $currency),
                     'total_tva' => (float) $item->total_tva,

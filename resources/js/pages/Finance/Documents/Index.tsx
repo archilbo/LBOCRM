@@ -27,16 +27,22 @@ import { AppCard } from '@/components/ui/AppCard';
 import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppPagination } from '@/components/ui/AppPagination';
-import { FinanceMetricCards, type FinanceMetrics } from '@/features/finance/components/FinanceMetricCards';
+import { type FinanceMetrics } from '@/features/finance/components/FinanceMetricCards';
+import { calculateAgingBuckets, type AgingBucket } from '@/features/finance/utils/calculations';
 import { FinanceMonthlySummary } from '@/features/finance/components/FinanceMonthlySummary';
 import { FinanceDocumentLockBadge, getFinanceDocumentLockedAt } from '@/features/finance/components/FinanceDocumentLockNotice';
 import { FinanceStatusBadge } from '@/features/finance/components/FinanceStatusBadge';
 import { FinanceTabs } from '@/features/finance/components/FinanceTabs';
 import { FinanceDocumentBuilderDrawer } from '@/features/finance/drawers/FinanceDocumentBuilderDrawer';
 import { PaymentDrawer } from '@/features/finance/drawers/PaymentDrawer';
+import { MetricSparklineCard } from '@/features/finance/components/MetricSparklineCard';
+import { CashFlowChart } from '@/features/finance/components/CashFlowChart';
+import { ExpensesWorkspace } from '@/features/finance/components/ExpensesWorkspace';
+import { ExpenseDrawer } from '@/features/finance/drawers/ExpenseDrawer';
 import type {
     ClientOption,
     DossierOption,
+    Expense,
     FinanceDocument,
     FinanceDocumentType,
     FinanceMonthSummary,
@@ -44,8 +50,6 @@ import type {
     Payment,
     TemplateOption,
 } from '@/features/finance/types';
-
-/* FORCE_FINANCE_REDESIGN_53H */
 
 const defaultSettings: FinanceSettings = {
     defaultTvaRate: 20,
@@ -65,6 +69,7 @@ type Paginated<T> = {
 type PageProps = {
     documents?: Paginated<FinanceDocument> | FinanceDocument[];
     payments?: Paginated<Payment> | Payment[];
+    expenses?: Expense[];
     monthlySummaries?: FinanceMonthSummary[];
     metrics?: Partial<FinanceMetrics>;
     clients?: ClientOption[];
@@ -160,24 +165,6 @@ function paymentMatches(payment: Payment, query: string) {
         .includes(query.trim().toLowerCase());
 }
 
-function KpiCard({
-    label,
-    value,
-    detail,
-}: {
-    label: string;
-    value: string | number;
-    detail: string;
-}) {
-    return (
-        <div className="crm-kpi-card">
-            <p className="crm-kpi-label">{label}</p>
-            <p className="crm-kpi-value">{value}</p>
-            <p className="mt-2 truncate text-xs text-[var(--crm-text-soft)]">{detail}</p>
-        </div>
-    );
-}
-
 function DocumentFileBadges({ document }: { document: FinanceDocument }) {
     return (
         <div className="flex flex-wrap gap-1">
@@ -228,7 +215,7 @@ function FinanceDocumentDetailPanel({
                             <h2 className="truncate text-lg font-semibold">{document.number}</h2>
                             <FinanceDocumentLockBadge document={document} compact />
                         </div>
-                        <p className="text-sm text-[var(--crm-text-muted)]">{typeLabel(document.type)} · {document.dossier?.number || '-'}</p>
+                        <p className="text-sm text-[var(--crm-text-muted)]">{typeLabel(document.type)} &middot; {document.dossier?.number || '-'}</p>
                     </div>
 
                     <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(document.status)}`}>
@@ -674,28 +661,93 @@ function PaymentWorkspace({
     );
 }
 
+function sparklineFor(months: FinanceMonthSummary[], field: (m: FinanceMonthSummary) => number): number[] {
+    return [...months]
+        .sort((a, b) => {
+            const ka = a.year * 12 + a.month;
+            const kb = b.year * 12 + b.month;
+            return ka - kb;
+        })
+        .slice(-6)
+        .map(field);
+}
+
 function OverviewWorkspace({
     metrics,
     quotes,
     invoices,
     currency,
+    monthlySummaries,
+    allDocuments,
     onSelect,
 }: {
     metrics: FinanceMetrics;
     quotes: FinanceDocument[];
     invoices: FinanceDocument[];
     currency: string;
+    monthlySummaries: FinanceMonthSummary[];
+    allDocuments: FinanceDocument[];
     onSelect: (document: FinanceDocument) => void;
 }) {
+    const agingBuckets = useMemo(() => calculateAgingBuckets(allDocuments), [allDocuments]);
+
+    const sparklines = useMemo(() => ({
+        quotes: sparklineFor(monthlySummaries, (m) => m.quotesTotalTtc),
+        invoices: sparklineFor(monthlySummaries, (m) => m.invoicesTotalTtc),
+        paid: sparklineFor(monthlySummaries, (m) => m.paidTotal),
+        remaining: sparklineFor(monthlySummaries, (m) => m.remainingTotal),
+        overdue: sparklineFor(monthlySummaries, (m) => m.overdueTotal),
+        expenses: sparklineFor(monthlySummaries, (m) => m.expensesTotal),
+    }), [monthlySummaries]);
+
     return (
         <section className="space-y-5">
             <section className="crm-kpi-grid max-xl:grid-cols-3 max-md:grid-cols-1">
-                <KpiCard label="Quotes" value={formatMoney(metrics.totalQuotes, currency)} detail="Total devis TTC" />
-                <KpiCard label="Invoices" value={formatMoney(metrics.totalInvoices, currency)} detail="Total factures TTC" />
-                <KpiCard label="Paid" value={formatMoney(metrics.paidTotal, currency)} detail="Collected invoices" />
-                <KpiCard label="Remaining" value={formatMoney(metrics.remainingTotal, currency)} detail="Still to collect" />
-                <KpiCard label="Overdue" value={formatMoney(metrics.overdueTotal, currency)} detail={`${metrics.draftCount} draft(s)`} />
+                <MetricSparklineCard
+                    icon={<FileText size={20} />}
+                    label="Quotes"
+                    value={formatMoney(metrics.totalQuotes, currency)}
+                    sparklineData={sparklines.quotes}
+                    detail="Total devis TTC"
+                />
+                <MetricSparklineCard
+                    icon={<ReceiptText size={20} />}
+                    label="Invoices"
+                    value={formatMoney(metrics.totalInvoices, currency)}
+                    sparklineData={sparklines.invoices}
+                    detail="Total factures TTC"
+                />
+                <MetricSparklineCard
+                    icon={<WalletCards size={20} />}
+                    label="Paid"
+                    value={formatMoney(metrics.paidTotal, currency)}
+                    sparklineData={sparklines.paid}
+                    detail="Collected invoices"
+                />
+                <MetricSparklineCard
+                    icon={<BadgeDollarSign size={20} />}
+                    label="Expenses"
+                    value={formatMoney(metrics.totalExpenses ?? 0, currency)}
+                    sparklineData={sparklines.expenses}
+                    detail="Total expenses"
+                />
+                <MetricSparklineCard
+                    icon={<BadgeDollarSign size={20} />}
+                    label="Remaining"
+                    value={formatMoney(metrics.remainingTotal, currency)}
+                    sparklineData={sparklines.remaining}
+                    detail="Still to collect"
+                />
+                <MetricSparklineCard
+                    icon={<BadgeDollarSign size={20} />}
+                    label="Overdue"
+                    value={formatMoney(metrics.overdueTotal, currency)}
+                    sparklineData={sparklines.overdue}
+                    detail={`${metrics.draftCount} draft(s)`}
+                />
             </section>
+
+            {monthlySummaries.length > 0 && <CashFlowChart monthlySummaries={monthlySummaries} currency={currency} />}
 
             <div className="grid gap-5 xl:grid-cols-2">
                 <RecentDocuments title="Derniers devis" documents={quotes.slice(0, 6)} onSelect={onSelect} />
@@ -705,7 +757,50 @@ function OverviewWorkspace({
     );
 }
 
-function RecentDocuments({ title, documents, onSelect }: { title: string; documents: FinanceDocument[]; onSelect: (document: FinanceDocument) => void }) {
+function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }: {
+    title: string;
+    documents: FinanceDocument[];
+    onSelect: (document: FinanceDocument) => void;
+    agingBuckets?: AgingBucket[];
+    currency?: string;
+}) {
+    if (agingBuckets) {
+        return (
+            <div className="crm-panel overflow-hidden">
+                <div className="border-b border-[var(--crm-border)] px-4 py-3">
+                    <h2 className="text-sm font-semibold">{title}</h2>
+                </div>
+                <div className="p-4">
+                    {agingBuckets.some((b) => b.count > 0) ? (
+                        <div className="space-y-4">
+                            {agingBuckets.map((bucket) => {
+                                const total = agingBuckets.reduce((s, b) => s + b.total, 0);
+                                const pct = total > 0 ? (bucket.total / total) * 100 : 0;
+                                return (
+                                    <div key={bucket.label}>
+                                        <div className="mb-1 flex items-center justify-between text-sm">
+                                            <span className="font-medium text-[var(--crm-text)]">{bucket.label}</span>
+                                            <span className="font-semibold text-[var(--crm-text)]">{formatMoney(bucket.total, currency || 'MAD')}</span>
+                                        </div>
+                                        <div className="h-2 overflow-hidden rounded-full bg-[var(--crm-surface-2)]">
+                                            <div
+                                                className="h-full rounded-full bg-[var(--crm-danger)] transition-all"
+                                                style={{ width: `${pct}%` }}
+                                            />
+                                        </div>
+                                        <span className="mt-0.5 block text-[12px] text-[var(--crm-text-soft)]">{bucket.count} document(s)</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-[var(--crm-text-muted)]">Aucun impaye.</p>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="crm-panel overflow-hidden">
             <div className="border-b border-[var(--crm-border)] px-4 py-3">
@@ -739,6 +834,7 @@ function RecentDocuments({ title, documents, onSelect }: { title: string; docume
 export default function FinanceDocumentsIndex({
     documents: rawDocuments,
     payments: rawPayments,
+    expenses: rawExpenses,
     monthlySummaries = [],
     metrics: rawMetrics,
     clients = [],
@@ -751,6 +847,7 @@ export default function FinanceDocumentsIndex({
 }: PageProps) {
     const documents = unwrap(rawDocuments);
     const payments = unwrap(rawPayments);
+    const expenses = unwrap(rawExpenses) as Expense[];
     const settings = { ...defaultSettings, ...rawSettings };
     const [activeTab, setActiveTab] = useState(filters?.tab || new URLSearchParams(window.location.search).get('tab') || 'overview');
     const [builderOpen, setBuilderOpen] = useState(false);
@@ -760,6 +857,8 @@ export default function FinanceDocumentsIndex({
     const [paymentOpen, setPaymentOpen] = useState(false);
     const [paymentInvoice, setPaymentInvoice] = useState<FinanceDocument | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<FinanceDocument | null>(null);
+    const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
+    const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
     const quotes = useMemo(() => documents.filter((doc) => doc.type === 'quote'), [documents]);
     const invoices = useMemo(() => documents.filter((doc) => doc.type === 'invoice'), [documents]);
@@ -867,6 +966,10 @@ export default function FinanceDocumentsIndex({
                             <WalletCards size={16} />
                             Paiement
                         </AppButton>
+                        <AppButton variant="secondary" onPress={() => { setSelectedExpense(null); setExpenseDrawerOpen(true); }}>
+                            <Plus size={16} />
+                            Depense
+                        </AppButton>
                         <AppButton variant="secondary" onPress={() => openCreate('invoice')}>
                             <ReceiptText size={16} />
                             Nouvelle facture
@@ -885,6 +988,8 @@ export default function FinanceDocumentsIndex({
                             quotes={quotes}
                             invoices={invoices}
                             currency={settings.defaultCurrency}
+                            monthlySummaries={monthlySummaries}
+                            allDocuments={documents}
                             onSelect={(document) => {
                                 setSelectedDocument(document);
                                 setActiveTab(document.type === 'invoice' ? 'invoices' : 'quotes');
@@ -923,6 +1028,14 @@ export default function FinanceDocumentsIndex({
                             payments={payments}
                             currency={settings.defaultCurrency}
                             onReceipt={openPaymentReceiptUrl}
+                        />
+                    </TabPanel>
+
+                    <TabPanel id="expenses" className="outline-none">
+                        <ExpensesWorkspace
+                            expenses={expenses}
+                            currency={settings.defaultCurrency}
+                            onEdit={(expense) => { setSelectedExpense(expense); setExpenseDrawerOpen(true); }}
                         />
                     </TabPanel>
 
@@ -981,6 +1094,12 @@ export default function FinanceDocumentsIndex({
                 onOpenChange={setPaymentOpen}
                 invoices={invoices}
                 invoice={paymentInvoice}
+            />
+
+            <ExpenseDrawer
+                isOpen={expenseDrawerOpen}
+                onOpenChange={setExpenseDrawerOpen}
+                expense={selectedExpense}
             />
 
             <AppConfirmDialog

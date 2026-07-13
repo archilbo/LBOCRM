@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             CalendarDemoSeeder::class,
             ChatDemoSeeder::class,
             DemoDataSeeder::class,
+            ExpensesDemoSeeder::class,
         ]);
     }
 }

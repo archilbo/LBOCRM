@@ -130,8 +130,8 @@ function createForm(type: FinanceDocumentType, settings: FinanceSettings, docume
             terms: document.terms || '',
             templateId: document.templateId ? String(document.templateId) : '',
             items: document.items.length > 0
-                ? document.items.map((item, index) => calculateItem({ ...item, position: index + 1 }, document.tvaRate || settings.defaultTvaRate))
-                : [createEmptyItem(settings.defaultTvaRate)],
+                ? document.items.map((item, index) => calculateItem({ ...item, position: index + 1 }))
+                : [createEmptyItem()],
         };
     }
 
@@ -148,7 +148,7 @@ function createForm(type: FinanceDocumentType, settings: FinanceSettings, docume
         notes: '',
         terms: '',
         templateId: '',
-        items: [createEmptyItem(settings.defaultTvaRate)],
+            items: [createEmptyItem()],
     };
 }
 
@@ -177,8 +177,8 @@ export function FinanceDocumentBuilderDrawer({
     }, [defaultClientId, document, isOpen, settings, type]);
 
     const totals = useMemo(
-        () => calculateTotals(form.items, form.discountTotal, form.tvaRate),
-        [form.discountTotal, form.items, form.tvaRate],
+        () => calculateTotals(form.items, form.discountTotal),
+        [form.discountTotal, form.items],
     );
 
     const selectedClient = clients.find((client) => client.id === form.clientId);
@@ -215,8 +215,6 @@ export function FinanceDocumentBuilderDrawer({
                 quantity: item.quantity || 1,
                 unit: item.unit || null,
                 unit_price: item.unitPrice || 0,
-                discount_rate: item.discountRate || 0,
-                tva_rate: item.tvaRate || form.tvaRate,
             })),
         };
 
@@ -310,7 +308,6 @@ export function FinanceDocumentBuilderDrawer({
 
                     <FinanceItemsTable
                         items={totals.items}
-                        defaultTvaRate={form.tvaRate}
                         currency={form.currency}
                         onChange={(items) => update('items', items)}
                     />

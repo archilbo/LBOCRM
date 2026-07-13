@@ -5,23 +5,22 @@ import { calculateItem, formatMoney, normalizeNumber } from '@/features/finance/
 
 type FinanceItemsTableProps = {
     items: FinanceDocumentItem[];
-    defaultTvaRate: number;
     currency: string;
     onChange: (items: FinanceDocumentItem[]) => void;
 };
 
-export function FinanceItemsTable({ items, defaultTvaRate, currency, onChange }: FinanceItemsTableProps) {
+export function FinanceItemsTable({ items, currency, onChange }: FinanceItemsTableProps) {
     function updateItem(index: number, field: keyof FinanceDocumentItem, value: string) {
         const next = items.map((item, itemIndex) => {
             if (itemIndex !== index) {
                 return item;
             }
 
-            const nextValue = ['quantity', 'unitPrice', 'discountRate', 'tvaRate'].includes(field)
+            const nextValue = ['quantity', 'unitPrice'].includes(field)
                 ? normalizeNumber(value)
                 : value;
 
-            return calculateItem({ ...item, [field]: nextValue }, defaultTvaRate);
+            return calculateItem({ ...item, [field]: nextValue });
         });
 
         onChange(next.map((item, position) => ({ ...item, position: position + 1 })));
@@ -30,14 +29,14 @@ export function FinanceItemsTable({ items, defaultTvaRate, currency, onChange }:
     function addItem() {
         onChange([
             ...items,
-            calculateItem({ position: items.length + 1, quantity: 1, unitPrice: 0, discountRate: 0, tvaRate: defaultTvaRate }, defaultTvaRate),
+            calculateItem({ position: items.length + 1, quantity: 1, unitPrice: 0 }),
         ]);
     }
 
     function duplicateItem(index: number) {
         const item = items[index];
         const next = [...items];
-        next.splice(index + 1, 0, calculateItem({ ...item, id: undefined, position: index + 2 }, defaultTvaRate));
+        next.splice(index + 1, 0, calculateItem({ ...item, id: undefined, position: index + 2 }));
         onChange(next.map((row, position) => ({ ...row, position: position + 1 })));
     }
 
@@ -71,8 +70,6 @@ export function FinanceItemsTable({ items, defaultTvaRate, currency, onChange }:
                             <th className="px-3 py-2">Qt</th>
                             <th className="px-3 py-2">Unite</th>
                             <th className="px-3 py-2">Prix HT</th>
-                            <th className="px-3 py-2">Remise %</th>
-                            <th className="px-3 py-2">TVA %</th>
                             <th className="px-3 py-2 text-right">Total TTC</th>
                             <th className="px-3 py-2 text-right">Actions</th>
                         </tr>
@@ -94,12 +91,6 @@ export function FinanceItemsTable({ items, defaultTvaRate, currency, onChange }:
                                 </td>
                                 <td className="px-3 py-2">
                                     <input className="react-aria-Input h-9 w-28" type="number" min="0" step="0.01" value={item.unitPrice} onChange={(event) => updateItem(index, 'unitPrice', event.target.value)} />
-                                </td>
-                                <td className="px-3 py-2">
-                                    <input className="react-aria-Input h-9 w-24" type="number" min="0" max="100" step="0.01" value={item.discountRate} onChange={(event) => updateItem(index, 'discountRate', event.target.value)} />
-                                </td>
-                                <td className="px-3 py-2">
-                                    <input className="react-aria-Input h-9 w-20" type="number" min="0" max="100" step="0.01" value={item.tvaRate} onChange={(event) => updateItem(index, 'tvaRate', event.target.value)} />
                                 </td>
                                 <td className="px-3 py-2 text-right font-mono text-xs font-semibold">
                                     {formatMoney(item.totalTtc, currency)}

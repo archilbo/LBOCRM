@@ -17,8 +17,6 @@ class FinanceDocumentItemResource extends JsonResource
             'quantity' => (float) $this->quantity,
             'unit' => $this->unit,
             'unitPrice' => (float) $this->unit_price,
-            'discountRate' => (float) $this->discount_rate,
-            'tvaRate' => (float) $this->tva_rate,
             'totalHt' => (float) $this->total_ht,
             'totalTva' => (float) $this->total_tva,
             'totalTtc' => (float) $this->total_ttc,

@@ -34,8 +34,6 @@ class StoreFinanceDocumentRequest extends FormRequest
             'items.*.quantity' => ['required', 'numeric', 'min:0'],
             'items.*.unit' => ['nullable', 'string', 'max:50'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
-            'items.*.discount_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'items.*.tva_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
 }

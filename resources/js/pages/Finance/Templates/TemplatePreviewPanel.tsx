@@ -1,4 +1,6 @@
 import {
+    ChevronLeft,
+    ChevronRight,
     ExternalLink,
     Maximize2,
     Minimize2,
@@ -10,40 +12,37 @@ import {
     ZoomIn,
     ZoomOut,
 } from 'lucide-react';
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+type PaperSize = 'A4' | 'A5' | 'Letter';
+
+const PAPER_DIMS: Record<PaperSize, { width: number; height: number }> = {
+    A4: { width: 794, height: 1123 },
+    A5: { width: 559, height: 794 },
+    Letter: { width: 816, height: 1056 },
+};
 
 type TemplatePreviewPanelProps = {
     html: string;
     onRefresh?: () => void | Promise<void>;
-    isFocused?: boolean;
-    onToggleFocus?: () => void;
+    paperSize?: PaperSize;
+    orientation?: 'portrait' | 'landscape';
+    collapsed?: boolean;
+    onToggleCollapse?: () => void;
 };
 
-const A4_WIDTH = 794;
-const A4_HEIGHT = 1123;
-
-function emptyPreviewHtml() {
+function emptyPreviewHtml(width: number, height: number) {
     return `
         <!doctype html>
         <html>
             <head>
                 <meta charset="utf-8">
                 <style>
-                    html,
-                    body {
-                        margin: 0;
-                        padding: 0;
-                        background: #ffffff;
-                    }
-
-                    body {
-                        font-family: Arial, sans-serif;
-                        color: #111827;
-                    }
-
+                    html, body { margin: 0; padding: 0; background: #ffffff; }
+                    body { font-family: Arial, sans-serif; color: #111827; }
                     .empty {
-                        width: 794px;
-                        min-height: 1123px;
+                        width: ${width}px;
+                        min-height: ${height}px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -69,86 +68,66 @@ function clampZoom(value: number) {
     return Math.min(1.8, Math.max(0.35, value));
 }
 
-function injectPreviewReset(html: string) {
+function injectPreviewReset(html: string, width: number) {
     const resetCss = `
         <style id="archi-lbo-preview-reset">
-            html,
-            body {
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow: hidden !important;
-                background: #ffffff !important;
-            }
-
-            body {
-                width: 794px !important;
-                min-width: 794px !important;
-            }
-
-            .page {
-                margin: 0 !important;
-                box-shadow: none !important;
-            }
+            html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #ffffff !important; }
+            body { width: ${width}px !important; min-width: ${width}px !important; }
+            .page { margin: 0 !important; box-shadow: none !important; }
         </style>
     `;
-
     if (html.includes('</head>')) {
         return html.replace('</head>', `${resetCss}</head>`);
     }
-
     return html;
 }
 
 export function TemplatePreviewPanel({
     html,
     onRefresh,
-    isFocused = false,
-    onToggleFocus,
+    paperSize = 'A4',
+    orientation = 'portrait',
+    collapsed = false,
+    onToggleCollapse,
 }: TemplatePreviewPanelProps) {
-    const sideContainerRef = useRef<HTMLDivElement | null>(null);
-    const fullContainerRef = useRef<HTMLDivElement | null>(null);
+    const sideContainerRef = useRef<HTMLDivElement>(null);
+    const fullContainerRef = useRef<HTMLDivElement>(null);
 
     const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
     const [zoom, setZoom] = useState(0.85);
     const [sideScale, setSideScale] = useState(0.45);
 
+    const dims = PAPER_DIMS[paperSize] ?? PAPER_DIMS.A4;
+    const paperWidth = orientation === 'landscape' ? dims.height : dims.width;
+    const paperHeight = orientation === 'landscape' ? dims.width : dims.height;
+
     const previewHtml = useMemo(() => {
-        return injectPreviewReset(html?.trim() ? html : emptyPreviewHtml());
-    }, [html]);
+        const content = html?.trim() ? html : emptyPreviewHtml(paperWidth, paperHeight);
+        return injectPreviewReset(content, paperWidth);
+    }, [html, paperWidth, paperHeight]);
 
     useEffect(() => {
         const node = sideContainerRef.current;
-
-        if (!node) {
-            return;
-        }
+        if (!node) return;
 
         function updateScale() {
             const width = node.clientWidth;
-            const maxHeight = isFocused ? 740 : 520;
+            const maxHeight = node.clientHeight;
+            if (width <= 0) return;
 
-            const scaleByWidth = (width - 24) / A4_WIDTH;
-            const scaleByHeight = maxHeight / A4_HEIGHT;
-
-            const nextScale = Math.min(0.72, Math.max(0.28, Math.min(scaleByWidth, scaleByHeight)));
-
-            setSideScale(nextScale);
+            const scaleByWidth = (width - 24) / paperWidth;
+            const scaleByHeight = maxHeight / paperHeight;
+            setSideScale(Math.min(1, Math.max(0.2, Math.min(scaleByWidth, scaleByHeight))));
         }
 
         updateScale();
-
         const observer = new ResizeObserver(updateScale);
         observer.observe(node);
-
-        return () => {
-            observer.disconnect();
-        };
-    }, [isFocused]);
+        return () => observer.disconnect();
+    }, [paperWidth, paperHeight]);
 
     useEffect(() => {
-        if (!isFullPreviewOpen) {
-            return;
-        }
+        if (!isFullPreviewOpen) return;
 
         const originalOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
@@ -157,17 +136,17 @@ export function TemplatePreviewPanel({
             if (event.key === 'Escape') {
                 setIsFullPreviewOpen(false);
             }
-
+            if (event.key === 'f' && !event.ctrlKey && !event.metaKey) {
+                setIsFullPreviewOpen(false);
+            }
             if ((event.ctrlKey || event.metaKey) && event.key === '+') {
                 event.preventDefault();
-                setZoom((current) => clampZoom(current + 0.1));
+                setZoom((c) => clampZoom(c + 0.1));
             }
-
             if ((event.ctrlKey || event.metaKey) && event.key === '-') {
                 event.preventDefault();
-                setZoom((current) => clampZoom(current - 0.1));
+                setZoom((c) => clampZoom(c - 0.1));
             }
-
             if ((event.ctrlKey || event.metaKey) && event.key === '0') {
                 event.preventDefault();
                 setZoom(0.85);
@@ -175,7 +154,6 @@ export function TemplatePreviewPanel({
         }
 
         window.addEventListener('keydown', handleKeyDown);
-
         return () => {
             document.body.style.overflow = originalOverflow;
             window.removeEventListener('keydown', handleKeyDown);
@@ -188,135 +166,98 @@ export function TemplatePreviewPanel({
 
     function openFullPreview() {
         setIsFullPreviewOpen(true);
-
-        setTimeout(() => {
-            fitWidth();
-        }, 50);
+        setTimeout(() => fitWidth(), 50);
     }
 
     function fitWidth() {
         const node = fullContainerRef.current;
-
-        if (!node) {
-            setZoom(0.85);
-            return;
-        }
-
+        if (!node) { setZoom(0.85); return; }
         const availableWidth = Math.max(node.clientWidth - 80, 320);
-        const nextZoom = clampZoom(availableWidth / A4_WIDTH);
-
-        setZoom(nextZoom);
+        setZoom(clampZoom(availableWidth / paperWidth));
     }
 
     function openInNewTab() {
-        const previewWindow = window.open('', '_blank');
-
-        if (!previewWindow) {
-            return;
-        }
-
-        previewWindow.document.open();
-        previewWindow.document.write(previewHtml);
-        previewWindow.document.close();
+        const w = window.open('', '_blank');
+        if (!w) return;
+        w.document.open();
+        w.document.write(previewHtml);
+        w.document.close();
     }
 
     function printPreview() {
-        const printWindow = window.open('', '_blank');
-
-        if (!printWindow) {
-            return;
-        }
-
-        printWindow.document.open();
-        printWindow.document.write(previewHtml);
-        printWindow.document.close();
-
-        printWindow.onload = () => {
-            printWindow.focus();
-            printWindow.print();
-        };
+        const w = window.open('', '_blank');
+        if (!w) return;
+        w.document.open();
+        w.document.write(previewHtml);
+        w.document.close();
+        w.onload = () => { w.focus(); w.print(); };
     }
 
     const sideFrameWrapStyle: CSSProperties = {
-        width: A4_WIDTH * sideScale,
-        height: A4_HEIGHT * sideScale,
+        width: paperWidth * sideScale,
+        height: paperHeight * sideScale,
     };
 
     const sideIframeStyle: CSSProperties = {
-        width: A4_WIDTH,
-        height: A4_HEIGHT,
+        width: paperWidth,
+        height: paperHeight,
         transform: `scale(${sideScale})`,
         transformOrigin: 'top left',
     };
 
     const fullFrameWrapStyle: CSSProperties = {
-        width: A4_WIDTH * zoom,
-        height: A4_HEIGHT * zoom,
+        width: paperWidth * zoom,
+        height: paperHeight * zoom,
     };
 
     const fullIframeStyle: CSSProperties = {
-        width: A4_WIDTH,
-        height: A4_HEIGHT,
+        width: paperWidth,
+        height: paperHeight,
         transform: `scale(${zoom})`,
         transformOrigin: 'top left',
     };
 
+    if (collapsed) {
+        return (
+            <div className="flex w-3 shrink-0 flex-col items-center border-l border-[var(--border)] bg-[var(--surface)] pt-2">
+                <button type="button" onClick={onToggleCollapse} className="flex size-5 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]">
+                    <ChevronLeft size={14} />
+                </button>
+            </div>
+        );
+    }
+
+    const scaledHeight = paperHeight * sideScale;
+
     return (
         <>
-            <section className="overflow-hidden rounded-2xl border bg-[var(--surface)]">
-                <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
+            <aside className="flex w-[420px] 2xl:w-[480px] shrink-0 flex-col border-l border-[var(--border)] bg-[var(--surface)]">
+                <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-2">
                     <div className="flex min-w-0 items-center gap-2">
-                        <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                            <Monitor size={15} />
-                        </div>
-
-                        <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                                Preview
-                            </p>
-                            <p className="truncate text-[11px] text-[var(--text-muted)]">
-                                Full A4 thumbnail
-                            </p>
-                        </div>
+                        <Monitor size={14} className="shrink-0 text-[var(--accent)]" />
+                        <span className="truncate text-xs font-semibold text-[var(--text)]">Preview</span>
                     </div>
-
                     <div className="flex shrink-0 items-center gap-1">
-                        <button
-                            type="button"
-                            onClick={() => void refreshPreview()}
-                            className="inline-flex size-8 items-center justify-center rounded-xl border bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                            title="Refresh exact preview"
-                        >
-                            <RefreshCcw size={14} />
+                        <button type="button" onClick={() => void refreshPreview()} className="inline-flex size-6 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]" title="Refresh">
+                            <RefreshCcw size={12} />
                         </button>
-
-                        {onToggleFocus ? (
-                            <button
-                                type="button"
-                                onClick={onToggleFocus}
-                                className="inline-flex size-8 items-center justify-center rounded-xl border bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                                title={isFocused ? 'Normal preview width' : 'Wide preview panel'}
-                            >
-                                {isFocused ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                            </button>
-                        ) : null}
-
-                        <button
-                            type="button"
-                            onClick={openFullPreview}
-                            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-3 text-xs font-semibold text-white transition hover:opacity-90"
-                            title="Open full preview"
-                        >
-                            <Maximize2 size={14} />
+                        <button type="button" onClick={openFullPreview} className="inline-flex h-6 items-center gap-1 rounded bg-[var(--accent)] px-2 text-[10px] font-semibold text-black" title="Fullscreen preview">
+                            <Maximize2 size={10} />
                             Full
                         </button>
+                        {onToggleCollapse ? (
+                            <button type="button" onClick={onToggleCollapse} className="inline-flex size-6 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]" title="Collapse preview">
+                                <ChevronRight size={12} />
+                            </button>
+                        ) : null}
                     </div>
                 </div>
 
-                <div className="bg-[var(--surface-2)] p-3">
+                <div className="flex min-h-0 flex-1 items-start overflow-y-auto bg-[var(--surface-2)] p-2">
                     <div
                         ref={sideContainerRef}
-                        className="flex max-h-[620px] justify-center overflow-hidden rounded-xl border bg-neutral-200 p-2 shadow-sm"
+                        className="flex items-start justify-center overflow-hidden rounded-lg border bg-neutral-200 p-2 shadow-inner"
+                        style={{ minHeight: scaledHeight, minWidth: paperWidth * sideScale }}
                     >
                         <div className="overflow-hidden rounded-lg bg-white shadow-md" style={sideFrameWrapStyle}>
                             <iframe
@@ -329,115 +270,58 @@ export function TemplatePreviewPanel({
                         </div>
                     </div>
                 </div>
-            </section>
+            </aside>
 
             {isFullPreviewOpen ? (
-                <div className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-sm">
-                    <div className="flex h-full flex-col">
-                        <div className="flex min-h-14 items-center justify-between gap-3 border-b border-white/10 bg-[var(--surface)] px-4">
-                            <div className="flex min-w-0 items-center gap-3">
-                                <div className="flex size-9 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-                                    <Monitor size={17} />
-                                </div>
-
-                                <div className="min-w-0">
-                                    <p className="truncate text-sm font-semibold">Full document preview</p>
-                                    <p className="text-xs text-[var(--text-muted)]">
-                                        Esc to close · Ctrl +/- to zoom · Ctrl 0 reset
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex shrink-0 items-center gap-1.5">
-                                <button
-                                    type="button"
-                                    onClick={() => void refreshPreview()}
-                                    className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border bg-[var(--surface)] px-3 text-xs font-semibold text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                                >
-                                    <RefreshCcw size={14} />
-                                    Refresh
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={fitWidth}
-                                    className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border bg-[var(--surface)] px-3 text-xs font-semibold text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                                >
-                                    <Maximize2 size={14} />
-                                    Fit
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setZoom((current) => clampZoom(current - 0.1))}
-                                    className="inline-flex size-9 items-center justify-center rounded-xl border bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                                    title="Zoom out"
-                                >
-                                    <ZoomOut size={15} />
-                                </button>
-
-                                <div className="min-w-16 rounded-xl border bg-[var(--surface-2)] px-2 py-2 text-center text-xs font-semibold">
-                                    {Math.round(zoom * 100)}%
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setZoom((current) => clampZoom(current + 0.1))}
-                                    className="inline-flex size-9 items-center justify-center rounded-xl border bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                                    title="Zoom in"
-                                >
-                                    <ZoomIn size={15} />
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setZoom(0.85)}
-                                    className="inline-flex size-9 items-center justify-center rounded-xl border bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                                    title="Reset zoom"
-                                >
-                                    <RotateCcw size={15} />
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={openInNewTab}
-                                    className="inline-flex size-9 items-center justify-center rounded-xl border bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                                    title="Open in new tab"
-                                >
-                                    <ExternalLink size={15} />
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={printPreview}
-                                    className="inline-flex size-9 items-center justify-center rounded-xl border bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                                    title="Print preview"
-                                >
-                                    <Printer size={15} />
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setIsFullPreviewOpen(false)}
-                                    className="inline-flex size-9 items-center justify-center rounded-xl bg-red-500 text-white transition hover:opacity-90"
-                                    title="Close full preview"
-                                >
-                                    <X size={16} />
-                                </button>
+                <div className="fixed inset-0 z-[120] flex flex-col bg-black/85 backdrop-blur-sm">
+                    <div className="flex min-h-14 items-center justify-between gap-3 border-b border-white/10 bg-[var(--surface)] px-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <Monitor size={16} className="text-[var(--accent)]" />
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-[var(--text)]">Full preview</p>
+                                <p className="text-xs text-[var(--text-muted)]">Esc/f to close · Ctrl+± zoom · Ctrl+0 reset</p>
                             </div>
                         </div>
-
-                        <div ref={fullContainerRef} className="min-h-0 flex-1 overflow-auto bg-neutral-950 p-6">
-                            <div className="mx-auto flex min-h-full w-max justify-center">
-                                <div style={fullFrameWrapStyle}>
-                                    <iframe
-                                        title="Full template preview"
-                                        srcDoc={previewHtml}
-                                        scrolling="no"
-                                        className="block border-0 bg-white shadow-2xl"
-                                        style={fullIframeStyle}
-                                    />
-                                </div>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                            <button type="button" onClick={() => void refreshPreview()} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs text-white/70 hover:bg-white/10">
+                                <RefreshCcw size={12} /> Refresh
+                            </button>
+                            <button type="button" onClick={fitWidth} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs text-white/70 hover:bg-white/10">
+                                <Maximize2 size={12} /> Fit
+                            </button>
+                            <button type="button" onClick={() => setZoom((c) => clampZoom(c - 0.1))} className="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/10">
+                                <ZoomOut size={13} />
+                            </button>
+                            <span className="min-w-12 rounded-md border border-white/10 px-2 py-1 text-center text-xs font-semibold text-white/80">
+                                {Math.round(zoom * 100)}%
+                            </span>
+                            <button type="button" onClick={() => setZoom((c) => clampZoom(c + 0.1))} className="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/10">
+                                <ZoomIn size={13} />
+                            </button>
+                            <button type="button" onClick={() => setZoom(0.85)} className="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/10">
+                                <RotateCcw size={13} />
+                            </button>
+                            <button type="button" onClick={openInNewTab} className="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/10">
+                                <ExternalLink size={13} />
+                            </button>
+                            <button type="button" onClick={printPreview} className="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/10">
+                                <Printer size={13} />
+                            </button>
+                            <button type="button" onClick={() => setIsFullPreviewOpen(false)} className="inline-flex size-8 items-center justify-center rounded-lg bg-red-500/80 text-white hover:bg-red-500">
+                                <X size={14} />
+                            </button>
+                        </div>
+                    </div>
+                    <div ref={fullContainerRef} className="min-h-0 flex-1 overflow-auto bg-neutral-950 p-6">
+                        <div className="mx-auto flex min-h-full w-max items-start justify-center">
+                            <div style={fullFrameWrapStyle}>
+                                <iframe
+                                    title="Full template preview"
+                                    srcDoc={previewHtml}
+                                    scrolling="no"
+                                    className="block border-0 bg-white shadow-2xl"
+                                    style={fullIframeStyle}
+                                />
                             </div>
                         </div>
                     </div>

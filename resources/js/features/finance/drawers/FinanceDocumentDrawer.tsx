@@ -77,8 +77,6 @@ type LineItemForm = {
     quantity: string;
     unit: string;
     unit_price: string;
-    discount_rate: string;
-    tva_rate: string;
 };
 
 export type FinanceDocFormPayload = {
@@ -108,15 +106,13 @@ type LineItemCalculations = {
     totalTtc: number;
 };
 
-const emptyItem = (key: number, tvaRate = '20'): LineItemForm => ({
+const emptyItem = (key: number): LineItemForm => ({
     key,
     title: '',
     description: '',
     quantity: '1',
     unit: '',
     unit_price: '0',
-    discount_rate: '0',
-    tva_rate: tvaRate,
 });
 
 const emptyForm: FinanceDocFormPayload = {
@@ -130,22 +126,16 @@ const emptyForm: FinanceDocFormPayload = {
     tva_rate: '20',
     notes: '',
     terms: '',
-    items: [emptyItem(1, '20')],
+    items: [emptyItem(1)],
 };
 
 const calculateLineItem = (item: LineItemForm): LineItemCalculations => {
     const quantity = parseFloat(item.quantity) || 0;
     const unitPrice = parseFloat(item.unit_price) || 0;
-    const discountRate = parseFloat(item.discount_rate) || 0;
-    const tvaRate = parseFloat(item.tva_rate) || 0;
 
-    const subtotal = quantity * unitPrice;
-    const discountAmount = (subtotal * discountRate) / 100;
-    const totalHt = subtotal - discountAmount;
-    const totalTva = (totalHt * tvaRate) / 100;
-    const totalTtc = totalHt + totalTva;
+    const totalHt = quantity * unitPrice;
 
-    return { totalHt, totalTva, totalTtc };
+    return { totalHt, totalTva: 0, totalTtc: totalHt };
 };
 
 type Props = {
@@ -177,7 +167,7 @@ export function FinanceDocumentDrawer({
             setForm({
                 ...emptyForm,
                 type: initialType || emptyForm.type,
-                items: [emptyItem(1, emptyForm.tva_rate)],
+                items: [emptyItem(1)],
             });
             setNextItemKey(2);
         }
@@ -208,7 +198,7 @@ export function FinanceDocumentDrawer({
             ...prev,
             items: [
                 ...prev.items,
-                emptyItem(nextItemKey, prev.tva_rate),
+                emptyItem(nextItemKey),
             ],
         }));
         setNextItemKey((k) => k + 1);
@@ -223,23 +213,13 @@ export function FinanceDocumentDrawer({
 
     const totals: CalculatedTotals = useMemo(() => {
         let subtotalHt = 0;
-        let discountTotal = 0;
-        let taxTotal = 0;
 
         form.items.forEach(item => {
             const calc = calculateLineItem(item);
-            const quantity = parseFloat(item.quantity) || 0;
-            const unitPrice = parseFloat(item.unit_price) || 0;
-            const discountRate = parseFloat(item.discount_rate) || 0;
-            
             subtotalHt += calc.totalHt;
-            taxTotal += calc.totalTva;
-            discountTotal += (quantity * unitPrice * discountRate) / 100;
         });
 
-        const totalTtc = subtotalHt + taxTotal;
-
-        return { subtotalHt, discountTotal, taxTotal, totalTtc };
+        return { subtotalHt, discountTotal: 0, taxTotal: 0, totalTtc: subtotalHt };
     }, [form.items]);
 
     const formatCurrency = (amount: number): string => {
@@ -392,7 +372,7 @@ export function FinanceDocumentDrawer({
                                     }
                                 />
 
-                                <div className="grid grid-cols-4 gap-2">
+                                <div className="grid grid-cols-3 gap-2">
                                     <AppTextField
                                         label="Qty"
                                         type="number"
@@ -418,20 +398,10 @@ export function FinanceDocumentDrawer({
                                             updateItem(item.key, 'unit_price', v)
                                         }
                                     />
-                                    <AppTextField
-                                        label="Disc. %"
-                                        type="number"
-                                        step="0.01"
-                                        value={item.discount_rate}
-                                        onChange={(v) =>
-                                            updateItem(item.key, 'discount_rate', v)
-                                        }
-                                    />
                                 </div>
 
                                 <div className="mt-2 flex justify-between text-xs text-[var(--text-muted)]">
                                     <span>HT: {formatCurrency(itemTotals.totalHt)} MAD</span>
-                                    <span>TVA: {formatCurrency(itemTotals.totalTva)} MAD</span>
                                     <span>TTC: {formatCurrency(itemTotals.totalTtc)} MAD</span>
                                 </div>
                             </div>
@@ -443,16 +413,8 @@ export function FinanceDocumentDrawer({
                     <h3 className="mb-3 text-sm font-medium text-[var(--text)]">Totals</h3>
                     <div className="space-y-2">
                         <div className="flex justify-between">
-                            <span className="text-sm text-[var(--text-muted)]">Subtotal HT</span>
+                            <span className="text-sm text-[var(--text-muted)]">Total HT</span>
                             <span className="font-mono text-sm">{formatCurrency(totals.subtotalHt)} MAD</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-sm text-[var(--text-muted)]">Discount</span>
-                            <span className="font-mono text-sm text-[var(--danger)]">-{formatCurrency(totals.discountTotal)} MAD</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-sm text-[var(--text-muted)]">TVA ({form.tva_rate}%)</span>
-                            <span className="font-mono text-sm">{formatCurrency(totals.taxTotal)} MAD</span>
                         </div>
                         <div className="pt-2 border-t border-[var(--border)] flex justify-between">
                             <span className="text-base font-semibold text-[var(--text)]">Total TTC</span>

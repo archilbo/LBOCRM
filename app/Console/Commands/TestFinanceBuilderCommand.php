@@ -125,7 +125,6 @@ class TestFinanceBuilderCommand extends Command
             'quantity' => 1,
             'unit' => 'hrs',
             'unit_price' => 1000,
-            'tva_rate' => $document->tva_rate,
         ]);
         $item1->calculateTotals();
         $document->items()->save($item1);
@@ -136,7 +135,6 @@ class TestFinanceBuilderCommand extends Command
             'quantity' => 2,
             'unit' => 'hrs',
             'unit_price' => 500,
-            'tva_rate' => $document->tva_rate,
         ]);
         $item2->calculateTotals();
         $document->items()->save($item2);

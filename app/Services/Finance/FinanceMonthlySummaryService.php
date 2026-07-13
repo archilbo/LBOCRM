@@ -2,6 +2,7 @@
 
 namespace App\Services\Finance;
 
+use App\Models\Expense;
 use App\Models\FinanceDocument;
 use App\Models\Payment;
 use Carbon\CarbonInterface;
@@ -11,6 +12,16 @@ class FinanceMonthlySummaryService
 {
     public function months(?int $year = null): array
     {
+        $expenses = Expense::query()
+            ->when($year, fn ($query) => $query->where(function ($q) use ($year) {
+                $q->whereYear('expense_date', $year)
+                    ->orWhere(function ($fallback) use ($year) {
+                        $fallback->whereYear('created_at', $year);
+                    });
+            }))
+            ->latest()
+            ->get();
+
         $documents = FinanceDocument::query()
             ->with(['client', 'dossier'])
             ->when($year, fn ($query) => $query->where(function ($q) use ($year) {
@@ -36,6 +47,7 @@ class FinanceMonthlySummaryService
         $keys = $documents
             ->map(fn (FinanceDocument $document) => $this->monthKey($document->issue_date ?? $document->created_at))
             ->merge($payments->map(fn (Payment $payment) => $this->monthKey($payment->paid_at ?? $payment->created_at)))
+            ->merge($expenses->map(fn (Expense $expense) => $this->monthKey($expense->expense_date)))
             ->filter()
             ->unique()
             ->sortDesc()
@@ -46,11 +58,12 @@ class FinanceMonthlySummaryService
                 $key,
                 $documents->filter(fn (FinanceDocument $document) => $this->monthKey($document->issue_date ?? $document->created_at) === $key),
                 $payments->filter(fn (Payment $payment) => $this->monthKey($payment->paid_at ?? $payment->created_at) === $key),
+                $expenses->filter(fn (Expense $expense) => $this->monthKey($expense->expense_date) === $key),
             ))
             ->all();
     }
 
-    private function monthSummary(string $key, Collection $documents, Collection $payments): array
+    private function monthSummary(string $key, Collection $documents, Collection $payments, Collection $expenses): array
     {
         [$year, $month] = array_map('intval', explode('-', $key));
         $quotes = $documents->where('type', 'quote');
@@ -71,6 +84,8 @@ class FinanceMonthlySummaryService
             'invoicesTotalTtc' => (float) $invoices->sum('total_ttc'),
             'receiptsTotalTtc' => (float) $receipts->sum('total_ttc'),
             'paidTotal' => (float) $payments->sum('amount'),
+            'expensesTotal' => (float) $expenses->sum('amount'),
+            'expensesCount' => $expenses->count(),
             'remainingTotal' => (float) $invoices->sum('remaining_total'),
             'overdueTotal' => (float) $invoices->where('status', 'overdue')->sum('remaining_total'),
             'subtotalHt' => (float) $documents->sum('subtotal_ht'),

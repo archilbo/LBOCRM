@@ -11,6 +11,7 @@ use App\Http\Resources\PaymentResource;
 use App\Notifications\FinanceDocumentNotification;
 use App\Models\Client;
 use App\Models\Dossier;
+use App\Models\Expense;
 use App\Models\FinanceDocument;
 use App\Models\FinanceDocumentItem;
 use App\Models\FinanceTemplate;
@@ -70,12 +71,36 @@ class FinanceDocumentController extends Controller
             'remainingTotal' => (float) FinanceDocument::where('type', 'invoice')->sum('remaining_total'),
             'overdueTotal' => (float) FinanceDocument::where('type', 'invoice')->where('status', 'overdue')->sum('remaining_total'),
             'draftCount' => FinanceDocument::where('status', 'draft')->count(),
+            'totalExpenses' => (float) Expense::sum('amount'),
             'currency' => $currency,
         ];
+
+        $expensesRecords = Expense::with(['dossier', 'creator'])
+            ->orderByDesc('expense_date')
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get()
+            ->map(fn (Expense $expense) => [
+                'id' => $expense->id,
+                'category' => $expense->category,
+                'vendor' => $expense->vendor,
+                'amount' => (float) $expense->amount,
+                'currency' => $expense->currency,
+                'expenseDate' => $expense->expense_date->toDateString(),
+                'paymentMethod' => $expense->payment_method,
+                'notes' => $expense->notes,
+                'dossier' => $expense->dossier ? [
+                    'id' => $expense->dossier->id,
+                    'number' => $expense->dossier->dossier_number,
+                ] : null,
+                'createdBy' => $expense->creator?->name,
+                'createdAt' => $expense->created_at?->toDateTimeString(),
+            ]);
 
         return Inertia::render('Finance/Documents/Index', [
             'documents' => $records,
             'payments' => PaymentResource::collection($payments)->resolve($request),
+            'expenses' => $expensesRecords,
             'monthlySummaries' => $monthlySummaryService->months(),
             'metrics' => $metrics,
             'clients' => Client::select('id', 'full_name', 'cin', 'address')
@@ -166,8 +191,6 @@ class FinanceDocumentController extends Controller
                         'quantity' => $itemData['quantity'] ?? 1,
                         'unit' => $itemData['unit'] ?? null,
                         'unit_price' => $itemData['unit_price'] ?? 0,
-                        'discount_rate' => $itemData['discount_rate'] ?? 0,
-                        'tva_rate' => $itemData['tva_rate'] ?? $document->tva_rate,
                     ]);
                     $item->calculateTotals();
                     $document->items()->save($item);
@@ -232,8 +255,6 @@ class FinanceDocumentController extends Controller
                         'quantity' => $itemData['quantity'] ?? 1,
                         'unit' => $itemData['unit'] ?? null,
                         'unit_price' => $itemData['unit_price'] ?? 0,
-                        'discount_rate' => $itemData['discount_rate'] ?? 0,
-                        'tva_rate' => $itemData['tva_rate'] ?? $financeDocument->tva_rate,
                     ]);
                     $item->calculateTotals();
                     $financeDocument->items()->save($item);

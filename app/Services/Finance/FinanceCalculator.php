@@ -8,27 +8,18 @@ use App\Services\Finance\FinanceSettingsService;
 
 class FinanceCalculator
 {
-    public static function calculateItemTotals(array $item, float $defaultTvaRate): array
+    public static function calculateItemTotals(array $item): array
     {
         $quantity = $item['quantity'] ?? 1;
         $unitPrice = $item['unit_price'] ?? 0;
-        $discountRate = $item['discount_rate'] ?? 0;
-        $tvaRate = $item['tva_rate'] ?? $defaultTvaRate;
-
-        $grossHt = $quantity * $unitPrice;
-        $discountAmount = $grossHt * $discountRate / 100;
-        $totalHt = $grossHt - $discountAmount;
-        $totalTva = $totalHt * $tvaRate / 100;
-        $totalTtc = $totalHt + $totalTva;
+        $totalHt = $quantity * $unitPrice;
 
         return [
             'quantity' => $quantity,
             'unit_price' => $unitPrice,
-            'discount_rate' => $discountRate,
-            'tva_rate' => $tvaRate,
             'total_ht' => $totalHt,
-            'total_tva' => $totalTva,
-            'total_ttc' => $totalTtc,
+            'total_tva' => 0,
+            'total_ttc' => $totalHt,
         ];
     }
 

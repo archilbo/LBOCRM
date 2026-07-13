@@ -6,6 +6,7 @@ export const financeTabs = [
     { id: 'quotes', label: 'Devis' },
     { id: 'invoices', label: 'Factures' },
     { id: 'payments', label: 'Paiements' },
+    { id: 'expenses', label: 'Depenses' },
     { id: 'monthly', label: 'Mensuel' },
     { id: 'templates', label: 'Templates' },
     { id: 'settings', label: 'Parametres' },

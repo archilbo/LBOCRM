@@ -70,15 +70,12 @@ class FinanceTemplateRenderer
                 . '<td class="text-right">' . e((string) $item['quantity']) . '</td>'
                 . '<td>' . e($item['unit']) . '</td>'
                 . '<td class="text-right">' . e($item['unit_price_display']) . '</td>'
-                . '<td class="text-right">' . e((string) $item['discount_rate']) . '%</td>'
-                . '<td class="text-right">' . e((string) $item['tva_rate']) . '%</td>'
                 . '<td class="text-right">' . e($item['total_ht_display']) . '</td>'
-                . '<td class="text-right">' . e($item['total_tva_display']) . '</td>'
                 . '<td class="text-right">' . e($item['total_ttc_display']) . '</td>'
                 . '</tr>';
         })->implode('');
 
-        return '<table class="items-table"><thead><tr><th>#</th><th>Designation</th><th>Qt</th><th>Unite</th><th>PU HT</th><th>Remise</th><th>TVA</th><th>Total HT</th><th>Total TVA</th><th>Total TTC</th></tr></thead><tbody>' . $rows . '</tbody></table>';
+        return '<table class="items-table"><thead><tr><th>#</th><th>Designation</th><th>Qt</th><th>Unite</th><th>PU HT</th><th>Total HT</th><th>Total TTC</th></tr></thead><tbody>' . $rows . '</tbody></table>';
     }
 
     public function renderPaymentsTable(array $payments, string $currency): string

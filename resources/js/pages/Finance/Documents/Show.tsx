@@ -25,8 +25,6 @@ import { AppModal } from '@/components/ui/AppModal';
 import { FinanceDocumentLockBadge, FinanceDocumentLockNotice } from '@/features/finance/components/FinanceDocumentLockNotice';
 import type { FinanceDocument, FinanceDocumentItem, Payment } from '@/features/finance/types';
 
-const FORCE_FINANCE_SHOW_REDESIGN_53N = true;
-
 type PageProps = {
     document: FinanceDocument;
 };
@@ -227,7 +225,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                     </div>
                 }
             >
-                <div className="crm-page mx-auto max-w-[1540px] pt-6 xl:pt-8" data-ui-marker={FORCE_FINANCE_SHOW_REDESIGN_53N ? 'FORCE_FINANCE_SHOW_REDESIGN_53N' : undefined}>
+                <div className="crm-page mx-auto max-w-[1540px] pt-6 xl:pt-8">
                     <section className="crm-panel overflow-hidden shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
                         <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_430px] xl:items-start">
                             <div className="flex min-w-0 items-start gap-4">
@@ -344,7 +342,6 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                                 <th>Qty</th>
                                                 <th>Unit</th>
                                                 <th>Unit price</th>
-                                                <th>TVA</th>
                                                 <th className="text-right">Total TTC</th>
                                             </tr>
                                         </thead>
@@ -360,7 +357,6 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                                     <td>{item.quantity}</td>
                                                     <td>{item.unit || '-'}</td>
                                                     <td>{money(item.unitPrice, currency)}</td>
-                                                    <td>{item.tvaRate}%</td>
                                                     <td className="text-right font-black text-[var(--crm-accent)]">{money(item.totalTtc, currency)}</td>
                                                 </tr>
                                             ))}

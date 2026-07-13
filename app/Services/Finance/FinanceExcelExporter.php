@@ -71,7 +71,7 @@ class FinanceExcelExporter
                 ['Adresse', $data['dossier']['address'], 'Commune/Province', trim($data['dossier']['commune'] . ' ' . $data['dossier']['province'])],
             ]);
 
-            $headers = ['#', 'Title', 'Description', 'Qty', 'Unit', 'Unit price', 'Discount %', 'TVA %', 'Total HT', 'Total TVA', 'Total TTC'];
+            $headers = ['#', 'Title', 'Description', 'Qty', 'Unit', 'Unit price', 'Total HT', 'Total TTC'];
             $sheet->fromArray($headers, null, "A{$row}");
             $headerRow = $row;
             $row++;
@@ -84,10 +84,7 @@ class FinanceExcelExporter
                     $item['quantity'],
                     $item['unit'],
                     $item['unit_price'],
-                    $item['discount_rate'],
-                    $item['tva_rate'],
                     $item['total_ht'],
-                    $item['total_tva'],
                     $item['total_ttc'],
                 ], null, "A{$row}");
                 $row++;
@@ -98,8 +95,8 @@ class FinanceExcelExporter
             $sheet->getStyle("A{$headerRow}:K{$headerRow}")->getFont()->setBold(true);
             $sheet->getStyle("A{$headerRow}:K{$headerRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F3F4F6');
             $sheet->getStyle("F" . ($headerRow + 1) . ":F{$tableEnd}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet->getStyle("I" . ($headerRow + 1) . ":K{$tableEnd}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet->getStyle("D" . ($headerRow + 1) . ":K{$tableEnd}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle("G" . ($headerRow + 1) . ":H{$tableEnd}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle("D" . ($headerRow + 1) . ":H{$tableEnd}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             $row += 2;
 
             $totals = [

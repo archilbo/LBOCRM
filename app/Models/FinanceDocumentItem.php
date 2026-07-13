@@ -18,8 +18,6 @@ class FinanceDocumentItem extends Model
         'quantity',
         'unit',
         'unit_price',
-        'discount_rate',
-        'tva_rate',
         'total_ht',
         'total_tva',
         'total_ttc',
@@ -29,8 +27,6 @@ class FinanceDocumentItem extends Model
         'position' => 'integer',
         'quantity' => 'decimal:3',
         'unit_price' => 'decimal:2',
-        'discount_rate' => 'decimal:2',
-        'tva_rate' => 'decimal:2',
         'total_ht' => 'decimal:2',
         'total_tva' => 'decimal:2',
         'total_ttc' => 'decimal:2',
@@ -44,13 +40,10 @@ class FinanceDocumentItem extends Model
     public function calculateTotals(bool $save = false): static
     {
         $ht = $this->quantity * $this->unit_price;
-        $htAfterDiscount = $ht * (1 - $this->discount_rate / 100);
-        $tva = $htAfterDiscount * ($this->tva_rate / 100);
-        $ttc = $htAfterDiscount + $tva;
 
-        $this->total_ht = $htAfterDiscount;
-        $this->total_tva = $tva;
-        $this->total_ttc = $ttc;
+        $this->total_ht = $ht;
+        $this->total_tva = 0;
+        $this->total_ttc = $ht;
 
         if ($save) {
             $this->save();

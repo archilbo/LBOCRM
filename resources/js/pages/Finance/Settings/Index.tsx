@@ -16,8 +16,6 @@ import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 
-const FORCE_FINANCE_SETTINGS_REDESIGN_53O = true;
-
 type FinanceSettingsForm = {
     finance: {
         defaultTvaRate: string;
@@ -375,7 +373,6 @@ export default function FinanceSettingsIndex({ settings, routes }: PageProps) {
                 <form
                     id="finance-settings-form"
                     className="crm-page mx-auto max-w-[1540px] pt-6 xl:pt-8"
-                    data-ui-marker={FORCE_FINANCE_SETTINGS_REDESIGN_53O ? 'FORCE_FINANCE_SETTINGS_REDESIGN_53O' : undefined}
                     onSubmit={save}
                 >
                     <section className="crm-panel overflow-hidden shadow-[0_18px_60px_rgba(0,0,0,0.24)]">

@@ -44,8 +44,6 @@ export type FinanceDocumentItem = {
     quantity: number;
     unit: string | null;
     unitPrice: number;
-    discountRate: number;
-    tvaRate: number;
     totalHt: number;
     totalTva: number;
     totalTtc: number;
@@ -316,6 +314,20 @@ export type FinanceMonthPaymentRow = {
     paidAt: string | null;
 };
 
+export type Expense = {
+    id: number;
+    category: string;
+    vendor: string | null;
+    amount: number;
+    currency: string;
+    expenseDate: string;
+    paymentMethod: string | null;
+    notes: string | null;
+    dossier: { id: number; number: string } | null;
+    createdBy: string | null;
+    createdAt: string | null;
+};
+
 export type FinanceMonthSummary = {
     year: number;
     month: number;
@@ -330,6 +342,8 @@ export type FinanceMonthSummary = {
     invoicesTotalTtc: number;
     receiptsTotalTtc: number;
     paidTotal: number;
+    expensesTotal: number;
+    expensesCount: number;
     remainingTotal: number;
     overdueTotal: number;
     subtotalHt: number;
