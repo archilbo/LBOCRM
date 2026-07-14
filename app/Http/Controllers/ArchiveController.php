@@ -5,32 +5,211 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreArchiveRecordRequest;
 use App\Http\Requests\UpdateArchiveRecordRequest;
 use App\Http\Requests\UpdateArchiveStatusRequest;
+use App\Http\Resources\ArchiveEventResource;
 use App\Http\Resources\ArchiveRecordResource;
 use App\Models\ArchiveRecord;
+use App\Models\Box;
 use App\Models\Dossier;
+use App\Models\Room;
+use App\Models\Shelf;
+use App\Services\Archive\ArchiveNotificationService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ArchiveController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $archiveRecords = ArchiveRecord::query()
-            ->with(['dossier.client'])
-            ->latest()
-            ->get();
+        $query = ArchiveRecord::with(['dossier.client']);
+
+        // Status filter
+        if ($statuses = $request->input('status')) {
+            $statuses = is_array($statuses) ? $statuses : [$statuses];
+            $query->whereIn('status', $statuses);
+        }
+
+        // Saved view
+        $view = $request->input('view');
+        if ($view === 'out') {
+            $query->where('status', 'checked_out');
+        } elseif ($view === 'overdue') {
+            $query->overdue();
+        } elseif ($view === 'lost') {
+            $query->where('is_lost', true);
+        } elseif ($view === 'empty_boxes') {
+            $query->whereNull('box');
+        }
+
+        // Location filters
+        if ($room = $request->input('room')) {
+            $query->where('room', $room);
+        }
+        if ($shelf = $request->input('shelf')) {
+            $query->where('shelf', $shelf);
+        }
+        if ($box = $request->input('box')) {
+            $query->where('box', $box);
+        }
+
+        // Requester & Dossier
+        if ($requesterId = $request->input('requesterId')) {
+            $query->where('requester_id', $requesterId);
+        }
+        if ($dossierId = $request->input('dossierId')) {
+            $query->where('dossier_id', $dossierId);
+        }
+
+        // Due date range
+        if ($dueFrom = $request->input('dueFrom')) {
+            $query->whereDate('due_at', '>=', $dueFrom);
+        }
+        if ($dueTo = $request->input('dueTo')) {
+            $query->whereDate('due_at', '<=', $dueTo);
+        }
+
+        if ($overdueOnly = $request->boolean('overdueOnly')) {
+            $query->overdue();
+        }
+
+        // Search
+        if ($q = $request->input('q')) {
+            $like = '%' . $q . '%';
+            $query->where(function ($qry) use ($q, $like) {
+                $qry->where('archive_number', 'like', $like)
+                    ->orWhere('room', 'like', $like)
+                    ->orWhere('shelf', 'like', $like)
+                    ->orWhere('box', 'like', $like)
+                    ->orWhere('folder', 'like', $like)
+                    ->orWhere('requested_by', 'like', $like)
+                    ->orWhere('notes', 'like', $like)
+                    ->orWhereHas('dossier', fn ($d) => $d->where('dossier_number', 'like', $like)
+                        ->orWhere('project_object', 'like', $like)
+                        ->orWhereHas('client', fn ($c) => $c->where('full_name', 'like', $like)
+                            ->orWhere('cin', 'like', $like)
+                        )
+                    );
+            });
+            // Prefix matches float to top
+            $query->orderByRaw("CASE WHEN archive_number LIKE ? THEN 0 ELSE 1 END", ["$q%"]);
+        }
+
+        // Sort
+        $sortField = 'created_at';
+        $sortDir = 'desc';
+        if ($sort = $request->input('sort')) {
+            $parts = explode(':', $sort);
+            $allowed = ['archive_number', 'status', 'room', 'due_at', 'in_date', 'out_date', 'updated_at', 'created_at'];
+            if (in_array($parts[0], $allowed)) {
+                $sortField = $parts[0];
+                $sortDir = ($parts[1] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+            }
+        }
+        $query->orderBy($sortField, $sortDir);
+
+        // Pagination
+        $perPage = min(200, max(10, (int) ($request->input('perPage', 25))));
+        $archiveRecords = $query->paginate($perPage);
+
+        // Build storage tree with fill counts
+        $archiveCountsByBox = ArchiveRecord::selectRaw('box, COUNT(*) as count')
+            ->whereNotNull('box')
+            ->groupBy('box')
+            ->pluck('count', 'box');
+
+        $rooms = Room::with('shelves.boxes')->get()->map(fn ($room) => [
+            'id' => $room->id,
+            'name' => $room->name,
+            'code' => $room->code,
+            'shelves' => $room->shelves->map(fn ($shelf) => [
+                'id' => $shelf->id,
+                'name' => $shelf->name,
+                'code' => $shelf->code,
+                'boxes' => $shelf->boxes->map(fn ($box) => [
+                    'id' => $box->id,
+                    'name' => $box->name,
+                    'code' => $box->code,
+                    'capacity' => $box->capacity,
+                    'fill' => $box->capacity > 0 ? min(100, (int) round(($archiveCountsByBox[$box->code] ?? 0) / $box->capacity * 100)) : 0,
+                    'count' => $archiveCountsByBox[$box->code] ?? 0,
+                ]),
+            ]),
+        ]);
+
+        // Requesters (distinct requested_by names from archive records)
+        $requesters = ArchiveRecord::whereNotNull('requested_by')
+            ->distinct('requested_by')
+            ->pluck('requested_by')
+            ->map(fn ($name) => ['id' => $name, 'name' => $name]);
 
         return Inertia::render('Archives/Index', [
-            'archiveRecords' => ArchiveRecordResource::collection($archiveRecords)->resolve(),
+            'archives' => ArchiveRecordResource::collection($archiveRecords)->resolve(),
+            'paginator' => [
+                'currentPage' => $archiveRecords->currentPage(),
+                'lastPage' => $archiveRecords->lastPage(),
+                'perPage' => $archiveRecords->perPage(),
+                'total' => $archiveRecords->total(),
+            ],
+            'tree' => $rooms,
             'dossiers' => $this->dossierOptions(),
-            'metrics' => [
+            'requesters' => $requesters,
+            'kpis' => [
                 'total' => ArchiveRecord::count(),
                 'ready' => ArchiveRecord::where('status', 'ready_to_archive')->count(),
                 'stored' => ArchiveRecord::where('status', 'stored')->count(),
                 'checkedOut' => ArchiveRecord::where('status', 'checked_out')->count(),
                 'returned' => ArchiveRecord::where('status', 'returned')->count(),
+                'overdue' => ArchiveRecord::overdue()->count(),
+                'lost' => ArchiveRecord::where('is_lost', true)->count(),
             ],
+            'filters' => $request->only([
+                'q', 'status', 'view', 'room', 'shelf', 'box',
+                'requesterId', 'dossierId', 'dueFrom', 'dueTo',
+                'overdueOnly', 'sort', 'page', 'perPage', 'density', 'columns', 'viewMode',
+            ]),
+        ]);
+    }
+
+    public function count(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $query = ArchiveRecord::query();
+
+        if ($statuses = $request->input('status')) {
+            $query->whereIn('status', (array) $statuses);
+        }
+        if ($room = $request->input('room')) {
+            $query->where('room', $room);
+        }
+        if ($shelf = $request->input('shelf')) {
+            $query->where('shelf', $shelf);
+        }
+        if ($box = $request->input('box')) {
+            $query->where('box', $box);
+        }
+        if ($requesterId = $request->input('requesterId')) {
+            $query->where('requester_id', $requesterId);
+        }
+        if ($dossierId = $request->input('dossierId')) {
+            $query->where('dossier_id', $dossierId);
+        }
+        if ($dueFrom = $request->input('dueFrom')) {
+            $query->whereDate('due_at', '>=', $dueFrom);
+        }
+        if ($dueTo = $request->input('dueTo')) {
+            $query->whereDate('due_at', '<=', $dueTo);
+        }
+
+        return response()->json(['count' => $query->count()]);
+    }
+
+    public function show(ArchiveRecord $archiveRecord): Response
+    {
+        $archiveRecord->load(['dossier.client', 'events.actor']);
+
+        return Inertia::render('Archives/Show', [
+            'archiveRecord' => (new ArchiveRecordResource($archiveRecord))->resolve(),
+            'events' => ArchiveEventResource::collection($archiveRecord->events)->resolve(),
         ]);
     }
 
@@ -39,7 +218,8 @@ class ArchiveController extends Controller
         $data = $this->prepareArchiveData($request->validated());
         $data['archive_number'] = $this->nextArchiveNumber();
 
-        ArchiveRecord::create($data);
+        $record = ArchiveRecord::create($data);
+        $record->events()->create(['type' => 'ready', 'payload' => ['note' => 'Archive record created']]);
 
         if ($request->filled('return_to')) {
             return redirect()->to($request->string('return_to')->toString())->with('success', 'Archive record created successfully.');
@@ -65,13 +245,16 @@ class ArchiveController extends Controller
 
     public function updateStatus(
         UpdateArchiveStatusRequest $request,
-        ArchiveRecord $archiveRecord
+        ArchiveRecord $archiveRecord,
+        ArchiveNotificationService $notifier,
     ): RedirectResponse {
         $status = $request->validated('status');
 
         $payload = [
             'status' => $status,
         ];
+
+        $eventPayload = [];
 
         if ($status === 'stored' && !$archiveRecord->in_date) {
             $payload['in_date'] = now()->toDateString();
@@ -81,11 +264,46 @@ class ArchiveController extends Controller
             $payload['out_date'] = now()->toDateString();
         }
 
+        if ($status === 'checked_out') {
+            if ($request->filled('due_at')) {
+                $payload['due_at'] = $request->date('due_at');
+            } else {
+                $payload['due_at'] = now()->addDays(7);
+            }
+            $eventPayload['due_at'] = $payload['due_at']->format('Y-m-d');
+        }
+
+        if ($status === 'checked_out' && $request->filled('requested_by')) {
+            $payload['requested_by'] = $request->string('requested_by');
+            $eventPayload['requested_by'] = $payload['requested_by'];
+        }
+
+        if ($status === 'checked_out') {
+            $payload['checked_out_at'] = now();
+        }
+
         if ($status === 'returned' && !$archiveRecord->returned_at) {
             $payload['returned_at'] = now()->toDateString();
         }
 
+        if ($status === 'returned') {
+            $payload['due_at'] = null;
+            $payload['checked_out_at'] = null;
+        }
+
         $archiveRecord->update($payload);
+
+        $archiveRecord->events()->create([
+            'type' => $status,
+            'payload' => $eventPayload,
+            'actor_id' => $request->user()?->id,
+        ]);
+
+        if ($status === 'checked_out') {
+            $notifier->notifyCheckedOut($archiveRecord, $payload['requested_by'] ?? 'Unknown');
+        } elseif ($status === 'returned') {
+            $notifier->notifyReturned($archiveRecord);
+        }
 
         if ($request->filled('return_to')) {
             return redirect()->to($request->string('return_to')->toString())->with('success', 'Archive status updated successfully.');
@@ -105,6 +323,196 @@ class ArchiveController extends Controller
             ->with('success', 'Archive record deleted successfully.');
     }
 
+    public function markLost(Request $request, ArchiveRecord $archiveRecord): RedirectResponse
+    {
+        $data = $request->validate([
+            'lost_reason' => 'nullable|string|max:1000',
+        ]);
+
+        $archiveRecord->update([
+            'is_lost' => true,
+            'lost_reason' => $data['lost_reason'] ?? null,
+            'status' => 'checked_out',
+        ]);
+
+        $archiveRecord->events()->create([
+            'type' => 'lost',
+            'payload' => ['reason' => $data['lost_reason'] ?? 'Marked as lost'],
+            'actor_id' => $request->user()?->id,
+        ]);
+
+        return redirect()
+            ->route('archives.index')
+            ->with('success', 'Archive marked as lost.');
+    }
+
+    public function bulkStatus(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:archive_records,id'],
+            'status' => ['required', 'string', 'max:50'],
+        ]);
+
+        $records = ArchiveRecord::whereIn('id', $data['ids'])->get();
+
+        foreach ($records as $record) {
+            $record->update(['status' => $data['status']]);
+
+            $record->events()->create([
+                'type' => $data['status'],
+                'payload' => ['note' => 'Bulk status update'],
+                'actor_id' => $request->user()?->id,
+            ]);
+        }
+
+        return redirect()
+            ->route('archives.index')
+            ->with('success', count($records) . " archive(s) updated to {$data['status']}.");
+    }
+
+    public function bulkMove(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:archive_records,id'],
+            'room' => ['nullable', 'string', 'max:120'],
+            'shelf' => ['nullable', 'string', 'max:120'],
+            'box' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $payload = array_filter([
+            'room' => $data['room'] ?? null,
+            'shelf' => $data['shelf'] ?? null,
+            'box' => $data['box'] ?? null,
+        ]);
+
+        if (empty($payload)) {
+            return redirect()
+                ->route('archives.index')
+                ->with('error', 'No location fields provided.');
+        }
+
+        $records = ArchiveRecord::whereIn('id', $data['ids'])->get();
+
+        foreach ($records as $record) {
+            $from = $record->locationLabel();
+            $record->update($payload);
+
+            $record->events()->create([
+                'type' => 'moved',
+                'payload' => ['from' => $from, 'to' => $record->locationLabel()],
+                'actor_id' => $request->user()?->id,
+            ]);
+        }
+
+        return redirect()
+            ->route('archives.index')
+            ->with('success', count($records) . ' archive(s) moved.');
+    }
+
+    public function checkout(Request $request, ArchiveNotificationService $notifier): RedirectResponse
+    {
+        $data = $request->validate([
+            'archive_ids' => ['required', 'array'],
+            'archive_ids.*' => ['integer', 'exists:archive_records,id'],
+            'requester_id' => ['nullable', 'integer', 'exists:users,id'],
+            'requested_by' => ['nullable', 'string', 'max:255'],
+            'due_at' => ['required', 'date'],
+            'purpose' => ['nullable', 'string', 'max:500'],
+            'notify' => ['nullable', 'boolean'],
+        ]);
+
+        // Fallback: if no due_at was explicitly set, default to +7d
+        if (!$request->has('due_at')) {
+            $data['due_at'] = now()->addDays(7)->format('Y-m-d');
+        }
+
+        $records = ArchiveRecord::whereIn('id', $data['archive_ids'])->get();
+
+        foreach ($records as $record) {
+            $record->update([
+                'status' => 'checked_out',
+                'out_date' => $record->out_date ?? now()->toDateString(),
+                'due_at' => $data['due_at'],
+                'checked_out_at' => now(),
+                'requested_by' => $request->input('requested_by'),
+            ]);
+
+            $record->events()->create([
+                'type' => 'checked_out',
+                'payload' => [
+                    'due_at' => $data['due_at'],
+                    'purpose' => $data['purpose'] ?? null,
+                ],
+                'actor_id' => $request->user()?->id,
+            ]);
+
+            $notifier->notifyCheckedOut($record, $request->input('requested_by', 'Unknown'));
+        }
+
+        return redirect()->route('archives.index')->with('success', count($records) . ' archive(s) checked out.');
+    }
+
+    public function returnArchives(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'archive_ids' => ['required', 'array'],
+            'archive_ids.*' => ['integer', 'exists:archive_records,id'],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $records = ArchiveRecord::whereIn('id', $data['archive_ids'])->get();
+
+        foreach ($records as $record) {
+            $record->update([
+                'status' => 'returned',
+                'returned_at' => $record->returned_at ?? now()->toDateString(),
+                'due_at' => null,
+                'checked_out_at' => null,
+            ]);
+
+            $record->events()->create([
+                'type' => 'returned',
+                'payload' => ['note' => $data['note'] ?? null],
+                'actor_id' => $request->user()?->id,
+            ]);
+        }
+
+        return redirect()->route('archives.index')->with('success', count($records) . ' archive(s) returned.');
+    }
+
+    public function moveArchives(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'archive_ids' => ['required', 'array'],
+            'archive_ids.*' => ['integer', 'exists:archive_records,id'],
+            'room' => ['required', 'string', 'max:120'],
+            'shelf' => ['required', 'string', 'max:120'],
+            'box' => ['required', 'string', 'max:120'],
+        ]);
+
+        $records = ArchiveRecord::whereIn('id', $data['archive_ids'])->get();
+
+        foreach ($records as $record) {
+            $from = $record->locationLabel();
+
+            $record->update([
+                'room' => $data['room'],
+                'shelf' => $data['shelf'],
+                'box' => $data['box'],
+            ]);
+
+            $record->events()->create([
+                'type' => 'moved',
+                'payload' => ['from' => $from, 'to' => $record->locationLabel()],
+                'actor_id' => $request->user()?->id,
+            ]);
+        }
+
+        return redirect()->route('archives.index')->with('success', count($records) . ' archive(s) moved.');
+    }
+
     private function prepareArchiveData(array $data): array
     {
         $data['status'] = $data['status'] ?? 'ready_to_archive';
@@ -113,6 +521,10 @@ class ArchiveController extends Controller
             if (($data[$dateField] ?? null) === '') {
                 $data[$dateField] = null;
             }
+        }
+
+        if (($data['due_at'] ?? null) === '') {
+            $data['due_at'] = null;
         }
 
         return $data;

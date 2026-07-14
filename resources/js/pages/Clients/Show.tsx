@@ -24,7 +24,7 @@ import type { DocumentUploadPayload } from '@/features/documents/types';
 import { UploadDocumentDrawer } from '@/features/clients/components/UploadDocumentDrawer';
 import { ContractDrawer } from '@/features/clients/components/ContractDrawer';
 import { AuthorizationDrawer } from '@/features/clients/components/AuthorizationDrawer';
-import { ArchiveDrawer } from '@/features/clients/components/ArchiveDrawer';
+import { ClientArchivesCard } from '@/features/clients/components/ClientArchivesCard';
 import { ConfirmActionModal } from '@/features/clients/components/ConfirmActionModal';
 import { getRequirementActionType, getStepActionType, getModuleRoute } from '@/features/clients/components/workflowActionTypes';
 import type { FormErrors } from '@/lib/formErrors';
@@ -110,8 +110,6 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
     const [uploadStepKey, setUploadStepKey] = useState<string | null>(null);
     const [contractDrawerOpen, setContractDrawerOpen] = useState(false);
     const [authDrawerOpen, setAuthDrawerOpen] = useState(false);
-    const [archiveDrawerOpen, setArchiveDrawerOpen] = useState(false);
-
     const [projectDrawerOpen, setProjectDrawerOpen] = useState(false);
     const [projectFormErrors, setProjectFormErrors] = useState<FormErrors>({});
     const [financeDrawerOpen, setFinanceDrawerOpen] = useState(false);
@@ -966,13 +964,8 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
                     clientId={client.id}
                 />
 
-                {/* ── Archive drawer ── */}
-                <ArchiveDrawer
-                    isOpen={archiveDrawerOpen}
-                    onOpenChange={setArchiveDrawerOpen}
-                    project={selectedProject}
-                    clientId={client.id}
-                />
+                {/* ── Archives card ── */}
+                {selectedProject ? <ClientArchivesCard project={selectedProject} /> : null}
 
                 {/* ── Project drawer (create) ── */}
                 <ProjectDrawer

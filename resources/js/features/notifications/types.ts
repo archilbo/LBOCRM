@@ -9,7 +9,7 @@ export type NotificationRow = {
     actionUrl: string | null;
 };
 
-export type NotificationModule = 'tasks' | 'requests' | 'documents' | 'contracts' | 'finance' | 'calendar' | 'system';
+export type NotificationModule = 'tasks' | 'requests' | 'documents' | 'contracts' | 'finance' | 'archives' | 'calendar' | 'system';
 
 export type NotificationSeverity = 'info' | 'success' | 'warning' | 'urgent';
 

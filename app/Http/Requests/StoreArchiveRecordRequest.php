@@ -31,6 +31,7 @@ class StoreArchiveRecordRequest extends FormRequest
             'out_date' => ['nullable', 'date'],
             'returned_at' => ['nullable', 'date'],
             'requested_by' => ['nullable', 'string', 'max:190'],
+            'due_at' => ['nullable', 'date'],
 
             'notes' => ['nullable', 'string', 'max:5000'],
         ];

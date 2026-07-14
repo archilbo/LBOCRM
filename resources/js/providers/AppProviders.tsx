@@ -1,16 +1,19 @@
 import { useCallback, type ReactNode } from 'react';
 import { RouterProvider } from 'react-aria-components';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from '@inertiajs/react';
 import { AppFlashToasts } from '@/components/layout/AppFlashToasts';
 import { AppToastProvider } from '@/providers/AppToastProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 
-/*
- * HeroUI v3 does not export a global HeroUIProvider.
- * Components manage their own context internally.
- * RouterProvider from react-aria-components is the closest equivalent,
- * providing client-side navigation support for HeroUI/RAC components.
- */
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 30_000,
+            retry: 1,
+        },
+    },
+});
 
 type AppProvidersProps = {
     children: ReactNode;
@@ -22,12 +25,14 @@ export function AppProviders({ children }: AppProvidersProps) {
     }, []);
 
     return (
-        <RouterProvider navigate={navigate}>
-            <ThemeProvider>
-                <AppFlashToasts />
-                <AppToastProvider />
-                {children}
-            </ThemeProvider>
-        </RouterProvider>
+        <QueryClientProvider client={queryClient}>
+            <RouterProvider navigate={navigate}>
+                <ThemeProvider>
+                    <AppFlashToasts />
+                    <AppToastProvider />
+                    {children}
+                </ThemeProvider>
+            </RouterProvider>
+        </QueryClientProvider>
     );
 }

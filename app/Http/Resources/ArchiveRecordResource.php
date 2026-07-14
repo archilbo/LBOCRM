@@ -9,9 +9,15 @@ class ArchiveRecordResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $isOverdue = $this->status === 'checked_out'
+            && $this->due_at
+            && $this->due_at->isPast()
+            && !$this->is_lost;
+
         return [
             'id' => $this->id,
             'dossierId' => $this->dossier_id ? (string) $this->dossier_id : '',
+            'clientId' => $this->dossier?->client_id ? (string) $this->dossier->client_id : null,
 
             'dossierNumber' => $this->dossier?->dossier_number ?? '-',
             'projectObject' => $this->dossier?->project_object ?? '-',
@@ -32,9 +38,18 @@ class ArchiveRecordResource extends JsonResource
             'returnedAt' => optional($this->returned_at)->format('Y-m-d'),
             'requestedBy' => $this->requested_by,
 
+            'requesterId' => $this->requester_id ? (string) $this->requester_id : null,
+            'dueAt' => optional($this->due_at)->format('Y-m-d'),
+            'checkedOutAt' => optional($this->checked_out_at)->format('Y-m-d'),
+            'isLost' => $this->is_lost ?? false,
+            'lostReason' => $this->lost_reason,
+            'isOverdue' => $isOverdue,
+
             'notes' => $this->notes,
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
             'createdAt' => optional($this->created_at)->format('Y-m-d'),
+
+            'events' => $this->relationLoaded('events') ? ArchiveEventResource::collection($this->events)->resolve() : [],
         ];
     }
 

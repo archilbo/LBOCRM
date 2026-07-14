@@ -20,6 +20,8 @@ class NotificationResource extends JsonResource
             $actionUrl = '/calendar';
         } elseif (isset($data['dossier_id'])) {
             $actionUrl = "/dossiers/{$data['dossier_id']}";
+        } elseif (isset($data['archive_record_id'])) {
+            $actionUrl = "/archives/{$data['archive_record_id']}";
         } elseif (isset($data['contract_id'])) {
             $actionUrl = '/contracts';
         } elseif (isset($data['finance_document_id'])) {

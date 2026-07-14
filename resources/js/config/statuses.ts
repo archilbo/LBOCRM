@@ -44,6 +44,38 @@ export function getDossierStatusClass(status: string) {
     return dossierStatusClasses[status] ?? dossierStatusClasses.paused;
 }
 
+// ── Archive statuses (single source of truth) ──
+
+export type ArchiveStatusEntry = {
+    key: string;
+    label: string;
+    dot: string;
+    dotColor: string;
+    pillColor: 'default' | 'primary' | 'success' | 'warning' | 'danger';
+    listColor: string;
+};
+
+export const ARCHIVE_STATUS: Record<string, ArchiveStatusEntry> = {
+    ready_to_archive: { key: 'ready_to_archive', label: 'Ready', dot: '○', dotColor: 'text-slate-400', pillColor: 'default', listColor: 'text-slate-400' },
+    stored: { key: 'stored', label: 'Stored', dot: '●', dotColor: 'text-emerald-400', pillColor: 'success', listColor: 'text-emerald-400' },
+    checked_out: { key: 'checked_out', label: 'Out', dot: '●', dotColor: 'text-amber-400', pillColor: 'warning', listColor: 'text-amber-400' },
+    returned: { key: 'returned', label: 'Returned', dot: '●', dotColor: 'text-sky-400', pillColor: 'warning', listColor: 'text-sky-400' },
+    lost: { key: 'lost', label: 'Lost', dot: '✕', dotColor: 'text-rose-400', pillColor: 'danger', listColor: 'text-rose-400' },
+};
+
+export function archiveVisualStatus(status: string, isOverdue: boolean): ArchiveStatusEntry {
+    if (isOverdue) {
+        return { key: 'overdue', label: 'Overdue', dot: '●', dotColor: 'text-red-400', pillColor: 'danger', listColor: 'text-red-400' };
+    }
+    return ARCHIVE_STATUS[status] ?? { key: status, label: status, dot: '○', dotColor: 'text-slate-400', pillColor: 'default', listColor: 'text-slate-400' };
+}
+
+export function defaultDue(days = 7): string {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split('T')[0];
+}
+
 export function getDossierReadiness(dossier: DossierRow): DossierReadinessItem[] {
     return [
         { key: 'client', label: 'Client', done: true },

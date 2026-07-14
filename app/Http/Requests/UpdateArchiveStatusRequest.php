@@ -15,6 +15,8 @@ class UpdateArchiveStatusRequest extends FormRequest
     {
         return [
             'status' => ['required', 'string', 'max:50'],
+            'due_at' => ['nullable', 'date'],
+            'requested_by' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

@@ -157,10 +157,18 @@ Route::middleware('auth')->group(function () {
     Route::delete('/finance/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('finance.expenses.destroy');
 
     Route::get('/archives', [ArchiveController::class, 'index'])->name('archives.index');
+    Route::get('/archives/{archiveRecord}', [ArchiveController::class, 'show'])->name('archives.show');
     Route::post('/archives', [ArchiveController::class, 'store'])->name('archives.store');
     Route::put('/archives/{archiveRecord}', [ArchiveController::class, 'update'])->name('archives.update');
     Route::put('/archives/{archiveRecord}/status', [ArchiveController::class, 'updateStatus'])->name('archives.status');
+    Route::put('/archives/{archiveRecord}/mark-lost', [ArchiveController::class, 'markLost'])->name('archives.mark-lost');
+    Route::post('/archives/checkout', [ArchiveController::class, 'checkout'])->name('archives.checkout');
+    Route::post('/archives/return', [ArchiveController::class, 'returnArchives'])->name('archives.return');
+    Route::post('/archives/move', [ArchiveController::class, 'moveArchives'])->name('archives.move');
+    Route::post('/archives/bulk/status', [ArchiveController::class, 'bulkStatus'])->name('archives.bulk.status');
+    Route::post('/archives/bulk/move', [ArchiveController::class, 'bulkMove'])->name('archives.bulk.move');
     Route::delete('/archives/{archiveRecord}', [ArchiveController::class, 'destroy'])->name('archives.destroy');
+    Route::get('/archives/count', [ArchiveController::class, 'count'])->name('archives.count');
 
     Route::get('/frontend-qa', function () {
         return Inertia::render('FrontendQa/Index');

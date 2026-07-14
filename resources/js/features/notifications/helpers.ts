@@ -1,4 +1,5 @@
 import {
+    Archive,
     Bell,
     CalendarCheck,
     ClipboardList,
@@ -10,7 +11,7 @@ import {
 } from 'lucide-react';
 import type { EnrichedNotification, NotificationModule, NotificationRow, NotificationSeverity } from './types';
 
-export const MODULE_ORDER: NotificationModule[] = ['tasks', 'requests', 'documents', 'contracts', 'finance', 'calendar', 'system'];
+export const MODULE_ORDER: NotificationModule[] = ['tasks', 'requests', 'documents', 'contracts', 'finance', 'archives', 'calendar', 'system'];
 
 export const MODULE_LABELS: Record<NotificationModule, string> = {
     tasks: 'Tasks',
@@ -18,6 +19,7 @@ export const MODULE_LABELS: Record<NotificationModule, string> = {
     documents: 'Documents',
     contracts: 'Contracts',
     finance: 'Finance',
+    archives: 'Archives',
     calendar: 'Calendar',
     system: 'System',
 };
@@ -32,6 +34,7 @@ export function getNotificationModule(n: NotificationRow): NotificationModule {
     if (type === 'ContractNotification' || data.contract_number) return 'contracts';
     if (type === 'FinanceDocumentNotification' || data.finance_number) return 'finance';
     if (data.finance_document_id || data.finance_number) return 'finance';
+    if (type === 'ArchiveOverdueNotification' || data.archive_record_id || data.archive_number) return 'archives';
     if (data.suggestion) return 'system';
     if (data.conversation_id || data.sender_id) return 'system';
 
@@ -48,7 +51,10 @@ export function getNotificationSeverity(n: NotificationRow, module: Notification
     if (action === 'payment_received') return 'success';
     if (action === 'generated') return 'success';
     if (action === 'signed') return 'success';
+    if (action === 'returned') return 'success';
     if (module === 'finance' && (action === 'overdue' || data.type === 'overdue')) return 'urgent';
+    if (module === 'archives' && action === 'overdue') return 'urgent';
+    if (module === 'archives' && action === 'checked_out') return 'warning';
     if (module === 'system' && action === 'warning') return 'warning';
     if (action === 'failed' || action === 'rejected') return 'urgent';
     if (action === 'cancelled') return 'warning';
@@ -70,7 +76,7 @@ export function getNotificationText(n: NotificationRow): { title: string; body: 
         completed: 'Task completed',
         in_review: 'Ready for review',
         blocked: 'Task is blocked',
-        overdue: 'Task overdue',
+        overdue: 'Overdue',
         due_tomorrow: 'Due tomorrow',
         mentioned: 'You were mentioned',
         status_changed: 'Status changed',
@@ -85,6 +91,8 @@ export function getNotificationText(n: NotificationRow): { title: string; body: 
         cancelled: 'Cancelled',
         converted: 'Converted to invoice',
         payment_received: 'Payment received',
+        checked_out: 'Checked out',
+        returned: 'Returned',
     };
 
     const actionTitle = actionLabels[action];
@@ -131,6 +139,13 @@ export function getNotificationText(n: NotificationRow): { title: string; body: 
         };
     }
 
+    if (type === 'ArchiveOverdueNotification') {
+        return {
+            title: actionTitle || 'Archive update',
+            body: description || null,
+        };
+    }
+
     if (data.suggestion) {
         return {
             title: 'New suggestion',
@@ -152,11 +167,14 @@ export function getNotificationEntity(n: NotificationRow): { label: string | nul
     const contractNumber = data.contract_number as string | undefined;
     const financeNumber = data.finance_number as string | undefined;
 
+    const archiveNumber = data.archive_number as string | undefined;
+
     if (taskNumber) return { label: taskNumber, type: 'task', id: (data.task_id as number) || null };
     if (eventNumber) return { label: eventNumber, type: 'event', id: (data.calendar_event_id as number) || null };
     if (contractNumber) return { label: contractNumber, type: 'contract', id: (data.contract_id as number) || null };
     if (financeNumber) return { label: financeNumber, type: 'finance', id: (data.finance_document_id as number) || null };
     if (docNumber) return { label: docNumber, type: 'document', id: (data.document_id as number) || null };
+    if (archiveNumber) return { label: archiveNumber, type: 'archive', id: (data.archive_record_id as number) || null };
     if (data.conversation_id) return { label: 'Conversation', type: 'chat', id: (data.conversation_id as number) || null };
     if (data.dossier_id) return { label: 'Dossier', type: 'dossier', id: (data.dossier_id as number) || null };
 
@@ -170,6 +188,7 @@ export function getNotificationIcon(module: NotificationModule): LucideIcon {
         documents: FileText,
         contracts: Handshake,
         finance: CreditCard,
+        archives: Archive,
         calendar: CalendarCheck,
         system: Bell,
     };

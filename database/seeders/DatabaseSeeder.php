@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             ChatDemoSeeder::class,
             DemoDataSeeder::class,
             ExpensesDemoSeeder::class,
+            ArchiveDemoSeeder::class,
         ]);
     }
 }
