@@ -1,20 +1,18 @@
 ﻿import { Moon, Sun } from 'lucide-react';
 import { Button } from 'react-aria-components';
 import { useTheme } from '@/providers/ThemeProvider';
-import { useTranslation } from '@/lib/i18n';
 
 export function ThemeToggle() {
     const { theme, toggleTheme } = useTheme();
-    const { t } = useTranslation();
 
     return (
         <Button
-            aria-label={t('actions.toggleTheme')}
-            className="react-aria-Button"
+            aria-label="Toggle theme"
+            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] transition hover:bg-white/5 hover:text-[var(--crm-text)]"
             onPress={toggleTheme}
         >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            <span className="hidden sm:inline">{t('app.theme')}</span>
+            <Sun size={15} className="absolute rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon size={15} className="absolute rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
         </Button>
     );
 }

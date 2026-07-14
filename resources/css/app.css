@@ -3,6 +3,14 @@
 @plugin "tailwindcss-react-aria-components";
 @import './calendar.css';
 
+button:not(:disabled),
+a:not([aria-disabled]),
+[role="button"]:not([aria-disabled]),
+select:not(:disabled),
+summary {
+    cursor: pointer;
+}
+
 @theme {
     --color-bg: var(--background);
     --color-surface: var(--surface);

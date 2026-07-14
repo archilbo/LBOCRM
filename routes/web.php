@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminUserInvitationController;
 use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Api\ClientController as ApiClientController;
 use App\Http\Controllers\BackendQaController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CalendarEventController;
@@ -156,26 +157,46 @@ Route::middleware('auth')->group(function () {
     Route::put('/finance/expenses/{expense}', [ExpenseController::class, 'update'])->name('finance.expenses.update');
     Route::delete('/finance/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('finance.expenses.destroy');
 
+    // Static routes first (before wildcard {archiveRecord})
+    Route::get('/archives/reports', [ArchiveController::class, 'reports'])->name('archives.reports');
+    Route::get('/archives/count', [ArchiveController::class, 'count'])->name('archives.count');
+    Route::post('/archives/checkout', [ArchiveController::class, 'checkout'])->name('archives.checkout');
+    Route::post('/archives/return', [ArchiveController::class, 'returnArchives'])->name('archives.return');
+    Route::post('/archives/move', [ArchiveController::class, 'moveArchives'])->name('archives.move');
+    Route::post('/archives/bulk/status', [ArchiveController::class, 'bulkStatus'])->name('archives.bulk.status');
+    Route::post('/archives/bulk/move', [ArchiveController::class, 'bulkMove'])->name('archives.bulk.move');
+    Route::get('/archives/boxes/{box}/contents', [ArchiveController::class, 'boxContents'])->name('archives.boxes.contents');
+    Route::get('/archives/cities', [\App\Http\Controllers\CityController::class, 'index'])->name('archives.cities.index');
+    Route::post('/archives/cities', [\App\Http\Controllers\CityController::class, 'store'])->name('archives.cities.store');
+    Route::put('/archives/cities/{city}', [\App\Http\Controllers\CityController::class, 'update'])->name('archives.cities.update');
+    Route::delete('/archives/cities/{city}', [\App\Http\Controllers\CityController::class, 'destroy'])->name('archives.cities.destroy');
+    // Wildcard routes last
     Route::get('/archives', [ArchiveController::class, 'index'])->name('archives.index');
     Route::get('/archives/{archiveRecord}', [ArchiveController::class, 'show'])->name('archives.show');
     Route::post('/archives', [ArchiveController::class, 'store'])->name('archives.store');
     Route::put('/archives/{archiveRecord}', [ArchiveController::class, 'update'])->name('archives.update');
     Route::put('/archives/{archiveRecord}/status', [ArchiveController::class, 'updateStatus'])->name('archives.status');
     Route::put('/archives/{archiveRecord}/mark-lost', [ArchiveController::class, 'markLost'])->name('archives.mark-lost');
-    Route::post('/archives/checkout', [ArchiveController::class, 'checkout'])->name('archives.checkout');
-    Route::post('/archives/return', [ArchiveController::class, 'returnArchives'])->name('archives.return');
-    Route::post('/archives/move', [ArchiveController::class, 'moveArchives'])->name('archives.move');
-    Route::post('/archives/bulk/status', [ArchiveController::class, 'bulkStatus'])->name('archives.bulk.status');
-    Route::post('/archives/bulk/move', [ArchiveController::class, 'bulkMove'])->name('archives.bulk.move');
     Route::delete('/archives/{archiveRecord}', [ArchiveController::class, 'destroy'])->name('archives.destroy');
-    Route::get('/archives/count', [ArchiveController::class, 'count'])->name('archives.count');
+
+    Route::prefix('api')->group(function () {
+        Route::get('/clients/search', [ApiClientController::class, 'search'])->name('api.clients.search');
+        Route::get('/clients/{client}/projects', [ApiClientController::class, 'projects'])->name('api.clients.projects');
+    });
 
     Route::get('/frontend-qa', function () {
         return Inertia::render('FrontendQa/Index');
     })->name('frontend-qa.index');
     Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
+    Route::put('/admin/users/bulk/role', [AdminUserController::class, 'bulkUpdateRole'])->name('admin.users.bulk.role');
+    Route::put('/admin/users/bulk/suspend', [AdminUserController::class, 'bulkSuspend'])->name('admin.users.bulk.suspend');
+    Route::post('/admin/users/bulk/delete', [AdminUserController::class, 'bulkDestroy'])->name('admin.users.bulk.destroy');
     Route::put('/admin/users/{user}/role', [AdminUserController::class, 'updateRole'])->name('admin.users.role');
+    Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+    Route::put('/admin/users/{user}/permissions', [AdminUserController::class, 'updatePermissions'])->name('admin.users.permissions');
     Route::post('/admin/users/invite', [AdminUserInvitationController::class, 'store'])->name('admin.users.invite');
+    Route::post('/admin/users/invite/bulk/validate', [AdminUserInvitationController::class, 'bulkValidate'])->name('admin.users.invite.bulk.validate');
+    Route::post('/admin/users/invite/bulk', [AdminUserInvitationController::class, 'bulkStore'])->name('admin.users.invite.bulk');
 
 
     Route::get('/backend-qa', [BackendQaController::class, 'index'])->name('backend-qa.index');

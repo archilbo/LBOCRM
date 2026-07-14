@@ -61,10 +61,10 @@ function SortHeader({ label, sortKey, sort, onSortChange }: { label: string; sor
 }
 
 function LocationBreadcrumbs({ record }: { record: ArchiveRecordRow }) {
-    const parts = [record.room, record.shelf, record.box].filter(Boolean);
+    const parts = [record.room, record.box].filter(Boolean);
     if (parts.length === 0) return <span className="text-white/60">-</span>;
     return (
-        <span className="text-[12px] text-white/60 font-mono whitespace-nowrap">
+        <span className="text-[12px] text-white/60 font-mono">
             {parts.map((p, i) => (
                 <span key={i}>
                     {i > 0 && <span className="text-white/20 mx-1">/</span>}
@@ -98,7 +98,6 @@ export function ArchiveTable({
         const [col, dir] = sort.split(':');
         return [{ id: col, desc: dir === 'desc' }];
     });
-    const tableContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (sorting.length === 0) { onSortChange(undefined); return; }
@@ -117,32 +116,50 @@ export function ArchiveTable({
             id: 'select',
             header: () => (
                 <input type="checkbox" checked={allSelected} onChange={onToggleAll}
-                    className="size-3.5 accent-amber-500" aria-label="Select all" />
+                    className="size-3 accent-amber-500" aria-label="Select all" />
             ),
             cell: ({ row }) => (
                 <input type="checkbox" checked={selectedIds.has(row.original.id)}
                     onChange={() => onToggleSelect(row.original.id)}
                     onClick={(e) => e.stopPropagation()}
-                    className="size-3.5 accent-amber-500" aria-label={`Select ${row.original.archiveNumber}`} />
+                    className="size-3 accent-amber-500" aria-label={`Select ${row.original.dossierNumber}`} />
             ),
-            meta: { width: 36 },
             enableSorting: false,
         },
         {
-            id: 'arcNumber',
-            accessorKey: 'archiveNumber',
-            header: () => <SortHeader label="ARC" sortKey="archive_number" sort={sort} onSortChange={onSortChange} />,
-            cell: ({ row }) => (
-                <span className="font-mono text-[13px] text-white whitespace-nowrap">{row.original.archiveNumber}</span>
-            ),
-            meta: { width: 128 },
+            id: 'dossier',
+            accessorKey: 'dossierNumber',
+            header: () => <SortHeader label="Dossier" sortKey="archive_number" sort={sort} onSortChange={onSortChange} />,
+            cell: ({ row }) => {
+                const dn = (row.original.dossierNumber || '').split('-')[0];
+                return (
+                    <span className="font-mono text-[13px] text-white/80">{dn}</span>
+                );
+            },
         },
         {
             id: 'project',
             accessorKey: 'projectObject',
             header: () => <span className="text-[11px] uppercase tracking-wide text-white/50">Project</span>,
             cell: ({ row }) => (
-                <span className="truncate text-white block">{row.original.projectObject}</span>
+                <span className="truncate text-white block max-w-[200px]">{row.original.projectObject}</span>
+            ),
+            enableSorting: false,
+        },
+        {
+            id: 'city',
+            accessorKey: 'city',
+            header: () => <span className="text-[11px] uppercase tracking-wide text-white/50">City</span>,
+            cell: ({ row }) => (
+                row.original.city ? (
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full ring-1 ring-black/10 shrink-0"
+                            style={{ backgroundColor: row.original.city.color }} />
+                        <span className="text-xs text-white/60">{row.original.city.code}</span>
+                    </span>
+                ) : (
+                    <span className="text-xs text-white/60">—</span>
+                )
             ),
             enableSorting: false,
         },
@@ -151,7 +168,6 @@ export function ArchiveTable({
             accessorKey: 'locationLabel',
             header: () => <span className="text-[11px] uppercase tracking-wide text-white/50">Location</span>,
             cell: ({ row }) => <LocationBreadcrumbs record={row.original} />,
-            meta: { width: 156 },
             enableSorting: false,
         },
         {
@@ -161,17 +177,6 @@ export function ArchiveTable({
             cell: ({ row }) => (
                 <StatusPill status={row.original.status} isOverdue={row.original.isOverdue} />
             ),
-            meta: { width: 100 },
-        },
-        {
-            id: 'requester',
-            accessorKey: 'requestedBy',
-            header: () => <span className="text-[11px] uppercase tracking-wide text-white/50">Requester</span>,
-            cell: ({ row }) => (
-                <span className="truncate text-white/70 block">{row.original.requestedBy || '-'}</span>
-            ),
-            meta: { width: 120 },
-            enableSorting: false,
         },
         {
             id: 'dueAt',
@@ -179,26 +184,28 @@ export function ArchiveTable({
             header: () => <SortHeader label="Due" sortKey="due_at" sort={sort} onSortChange={onSortChange} />,
             cell: ({ row }) => (
                 row.original.isOverdue ? (
-                    <span className="inline-flex items-center gap-1 text-white/80 tabular-nums whitespace-nowrap"><AlertCircle size={11} className="text-red-400" />{row.original.dueAt}</span>
+                    <span className="inline-flex items-center gap-1 text-white/80 tabular-nums whitespace-nowrap">
+                        <AlertCircle size={11} className="text-red-400 shrink-0" />
+                        <span className="hidden sm:inline">{row.original.dueAt}</span>
+                        <span className="text-red-400/70 text-[10px]">({Math.ceil((new Date(row.original.dueAt!).getTime() - Date.now()) / 86400000) * -1}d)</span>
+                    </span>
                 ) : row.original.dueAt ? (
                     <span className="text-white/60 tabular-nums whitespace-nowrap">{row.original.dueAt}</span>
                 ) : <span className="text-white/40">—</span>
             ),
-            meta: { width: 108 },
         },
         {
             id: 'actions',
             header: () => null,
             cell: ({ row }) => (
                 <div className="relative flex justify-end">
-                    <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                        <AppTooltip label="More actions">
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === row.original.id ? null : row.original.id); }}
-                                className="flex size-7 items-center justify-center rounded text-white/40 hover:bg-white/5 hover:text-white/80" aria-label={`Actions for ${row.original.archiveNumber}`}>
-                                <MoreHorizontal size={14} />
-                            </button>
-                        </AppTooltip>
-                    </div>
+                    <AppTooltip label="Actions">
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === row.original.id ? null : row.original.id); }}
+                            className="flex size-7 items-center justify-center rounded text-white/40 hover:bg-white/5 hover:text-white/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label={`Actions for ${row.original.dossierNumber}`}>
+                            <MoreHorizontal size={14} />
+                        </button>
+                    </AppTooltip>
                     {menuOpen === row.original.id ? (
                         <div className="absolute right-0 top-full z-20 min-w-32 rounded-lg border border-white/10 bg-zinc-900 py-1 shadow-sm"
                             onMouseLeave={() => setMenuOpen(null)} onClick={(e) => e.stopPropagation()}>
@@ -214,7 +221,6 @@ export function ArchiveTable({
                     ) : null}
                 </div>
             ),
-            meta: { width: 40 },
             enableSorting: false,
         },
     ], [selectedIds, allSelected, sort, menuOpen, onToggleSelect, onToggleAll, onSortChange]);
@@ -231,14 +237,10 @@ export function ArchiveTable({
 
     function handleRowClick(row: Row<ArchiveRecordRow>) {
         onRowClick(row.original);
-        router.visit(`/archives/${row.original.id}`);
     }
 
     function handleRowMetaClick(e: React.MouseEvent, row: Row<ArchiveRecordRow>) {
-        if (e.metaKey || e.ctrlKey) {
-            window.open(`/archives/${row.original.id}`, '_blank');
-            return;
-        }
+        if (e.metaKey || e.ctrlKey) return;
         handleRowClick(row);
     }
 
@@ -256,15 +258,14 @@ export function ArchiveTable({
 
     return (
         <div className={cn('flex flex-1 flex-col min-h-0', className)}>
-            <div ref={tableContainerRef} className="flex-1 overflow-auto">
-                <table className="w-full">
+            <div className="flex-1 overflow-y-auto scrollbar-none">
+                <table className="w-full" style={{ tableLayout: 'auto' }}>
                     <thead>
                         {table.getHeaderGroups().map((hg) => (
                             <tr key={hg.id}>
                                 {hg.headers.map((header) => (
                                     <th key={header.id}
-                                        className="h-10 px-3 text-left whitespace-nowrap"
-                                        style={{ width: (header.column.columnDef.meta as { width?: number })?.width ?? 'auto', minWidth: (header.column.columnDef.meta as { width?: number })?.width ?? 'auto' }}>
+                                        className="h-10 px-3 text-left whitespace-nowrap">
                                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                                     </th>
                                 ))}
@@ -278,7 +279,7 @@ export function ArchiveTable({
                                 <tr key={row.id}
                                     className={cn(
                                         'group cursor-pointer transition border-b border-white/5 hover:bg-white/[0.02]',
-                                        checked && 'bg-amber-500/[0.06] border-l-2 border-l-amber-500',
+                                        checked && 'bg-amber-500/[0.06]',
                                     )}
                                     onClick={(e) => handleRowMetaClick(e, row)}
                                     onDoubleClick={() => onRowDoubleClick(row.original)}
@@ -286,9 +287,7 @@ export function ArchiveTable({
                                     {row.getVisibleCells().map((cell) => (
                                         <td key={cell.id}
                                             className="h-11 px-3 text-[13px] leading-none"
-                                            style={{ width: (cell.column.columnDef.meta as { width?: number })?.width ?? 'auto' }}
-                                            onClick={cell.column.id === 'select' ? (e) => e.stopPropagation() : undefined}
-                                        >
+                                            onClick={cell.column.id === 'select' ? (e) => e.stopPropagation() : undefined}>
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </td>
                                     ))}

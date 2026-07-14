@@ -15,6 +15,7 @@ class StoreDossierRequest extends FormRequest
     {
         return [
             'client_id' => ['required', 'exists:clients,id'],
+            'city_id' => ['required', 'exists:cities,id'],
             'project_object' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
 

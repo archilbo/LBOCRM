@@ -1,5 +1,12 @@
 export type DossierStatus = 'opened' | 'active' | 'closed' | 'archived' | string;
 
+export type City = {
+    id: number;
+    name: string;
+    code: string;
+    color: string;
+};
+
 export type DossierRow = {
     id: number;
     clientId: string;
@@ -9,6 +16,8 @@ export type DossierRow = {
     clientPhone: string;
 
     dossierNumber: string;
+    sequenceNumber: number | null;
+    period: string | null;
     projectObject: string;
     description: string | null;
 
@@ -33,6 +42,8 @@ export type DossierRow = {
     hasContract: boolean;
     hasAuthorization: boolean;
     hasArchiveRecord: boolean;
+
+    city: City | null;
 };
 
 export type ClientOption = {
@@ -42,6 +53,7 @@ export type ClientOption = {
 
 export type DossierFormPayload = {
     clientId: string;
+    cityId: string;
     projectObject: string;
     description: string;
     projectAddress: string;

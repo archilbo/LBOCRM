@@ -57,7 +57,7 @@ export function TaskBoard({ columns, onTaskClick, onCreateInStatus, onStatusChan
                             onDragOver={(e) => handleDragOver(e, status)}
                             onDragLeave={handleDragLeave}
                             onDrop={(e) => handleDrop(e, status)}
-                            className={`flex w-[280px] shrink-0 flex-col rounded-xl border-2 transition-colors ${
+                            className={`flex w-[280px] shrink-0 flex-col rounded-xl  transition-colors ${
                                 isOver ? 'border-[var(--crm-gold)]/50 bg-[var(--crm-gold)]/5' : 'border-transparent'
                             }`}>
                             <div className="sticky top-0 z-10 mb-2 flex items-center justify-between rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 py-2.5 shadow-sm">

@@ -3,10 +3,13 @@
 namespace Database\Seeders;
 
 use App\Models\ArchiveRecord;
+use App\Models\ArchiveEvent;
 use App\Models\Box;
+use App\Models\City;
 use App\Models\Room;
 use App\Models\Shelf;
 use App\Models\Dossier;
+use App\Services\Dossiers\DossierNumberService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
@@ -14,6 +17,41 @@ class ArchiveDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        // Clean slate
+        ArchiveEvent::query()->delete();
+        ArchiveRecord::query()->delete();
+        Box::query()->delete();
+        Shelf::query()->delete();
+        Room::query()->delete();
+
+        // Ensure cities exist
+        if (City::count() === 0) {
+            $this->command?->warn('No cities found. Run CitySeeder first.');
+            return;
+        }
+
+        // Assign cities to dossiers that lack one, generate proper numbers
+        $cityPool = City::where('is_active', true)->get();
+        $numberService = app(DossierNumberService::class);
+        $dossiersWithoutCity = Dossier::whereNull('city_id')->get();
+
+        foreach ($dossiersWithoutCity as $dossier) {
+            $city = $cityPool->random();
+            $numbering = $numberService->generate($city, $dossier->created_at ?? now());
+            $dossier->update([
+                'city_id' => $city->id,
+                'dossier_number' => $numbering['number'],
+                'sequence_number' => $numbering['sequence'],
+                'period' => $numbering['period'],
+            ]);
+        }
+
+        $dossiers = Dossier::whereNotNull('city_id')->get();
+        if ($dossiers->isEmpty()) {
+            $this->command?->warn('No dossiers with city_id found. Cannot seed archives.');
+            return;
+        }
+
         // Rooms
         $roomA = Room::create(['name' => 'Room A1 - Main', 'code' => 'A1', 'description' => 'Main archive room ground floor']);
         $roomB = Room::create(['name' => 'Room A2 - Storage', 'code' => 'A2', 'description' => 'Secondary storage room basement']);
@@ -39,7 +77,7 @@ class ArchiveDemoSeeder extends Seeder
             ]);
         }
 
-        // Boxes — 3 boxes per shelf, capacity 12
+        // Boxes — 3 per shelf, capacity 12
         $boxes = [];
         $boxLetters = ['A', 'B', 'C'];
         foreach ($shelves as $shelf) {
@@ -51,13 +89,6 @@ class ArchiveDemoSeeder extends Seeder
                     'capacity' => 12,
                 ]);
             }
-        }
-
-        // Dossiers for archives
-        $dossiers = Dossier::limit(15)->get();
-        if ($dossiers->isEmpty()) {
-            $this->command?->warn('No dossiers found. Create dossiers first or skip archive seeding.');
-            return;
         }
 
         $statuses = ['ready_to_archive', 'stored', 'checked_out', 'returned'];
@@ -86,7 +117,6 @@ class ArchiveDemoSeeder extends Seeder
                 'notes' => $i % 5 === 0 ? 'Sample notes for archive ' . ($i + 1) : null,
             ]);
 
-            // Create audit events
             $record->events()->create(['type' => 'ready', 'payload' => ['note' => 'Archive created']]);
             if (in_array($status, ['stored', 'checked_out', 'returned'])) {
                 $record->events()->create(['type' => 'stored', 'payload' => ['location' => "{$box->shelf->room->code}/{$box->shelf->code}/{$box->code}"]]);
@@ -146,5 +176,10 @@ class ArchiveDemoSeeder extends Seeder
         $record->events()->create(['type' => 'stored', 'payload' => ['location' => 'A1/S02/B']]);
         $record->events()->create(['type' => 'checked_out', 'payload' => ['requested_by' => 'Unknown']]);
         $record->events()->create(['type' => 'lost', 'payload' => ['reason' => 'Reported missing during inventory check']]);
+
+        $this->command?->info(sprintf(
+            'ArchiveDemoSeeder done: %d rooms, %d shelves, %d boxes, %d archive records, %d dossiers updated with cities.',
+            2, count($shelves), count($boxes), ArchiveRecord::count(), $dossiersWithoutCity->count(),
+        ));
     }
 }

@@ -13,7 +13,7 @@ import { AppModal } from '@/components/ui/AppModal';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
-import type { DossierFormPayload, DossierRow } from '@/features/dossiers/types';
+import type { City, DossierFormPayload, DossierRow } from '@/features/dossiers/types';
 import type { FormErrors } from '@/lib/formErrors';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
 import { DossierLocationExplorer } from '@/features/dossiers/components/DossierLocationExplorer';
@@ -26,6 +26,7 @@ type PageProps = {
     dossiers: DossierRow[];
     locationGroups: { province: string; communes: { commune: string; stats: unknown; dossiers: unknown[] }[] }[];
     clients: { id: string; label: string }[];
+    cities: City[];
     monthlyProjects: MonthlyCount[];
     metrics: { total: number; active: number; opened: number; closed: number; documentsTotal: number };
 };
@@ -34,6 +35,7 @@ function toBackendPayload(payload: DossierFormPayload) {
     const current = payload as DossierFormPayload & { address?: string; projectAddress?: string; notes?: string };
     return {
         client_id: payload.clientId,
+        city_id: payload.cityId,
         project_object: payload.projectObject,
         description: payload.description || null,
         project_address: current.projectAddress || current.address || null,
@@ -55,7 +57,7 @@ function formatNumber(value: number) {
 type SortField = 'projectObject' | 'clientName' | 'status' | 'documentsCount' | 'updatedAt';
 type SortDir = 'asc' | 'desc';
 
-export default function DossiersIndex({ dossiers, locationGroups, clients, metrics }: PageProps) {
+export default function DossiersIndex({ dossiers, locationGroups, clients, cities, metrics }: PageProps) {
     const { t } = useTranslation();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -392,6 +394,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, metri
                                                 {[
                                                     { key: 'projectObject' as SortField, label: 'Project' },
                                                     { key: 'clientName' as SortField, label: 'Client' },
+                                                    { key: null, label: 'City' },
                                                     { key: null, label: 'Location' },
                                                     { key: null, label: 'Workflow' },
                                                     { key: null, label: 'Readiness' },
@@ -441,6 +444,20 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, metri
                                                                 <p className="truncate text-[13px] font-medium text-[var(--foreground)]">{dossier.clientName}</p>
                                                                 <p className="truncate text-[11px] text-[var(--text-muted)]">{dossier.clientNumber}</p>
                                                             </div>
+                                                        </td>
+                                                        <td className="px-3 py-2.5">
+                                                            {dossier.city ? (
+                                                                <span className="inline-flex items-center gap-2">
+                                                                    <span
+                                                                        className="h-3 w-3 rounded-sm ring-1 ring-black/10"
+                                                                        style={{ backgroundColor: dossier.city.color }}
+                                                                        aria-label={dossier.city.name}
+                                                                    />
+                                                                    <span className="text-xs text-[var(--text-muted)]">{dossier.city.code}</span>
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-xs text-[var(--text-muted)]">—</span>
+                                                            )}
                                                         </td>
                                                         <td className="px-3 py-2.5">
                                                             <div className="flex items-center gap-1.5">
@@ -551,6 +568,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, metri
                             mode={drawerMode}
                             dossier={selectedDossier}
                             clients={clients}
+                            cities={cities}
                             onOpenChange={setDrawerOpen}
                             onSubmit={handleSubmit}
                             errors={formErrors}
@@ -600,6 +618,18 @@ function PreviewContent({ dossier, onEdit, onDelete }: { dossier: DossierRow; on
                     <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Step</p>
                     <p className="mt-1 truncate text-[13px] font-semibold text-[var(--accent)]">{getDossierWorkflowLabel(dossier.workflowStep)}</p>
                     <p className="truncate text-[11px] text-[var(--text-muted)]">Current workflow</p>
+                </div>
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">City</p>
+                    {dossier.city ? (
+                        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: `${dossier.city.color}20`, color: dossier.city.color }}>
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: dossier.city.color }} />
+                            {dossier.city.name}
+                        </span>
+                    ) : (
+                        <p className="mt-1 truncate text-[13px] font-semibold text-[var(--foreground)]">-</p>
+                    )}
                 </div>
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
                     <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Location</p>

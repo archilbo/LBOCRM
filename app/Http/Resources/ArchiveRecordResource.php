@@ -45,6 +45,13 @@ class ArchiveRecordResource extends JsonResource
             'lostReason' => $this->lost_reason,
             'isOverdue' => $isOverdue,
 
+            'city' => $this->when($this->relationLoaded('dossier') && $this->dossier?->relationLoaded('city'), fn () => $this->dossier->city ? [
+                'id'    => $this->dossier->city->id,
+                'name'  => $this->dossier->city->name,
+                'code'  => $this->dossier->city->code,
+                'color' => $this->dossier->city->color,
+            ] : null),
+
             'notes' => $this->notes,
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
             'createdAt' => optional($this->created_at)->format('Y-m-d'),

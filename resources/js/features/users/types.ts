@@ -6,6 +6,8 @@ export type AdminUserRow = {
     email: string;
     roles: UserRole[];
     permissions: string[];
+    lastSeenAt: string | null;
+    isOnline: boolean;
     createdAt: string | null;
     updatedAt: string | null;
 };

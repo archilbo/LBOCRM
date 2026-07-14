@@ -14,7 +14,10 @@ class Dossier extends Model
 
     protected $fillable = [
         'client_id',
+        'city_id',
         'dossier_number',
+        'sequence_number',
+        'period',
         'project_object',
         'description',
         'project_address',
@@ -40,6 +43,11 @@ class Dossier extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
     }
 
     public function documents(): HasMany

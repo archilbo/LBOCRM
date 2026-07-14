@@ -9,10 +9,12 @@ use App\Http\Resources\ArchiveEventResource;
 use App\Http\Resources\ArchiveRecordResource;
 use App\Models\ArchiveRecord;
 use App\Models\Box;
+use App\Models\City;
 use App\Models\Dossier;
 use App\Models\Room;
 use App\Models\Shelf;
 use App\Services\Archive\ArchiveNotificationService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,7 +24,7 @@ class ArchiveController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = ArchiveRecord::with(['dossier.client']);
+        $query = ArchiveRecord::with(['dossier.client', 'dossier.city']);
 
         // Status filter
         if ($statuses = $request->input('status')) {
@@ -51,6 +53,11 @@ class ArchiveController extends Controller
         }
         if ($box = $request->input('box')) {
             $query->where('box', $box);
+        }
+
+        // City filter (by dossier city code)
+        if ($city = $request->input('city')) {
+            $query->whereHas('dossier', fn ($q) => $q->whereHas('city', fn ($cq) => $cq->where('code', $city)));
         }
 
         // Requester & Dossier
@@ -109,14 +116,21 @@ class ArchiveController extends Controller
         $query->orderBy($sortField, $sortDir);
 
         // Pagination
-        $perPage = min(200, max(10, (int) ($request->input('perPage', 25))));
+        $perPage = min(200, max(10, (int) ($request->input('perPage', 15))));
         $archiveRecords = $query->paginate($perPage);
 
-        // Build storage tree with fill counts
+        // Build storage tree with fill counts and record status summaries
         $archiveCountsByBox = ArchiveRecord::selectRaw('box, COUNT(*) as count')
             ->whereNotNull('box')
             ->groupBy('box')
             ->pluck('count', 'box');
+
+        $archiveStatusesByBox = ArchiveRecord::selectRaw('box, status, COUNT(*) as count')
+            ->whereNotNull('box')
+            ->groupBy('box', 'status')
+            ->get()
+            ->groupBy('box')
+            ->map(fn ($rows) => $rows->pluck('count', 'status')->toArray());
 
         $rooms = Room::with('shelves.boxes')->get()->map(fn ($room) => [
             'id' => $room->id,
@@ -133,6 +147,7 @@ class ArchiveController extends Controller
                     'capacity' => $box->capacity,
                     'fill' => $box->capacity > 0 ? min(100, (int) round(($archiveCountsByBox[$box->code] ?? 0) / $box->capacity * 100)) : 0,
                     'count' => $archiveCountsByBox[$box->code] ?? 0,
+                    'recordsSummary' => $archiveStatusesByBox[$box->code] ?? [],
                 ]),
             ]),
         ]);
@@ -143,6 +158,31 @@ class ArchiveController extends Controller
             ->pluck('requested_by')
             ->map(fn ($name) => ['id' => $name, 'name' => $name]);
 
+        // Cells — Room > Box > City grouping for sidebar
+        $roomNames = Room::pluck('name', 'code');
+        $cells = ArchiveRecord::whereNotNull('room')
+            ->with('dossier.city')
+            ->get()
+            ->groupBy(fn ($r) => $r->room)
+            ->map(fn ($byRoom, $roomCode) => [
+                'name' => $roomNames[$roomCode] ?? $roomCode,
+                'code' => $roomCode,
+                'boxes' => $byRoom->groupBy('box')
+                    ->map(fn ($byBox, $boxCode) => [
+                        'code' => $boxCode,
+                        'total' => $byBox->count(),
+                        'cities' => $byBox->groupBy(fn ($r) => $r->dossier?->city?->code ?? '__none')
+                            ->map(fn ($byCity) => [
+                                'code' => $byCity->first()->dossier?->city?->code ?? 'N/A',
+                                'name' => $byCity->first()->dossier?->city?->name ?? 'Unknown',
+                                'color' => $byCity->first()->dossier?->city?->color ?? '#64748B',
+                                'count' => $byCity->count(),
+                            ])->values()->all(),
+                    ])->values()->all(),
+            ])->values()->all();
+
+        $cities = City::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code', 'color']);
+
         return Inertia::render('Archives/Index', [
             'archives' => ArchiveRecordResource::collection($archiveRecords)->resolve(),
             'paginator' => [
@@ -152,8 +192,10 @@ class ArchiveController extends Controller
                 'total' => $archiveRecords->total(),
             ],
             'tree' => $rooms,
+            'cells' => $cells,
             'dossiers' => $this->dossierOptions(),
             'requesters' => $requesters,
+            'cities' => $cities,
             'kpis' => [
                 'total' => ArchiveRecord::count(),
                 'ready' => ArchiveRecord::where('status', 'ready_to_archive')->count(),
@@ -513,6 +555,61 @@ class ArchiveController extends Controller
         return redirect()->route('archives.index')->with('success', count($records) . ' archive(s) moved.');
     }
 
+    public function boxContents(string $box): \Illuminate\Http\JsonResponse
+    {
+        $records = ArchiveRecord::where('box', $box)
+            ->with(['dossier.city', 'dossier.client'])
+            ->orderBy('archive_number')
+            ->get();
+
+        $boxModel = Box::where('code', $box)->first();
+
+        $roomName = null;
+        $roomCode = null;
+        $shelfCode = null;
+
+        if ($boxModel && $boxModel->shelf) {
+            $shelfCode = $boxModel->shelf->code;
+            if ($boxModel->shelf->room) {
+                $roomCode = $boxModel->shelf->room->code;
+                $roomName = $boxModel->shelf->room->name;
+            }
+        }
+
+        $groups = $records->groupBy(fn ($r) => $r->dossier?->city?->code ?? '__none')
+            ->map(fn ($byCity) => [
+                'city' => $byCity->first()->dossier?->city
+                    ? ['code' => $byCity->first()->dossier->city->code, 'name' => $byCity->first()->dossier->city->name, 'color' => $byCity->first()->dossier->city->color]
+                    : ['code' => 'N/A', 'name' => 'Unknown', 'color' => '#64748B'],
+                'records' => $byCity->map(fn ($r) => [
+                    'id' => $r->id,
+                    'dossierId' => $r->dossier?->id,
+                    'dossierNumber' => $r->dossier?->dossier_number,
+                    'archiveNumber' => $r->archive_number,
+                    'status' => $r->status,
+                    'projectObject' => $r->dossier?->project_object,
+                    'clientName' => $r->dossier?->client?->full_name,
+                    'inDate' => optional($r->in_date)->format('Y-m-d'),
+                    'dueAt' => optional($r->due_at)->format('Y-m-d'),
+                    'isOverdue' => $r->isOverdue(),
+                    'isLost' => $r->is_lost,
+                ])->values()->all(),
+            ])->values()->all();
+
+        return response()->json([
+            'box' => [
+                'code' => $box,
+                'name' => $boxModel?->name ?? $box,
+                'capacity' => $boxModel?->capacity ?? 12,
+                'count' => $records->count(),
+                'roomName' => $roomName,
+                'roomCode' => $roomCode,
+                'shelfCode' => $shelfCode,
+            ],
+            'groups' => $groups,
+        ]);
+    }
+
     private function prepareArchiveData(array $data): array
     {
         $data['status'] = $data['status'] ?? 'ready_to_archive';
@@ -541,6 +638,55 @@ class ArchiveController extends Controller
         } while (ArchiveRecord::where('archive_number', $number)->exists());
 
         return $number;
+    }
+
+    public function reports(Request $request): Response
+    {
+        $overdue = ArchiveRecord::with('dossier.client')
+            ->overdue()
+            ->orderBy('due_at')
+            ->get()
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'archiveNumber' => $r->archive_number,
+                'dossierNumber' => $r->dossier?->dossier_number ?? '-',
+                'projectObject' => $r->dossier?->project_object ?? '-',
+                'clientName' => $r->dossier?->client?->full_name ?? '-',
+                'requestedBy' => $r->requested_by,
+                'dueAt' => optional($r->due_at)->format('Y-m-d'),
+                'overdueDays' => (int) max(0, Carbon::parse($r->due_at)->diffInDays(now(), false)),
+            ]);
+
+        $monthly = ArchiveRecord::selectRaw("DATE_FORMAT(created_at, '%Y-%m') as period, COUNT(*) as total")
+            ->where('created_at', '>=', now()->subMonths(12))
+            ->groupBy('period')
+            ->orderBy('period')
+            ->get()
+            ->map(fn ($r) => ['period' => $r->period, 'total' => (int) $r->total]);
+
+        $lost = ArchiveRecord::with('dossier.client')
+            ->where('is_lost', true)
+            ->orderByDesc('updated_at')
+            ->get()
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'archiveNumber' => $r->archive_number,
+                'dossierNumber' => $r->dossier?->dossier_number ?? '-',
+                'projectObject' => $r->dossier?->project_object ?? '-',
+                'lostReason' => $r->lost_reason,
+                'lostAt' => optional($r->updated_at)->format('Y-m-d'),
+            ]);
+
+        return Inertia::render('Archives/Reports', [
+            'overdue' => $overdue,
+            'monthly' => $monthly,
+            'lost' => $lost,
+            'kpis' => [
+                'totalOverdue' => $overdue->count(),
+                'totalLost' => $lost->count(),
+                'avgOverdueDays' => $overdue->isEmpty() ? 0 : (int) round($overdue->avg('overdueDays')),
+            ],
+        ]);
     }
 
     private function dossierOptions(): array

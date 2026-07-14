@@ -11,6 +11,7 @@ type AppDrawerProps = {
     children: ReactNode;
     footer?: ReactNode;
     panelClassName?: string;
+    isDismissable?: boolean;
 };
 
 export function AppDrawer({
@@ -21,13 +22,14 @@ export function AppDrawer({
     children,
     footer,
     panelClassName,
+    isDismissable: dismissable = true,
 }: AppDrawerProps) {
     return (
         <ModalOverlay
             isOpen={isOpen}
             onOpenChange={onOpenChange}
             className="app-modal-overlay app-drawer-overlay"
-            isDismissable
+            isDismissable={dismissable}
         >
             <Modal className={cn('app-drawer-panel', panelClassName)}>
                 <Dialog className="flex h-full flex-col outline-none">

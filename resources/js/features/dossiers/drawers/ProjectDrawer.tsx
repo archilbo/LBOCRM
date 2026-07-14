@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import type { Key } from 'react-aria-components';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
@@ -7,6 +7,7 @@ import { AppSelect } from '@/components/ui/AppSelect';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppTextarea } from '@/components/ui/AppTextarea';
 import type {
+    City,
     ClientOption,
     DossierFormPayload,
     DossierRow,
@@ -20,6 +21,7 @@ type ProjectDrawerProps = {
     mode: 'create' | 'edit';
     dossier: DossierRow | null;
     clients: ClientOption[];
+    cities: City[];
     initialClientId?: string;
     onOpenChange: (isOpen: boolean) => void;
     onSubmit: (payload: DossierFormPayload) => void;
@@ -28,6 +30,7 @@ type ProjectDrawerProps = {
 
 const emptyForm: DossierFormPayload = {
     clientId: '',
+    cityId: '',
     projectObject: '',
     description: '',
     projectAddress: '',
@@ -51,12 +54,17 @@ export function ProjectDrawer({
     mode,
     dossier,
     clients,
+    cities,
     initialClientId = '',
     onOpenChange,
     onSubmit,
     errors = {},
 }: ProjectDrawerProps) {
     const [form, setForm] = useState<DossierFormPayload>(emptyForm);
+
+    const cityOptions = useMemo(() =>
+        cities.map((c) => ({ id: String(c.id), label: `${c.code} - ${c.name}` })),
+    [cities]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -65,6 +73,9 @@ export function ProjectDrawer({
             const current = dossier as unknown as Record<string, unknown>;
             setForm({
                 clientId: stringValue(current.clientId),
+                cityId: stringValue((current as Record<string, unknown>).city && typeof (current as Record<string, unknown>).city === 'object'
+                    ? ((current as Record<string, unknown>).city as Record<string, unknown>).id ?? ''
+                    : ''),
                 projectObject: stringValue(current.projectObject),
                 description: stringValue(current.description),
                 projectAddress: stringValue(current.projectAddress || current.address || ''),
@@ -126,6 +137,14 @@ export function ProjectDrawer({
                             onSelectionChange={(value) => updateSelect('clientId', value)}
                             options={clients}
                             error={firstError(errors, 'client_id')}
+                        />
+                        <AppSelect
+                            label="City"
+                            placeholder="Select city"
+                            selectedKey={form.cityId}
+                            onSelectionChange={(value) => updateSelect('cityId', value)}
+                            options={cityOptions}
+                            error={firstError(errors, 'city_id')}
                         />
                         <div className="grid gap-4 md:grid-cols-2">
                             <AppSelect

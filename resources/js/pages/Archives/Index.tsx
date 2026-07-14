@@ -1,6 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import {
     ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    BarChart3,
+    Building2,
     List,
     Map,
     Plus,
@@ -13,12 +17,9 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppCompactTabs } from '@/components/ui/AppCompactTabs';
-import { AppDropdownMenu } from '@/components/ui/AppDropdownMenu';
 import { AppTooltip } from '@/components/ui/AppTooltip';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
-import { AppPagination } from '@/components/ui/AppPagination';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppShell } from '@/components/layout/AppShell';
 import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
@@ -30,21 +31,13 @@ import { KpiStrip } from '@/features/archives/components/KpiStrip';
 import { MapView } from '@/features/archives/components/MapView';
 import { PreviewPanel } from '@/features/archives/components/PreviewPanel';
 import { ScanModal } from '@/features/archives/components/ScanModal';
-import { StorageTree } from '@/features/archives/components/StorageTree';
+import { CitySidebar } from '@/features/archives/components/CitySidebar';
+import { ArchiveTable } from '@/features/archives/components/ArchiveTable';
 import { useArchiveFilters } from '@/features/archives/hooks/useArchiveFilters';
 import { useHotkeys } from '@/features/archives/hooks/useHotkeys';
 import type { ArchiveFormPayload, ArchiveRecordRow, ArchivesPageProps } from '@/features/archives/types';
 import { ARCHIVE_STATUS, defaultDue } from '@/config/statuses';
 import { cn } from '@/lib/cn';
-
-const VIEW_TABS = [
-    { id: 'all' as const, label: 'All' },
-    { id: 'mine' as const, label: 'My requests' },
-    { id: 'out' as const, label: 'Out' },
-    { id: 'overdue' as const, label: 'Overdue' },
-    { id: 'empty_boxes' as const, label: 'Empty boxes' },
-    { id: 'lost' as const, label: 'Lost' },
-];
 
 export default function ArchivesIndex(props: ArchivesPageProps) {
     const { filters, patch, debouncedPatch, reset, activeCount, activeChips } = useArchiveFilters({
@@ -67,8 +60,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     const [scanModalOpen, setScanModalOpen] = useState(false);
     const [showNewMenu, setShowNewMenu] = useState(false);
     const [cheatsheetOpen, setCheatsheetOpen] = useState(false);
-    const [treeDrawerOpen, setTreeDrawerOpen] = useState(false);
-    const [previewSheetOpen, setPreviewSheetOpen] = useState(false);
+    const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
 
     const searchRef = useRef<HTMLInputElement>(null);
 
@@ -85,13 +77,13 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     const viewMode = (filters.viewMode as 'list' | 'map') || 'list';
 
     function handleKpiFilter(key: string | null) {
-        if (!key) { patch({ view: undefined, status: undefined, overdueOnly: undefined }); return; }
-        if (key === 'overdue') { patch({ view: undefined, status: undefined, overdueOnly: true }); return; }
-        if (key === 'ready') { patch({ status: ['ready_to_archive'], view: undefined, overdueOnly: undefined }); return; }
-        if (key === 'stored') { patch({ status: ['stored'], view: undefined, overdueOnly: undefined }); return; }
-        if (key === 'checked_out') { patch({ status: ['checked_out'], view: undefined, overdueOnly: undefined }); return; }
-        if (key === 'returned') { patch({ status: ['returned'], view: undefined, overdueOnly: undefined }); return; }
-        if (key === 'lost') { patch({ status: ['lost'], view: undefined, overdueOnly: undefined }); return; }
+        if (!key) { patch({ status: undefined, overdueOnly: undefined }); return; }
+        if (key === 'overdue') { patch({ status: undefined, overdueOnly: true }); return; }
+        if (key === 'ready') { patch({ status: ['ready_to_archive'], overdueOnly: undefined }); return; }
+        if (key === 'stored') { patch({ status: ['stored'], overdueOnly: undefined }); return; }
+        if (key === 'checked_out') { patch({ status: ['checked_out'], overdueOnly: undefined }); return; }
+        if (key === 'returned') { patch({ status: ['returned'], overdueOnly: undefined }); return; }
+        if (key === 'lost') { patch({ status: ['lost'], overdueOnly: undefined }); return; }
     }
 
     function handleRowClick(record: ArchiveRecordRow) {
@@ -203,11 +195,29 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function handlePageChange(page: number) {
-        patch({ page });
+        const url = new URL(window.location.href);
+        if (page > 1) {
+            url.searchParams.set('page', String(page));
+        } else {
+            url.searchParams.delete('page');
+        }
+        router.visit(url.pathname + url.search, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     }
 
     function handlePerPageChange(perPage: number) {
         patch({ perPage, page: 1 });
+    }
+
+    function handleSelectCity(code: string | null) {
+        patch({ city: code || undefined, page: 1 });
+    }
+
+    function handleSelectBox(room: string, box: string) {
+        patch({ room, box, page: 1 });
     }
 
     useHotkeys([
@@ -225,9 +235,8 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
         <>
             <Head title="Archives" />
             <AppShell>
-                <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-                    {/* PageHeader — Tier 1 */}
-                    <div className="flex items-center justify-between">
+                <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 flex flex-col min-h-0 space-y-4">
+                    <div className="flex items-center justify-between shrink-0">
                         <h1 className="text-2xl font-semibold text-white">Archives</h1>
                         <div className="relative">
                             <AppButton variant="primary" size="sm" onPress={() => setShowNewMenu(!showNewMenu)}>
@@ -247,162 +256,195 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                         </div>
                     </div>
 
-                    {/* KPI strip */}
                     <KpiStrip kpis={props.kpis} activeFilter={filters.overdueOnly ? 'overdue' : (filters.status?.[0] ?? null)} onFilter={handleKpiFilter} />
 
-                    {/* Toolbar — saved-view tabs inline + compact controls */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        <AppCompactTabs
-                            tabs={VIEW_TABS.map((t) => ({ id: t.id, label: t.label }))}
-                            selectedKey={filters.view || 'all'}
-                            onSelectionChange={(id) => patch({ view: id === 'all' ? undefined : id as string, status: undefined, overdueOnly: undefined })}
-                        />
-                        <div className="ml-auto flex items-center gap-1.5">
-                            <div className="relative w-64">
-                                <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
-                                <input
-                                    ref={searchRef}
-                                    type="text"
-                                    value={query}
-                                    onChange={(e) => setQuery(e.target.value)}
-                                    placeholder="ARC, project, box…"
-                                    className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.02] pl-8 pr-7 text-[13px] text-white outline-none placeholder:text-white/40 focus:border-amber-500/50"
-                                />
-                                {query ? (
-                                    <button type="button" onClick={() => { setQuery(''); debouncedPatch({ q: undefined }); }}
-                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded text-white/40 hover:text-white/80">
-                                        <X size={12} />
-                                    </button>
-                                ) : null}
-                            </div>
-
-                            <AppTooltip label="Filters">
-                                <button type="button" onClick={() => setFilterDrawerOpen(true)}
-                                    className={cn('flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/5', activeCount > 0 && 'text-amber-400')}
-                                    aria-label="Filters">
-                                    <SlidersHorizontal size={14} />
-                                </button>
-                            </AppTooltip>
-
-                            <div className="h-5 w-px bg-white/10" />
-
-                            <AppTooltip label="List view">
-                                <button type="button" onClick={() => patch({ viewMode: 'list' })}
-                                    className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'list' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80 hover:bg-white/5')}
-                                    aria-label="List view"><List size={14} /></button>
-                            </AppTooltip>
-                            <AppTooltip label="Map view">
-                                <button type="button" onClick={() => patch({ viewMode: 'map' })}
-                                    className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'map' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80 hover:bg-white/5')}
-                                    aria-label="Map view"><Map size={14} /></button>
-                            </AppTooltip>
-
-                            <AppDropdownMenu
-                                ariaLabel="Sort"
-                                items={[
-                                    { id: 'archive_number:asc', label: 'ARC ↑', onAction: () => patch({ sort: 'archive_number:asc' }) },
-                                    { id: 'archive_number:desc', label: 'ARC ↓', onAction: () => patch({ sort: 'archive_number:desc' }) },
-                                    { id: 'status:asc', label: 'Status ↑', onAction: () => patch({ sort: 'status:asc' }) },
-                                    { id: 'status:desc', label: 'Status ↓', onAction: () => patch({ sort: 'status:desc' }) },
-                                    { id: 'due_at:asc', label: 'Due ↑', onAction: () => patch({ sort: 'due_at:asc' }) },
-                                    { id: 'due_at:desc', label: 'Due ↓', onAction: () => patch({ sort: 'due_at:desc' }) },
-                                ]}
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <div className="relative w-64">
+                            <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
+                            <input
+                                ref={searchRef}
+                                type="text"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="ARC, project, box…"
+                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.02] pl-8 pr-7 text-[13px] text-white outline-none placeholder:text-white/40 focus:border-amber-500/50"
                             />
-
-                            <AppTooltip label="Refresh">
-                                <button type="button" onClick={() => router.reload({ only: ['archives', 'kpis', 'tree'] })}
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Refresh">
-                                    <RefreshCw size={14} />
+                            {query ? (
+                                <button type="button" onClick={() => { setQuery(''); debouncedPatch({ q: undefined }); }}
+                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded text-white/40 hover:text-white/80">
+                                    <X size={12} />
                                 </button>
-                            </AppTooltip>
-
-                            <AppTooltip label="Scan QR code">
-                                <button type="button" onClick={() => setScanModalOpen(true)}
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Scan QR code">
-                                    <ScanLine size={14} />
-                                </button>
-                            </AppTooltip>
+                            ) : null}
                         </div>
+
+                        <AppTooltip label="Filters">
+                            <button type="button" onClick={() => setFilterDrawerOpen(true)}
+                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/5', activeCount > 0 && 'text-amber-400')}
+                                aria-label="Filters">
+                                <SlidersHorizontal size={14} />
+                            </button>
+                        </AppTooltip>
+
+                        <div className="h-5 w-px bg-white/10" />
+
+                        <AppTooltip label="List view">
+                            <button type="button" onClick={() => patch({ viewMode: 'list' })}
+                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'list' ? 'bg-amber-500/10 text-amber-400' : 'text-white/40 hover:text-white/80 hover:bg-white/5')}
+                                aria-label="List view"><List size={14} /></button>
+                        </AppTooltip>
+                        <AppTooltip label="Map view">
+                            <button type="button" onClick={() => patch({ viewMode: 'map' })}
+                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'map' ? 'bg-amber-500/10 text-amber-400' : 'text-white/40 hover:text-white/80 hover:bg-white/5')}
+                                aria-label="Map view"><Map size={14} /></button>
+                        </AppTooltip>
+
+                        <AppTooltip label="Refresh">
+                            <button type="button" onClick={() => router.reload({ only: ['archives', 'kpis', 'tree', 'cells'] })}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Refresh">
+                                <RefreshCw size={14} />
+                            </button>
+                        </AppTooltip>
+
+                        <div className="h-5 w-px bg-white/10" />
+
+                        <AppTooltip label="Reports">
+                            <button type="button" onClick={() => router.visit('/archives/reports')}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Reports">
+                                <BarChart3 size={14} />
+                            </button>
+                        </AppTooltip>
+                        <AppTooltip label="Cities">
+                            <button type="button" onClick={() => router.visit('/archives/cities')}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Cities">
+                                <Building2 size={14} />
+                            </button>
+                        </AppTooltip>
+
+                        <AppTooltip label="Scan QR code">
+                            <button type="button" onClick={() => setScanModalOpen(true)}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Scan QR code">
+                                <ScanLine size={14} />
+                            </button>
+                        </AppTooltip>
+
+                        {activeChips.length > 0 ? (
+                            <div className="flex items-center gap-1.5 flex-wrap shrink-0 ml-auto">
+                                {activeChips.map((chip) => (
+                                    <span key={chip.key} className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-xs text-white/60">
+                                        {chip.label}
+                                        <button type="button" onClick={chip.onRemove} className="ml-0.5 text-white/40 hover:text-white/80"><X size={12} /></button>
+                                    </span>
+                                ))}
+                                <button type="button" onClick={reset} className="text-xs text-white/50 hover:text-white/80">Clear all</button>
+                            </div>
+                        ) : null}
                     </div>
 
-                    {/* Filter chip bar */}
-                    {activeChips.length > 0 ? (
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                            {activeChips.map((chip) => (
-                                <span key={chip.key} className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-xs text-white/60">
-                                    {chip.label}
-                                    <button type="button" onClick={chip.onRemove} className="ml-0.5 text-white/40 hover:text-white/80"><X size={12} /></button>
-                                </span>
-                            ))}
-                            <button type="button" onClick={reset} className="text-xs text-white/50 hover:text-white/80">Clear all</button>
+                    {/* Preview card — full width */}
+                    <div className="rounded-xl border border-white/5 bg-white/[0.02] shrink-0">
+                        <PreviewPanel record={previewRecord} />
+                    </div>
+
+                    {/* Sidebar + table — fills remaining height */}
+                    <div className="flex min-h-0 flex-1 gap-3">
+                        <div className="hidden lg:flex flex-col w-[220px] shrink-0">
+                            <div className="flex-1 rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
+                                <CitySidebar
+                                    cells={props.cells}
+                                    selectedCity={filters.city || null}
+                                    selectedRoom={filters.room || null}
+                                    selectedBox={filters.box || null}
+                                    onSelectCity={handleSelectCity}
+                                    onSelectBox={handleSelectBox}
+                                />
+                            </div>
                         </div>
-                    ) : null}
 
-                    {/* Layout grid — 3 columns */}
-                    <div className="grid gap-3 lg:grid-cols-[240px_minmax(0,1fr)_320px] xl:grid-cols-[280px_minmax(0,1fr)_360px]">
-                        {/* Storage tree */}
-                        <StorageTree
-                            tree={props.tree}
-                            selectedRoom={filters.room || null}
-                            selectedShelf={filters.shelf || null}
-                            selectedBox={filters.box || null}
-                            onSelectRoom={(code) => patch({ room: code || undefined, shelf: undefined, box: undefined })}
-                            onSelectShelf={(code) => patch({ shelf: code || undefined, box: undefined })}
-                            onSelectBox={(code) => patch({ box: code || undefined })}
-                            className="hidden lg:block rounded-xl border border-white/5 bg-white/[0.02] p-3"
-                        />
-
-                        {/* Work surface */}
-                        <div className="min-w-0 space-y-4">
+                        <div className="flex flex-col min-h-0 flex-1 rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
                             {viewMode === 'list' ? (
-                                <div className="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
-                                    <ArchiveTable
-                                        archives={props.archives}
-                                        selectedIds={selectedIds}
-                                        allSelected={allSelected}
-                                        sort={filters.sort}
-                                        onToggleSelect={(id) => setSelectedIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
-                                        onToggleAll={() => setSelectedIds((prev) => prev.size === props.archives.length ? new Set() : new Set(props.archives.map((r) => r.id)))}
-                                        onRowClick={(record) => { handleRowClick(record); if (window.innerWidth < 1280) setPreviewSheetOpen(true); }}
-                                        onRowDoubleClick={handleRowDoubleClick}
-                                        onCheckoutSingle={handleCheckoutSingle}
-                                        onReturnSingle={handleReturnSingle}
-                                        onEditSingle={openEditDrawer}
-                                        onDeleteSingle={deleteRecord}
-                                        onSortChange={(sort) => patch({ sort: sort || undefined })}
-                                    />
-                                </div>
+                                <ArchiveTable
+                                    archives={props.archives}
+                                    selectedIds={selectedIds}
+                                    allSelected={allSelected}
+                                    sort={filters.sort}
+                                    onToggleSelect={(id) => setSelectedIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
+                                    onToggleAll={() => setSelectedIds((prev) => prev.size === props.archives.length ? new Set() : new Set(props.archives.map((r) => r.id)))}
+                                    onRowClick={handleRowClick}
+                                    onRowDoubleClick={handleRowDoubleClick}
+                                    onCheckoutSingle={handleCheckoutSingle}
+                                    onReturnSingle={handleReturnSingle}
+                                    onEditSingle={openEditDrawer}
+                                    onDeleteSingle={deleteRecord}
+                                    onSortChange={(sort) => patch({ sort: sort || undefined })}
+                                />
                             ) : (
                                 <MapView tree={props.tree} selectedBox={filters.box || null} onSelectBox={(code) => patch({ box: code || undefined })} />
                             )}
 
-                            {props.paginator.lastPage > 1 ? (
-                                <div className="flex items-center justify-between text-[13px] text-white/50">
-                                    <div className="flex items-center gap-2">
-                                        <AppSelect
-                                            label=""
-                                            selectedKey={String(props.paginator.perPage)}
-                                            onSelectionChange={(v) => handlePerPageChange(Number(v))}
-                                            options={[
-                                                { id: '25', label: '25' },
-                                                { id: '50', label: '50' },
-                                                { id: '100', label: '100' },
-                                                { id: '200', label: '200' },
-                                            ]}
-                                            className="h-8 w-16"
-                                        />
-                                        <span className="tabular-nums">
-                                            {((props.paginator.currentPage - 1) * props.paginator.perPage) + 1}–{Math.min(props.paginator.currentPage * props.paginator.perPage, props.paginator.total)} of {props.paginator.total}
-                                        </span>
+                            {/* Pagination inside table card */}
+                            {props.paginator.lastPage > 1 ? (() => {
+                                const { currentPage, lastPage, perPage, total } = props.paginator;
+                                const from = (currentPage - 1) * perPage + 1;
+                                const to = Math.min(currentPage * perPage, total);
+                                const pages: (number | 'ellipsis')[] = [];
+                                const start = Math.max(1, currentPage - 2);
+                                const end = Math.min(lastPage, currentPage + 2);
+                                if (start > 1) pages.push(1);
+                                if (start > 2) pages.push('ellipsis');
+                                for (let i = start; i <= end; i++) pages.push(i);
+                                if (end < lastPage - 1) pages.push('ellipsis');
+                                if (end < lastPage) pages.push(lastPage);
+                                return (
+                                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 px-3 py-2.5 shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <AppSelect
+                                                label=""
+                                                selectedKey={String(perPage)}
+                                                onSelectionChange={(v) => handlePerPageChange(Number(v))}
+                                                options={[
+                                                    { id: '15', label: '15 / page' },
+                                                    { id: '30', label: '30 / page' },
+                                                    { id: '50', label: '50 / page' },
+                                                    { id: '100', label: '100 / page' },
+                                                ]}
+                                                className="h-7 w-24"
+                                            />
+                                            <span className="text-[12px] text-white/40 tabular-nums">
+                                                {from}–{to} of {total}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <button type="button"
+                                                disabled={currentPage <= 1}
+                                                onClick={() => handlePageChange(currentPage - 1)}
+                                                className="flex h-7 w-7 items-center justify-center rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-20 disabled:pointer-events-none transition">
+                                                <ChevronLeft size={14} />
+                                            </button>
+                                            {pages.map((p, i) =>
+                                                p === 'ellipsis' ? (
+                                                    <span key={`e${i}`} className="px-1 text-white/20 select-none text-[11px]">…</span>
+                                                ) : (
+                                                    <button key={p} type="button"
+                                                        onClick={() => handlePageChange(p)}
+                                                        className={`flex h-7 min-w-7 items-center justify-center rounded text-xs transition ${
+                                                            p === currentPage
+                                                                ? 'bg-amber-500/15 text-amber-400 font-semibold'
+                                                                : 'text-white/40 hover:text-white hover:bg-white/5'
+                                                        }`}>
+                                                        {p}
+                                                    </button>
+                                                ),
+                                            )}
+                                            <button type="button"
+                                                disabled={currentPage >= lastPage}
+                                                onClick={() => handlePageChange(currentPage + 1)}
+                                                className="flex h-7 w-7 items-center justify-center rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-20 disabled:pointer-events-none transition">
+                                                <ChevronRight size={14} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <AppPagination
-                                        page={props.paginator.currentPage}
-                                        pageSize={props.paginator.perPage}
-                                        total={props.paginator.total}
-                                        onChange={handlePageChange}
-                                    />
-                                </div>
-                            ) : null}
+                                );
+                            })() : null}
 
                             <BulkActionBar
                                 count={selectedIds.size}
@@ -412,27 +454,18 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                 onClear={() => setSelectedIds(new Set())}
                             />
                         </div>
-
-                        {/* Preview panel — sticky on desktop */}
-                        <div className="hidden xl:block">
-                            <div className="sticky top-4 self-start rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
-                                <PreviewPanel record={previewRecord} />
-                            </div>
-                        </div>
                     </div>
 
-                    {/* Mobile: tree drawer trigger */}
                     <button
                         type="button"
-                        onClick={() => setTreeDrawerOpen(true)}
+                        onClick={() => setSidebarDrawerOpen(true)}
                         className="lg:hidden fixed bottom-4 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-white shadow-lg"
-                        aria-label="Open storage tree"
+                        aria-label="Open city sidebar"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
                     </button>
                 </div>
 
-                {/* Drawers & Modals */}
                 <ArchiveDrawer
                     isOpen={drawerOpen}
                     mode={drawerMode}
@@ -482,6 +515,17 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                     }
                 >
                     <form id="filter-form" onSubmit={(e) => { e.preventDefault(); setFilterDrawerOpen(false); }} className="space-y-5">
+                        <section>
+                            <h4 className="mb-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold">City</h4>
+                            <select value={filters.city || ''} onChange={(e) => patch({ city: e.target.value || undefined })}
+                                className="h-9 w-full rounded-lg border border-white/10 bg-zinc-900 px-2 text-[13px] text-white outline-none focus:border-amber-500/50">
+                                <option value="">All</option>
+                                {props.cities.map((c) => (
+                                    <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
+                                ))}
+                            </select>
+                        </section>
+
                         <section>
                             <h4 className="mb-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold">Status</h4>
                             <div className="space-y-1">
@@ -541,29 +585,19 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                 </AppDrawer>
 
                 <AppDrawer
-                    isOpen={treeDrawerOpen}
-                    onOpenChange={setTreeDrawerOpen}
-                    title="Storage"
+                    isOpen={sidebarDrawerOpen}
+                    onOpenChange={setSidebarDrawerOpen}
+                    title="Cities"
                     size="sm"
                 >
-                    <StorageTree
-                        tree={props.tree}
+                    <CitySidebar
+                        cells={props.cells}
+                        selectedCity={filters.city || null}
                         selectedRoom={filters.room || null}
-                        selectedShelf={filters.shelf || null}
                         selectedBox={filters.box || null}
-                        onSelectRoom={(code) => { patch({ room: code || undefined, shelf: undefined, box: undefined }); setTreeDrawerOpen(false); }}
-                        onSelectShelf={(code) => { patch({ shelf: code || undefined, box: undefined }); setTreeDrawerOpen(false); }}
-                        onSelectBox={(code) => { patch({ box: code || undefined }); setTreeDrawerOpen(false); }}
+                        onSelectCity={(code) => { handleSelectCity(code); setSidebarDrawerOpen(false); }}
+                        onSelectBox={(room, box) => { handleSelectBox(room, box); setSidebarDrawerOpen(false); }}
                     />
-                </AppDrawer>
-
-                <AppDrawer
-                    isOpen={previewSheetOpen}
-                    onOpenChange={setPreviewSheetOpen}
-                    title=""
-                    size="md"
-                >
-                    <PreviewPanel record={previewRecord} />
                 </AppDrawer>
 
                 <ScanModal isOpen={scanModalOpen} onOpenChange={setScanModalOpen} />
@@ -598,5 +632,3 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
         </>
     );
 }
-
-import { ArchiveTable } from '@/features/archives/components/ArchiveTable';

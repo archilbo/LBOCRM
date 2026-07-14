@@ -1,8 +1,6 @@
 import { AlertCircle, ExternalLink } from 'lucide-react';
 import type { ArchiveRecordRow } from '@/features/archives/types';
-import { archiveVisualStatus } from '@/config/statuses';
 import { StatusPill } from '@/components/ui/StatusPill';
-import { cn } from '@/lib/cn';
 import { router } from '@inertiajs/react';
 
 type PreviewPanelProps = {
@@ -12,62 +10,83 @@ type PreviewPanelProps = {
 export function PreviewPanel({ record }: PreviewPanelProps) {
     if (!record) {
         return (
-            <div className="flex h-40 items-center justify-center">
-                <p className="text-[13px] text-white/50">Select an archive to preview</p>
+            <div className="flex h-32 items-center justify-center">
+                <p className="text-sm text-white/50">Select an archive to preview</p>
             </div>
         );
     }
 
     return (
         <div>
-            <div className="border-b border-white/5 px-4 py-3">
-                <div className="flex items-center justify-between">
-                    <div className="font-mono text-[13px] text-white/70">{record.archiveNumber}</div>
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-white/5">
+                <div className="flex items-center gap-3 min-w-0">
+                    <span className="font-mono text-xs text-white/50 shrink-0">{record.archiveNumber}</span>
+                    <h3 className="text-sm font-semibold text-white truncate">{record.projectObject}</h3>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" onClick={() => router.visit(`/archives/${record.id}`)}
+                        className="flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[11px] font-medium text-white/70 hover:text-white hover:bg-white/5 transition">
+                        <ExternalLink size={11} /> Open
+                    </button>
+                    {record.isOverdue ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-red-400">
+                            <AlertCircle size={11} /> Overdue
+                        </span>
+                    ) : null}
                     <StatusPill status={record.status} isOverdue={record.isOverdue} />
                 </div>
-                <div className="mt-1 truncate text-base font-semibold text-white">{record.projectObject}</div>
             </div>
 
-            {record.isOverdue ? (
-                <div className="mx-4 mt-3 flex items-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1.5 text-xs text-red-400">
-                    <AlertCircle size={12} /> Overdue since {record.dueAt}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 px-4 py-2.5 text-xs">
+                <div className="flex items-center gap-2">
+                    <span className="text-white/50 w-14 shrink-0">Dossier</span>
+                    <span className="text-white font-mono truncate">{record.dossierNumber || '-'}</span>
                 </div>
-            ) : null}
-
-            <dl className="grid grid-cols-[80px_1fr] gap-x-3 gap-y-2 px-4 py-3 text-[13px]">
-                <dt className="text-white/50">Dossier</dt>
-                <dd className="text-white">{record.dossierNumber || '-'}</dd>
-                <dt className="text-white/50">Client</dt>
-                <dd className="text-white">{record.clientName || '-'}</dd>
-                <dt className="text-white/50">Location</dt>
-                <dd className="text-white font-mono">{record.locationLabel || '-'}</dd>
-                <dt className="text-white/50">Requester</dt>
-                <dd className="text-white">{record.requestedBy || '-'}</dd>
-                {record.dueAt ? (
-                    <>
-                        <dt className="text-white/50">Due</dt>
-                        <dd className={cn('tabular-nums', record.isOverdue ? 'text-red-400' : 'text-white')}>{record.dueAt}</dd>
-                    </>
+                <div className="flex items-center gap-2">
+                    <span className="text-white/50 w-14 shrink-0">Client</span>
+                    <span className="text-white truncate">{record.clientName || '-'}</span>
+                </div>
+                {record.city ? (
+                    <div className="flex items-center gap-2">
+                        <span className="text-white/50 w-14 shrink-0">City</span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                            style={{ backgroundColor: `${record.city.color}20`, color: record.city.color }}>
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: record.city.color }} />
+                            {record.city.name}
+                        </span>
+                    </div>
                 ) : null}
-                <dt className="text-white/50">In / Out</dt>
-                <dd className="text-white">{record.inDate || '-'} / {record.outDate || '-'}</dd>
-            </dl>
+                <div className="flex items-center gap-2">
+                    <span className="text-white/50 w-14 shrink-0">Location</span>
+                    <span className="text-white font-mono truncate">
+                        {[record.room, record.box].filter(Boolean).join(' / ') || '-'}
+                    </span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-white/50 w-14 shrink-0">Requester</span>
+                    <span className="text-white truncate">{record.requestedBy || '-'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-white/50 w-14 shrink-0">In / Out</span>
+                    <span className="text-white">
+                        {record.inDate || '-'} {record.outDate ? `/ ${record.outDate}` : ''}
+                    </span>
+                </div>
+                {record.dueAt ? (
+                    <div className="flex items-center gap-2">
+                        <span className="text-white/50 w-14 shrink-0">Due</span>
+                        <span className={record.isOverdue ? 'text-red-400' : 'text-white'}>
+                            {record.dueAt}
+                        </span>
+                    </div>
+                ) : null}
+            </div>
 
             {record.notes ? (
-                <div className="mx-4 mb-3 rounded-md bg-white/[0.03] px-3 py-2 text-[13px] text-white/70 leading-relaxed">
+                <div className="mx-4 mb-2.5 rounded-md bg-white/[0.03] px-3 py-1.5 text-xs text-white/60 leading-relaxed">
                     {record.notes}
                 </div>
             ) : null}
-
-            <div className="border-t border-white/5 p-3">
-                <button
-                    type="button"
-                    onClick={() => router.visit(`/archives/${record.id}`)}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/10 py-2 text-[13px] font-medium text-white transition hover:bg-white/[0.04]"
-                >
-                    <ExternalLink size={14} /> Open
-                </button>
-            </div>
         </div>
     );
 }

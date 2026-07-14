@@ -92,6 +92,14 @@ class ArchiveRecord extends Model
             ->where('is_lost', false);
     }
 
+    public function isOverdue(): bool
+    {
+        return $this->status === 'checked_out'
+            && $this->due_at !== null
+            && $this->due_at->isPast()
+            && !$this->is_lost;
+    }
+
     public function scopeNotLost($query)
     {
         return $query->where('is_lost', false);

@@ -10,13 +10,16 @@ use Illuminate\Routing\Controller;
 
 class ClientController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function search(Request $request): JsonResponse
     {
-        $q = $request->string('q', '');
+        $q = trim((string) $request->string('q', ''));
         $limit = max(1, min(100, $request->integer('limit', 20)));
 
         $clients = Client::query()
-            ->when($q->isNotEmpty(), fn ($query) => $query->where('full_name', 'ilike', "%{$q}%"))
+            ->when($q !== '', fn ($query) => $query
+                ->where('full_name', 'like', "%{$q}%")
+                ->orWhere('client_number', 'like', "%{$q}%")
+            )
             ->orderBy('full_name')
             ->limit($limit)
             ->get(['id', 'full_name as name', 'client_number as code']);
@@ -26,12 +29,15 @@ class ClientController extends Controller
 
     public function projects(Request $request, Client $client): JsonResponse
     {
-        $q = $request->string('q', '');
+        $q = trim((string) $request->string('q', ''));
         $limit = max(1, min(100, $request->integer('limit', 20)));
 
         $dossiers = Dossier::query()
             ->where('client_id', $client->id)
-            ->when($q->isNotEmpty(), fn ($query) => $query->where('project_object', 'ilike', "%{$q}%"))
+            ->when($q !== '', fn ($query) => $query
+                ->where('project_object', 'like', "%{$q}%")
+                ->orWhere('dossier_number', 'like', "%{$q}%")
+            )
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get(['id', 'project_object as name', 'dossier_number as code', 'client_id']);

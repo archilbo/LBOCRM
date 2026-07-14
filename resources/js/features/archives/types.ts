@@ -42,6 +42,7 @@ export type ArchiveRecordRow = {
     isLost: boolean;
     lostReason: string | null;
     isOverdue: boolean;
+    city: { id: number; name: string; code: string; color: string } | null;
     notes: string | null;
     updatedAt: string | null;
     createdAt: string | null;
@@ -124,8 +125,10 @@ export type ArchivesPageProps = {
         total: number;
     };
     tree: TreeNode[];
+    cells: CellRoom[];
     dossiers: ArchiveDossierOption[];
     requesters: { id: string; name: string }[];
+    cities: { id: number; name: string; code: string; color: string }[];
     kpis: {
         total: number;
         ready: number;
@@ -138,9 +141,8 @@ export type ArchivesPageProps = {
     filters: {
         q?: string;
         status?: string[];
-        view?: string;
+        city?: string;
         room?: string;
-        shelf?: string;
         box?: string;
         requesterId?: string;
         dossierId?: string;
@@ -150,10 +152,61 @@ export type ArchivesPageProps = {
         sort?: string;
         page?: number;
         perPage?: number;
-        density?: string;
-        columns?: string;
         viewMode?: string;
     };
 };
 
+export type CellCity = {
+    code: string;
+    name: string;
+    color: string;
+    count: number;
+};
+
+export type CellBox = {
+    code: string;
+    total: number;
+    cities: CellCity[];
+};
+
+export type CellRoom = {
+    name: string;
+    code: string;
+    boxes: CellBox[];
+};
+
 export type Paginator = ArchivesPageProps['paginator'];
+
+export type RecordsSummary = Record<string, number>;
+
+export type BoxContentsRecord = {
+    id: number;
+    dossierId: number | null;
+    dossierNumber: string;
+    archiveNumber: string;
+    status: ArchiveStatus;
+    projectObject: string;
+    clientName: string;
+    inDate: string | null;
+    dueAt: string | null;
+    isOverdue: boolean;
+    isLost: boolean;
+};
+
+export type BoxGroup = {
+    city: { code: string; name: string; color: string };
+    records: BoxContentsRecord[];
+};
+
+export type BoxContents = {
+    box: {
+        code: string;
+        name: string;
+        capacity: number;
+        count: number;
+        roomName: string | null;
+        roomCode: string | null;
+        shelfCode: string | null;
+    };
+    groups: BoxGroup[];
+};

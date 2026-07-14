@@ -37,13 +37,16 @@ const statusOptions = Object.values(ARCHIVE_STATUS).map((s) => ({ id: s.key, lab
 async function apiGet(url: string, params: Record<string, string | number>) {
     const search = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) search.set(k, String(v));
-    const res = await fetch(`${url}?${search}`, { headers: { Accept: 'application/json' } });
+    const res = await fetch(`${url}?${search}`, {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
+    });
     if (!res.ok) throw new Error(`API error: ${res.status}`);
     return res.json();
 }
 
 async function fetchClients(q: string) {
-    const json = await apiGet('/api/clients', { q, limit: 20 });
+    const json = await apiGet('/api/clients/search', { q, limit: 20 });
     return json.data.map((c: { id: number; code: string; name: string }) => ({
         id: String(c.id),
         label: `${c.name} · ${c.code}`,
@@ -206,6 +209,7 @@ export function ArchiveDrawer({
             isOpen={isOpen}
             onOpenChange={onOpenChange}
             panelClassName="sm:w-[520px]"
+            isDismissable={false}
             title={mode === 'create' ? 'Create archive record' : 'Edit archive record'}
             description="Save physical archive tracking to the database."
             footer={

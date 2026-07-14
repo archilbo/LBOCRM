@@ -4,9 +4,8 @@ import { useCallback, useMemo, useRef } from 'react';
 export type ArchiveFilters = {
     q?: string;
     status?: string[];
-    view?: 'all' | 'mine' | 'out' | 'overdue' | 'empty_boxes' | 'lost';
+    city?: string;
     room?: string;
-    shelf?: string;
     box?: string;
     requesterId?: string;
     dossierId?: string;
@@ -16,8 +15,6 @@ export type ArchiveFilters = {
     sort?: string;
     page?: number;
     perPage?: number;
-    density?: 'condensed' | 'default' | 'comfortable';
-    columns?: string;
     viewMode?: 'list' | 'map';
 };
 
@@ -31,7 +28,7 @@ function cleanFilters(f: Record<string, unknown>): Record<string, unknown> {
     for (const [k, v] of Object.entries(f)) {
         if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) continue;
         if (k === 'page' && (v as number) <= 1) continue;
-        if (k === 'perPage' && (v as number) === 25) continue;
+        if (k === 'perPage' && (v as number) === 15) continue;
         if (k === 'density' && v === 'default') continue;
         if (k === 'viewMode' && v === 'list') continue;
         out[k] = v;
@@ -69,8 +66,8 @@ export function useArchiveFilters({ initial, route }: UseArchiveFiltersOptions) 
         let n = 0;
         if (filters.q) n++;
         if (filters.status?.length) n++;
+        if (filters.city) n++;
         if (filters.room) n++;
-        if (filters.shelf) n++;
         if (filters.box) n++;
         if (filters.requesterId) n++;
         if (filters.dossierId) n++;
@@ -83,8 +80,8 @@ export function useArchiveFilters({ initial, route }: UseArchiveFiltersOptions) 
         const chips: { key: string; label: string; onRemove: () => void }[] = [];
         if (filters.q) chips.push({ key: 'q', label: `Search: "${filters.q}"`, onRemove: () => patch({ q: undefined }) });
         if (filters.status?.length) chips.push({ key: 'status', label: `Status: ${filters.status.join(', ')}`, onRemove: () => patch({ status: undefined }) });
-        if (filters.room) chips.push({ key: 'room', label: `Room: ${filters.room}`, onRemove: () => patch({ room: undefined, shelf: undefined, box: undefined }) });
-        if (filters.shelf) chips.push({ key: 'shelf', label: `Shelf: ${filters.shelf}`, onRemove: () => patch({ shelf: undefined, box: undefined }) });
+        if (filters.city) chips.push({ key: 'city', label: `City: ${filters.city}`, onRemove: () => patch({ city: undefined }) });
+        if (filters.room) chips.push({ key: 'room', label: `Room: ${filters.room}`, onRemove: () => patch({ room: undefined, box: undefined }) });
         if (filters.box) chips.push({ key: 'box', label: `Box: ${filters.box}`, onRemove: () => patch({ box: undefined }) });
         if (filters.requesterId) chips.push({ key: 'requesterId', label: `Requester: ${filters.requesterId}`, onRemove: () => patch({ requesterId: undefined }) });
         if (filters.dossierId) chips.push({ key: 'dossierId', label: `Dossier: ${filters.dossierId}`, onRemove: () => patch({ dossierId: undefined }) });

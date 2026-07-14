@@ -130,10 +130,10 @@ export function NotificationPopover() {
 
     return (
         <DialogTrigger>
-            <Button className="crm-action-button relative h-9 w-9 px-0 sm:inline-flex" aria-label="Notifications">
+            <Button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] transition hover:bg-white/5 hover:text-[var(--crm-text)]" aria-label="Notifications">
                 <Bell size={15} />
                 {unreadCount > 0 ? (
-                    <span className="absolute -right-1 -top-1 flex min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white">
+                    <span className="absolute -right-1.5 -top-1 flex min-w-[18px] items-center justify-center rounded-md bg-red-500 px-1 py-[1px] text-[9px] font-bold leading-tight text-white shadow-sm shadow-red-500/30">
                         {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                 ) : null}
@@ -146,7 +146,7 @@ export function NotificationPopover() {
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-bold text-[var(--crm-text)]">Notifications</span>
                                     {unreadCount > 0 ? (
-                                        <span className="flex h-5 min-w-[20px] items-center justify-center rounded-md bg-[var(--crm-gold)] px-1.5 text-[10px] font-bold text-black">{unreadCount}</span>
+                                        <span className="flex h-5 min-w-[22px] items-center justify-center rounded-md bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-sm shadow-red-500/30">{unreadCount}</span>
                                     ) : null}
                                 </div>
                                 <div className="flex items-center gap-1">

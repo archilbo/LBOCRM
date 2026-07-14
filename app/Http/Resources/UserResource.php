@@ -19,6 +19,7 @@ class UserResource extends JsonResource
             'isOnline' => $this->last_seen_at ? $this->last_seen_at->gt(now()->subMinutes(5)) : false,
             'createdAt' => optional($this->created_at)->format('Y-m-d'),
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
+            'isSuspended' => !is_null($this->suspended_at),
         ];
     }
 }

@@ -18,6 +18,8 @@ class DossierResource extends JsonResource
             'clientPhone' => $this->client?->phone ?? '-',
 
             'dossierNumber' => $this->dossier_number,
+            'sequenceNumber' => $this->sequence_number,
+            'period' => $this->period,
             'projectObject' => $this->project_object,
             'description' => $this->description,
 
@@ -42,6 +44,13 @@ class DossierResource extends JsonResource
             'hasContract' => (bool) ($this->contract_exists ?? $this->contract()->exists()),
             'hasAuthorization' => (bool) ($this->authorization_exists ?? $this->authorization()->exists()),
             'hasArchiveRecord' => (bool) ($this->archive_record_exists ?? $this->archiveRecord()->exists()),
+
+            'city' => $this->whenLoaded('city', fn () => [
+                'id'    => $this->city->id,
+                'name'  => $this->city->name,
+                'code'  => $this->city->code,
+                'color' => $this->city->color,
+            ]),
         ];
     }
 }

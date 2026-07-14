@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreDossierRequest;
 use App\Http\Requests\UpdateDossierRequest;
 use App\Http\Resources\DossierResource;
+use App\Models\City;
 use App\Models\Client;
 use App\Models\Dossier;
 use App\Services\Dossiers\DossierLocationGroupingService;
+use App\Services\Dossiers\DossierNumberService;
 use App\Services\Dossiers\DossierWorkflowStepperService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -18,7 +20,7 @@ class DossierController extends Controller
     public function index(DossierLocationGroupingService $locationGroupingService): Response
     {
         $dossiers = Dossier::query()
-            ->with('client')
+            ->with(['client', 'city'])
             ->withCount(['documents', 'financeRecords'])
             ->withExists(['contract', 'authorization', 'archiveRecord'])
             ->latest()
@@ -38,6 +40,7 @@ class DossierController extends Controller
             'dossiers' => DossierResource::collection($dossiers)->resolve(),
             'locationGroups' => $locationGroupingService->groups(),
             'clients' => $this->clientOptions(),
+            'cities' => City::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code', 'color']),
             'monthlyProjects' => $monthlyProjects,
             'metrics' => [
                 'total' => Dossier::count(),
@@ -113,10 +116,16 @@ class DossierController extends Controller
         ]);
     }
 
-    public function store(StoreDossierRequest $request): RedirectResponse
+    public function store(StoreDossierRequest $request, DossierNumberService $numberService): RedirectResponse
     {
+        $city = City::findOrFail($request->integer('city_id'));
+        $numbering = $numberService->generate($city);
+
         $data = $this->prepareDossierData($request->validated());
-        $data['dossier_number'] = $this->nextDossierNumber();
+        $data['dossier_number'] = $numbering['number'];
+        $data['city_id'] = $city->id;
+        $data['sequence_number'] = $numbering['sequence'];
+        $data['period'] = $numbering['period'];
 
         Dossier::create($data);
 
