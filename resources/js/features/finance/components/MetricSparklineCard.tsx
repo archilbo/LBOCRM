@@ -57,25 +57,25 @@ function computeTrendPct(data: number[]): number {
 export function MetricSparklineCard({ icon, label, value, sparklineData, trend, detail, className }: KpiCardProps) {
     const trendPct = useMemo(() => computeTrendPct(sparklineData), [sparklineData]);
     const trendIsUp = trendPct >= 0;
-    const lineColor = trend ? (trend.isUp ? 'var(--crm-success)' : 'var(--crm-danger)') : trendIsUp ? 'var(--crm-success)' : 'var(--crm-danger)';
+    const lineColor = trend ? (trend.isUp ? '#22c55e' : '#ef4444') : trendIsUp ? '#22c55e' : '#ef4444';
 
     return (
-        <div className={cn('crm-panel overflow-hidden', className)}>
+        <div className={cn('rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden', className)}>
             <div className="flex items-start justify-between gap-3 p-4">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                     {icon ? (
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--crm-surface-2)] text-[var(--crm-text-soft)]">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-muted)]">
                             {icon}
                         </div>
                     ) : null}
                     <div className="min-w-0 flex-1">
-                        <p className="crm-kpi-label">{label}</p>
-                        <p className="crm-kpi-value">{value}</p>
+                        <p className="text-xs text-[var(--text-muted)]">{label}</p>
+                        <p className="mt-1 text-lg font-semibold text-[var(--text)]">{value}</p>
                     </div>
                 </div>
                 <SparklineSvg data={sparklineData} color={lineColor} />
             </div>
-            <div className="flex items-center gap-3 border-t border-[var(--crm-border)] px-4 py-2.5">
+            <div className="flex items-center gap-3 border-t border-[var(--border)] px-4 py-2.5">
                 {trend ? (
                     <span
                         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
@@ -98,7 +98,7 @@ export function MetricSparklineCard({ icon, label, value, sparklineData, trend, 
                     </span>
                 ) : null}
                 {detail && (
-                    <span className="truncate text-[12px] text-[var(--crm-text-soft)]">{detail}</span>
+                    <span className="truncate text-xs text-[var(--text-muted)]">{detail}</span>
                 )}
             </div>
         </div>

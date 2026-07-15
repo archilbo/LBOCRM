@@ -151,6 +151,7 @@ export default function FinanceTemplatesIndex({
     const dirty = isDirty(draft, selectedTemplate);
     const [deleteTarget, setDeleteTarget] = useState<DocumentTemplate | null>(null);
     const [showStarterModal, setShowStarterModal] = useState(false);
+    const [pendingConfirmAction, setPendingConfirmAction] = useState<(() => void) | null>(null);
     const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('tpl_left_collapsed') === '1');
     const [previewCollapsed, setPreviewCollapsed] = useState(() => localStorage.getItem('tpl_preview_collapsed') === '1');
     const [activeSection, setActiveSection] = useState<EditorSection>('bodyHtml');
@@ -214,7 +215,20 @@ export default function FinanceTemplatesIndex({
     }, [templates]);
 
     function selectType(type: FinanceDocumentType) {
-        if (dirty && !window.confirm('Unsaved changes will be lost. Continue?')) return;
+        if (dirty) {
+            setPendingConfirmAction(() => () => {
+                const first = templates.find((t) => t.type === type);
+                setSelectedType(type);
+                setSelectedId(first?.id);
+                setActiveSection('bodyHtml');
+                const url = new URL(window.location.href);
+                url.searchParams.set('type', type);
+                if (first) url.searchParams.set('template', String(first.id));
+                else url.searchParams.delete('template');
+                window.history.replaceState({}, '', url.toString());
+            });
+            return;
+        }
         const first = templates.find((t) => t.type === type);
         setSelectedType(type);
         setSelectedId(first?.id);
@@ -227,7 +241,19 @@ export default function FinanceTemplatesIndex({
     }
 
     function selectTemplate(template: DocumentTemplate) {
-        if (dirty && !window.confirm('Unsaved changes will be lost. Continue?')) return;
+        if (dirty) {
+            setPendingConfirmAction(() => () => {
+                setSelectedId(template.id);
+                setDraft(cloneTemplate(template));
+                setRawPreviewHtml(renderPreview(template, sampleData));
+                setActiveSection('bodyHtml');
+                const url = new URL(window.location.href);
+                url.searchParams.set('type', template.type);
+                url.searchParams.set('template', String(template.id));
+                window.history.replaceState({}, '', url.toString());
+            });
+            return;
+        }
         setSelectedId(template.id);
         setDraft(cloneTemplate(template));
         setRawPreviewHtml(renderPreview(template, sampleData));
@@ -500,6 +526,21 @@ export default function FinanceTemplatesIndex({
                     <div className="flex justify-end gap-2">
                         <AppButton variant="secondary" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
                         <AppButton variant="danger" onPress={confirmDelete}>Delete</AppButton>
+                    </div>
+                </AppModal>
+
+                <AppModal
+                    isOpen={!!pendingConfirmAction}
+                    onOpenChange={(open) => { if (!open) setPendingConfirmAction(null); }}
+                    title="Unsaved changes"
+                    size="sm"
+                >
+                    <p className="mb-5 text-sm text-[var(--text-muted)]">
+                        You have unsaved changes. Discard them and continue?
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <AppButton variant="secondary" onPress={() => setPendingConfirmAction(null)}>Cancel</AppButton>
+                        <AppButton variant="danger" onPress={() => { pendingConfirmAction?.(); setPendingConfirmAction(null); }}>Discard</AppButton>
                     </div>
                 </AppModal>
 

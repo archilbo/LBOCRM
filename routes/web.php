@@ -197,6 +197,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/users/invite', [AdminUserInvitationController::class, 'store'])->name('admin.users.invite');
     Route::post('/admin/users/invite/bulk/validate', [AdminUserInvitationController::class, 'bulkValidate'])->name('admin.users.invite.bulk.validate');
     Route::post('/admin/users/invite/bulk', [AdminUserInvitationController::class, 'bulkStore'])->name('admin.users.invite.bulk');
+    Route::get('/admin/users/audit-logs', [AdminUserController::class, 'auditLogs'])->name('admin.users.audit-logs');
 
 
     Route::get('/backend-qa', [BackendQaController::class, 'index'])->name('backend-qa.index');

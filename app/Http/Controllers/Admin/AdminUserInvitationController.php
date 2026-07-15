@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\InviteUserRequest;
 use App\Http\Resources\UserResource;
 use App\Mail\UserInvitation;
+use App\Models\AuditLog;
 use App\Models\User;
+use App\Traits\AuditsActions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,26 +20,46 @@ use Inertia\Response;
 
 class AdminUserInvitationController extends Controller
 {
+    use AuditsActions;
     public function store(InviteUserRequest $request): RedirectResponse
     {
         $validated = $request->validated();
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => bcrypt(Str::password(16)),
-            'invitation_token' => Str::random(60),
-            'invited_at' => now(),
-            'invited_by' => $request->user()->id,
+        if (app()->environment('local', 'development', 'testing')) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => bcrypt('password'),
+                'invitation_token' => null,
+                'invited_at' => now(),
+                'accepted_at' => now(),
+                'invited_by' => $request->user()->id,
+            ]);
+            $user->assignRole($validated['role']);
+            $message = "User {$user->email} created with password 'password'.";
+        } else {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => bcrypt(Str::password(16)),
+                'invitation_token' => Str::random(60),
+                'invited_at' => now(),
+                'invited_by' => $request->user()->id,
+            ]);
+            $user->assignRole($validated['role']);
+            $acceptUrl = route('invitation.accept', ['token' => $user->invitation_token]);
+            Mail::to($user)->send(new UserInvitation($user, $acceptUrl));
+            $message = 'Invitation sent to ' . $user->email;
+        }
+
+        $this->audit($request, 'user.invited', $message, [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $validated['role'],
         ]);
 
-        $user->assignRole($validated['role']);
-
-        $acceptUrl = route('invitation.accept', ['token' => $user->invitation_token]);
-        Mail::to($user)->send(new UserInvitation($user, $acceptUrl));
-
         return redirect()->route('admin.users.index')
-            ->with('success', 'Invitation sent to ' . $user->email);
+            ->with('success', $message);
     }
 
     public function bulkValidate(Request $request): JsonResponse
@@ -90,18 +112,22 @@ class AdminUserInvitationController extends Controller
                         continue;
                     }
 
+                    $isLocal = app()->environment('local', 'development', 'testing');
                     $user = User::create([
                         'name' => $entry['name'],
                         'email' => $entry['email'],
-                        'password' => bcrypt(Str::password(16)),
-                        'invitation_token' => Str::random(60),
+                        'password' => bcrypt($isLocal ? 'password' : Str::password(16)),
+                        'invitation_token' => $isLocal ? null : Str::random(60),
+                        'accepted_at' => $isLocal ? now() : null,
                         'invited_at' => now(),
                         'invited_by' => $request->user()->id,
                     ]);
                     $user->assignRole($entry['role']);
 
-                    $acceptUrl = route('invitation.accept', ['token' => $user->invitation_token]);
-                    Mail::to($user)->send(new UserInvitation($user, $acceptUrl));
+                    if (!$isLocal) {
+                        $acceptUrl = route('invitation.accept', ['token' => $user->invitation_token]);
+                        Mail::to($user)->send(new UserInvitation($user, $acceptUrl));
+                    }
                     $created++;
                 } catch (\Exception $e) {
                     $errors[] = $entry['email'] . ': ' . $e->getMessage();
@@ -122,6 +148,13 @@ class AdminUserInvitationController extends Controller
         if (!empty($errors)) {
             $message .= ' Errors: ' . implode('; ', $errors);
         }
+
+        $this->audit($request, 'bulk.invited', "CSV import: {$message}", [
+            'created' => $created,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+        ]);
 
         return redirect()->route('admin.users.index')
             ->with('success', $message);

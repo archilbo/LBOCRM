@@ -17,7 +17,7 @@ export function AppTopbar() {
     const [newOpen, setNewOpen] = useState(false);
 
     return (
-        <header className="flex h-[var(--crm-topbar-h)] shrink-0 items-center border-b border-[var(--crm-border)] bg-[color-mix(in_srgb,var(--crm-bg-2)_92%,transparent)] px-3 backdrop-blur-[18px] lg:px-6">
+        <header className="flex h-16 shrink-0 items-center border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-3 backdrop-blur-[18px] lg:px-6">
             <div className="flex min-w-0 flex-1 items-center gap-1.5 lg:gap-3">
                 <div className="min-w-0 flex-1">
                     <div className="max-w-[280px] sm:max-w-[340px] lg:max-w-[620px]">
@@ -30,7 +30,7 @@ export function AppTopbar() {
                         <button
                             type="button"
                             onClick={() => setNewOpen((o) => !o)}
-                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold text-[var(--crm-gold)] transition hover:bg-[var(--crm-gold)]/10 max-sm:hidden"
+                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] max-sm:hidden"
                         >
                             <Plus size={14} strokeWidth={2.5} />
                             <span className="hidden lg:inline">New</span>
@@ -38,13 +38,13 @@ export function AppTopbar() {
                         {newOpen && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setNewOpen(false)} />
-                                <div className="absolute right-0 top-full z-50 mt-1.5 w-52 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] py-1.5 shadow-2xl shadow-black/50 backdrop-blur-sm">
+                                <div className="absolute right-0 top-full z-50 mt-1.5 w-52 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1.5 shadow-2xl shadow-black/50 backdrop-blur-sm">
                                     {QUICK_ACTIONS.map((a) => {
                                         const Icon = a.icon;
                                         return (
                                             <button key={a.label} type="button" onClick={() => { setNewOpen(false); router.visit(a.href); }}
-                                                className="flex w-full items-center gap-3 px-3 py-2 text-[12px] font-medium text-white/70 transition hover:bg-white/[0.04] hover:text-white">
-                                                <Icon size={14} className="text-white/40" />
+                                                className="flex w-full items-center gap-3 px-3 py-2 text-[12px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+                                                <Icon size={14} className="text-[var(--text-muted)]" />
                                                 {a.label}
                                             </button>
                                         );

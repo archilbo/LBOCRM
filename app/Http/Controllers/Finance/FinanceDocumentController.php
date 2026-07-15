@@ -219,7 +219,7 @@ class FinanceDocumentController extends Controller
         $financeDocument->loadMissing(['client', 'dossier', 'items', 'payments', 'template', 'creator']);
 
         return Inertia::render('Finance/Documents/Show', [
-            'document' => new FinanceDocumentResource($financeDocument),
+            'document' => (new FinanceDocumentResource($financeDocument))->resolve(request()),
         ]);
     }
 

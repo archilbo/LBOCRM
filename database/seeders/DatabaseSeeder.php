@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             DemoDataSeeder::class,
             ExpensesDemoSeeder::class,
             ArchiveDemoSeeder::class,
+            FinanceDemoSeeder::class,
         ]);
     }
 }

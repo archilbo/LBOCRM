@@ -54,7 +54,7 @@ export function ProjectDrawer({
     mode,
     dossier,
     clients,
-    cities,
+    cities = [],
     initialClientId = '',
     onOpenChange,
     onSubmit,
@@ -63,7 +63,7 @@ export function ProjectDrawer({
     const [form, setForm] = useState<DossierFormPayload>(emptyForm);
 
     const cityOptions = useMemo(() =>
-        cities.map((c) => ({ id: String(c.id), label: `${c.code} - ${c.name}` })),
+        (cities ?? []).map((c) => ({ id: String(c.id), label: `${c.code} - ${c.name}` })),
     [cities]);
 
     useEffect(() => {

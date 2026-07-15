@@ -1,7 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import {
     ArrowLeft,
-    BadgeDollarSign,
+    ArrowRight,
     CheckCircle2,
     Download,
     FileSpreadsheet,
@@ -16,12 +16,13 @@ import {
     XCircle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppCard } from '@/components/ui/AppCard';
 import { AppModal } from '@/components/ui/AppModal';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { FinanceDocumentLockBadge, FinanceDocumentLockNotice } from '@/features/finance/components/FinanceDocumentLockNotice';
 import type { FinanceDocument, FinanceDocumentItem, Payment } from '@/features/finance/types';
 
@@ -41,7 +42,8 @@ function dateLabel(value: string | null | undefined) {
     return value.slice(0, 10);
 }
 
-function statusClass(status: string) {
+function statusClass(status: string | undefined | null) {
+    if (!status) return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300';
     if (['paid', 'accepted', 'generated', 'sent', 'issued'].includes(status)) {
         return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300';
     }
@@ -57,89 +59,32 @@ function statusClass(status: string) {
     return 'border-blue-500/25 bg-blue-500/10 text-blue-300';
 }
 
-function typeIcon(type: string): LucideIcon {
-    if (type === 'invoice') {
-        return Landmark;
-    }
-
-    if (type === 'receipt') {
-        return ReceiptText;
-    }
-
+function typeIcon(type: string | undefined | null): LucideIcon {
+    if (type === 'invoice') return Landmark;
+    if (type === 'receipt') return ReceiptText;
+    if (type === 'quote') return FileText;
     return FileText;
 }
 
-function InfoTile({ label, value }: { label: string; value: ReactNode }) {
-    return (
-        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
-            <p className="crm-kpi-label">{label}</p>
-            <div className="mt-2 truncate text-sm font-semibold text-[var(--crm-text)]">{value || '-'}</div>
-        </div>
-    );
-}
-
-function StatTile({
-    label,
-    value,
-    hint,
-    icon: Icon,
-    tone = 'text-[var(--crm-accent)]',
-}: {
-    label: string;
-    value: string | number;
-    hint: string;
-    icon: LucideIcon;
-    tone?: string;
+function StatBar({ values }: {
+    values: { label: string; value: string; hint: string; color: string }[];
 }) {
     return (
-        <div className="crm-kpi-card">
-            <div className="flex items-start justify-between gap-3">
-                <div>
-                    <p className="crm-kpi-label">{label}</p>
-                    <p className={`crm-kpi-value ${tone}`}>{value}</p>
+        <div className="grid grid-cols-2 divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)] md:grid-cols-4 md:divide-x md:divide-y-0">
+            {values.map((v) => (
+                <div key={v.label} className="px-4 py-3">
+                    <p className="text-[11px] text-[var(--text-muted)]">{v.label}</p>
+                    <p className={`mt-0.5 text-lg font-bold ${v.color}`}>{v.value}</p>
+                    <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{v.hint}</p>
                 </div>
-                <div className="flex size-10 items-center justify-center rounded-xl bg-white/5">
-                    <Icon size={18} className={tone} />
-                </div>
-            </div>
-            <p className="mt-2 text-xs text-[var(--crm-muted)]">{hint}</p>
+            ))}
         </div>
-    );
-}
-
-function ActionButton({
-    children,
-    onClick,
-    tone = 'default',
-    disabled = false,
-}: {
-    children: ReactNode;
-    onClick: () => void;
-    tone?: 'default' | 'primary' | 'danger' | 'success';
-    disabled?: boolean;
-}) {
-    const toneClass = {
-        default: 'border-[var(--crm-border)] text-[var(--crm-text)]',
-        primary: 'border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)] text-[var(--crm-accent)]',
-        danger: 'border-red-500/30 bg-red-500/10 text-red-300',
-        success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-    }[tone];
-
-    return (
-        <button
-            type="button"
-            disabled={disabled}
-            onClick={onClick}
-            className={`crm-action-button justify-center py-3 disabled:cursor-not-allowed disabled:opacity-45 ${toneClass}`}
-        >
-            {children}
-        </button>
     );
 }
 
 function EmptyState({ label }: { label: string }) {
     return (
-        <div className="rounded-xl border border-dashed border-[var(--crm-border)] bg-black/10 px-4 py-10 text-center text-sm text-[var(--crm-muted)]">
+        <div className="rounded-xl border border-dashed border-[var(--border)] bg-black/10 px-4 py-10 text-center text-sm text-[var(--text-muted)]">
             {label}
         </div>
     );
@@ -205,7 +150,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
     }
 
     return (
-        <>
+        <ErrorBoundary>
             <Head title={document.number} />
 
             <AppShell
@@ -213,292 +158,363 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                 titleKey="nav.financeDocuments"
                 subtitleKey="dashboardHome.subtitle"
                 action={
-                    <div className="flex flex-wrap gap-2">
-                        <AppButton variant="secondary" onPress={() => router.visit('/finance/documents')}>
-                            <ArrowLeft size={16} />
-                            Finance
+                    <div className="flex items-center gap-1.5">
+                        <AppButton variant="bordered" size="sm" onPress={() => router.visit('/finance/documents')}>
+                            <ArrowLeft size={14} />
+                            Back
                         </AppButton>
-                        <AppButton variant="primary" onPress={() => putAction(document.generateUrl, 'Document generated.')}>
-                            <RotateCcw size={16} />
-                            Generate
+                        <AppButton variant="primary" size="sm" onPress={() => putAction(document.generateUrl, 'Document generated.')}>
+                            <RotateCcw size={14} />
+                            Regenerate
                         </AppButton>
                     </div>
                 }
             >
-                <div className="crm-page mx-auto max-w-[1540px] pt-6 xl:pt-8">
-                    <section className="crm-panel overflow-hidden shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
-                        <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_430px] xl:items-start">
-                            <div className="flex min-w-0 items-start gap-4">
-                                <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)] text-[var(--crm-accent)]">
-                                    <Icon size={24} />
-                                </div>
+                <div className="mx-auto mt-6 max-w-[1540px] space-y-5 xl:mt-8">
 
+                    {/* ── Hero Header ── */}
+                    <AppCard className="overflow-hidden p-0">
+                        <div className="flex flex-col gap-5 p-5 xl:flex-row xl:items-center xl:justify-between">
+                            <div className="flex min-w-0 items-start gap-4">
+                                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
+                                    <Icon size={20} />
+                                </div>
                                 <div className="min-w-0">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <p className="crm-eyebrow">{document.typeLabel}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">{document.typeLabel}</p>
                                         <FinanceDocumentLockBadge document={document} />
                                     </div>
-
-                                    <h1 className="mt-2 truncate text-2xl font-black text-[var(--crm-text)]">{document.number}</h1>
-                                    <p className="mt-1 text-sm text-[var(--crm-muted)]">
-                                        {document.client?.name || 'No client'} / {document.dossier?.number || 'No dossier'}
-                                    </p>
-
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        <span className={`rounded-full border px-2 py-1 text-xs font-bold ${statusClass(document.status)}`}>
-                                            {document.status}
+                                    <h1 className="mt-1 truncate text-xl font-bold text-[var(--text)]">{document.number}</h1>
+                                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusClass(document.status)}`}>
+                                            {document.status?.replace(/_/g, ' ') || document.status}
                                         </span>
-                                        <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-xs font-bold text-blue-300">
+                                        <span className="inline-flex rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-300">
                                             TVA {document.tvaRate}%
                                         </span>
                                         {locked ? (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-xs font-bold text-amber-300">
-                                                <LockKeyhole size={12} />
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
+                                                <LockKeyhole size={11} />
                                                 Locked
                                             </span>
                                         ) : null}
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="grid gap-2 text-sm text-[var(--crm-muted)]">
-                                <span className="flex items-center gap-2">
-                                    <UserRound size={15} />
-                                    {document.client?.name || '-'} / {document.client?.cin || '-'}
-                                </span>
-                                <span className="flex items-center gap-2">
-                                    <FileText size={15} />
-                                    {document.dossier?.number || '-'} / {document.dossier?.projectObject || '-'}
-                                </span>
-                                <div className="mt-2 grid grid-cols-2 gap-2">
-                                    <button
-                                        type="button"
-                                        className="crm-action-button justify-center"
-                                        onClick={() => document.client?.id ? router.visit(`/clients/${document.client.id}`) : router.visit('/clients')}
-                                    >
-                                        Client
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="crm-action-button justify-center"
-                                        onClick={() => document.dossier?.id ? router.visit(`/dossiers/${document.dossier.id}`) : router.visit('/dossiers')}
-                                    >
-                                        Project
-                                    </button>
-                                </div>
+                            <div className="shrink-0 text-right">
+                                <p className="text-[11px] text-[var(--text-muted)]">Total TTC</p>
+                                <p className="text-3xl font-bold text-[var(--text)]">{money(document.totalTtc, currency)}</p>
+                                <p className="text-[11px] text-[var(--text-muted)]">
+                                    Remaining: <span className={document.remainingTotal > 0 ? 'font-semibold text-amber-300' : 'font-semibold text-emerald-400'}>
+                                        {money(document.remainingTotal, currency)}
+                                    </span>
+                                </p>
                             </div>
                         </div>
-
-                        <div className="grid border-t border-[var(--crm-border)] md:grid-cols-5">
-                            <div className="border-b border-[var(--crm-border)] p-4 md:border-b-0 md:border-r">
-                                <p className="crm-kpi-label">Issue date</p>
-                                <p className="mt-2 text-sm font-black">{dateLabel(document.issueDate)}</p>
+                        <div className="flex flex-wrap border-t border-[var(--border)] text-xs">
+                            <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5 md:border-b-0 md:border-r">
+                                <span className="text-[var(--text-muted)]">Issue</span>
+                                <span className="font-semibold text-[var(--text)]">{dateLabel(document.issueDate)}</span>
                             </div>
-                            <div className="border-b border-[var(--crm-border)] p-4 md:border-b-0 md:border-r">
-                                <p className="crm-kpi-label">Due date</p>
-                                <p className="mt-2 text-sm font-black">{dateLabel(document.dueDate)}</p>
+                            <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5 md:border-b-0 md:border-r">
+                                <span className="text-[var(--text-muted)]">Due</span>
+                                <span className="font-semibold text-[var(--text)]">{dateLabel(document.dueDate)}</span>
                             </div>
-                            <div className="border-b border-[var(--crm-border)] p-4 md:border-b-0 md:border-r">
-                                <p className="crm-kpi-label">Valid until</p>
-                                <p className="mt-2 text-sm font-black">{dateLabel(document.validUntil)}</p>
+                            <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5 md:border-b-0 md:border-r">
+                                <span className="text-[var(--text-muted)]">Valid</span>
+                                <span className="font-semibold text-[var(--text)]">{dateLabel(document.validUntil)}</span>
                             </div>
-                            <div className="border-b border-[var(--crm-border)] p-4 md:border-b-0 md:border-r">
-                                <p className="crm-kpi-label">PDF</p>
-                                <p className="mt-2 text-sm font-black">{document.hasPdf ? 'Ready' : 'Missing'}</p>
+                            <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5 md:border-b-0 md:border-r">
+                                <span className="text-[var(--text-muted)]">Client</span>
+                                <span className="font-semibold text-[var(--text)]">{document.client?.name || '-'}</span>
                             </div>
-                            <div className="p-4">
-                                <p className="crm-kpi-label">Excel</p>
-                                <p className="mt-2 text-sm font-black">{document.hasExcel ? 'Ready' : 'Missing'}</p>
+                            <div className="flex items-center gap-2 px-4 py-2.5">
+                                <span className="text-[var(--text-muted)]">Dossier</span>
+                                <span className="font-semibold text-[var(--text)]">{document.dossier?.number || '-'}</span>
                             </div>
                         </div>
-                    </section>
+                    </AppCard>
 
-                    {locked ? (
-                        <FinanceDocumentLockNotice document={document} />
-                    ) : null}
+                    {locked ? <FinanceDocumentLockNotice document={document} /> : null}
 
-                    <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-                        <StatTile label="Subtotal HT" value={money(document.subtotalHt, currency)} hint="Before TVA" icon={FileSpreadsheet} />
-                        <StatTile label="TVA" value={money(document.taxTotal, currency)} hint={`${document.tvaRate}% tax`} icon={Landmark} tone="text-blue-300" />
-                        <StatTile label="Total TTC" value={money(document.totalTtc, currency)} hint="Document total" icon={BadgeDollarSign} />
-                        <StatTile label="Remaining" value={money(document.remainingTotal, currency)} hint="Amount still due" icon={ReceiptText} tone="text-amber-300" />
-                    </section>
+                    {/* ── Stat Bar ── */}
+                    <StatBar values={[
+                        { label: 'Subtotal HT', value: money(document.subtotalHt, currency), hint: 'Before TVA', color: 'text-[var(--text)]' },
+                        { label: 'TVA', value: money(document.taxTotal, currency), hint: `${document.tvaRate}% tax rate`, color: 'text-blue-400' },
+                        { label: 'Total TTC', value: money(document.totalTtc, currency), hint: 'Grand total', color: 'text-[var(--accent)]' },
+                        {
+                            label: 'Remaining',
+                            value: money(document.remainingTotal, currency),
+                            hint: document.remainingTotal > 0 ? 'Still to collect' : 'Fully paid',
+                            color: document.remainingTotal > 0 ? 'text-amber-400' : 'text-emerald-400',
+                        },
+                    ]} />
 
-                    <section className="grid min-w-0 items-start gap-5 2xl:grid-cols-[minmax(0,1fr)_400px]">
+                    {/* ── Body: 2-column ── */}
+                    <section className="grid min-w-0 items-start gap-5 xl:grid-cols-[1fr_360px]">
                         <main className="grid min-w-0 gap-5">
-                            <section className="crm-panel overflow-hidden">
-                                <div className="flex items-start justify-between gap-4 border-b border-[var(--crm-border)] px-5 py-4">
-                                    <div>
-                                        <h2 className="text-sm font-black">Document lines</h2>
-                                        <p className="mt-1 text-xs text-[var(--crm-muted)]">{items.length} item(s)</p>
-                                    </div>
-                                </div>
 
-                                <div className="overflow-x-auto">
-                                    <table className="crm-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Item</th>
-                                                <th>Qty</th>
-                                                <th>Unit</th>
-                                                <th>Unit price</th>
-                                                <th className="text-right">Total TTC</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {items.map((item: FinanceDocumentItem) => (
-                                                <tr key={item.id ?? item.position}>
-                                                    <td>
-                                                        <div className="min-w-0">
-                                                            <p className="max-w-[360px] truncate font-semibold text-[var(--crm-text)]">{item.title}</p>
-                                                            <p className="max-w-[420px] truncate text-xs text-[var(--crm-muted)]">{item.description || '-'}</p>
-                                                        </div>
-                                                    </td>
-                                                    <td>{item.quantity}</td>
-                                                    <td>{item.unit || '-'}</td>
-                                                    <td>{money(item.unitPrice, currency)}</td>
-                                                    <td className="text-right font-black text-[var(--crm-accent)]">{money(item.totalTtc, currency)}</td>
+                            {/* Document Lines */}
+                            <AppCard className="overflow-hidden p-0">
+                                <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+                                    <h2 className="text-xs font-semibold">Document lines</h2>
+                                    <span className="text-[11px] text-[var(--text-muted)]">{items.length} item(s)</span>
+                                </div>
+                                {items.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-xs">
+                                            <thead>
+                                                <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                                                    <th className="px-4 py-2.5">Item</th>
+                                                    <th className="px-4 py-2.5">Qty</th>
+                                                    <th className="px-4 py-2.5">Unit</th>
+                                                    <th className="px-4 py-2.5">Price</th>
+                                                    <th className="px-4 py-2.5 text-right">Total</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                {items.map((item: FinanceDocumentItem) => (
+                                                    <tr key={item.id ?? item.position} className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
+                                                        <td className="px-4 py-2.5">
+                                                            <p className="max-w-[320px] truncate font-semibold text-[var(--text)]">{item.title}</p>
+                                                            {item.description ? <p className="max-w-[380px] truncate text-[11px] text-[var(--text-muted)]">{item.description}</p> : null}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-[var(--text)]">{item.quantity}</td>
+                                                        <td className="px-4 py-2.5 text-[var(--text-muted)]">{item.unit || '-'}</td>
+                                                        <td className="px-4 py-2.5 text-[var(--text-muted)]">{money(item.unitPrice, currency)}</td>
+                                                        <td className="px-4 py-2.5 text-right font-semibold text-[var(--accent)]">{money(item.totalTtc, currency)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="px-4 py-8"><EmptyState label="No items in this document." /></div>
+                                )}
+                            </AppCard>
+
+                            {/* Payments */}
+                            <AppCard className="overflow-hidden p-0">
+                                <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+                                    <h2 className="text-xs font-semibold">Payments</h2>
+                                    <span className="text-[11px] text-[var(--text-muted)]">{payments.length} payment(s)</span>
                                 </div>
+                                {payments.length > 0 ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-xs">
+                                            <thead>
+                                                <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                                                    <th className="px-4 py-2.5">Reference</th>
+                                                    <th className="px-4 py-2.5">Method</th>
+                                                    <th className="px-4 py-2.5">Date</th>
+                                                    <th className="px-4 py-2.5 text-right">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {payments.map((payment: Payment) => (
+                                                    <tr key={payment.id} className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
+                                                        <td className="px-4 py-2.5 font-semibold text-[var(--text)]">{payment.paymentNumber}</td>
+                                                        <td className="px-4 py-2.5 text-[var(--text-muted)]">{payment.method || '-'}{payment.reference ? ` / ${payment.reference}` : ''}</td>
+                                                        <td className="px-4 py-2.5 text-[var(--text-muted)]">{dateLabel(payment.paidAt)}</td>
+                                                        <td className="px-4 py-2.5 text-right font-semibold text-emerald-400">{money(payment.amount, currency)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="px-4 py-8"><EmptyState label="No payments recorded for this document." /></div>
+                                )}
+                            </AppCard>
 
-                                {items.length === 0 ? <div className="p-5"><EmptyState label="No items in this document." /></div> : null}
-                            </section>
-
-                            <section className="crm-panel overflow-hidden">
-                                <div className="flex items-start justify-between gap-4 border-b border-[var(--crm-border)] px-5 py-4">
-                                    <div>
-                                        <h2 className="text-sm font-black">Payments</h2>
-                                        <p className="mt-1 text-xs text-[var(--crm-muted)]">{payments.length} payment(s)</p>
+                            {/* Notes + Terms */}
+                            <AppCard className="p-4">
+                                <h2 className="text-xs font-semibold">Notes &amp; terms</h2>
+                                <div className="mt-3 grid gap-3 xl:grid-cols-2">
+                                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
+                                        <p className="text-[11px] font-semibold text-[var(--text-muted)]">Notes</p>
+                                        <p className="mt-1.5 text-xs leading-5 text-[var(--text)]">{document.notes || 'No notes saved.'}</p>
+                                    </div>
+                                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
+                                        <p className="text-[11px] font-semibold text-[var(--text-muted)]">Terms</p>
+                                        <p className="mt-1.5 text-xs leading-5 text-[var(--text)]">{document.terms || 'No terms saved.'}</p>
                                     </div>
                                 </div>
-
-                                <div className="p-5">
-                                    {payments.length > 0 ? (
-                                        <div className="grid gap-2">
-                                            {payments.map((payment: Payment) => (
-                                                <div key={payment.id} className="grid gap-2 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 py-2 md:grid-cols-[1fr_auto] md:items-center">
-                                                    <div className="min-w-0">
-                                                        <p className="truncate text-sm font-semibold text-[var(--crm-text)]">{payment.paymentNumber}</p>
-                                                        <p className="text-xs text-[var(--crm-muted)]">
-                                                            {payment.method || '-'} / {payment.reference || '-'} / {dateLabel(payment.paidAt)}
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-sm font-black text-emerald-300">{money(payment.amount, currency)}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <EmptyState label="No payments recorded for this document." />
-                                    )}
-                                </div>
-                            </section>
-
-                            <section className="crm-panel p-5">
-                                <h2 className="text-sm font-black">Notes and terms</h2>
-                                <div className="mt-4 grid gap-4 xl:grid-cols-2">
-                                    <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
-                                        <p className="crm-kpi-label">Notes</p>
-                                        <p className="mt-3 text-sm leading-6 text-[var(--crm-muted)]">{document.notes || 'No notes saved.'}</p>
-                                    </div>
-                                    <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
-                                        <p className="crm-kpi-label">Terms</p>
-                                        <p className="mt-3 text-sm leading-6 text-[var(--crm-muted)]">{document.terms || 'No terms saved.'}</p>
-                                    </div>
-                                </div>
-                            </section>
+                            </AppCard>
                         </main>
 
-                        <aside className="grid min-w-0 gap-5 2xl:sticky 2xl:top-24">
-                            <section className="crm-panel p-5">
-                                <div className="flex items-center gap-2">
-                                    <ShieldCheck size={15} className="text-[var(--crm-accent)]" />
-                                    <h2 className="text-sm font-black">Actions</h2>
+                        {/* ── Sidebar ── */}
+                        <aside className="grid min-w-0 gap-4 xl:sticky xl:top-24">
+
+                            {/* Actions */}
+                            <AppCard className="overflow-hidden p-0">
+                                <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
+                                    <ShieldCheck size={14} className="text-[var(--accent)]" />
+                                    <h2 className="text-xs font-semibold">Actions</h2>
                                 </div>
+                                <div className="divide-y divide-[var(--border)]">
 
-                                <div className="mt-4 grid gap-2">
-                                    <ActionButton tone="primary" onClick={() => putAction(document.generateUrl, 'Document generated.')}>
-                                        <RotateCcw size={15} />
-                                        Generate PDF + Excel
-                                    </ActionButton>
-
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <ActionButton onClick={() => putAction(document.generatePdfUrl, 'PDF generated.')}>
-                                            <FileText size={15} />
-                                            PDF
-                                        </ActionButton>
-                                        <ActionButton onClick={() => putAction(document.generateExcelUrl, 'Excel generated.')}>
-                                            <FileSpreadsheet size={15} />
-                                            Excel
-                                        </ActionButton>
+                                    {/* Generate + quick downloads */}
+                                    <div className="p-3">
+                                        <AppButton variant="primary" className="w-full" size="sm" onPress={() => putAction(document.generateUrl, 'Document generated.')}>
+                                            <RotateCcw size={14} />
+                                            Generate documents
+                                        </AppButton>
+                                        <div className="mt-2 grid grid-cols-2 gap-2">
+                                            <AppButton
+                                                variant="flat"
+                                                size="sm"
+                                                isDisabled={!document.pdfDownloadUrl}
+                                                onPress={() => document.pdfDownloadUrl ? download(document.pdfDownloadUrl) : putAction(document.generatePdfUrl, 'PDF generated.')}
+                                                className="h-auto flex-col gap-0 py-2 leading-tight"
+                                            >
+                                                <FileText size={15} />
+                                                <span className="text-[11px] font-semibold">PDF</span>
+                                                <span className="text-[10px] font-normal text-[var(--text-muted)]">{document.hasPdf ? 'Download' : 'Generate'}</span>
+                                            </AppButton>
+                                            <AppButton
+                                                variant="flat"
+                                                size="sm"
+                                                isDisabled={!document.excelDownloadUrl}
+                                                onPress={() => document.excelDownloadUrl ? download(document.excelDownloadUrl) : putAction(document.generateExcelUrl, 'Excel generated.')}
+                                                className="h-auto flex-col gap-0 py-2 leading-tight"
+                                            >
+                                                <FileSpreadsheet size={15} />
+                                                <span className="text-[11px] font-semibold">Excel</span>
+                                                <span className="text-[10px] font-normal text-[var(--text-muted)]">{document.hasExcel ? 'Download' : 'Generate'}</span>
+                                            </AppButton>
+                                        </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <ActionButton disabled={!document.pdfDownloadUrl} onClick={() => download(document.pdfDownloadUrl)}>
-                                            <Download size={15} />
-                                            PDF
-                                        </ActionButton>
-                                        <ActionButton disabled={!document.excelDownloadUrl} onClick={() => download(document.excelDownloadUrl)}>
-                                            <Download size={15} />
-                                            Excel
-                                        </ActionButton>
-                                    </div>
-
-                                    {document.acceptUrl ? (
-                                        <ActionButton tone="success" onClick={() => putAction(document.acceptUrl, 'Quote accepted.')}>
-                                            <CheckCircle2 size={15} />
-                                            Accept quote
-                                        </ActionButton>
+                                    {/* Quote workflow — only for quotes */}
+                                    {document.acceptUrl || document.rejectUrl ? (
+                                        <div className="space-y-1.5 p-3">
+                                            {document.acceptUrl ? (
+                                                <AppButton variant="solid" color="success" className="w-full" size="sm" onPress={() => putAction(document.acceptUrl, 'Quote accepted.')}>
+                                                    <CheckCircle2 size={14} />
+                                                    Accept quote
+                                                </AppButton>
+                                            ) : null}
+                                            {document.rejectUrl ? (
+                                                <AppButton variant="solid" color="danger" className="w-full" size="sm" onPress={() => putAction(document.rejectUrl, 'Quote rejected.')}>
+                                                    <XCircle size={14} />
+                                                    Reject quote
+                                                </AppButton>
+                                            ) : null}
+                                        </div>
                                     ) : null}
-
-                                    {document.rejectUrl ? (
-                                        <ActionButton tone="danger" onClick={() => putAction(document.rejectUrl, 'Quote rejected.')}>
-                                            <XCircle size={15} />
-                                            Reject quote
-                                        </ActionButton>
-                                    ) : null}
-
                                     {document.convertToInvoiceUrl ? (
-                                        <ActionButton tone="primary" onClick={() => postAction(document.convertToInvoiceUrl, 'Invoice created.')}>
-                                            <Landmark size={15} />
-                                            Convert to invoice
-                                        </ActionButton>
+                                        <div className="p-3">
+                                            <AppButton variant="flat" className="w-full text-[var(--accent)]" size="sm" onPress={() => postAction(document.convertToInvoiceUrl, 'Invoice created.')}>
+                                                <Landmark size={14} />
+                                                Convert to invoice
+                                            </AppButton>
+                                        </div>
                                     ) : null}
 
-                                    <ActionButton onClick={() => putAction(document.cancelUrl, 'Document cancelled.')}>
-                                        <XCircle size={15} />
-                                        Cancel
-                                    </ActionButton>
-
-                                    <ActionButton tone="danger" onClick={deleteDocument}>
-                                        <Trash2 size={15} />
-                                        Delete
-                                    </ActionButton>
+                                    {/* Cancel & Delete */}
+                                    <div className="flex gap-2 p-3">
+                                        <AppButton variant="flat" className="flex-1 text-amber-400" size="sm" onPress={() => putAction(document.cancelUrl, 'Document cancelled.')}>
+                                            <RotateCcw size={13} />
+                                            Cancel
+                                        </AppButton>
+                                        <AppButton variant="solid" color="danger" className="flex-1" size="sm" onPress={deleteDocument}>
+                                            <Trash2 size={13} />
+                                            Delete
+                                        </AppButton>
+                                    </div>
                                 </div>
-                            </section>
+                            </AppCard>
 
-                            <section className="crm-panel p-5">
-                                <h2 className="text-sm font-black">Document details</h2>
-                                <div className="mt-4 grid gap-3">
-                                    <InfoTile label="Type" value={document.typeLabel} />
-                                    <InfoTile label="Status" value={<span className={`rounded-full border px-2 py-1 text-xs font-bold ${statusClass(document.status)}`}>{document.status}</span>} />
-                                    <InfoTile label="Generated" value={dateLabel(document.generatedAt)} />
-                                    <InfoTile label="Created" value={dateLabel(document.createdAt)} />
-                                    <InfoTile label="Updated" value={dateLabel(document.updatedAt)} />
+                            {/* Details */}
+                            <AppCard className="overflow-hidden p-0">
+                                <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
+                                    <ReceiptText size={14} className="text-[var(--text-muted)]" />
+                                    <h2 className="text-xs font-semibold">Details</h2>
                                 </div>
-                            </section>
+                                <div className="divide-y divide-[var(--border)] text-xs">
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-[var(--text-muted)]">Type</span>
+                                        <span className="font-semibold text-[var(--text)]">{document.typeLabel}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-[var(--text-muted)]">Status</span>
+                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusClass(document.status)}`}>
+                                            {document.status?.replace(/_/g, ' ') || document.status}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-[var(--text-muted)]">PDF</span>
+                                        <span className={`font-semibold ${document.hasPdf ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`}>
+                                            {document.hasPdf ? 'Ready' : 'Missing'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-[var(--text-muted)]">Excel</span>
+                                        <span className={`font-semibold ${document.hasExcel ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`}>
+                                            {document.hasExcel ? 'Ready' : 'Missing'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-[var(--text-muted)]">Generated</span>
+                                        <span className="font-semibold text-[var(--text)]">{dateLabel(document.generatedAt)}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-[var(--text-muted)]">Created</span>
+                                        <span className="font-semibold text-[var(--text)]">{dateLabel(document.createdAt)}</span>
+                                    </div>
+                                </div>
+                            </AppCard>
 
-                            <section className="crm-panel p-5">
-                                <h2 className="text-sm font-black">Client and project</h2>
-                                <div className="mt-4 grid gap-3">
-                                    <InfoTile label="Client" value={document.client?.name || '-'} />
-                                    <InfoTile label="CIN" value={document.client?.cin || '-'} />
-                                    <InfoTile label="Dossier" value={document.dossier?.number || '-'} />
-                                    <InfoTile label="Project" value={document.dossier?.projectObject || '-'} />
+                            {/* Client & Project */}
+                            <AppCard className="overflow-hidden p-0">
+                                <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
+                                    <UserRound size={14} className="text-[var(--text-muted)]" />
+                                    <h2 className="text-xs font-semibold">Client &amp; project</h2>
                                 </div>
-                            </section>
+                                <div className="divide-y divide-[var(--border)] text-xs">
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-[var(--text-muted)]">Client</span>
+                                        <span className="font-semibold text-[var(--text)]">{document.client?.name || '-'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-[var(--text-muted)]">CIN</span>
+                                        <span className="font-semibold text-[var(--text)]">{document.client?.cin || '-'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-[var(--text-muted)]">Dossier</span>
+                                        <span className="font-semibold text-[var(--text)]">{document.dossier?.number || '-'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-[var(--text-muted)]">Project</span>
+                                        <span className="font-semibold text-[var(--text)]">{document.dossier?.projectObject || '-'}</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 border-t border-[var(--border)] p-3">
+                                    <AppButton
+                                        variant="flat"
+                                        color="primary"
+                                        className="flex-1"
+                                        size="sm"
+                                        startContent={<UserRound size={14} />}
+                                        endContent={<ArrowRight size={13} className="text-[var(--text-muted)]" />}
+                                        onPress={() => document.client?.id ? router.visit(`/clients/${document.client.id}`) : router.visit('/clients')}
+                                    >
+                                        Client
+                                    </AppButton>
+                                    <AppButton
+                                        variant="flat"
+                                        color="primary"
+                                        className="flex-1"
+                                        size="sm"
+                                        startContent={<FileText size={14} />}
+                                        endContent={<ArrowRight size={13} className="text-[var(--text-muted)]" />}
+                                        onPress={() => document.dossier?.id ? router.visit(`/dossiers/${document.dossier.id}`) : router.visit('/dossiers')}
+                                    >
+                                        Project
+                                    </AppButton>
+                                </div>
+                            </AppCard>
                         </aside>
                     </section>
                 </div>
@@ -518,6 +534,6 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                     <AppButton variant="danger" onPress={confirmDelete}>Delete</AppButton>
                 </div>
             </AppModal>
-        </>
+        </ErrorBoundary>
     );
 }

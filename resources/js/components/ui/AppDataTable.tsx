@@ -77,24 +77,25 @@ export function AppDataTable<TData extends object>({
     const pageCount = table.getPageCount();
 
     return (
-        <div className="crm-reference-table-shell min-w-0">
-            <div className="crm-reference-toolbar">
+        <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <SearchField
                     aria-label="Search"
                     value={globalFilter}
                     onChange={setGlobalFilter}
-                    className="crm-reference-search"
+                    className="relative w-full max-w-[280px]"
                 >
                     <Search
                         size={14}
-                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]"
+                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
                     />
                     <Input
                         placeholder={searchPlaceholder}
+                        className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-8 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                     />
                     {globalFilter ? (
                         <Button
-                            className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-[var(--crm-text-soft)] hover:bg-[var(--crm-surface-2)]"
+                            className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                             onPress={() => setGlobalFilter('')}
                         >
                             <X size={14} />
@@ -102,48 +103,47 @@ export function AppDataTable<TData extends object>({
                     ) : null}
                 </SearchField>
 
-                <div className="crm-reference-toolbar-actions">
+                <div className="flex items-center gap-2">
                     {onRefresh ? (
-                        <Button className="crm-reference-button" onPress={onRefresh}>
+                        <button type="button" onClick={onRefresh} className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
                             <RefreshCw size={13} />
                             Update
-                        </Button>
+                        </button>
                     ) : null}
                     {filterControls ? (
-                        <Button className="crm-reference-button" onPress={() => setShowFilters((v) => !v)}>
+                        <button type="button" onClick={() => setShowFilters((v) => !v)} className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
                             <SlidersHorizontal size={13} />
                             Filter
-                        </Button>
+                        </button>
                     ) : null}
                     {toolbarActions}
                 </div>
 
-                <div className="hidden text-xs font-semibold text-[var(--crm-text-muted)] md:block">
+                <div className="hidden text-xs font-medium text-[var(--text-muted)] md:block">
                     {filteredCount} record(s)
                 </div>
             </div>
 
             {filterControls && showFilters ? (
-                <div className="border-b border-[var(--crm-border)] px-4 py-3">
+                <div className="border-b border-[var(--border)] px-4 py-3">
                     {filterControls}
                 </div>
             ) : null}
 
-            <div className="crm-reference-table-card">
-                <div className="crm-reference-table-scroll">
-                <table className="crm-reference-table">
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm">
                     <thead>
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <tr key={headerGroup.id}>
+                            <tr key={headerGroup.id} className="border-b border-[var(--border)] bg-[var(--surface-2)]">
                                 {headerGroup.headers.map((header) => {
                                     const sorted = header.column.getIsSorted();
 
                                     return (
-                                        <th key={header.id}>
+                                        <th key={header.id} className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">
                                             {header.isPlaceholder ? null : (
                                                 <button
                                                     type="button"
-                                                    className="crm-reference-header-cell"
+                                                    className="inline-flex items-center gap-1 transition hover:text-[var(--text)]"
                                                     onClick={header.column.getToggleSortingHandler()}
                                                 >
                                                     {flexRender(
@@ -153,11 +153,11 @@ export function AppDataTable<TData extends object>({
 
                                                     {header.column.getCanSort() ? (
                                                         sorted === 'asc' ? (
-                                                            <ChevronUp className="crm-reference-header-sort" size={11} />
+                                                            <ChevronUp size={11} className="text-[var(--accent)]" />
                                                         ) : sorted === 'desc' ? (
-                                                            <ChevronDown className="crm-reference-header-sort" size={11} />
+                                                            <ChevronDown size={11} className="text-[var(--accent)]" />
                                                         ) : (
-                                                            <ChevronsUpDown className="crm-reference-header-sort" size={11} />
+                                                            <ChevronsUpDown size={11} className="text-[var(--text-muted)]" />
                                                         )
                                                     ) : null}
                                                 </button>
@@ -174,11 +174,11 @@ export function AppDataTable<TData extends object>({
                             table.getRowModel().rows.map((row) => (
                                 <tr
                                     key={row.id}
-                                    className={onRowClick ? 'cursor-pointer' : ''}
+                                    className={`border-b border-[var(--border)] transition last:border-0 ${onRowClick ? 'cursor-pointer hover:bg-[var(--surface-2)]' : ''}`}
                                     onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <td key={cell.id}>
+                                        <td key={cell.id} className="px-4 py-3">
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext(),
@@ -199,33 +199,34 @@ export function AppDataTable<TData extends object>({
                         )}
                     </tbody>
                 </table>
-                </div>
+            </div>
 
-            <div className="crm-reference-footer">
-                <p>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3">
+                <p className="text-xs text-[var(--text-muted)]">
                     Page {pageIndex + 1} of {Math.max(pageCount, 1)}
                 </p>
 
                 <div className="flex items-center gap-2">
-                    <Button
-                        className="crm-reference-button h-8 px-3"
-                        isDisabled={!table.getCanPreviousPage()}
-                        onPress={() => table.previousPage()}
+                    <button
+                        type="button"
+                        className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40"
+                        disabled={!table.getCanPreviousPage()}
+                        onClick={() => table.previousPage()}
                     >
                         <ChevronLeft size={14} />
                         Previous
-                    </Button>
+                    </button>
 
-                    <Button
-                        className="crm-reference-button h-8 px-3"
-                        isDisabled={!table.getCanNextPage()}
-                        onPress={() => table.nextPage()}
+                    <button
+                        type="button"
+                        className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40"
+                        disabled={!table.getCanNextPage()}
+                        onClick={() => table.nextPage()}
                     >
                         Next
                         <ChevronRight size={14} />
-                    </Button>
+                    </button>
                 </div>
-            </div>
             </div>
         </div>
     );

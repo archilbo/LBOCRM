@@ -1,14 +1,18 @@
 import { Head, router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
+    AlertCircle,
     BadgeDollarSign,
     CheckCircle2,
     Download,
     Eye,
     FileSpreadsheet,
     FileText,
+    Landmark,
     Pencil,
     Plus,
+    Receipt,
+    TrendingUp,
     Trash2,
     WandSparkles,
 } from 'lucide-react';
@@ -436,18 +440,26 @@ export default function FinanceIndex({
         {
             label: 'Total TTC',
             value: formatMoney(metrics.totalTtc),
+            icon: Receipt,
+            accent: 'var(--accent)',
         },
         {
             label: 'Paid',
             value: formatMoney(metrics.paid),
+            icon: CheckCircle2,
+            accent: '#22c55e',
         },
         {
             label: 'Remaining',
             value: formatMoney(metrics.remaining),
+            icon: TrendingUp,
+            accent: '#f59e0b',
         },
         {
             label: 'Overdue',
             value: formatMoney(metrics.overdue),
+            icon: AlertCircle,
+            accent: '#ef4444',
         },
     ];
 
@@ -484,27 +496,38 @@ export default function FinanceIndex({
                 <section className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">
                     {metricCards.map((metric) => (
                         <AppCard key={metric.label} className="p-4">
-                            <p className="text-sm text-[var(--text-muted)]">{metric.label}</p>
+                            <div className="flex items-start justify-between">
+                                <p className="text-sm text-[var(--text-muted)]">{metric.label}</p>
+                                <div
+                                    className="flex size-8 shrink-0 items-center justify-center rounded-xl"
+                                    style={{ backgroundColor: 'color-mix(in srgb, ' + metric.accent + ' 14%, transparent)', color: metric.accent }}
+                                >
+                                    <metric.icon size={15} />
+                                </div>
+                            </div>
                             <p className="mt-3 truncate text-2xl font-semibold">{metric.value}</p>
                         </AppCard>
                     ))}
                 </section>
 
                 <AppCard className="p-4">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <p className="text-sm font-semibold">Collection rate</p>
-                            <p className="mt-1 text-sm text-[var(--text-muted)]">
-                                Paid amount compared to total TTC.
-                            </p>
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex items-start gap-3">
+                            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
+                                <Landmark size={18} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold">Collection rate</p>
+                                <p className="mt-1 text-sm text-[var(--text-muted)]">
+                                    Paid amount relative to total TTC across {metrics.totalRecords} records.
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="w-full md:max-w-sm">
+                        <div className="w-full md:max-w-xs">
                             <div className="mb-2 flex items-center justify-between text-sm">
-                                <span>{collectionRate}% collected</span>
-                                <span className="text-[var(--text-muted)]">
-                                    {metrics.totalRecords} records
-                                </span>
+                                <span className="font-medium">{collectionRate}% collected</span>
+                                <span className="text-[var(--text-muted)]">{formatMoney(metrics.paid)} / {formatMoney(metrics.totalTtc)}</span>
                             </div>
                             <MiniBar value={collectionRate} />
                         </div>
@@ -525,49 +548,58 @@ export default function FinanceIndex({
 
                     <aside className="min-w-0 space-y-5 2xl:sticky 2xl:top-24 2xl:self-start">
                         <AppCard className="p-5">
-                            <div className="mb-4 flex items-start gap-3">
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
+                            <div className="mb-5 flex items-start gap-3">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
                                     <BadgeDollarSign size={18} />
                                 </div>
 
                                 <div className="min-w-0">
                                     <h2 className="text-sm font-semibold">Finance preview</h2>
                                     <p className="mt-1 text-sm text-[var(--text-muted)]">
-                                        Selected finance record information.
+                                        Selected finance record details.
                                     </p>
                                 </div>
                             </div>
 
                             {selectedRecord ? (
                                 <div className="space-y-3">
-                                    <div className="rounded-2xl border bg-[var(--surface)] p-4">
+                                    {selectedRecord.notes && (
+                                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5">
+                                            <p className="text-xs text-[var(--text-muted)]">Notes</p>
+                                            <p className="mt-1.5 whitespace-pre-line text-sm leading-6">
+                                                {selectedRecord.notes}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5">
                                         <p className="text-xs text-[var(--text-muted)]">Record</p>
                                         <p className="mt-1 text-sm font-semibold">
                                             {selectedRecord.recordNumber}
                                         </p>
-                                        <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                            {selectedRecord.dossierNumber} · {selectedRecord.clientName}
+                                        <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                                            {selectedRecord.dossierNumber}{selectedRecord.clientName ? ` · ${selectedRecord.clientName}` : ''}
                                         </p>
                                     </div>
 
-                                    <div className="grid gap-2">
-                                        <div className="rounded-2xl border bg-[var(--surface)] p-4">
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5">
                                             <p className="text-xs text-[var(--text-muted)]">Total TTC</p>
                                             <p className="mt-1 text-sm font-semibold">
                                                 {formatMoney(selectedRecord.totalTtc)}
                                             </p>
                                         </div>
 
-                                        <div className="rounded-2xl border bg-[var(--surface)] p-4">
+                                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5">
                                             <p className="text-xs text-[var(--text-muted)]">Paid</p>
-                                            <p className="mt-1 text-sm font-semibold">
+                                            <p className="mt-1 text-sm font-semibold text-green-400">
                                                 {formatMoney(selectedRecord.paid)}
                                             </p>
                                         </div>
 
-                                        <div className="rounded-2xl border bg-[var(--surface)] p-4">
+                                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5">
                                             <p className="text-xs text-[var(--text-muted)]">Remaining</p>
-                                            <p className="mt-1 text-sm font-semibold">
+                                            <p className="mt-1 text-sm font-semibold text-amber-400">
                                                 {formatMoney(selectedRecord.remaining)}
                                             </p>
                                         </div>
@@ -584,7 +616,14 @@ export default function FinanceIndex({
                                         </AppBadge>
                                     </div>
 
-                                    <div className="space-y-2">
+                                    {selectedRecord.generatedAt && (
+                                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5">
+                                            <p className="text-xs text-[var(--text-muted)]">Generated at</p>
+                                            <p className="mt-1 text-sm">{selectedRecord.generatedAt}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2 pt-1">
                                         <AppButton
                                             variant="primary"
                                             onPress={() => generateRecord(selectedRecord)}
@@ -629,22 +668,6 @@ export default function FinanceIndex({
                                             Mark paid
                                         </AppButton>
                                     </div>
-
-                                    <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                        <p className="text-xs text-[var(--text-muted)]">Notes</p>
-                                        <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--text-muted)]">
-                                            {selectedRecord.notes || 'No notes.'}
-                                        </p>
-                                    </div>
-
-                                    {selectedRecord.generatedAt && (
-                                        <div className="rounded-2xl border bg-[var(--surface)] p-4">
-                                            <p className="text-xs text-[var(--text-muted)]">Generated at</p>
-                                            <p className="mt-1 text-sm">
-                                                {selectedRecord.generatedAt}
-                                            </p>
-                                        </div>
-                                    )}
                                 </div>
                             ) : (
                                 <p className="text-sm text-[var(--text-muted)]">

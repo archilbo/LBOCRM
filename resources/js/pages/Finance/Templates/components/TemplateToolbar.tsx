@@ -88,7 +88,7 @@ export function TemplateToolbar({
             <div className="flex shrink-0 items-center gap-2">
                 {draftName ? (
                     <>
-                        <button type="button" onClick={onNew} className="crm-action-button h-8 text-xs">
+                        <button type="button" onClick={onNew} className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
                             <Plus size={14} />
                             New
                         </button>
@@ -96,7 +96,7 @@ export function TemplateToolbar({
                         <button
                             type="button"
                             onClick={onSave}
-                            className="crm-action-button h-8 bg-[var(--accent)] text-black disabled:opacity-40"
+                            className="flex h-8 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-2.5 text-xs font-medium text-black transition hover:opacity-90 disabled:opacity-40"
                         >
                             <Save size={14} />
                             Save
@@ -106,7 +106,7 @@ export function TemplateToolbar({
                             <button
                                 type="button"
                                 onClick={() => setMenuOpen((v) => !v)}
-                                className="crm-action-button h-8"
+                                className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
                             >
                                 <MoreHorizontal size={14} />
                             </button>
@@ -138,7 +138,7 @@ export function TemplateToolbar({
                         </span>
                     </>
                 ) : (
-                    <button type="button" onClick={onNew} className="crm-action-button h-8 bg-[var(--accent)] text-black">
+                    <button type="button" onClick={onNew} className="flex h-8 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 text-xs font-medium text-black transition hover:opacity-90">
                         <Plus size={14} />
                         New template
                     </button>

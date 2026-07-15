@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { AppCard } from '@/components/ui/AppCard';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
@@ -165,19 +166,19 @@ function Field({
 }) {
     return (
         <label className="block min-w-0">
-            <span className="mb-1.5 block text-xs font-bold text-[var(--crm-text)]">{label}</span>
+            <span className="mb-1.5 block text-xs font-bold text-[var(--text)]">{label}</span>
             <input
                 type={type}
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
                 placeholder={placeholder}
                 className={[
-                    'h-11 w-full rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 text-sm text-[var(--crm-text)] outline-none transition',
-                    'hover:border-[color-mix(in_srgb,var(--crm-accent)_45%,var(--crm-border))] focus:border-[var(--crm-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)]',
+                    'h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)] outline-none transition',
+                    'hover:border-[color-mix(in_srgb,var(--accent)_45%,var(--border))] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]',
                     error ? 'border-red-500/70' : '',
                 ].join(' ')}
             />
-            {help ? <span className="mt-1 block text-xs text-[var(--crm-muted)]">{help}</span> : null}
+            {help ? <span className="mt-1 block text-xs text-[var(--text-muted)]">{help}</span> : null}
             {error ? <span className="mt-1 block text-xs font-semibold text-red-400">{error}</span> : null}
         </label>
     );
@@ -198,15 +199,15 @@ function TextArea({
 }) {
     return (
         <label className="block min-w-0">
-            <span className="mb-1.5 block text-xs font-bold text-[var(--crm-text)]">{label}</span>
+            <span className="mb-1.5 block text-xs font-bold text-[var(--text)]">{label}</span>
             <textarea
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
                 placeholder={placeholder}
                 rows={4}
                 className={[
-                    'w-full resize-y rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none transition',
-                    'hover:border-[color-mix(in_srgb,var(--crm-accent)_45%,var(--crm-border))] focus:border-[var(--crm-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)]',
+                    'w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] outline-none transition',
+                    'hover:border-[color-mix(in_srgb,var(--accent)_45%,var(--border))] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]',
                     error ? 'border-red-500/70' : '',
                 ].join(' ')}
             />
@@ -227,26 +228,26 @@ function Section({
     children: ReactNode;
 }) {
     return (
-        <section className="crm-panel overflow-hidden">
-            <div className="flex items-start gap-3 border-b border-[var(--crm-border)] px-5 py-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-[var(--crm-accent)]">
+        <AppCard className="overflow-hidden p-0">
+            <div className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-4">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
                     <Icon size={18} />
                 </div>
                 <div className="min-w-0">
-                    <h2 className="text-sm font-black text-[var(--crm-text)]">{title}</h2>
-                    <p className="mt-1 text-xs text-[var(--crm-muted)]">{description}</p>
+                    <h2 className="text-sm font-semibold text-[var(--text)]">{title}</h2>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">{description}</p>
                 </div>
             </div>
             <div className="p-5">{children}</div>
-        </section>
+        </AppCard>
     );
 }
 
 function PreviewTile({ label, value }: { label: string; value: ReactNode }) {
     return (
-        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
-            <p className="crm-kpi-label">{label}</p>
-            <div className="mt-2 text-sm font-black text-[var(--crm-text)]">{value || '-'}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+            <p className="text-xs text-[var(--text-muted)]">{label}</p>
+            <div className="mt-2 text-sm font-semibold text-[var(--text)]">{value || '-'}</div>
         </div>
     );
 }
@@ -372,42 +373,42 @@ export default function FinanceSettingsIndex({ settings, routes }: PageProps) {
             >
                 <form
                     id="finance-settings-form"
-                    className="crm-page mx-auto max-w-[1540px] pt-6 xl:pt-8"
+                    className="mx-auto mt-6 max-w-[1540px] space-y-5 xl:mt-8"
                     onSubmit={save}
                 >
-                    <section className="crm-panel overflow-hidden shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
-                        <div className="flex flex-wrap items-start justify-between gap-4 p-5">
+                    <AppCard className="p-5">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <Settings size={15} className="text-[var(--crm-accent)]" />
-                                    <p className="crm-eyebrow">Finance settings</p>
+                                    <Settings size={15} className="text-[var(--accent)]" />
+                                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--accent)]">Finance settings</p>
                                 </div>
-                                <h1 className="mt-2 text-2xl font-black tracking-tight text-[var(--crm-text)]">
+                                <h1 className="mt-2 text-2xl font-bold tracking-tight text-[var(--text)]">
                                     Company and finance defaults
                                 </h1>
-                                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--crm-muted)]">
+                                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-muted)]">
                                     Manage TVA, currency, company legal information, logo, bank details and default values used in Devis, Factures and PDF templates.
                                 </p>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
                                 {isDirty ? (
-                                    <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs font-black text-amber-300">
+                                    <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
                                         Unsaved changes
                                     </span>
                                 ) : (
-                                    <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs font-black text-emerald-300">
+                                    <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300">
                                         Saved
                                     </span>
                                 )}
 
-                                <button type="button" onClick={resetDefaults} className="crm-action-button py-3 text-amber-300">
-                                    <RotateCcw size={15} />
+                                <AppButton variant="secondary" onPress={resetDefaults}>
+                                    <RotateCcw size={16} />
                                     Reset finance
-                                </button>
+                                </AppButton>
                             </div>
                         </div>
-                    </section>
+                    </AppCard>
 
                     <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
                         <main className="grid min-w-0 gap-5">
@@ -437,45 +438,45 @@ export default function FinanceSettingsIndex({ settings, routes }: PageProps) {
                                     <Field label="Company phone" value={form.company.companyPhone} onChange={(value) => updateCompany('companyPhone', value)} error={errors['company.company_phone']} />
                                     <Field label="Logo path" value={form.company.companyLogoPath} onChange={(value) => updateCompany('companyLogoPath', value)} error={errors['company.company_logo_path']} help="Use a public URL or upload the logo below." />
 
-                                    <div className="md:col-span-2 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
+                                    <div className="md:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
                                         <div className="flex flex-wrap items-center justify-between gap-3">
                                             <div className="flex items-start gap-3">
-                                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-[var(--crm-accent)]">
+                                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
                                                     <ImageIcon size={18} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-black">Company logo</p>
-                                                    <p className="mt-1 text-xs text-[var(--crm-muted)]">
+                                                    <p className="text-sm font-semibold">Company logo</p>
+                                                    <p className="mt-1 text-xs text-[var(--text-muted)]">
                                                         Upload PNG, JPG, WEBP or SVG. Use {'{{company.logo_html}}'} inside templates.
                                                     </p>
                                                 </div>
                                             </div>
 
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <label className="crm-action-button cursor-pointer border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_18%,transparent)] py-3 text-[var(--crm-accent)]">
+                                                <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
                                                     <Upload size={15} />
                                                     Upload logo
                                                     <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg" className="hidden" onChange={uploadLogo} />
                                                 </label>
 
                                                 {form.company.companyLogoPath ? (
-                                                    <button type="button" onClick={deleteLogo} className="crm-action-button py-3 text-red-300">
+                                                    <AppButton variant="secondary" onPress={deleteLogo}>
                                                         Remove
-                                                    </button>
+                                                    </AppButton>
                                                 ) : null}
                                             </div>
                                         </div>
 
                                         {form.company.companyLogoUrl ? (
-                                            <div className="mt-4 flex items-center gap-3 rounded-xl border border-[var(--crm-border)] bg-black/20 p-3">
+                                            <div className="mt-4 flex items-center gap-3 rounded-xl border border-[var(--border)] bg-black/20 p-3">
                                                 <img src={form.company.companyLogoUrl} alt="Company logo" className="h-12 w-12 rounded-xl object-contain" />
                                                 <div className="min-w-0">
-                                                    <p className="text-xs font-black">Current logo</p>
-                                                    <p className="mt-1 truncate text-xs text-[var(--crm-muted)]">{form.company.companyLogoPath}</p>
+                                                    <p className="text-xs font-semibold">Current logo</p>
+                                                    <p className="mt-1 truncate text-xs text-[var(--text-muted)]">{form.company.companyLogoPath}</p>
                                                 </div>
                                             </div>
                                         ) : form.company.companyLogoPath ? (
-                                            <div className="mt-4 rounded-xl border border-[var(--crm-border)] bg-black/20 p-3 text-xs text-[var(--crm-muted)]">
+                                            <div className="mt-4 rounded-xl border border-[var(--border)] bg-black/20 p-3 text-xs text-[var(--text-muted)]">
                                                 Current path: {form.company.companyLogoPath}
                                             </div>
                                         ) : null}
@@ -505,14 +506,14 @@ export default function FinanceSettingsIndex({ settings, routes }: PageProps) {
                         </main>
 
                         <aside className="grid min-w-0 gap-5 xl:sticky xl:top-24 xl:self-start">
-                            <section className="crm-panel p-5">
+                            <AppCard className="p-5">
                                 <div className="mb-4 flex items-center gap-3">
-                                    <div className="flex size-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-[var(--crm-accent)]">
+                                    <div className="flex size-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
                                         <FileText size={18} />
                                     </div>
                                     <div>
-                                        <h2 className="text-sm font-black">Document impact</h2>
-                                        <p className="text-xs text-[var(--crm-muted)]">Values used by templates.</p>
+                                        <h2 className="text-sm font-semibold">Document impact</h2>
+                                        <p className="text-xs text-[var(--text-muted)]">Values used by templates.</p>
                                     </div>
                                 </div>
 
@@ -523,22 +524,22 @@ export default function FinanceSettingsIndex({ settings, routes }: PageProps) {
                                     <PreviewTile label="Payment days" value={form.finance.defaultPaymentTermsDays || '-'} />
                                     <PreviewTile label="Unit price/m2" value={`${form.finance.defaultUnitPriceM2 || 0} ${form.finance.defaultCurrency || 'MAD'}`} />
                                 </div>
-                            </section>
+                            </AppCard>
 
-                            <section className="crm-panel p-5">
-                                <h2 className="text-sm font-black">Legal footer</h2>
-                                <p className="mt-3 text-sm leading-6 text-[var(--crm-muted)]">
+                            <AppCard className="p-5">
+                                <h2 className="text-sm font-semibold">Legal footer</h2>
+                                <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
                                     ICE: {form.company.companyIce || '-'} / CNSS: {form.company.companyCnss || '-'} / Patente: {form.company.companyPatente || '-'} / TVA: {form.company.companyTva || '-'}
                                 </p>
-                            </section>
+                            </AppCard>
 
-                            <section className="crm-panel p-5">
-                                <h2 className="text-sm font-black">Bank</h2>
-                                <p className="mt-3 text-sm leading-6 text-[var(--crm-muted)]">
+                            <AppCard className="p-5">
+                                <h2 className="text-sm font-semibold">Bank</h2>
+                                <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
                                     {form.bank.bankName || 'No bank selected'}<br />
                                     {form.bank.bankRib || 'No RIB'}
                                 </p>
-                            </section>
+                            </AppCard>
                         </aside>
                     </section>
                 </form>

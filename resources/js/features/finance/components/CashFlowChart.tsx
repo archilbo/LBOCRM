@@ -20,13 +20,13 @@ type CashFlowChartProps = {
 function CustomTooltip({ active, payload, label, currency }: { active?: boolean; payload?: Array<{ name: string; value: number; fill: string }>; label?: string; currency: string }) {
     if (!active || !payload?.length) return null;
     return (
-        <div className="crm-panel px-4 py-3 text-sm">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm shadow-sm">
             <p className="mb-2 font-semibold">{label}</p>
             <div className="space-y-1">
                 {payload.map((entry) => (
                     <div key={entry.name} className="flex items-center gap-2">
                         <span className="inline-block size-2.5 rounded" style={{ backgroundColor: entry.fill }} />
-                        <span className="text-[var(--crm-text-muted)]">{entry.name}</span>
+                        <span className="text-[var(--text-muted)]">{entry.name}</span>
                         <span className="ml-auto font-semibold">{formatMoney(entry.value, currency)}</span>
                     </div>
                 ))}
@@ -60,15 +60,15 @@ export function CashFlowChart({ monthlySummaries, currency }: CashFlowChartProps
         <AppCard className="p-5">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
                 <h3 className="text-sm font-semibold">Tresorerie mensuelle</h3>
-                <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--crm-text-muted)]">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--text-muted)]">
                     <span className="flex items-center gap-1.5">
                         <span className="inline-block size-2.5 rounded-sm bg-emerald-500" /> Encaisse
                     </span>
                     <span className="flex items-center gap-1.5">
                         <span className="inline-block size-2.5 rounded-sm bg-rose-500" /> Depenses
                     </span>
-                    <span className="text-xs text-[var(--crm-text-muted)]">
-                        Solde: <span className="font-semibold text-[var(--crm-text)]">{formatMoney(totalPaid - totalExp, currency)}</span>
+                    <span className="text-xs text-[var(--text-muted)]">
+                        Solde: <span className="font-semibold text-[var(--text)]">{formatMoney(totalPaid - totalExp, currency)}</span>
                     </span>
                 </div>
             </div>
@@ -86,10 +86,10 @@ export function CashFlowChart({ monthlySummaries, currency }: CashFlowChartProps
                                 <stop offset="100%" stopColor="#fb5c5c" stopOpacity="0.4" />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--crm-border)" strokeOpacity={0.3} vertical={false} />
-                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--crm-text-soft)', fontSize: 12 }} dy={6} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--crm-text-soft)', fontSize: 11 }} width={60} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
-                        <Tooltip content={<CustomTooltip currency={currency} />} cursor={{ fill: 'var(--crm-border)', opacity: 0.15, radius: 8 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.3} vertical={false} />
+                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 12 }} dy={6} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} width={60} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                        <Tooltip content={<CustomTooltip currency={currency} />} cursor={{ fill: 'var(--border)', opacity: 0.15, radius: 8 }} />
                         <Bar dataKey="expenses" name="Depenses" fill="url(#expGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
                         <Bar dataKey="paid" name="Encaisse" fill="url(#paidGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
                     </BarChart>

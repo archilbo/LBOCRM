@@ -95,17 +95,6 @@ function cloneDefaults(role: string): PermissionsState {
     return JSON.parse(JSON.stringify(ROLE_DEFAULTS[role] || ROLE_DEFAULTS.viewer));
 }
 
-const AUDIT_LOG: ActivityLogEntry[] = [
-    { id: 1, timestamp: '2026-07-14 09:23:12', user: 'Admin', action: 'Deleted Project "Parc Central"', ip: '192.168.1.10' },
-    { id: 2, timestamp: '2026-07-14 09:15:44', user: 'Sarah Johnson', action: 'Changed permissions for User "Mike Ross"', ip: '192.168.1.22' },
-    { id: 3, timestamp: '2026-07-14 08:57:01', user: 'Admin', action: 'Invited user "anna@lbo.ma"', ip: '192.168.1.10' },
-    { id: 4, timestamp: '2026-07-13 17:30:22', user: 'Karim L.', action: 'Signed Contract #CT-2026-089', ip: '10.0.0.45' },
-    { id: 5, timestamp: '2026-07-13 16:12:08', user: 'Admin', action: 'Updated firm registration number', ip: '192.168.1.10' },
-    { id: 6, timestamp: '2026-07-13 14:05:33', user: 'Nadia F.', action: 'Exported user list (CSV)', ip: '10.0.0.78' },
-    { id: 7, timestamp: '2026-07-12 11:42:19', user: 'Admin', action: 'Deleted user "omar@test.com"', ip: '192.168.1.10' },
-    { id: 8, timestamp: '2026-07-12 10:08:55', user: 'System', action: 'Auto-backup completed', ip: '127.0.0.1' },
-];
-
 const TABLE_PAGE_SIZE = 10;
 
 function roleIcon(role: string) {
@@ -245,6 +234,8 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
     const [confirmBulkAction, setConfirmBulkAction] = useState<'suspend' | 'delete' | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
     const [csvModal, setCsvModal] = useState<{ users: { name: string; email: string; role: string }[]; existing: Set<string>; overrides: Set<string> } | null>(null);
+    const [auditEntries, setAuditEntries] = useState<ActivityLogEntry[]>([]);
+    const [auditLoading, setAuditLoading] = useState(false);
 
     // Refs for filter dropdown positioning
     const filterRef = useRef<HTMLDivElement>(null);
@@ -281,6 +272,16 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
         document.addEventListener('mousedown', handleClick);
         return () => document.removeEventListener('mousedown', handleClick);
     }, [filterOpen]);
+
+    // ── fetch audit logs when security tab is active ──
+    useEffect(() => {
+        if (activeTab !== 'security') return;
+        setAuditLoading(true);
+        fetch('/admin/users/audit-logs')
+            .then((r) => r.json())
+            .then((data) => { setAuditEntries(data.logs); setAuditLoading(false); })
+            .catch(() => { setAuditLoading(false); });
+    }, [activeTab]);
 
     // ── helpers ──
     function isAllSelected() {
@@ -796,7 +797,11 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/[0.03]">
-                                        {AUDIT_LOG.map((entry) => (
+                                        {auditLoading ? (
+                                            <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-white/30">Loading audit logs...</td></tr>
+                                        ) : auditEntries.length === 0 ? (
+                                            <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-white/30">No audit logs yet.</td></tr>
+                                        ) : auditEntries.map((entry) => (
                                             <tr key={entry.id} className="text-[13px] text-white/60 hover:bg-white/[0.015] transition">
                                                 <td className="px-3 py-2.5 tabular-nums text-white/40">{entry.timestamp}</td>
                                                 <td className="px-3 py-2.5 font-medium text-white/70">{entry.user}</td>

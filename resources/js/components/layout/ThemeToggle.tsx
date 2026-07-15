@@ -8,7 +8,7 @@ export function ThemeToggle() {
     return (
         <Button
             aria-label="Toggle theme"
-            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] transition hover:bg-white/5 hover:text-[var(--crm-text)]"
+            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-white/5 hover:text-[var(--text)]"
             onPress={toggleTheme}
         >
             <Sun size={15} className="absolute rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

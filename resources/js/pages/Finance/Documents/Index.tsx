@@ -2,8 +2,10 @@ import { Head, router } from '@inertiajs/react';
 import {
     ArrowUpDown,
     BadgeDollarSign,
+    Check,
     CheckCircle2,
     Download,
+    EllipsisVertical,
     Eye,
     FileSpreadsheet,
     FileText,
@@ -17,6 +19,7 @@ import {
     WalletCards,
     WandSparkles,
     X,
+    XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { TabPanel } from 'react-aria-components';
@@ -87,6 +90,7 @@ type DocumentActionHandlers = {
     onReject: (document: FinanceDocument) => void;
     onConvert: (document: FinanceDocument) => void;
     onPayment: (document: FinanceDocument) => void;
+    onCancel: (document: FinanceDocument) => void;
     onDelete: (document: FinanceDocument) => void;
     onSelect: (document: FinanceDocument) => void;
     onGeneratePdf: (document: FinanceDocument) => void;
@@ -113,7 +117,8 @@ function formatMoney(value: number | null | undefined, currency = 'MAD') {
     }).format(value || 0);
 }
 
-function statusClass(status: string) {
+function statusClass(status: string | undefined | null) {
+    if (!status) return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300';
     if (status === 'paid' || status === 'accepted') return 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300';
     if (status === 'issued' || status === 'sent') return 'border-sky-400/25 bg-sky-400/10 text-sky-300';
     if (status === 'partially_paid' || status === 'draft') return 'border-amber-400/25 bg-amber-400/10 text-amber-300';
@@ -129,7 +134,9 @@ function typeLabel(type: string) {
     return type;
 }
 
-function documentMatches(document: FinanceDocument, query: string) {
+function documentMatches(document: FinanceDocument, query: string, statusFilter?: string, typeFilter?: string) {
+    if (statusFilter && statusFilter !== 'all' && document.status !== statusFilter) return false;
+    if (typeFilter && typeFilter !== 'all' && document.type !== typeFilter) return false;
     if (!query.trim()) return true;
 
     return [
@@ -146,6 +153,26 @@ function documentMatches(document: FinanceDocument, query: string) {
         .toLowerCase()
         .includes(query.trim().toLowerCase());
 }
+
+const statusFilterOptions = [
+    { id: 'all', label: 'All' },
+    { id: 'draft', label: 'Draft' },
+    { id: 'issued', label: 'Issued' },
+    { id: 'sent', label: 'Sent' },
+    { id: 'accepted', label: 'Accepted' },
+    { id: 'partially_paid', label: 'Partial' },
+    { id: 'paid', label: 'Paid' },
+    { id: 'overdue', label: 'Overdue' },
+    { id: 'rejected', label: 'Rejected' },
+    { id: 'cancelled', label: 'Cancelled' },
+];
+
+const typeFilterOptions = [
+    { id: 'all', label: 'All types' },
+    { id: 'quote', label: 'Devis' },
+    { id: 'invoice', label: 'Facture' },
+    { id: 'receipt', label: 'Recu' },
+];
 
 function paymentMatches(payment: Payment, query: string) {
     if (!query.trim()) return true;
@@ -167,15 +194,15 @@ function paymentMatches(payment: Payment, query: string) {
 
 function DocumentFileBadges({ document }: { document: FinanceDocument }) {
     return (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-nowrap items-center gap-1">
             <span className={[
-                'rounded-full border px-2 py-1 text-[11px] font-semibold',
+                'whitespace-nowrap rounded border px-1.5 py-0.5 text-[10px] font-semibold',
                 document.hasExcel ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300' : 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300',
             ].join(' ')}>
-                Excel
+                XLS
             </span>
             <span className={[
-                'rounded-full border px-2 py-1 text-[11px] font-semibold',
+                'whitespace-nowrap rounded border px-1.5 py-0.5 text-[10px] font-semibold',
                 document.hasPdf ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300' : 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300',
             ].join(' ')}>
                 PDF
@@ -194,117 +221,110 @@ function FinanceDocumentDetailPanel({
 }) {
     if (!document) {
         return (
-            <aside className="crm-panel p-4">
-                <p className="text-sm font-semibold">Document finance</p>
-                <p className="mt-2 text-sm text-[var(--crm-text-muted)]">
+            <AppCard className="p-3">
+                <p className="text-xs font-semibold text-[var(--text)]">Document finance</p>
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">
                     Select a quote, invoice, or receipt to see actions and totals.
                 </p>
-            </aside>
+            </AppCard>
         );
     }
 
     const lockedAt = getFinanceDocumentLockedAt(document);
 
     return (
-        <aside className="crm-panel overflow-hidden">
-            <div className="border-b border-[var(--crm-border)] p-4">
-                <p className="crm-eyebrow">Selected finance document</p>
-                <div className="mt-2 flex items-start justify-between gap-3">
+        <AppCard className="overflow-hidden p-0">
+            <div className="border-b border-[var(--border)] px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">Selected document</p>
+                <div className="mt-1.5 flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="truncate text-lg font-semibold">{document.number}</h2>
+                        <div className="flex items-center gap-1.5">
+                            <h2 className="truncate text-sm font-semibold text-[var(--text)]">{document.number}</h2>
                             <FinanceDocumentLockBadge document={document} compact />
                         </div>
-                        <p className="text-sm text-[var(--crm-text-muted)]">{typeLabel(document.type)} &middot; {document.dossier?.number || '-'}</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">{typeLabel(document.type)} &middot; {document.dossier?.number || '-'}</p>
                     </div>
-
-                    <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(document.status)}`}>
-                        {document.status}
+                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusClass(document.status)}`}>
+                        {document.status?.replace(/_/g, ' ') || document.status}
                     </span>
                 </div>
             </div>
 
-            <div className="space-y-5 p-5">
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="crm-panel-soft p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Client</p>
-                        <p className="mt-1 truncate text-sm font-semibold">{document.client?.name || '-'}</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{document.client?.cin || '-'}</p>
+            <div className="space-y-3 p-4">
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Client</p>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text)]">{document.client?.name || '-'}</p>
+                        <p className="truncate text-[10px] text-[var(--text-muted)]">{document.client?.cin || '-'}</p>
                     </div>
-
-                    <div className="crm-panel-soft p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Dossier</p>
-                        <p className="mt-1 truncate text-sm font-semibold">{document.dossier?.number || '-'}</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">{document.dossier?.projectObject || '-'}</p>
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Dossier</p>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text)]">{document.dossier?.number || '-'}</p>
+                        <p className="truncate text-[10px] text-[var(--text-muted)]">{document.dossier?.projectObject || '-'}</p>
                     </div>
-
-                    <div className="crm-panel-soft p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Total TTC</p>
-                        <p className="mt-1 truncate text-sm font-semibold text-[var(--crm-gold)]">{formatMoney(document.totalTtc, document.currency)}</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">HT {formatMoney(document.subtotalHt, document.currency)}</p>
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Total TTC</p>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-[var(--accent)]">{formatMoney(document.totalTtc, document.currency)}</p>
+                        <p className="truncate text-[10px] text-[var(--text-muted)]">HT {formatMoney(document.subtotalHt, document.currency)}</p>
                     </div>
-
-                    <div className="crm-panel-soft p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Remaining</p>
-                        <p className="mt-1 truncate text-sm font-semibold">{formatMoney(document.remainingTotal, document.currency)}</p>
-                        <p className="truncate text-xs text-[var(--crm-text-muted)]">Paid {formatMoney(document.paidTotal, document.currency)}</p>
+                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Remaining</p>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text)]">{formatMoney(document.remainingTotal, document.currency)}</p>
+                        <p className="truncate text-[10px] text-[var(--text-muted)]">Paid {formatMoney(document.paidTotal, document.currency)}</p>
                     </div>
                 </div>
 
-                <div className="crm-panel-soft p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">Files</p>
-                    <div className="mt-2">
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Files</p>
+                    <div className="mt-1.5">
                         <DocumentFileBadges document={document} />
                     </div>
-                    {lockedAt ? <p className="mt-2 text-xs text-[var(--crm-text-muted)]">Locked: {lockedAt}</p> : null}
+                    {lockedAt ? <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">Locked: {lockedAt}</p> : null}
                 </div>
 
-                <div className="grid gap-2">
-                    <AppButton variant="primary" onPress={() => actions.onGeneratePdf(document)}>
-                        <FileText size={15} />
+                <div className="space-y-1.5">
+                    <AppButton variant="primary" className="w-full" size="sm" onPress={() => actions.onGeneratePdf(document)}>
+                        <FileText size={13} />
                         Generate PDF
                     </AppButton>
-
-                    <div className="grid grid-cols-2 gap-2">
-                        <AppButton variant="secondary" size="sm" onPress={() => actions.onGenerateExcel(document)}>
-                            <FileSpreadsheet size={14} />
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <AppButton variant="flat" size="sm" onPress={() => actions.onGenerateExcel(document)}>
+                            <FileSpreadsheet size={13} />
                             Excel
                         </AppButton>
-
-                        <AppButton variant="secondary" size="sm" onPress={() => actions.onEdit(document)}>
-                            <Pencil size={14} />
+                        <AppButton variant="flat" size="sm" onPress={() => actions.onEdit(document)}>
+                            <Pencil size={13} />
                             Edit
                         </AppButton>
                     </div>
 
                     {document.type === 'quote' ? (
-                        <div className="grid grid-cols-2 gap-2">
-                            <AppButton variant="secondary" size="sm" onPress={() => actions.onAccept(document)}>
-                                <CheckCircle2 size={14} />
+                        <div className="grid grid-cols-2 gap-1.5">
+                            <AppButton variant="flat" className="border-emerald-500/20 text-emerald-400" size="sm" onPress={() => actions.onAccept(document)}>
+                                <CheckCircle2 size={13} />
                                 Accept
                             </AppButton>
-
-                            <AppButton variant="secondary" size="sm" onPress={() => actions.onConvert(document)}>
-                                <ReceiptText size={14} />
+                            <AppButton variant="flat" className="border-[var(--accent)]/20 text-[var(--accent)]" size="sm" onPress={() => actions.onConvert(document)}>
+                                <ReceiptText size={13} />
                                 Invoice
                             </AppButton>
                         </div>
                     ) : null}
 
                     {document.type === 'invoice' ? (
-                        <AppButton variant="secondary" size="sm" onPress={() => actions.onPayment(document)}>
-                            <WalletCards size={14} />
+                        <AppButton variant="flat" className="w-full" size="sm" onPress={() => actions.onPayment(document)}>
+                            <WalletCards size={13} />
                             Register payment
                         </AppButton>
                     ) : null}
 
-                    <AppButton variant="danger" size="sm" onPress={() => actions.onDelete(document)}>
-                        <Trash2 size={14} />
+                    <AppButton variant="danger" className="w-full" size="sm" onPress={() => actions.onDelete(document)}>
+                        <Trash2 size={13} />
                         Delete
                     </AppButton>
                 </div>
             </div>
-        </aside>
+        </AppCard>
     );
 }
 
@@ -324,11 +344,15 @@ function FinanceDocumentWorkspace({
     searchPlaceholder: string;
 }) {
     const [query, setQuery] = useState('');
-    const filtered = useMemo(() => documents.filter((document) => documentMatches(document, query)), [documents, query]);
+    const [showFilters, setShowFilters] = useState(false);
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const filtered = useMemo(() => documents.filter((document) => documentMatches(document, query, statusFilter, typeFilter)), [documents, query, statusFilter, typeFilter]);
     const [tablePage, setTablePage] = useState(1);
     const [selectedRows, setSelectedRows] = useState<number[]>([]);
     const TABLE_PAGE_SIZE = 15;
-    useEffect(() => { setTablePage(1); }, [query]);
+    useEffect(() => { setTablePage(1); }, [query, statusFilter, typeFilter]);
     const pagedFiltered = useMemo(() => filtered.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE), [filtered, tablePage]);
     const selectedVisible = selected && filtered.some((document) => document.id === selected.id) ? selected : filtered[0] ?? null;
     const allPageRowsSelected = pagedFiltered.length > 0 && pagedFiltered.every((document) => selectedRows.includes(document.id));
@@ -353,199 +377,346 @@ function FinanceDocumentWorkspace({
         });
     }
 
-    function statusVariant(status: string) {
-        if (status === 'paid' || status === 'accepted') return 'crm-reference-status-success';
-        if (status === 'issued' || status === 'sent') return 'crm-reference-status-info';
-        if (status === 'partially_paid' || status === 'draft') return 'crm-reference-status-warning';
-        if (status === 'overdue' || status === 'rejected' || status === 'cancelled') return 'crm-reference-status-danger';
+    function statusStyle(status: string | undefined | null) {
+        if (!status) return 'bg-zinc-500/10 text-zinc-300 border-zinc-500/20';
+        if (status === 'paid' || status === 'accepted') return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
+        if (status === 'issued' || status === 'sent') return 'bg-blue-500/10 text-blue-300 border-blue-500/20';
+        if (status === 'draft') return 'bg-zinc-500/10 text-zinc-300 border-zinc-500/20';
+        if (status === 'partially_paid') return 'bg-amber-500/10 text-amber-300 border-amber-500/20';
+        if (status === 'overdue') return 'bg-red-500/10 text-red-300 border-red-500/20';
+        if (status === 'rejected' || status === 'cancelled') return 'bg-white/5 text-white/40 border-white/10';
+        return 'bg-zinc-500/10 text-zinc-300 border-zinc-500/20';
+    }
 
-        return 'crm-reference-status-muted';
+    function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+        return (
+            <button
+                type="button"
+                role="checkbox"
+                aria-checked={checked}
+                aria-label={label}
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === ' ') { e.preventDefault(); onChange(); } }}
+                onClick={(e) => { e.stopPropagation(); onChange(); }}
+                className={`flex size-4 shrink-0 items-center justify-center rounded border transition ${
+                    checked
+                        ? 'border-[var(--accent)] bg-[var(--accent)] text-black'
+                        : 'border-[var(--border)] bg-transparent hover:border-[var(--accent)]'
+                }`}
+            >
+                {checked ? <Check size={11} strokeWidth={3} /> : null}
+            </button>
+        );
     }
 
     return (
-        <section className="crm-reference-table-shell">
-            <div className="crm-reference-toolbar">
-                    <div className="crm-reference-search">
-                        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
+        <section className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                    <div className="relative w-[200px]">
+                        <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
-                            placeholder="Search..."
+                            placeholder={searchPlaceholder}
+                            className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                         />
                         {query ? (
                             <button
                                 type="button"
                                 onClick={() => setQuery('')}
-                                className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-[var(--crm-text-soft)] hover:bg-[var(--crm-surface-2)]"
+                                className="absolute right-0.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                             >
-                                <X size={14} />
+                                <X size={11} />
                             </button>
                         ) : null}
                     </div>
+                    <button type="button" className={`flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2 text-[11px] font-medium transition hover:bg-[var(--surface-2)] ${
+                        isRefreshing ? 'bg-[var(--surface)] text-[var(--accent)]' : 'bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)]'
+                    }`} disabled={isRefreshing} onClick={() => { setIsRefreshing(true); router.reload({ only: ['documents'], onFinish: () => setIsRefreshing(false) }); }}>
+                        <RefreshCw size={11} className={isRefreshing ? 'animate-spin' : ''} />
+                        {isRefreshing ? '...' : null}
+                    </button>
+                    <button type="button" className={`flex h-7 items-center gap-1 rounded-lg border px-2 text-[11px] font-medium transition ${
+                        showFilters
+                            ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
+                            : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
+                    }`} onClick={() => setShowFilters((v) => !v)}>
+                        <Settings2 size={11} />
+                        {statusFilter !== 'all' || typeFilter !== 'all' ? (
+                            <span className="ml-0.5 flex size-3.5 items-center justify-center rounded-full bg-[var(--accent)] text-[8px] font-bold text-black">!</span>
+                        ) : null}
+                    </button>
+                </div>
 
-                    <div className="crm-reference-toolbar-actions">
-                        <button type="button" className="crm-reference-button" onClick={() => router.reload({ only: ['documents'] })}>
-                            <RefreshCw size={13} />
-                            Update
-                        </button>
-                        <button type="button" className="crm-reference-button">
-                            <Settings2 size={13} />
-                            Filter
-                        </button>
-                        <button type="button" className="crm-reference-button">
-                            <ArrowUpDown size={13} />
-                            Sort
-                        </button>
-                    </div>
-
-                    <div className="hidden text-xs font-semibold text-[var(--crm-text-muted)] md:block">
-                        {filtered.length} document(s)
-                    </div>
+                <div className="ml-auto hidden text-[11px] font-medium text-[var(--text-muted)] md:block">
+                    {filtered.length} document{filtered.length !== 1 ? 's' : ''}
+                </div>
             </div>
 
-                <div className="crm-reference-table-card">
-                    <div className="crm-reference-table-scroll">
-                        <table className="crm-reference-table">
-                            <thead>
-                                <tr>
-                                    <th className="w-10">
-                                        <input
-                                            aria-label="Select visible finance documents"
-                                            type="checkbox"
-                                            className="crm-reference-check"
-                                            checked={allPageRowsSelected}
-                                            onChange={togglePageRows}
-                                        />
-                                    </th>
-                                    <th><span className="crm-reference-header-cell"><ReceiptText size={13} /> Document <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
-                                    <th><span className="crm-reference-header-cell"><BadgeDollarSign size={13} /> Type</span></th>
-                                    <th><span className="crm-reference-header-cell"><FileText size={13} /> Client / Dossier <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
-                                    <th><span className="crm-reference-header-cell"><CheckCircle2 size={13} /> Status <ArrowUpDown className="crm-reference-header-sort" size={10} /></span></th>
-                                    <th><span className="crm-reference-header-cell"><WalletCards size={13} /> Total</span></th>
-                                    <th><span className="crm-reference-header-cell"><WalletCards size={13} /> Paid</span></th>
-                                    <th><span className="crm-reference-header-cell"><WalletCards size={13} /> Remaining</span></th>
-                                    <th><span className="crm-reference-header-cell"><Download size={13} /> Files</span></th>
-                                    <th className="text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filtered.length > 0 ? (
-                                    pagedFiltered.map((document) => {
-                                        const rowSelected = selectedVisible?.id === document.id;
-                                        const rowChecked = selectedRows.includes(document.id);
+            {/* Filter panel */}
+            {showFilters ? (
+                <div className="border-t border-[var(--border)] px-3 py-2.5">
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Status</p>
+                            <div className="flex flex-wrap gap-1">
+                                {statusFilterOptions.map((opt) => (
+                                    <button key={opt.id} type="button" onClick={() => setStatusFilter(opt.id)}
+                                        className={[
+                                            'rounded-lg border px-2 py-1 text-[11px] font-medium transition',
+                                            statusFilter === opt.id
+                                                ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
+                                                : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]',
+                                        ].join(' ')}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Type</p>
+                            <div className="flex flex-wrap gap-1">
+                                {typeFilterOptions.map((opt) => (
+                                    <button key={opt.id} type="button" onClick={() => setTypeFilter(opt.id)}
+                                        className={[
+                                            'rounded-lg border px-2 py-1 text-[11px] font-medium transition',
+                                            typeFilter === opt.id
+                                                ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
+                                                : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]',
+                                        ].join(' ')}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
 
-                                        return (
-                                            <tr
-                                                key={document.id}
-                                                className={rowSelected || rowChecked ? 'is-selected' : ''}
-                                                onClick={() => onSelect(document)}
-                                            >
-                                                <td>
-                                                    <input
-                                                        aria-label={`Select ${document.number}`}
-                                                        type="checkbox"
-                                                        className="crm-reference-check"
-                                                        checked={rowChecked}
-                                                        onClick={(event) => event.stopPropagation()}
-                                                        onChange={() => toggleRow(document.id)}
-                                                    />
-                                                </td>
-                                                <td>
-                                                    <div className="inline-flex max-w-[190px] items-center gap-2">
-                                                        <span className="crm-reference-avatar">
-                                                            <ReceiptText size={16} />
-                                                        </span>
-                                                        <div className="min-w-0">
-                                                            <div className="flex flex-wrap items-center gap-1.5">
-                                                                <p className="max-w-[150px] truncate font-semibold text-[var(--crm-text)]">{document.number}</p>
-                                                                <FinanceDocumentLockBadge document={document} compact />
-                                                            </div>
-                                                        </div>
+            {/* Bulk action bar */}
+            {selectedRows.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] px-3 py-2">
+                    <span className="text-xs font-semibold text-[var(--accent)]">{selectedRows.length} selected</span>
+                    <div className="ml-auto flex items-center gap-1">
+                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGeneratePdf(doc); }); }}>
+                            <FileText size={12} /> PDF
+                        </button>
+                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGenerateExcel(doc); }); }}>
+                            <FileSpreadsheet size={12} /> Excel
+                        </button>
+                        <div className="mx-1 h-5 w-px bg-[var(--border)]" />
+                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => setSelectedRows([])}>
+                            <X size={12} /> Clear
+                        </button>
+                    </div>
+                </div>
+            ) : null}
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                            <th className="w-10 px-3 py-2">
+                                <Checkbox checked={allPageRowsSelected} onChange={togglePageRows} label="Select all visible" />
+                            </th>
+                            <th className="px-3 py-2">
+                                <span className="inline-flex items-center gap-1.5">
+                                    <ReceiptText size={11} />
+                                    Document
+                                </span>
+                            </th>
+                            <th className="px-3 py-2">Type</th>
+                            <th className="px-3 py-2">
+                                <span className="inline-flex items-center gap-1.5">
+                                    <FileText size={11} />
+                                    Client / Dossier
+                                </span>
+                            </th>
+                            <th className="px-3 py-2">Status</th>
+                            <th className="px-3 py-2 text-right">Total</th>
+                            <th className="px-3 py-2 text-right">Paid</th>
+                            <th className="px-3 py-2 text-right">Remaining</th>
+                            <th className="w-24 px-3 py-2 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filtered.length > 0 ? (
+                            pagedFiltered.map((document) => {
+                                const rowSelected = selectedVisible?.id === document.id;
+                                const rowChecked = selectedRows.includes(document.id);
+
+                                return (
+                                    <tr
+                                        key={document.id}
+                                        onClick={() => onSelect(document)}
+                                        className={`group cursor-pointer border-b border-[var(--border)] text-xs transition last:border-0 ${
+                                            rowSelected
+                                                ? 'bg-[color-mix(in_srgb,var(--accent)_6%,transparent)]'
+                                                : 'hover:bg-[var(--surface-2)]'
+                                        }`}
+                                    >
+                                        <td className="px-3 py-2">
+                                            <Checkbox checked={rowChecked} onChange={() => toggleRow(document.id)} label={`Select ${document.number}`} />
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
+                                                    <ReceiptText size={12} />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="max-w-[140px] truncate text-xs font-semibold text-[var(--text)]">{document.number}</span>
+                                                        <FinanceDocumentLockBadge document={document} compact />
                                                     </div>
-                                                </td>
-                                                <td>{document.typeLabel || typeLabel(document.type)}</td>
-                                                <td>
-                                                    <p className="max-w-[220px] truncate font-medium text-[var(--crm-text)]">{document.client?.name || '-'}</p>
-                                                    <p className="max-w-[220px] truncate text-[10px] text-[var(--crm-text-soft)]">{document.dossier?.number || '-'} {document.dossier?.projectObject || ''}</p>
-                                                </td>
-                                                <td>
-                                                    <span className={`crm-reference-status ${statusVariant(document.status)}`}>
-                                                        {document.status}
-                                                    </span>
-                                                </td>
-                                                <td className="font-semibold">{formatMoney(document.totalTtc, currency)}</td>
-                                                <td className="text-[var(--crm-success)]">{formatMoney(document.paidTotal, currency)}</td>
-                                                <td className={document.remainingTotal > 0 ? 'text-[var(--crm-danger)]' : 'text-[var(--crm-text-muted)]'}>
-                                                    {formatMoney(document.remainingTotal, currency)}
-                                                </td>
-                                                <td>
-                                                    <DocumentFileBadges document={document} />
-                                                </td>
-                                                <td>
-                                                    <div className="flex justify-end gap-1">
-                                                        <button type="button" className="crm-reference-kebab" title="Open" onClick={(event) => { event.stopPropagation(); router.visit(`/finance/documents/${document.id}`); }}>
-                                                            <Eye size={14} />
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <span className="text-[11px] font-medium text-[var(--text-muted)]">{document.typeLabel || typeLabel(document.type)}</span>
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <p className="max-w-[180px] truncate text-xs font-medium text-[var(--text)]">{document.client?.name || '-'}</p>
+                                            <p className="max-w-[180px] truncate text-[10px] text-[var(--text-muted)]">{document.dossier?.number || ''}{document.dossier?.projectObject ? ` · ${document.dossier.projectObject}` : ''}</p>
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusStyle(document.status)}`}>
+                                                {document.status?.replace(/_/g, ' ') || document.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2 text-right text-xs font-semibold text-[var(--text)]">{formatMoney(document.totalTtc, currency)}</td>
+                                        <td className="px-3 py-2 text-right text-xs font-medium text-emerald-400">{formatMoney(document.paidTotal, currency)}</td>
+                                        <td className={`px-3 py-2 text-right text-xs font-medium ${document.remainingTotal > 0 ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
+                                            {formatMoney(document.remainingTotal, currency)}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <div className="flex justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                                                <button type="button" className="flex size-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Open" onClick={(e) => { e.stopPropagation(); router.visit(`/finance/documents/${document.id}`); }}>
+                                                    <Eye size={13} />
+                                                </button>
+                                                <button type="button" className="flex size-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Edit" onClick={(e) => { e.stopPropagation(); actions.onEdit(document); }}>
+                                                    <Pencil size={13} />
+                                                </button>
+                                                <div className="relative group/more">
+                                                    <button type="button" className="flex size-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="More" onClick={(e) => e.stopPropagation()}>
+                                                        <EllipsisVertical size={13} />
+                                                    </button>
+                                                    <div className="absolute right-0 top-full z-20 mt-0.5 hidden w-44 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg group-hover/more:block group-focus-within/more:block">
+                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onGeneratePdf(document); }}>
+                                                            <FileText size={12} /> Generate PDF
                                                         </button>
-                                                        <button type="button" className="crm-reference-kebab" title="Edit" onClick={(event) => { event.stopPropagation(); actions.onEdit(document); }}>
-                                                            <Pencil size={14} />
-                                                        </button>
-                                                        <button type="button" className="crm-reference-kebab" title="Generate PDF" onClick={(event) => { event.stopPropagation(); actions.onGeneratePdf(document); }}>
-                                                            <FileText size={14} />
-                                                        </button>
-                                                        <button type="button" className="crm-reference-kebab" title="Generate Excel" onClick={(event) => { event.stopPropagation(); actions.onGenerateExcel(document); }}>
-                                                            <FileSpreadsheet size={14} />
+                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onGenerateExcel(document); }}>
+                                                            <FileSpreadsheet size={12} /> Generate Excel
                                                         </button>
                                                         {document.type === 'invoice' ? (
-                                                            <button type="button" className="crm-reference-kebab" title="Payment" onClick={(event) => { event.stopPropagation(); actions.onPayment(document); }}>
-                                                                <WalletCards size={14} />
+                                                            <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onPayment(document); }}>
+                                                                <WalletCards size={12} /> Record payment
                                                             </button>
                                                         ) : null}
+                                                        <div className="my-1 h-px bg-[var(--border)]" />
+                                                        {document.type === 'quote' ? (
+                                                            <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onReject(document); }}>
+                                                                <XCircle size={12} /> Reject
+                                                            </button>
+                                                        ) : null}
+                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onCancel(document); }}>
+                                                            <XCircle size={12} /> Cancel
+                                                        </button>
+                                                        <div className="my-1 h-px bg-[var(--border)]" />
+                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-red-400 transition hover:bg-[var(--surface-2)]" onClick={(e) => { e.stopPropagation(); actions.onDelete(document); }}>
+                                                            <Trash2 size={12} /> Delete
+                                                        </button>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                ) : (
-                                    <tr>
-                                        <td colSpan={10}>
-                                            <div className="py-10 text-center">
-                                                <p className="text-sm font-semibold text-[var(--crm-text)]">No finance documents found</p>
-                                                <p className="mt-1 text-sm text-[var(--crm-text-muted)]">Change search or create a new document.</p>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div className="crm-reference-mobile-list">
-                        {pagedFiltered.map((document) => (
-                            <article key={document.id} className="crm-reference-mobile-card">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                        <p className="truncate text-sm font-bold">{document.number}</p>
-                                        <p className="text-xs text-[var(--crm-text-muted)]">{document.client?.name || '-'} / {document.dossier?.number || '-'}</p>
+                                );
+                            })
+                        ) : (
+                            <tr>
+                                <td colSpan={9} className="p-6 text-center">
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <FileText size={24} className="text-[var(--text-muted)]" />
+                                        <p className="text-xs font-semibold text-[var(--text)]">No finance documents found</p>
+                                        <p className="text-[11px] text-[var(--text-muted)]">Change search or create a new document.</p>
                                     </div>
-                                    <span className={`crm-reference-status ${statusVariant(document.status)}`}>
-                                        {document.status}
-                                    </span>
-                                </div>
-                                <div className="mt-3 grid gap-1 text-xs text-[var(--crm-text-muted)]">
-                                    <span>Total: {formatMoney(document.totalTtc, currency)}</span>
-                                    <span>Paid: {formatMoney(document.paidTotal, currency)}</span>
-                                    <span>Remaining: {formatMoney(document.remainingTotal, currency)}</span>
-                                </div>
-                                <div className="mt-3 flex gap-2">
-                                    <button type="button" className="crm-reference-button flex-1" onClick={() => router.visit(`/finance/documents/${document.id}`)}>Open</button>
-                                    <button type="button" className="crm-reference-button" onClick={() => actions.onEdit(document)}>Edit</button>
-                                </div>
-                            </article>
-                        ))}
-                    </div>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
 
-                    <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filtered.length} onChange={setTablePage} variant="reference" />
-                </div>
+            {/* Mobile cards */}
+            <div className="divide-y divide-[var(--border)] md:hidden">
+                {pagedFiltered.map((document) => (
+                    <div key={document.id} className="space-y-2.5 p-3" onClick={() => onSelect(document)}>
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
+                                    <ReceiptText size={12} />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="truncate text-xs font-semibold">{document.number}</p>
+                                    <p className="truncate text-[11px] text-[var(--text-muted)]">{document.client?.name || '-'} / {document.dossier?.number || '-'}</p>
+                                </div>
+                            </div>
+                            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusStyle(document.status)}`}>
+                                {document.status?.replace(/_/g, ' ') || document.status}
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-[11px]">
+                            <span className="text-[var(--text-muted)]">Total <span className="font-semibold text-[var(--text)]">{formatMoney(document.totalTtc, currency)}</span></span>
+                            <span className="text-[var(--text-muted)]">Paid <span className="font-semibold text-emerald-400">{formatMoney(document.paidTotal, currency)}</span></span>
+                            <span className="text-[var(--text-muted)]">Due <span className={`font-semibold ${document.remainingTotal > 0 ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>{formatMoney(document.remainingTotal, currency)}</span></span>
+                        </div>
+                        <div className="flex gap-1.5">
+                            <button type="button" className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]" onClick={(e) => { e.stopPropagation(); router.visit(`/finance/documents/${document.id}`); }}>Open</button>
+                            <div className="relative group/more">
+                                <button type="button" className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]" onClick={(e) => e.stopPropagation()}>
+                                    <EllipsisVertical size={13} />
+                                </button>
+                                <div className="absolute bottom-full right-0 z-20 mb-1 hidden w-44 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg group-hover/more:block group-focus-within/more:block">
+                                    <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onEdit(document); }}>
+                                        <Pencil size={12} /> Edit
+                                    </button>
+                                    <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onGeneratePdf(document); }}>
+                                        <FileText size={12} /> Generate PDF
+                                    </button>
+                                    <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onGenerateExcel(document); }}>
+                                        <FileSpreadsheet size={12} /> Generate Excel
+                                    </button>
+                                    {document.type === 'invoice' ? (
+                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onPayment(document); }}>
+                                            <WalletCards size={12} /> Payment
+                                        </button>
+                                    ) : null}
+                                    <div className="my-1 h-px bg-[var(--border)]" />
+                                    {document.type === 'quote' ? (
+                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onReject(document); }}>
+                                            <XCircle size={12} /> Reject
+                                        </button>
+                                    ) : null}
+                                    <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onCancel(document); }}>
+                                        <XCircle size={12} /> Cancel
+                                    </button>
+                                    <div className="my-1 h-px bg-[var(--border)]" />
+                                    <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-red-400 transition hover:bg-[var(--surface-2)]" onClick={(e) => { e.stopPropagation(); actions.onDelete(document); }}>
+                                        <Trash2 size={12} /> Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filtered.length} onChange={setTablePage} variant="reference" />
         </section>
     );
 }
@@ -568,75 +739,75 @@ function PaymentWorkspace({
 
     return (
         <section className="space-y-4">
-            <div className="crm-panel p-3">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <AppCard className="p-2.5">
+                <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
                     <div>
-                        <p className="text-sm font-semibold">Payment workspace</p>
-                        <p className="text-xs text-[var(--crm-text-muted)]">{filtered.length} visible payment(s)</p>
+                        <p className="text-xs font-semibold">Payment workspace</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">{filtered.length} visible payment(s)</p>
                     </div>
 
-                    <div className="crm-command-input relative w-full xl:w-[420px]">
-                        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
+                    <div className="relative w-full xl:w-[320px]">
+                        <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
                             placeholder="Search payments, invoices, clients..."
-                            className="h-full w-full bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-[var(--crm-text-soft)]"
+                            className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-8 pr-8 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                         />
                     </div>
                 </div>
-            </div>
+            </AppCard>
 
-            <div className="crm-panel overflow-hidden">
+            <AppCard className="overflow-hidden p-0">
                 <div className="app-scrollbar overflow-x-auto">
-                    <table className="crm-table min-w-[980px]">
+                    <table className="w-full text-xs">
                         <thead>
-                            <tr>
-                                <th>Payment</th>
-                                <th>Invoice</th>
-                                <th>Client</th>
-                                <th>Amount</th>
-                                <th>Method</th>
-                                <th>Date</th>
-                                <th>Receipt</th>
-                                <th>Actions</th>
+                            <tr className="border-b border-[var(--border)] text-left text-[11px] text-[var(--text-muted)]">
+                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Payment</th>
+                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Invoice</th>
+                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Client</th>
+                                <th className="px-3 py-2 font-semibold uppercase tracking-wider text-right">Amount</th>
+                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Method</th>
+                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Date</th>
+                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Receipt</th>
+                                <th className="px-3 py-2 font-semibold uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filtered.length > 0 ? (
                                 pagedFiltered.map((payment) => (
-                                    <tr key={payment.id}>
-                                        <td className="font-semibold">{payment.paymentNumber}</td>
-                                        <td>{payment.document?.number || '-'}</td>
-                                        <td>{payment.client?.name || '-'}</td>
-                                        <td className="font-semibold text-emerald-300">{formatMoney(payment.amount, currency)}</td>
-                                        <td>{payment.method || '-'}</td>
-                                        <td>{payment.paidAt || '-'}</td>
-                                        <td>
+                                    <tr key={payment.id} className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
+                                        <td className="px-3 py-2 font-semibold text-[var(--text)]">{payment.paymentNumber}</td>
+                                        <td className="px-3 py-2 text-[var(--text)]">{payment.document?.number || '-'}</td>
+                                        <td className="px-3 py-2 text-[var(--text)]">{payment.client?.name || '-'}</td>
+                                        <td className="px-3 py-2 text-right font-semibold text-emerald-400">{formatMoney(payment.amount, currency)}</td>
+                                        <td className="px-3 py-2 text-[var(--text-muted)]">{payment.method || '-'}</td>
+                                        <td className="px-3 py-2 text-[var(--text-muted)]">{payment.paidAt || '-'}</td>
+                                        <td className="px-3 py-2">
                                             {payment.receipt ? (
                                                 <div>
-                                                    <p className="font-semibold">{payment.receipt.number}</p>
-                                                    <p className="text-xs text-[var(--crm-text-muted)]">{payment.receipt.status}</p>
+                                                    <p className="text-xs font-semibold text-[var(--text)]">{payment.receipt.number}</p>
+                                                    <p className="text-[11px] text-[var(--text-muted)]">{payment.receipt.status}</p>
                                                 </div>
                                             ) : (
-                                                <span className="text-[var(--crm-text-muted)]">-</span>
+                                                <span className="text-[var(--text-muted)]">-</span>
                                             )}
                                         </td>
-                                        <td>
+                                        <td className="px-3 py-2">
                                             {payment.receipt ? (
-                                                <div className="flex justify-end gap-1">
-                                                    <button type="button" className="crm-action-button" onClick={() => onReceipt(payment.receipt?.urls.show)} title="View">
-                                                        <Eye size={14} />
-                                                    </button>
-                                                    <button type="button" className="crm-action-button" onClick={() => onReceipt(payment.receipt?.urls.pdf || payment.receipt?.urls.download)} title="PDF">
-                                                        <FileText size={14} />
-                                                    </button>
-                                                    <button type="button" className="crm-action-button" onClick={() => onReceipt(payment.receipt?.urls.excel)} title="Excel">
-                                                        <FileSpreadsheet size={14} />
-                                                    </button>
+                                                <div className="flex justify-end gap-0.5">
+                                                    <AppButton variant="secondary" size="sm" onPress={() => onReceipt(payment.receipt?.urls.show)}>
+                                                        <Eye size={13} />
+                                                    </AppButton>
+                                                    <AppButton variant="secondary" size="sm" onPress={() => onReceipt(payment.receipt?.urls.pdf || payment.receipt?.urls.download)}>
+                                                        <FileText size={13} />
+                                                    </AppButton>
+                                                    <AppButton variant="secondary" size="sm" onPress={() => onReceipt(payment.receipt?.urls.excel)}>
+                                                        <FileSpreadsheet size={13} />
+                                                    </AppButton>
                                                 </div>
                                             ) : (
-                                                <span className="text-xs text-[var(--crm-text-muted)]">No receipt</span>
+                                                <span className="text-[11px] text-[var(--text-muted)]">No receipt</span>
                                             )}
                                         </td>
                                     </tr>
@@ -644,9 +815,9 @@ function PaymentWorkspace({
                             ) : (
                                 <tr>
                                     <td colSpan={8}>
-                                        <div className="py-10 text-center">
-                                            <p className="text-sm font-semibold">No payments found</p>
-                                            <p className="mt-1 text-sm text-[var(--crm-text-muted)]">Register a payment from an invoice.</p>
+                                        <div className="py-8 text-center">
+                                            <p className="text-xs font-semibold text-[var(--text)]">No payments found</p>
+                                            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Register a payment from an invoice.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -654,7 +825,7 @@ function PaymentWorkspace({
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </AppCard>
 
             <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filtered.length} onChange={setTablePage} />
         </section>
@@ -702,7 +873,7 @@ function OverviewWorkspace({
 
     return (
         <section className="space-y-5">
-            <section className="crm-kpi-grid max-xl:grid-cols-3 max-md:grid-cols-1">
+            <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 <MetricSparklineCard
                     icon={<FileText size={20} />}
                     label="Quotes"
@@ -766,8 +937,8 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
 }) {
     if (agingBuckets) {
         return (
-            <div className="crm-panel overflow-hidden">
-                <div className="border-b border-[var(--crm-border)] px-4 py-3">
+            <AppCard className="overflow-hidden p-0">
+                <div className="border-b border-[var(--border)] px-4 py-3">
                     <h2 className="text-sm font-semibold">{title}</h2>
                 </div>
                 <div className="p-4">
@@ -779,55 +950,55 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
                                 return (
                                     <div key={bucket.label}>
                                         <div className="mb-1 flex items-center justify-between text-sm">
-                                            <span className="font-medium text-[var(--crm-text)]">{bucket.label}</span>
-                                            <span className="font-semibold text-[var(--crm-text)]">{formatMoney(bucket.total, currency || 'MAD')}</span>
+                                            <span className="font-medium text-[var(--text)]">{bucket.label}</span>
+                                            <span className="font-semibold text-[var(--text)]">{formatMoney(bucket.total, currency || 'MAD')}</span>
                                         </div>
-                                        <div className="h-2 overflow-hidden rounded-full bg-[var(--crm-surface-2)]">
+                                        <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-2)]">
                                             <div
-                                                className="h-full rounded-full bg-[var(--crm-danger)] transition-all"
+                                                className="h-full rounded-full bg-red-400 transition-all"
                                                 style={{ width: `${pct}%` }}
                                             />
                                         </div>
-                                        <span className="mt-0.5 block text-[12px] text-[var(--crm-text-soft)]">{bucket.count} document(s)</span>
+                                        <span className="mt-0.5 block text-xs text-[var(--text-muted)]">{bucket.count} document(s)</span>
                                     </div>
                                 );
                             })}
                         </div>
                     ) : (
-                        <p className="text-sm text-[var(--crm-text-muted)]">Aucun impaye.</p>
+                        <p className="text-sm text-[var(--text-muted)]">Aucun impaye.</p>
                     )}
                 </div>
-            </div>
+            </AppCard>
         );
     }
 
     return (
-        <div className="crm-panel overflow-hidden">
-            <div className="border-b border-[var(--crm-border)] px-4 py-3">
+        <AppCard className="overflow-hidden p-0">
+            <div className="border-b border-[var(--border)] px-4 py-3">
                 <h2 className="text-sm font-semibold">{title}</h2>
             </div>
-            <div className="divide-y divide-[var(--crm-border)]">
+            <div className="divide-y divide-[var(--border)]">
                 {documents.length > 0 ? documents.map((document) => (
                     <button
                         key={document.id}
                         type="button"
                         onClick={() => onSelect(document)}
-                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-[var(--crm-surface-hover)]"
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)]"
                     >
                         <span className="min-w-0">
                             <span className="flex flex-wrap items-center gap-2">
                                 <span className="truncate text-sm font-semibold">{document.number}</span>
                                 <FinanceDocumentLockBadge document={document} compact />
                             </span>
-                            <span className="block truncate text-xs text-[var(--crm-text-muted)]">{document.client?.name || '-'}</span>
+                            <span className="block truncate text-xs text-[var(--text-muted)]">{document.client?.name || '-'}</span>
                         </span>
-                        <span className="shrink-0 text-sm font-semibold text-[var(--crm-gold)]">{formatMoney(document.totalTtc, document.currency)}</span>
+                        <span className="shrink-0 text-sm font-semibold text-[var(--accent)]">{formatMoney(document.totalTtc, document.currency)}</span>
                     </button>
                 )) : (
-                    <p className="p-4 text-sm text-[var(--crm-text-muted)]">Aucun document recent.</p>
+                    <p className="p-4 text-sm text-[var(--text-muted)]">Aucun document recent.</p>
                 )}
             </div>
-        </div>
+        </AppCard>
     );
 }
 
@@ -946,6 +1117,7 @@ export default function FinanceDocumentsIndex({
         onReject: (document) => putAction(document.rejectUrl || `/finance/documents/${document.id}/reject`, 'Devis refuse.', 'Impossible refuser le devis.'),
         onConvert: (document) => postAction(document.convertToInvoiceUrl || `/finance/documents/${document.id}/convert-to-invoice`, 'Facture creee depuis le devis.', 'Impossible convertir le devis.'),
         onPayment: openPayment,
+        onCancel: (document) => putAction(document.cancelUrl || `/finance/documents/${document.id}/cancel`, 'Document annule.', 'Annulation impossible.'),
         onDelete: setDeleteTarget,
         onSelect: setSelectedDocument,
         onGeneratePdf: (document) => putAction(document.generatePdfUrl || `/finance/documents/${document.id}/generate-pdf`, 'PDF genere.', 'Generation PDF impossible.'),
@@ -1053,10 +1225,10 @@ export default function FinanceDocumentsIndex({
                             </div>
                             <div className="mt-5 grid gap-3 md:grid-cols-3">
                                 {defaultTemplates.length ? defaultTemplates.map((template) => (
-                                    <div key={template.id} className="crm-panel-soft p-4">
-                                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--crm-text-muted)]">{template.type}</p>
+                                    <div key={template.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{template.type}</p>
                                         <p className="mt-2 font-semibold">{template.label}</p>
-                                        <p className="mt-1 text-xs text-[var(--crm-text-muted)]">{template.slug || '-'}</p>
+                                        <p className="mt-1 text-xs text-[var(--text-muted)]">{template.slug || '-'}</p>
                                     </div>
                                 )) : <AppEmptyState title="Aucun template defaut" description="Ouvrez l editeur pour recreer les templates par defaut." />}
                             </div>
