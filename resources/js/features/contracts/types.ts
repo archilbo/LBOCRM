@@ -44,7 +44,7 @@ export type ContractDossierOption = {
 };
 
 export type ContractClientOption = {
-    id: number;
+    id: string;
     fullName: string;
     cin: string;
     dossiers: ContractDossierOption[];

@@ -1,20 +1,17 @@
-import { FormEvent, useMemo, useState, useEffect, useCallback } from 'react';
-import { Button, Drawer, Input, ListBox, Textarea } from '@heroui/react';
+import { FormEvent, useEffect, useMemo, useState, useCallback } from 'react';
 import {
-    DrawerBody, DrawerCloseTrigger, DrawerContent,
-    DrawerDialog, DrawerFooter, DrawerHeader, DrawerHeading,
+    Autocomplete, Button, Card, Input, ListBox, Select, TextArea,
 } from '@heroui/react';
-import {
-    SelectRoot, SelectTrigger, SelectValue, SelectIndicator, SelectPopover,
-} from '@heroui/react';
-import { ChevronDown, Check, ChevronLeft, ChevronRight, Search } from 'lucide-react';
-import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
+import { Input as RacInput } from 'react-aria-components/Input';
+import { ChevronDown, Check, ChevronLeft, ChevronRight, TriangleAlert, AlertCircle } from 'lucide-react';
+import { AppDrawer } from '@/components/ui/AppDrawer';
 import type {
     ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow,
 } from '@/features/contracts/types';
 import type { FormErrors } from '@/lib/formErrors';
-import { firstError } from '@/lib/formErrors';
+import { firstError, hasErrors } from '@/lib/formErrors';
 import { cn } from '@/lib/cn';
+import { currencyFormat } from '@/lib/currency';
 
 type ContractDrawerProps = {
     isOpen: boolean;
@@ -63,16 +60,193 @@ const createSteps = [
     { key: 'review', label: 'Revision' },
 ];
 
+const fieldToStep: Record<string, number> = {
+    dossier_id: 0,
+    status: 0,
+    client_id: 0,
+    surface: 1,
+    price_per_square_meter: 1,
+    fee_rate_percent: 1,
+    forfait_ttc: 1,
+    calculation_mode: 1,
+};
+
+function isStepValid(step: number, form: ContractFormPayload, selectedClientId: string | null, isForfait: boolean): boolean {
+    if (step === 0) return Boolean(selectedClientId && form.dossier_id);
+    if (step === 1) {
+        if (isForfait) return Boolean(form.forfait_ttc);
+        return Boolean(form.surface && form.price_per_square_meter && form.fee_rate_percent);
+    }
+    return true;
+}
+
+function getStepHints(step: number, form: ContractFormPayload, selectedClientId: string | null, isForfait: boolean, dossierHasContract: boolean): string[] {
+    if (step === 0) {
+        const hints: string[] = [];
+        if (!selectedClientId) hints.push('Selectionnez un client');
+        if (selectedClientId && !form.dossier_id) hints.push('Selectionnez un dossier');
+        if (dossierHasContract) hints.push('Ce dossier a deja un contrat');
+        return hints;
+    }
+    if (step === 1) {
+        if (isForfait) {
+            if (!form.forfait_ttc) return ['Saisissez le montant FORFAIT TTC'];
+        } else {
+            const hints: string[] = [];
+            if (!form.surface) hints.push('Saisissez la surface (m2)');
+            if (!form.price_per_square_meter) hints.push('Saisissez le prix / m2');
+            if (!form.fee_rate_percent) hints.push('Selectionnez le taux d\'honoraires');
+            return hints;
+        }
+    }
+    return [];
+}
+
 function parseAmount(value: string): number {
     return Number(String(value || '0').replace(',', '.')) || 0;
 }
 
-function formatMoney(value: number): string {
-    return new Intl.NumberFormat('fr-MA', {
-        style: 'currency',
-        currency: 'MAD',
-        maximumFractionDigits: 2,
-    }).format(value);
+function FormErrorSummary({ errors }: { errors?: FormErrors }) {
+    if (!hasErrors(errors)) return null;
+    const entries = Object.entries(errors ?? {});
+    return (
+        <Card className="border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] p-4 shadow-none">
+            <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] text-[var(--danger)]">
+                    <TriangleAlert size={16} />
+                </div>
+                <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--danger)]">Veuillez verifier le formulaire</p>
+                    <ul className="mt-2 space-y-1 text-sm text-[var(--text-muted)]">
+                        {entries.slice(0, 8).map(([field, message]) => (
+                            <li key={field}>
+                                <span className="font-medium">{field.replaceAll('_', ' ')}:</span> {message}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+        </Card>
+    );
+}
+
+const triggerClass = 'flex h-10 w-full min-w-0 items-center gap-2 rounded-[var(--radius-md)] border bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] outline-none transition border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)]';
+
+const popoverClass = 'z-[70] min-w-[var(--trigger-width)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg';
+
+const inputClass = 'mx-3 mt-3 flex h-9 w-[calc(100%-1.5rem)] rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm outline-none';
+
+const itemClass = 'flex cursor-pointer items-center rounded-lg px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10';
+
+const inputBaseClass = 'h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)] aria-invalid:border-[var(--danger)] aria-invalid:ring-4 aria-invalid:ring-[color-mix(in_srgb,var(--danger)_12%,transparent)]';
+
+const textAreaBaseClass = 'min-h-28 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)] aria-invalid:border-[var(--danger)] aria-invalid:ring-4 aria-invalid:ring-[color-mix(in_srgb,var(--danger)_12%,transparent)]';
+
+function ClientAutocomplete({
+    selectedClientId, clients, clientQuery, onClientQueryChange, filteredClients,
+    onSelect, onClear,
+}: {
+    selectedClientId: string | null;
+    clients: ContractClientOption[];
+    clientQuery: string;
+    onClientQueryChange: (v: string) => void;
+    filteredClients: ContractClientOption[];
+    onSelect: (clientId: string) => void;
+    onClear: () => void;
+}) {
+    return (
+            <Autocomplete
+                selectedKey={selectedClientId}
+                onSelectionChange={(key) => {
+                    if (key) onSelect(String(key));
+                    else onClear();
+                }}
+                onClear={onClear}
+                shouldCloseOnBlur={false}
+            >
+            <Autocomplete.Trigger className={triggerClass}>
+                <Autocomplete.Value className="flex-1 text-sm text-[var(--foreground)]" />
+                <Autocomplete.ClearButton className="mr-1.5" />
+                <Autocomplete.Indicator>
+                    <ChevronDown size={15} className="text-[var(--text-muted)]" />
+                </Autocomplete.Indicator>
+            </Autocomplete.Trigger>
+            <Autocomplete.Popover isNonModal className={popoverClass}>
+                <Autocomplete.Filter inputValue={clientQuery} onInputChange={onClientQueryChange}>
+                    <RacInput
+                        placeholder="Rechercher un client par nom ou CIN..."
+                        className={inputClass}
+                    />
+                    <ListBox className="max-h-60 overflow-y-auto p-1">
+                        {filteredClients.map((c) => (
+                            <ListBox.Item
+                                key={c.id}
+                                id={c.id}
+                                textValue={c.fullName}
+                                className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10"
+                            >
+                                <span className="truncate font-medium">{c.fullName}</span>
+                                <span className="text-xs text-[var(--text-muted)]">{c.cin}</span>
+                            </ListBox.Item>
+                        ))}
+                    </ListBox>
+                </Autocomplete.Filter>
+            </Autocomplete.Popover>
+        </Autocomplete>
+    );
+}
+
+function DossierAutocomplete({
+    selectedKey, options, onSelectionChange, onClear, noClient,
+}: {
+    selectedKey: string | null;
+    options: { id: string; label: string }[];
+    query: string;
+    onQueryChange: (v: string) => void;
+    onSelectionChange: (key: string | null) => void;
+    onClear: () => void;
+    noClient: boolean;
+}) {
+    return (
+        <Select
+            selectedKey={selectedKey}
+            onSelectionChange={(key) => onSelectionChange(key ? String(key) : null)}
+            placeholder={noClient ? 'Selectionnez un client d abord' : 'Selectionner un dossier'}
+            isDisabled={noClient}
+            shouldCloseOnBlur={false}
+        >
+            <Select.Trigger className={triggerClass}>
+                <Select.Value className="flex-1 truncate text-sm text-[var(--foreground)]" />
+                <Select.Indicator>
+                    <ChevronDown size={15} className="text-[var(--text-muted)]" />
+                </Select.Indicator>
+            </Select.Trigger>
+            <Select.Popover isNonModal className={popoverClass}>
+                <ListBox className="max-h-60 overflow-y-auto p-1">
+                    {options.map((d) => (
+                        <ListBox.Item
+                            key={d.id}
+                            id={d.id}
+                            textValue={d.label}
+                            className={itemClass}
+                        >
+                            {d.label}
+                        </ListBox.Item>
+                    ))}
+                    {!noClient && options.length === 0 && (
+                        <ListBox.Item
+                            key="__empty__"
+                            id="__empty__"
+                            textValue="Aucun dossier"
+                            className="flex cursor-pointer items-center rounded-lg px-3 py-2.5 text-sm text-[var(--text-muted)] outline-none"
+                        >
+                            Aucun dossier pour ce client
+                        </ListBox.Item>
+                    )}
+                </ListBox>
+            </Select.Popover>
+        </Select>
+    );
 }
 
 function SelectField<T extends string>({
@@ -84,33 +258,29 @@ function SelectField<T extends string>({
     return (
         <div className="flex min-w-0 flex-col gap-1.5">
             {label ? <label className="text-xs font-semibold text-[var(--foreground)]">{label}</label> : null}
-            <SelectRoot
+            <Select
                 selectedKey={value || null}
                 onSelectionChange={(k) => onChange((k ?? '') as T)}
+                placeholder={placeholder || 'Selectionner...'}
+                shouldCloseOnBlur={false}
             >
-                <SelectTrigger
+                <Select.Trigger
                     className={cn(
-                        'flex h-10 w-full min-w-0 items-center gap-2 rounded-[var(--radius-md)] border bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] outline-none transition',
-                        'border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)]',
+                        triggerClass,
                         error && 'border-[var(--danger)]',
                     )}
                 >
-                    <SelectValue className="flex-1 truncate text-left text-sm">
-                        {({ selectedText }) => (
-                            <span className={cn(!selectedText && 'text-[var(--text-muted)]')}>
-                                {selectedText || placeholder || 'Selectionner...'}
-                            </span>
-                        )}
-                    </SelectValue>
-                    <SelectIndicator>
+                    <Select.Value className="flex-1 truncate text-left text-sm" />
+                    <Select.Indicator>
                         <ChevronDown size={15} className="text-[var(--text-muted)]" />
-                    </SelectIndicator>
-                </SelectTrigger>
-                <SelectPopover className="z-50 min-w-[var(--trigger-width)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg">
+                    </Select.Indicator>
+                </Select.Trigger>
+                <Select.Popover isNonModal className={popoverClass}>
                     <ListBox className="max-h-60 overflow-y-auto p-1">
                         {options.map((opt) => (
                             <ListBox.Item
                                 key={opt.id}
+                                id={opt.id}
                                 textValue={opt.label}
                                 className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10 data-[selected]:text-[var(--accent)]"
                             >
@@ -121,32 +291,41 @@ function SelectField<T extends string>({
                             </ListBox.Item>
                         ))}
                     </ListBox>
-                </SelectPopover>
-            </SelectRoot>
+                </Select.Popover>
+            </Select>
             {error ? <p className="text-xs font-medium text-[var(--danger)]">{error}</p> : null}
         </div>
     );
 }
 
-function CalculationSummary({ ht, tva, ttc }: { ht: number; tva: number; ttc: number }) {
+function CalculationSummary({ estimation, ht, tva, ttc }: { estimation?: number; ht: number; tva: number; ttc: number }) {
+    const items = estimation != null
+        ? [
+            { label: 'Estimation projet', value: currencyFormat(estimation), accent: false },
+            { label: 'Honoraires HT', value: currencyFormat(ht), accent: false },
+            { label: 'TVA 20%', value: currencyFormat(tva), accent: false },
+            { label: 'TTC', value: currencyFormat(ttc), accent: true },
+        ]
+        : [
+            { label: 'HT', value: currencyFormat(ht), accent: false },
+            { label: 'TVA 20%', value: currencyFormat(tva), accent: false },
+            { label: 'TTC', value: currencyFormat(ttc), accent: true },
+        ];
     return (
-        <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+        <Card className="mt-4 border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Resume</p>
-            <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-lg bg-[var(--surface-2)] p-3">
-                    <p className="text-[10px] text-[var(--text-muted)]">HT</p>
-                    <p className="mt-0.5 text-base font-semibold text-[var(--foreground)]">{formatMoney(ht)}</p>
-                </div>
-                <div className="rounded-lg bg-[var(--surface-2)] p-3">
-                    <p className="text-[10px] text-[var(--text-muted)]">TVA 20%</p>
-                    <p className="mt-0.5 text-base font-semibold text-[var(--foreground)]">{formatMoney(tva)}</p>
-                </div>
-                <div className="rounded-lg bg-[color-mix(in_srgb,var(--accent)_9%,var(--surface-2))] p-3">
-                    <p className="text-[10px] text-[var(--accent)]">TTC</p>
-                    <p className="mt-0.5 text-base font-bold text-[var(--accent)]">{formatMoney(ttc)}</p>
-                </div>
+            <div className={cn('grid gap-2', estimation != null ? 'grid-cols-4' : 'grid-cols-3')}>
+                {items.map((item) => (
+                    <Card key={item.label} className={cn(
+                        'rounded-lg p-3 shadow-none',
+                        item.accent ? 'bg-[color-mix(in_srgb,var(--accent)_9%,var(--surface-2))]' : 'bg-[var(--surface-2)]',
+                    )}>
+                        <p className={cn('text-[10px]', item.accent ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]')}>{item.label}</p>
+                        <p className={cn('mt-0.5', item.accent ? 'text-base font-bold text-[var(--accent)]' : 'text-base font-semibold text-[var(--foreground)]')}>{item.value}</p>
+                    </Card>
+                ))}
             </div>
-        </div>
+        </Card>
     );
 }
 
@@ -156,16 +335,17 @@ export function ContractDrawer({
 }: ContractDrawerProps) {
     const [form, setForm] = useState<ContractFormPayload>(emptyForm);
     const [step, setStep] = useState(0);
-    const [clientSearch, setClientSearch] = useState('');
-    const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+    const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+    const [clientQuery, setClientQuery] = useState('');
+    const [dossierQuery, setDossierQuery] = useState('');
 
     const filteredClients = useMemo(() => {
-        const q = clientSearch.toLowerCase().trim();
+        const q = clientQuery.trim().toLowerCase();
         if (!q) return clients;
-        return clients.filter(
-            (c) => c.fullName.toLowerCase().includes(q) || c.cin.toLowerCase().includes(q),
+        return clients.filter((c) =>
+            c.fullName.toLowerCase().includes(q) || c.cin.toLowerCase().includes(q),
         );
-    }, [clients, clientSearch]);
+    }, [clients, clientQuery]);
 
     const clientDossiers = useMemo(() => {
         const client = clients.find((c) => c.id === selectedClientId);
@@ -173,17 +353,20 @@ export function ContractDrawer({
     }, [clients, selectedClientId]);
 
     const dossierOptions = useMemo(() => {
-        const source = mode === 'create' ? clientDossiers : dossiers;
-        return source.map((d) => ({
+        return clientDossiers.map((d) => ({
             id: d.id,
-            label: mode === 'create'
-                ? d.label
-                : d.label + ' - ' + (clients.find((c) => c.dossiers.some((cd) => cd.id === d.id))?.fullName ?? ''),
+            label: d.label,
         }));
-    }, [mode, clientDossiers, dossiers, clients]);
+    }, [clientDossiers]);
+
+    const filteredDossierOptions = useMemo(() => {
+        const q = dossierQuery.trim().toLowerCase();
+        if (!q) return dossierOptions;
+        return dossierOptions.filter((d) => d.label.toLowerCase().includes(q));
+    }, [dossierOptions, dossierQuery]);
 
     useEffect(() => {
-        if (!isOpen) { setStep(0); setClientSearch(''); setSelectedClientId(null); return; }
+        if (!isOpen) { setStep(0); setSelectedClientId(null); return; }
         if (mode === 'edit' && contract) {
             const client = clients.find((c) =>
                 c.dossiers.some((d) => d.id === contract.dossierId),
@@ -192,13 +375,13 @@ export function ContractDrawer({
             setForm({
                 dossier_id: contract.dossierId || '',
                 status: contract.status || 'draft',
-                surface: contract.surface ? String(contract.surface) : '',
-                price_per_square_meter: contract.pricePerSquareMeter
-                    ? String(contract.pricePerSquareMeter) : '900',
+                surface: contract.surface != null ? String(contract.surface) : '',
+                price_per_square_meter: contract.pricePerSquareMeter != null
+                    ? String(contract.pricePerSquareMeter) : '',
                 calculation_mode: contract.calculationMode || 'percentage',
-                fee_rate_percent: contract.feeRatePercent
-                    ? String(contract.feeRatePercent) : '0.5',
-                forfait_ttc: contract.forfaitTtc ? String(contract.forfaitTtc) : '',
+                fee_rate_percent: contract.feeRatePercent != null
+                    ? String(contract.feeRatePercent) : '',
+                forfait_ttc: contract.forfaitTtc != null ? String(contract.forfaitTtc) : '',
                 notes: contract.notes || '',
             });
             return;
@@ -207,9 +390,27 @@ export function ContractDrawer({
         setForm({ ...emptyForm, dossier_id: initialDossierId });
     }, [contract, clients, initialDossierId, isOpen, mode]);
 
+    useEffect(() => {
+        if (!hasErrors(errors) || mode !== 'create') return;
+        for (const field of Object.keys(errors)) {
+            const errorStep = fieldToStep[field];
+            if (errorStep !== undefined) {
+                setStep(errorStep);
+                return;
+            }
+        }
+    }, [errors, mode]);
+
     const updateField = useCallback((field: keyof ContractFormPayload, value: string) => {
         setForm((prev) => ({ ...prev, [field]: value }));
     }, []);
+
+    const selectedDossierHasContract = useMemo(() => {
+        if (mode !== 'create' || !form.dossier_id || !selectedClientId) return false;
+        const client = clients.find((c) => c.id === selectedClientId);
+        const dossier = client?.dossiers.find((d) => d.id === form.dossier_id);
+        return dossier?.hasContract ?? false;
+    }, [form.dossier_id, selectedClientId, clients, mode]);
 
     const isForfait = form.calculation_mode === 'forfait';
     const surface = parseAmount(form.surface);
@@ -219,22 +420,40 @@ export function ContractDrawer({
     const tva = isForfait ? parseAmount(form.forfait_ttc) - ht : ht * 0.2;
     const ttc = isForfait ? parseAmount(form.forfait_ttc) : ht + tva;
 
+    const stepValid = isStepValid(step, form, selectedClientId, isForfait) && (step !== 0 || !selectedDossierHasContract);
+    const stepHints = getStepHints(step, form, selectedClientId, isForfait, selectedDossierHasContract);
+
+    const displayErrors = useMemo(() => {
+        if (!selectedDossierHasContract) {
+            const { dossier_id: _, ...rest } = errors;
+            return rest;
+        }
+        return errors;
+    }, [errors, selectedDossierHasContract]);
+
     const handleSubmit = useCallback((event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         onSubmit(form);
     }, [form, onSubmit]);
 
-    const handleClientSelect = useCallback((client: ContractClientOption) => {
-        setSelectedClientId(client.id);
-        setClientSearch(client.fullName);
+    const handleClientSelect = useCallback((clientId: string) => {
+        const client = clients.find((c) => c.id === clientId);
+        setSelectedClientId(clientId);
+        setClientQuery(client?.fullName ?? '');
+        setDossierQuery('');
         setForm((prev) => ({ ...prev, dossier_id: '' }));
-    }, []);
+    }, [clients]);
 
     const handleClearClient = useCallback(() => {
         setSelectedClientId(null);
-        setClientSearch('');
+        setClientQuery('');
+        setDossierQuery('');
         setForm((prev) => ({ ...prev, dossier_id: '' }));
     }, []);
+
+    const handleDossierSelect = useCallback((key: string | null) => {
+        updateField('dossier_id', key ?? '');
+    }, [updateField]);
 
     const stepContent = () => {
         if (mode === 'edit') {
@@ -246,44 +465,32 @@ export function ContractDrawer({
                             Projet et statut
                         </h3>
                         <div className="grid gap-4">
-                            <Input
-                                label="Client"
-                                value={clientSearch}
-                                onValueChange={(v) => { setClientSearch(v); setSelectedClientId(null); setForm((p) => ({ ...p, dossier_id: '' })); }}
-                                placeholder="Rechercher un client..."
-                                startContent={<Search size={15} className="text-[var(--text-muted)]" />}
-                                isInvalid={Boolean(firstError(errors, 'dossier_id'))}
-                                errorMessage={firstError(errors, 'dossier_id')}
-                                className="[&_input]:text-sm"
-                            />
-                            {selectedClientId && filteredClients.length > 0 ? (
-                                <div className="-mt-2 flex flex-wrap gap-1.5">
-                                    {filteredClients
-                                        .filter((c) => c.id === selectedClientId)
-                                        .map((c) => (
-                                            <span key={c.id} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)]/10 px-2.5 py-1 text-xs font-medium text-[var(--accent)]">
-                                                {c.fullName}
-                                                <button type="button" onClick={handleClearClient} className="ml-0.5 hover:text-[var(--danger)]">&times;</button>
-                                            </span>
-                                        ))}
-                                </div>
-                            ) : null}
-                            <SelectField
-                                label="Dossier / Projet"
-                                placeholder="Selectionner un dossier"
-                                options={dossierOptions.filter((d) =>
-                                    !selectedClientId || clientDossiers.some((cd) => cd.id === d.id),
-                                )}
-                                value={form.dossier_id}
-                                onChange={(v) => updateField('dossier_id', v)}
-                                error={firstError(errors, 'dossier_id')}
+                            <div className="flex min-w-0 flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-[var(--foreground)]">Client</label>
+                                <ClientAutocomplete
+                                    selectedClientId={selectedClientId}
+                                    clients={clients}
+                                    clientQuery={clientQuery}
+                                    onClientQueryChange={setClientQuery}
+                                    filteredClients={filteredClients}
+                                    onSelect={handleClientSelect}
+                                    onClear={handleClearClient}
+                                />
+                            </div>
+                            <DossierAutocomplete
+                                selectedKey={form.dossier_id || null}
+                                options={filteredDossierOptions}
+                                query={dossierQuery}
+                                onQueryChange={setDossierQuery}
+                                onSelectionChange={handleDossierSelect}
+                                onClear={() => updateField('dossier_id', '')}
+                                noClient={false}
                             />
                             <SelectField
                                 label="Statut"
                                 options={statusOptions}
                                 value={form.status}
                                 onChange={(v) => updateField('status', v)}
-                                error={firstError(errors, 'status')}
                             />
                         </div>
                     </section>
@@ -298,57 +505,67 @@ export function ContractDrawer({
                                 options={calculationModeOptions}
                                 value={form.calculation_mode}
                                 onChange={(v) => updateField('calculation_mode', v)}
-                                error={firstError(errors, 'calculation_mode')}
                             />
                             {isForfait ? (
-                                <Input
-                                    label="FORFAIT TTC" type="number" min="0" step="0.01"
-                                    value={form.forfait_ttc}
-                                    onValueChange={(v) => updateField('forfait_ttc', v)}
-                                    description="Saisissez le montant TTC final. HT et TVA sont calcules automatiquement."
-                                    isInvalid={Boolean(firstError(errors, 'forfait_ttc'))}
-                                    errorMessage={firstError(errors, 'forfait_ttc')}
-                                />
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-[var(--foreground)]">FORFAIT TTC</label>
+                                    <Input
+                                        type="number" min="0" step="0.01"
+                                        value={form.forfait_ttc}
+                                        onChange={(e) => updateField('forfait_ttc', e.target.value)}
+                                        aria-invalid={firstError(errors, 'forfait_ttc') ? true : undefined}
+                                        className={inputBaseClass}
+                                    />
+                                    <p className="text-xs text-[var(--text-muted)]">Saisissez le montant TTC final. HT et TVA sont calcules automatiquement.</p>
+
+                                </div>
                             ) : (
-                                <SelectField
-                                    label="Taux d'honoraires"
-                                    options={feeRateOptions}
-                                    value={form.fee_rate_percent}
-                                    onChange={(v) => updateField('fee_rate_percent', v)}
-                                    error={firstError(errors, 'fee_rate_percent')}
-                                />
+                                <>
+                                    <SelectField
+                                        label="Taux d'honoraires"
+                                        options={feeRateOptions}
+                                        value={form.fee_rate_percent}
+                                        onChange={(v) => updateField('fee_rate_percent', v)}
+                                    />
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-xs font-semibold text-[var(--foreground)]">Surface (m2)</label>
+                                            <Input
+                                                type="number" min="0" step="0.01"
+                                                value={form.surface}
+                                                onChange={(e) => updateField('surface', e.target.value)}
+                                                aria-invalid={firstError(errors, 'surface') ? true : undefined}
+                                                className={inputBaseClass}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-xs font-semibold text-[var(--foreground)]">Prix / m2</label>
+                                            <Input
+                                                type="number" min="0" step="0.01"
+                                                value={form.price_per_square_meter}
+                                                onChange={(e) => updateField('price_per_square_meter', e.target.value)}
+                                                aria-invalid={firstError(errors, 'price_per_square_meter') ? true : undefined}
+                                                className={inputBaseClass}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </div>
-                        <div className="mt-4 grid gap-4 md:grid-cols-2">
-                            <Input
-                                label="Surface (m2)" type="number" min="0" step="0.01"
-                                value={form.surface}
-                                onValueChange={(v) => updateField('surface', v)}
-                                isInvalid={Boolean(firstError(errors, 'surface'))}
-                                errorMessage={firstError(errors, 'surface')}
-                            />
-                            <Input
-                                label="Prix / m2" type="number" min="0" step="0.01"
-                                value={form.price_per_square_meter}
-                                onValueChange={(v) => updateField('price_per_square_meter', v)}
-                                isInvalid={Boolean(firstError(errors, 'price_per_square_meter'))}
-                                errorMessage={firstError(errors, 'price_per_square_meter')}
-                            />
-                        </div>
-                        <CalculationSummary ht={ht} tva={tva} ttc={ttc} />
+                        <CalculationSummary estimation={!isForfait ? estimation : undefined} ht={ht} tva={tva} ttc={ttc} />
                     </section>
                     <section>
                         <h3 className="mb-3 mt-6 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
                             <span className="flex size-6 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[11px] font-bold text-[var(--accent)]">3</span>
                             Notes
                         </h3>
-                        <Textarea
-                            label="Notes"
-                            value={form.notes}
-                            onValueChange={(v) => updateField('notes', v)}
-                            isInvalid={Boolean(firstError(errors, 'notes'))}
-                            errorMessage={firstError(errors, 'notes')}
-                        />
+                        <div className="flex flex-col gap-1.5">
+                            <TextArea
+                                value={form.notes}
+                                onChange={(e) => updateField('notes', e.target.value)}
+                                className={textAreaBaseClass}
+                            />
+                        </div>
                     </section>
                 </>
             );
@@ -362,65 +579,30 @@ export function ContractDrawer({
                         <div className="grid gap-4">
                             <div className="flex min-w-0 flex-col gap-1.5">
                                 <label className="text-xs font-semibold text-[var(--foreground)]">Client</label>
-                                <div className="relative">
-                                    <Input
-                                        value={clientSearch}
-                                        onValueChange={(v) => { setClientSearch(v); setSelectedClientId(null); setForm((p) => ({ ...p, dossier_id: '' })); }}
-                                        placeholder="Rechercher un client par nom ou CIN..."
-                                        startContent={<Search size={15} className="text-[var(--text-muted)]" />}
-                                        className="[&_input]:text-sm"
-                                    />
-                                    {clientSearch && filteredClients.length > 0 && !selectedClientId ? (
-                                        <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg">
-                                            {filteredClients.map((c) => (
-                                                <button
-                                                    key={c.id}
-                                                    type="button"
-                                                    onClick={() => handleClientSelect(c)}
-                                                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-[var(--foreground)] transition hover:bg-[var(--surface-2)]"
-                                                >
-                                                    <span className="flex size-8 items-center justify-center rounded-full bg-[var(--accent)]/10 text-xs font-bold text-[var(--accent)]">
-                                                        {c.fullName.charAt(0).toUpperCase()}
-                                                    </span>
-                                                    <div className="min-w-0 flex-1">
-                                                        <p className="truncate font-medium">{c.fullName}</p>
-                                                        <p className="truncate text-xs text-[var(--text-muted)]">{c.cin}</p>
-                                                    </div>
-                                                    <span className="text-xs text-[var(--text-muted)]">
-                                                        {c.dossiers.length} dossier{c.dossiers.length !== 1 ? 's' : ''}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    ) : null}
-                                    {selectedClientId ? (
-                                        <div className="-mt-2 flex flex-wrap gap-1.5">
-                                            {filteredClients
-                                                .filter((c) => c.id === selectedClientId)
-                                                .map((c) => (
-                                                    <span key={c.id} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)]/10 px-2.5 py-1 text-xs font-medium text-[var(--accent)]">
-                                                        {c.fullName}
-                                                        <button type="button" onClick={handleClearClient} className="ml-0.5 hover:text-[var(--danger)]">&times;</button>
-                                                    </span>
-                                                ))}
-                                        </div>
-                                    ) : null}
-                                </div>
+                                <ClientAutocomplete
+                                    selectedClientId={selectedClientId}
+                                    clients={clients}
+                                    clientQuery={clientQuery}
+                                    onClientQueryChange={setClientQuery}
+                                    filteredClients={filteredClients}
+                                    onSelect={handleClientSelect}
+                                    onClear={handleClearClient}
+                                />
                             </div>
-                            <SelectField
-                                label="Dossier / Projet"
-                                placeholder={selectedClientId ? 'Selectionner un dossier' : 'Selectionnez un client d abord'}
-                                options={dossierOptions}
-                                value={selectedClientId ? form.dossier_id : ''}
-                                onChange={(v) => updateField('dossier_id', v)}
-                                error={firstError(errors, 'dossier_id')}
+                            <DossierAutocomplete
+                                selectedKey={selectedClientId ? (form.dossier_id || null) : null}
+                                options={filteredDossierOptions}
+                                query={dossierQuery}
+                                onQueryChange={setDossierQuery}
+                                onSelectionChange={handleDossierSelect}
+                                onClear={() => updateField('dossier_id', '')}
+                                noClient={!selectedClientId}
                             />
                             <SelectField
                                 label="Statut"
                                 options={statusOptions}
                                 value={form.status}
                                 onChange={(v) => updateField('status', v)}
-                                error={firstError(errors, 'status')}
                             />
                         </div>
                     </section>
@@ -435,44 +617,54 @@ export function ContractDrawer({
                                 options={calculationModeOptions}
                                 value={form.calculation_mode}
                                 onChange={(v) => updateField('calculation_mode', v)}
-                                error={firstError(errors, 'calculation_mode')}
                             />
                             {isForfait ? (
-                                <Input
-                                    label="FORFAIT TTC" type="number" min="0" step="0.01"
-                                    value={form.forfait_ttc}
-                                    onValueChange={(v) => updateField('forfait_ttc', v)}
-                                    description="Saisissez le montant TTC final. HT et TVA sont calcules automatiquement."
-                                    isInvalid={Boolean(firstError(errors, 'forfait_ttc'))}
-                                    errorMessage={firstError(errors, 'forfait_ttc')}
-                                />
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-[var(--foreground)]">FORFAIT TTC</label>
+                                    <Input
+                                        type="number" min="0" step="0.01"
+                                        value={form.forfait_ttc}
+                                        onChange={(e) => updateField('forfait_ttc', e.target.value)}
+                                        aria-invalid={firstError(errors, 'forfait_ttc') ? true : undefined}
+                                        className={inputBaseClass}
+                                    />
+                                    <p className="text-xs text-[var(--text-muted)]">Saisissez le montant TTC final. HT et TVA sont calcules automatiquement.</p>
+
+                                </div>
                             ) : (
-                                <SelectField
-                                    label="Taux d'honoraires"
-                                    options={feeRateOptions}
-                                    value={form.fee_rate_percent}
-                                    onChange={(v) => updateField('fee_rate_percent', v)}
-                                    error={firstError(errors, 'fee_rate_percent')}
-                                />
+                                <>
+                                    <SelectField
+                                        label="Taux d'honoraires"
+                                        options={feeRateOptions}
+                                        value={form.fee_rate_percent}
+                                        onChange={(v) => updateField('fee_rate_percent', v)}
+                                    />
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-xs font-semibold text-[var(--foreground)]">Surface (m2)</label>
+                                            <Input
+                                                type="number" min="0" step="0.01"
+                                                value={form.surface}
+                                                onChange={(e) => updateField('surface', e.target.value)}
+                                                aria-invalid={firstError(errors, 'surface') ? true : undefined}
+                                                className={inputBaseClass}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-xs font-semibold text-[var(--foreground)]">Prix / m2</label>
+                                            <Input
+                                                type="number" min="0" step="0.01"
+                                                value={form.price_per_square_meter}
+                                                onChange={(e) => updateField('price_per_square_meter', e.target.value)}
+                                                aria-invalid={firstError(errors, 'price_per_square_meter') ? true : undefined}
+                                                className={inputBaseClass}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </div>
-                        <div className="mt-4 grid gap-4 md:grid-cols-2">
-                            <Input
-                                label="Surface (m2)" type="number" min="0" step="0.01"
-                                value={form.surface}
-                                onValueChange={(v) => updateField('surface', v)}
-                                isInvalid={Boolean(firstError(errors, 'surface'))}
-                                errorMessage={firstError(errors, 'surface')}
-                            />
-                            <Input
-                                label="Prix / m2" type="number" min="0" step="0.01"
-                                value={form.price_per_square_meter}
-                                onValueChange={(v) => updateField('price_per_square_meter', v)}
-                                isInvalid={Boolean(firstError(errors, 'price_per_square_meter'))}
-                                errorMessage={firstError(errors, 'price_per_square_meter')}
-                            />
-                        </div>
-                        <CalculationSummary ht={ht} tva={tva} ttc={ttc} />
+                        <CalculationSummary estimation={!isForfait ? estimation : undefined} ht={ht} tva={tva} ttc={ttc} />
                     </section>
                 );
             case 2:
@@ -480,33 +672,32 @@ export function ContractDrawer({
                     <section>
                         <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Revisez et confirmez</h3>
                         <div className="mb-4 space-y-3">
-                            <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                                <span className="text-xs text-[var(--text-muted)]">Projet</span>
-                                <span className="text-[13px] font-medium text-[var(--foreground)]">
-                                    {dossiers.find((d) => d.id === form.dossier_id)?.label || form.dossier_id || '-'}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                                <span className="text-xs text-[var(--text-muted)]">Statut</span>
-                                <span className="text-[13px] font-medium capitalize text-[var(--foreground)]">{form.status}</span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                                <span className="text-xs text-[var(--text-muted)]">Mode</span>
-                                <span className="text-[13px] font-medium capitalize text-[var(--foreground)]">{form.calculation_mode}</span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                                <span className="text-xs text-[var(--text-muted)]">Surface</span>
-                                <span className="text-[13px] font-medium text-[var(--foreground)]">{form.surface || '-'} m&sup2;</span>
-                            </div>
+                            {[
+                                { label: 'Projet', value: dossiers.find((d) => d.id === form.dossier_id)?.label || form.dossier_id || '-' },
+                                { label: 'Statut', value: form.status, capitalize: true },
+                                { label: 'Mode', value: isForfait ? 'Forfait' : 'Pourcentage', capitalize: false },
+                                ...(isForfait
+                                    ? [{ label: 'Montant FORFAIT TTC', value: form.forfait_ttc ? currencyFormat(Number(form.forfait_ttc)) : '-' }]
+                                    : [
+                                        { label: 'Taux honoraires', value: `${form.fee_rate_percent}%` },
+                                        { label: 'Surface', value: form.surface ? `${form.surface} m²` : '-' },
+                                        { label: 'Prix / m2', value: form.price_per_square_meter ? currencyFormat(Number(form.price_per_square_meter)) : '-' },
+                                    ]
+                                ),
+                            ].flat().map((row: { label: string; value: string; capitalize?: boolean }) => (
+                                <Card key={row.label} className="flex items-center justify-between border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 shadow-none">
+                                    <span className="text-xs text-[var(--text-muted)]">{row.label}</span>
+                                    <span className={cn('text-[13px] font-medium text-[var(--foreground)]', row.capitalize && 'capitalize')}>{row.value}</span>
+                                </Card>
+                            ))}
                         </div>
-                        <CalculationSummary ht={ht} tva={tva} ttc={ttc} />
-                        <div className="mt-4">
-                            <Textarea
-                                label="Notes"
+                        <CalculationSummary estimation={!isForfait ? estimation : undefined} ht={ht} tva={tva} ttc={ttc} />
+                        <div className="mt-4 flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-[var(--foreground)]">Notes</label>
+                            <TextArea
                                 value={form.notes}
-                                onValueChange={(v) => updateField('notes', v)}
-                                isInvalid={Boolean(firstError(errors, 'notes'))}
-                                errorMessage={firstError(errors, 'notes')}
+                                onChange={(e) => updateField('notes', e.target.value)}
+                                className={textAreaBaseClass}
                             />
                         </div>
                     </section>
@@ -541,7 +732,7 @@ export function ContractDrawer({
                         <Check size={15} /> {isSubmitting ? 'Creation...' : 'Creer le contrat'}
                     </Button>
                 ) : (
-                    <Button variant="solid" color="primary" onPress={() => setStep((s) => s + 1)} isDisabled={isSubmitting}>
+                    <Button variant="solid" color="primary" onPress={() => setStep((s) => s + 1)} isDisabled={isSubmitting || !stepValid}>
                         Suivant <ChevronRight size={15} />
                     </Button>
                 )}
@@ -550,63 +741,77 @@ export function ContractDrawer({
     };
 
     return (
-        <Drawer.Backdrop isOpen={isOpen} onOpenChange={onOpenChange} isDismissable>
-            <DrawerContent>
-                <DrawerDialog className="flex h-full flex-col outline-none">
-                    <DrawerHeader className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
-                        <div className="min-w-0">
-                            <DrawerHeading className="text-base font-semibold text-[var(--foreground)]">
-                                {mode === 'create' ? 'Nouveau contrat' : 'Modifier le contrat'}
-                            </DrawerHeading>
-                            <p className="mt-1 text-sm text-[var(--text-muted)]">
-                                {mode === 'create' ? 'Configurez un nouveau contrat en quelques etapes.' : 'Mettez a jour les details et recalculez les montants.'}
-                            </p>
-                        </div>
-                        <DrawerCloseTrigger />
-                    </DrawerHeader>
+        <AppDrawer
+            isOpen={isOpen}
+            onOpenChange={onOpenChange}
+            title={mode === 'create' ? 'Nouveau contrat' : 'Modifier le contrat'}
+            description={mode === 'create' ? 'Configurez un nouveau contrat en quelques etapes.' : 'Mettez a jour les details et recalculez les montants.'}
+            footer={drawerFooter()}
+        >
+            <form id="contract-form" className="flex flex-col gap-6" onSubmit={handleSubmit}>
+                <FormErrorSummary errors={displayErrors} />
 
-                    <DrawerBody className="flex-1 overflow-y-auto px-5 py-5">
-                        <form id="contract-form" className="flex flex-col gap-6" onSubmit={handleSubmit}>
-                            <AppFormErrorSummary errors={errors} />
-
-                            {mode === 'create' ? (
-                                <div className="flex items-center gap-2">
-                                    {createSteps.map((s, i) => (
-                                        <div key={s.key} className="flex items-center gap-2 flex-1">
-                                            <div className={cn(
-                                                'flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition',
-                                                i < step ? 'bg-emerald-500/20 text-emerald-400' :
-                                                i === step ? 'bg-[var(--accent)]/20 text-[var(--accent)]' :
-                                                'bg-[var(--surface-2)] text-[var(--text-muted)]',
-                                            )}>
-                                                {i < step ? <Check size={12} /> : i + 1}
-                                            </div>
-                                            <span className={cn(
-                                                'text-[11px] font-semibold transition hidden sm:inline',
-                                                i === step ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)]',
-                                            )}>
-                                                {s.label}
-                                            </span>
-                                            {i < createSteps.length - 1 ? (
-                                                <div className={cn(
-                                                    'ml-2 flex-1 h-px transition',
-                                                    i < step ? 'bg-emerald-500/40' : 'bg-[var(--border)]',
-                                                )} />
-                                            ) : null}
-                                        </div>
-                                    ))}
+                {mode === 'create' ? (
+                    <div className="flex items-stretch w-full gap-0 pt-2 pb-4">
+                        {createSteps.map((s, i) => {
+                            const isCompleted = i < step;
+                            const isCurrent = i === step;
+                            const isPending = i > step;
+                            const showConnector = i < createSteps.length - 1;
+                            return (
+                                <div key={s.key} className="flex-1 flex flex-col items-center relative min-w-0">
+                                    <button type="button" onClick={() => setStep(i)} className="group relative z-10 flex flex-col items-center gap-1.5 transition hover:opacity-90">
+                                        <span className={cn(
+                                            'flex size-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-200 border-2',
+                                            'group-hover:scale-110 group-hover:shadow-md',
+                                            isCompleted && 'border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20',
+                                            isCurrent && 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)] shadow-lg shadow-[var(--accent)]/20',
+                                            isPending && 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]',
+                                        )}>
+                                            {isCompleted ? <Check size={14} strokeWidth={3} /> : <span>{i + 1}</span>}
+                                        </span>
+                                        <span className={cn(
+                                            'text-[11px] font-medium text-center leading-tight max-w-[80px] truncate',
+                                            isCompleted && 'text-emerald-400',
+                                            isCurrent && 'text-[var(--accent)] font-semibold',
+                                            isPending && 'text-[var(--text-muted)]',
+                                        )}>
+                                            {s.label}
+                                        </span>
+                                    </button>
+                                    {showConnector ? (
+                                        <div className={cn(
+                                            'absolute top-4 h-px z-0 rounded-full',
+                                            isCompleted ? 'bg-emerald-500/40' : 'bg-[var(--border)]',
+                                        )} style={{
+                                            left: 'calc(50% + 16px)',
+                                            width: 'calc(100% - 32px)',
+                                        }} />
+                                    ) : null}
                                 </div>
-                            ) : null}
+                            );
+                        })}
+                    </div>
+                ) : null}
 
-                            {stepContent()}
-                        </form>
-                    </DrawerBody>
+                {stepContent()}
 
-                    <DrawerFooter className="flex items-center justify-end gap-2 border-t border-[var(--border)] px-5 py-4">
-                        {drawerFooter()}
-                    </DrawerFooter>
-                </DrawerDialog>
-            </DrawerContent>
-        </Drawer.Backdrop>
+                {mode === 'create' && stepHints.length > 0 ? (
+                    <Card className="border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-none">
+                        <div className="flex items-start gap-2">
+                            <AlertCircle size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+                            <div>
+                                <p className="text-xs font-medium text-[var(--foreground)]">Champs requis pour continuer :</p>
+                                <ul className="mt-1 space-y-0.5">
+                                    {stepHints.map((hint, i) => (
+                                        <li key={i} className="text-[11px] text-[var(--text-muted)]">• {hint}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </Card>
+                ) : null}
+            </form>
+        </AppDrawer>
     );
 }

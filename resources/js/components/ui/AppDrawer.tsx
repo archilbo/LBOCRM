@@ -1,5 +1,6 @@
-﻿import { ReactNode } from 'react';
+﻿import { ReactNode, useState } from 'react';
 import { Button, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
+import { UNSAFE_PortalProvider } from 'react-aria/PortalProvider';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -24,6 +25,8 @@ export function AppDrawer({
     panelClassName,
     isDismissable: dismissable = true,
 }: AppDrawerProps) {
+    const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null);
+
     return (
         <ModalOverlay
             isOpen={isOpen}
@@ -58,7 +61,13 @@ export function AppDrawer({
                             </header>
 
                             <div className="app-scrollbar flex-1 overflow-y-auto px-5 py-5">
-                                {children}
+                                <div ref={setPortalContainer} className="relative min-h-0">
+                                    {portalContainer ? (
+                                        <UNSAFE_PortalProvider getContainer={() => portalContainer}>
+                                            {children}
+                                        </UNSAFE_PortalProvider>
+                                    ) : null}
+                                </div>
                             </div>
 
                             {footer ? (

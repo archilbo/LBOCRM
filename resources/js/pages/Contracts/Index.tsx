@@ -14,6 +14,7 @@ import { AppModal } from '@/components/ui/AppModal';
 import { ContractDrawer } from '@/features/contracts/drawers/ContractDrawer';
 import type { ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow, ContractStatus } from '@/features/contracts/types';
 import { cn } from '@/lib/cn';
+import { currencyFormat } from '@/lib/currency';
 
 type PageProps = {
     contracts: ContractRow[];
@@ -21,10 +22,6 @@ type PageProps = {
     clients: ContractClientOption[];
     metrics: { total: number; draft: number; generated: number; signed: number; totalTtc: number };
 };
-
-function formatMoney(value: number) {
-    return new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 }).format(value || 0);
-}
 
 const statusLabel: Record<string, string> = {
     draft: 'Brouillon', generated: 'Genere', signed: 'Signe', cancelled: 'Annule', completed: 'Complete',
@@ -168,7 +165,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
         { label: 'Brouillon', value: metrics.draft, detail: 'Non genere', icon: AlertTriangle, color: metrics.draft > 0 ? 'text-amber-400' : 'text-[var(--text-muted)]' },
         { label: 'Genere', value: metrics.generated, detail: 'DOCX/PDF cree', icon: FileText, color: metrics.generated > 0 ? 'text-sky-400' : 'text-[var(--text-muted)]' },
         { label: 'Signe', value: metrics.signed, detail: 'Signature client', icon: CheckCircle2, color: metrics.signed > 0 ? 'text-emerald-400' : 'text-[var(--text-muted)]' },
-        { label: 'Total TTC', value: formatMoney(metrics.totalTtc), detail: 'Somme tous contrats', icon: ScrollText, color: 'text-[var(--accent)]' },
+        { label: 'Total TTC', value: currencyFormat(metrics.totalTtc), detail: 'Somme tous contrats', icon: ScrollText, color: 'text-[var(--accent)]' },
     ], [metrics]);
 
     const statusFilterBg: Record<string, string> = {
@@ -338,7 +335,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                 <span className="truncate text-[var(--text)]">{c.clientName || '-'}</span>
                                             </div>
                                         </td>
-                                        <td className="px-3 py-2 text-right font-semibold text-[var(--text)]">{formatMoney(c.ttc)}</td>
+                                        <td className="px-3 py-2 text-right font-semibold text-[var(--text)]">{currencyFormat(c.ttc)}</td>
                                         <td className="px-3 py-2">
                                             <Chip variant="flat" size="sm" color={statusChipColor[c.status] || 'default'}>
                                                 {statusLabel[c.status] || c.status}
@@ -504,7 +501,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                 </Card>
                                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
                                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Montant</p>
-                                    <p className="mt-1 text-lg font-semibold text-[var(--accent)]">{formatMoney(previewContract.ttc)}</p>
+                                    <p className="mt-1 text-lg font-semibold text-[var(--accent)]">{currencyFormat(previewContract.ttc)}</p>
                                 </Card>
                                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
                                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Statut</p>
@@ -521,15 +518,15 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                 <div className="grid grid-cols-3 gap-2">
                                     <div className="rounded-lg bg-[var(--surface-2)] p-2 text-center">
                                         <p className="text-[10px] text-[var(--text-muted)]">HT</p>
-                                        <p className="text-sm font-semibold text-[var(--foreground)]">{formatMoney(previewContract.ht)}</p>
+                                        <p className="text-sm font-semibold text-[var(--foreground)]">{currencyFormat(previewContract.ht)}</p>
                                     </div>
                                     <div className="rounded-lg bg-[var(--surface-2)] p-2 text-center">
                                         <p className="text-[10px] text-[var(--text-muted)]">TVA</p>
-                                        <p className="text-sm font-semibold text-[var(--foreground)]">{formatMoney(previewContract.tva)}</p>
+                                        <p className="text-sm font-semibold text-[var(--foreground)]">{currencyFormat(previewContract.tva)}</p>
                                     </div>
                                     <div className="rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface-2))] p-2 text-center">
                                         <p className="text-[10px] text-[var(--accent)]">TTC</p>
-                                        <p className="text-sm font-semibold text-[var(--accent)]">{formatMoney(previewContract.ttc)}</p>
+                                        <p className="text-sm font-semibold text-[var(--accent)]">{currencyFormat(previewContract.ttc)}</p>
                                     </div>
                                 </div>
                                 <div className="my-3 h-px bg-[var(--border)]" />
@@ -538,7 +535,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                         { label: 'Mode', value: previewContract.calculationMode },
                                         { label: 'Taux', value: `${previewContract.feeRatePercent}%` },
                                         { label: 'Surface', value: previewContract.surface ? `${previewContract.surface} m²` : '-' },
-                                        { label: 'Prix/m²', value: formatMoney(previewContract.pricePerSquareMeter) },
+                                        { label: 'Prix/m²', value: currencyFormat(previewContract.pricePerSquareMeter) },
                                     ].map((item) => (
                                         <div key={item.label} className="flex items-center justify-between rounded-lg bg-[var(--surface-2)] px-2.5 py-1.5">
                                             <span className="text-[11px] text-[var(--text-muted)]">{item.label}</span>

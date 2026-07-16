@@ -390,7 +390,7 @@ class ContractController extends Controller
             ->orderBy('full_name')
             ->get()
             ->map(fn (Client $client) => [
-                'id' => $client->id,
+                'id' => (string) $client->id,
                 'fullName' => $client->full_name,
                 'cin' => $client->cin,
                 'dossiers' => $client->dossiers->map(fn (Dossier $dossier) => [
