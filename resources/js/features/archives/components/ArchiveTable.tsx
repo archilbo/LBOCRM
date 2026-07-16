@@ -276,7 +276,7 @@ export function ArchiveTable({
         <div className={cn('flex flex-1 flex-col min-h-0', className)}>
             <div ref={tableContainerRef} className="flex-1 overflow-auto">
                 <table className="w-full">
-                    <thead>
+                    <thead>         
                         {table.getHeaderGroups().map((hg) => (
                             <tr key={hg.id}>
                                 {hg.headers.map((header) => (

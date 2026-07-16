@@ -59,7 +59,22 @@ type PageProps = {
 type BadgeTone = 'neutral' | 'blue' | 'green' | 'amber' | 'red' | 'violet';
 
 function formatMoney(value: number) {
-    return new Intl.NumberFormat('en-MA', {
+    const abs = Math.abs(value);
+
+    if (abs >= 1_000_000_000_000) {
+        return `${(value / 1_000_000_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} T MAD`;
+    }
+    if (abs >= 1_000_000_000) {
+        return `${(value / 1_000_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mrd MAD`;
+    }
+    if (abs >= 1_000_000) {
+        return `${(value / 1_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M MAD`;
+    }
+    if (abs >= 1_000) {
+        return `${(value / 1_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} K MAD`;
+    }
+
+    return new Intl.NumberFormat('fr-MA', {
         style: 'currency',
         currency: 'MAD',
         maximumFractionDigits: 0,

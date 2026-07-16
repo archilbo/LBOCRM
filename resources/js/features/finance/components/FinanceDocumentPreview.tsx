@@ -1,5 +1,5 @@
 import type { FinanceDocumentItem, FinanceDocumentType } from '@/features/finance/types';
-import { formatMoney } from '@/features/finance/utils/calculations';
+import { formatCompactMoney } from '@/features/finance/utils/calculations';
 
 type UiLockAwareFinanceDocument = {
     numberLocked?: boolean;
@@ -138,20 +138,20 @@ export function FinanceDocumentPreview({
                             <tr key={`${item.title}-${index}`} className="border-b border-slate-100">
                                 <td className="py-2 pr-3">
                                     <p className="font-medium">{item.title || `Ligne ${index + 1}`}</p>
-                                    <p className="text-slate-500">{item.quantity} {item.unit || ''} x {formatMoney(item.unitPrice, currency)}</p>
+                                    <p className="text-slate-500">{item.quantity} {item.unit || ''} x {formatCompactMoney(item.unitPrice, currency)}</p>
                                 </td>
-                                <td className="py-2 text-right font-semibold">{formatMoney(item.totalTtc, currency)}</td>
+                                <td className="py-2 text-right font-semibold">{formatCompactMoney(item.totalTtc, currency)}</td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
 
                 <div className="ml-auto mt-5 w-56 space-y-1 text-xs">
-                    <PreviewRow label="HT" value={formatMoney(subtotalHt, currency)} />
-                    <PreviewRow label="Remise" value={`-${formatMoney(discountTotal, currency)}`} />
-                    <PreviewRow label="TVA" value={formatMoney(taxTotal, currency)} />
+                    <PreviewRow label="HT" value={formatCompactMoney(subtotalHt, currency)} />
+                    <PreviewRow label="Remise" value={`-${formatCompactMoney(discountTotal, currency)}`} />
+                    <PreviewRow label="TVA" value={formatCompactMoney(taxTotal, currency)} />
                     <div className="border-t border-slate-200 pt-2">
-                        <PreviewRow label="Total TTC" value={formatMoney(totalTtc, currency)} strong />
+                        <PreviewRow label="Total TTC" value={formatCompactMoney(totalTtc, currency)} strong />
                     </div>
                 </div>
 

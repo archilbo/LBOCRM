@@ -127,3 +127,75 @@ export function formatMoney(value: unknown, currency = 'MAD'): string {
     }
 }
 
+export function formatCompactMoney(value: unknown, currency = 'MAD'): string {
+    const num = normalizeNumber(value);
+    const abs = Math.abs(num);
+    const safeCurrency = normalizeCurrency(currency);
+
+    let amount: string;
+    let suffix: string;
+
+    if (abs >= 1_000_000_000_000) {
+        amount = (num / 1_000_000_000_000).toLocaleString('fr-MA', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+        suffix = ' T';
+    } else if (abs >= 1_000_000_000) {
+        amount = (num / 1_000_000_000).toLocaleString('fr-MA', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+        suffix = ' Mrd';
+    } else if (abs >= 1_000_000) {
+        amount = (num / 1_000_000).toLocaleString('fr-MA', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+        suffix = ' M';
+    } else if (abs >= 1_000) {
+        amount = (num / 1_000).toLocaleString('fr-MA', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+        suffix = ' K';
+    } else {
+        amount = num.toLocaleString('fr-MA', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        });
+        suffix = '';
+    }
+
+    return `${amount}${suffix} ${safeCurrency}`.trim();
+}
+
+export function formatFullMoney(value: unknown, currency = 'MAD'): string {
+    const num = normalizeNumber(value);
+    const safeCurrency = normalizeCurrency(currency);
+    try {
+        return new Intl.NumberFormat('fr-MA', {
+            style: 'currency',
+            currency: safeCurrency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(num);
+    } catch {
+        return `${num.toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
+    }
+}
+
+export type MetricSemantic = 'revenue' | 'expense' | 'overdue';
+
+export function getTrendColor(metricType: MetricSemantic, percentChange: number): 'green' | 'red' {
+    const isIncrease = percentChange > 0;
+    if (metricType === 'expense' || metricType === 'overdue') {
+        return isIncrease ? 'red' : 'green';
+    }
+    return isIncrease ? 'green' : 'red';
+}
+
+export function getTrendHex(metricType: MetricSemantic, percentChange: number): string {
+    return getTrendColor(metricType, percentChange) === 'green' ? '#10b981' : '#f43f5e';
+}
+

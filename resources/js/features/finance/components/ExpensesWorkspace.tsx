@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
 import {
     BadgeDollarSign,
+    Eye,
     Pencil,
     RefreshCw,
     Search,
@@ -10,16 +11,19 @@ import {
     X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Tooltip } from '@heroui/react';
+import { AppButton } from '@/components/ui/AppButton';
 import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
 import { AppPagination } from '@/components/ui/AppPagination';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import type { Expense } from '@/features/finance/types';
-import { formatMoney } from '@/features/finance/utils/calculations';
+import { formatCompactMoney } from '@/features/finance/utils/calculations';
 
 type ExpensesWorkspaceProps = {
     expenses: Expense[];
     currency: string;
     onEdit: (expense: Expense) => void;
+    onView: (expense: Expense) => void;
 };
 
 const categoryOptions = [
@@ -53,7 +57,7 @@ function expenseMatches(expense: Expense, query: string, categoryFilter: string)
         .includes(query.trim().toLowerCase());
 }
 
-export function ExpensesWorkspace({ expenses, currency, onEdit }: ExpensesWorkspaceProps) {
+export function ExpensesWorkspace({ expenses, currency, onEdit, onView }: ExpensesWorkspaceProps) {
     const [query, setQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [showFilters, setShowFilters] = useState(false);
@@ -134,7 +138,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit }: ExpensesWorksp
                 </div>
 
                 <div className="hidden text-[11px] font-medium text-[var(--text-muted)] md:block">
-                    {filtered.length} depense(s) · Total {formatMoney(totalAmount, currency)}
+                    {filtered.length} depense(s) · Total {formatCompactMoney(totalAmount, currency)}
                 </div>
             </div>
 
@@ -178,7 +182,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit }: ExpensesWorksp
                     <tbody>
                         {filtered.length > 0 ? (
                             pagedFiltered.map((expense) => (
-                                <tr key={expense.id} className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
+                                <tr key={expense.id} className="group border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
                                     <td className="px-3 py-2 font-semibold text-[var(--text)]">{expense.expenseDate}</td>
                                     <td className="px-3 py-2">
                                         <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${categoryBadge(expense.category)}`}>
@@ -193,16 +197,28 @@ export function ExpensesWorkspace({ expenses, currency, onEdit }: ExpensesWorksp
                                             <span className="text-[var(--text-muted)]">-</span>
                                         )}
                                     </td>
-                                    <td className="px-3 py-2 font-semibold text-rose-300">{formatMoney(expense.amount, currency)}</td>
+                                    <td className="px-3 py-2 font-semibold text-rose-300">{formatCompactMoney(expense.amount, currency)}</td>
                                     <td className="px-3 py-2 text-[var(--text-muted)]">{expense.paymentMethod || <span className="text-[var(--text-muted)]">-</span>}</td>
                                     <td className="px-3 py-2">
-                                        <div className="flex justify-end gap-0.5">
-                                            <button type="button" className="flex size-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Modifier" onClick={() => onEdit(expense)}>
-                                                <Pencil size={13} />
-                                            </button>
-                                            <button type="button" className="flex size-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Supprimer" onClick={() => setDeleteTarget(expense)}>
-                                                <Trash2 size={13} />
-                                            </button>
+                                        <div className="flex justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                                            <Tooltip delay={500}>
+                                                <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onView(expense)}>
+                                                    <Eye size={13} />
+                                                </AppButton>
+                                                <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Voir</Tooltip.Content>
+                                            </Tooltip>
+                                            <Tooltip delay={500}>
+                                                <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onEdit(expense)}>
+                                                    <Pencil size={13} />
+                                                </AppButton>
+                                                <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Modifier</Tooltip.Content>
+                                            </Tooltip>
+                                            <Tooltip delay={500}>
+                                                <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => setDeleteTarget(expense)}>
+                                                    <Trash2 size={13} />
+                                                </AppButton>
+                                                <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Supprimer</Tooltip.Content>
+                                            </Tooltip>
                                         </div>
                                     </td>
                                 </tr>
@@ -226,7 +242,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit }: ExpensesWorksp
             <AppConfirmDialog
                 isOpen={Boolean(deleteTarget)}
                 title="Supprimer la depense ?"
-                description={`Confirmer la suppression de la depense ${categoryLabels[deleteTarget?.category || 'other']} de ${deleteTarget ? formatMoney(deleteTarget.amount, currency) : ''}.`}
+                description={`Confirmer la suppression de la depense ${categoryLabels[deleteTarget?.category || 'other']} de ${deleteTarget ? formatCompactMoney(deleteTarget.amount, currency) : ''}.`}
                 confirmLabel="Supprimer"
                 onConfirm={handleDelete}
                 onCancel={() => setDeleteTarget(null)}

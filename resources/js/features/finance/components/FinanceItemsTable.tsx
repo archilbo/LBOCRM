@@ -1,7 +1,7 @@
 ﻿import { Copy, Plus, Trash2 } from 'lucide-react';
 import { AppButton } from '@/components/ui/AppButton';
 import type { FinanceDocumentItem } from '@/features/finance/types';
-import { calculateItem, formatMoney, normalizeNumber } from '@/features/finance/utils/calculations';
+import { calculateItem, formatCompactMoney, normalizeNumber } from '@/features/finance/utils/calculations';
 
 type FinanceItemsTableProps = {
     items: FinanceDocumentItem[];
@@ -93,7 +93,7 @@ export function FinanceItemsTable({ items, currency, onChange }: FinanceItemsTab
                                     <input className="react-aria-Input h-9 w-28" type="number" min="0" step="0.01" value={item.unitPrice} onChange={(event) => updateItem(index, 'unitPrice', event.target.value)} />
                                 </td>
                                 <td className="px-3 py-2 text-right font-mono text-xs font-semibold">
-                                    {formatMoney(item.totalTtc, currency)}
+                                    {formatCompactMoney(item.totalTtc, currency)}
                                 </td>
                                 <td className="px-3 py-2">
                                     <div className="flex justify-end gap-1">

@@ -1,22 +1,7 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    ArrowRight,
-    CheckCircle2,
-    Download,
-    FileSpreadsheet,
-    FileText,
-    Landmark,
-    LockKeyhole,
-    ReceiptText,
-    RotateCcw,
-    ShieldCheck,
-    Trash2,
-    UserRound,
-    XCircle,
-} from 'lucide-react';
+import { ArrowLeft, FileText, Landmark, LockKeyhole, ReceiptText } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
@@ -24,6 +9,9 @@ import { AppCard } from '@/components/ui/AppCard';
 import { AppModal } from '@/components/ui/AppModal';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { FinanceDocumentLockBadge, FinanceDocumentLockNotice } from '@/features/finance/components/FinanceDocumentLockNotice';
+import { FinanceSidebarActions } from '@/features/finance/components/FinanceSidebarActions';
+import { FinanceSidebarDetails } from '@/features/finance/components/FinanceSidebarDetails';
+import { FinanceSidebarClientProject } from '@/features/finance/components/FinanceSidebarClientProject';
 import type { FinanceDocument, FinanceDocumentItem, Payment } from '@/features/finance/types';
 
 type PageProps = {
@@ -124,6 +112,8 @@ export default function FinanceDocumentShow({ document }: PageProps) {
         });
     }
 
+    const fromTab = useMemo(() => new URLSearchParams(window.location.search).get('from') || 'overview', []);
+
     function download(url: string | null | undefined) {
         if (!url) {
             toast.error('File is not available.');
@@ -143,7 +133,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
         router.delete(document.deleteUrl, {
             onSuccess: () => {
                 toast.success('Document deleted.');
-                router.visit('/finance/documents');
+                router.visit(`/finance/documents?tab=${fromTab}`);
             },
             onError: () => toast.error('Document could not be deleted.'),
         });
@@ -158,16 +148,10 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                 titleKey="nav.financeDocuments"
                 subtitleKey="dashboardHome.subtitle"
                 action={
-                    <div className="flex items-center gap-1.5">
-                        <AppButton variant="bordered" size="sm" onPress={() => router.visit('/finance/documents')}>
-                            <ArrowLeft size={14} />
-                            Back
-                        </AppButton>
-                        <AppButton variant="primary" size="sm" onPress={() => putAction(document.generateUrl, 'Document generated.')}>
-                            <RotateCcw size={14} />
-                            Regenerate
-                        </AppButton>
-                    </div>
+                    <AppButton variant="bordered" size="sm" onPress={() => router.visit(`/finance/documents?tab=${fromTab}`)}>
+                        <ArrowLeft size={14} />
+                        Back
+                    </AppButton>
                 }
             >
                 <div className="mx-auto mt-6 max-w-[1540px] space-y-5 xl:mt-8">
@@ -345,176 +329,20 @@ export default function FinanceDocumentShow({ document }: PageProps) {
 
                         {/* ── Sidebar ── */}
                         <aside className="grid min-w-0 gap-4 xl:sticky xl:top-24">
-
-                            {/* Actions */}
-                            <AppCard className="overflow-hidden p-0">
-                                <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
-                                    <ShieldCheck size={14} className="text-[var(--accent)]" />
-                                    <h2 className="text-xs font-semibold">Actions</h2>
-                                </div>
-                                <div className="divide-y divide-[var(--border)]">
-
-                                    {/* Generate + quick downloads */}
-                                    <div className="p-3">
-                                        <AppButton variant="primary" className="w-full" size="sm" onPress={() => putAction(document.generateUrl, 'Document generated.')}>
-                                            <RotateCcw size={14} />
-                                            Generate documents
-                                        </AppButton>
-                                        <div className="mt-2 grid grid-cols-2 gap-2">
-                                            <AppButton
-                                                variant="flat"
-                                                size="sm"
-                                                isDisabled={!document.pdfDownloadUrl}
-                                                onPress={() => document.pdfDownloadUrl ? download(document.pdfDownloadUrl) : putAction(document.generatePdfUrl, 'PDF generated.')}
-                                                className="h-auto flex-col gap-0 py-2 leading-tight"
-                                            >
-                                                <FileText size={15} />
-                                                <span className="text-[11px] font-semibold">PDF</span>
-                                                <span className="text-[10px] font-normal text-[var(--text-muted)]">{document.hasPdf ? 'Download' : 'Generate'}</span>
-                                            </AppButton>
-                                            <AppButton
-                                                variant="flat"
-                                                size="sm"
-                                                isDisabled={!document.excelDownloadUrl}
-                                                onPress={() => document.excelDownloadUrl ? download(document.excelDownloadUrl) : putAction(document.generateExcelUrl, 'Excel generated.')}
-                                                className="h-auto flex-col gap-0 py-2 leading-tight"
-                                            >
-                                                <FileSpreadsheet size={15} />
-                                                <span className="text-[11px] font-semibold">Excel</span>
-                                                <span className="text-[10px] font-normal text-[var(--text-muted)]">{document.hasExcel ? 'Download' : 'Generate'}</span>
-                                            </AppButton>
-                                        </div>
-                                    </div>
-
-                                    {/* Quote workflow — only for quotes */}
-                                    {document.acceptUrl || document.rejectUrl ? (
-                                        <div className="space-y-1.5 p-3">
-                                            {document.acceptUrl ? (
-                                                <AppButton variant="solid" color="success" className="w-full" size="sm" onPress={() => putAction(document.acceptUrl, 'Quote accepted.')}>
-                                                    <CheckCircle2 size={14} />
-                                                    Accept quote
-                                                </AppButton>
-                                            ) : null}
-                                            {document.rejectUrl ? (
-                                                <AppButton variant="solid" color="danger" className="w-full" size="sm" onPress={() => putAction(document.rejectUrl, 'Quote rejected.')}>
-                                                    <XCircle size={14} />
-                                                    Reject quote
-                                                </AppButton>
-                                            ) : null}
-                                        </div>
-                                    ) : null}
-                                    {document.convertToInvoiceUrl ? (
-                                        <div className="p-3">
-                                            <AppButton variant="flat" className="w-full text-[var(--accent)]" size="sm" onPress={() => postAction(document.convertToInvoiceUrl, 'Invoice created.')}>
-                                                <Landmark size={14} />
-                                                Convert to invoice
-                                            </AppButton>
-                                        </div>
-                                    ) : null}
-
-                                    {/* Cancel & Delete */}
-                                    <div className="flex gap-2 p-3">
-                                        <AppButton variant="flat" className="flex-1 text-amber-400" size="sm" onPress={() => putAction(document.cancelUrl, 'Document cancelled.')}>
-                                            <RotateCcw size={13} />
-                                            Cancel
-                                        </AppButton>
-                                        <AppButton variant="solid" color="danger" className="flex-1" size="sm" onPress={deleteDocument}>
-                                            <Trash2 size={13} />
-                                            Delete
-                                        </AppButton>
-                                    </div>
-                                </div>
-                            </AppCard>
-
-                            {/* Details */}
-                            <AppCard className="overflow-hidden p-0">
-                                <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
-                                    <ReceiptText size={14} className="text-[var(--text-muted)]" />
-                                    <h2 className="text-xs font-semibold">Details</h2>
-                                </div>
-                                <div className="divide-y divide-[var(--border)] text-xs">
-                                    <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-[var(--text-muted)]">Type</span>
-                                        <span className="font-semibold text-[var(--text)]">{document.typeLabel}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-[var(--text-muted)]">Status</span>
-                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusClass(document.status)}`}>
-                                            {document.status?.replace(/_/g, ' ') || document.status}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-[var(--text-muted)]">PDF</span>
-                                        <span className={`font-semibold ${document.hasPdf ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`}>
-                                            {document.hasPdf ? 'Ready' : 'Missing'}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-[var(--text-muted)]">Excel</span>
-                                        <span className={`font-semibold ${document.hasExcel ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`}>
-                                            {document.hasExcel ? 'Ready' : 'Missing'}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-[var(--text-muted)]">Generated</span>
-                                        <span className="font-semibold text-[var(--text)]">{dateLabel(document.generatedAt)}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-[var(--text-muted)]">Created</span>
-                                        <span className="font-semibold text-[var(--text)]">{dateLabel(document.createdAt)}</span>
-                                    </div>
-                                </div>
-                            </AppCard>
-
-                            {/* Client & Project */}
-                            <AppCard className="overflow-hidden p-0">
-                                <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
-                                    <UserRound size={14} className="text-[var(--text-muted)]" />
-                                    <h2 className="text-xs font-semibold">Client &amp; project</h2>
-                                </div>
-                                <div className="divide-y divide-[var(--border)] text-xs">
-                                    <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-[var(--text-muted)]">Client</span>
-                                        <span className="font-semibold text-[var(--text)]">{document.client?.name || '-'}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-[var(--text-muted)]">CIN</span>
-                                        <span className="font-semibold text-[var(--text)]">{document.client?.cin || '-'}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-[var(--text-muted)]">Dossier</span>
-                                        <span className="font-semibold text-[var(--text)]">{document.dossier?.number || '-'}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-[var(--text-muted)]">Project</span>
-                                        <span className="font-semibold text-[var(--text)]">{document.dossier?.projectObject || '-'}</span>
-                                    </div>
-                                </div>
-                                <div className="flex gap-2 border-t border-[var(--border)] p-3">
-                                    <AppButton
-                                        variant="flat"
-                                        color="primary"
-                                        className="flex-1"
-                                        size="sm"
-                                        startContent={<UserRound size={14} />}
-                                        endContent={<ArrowRight size={13} className="text-[var(--text-muted)]" />}
-                                        onPress={() => document.client?.id ? router.visit(`/clients/${document.client.id}`) : router.visit('/clients')}
-                                    >
-                                        Client
-                                    </AppButton>
-                                    <AppButton
-                                        variant="flat"
-                                        color="primary"
-                                        className="flex-1"
-                                        size="sm"
-                                        startContent={<FileText size={14} />}
-                                        endContent={<ArrowRight size={13} className="text-[var(--text-muted)]" />}
-                                        onPress={() => document.dossier?.id ? router.visit(`/dossiers/${document.dossier.id}`) : router.visit('/dossiers')}
-                                    >
-                                        Project
-                                    </AppButton>
-                                </div>
-                            </AppCard>
+                            <FinanceSidebarActions
+                                document={document}
+                                isProcessing={false}
+                                onGenerate={() => putAction(document.generateUrl, 'Document generated.')}
+                                onDownloadPdf={() => document.pdfDownloadUrl ? download(document.pdfDownloadUrl) : putAction(document.generatePdfUrl, 'PDF generated.')}
+                                onDownloadExcel={() => document.excelDownloadUrl ? download(document.excelDownloadUrl) : putAction(document.generateExcelUrl, 'Excel generated.')}
+                                onAcceptQuote={() => putAction(document.acceptUrl, 'Quote accepted.')}
+                                onRejectQuote={() => putAction(document.rejectUrl, 'Quote rejected.')}
+                                onConvertToInvoice={() => postAction(document.convertToInvoiceUrl, 'Invoice created.')}
+                                onCancel={() => putAction(document.cancelUrl, 'Document cancelled.')}
+                                onDelete={deleteDocument}
+                            />
+                            <FinanceSidebarDetails document={document} />
+                            <FinanceSidebarClientProject document={document} />
                         </aside>
                     </section>
                 </div>
@@ -530,7 +358,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                     Delete <strong>{document.number}</strong>? This action cannot be undone.
                 </p>
                 <div className="flex justify-end gap-2">
-                    <AppButton variant="secondary" onPress={() => setShowDeleteConfirm(false)}>Cancel</AppButton>
+                    <AppButton variant="bordered" onPress={() => setShowDeleteConfirm(false)}>Cancel</AppButton>
                     <AppButton variant="danger" onPress={confirmDelete}>Delete</AppButton>
                 </div>
             </AppModal>

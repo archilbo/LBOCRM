@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import { AppCard } from '@/components/ui/AppCard';
 import type { FinanceMonthSummary } from '@/features/finance/types';
-import { formatMoney } from '@/features/finance/utils/calculations';
+import { formatCompactMoney } from '@/features/finance/utils/calculations';
 
 type CashFlowChartProps = {
     monthlySummaries: FinanceMonthSummary[];
@@ -27,7 +27,7 @@ function CustomTooltip({ active, payload, label, currency }: { active?: boolean;
                     <div key={entry.name} className="flex items-center gap-2">
                         <span className="inline-block size-2.5 rounded" style={{ backgroundColor: entry.fill }} />
                         <span className="text-[var(--text-muted)]">{entry.name}</span>
-                        <span className="ml-auto font-semibold">{formatMoney(entry.value, currency)}</span>
+                        <span className="ml-auto font-semibold">{formatCompactMoney(entry.value, currency)}</span>
                     </div>
                 ))}
             </div>
@@ -68,7 +68,7 @@ export function CashFlowChart({ monthlySummaries, currency }: CashFlowChartProps
                         <span className="inline-block size-2.5 rounded-sm bg-rose-500" /> Depenses
                     </span>
                     <span className="text-xs text-[var(--text-muted)]">
-                        Solde: <span className="font-semibold text-[var(--text)]">{formatMoney(totalPaid - totalExp, currency)}</span>
+                        Solde: <span className="font-semibold text-[var(--text)]">{formatCompactMoney(totalPaid - totalExp, currency)}</span>
                     </span>
                 </div>
             </div>

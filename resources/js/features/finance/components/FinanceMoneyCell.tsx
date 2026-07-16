@@ -1,4 +1,4 @@
-﻿import { formatMoney } from '@/features/finance/utils/calculations';
+﻿import { formatCompactMoney } from '@/features/finance/utils/calculations';
 
 export function FinanceMoneyCell({ value, currency = 'MAD', tone = 'default' }: { value: number; currency?: string; tone?: 'default' | 'success' | 'danger' }) {
     const toneClass = tone === 'success'
@@ -9,7 +9,7 @@ export function FinanceMoneyCell({ value, currency = 'MAD', tone = 'default' }: 
 
     return (
         <span className={`whitespace-nowrap font-mono text-sm font-semibold tabular-nums ${toneClass}`}>
-            {formatMoney(value, currency)}
+            {formatCompactMoney(value, currency)}
         </span>
     );
 }

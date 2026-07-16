@@ -24,6 +24,7 @@ use App\Http\Controllers\Finance\FinanceDocumentController;
 use App\Http\Controllers\Finance\FinanceSettingsController;
 use App\Http\Controllers\Finance\CompanyLogoController;
 use App\Http\Controllers\Finance\ExpenseController;
+use App\Http\Controllers\Finance\MonthlySummaryExportController;
 use App\Http\Controllers\Finance\PaymentController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\IntermediaryController;
@@ -104,6 +105,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/authorizations/{authorization}', [AuthorizationController::class, 'destroy'])->name('authorizations.destroy');
 
     Route::get('/finance', [FinanceDocumentController::class, 'index'])->name('finance.index');
+    Route::get('/finance/monthly-summary/export-pdf', [MonthlySummaryExportController::class, 'exportPdf'])->name('finance.monthly-summary.export-pdf');
+    Route::get('/finance/monthly-summary/export-excel', [MonthlySummaryExportController::class, 'exportExcel'])->name('finance.monthly-summary.export-excel');
+    Route::get('/finance/monthly-summary/export-csv', [MonthlySummaryExportController::class, 'exportCsv'])->name('finance.monthly-summary.export-csv');
     Route::post('/finance', [FinanceController::class, 'store'])->name('finance.store');
     Route::put('/finance/{financeRecord}', [FinanceController::class, 'update'])->name('finance.update');
     Route::put('/finance/{financeRecord}/paid', [FinanceController::class, 'markPaid'])->name('finance.paid');

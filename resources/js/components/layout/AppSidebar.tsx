@@ -572,7 +572,7 @@ export function AppSidebar() {
                                 </span>
                             </button>
                             {showFinanceChildren ? (
-                                <div className="ml-0.5 mt-0.5 space-y-0.5 border-l border-border pl-2">
+                                <div className="ml-[22px] mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
                                     {financeChildren.map(({ key, labelKey }) => {
                                         const cr = routeMap.get(key);
                                         if (!cr || !cr.enabled) return null;

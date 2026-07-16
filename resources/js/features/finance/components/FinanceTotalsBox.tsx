@@ -1,5 +1,5 @@
 ﻿import { AppCard } from '@/components/ui/AppCard';
-import { formatMoney } from '@/features/finance/utils/calculations';
+import { formatCompactMoney } from '@/features/finance/utils/calculations';
 
 type FinanceTotalsBoxProps = {
     subtotalHt: number;
@@ -17,13 +17,13 @@ export function FinanceTotalsBox({ subtotalHt, discountTotal, taxTotal, totalTtc
     return (
         <AppCard className="p-4">
             <div className="space-y-2 text-sm">
-                <Row label="Sous-total HT" value={formatMoney(subtotalHt, currency)} />
-                <Row label="Remise document" value={`-${formatMoney(discountTotal, currency)}`} muted />
-                <Row label="TVA" value={formatMoney(taxTotal, currency)} />
+                <Row label="Sous-total HT" value={formatCompactMoney(subtotalHt, currency)} />
+                <Row label="Remise document" value={`-${formatCompactMoney(discountTotal, currency)}`} muted />
+                <Row label="TVA" value={formatCompactMoney(taxTotal, currency)} />
                 <div className="my-2 border-t" />
-                <Row label="Total TTC" value={formatMoney(totalTtc, currency)} strong />
-                <Row label="Paye" value={formatMoney(paidTotal, currency)} />
-                <Row label="Restant" value={formatMoney(remaining, currency)} strong danger={remaining > 0} />
+                <Row label="Total TTC" value={formatCompactMoney(totalTtc, currency)} strong />
+                <Row label="Paye" value={formatCompactMoney(paidTotal, currency)} />
+                <Row label="Restant" value={formatCompactMoney(remaining, currency)} strong danger={remaining > 0} />
             </div>
         </AppCard>
     );

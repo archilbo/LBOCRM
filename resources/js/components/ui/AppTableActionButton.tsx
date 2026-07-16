@@ -1,7 +1,7 @@
 ﻿import { ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { cn } from '@/lib/cn';
-import { AppTooltip } from '@/components/ui/AppTooltip';
+import { Tooltip } from '@heroui/react';
 
 type AppTableActionTone = 'view' | 'edit' | 'documents' | 'create' | 'archive' | 'delete';
 
@@ -30,7 +30,7 @@ export function AppTableActionButton({
     isDisabled,
 }: AppTableActionButtonProps) {
     return (
-        <AppTooltip label={label}>
+        <Tooltip delay={500}>
             <Button
                 aria-label={label}
                 isDisabled={isDisabled}
@@ -44,6 +44,7 @@ export function AppTableActionButton({
             >
                 {children}
             </Button>
-        </AppTooltip>
+            <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">{label}</Tooltip.Content>
+        </Tooltip>
     );
 }

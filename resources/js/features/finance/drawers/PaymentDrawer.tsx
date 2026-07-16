@@ -10,7 +10,7 @@ import { AppSelect } from '@/components/ui/AppSelect';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppTextarea } from '@/components/ui/AppTextarea';
 import type { FinanceDocument } from '@/features/finance/types';
-import { formatMoney, normalizeNumber } from '@/features/finance/utils/calculations';
+import { formatCompactMoney, normalizeNumber } from '@/features/finance/utils/calculations';
 
 type PaymentDrawerProps = {
     isOpen: boolean;
@@ -169,7 +169,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice }: Payme
                         placeholder="Choisir une facture"
                         options={payableInvoices.map((item) => ({
                             id: String(item.id),
-                            label: `${item.number} - ${formatMoney(item.remainingTotal, item.currency)} restant`,
+                            label: `${item.number} - ${formatCompactMoney(item.remainingTotal, item.currency)} restant`,
                         }))}
                         selectedKey={form.financeDocumentId || null}
                         onSelectionChange={(key) => {
@@ -190,9 +190,9 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice }: Payme
                                 {activeInvoice.number}
                             </div>
                             <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                                <p>Total TTC: <strong>{formatMoney(activeInvoice.totalTtc, activeInvoice.currency)}</strong></p>
-                                <p>Paye: <strong>{formatMoney(activeInvoice.paidTotal, activeInvoice.currency)}</strong></p>
-                                <p>Restant: <strong>{formatMoney(activeInvoice.remainingTotal, activeInvoice.currency)}</strong></p>
+                                <p>Total TTC: <strong>{formatCompactMoney(activeInvoice.totalTtc, activeInvoice.currency)}</strong></p>
+                                <p>Paye: <strong>{formatCompactMoney(activeInvoice.paidTotal, activeInvoice.currency)}</strong></p>
+                                <p>Restant: <strong>{formatCompactMoney(activeInvoice.remainingTotal, activeInvoice.currency)}</strong></p>
                             </div>
                         </div>
                     ) : null}
@@ -237,8 +237,8 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice }: Payme
                                 Resultat apres paiement
                             </div>
                             <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                                <p>Paiement: <strong>{formatMoney(amount, activeInvoice.currency)}</strong></p>
-                                <p>Reste apres: <strong>{formatMoney(remainingAfter, activeInvoice.currency)}</strong></p>
+                                <p>Paiement: <strong>{formatCompactMoney(amount, activeInvoice.currency)}</strong></p>
+                                <p>Reste apres: <strong>{formatCompactMoney(remainingAfter, activeInvoice.currency)}</strong></p>
                                 <p>Statut: <strong>{isFullPayment ? 'Paiement complet' : 'Paiement partiel'}</strong></p>
                             </div>
                         </div>

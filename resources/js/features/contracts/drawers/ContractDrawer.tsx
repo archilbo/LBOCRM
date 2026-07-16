@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import type { Key } from 'react-aria-components';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
-import { AppButton } from '@/components/ui/AppButton';
+import { Button } from '@heroui/react';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -40,15 +40,15 @@ const emptyForm: ContractFormPayload = {
 };
 
 const statusOptions = [
-    { id: 'draft', label: 'Draft' },
-    { id: 'generated', label: 'Generated' },
-    { id: 'signed', label: 'Signed' },
-    { id: 'cancelled', label: 'Cancelled' },
+    { id: 'draft', label: 'Brouillon' },
+    { id: 'generated', label: 'Genere' },
+    { id: 'signed', label: 'Signe' },
+    { id: 'cancelled', label: 'Annule' },
 ];
 
 const calculationModeOptions = [
-    { id: 'percentage', label: 'Percentage 0.5% / 2%' },
-    { id: 'forfait', label: 'FORFAIT - enter TTC' },
+    { id: 'percentage', label: 'Pourcentage 0.5% / 2%' },
+    { id: 'forfait', label: 'FORFAIT - saisir TTC' },
 ];
 
 const feeRateOptions = [
@@ -57,9 +57,9 @@ const feeRateOptions = [
 ];
 
 const createSteps = [
-    { key: 'project', label: 'Project' },
-    { key: 'calculation', label: 'Calculation' },
-    { key: 'review', label: 'Review' },
+    { key: 'project', label: 'Projet' },
+    { key: 'calculation', label: 'Calcul' },
+    { key: 'review', label: 'Revision' },
 ];
 
 function parseAmount(value: string): number {
@@ -94,7 +94,7 @@ export function ContractDrawer({
                 id: dossier.id,
                 label:
                     mode === 'create' && dossier.hasContract
-                        ? `${dossier.label} - already has contract`
+                        ? `${dossier.label} - contrat existant`
                         : dossier.label,
             })),
         [dossiers, mode],
@@ -170,19 +170,19 @@ export function ContractDrawer({
                     <section>
                         <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
                             <span className="flex size-6 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[11px] font-bold text-[var(--accent)]">1</span>
-                            Project and status
+                            Projet et statut
                         </h3>
                         <div className="grid gap-4">
                             <AppSelect
-                                label="Dossier / Project"
-                                placeholder="Select dossier"
+                                label="Dossier / Projet"
+                                placeholder="Selectionner un dossier"
                                 selectedKey={form.dossierId}
                                 onSelectionChange={(value) => updateSelect('dossierId', value)}
                                 options={dossierOptions}
                                 error={firstError(errors, 'dossier_id')}
                             />
                             <AppSelect
-                                label="Status"
+                                label="Statut"
                                 selectedKey={form.status}
                                 onSelectionChange={(value) => updateSelect('status', value)}
                                 options={statusOptions}
@@ -194,11 +194,11 @@ export function ContractDrawer({
                     <section>
                         <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
                             <span className="flex size-6 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[11px] font-bold text-[var(--accent)]">2</span>
-                            Calculation
+                            Calcul des honoraires
                         </h3>
                         <div className="grid gap-4">
                             <AppSelect
-                                label="Calculation mode"
+                                label="Mode de calcul"
                                 selectedKey={form.calculationMode}
                                 onSelectionChange={(value) => updateSelect('calculationMode', value)}
                                 options={calculationModeOptions}
@@ -212,12 +212,12 @@ export function ContractDrawer({
                                     step="0.01"
                                     value={form.forfaitTtc}
                                     onChange={(value) => updateField('forfaitTtc', value)}
-                                    description="Enter only the final TTC amount. HT and TVA are calculated automatically."
+                                    description="Saisissez le montant TTC final. HT et TVA sont calcules automatiquement."
                                     error={firstError(errors, 'forfait_ttc')}
                                 />
                             ) : (
                                 <AppSelect
-                                    label="Contract rate"
+                                    label="Taux d'honoraires"
                                     selectedKey={form.feeRatePercent}
                                     onSelectionChange={(value) => updateSelect('feeRatePercent', value)}
                                     options={feeRateOptions}
@@ -227,7 +227,7 @@ export function ContractDrawer({
                         </div>
                         <div className="mt-4 grid gap-4 md:grid-cols-2">
                             <AppTextField
-                                label="Surface"
+                                label="Surface (m2)"
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -236,7 +236,7 @@ export function ContractDrawer({
                                 error={firstError(errors, 'surface')}
                             />
                             <AppTextField
-                                label="Price / m2"
+                                label="Prix / m2"
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -268,18 +268,18 @@ export function ContractDrawer({
             case 0:
                 return (
                     <section>
-                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Select project and set initial status</h3>
+                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Selectionnez le projet et le statut initial</h3>
                         <div className="grid gap-4">
                             <AppSelect
-                                label="Dossier / Project"
-                                placeholder="Select dossier"
+                                label="Dossier / Projet"
+                                placeholder="Selectionner un dossier"
                                 selectedKey={form.dossierId}
                                 onSelectionChange={(value) => updateSelect('dossierId', value)}
                                 options={dossierOptions}
                                 error={firstError(errors, 'dossier_id')}
                             />
                             <AppSelect
-                                label="Status"
+                                label="Statut"
                                 selectedKey={form.status}
                                 onSelectionChange={(value) => updateSelect('status', value)}
                                 options={statusOptions}
@@ -291,10 +291,10 @@ export function ContractDrawer({
             case 1:
                 return (
                     <section>
-                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Configure calculation parameters</h3>
+                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Configurez les parametres de calcul</h3>
                         <div className="grid gap-4">
                             <AppSelect
-                                label="Calculation mode"
+                                label="Mode de calcul"
                                 selectedKey={form.calculationMode}
                                 onSelectionChange={(value) => updateSelect('calculationMode', value)}
                                 options={calculationModeOptions}
@@ -308,12 +308,12 @@ export function ContractDrawer({
                                     step="0.01"
                                     value={form.forfaitTtc}
                                     onChange={(value) => updateField('forfaitTtc', value)}
-                                    description="Enter only the final TTC amount. HT and TVA are calculated automatically."
+                                    description="Saisissez le montant TTC final. HT et TVA sont calcules automatiquement."
                                     error={firstError(errors, 'forfait_ttc')}
                                 />
                             ) : (
                                 <AppSelect
-                                    label="Contract rate"
+                                    label="Taux d'honoraires"
                                     selectedKey={form.feeRatePercent}
                                     onSelectionChange={(value) => updateSelect('feeRatePercent', value)}
                                     options={feeRateOptions}
@@ -323,7 +323,7 @@ export function ContractDrawer({
                         </div>
                         <div className="mt-4 grid gap-4 md:grid-cols-2">
                             <AppTextField
-                                label="Surface"
+                                label="Surface (m2)"
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -332,7 +332,7 @@ export function ContractDrawer({
                                 error={firstError(errors, 'surface')}
                             />
                             <AppTextField
-                                label="Price / m2"
+                                label="Prix / m2"
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -347,17 +347,17 @@ export function ContractDrawer({
             case 2:
                 return (
                     <section>
-                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Review and confirm</h3>
+                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Revisez et confirmez</h3>
 
                         <div className="mb-4 space-y-3">
                             <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                                <span className="text-xs text-[var(--text-muted)]">Project</span>
+                                <span className="text-xs text-[var(--text-muted)]">Projet</span>
                                 <span className="text-[13px] font-medium text-[var(--foreground)]">
                                     {dossiers.find((d) => d.id === form.dossierId)?.label || form.dossierId || '-'}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                                <span className="text-xs text-[var(--text-muted)]">Status</span>
+                                <span className="text-xs text-[var(--text-muted)]">Statut</span>
                                 <span className="text-[13px] font-medium capitalize text-[var(--foreground)]">{form.status}</span>
                             </div>
                             <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
@@ -391,8 +391,8 @@ export function ContractDrawer({
         if (mode === 'edit') {
             return (
                 <>
-                    <AppButton variant="secondary" onPress={() => onOpenChange(false)} isDisabled={isSubmitting}>Cancel</AppButton>
-                    <AppButton variant="primary" type="submit" form="contract-form" isLoading={isSubmitting}>Save changes</AppButton>
+                    <Button variant="bordered" color="default" onPress={() => onOpenChange(false)} isDisabled={isSubmitting}>Annuler</Button>
+                    <Button variant="solid" color="primary" type="submit" form="contract-form" isLoading={isSubmitting}>Enregistrer</Button>
                 </>
             );
         }
@@ -400,18 +400,18 @@ export function ContractDrawer({
         return (
             <>
                 {step > 0 ? (
-                    <AppButton variant="secondary" onPress={handleBack} isDisabled={isSubmitting}>
-                        <ChevronLeft size={15} /> Back
-                    </AppButton>
+                    <Button variant="bordered" color="default" onPress={handleBack} isDisabled={isSubmitting}>
+                        <ChevronLeft size={15} /> Retour
+                    </Button>
                 ) : <div />}
                 {isLastStep ? (
-                    <AppButton variant="primary" type="submit" form="contract-form" isLoading={isSubmitting}>
-                        <Check size={15} /> {isSubmitting ? 'Creating...' : 'Create contract'}
-                    </AppButton>
+                    <Button variant="solid" color="primary" type="submit" form="contract-form" isLoading={isSubmitting}>
+                        <Check size={15} /> {isSubmitting ? 'Creation...' : 'Creer le contrat'}
+                    </Button>
                 ) : (
-                    <AppButton variant="primary" onPress={handleNext} isDisabled={isSubmitting}>
-                        Next <ChevronRight size={15} />
-                    </AppButton>
+                    <Button variant="solid" color="primary" onPress={handleNext} isDisabled={isSubmitting}>
+                        Suivant <ChevronRight size={15} />
+                    </Button>
                 )}
             </>
         );
@@ -421,8 +421,8 @@ export function ContractDrawer({
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            title={mode === 'create' ? 'Create contract' : 'Edit contract'}
-            description={mode === 'create' ? 'Set up a new contract calculation in a few steps.' : 'Update contract details and recalculate amounts.'}
+            title={mode === 'create' ? 'Nouveau contrat' : 'Modifier le contrat'}
+            description={mode === 'create' ? 'Configurez un nouveau contrat en quelques etapes.' : 'Mettez a jour les details et recalculez les montants.'}
             footer={drawerFooter()}
         >
             <form id="contract-form" className="flex flex-col gap-6" onSubmit={handleSubmit}>
@@ -466,7 +466,7 @@ export function ContractDrawer({
 function CalculationSummary({ ht, tva, ttc }: { ht: number; tva: number; ttc: number }) {
     return (
         <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Summary</p>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Resume</p>
             <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-lg bg-[var(--surface-2)] p-3">
                     <p className="text-[10px] text-[var(--text-muted)]">HT</p>

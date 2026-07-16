@@ -1,9 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    ArrowDownToLine,
     ArrowUpDown,
-    BadgeDollarSign,
     Check,
     CheckCircle2,
+    CircleDollarSign,
     Download,
     EllipsisVertical,
     Eye,
@@ -15,6 +16,8 @@ import {
     ReceiptText,
     Search,
     Settings2,
+    ShoppingCart,
+    Timer,
     Trash2,
     WalletCards,
     WandSparkles,
@@ -26,22 +29,22 @@ import { TabPanel } from 'react-aria-components';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { Tooltip } from '@heroui/react';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppPagination } from '@/components/ui/AppPagination';
 import { type FinanceMetrics } from '@/features/finance/components/FinanceMetricCards';
 import { calculateAgingBuckets, type AgingBucket } from '@/features/finance/utils/calculations';
+import { TreasuryDashboard } from '@/features/finance/components/TreasuryDashboard';
 import { FinanceMonthlySummary } from '@/features/finance/components/FinanceMonthlySummary';
 import { FinanceDocumentLockBadge, getFinanceDocumentLockedAt } from '@/features/finance/components/FinanceDocumentLockNotice';
-import { FinanceStatusBadge } from '@/features/finance/components/FinanceStatusBadge';
 import { FinanceTabs } from '@/features/finance/components/FinanceTabs';
 import { FinanceDocumentBuilderDrawer } from '@/features/finance/drawers/FinanceDocumentBuilderDrawer';
 import { PaymentDrawer } from '@/features/finance/drawers/PaymentDrawer';
 import { MetricSparklineCard } from '@/features/finance/components/MetricSparklineCard';
-import { CashFlowChart } from '@/features/finance/components/CashFlowChart';
 import { ExpensesWorkspace } from '@/features/finance/components/ExpensesWorkspace';
-import { ExpenseDrawer } from '@/features/finance/drawers/ExpenseDrawer';
+import { ExpenseDrawer, type ExpenseViewMode } from '@/features/finance/drawers/ExpenseDrawer';
 import type {
     ClientOption,
     DossierOption,
@@ -64,6 +67,8 @@ const defaultSettings: FinanceSettings = {
     companyInfo: {},
     bankInfo: {},
 };
+
+const docShowUrl = (id: number) => `/finance/documents/${id}?from=${new URLSearchParams(window.location.search).get('tab') || 'overview'}`;
 
 type Paginated<T> = {
     data: T[] | Paginated<T>;
@@ -110,11 +115,27 @@ function unwrap<T>(value?: Paginated<T> | T[] | { data?: unknown }): T[] {
 }
 
 function formatMoney(value: number | null | undefined, currency = 'MAD') {
+    const num = value || 0;
+    const abs = Math.abs(num);
+
+    if (abs >= 1_000_000_000_000) {
+        return `${(num / 1_000_000_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} T ${currency}`;
+    }
+    if (abs >= 1_000_000_000) {
+        return `${(num / 1_000_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mrd ${currency}`;
+    }
+    if (abs >= 1_000_000) {
+        return `${(num / 1_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M ${currency}`;
+    }
+    if (abs >= 1_000) {
+        return `${(num / 1_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} K ${currency}`;
+    }
+
     return new Intl.NumberFormat('fr-MA', {
         style: 'currency',
         currency,
         maximumFractionDigits: 0,
-    }).format(value || 0);
+    }).format(num);
 }
 
 function statusClass(status: string | undefined | null) {
@@ -553,7 +574,7 @@ function FinanceDocumentWorkspace({
                                 return (
                                     <tr
                                         key={document.id}
-                                        onClick={() => onSelect(document)}
+                            onClick={() => router.visit(docShowUrl(document.id))}
                                         className={`group cursor-pointer border-b border-[var(--border)] text-xs transition last:border-0 ${
                                             rowSelected
                                                 ? 'bg-[color-mix(in_srgb,var(--accent)_6%,transparent)]'
@@ -595,16 +616,25 @@ function FinanceDocumentWorkspace({
                                         </td>
                                         <td className="px-3 py-2">
                                             <div className="flex justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                                                <button type="button" className="flex size-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Open" onClick={(e) => { e.stopPropagation(); router.visit(`/finance/documents/${document.id}`); }}>
-                                                    <Eye size={13} />
-                                                </button>
-                                                <button type="button" className="flex size-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Edit" onClick={(e) => { e.stopPropagation(); actions.onEdit(document); }}>
-                                                    <Pencil size={13} />
-                                                </button>
+                                                <Tooltip delay={500}>
+                                                    <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => router.visit(docShowUrl(document.id))}>
+                                                        <Eye size={13} />
+                                                    </AppButton>
+                                                    <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Open</Tooltip.Content>
+                                                </Tooltip>
+                                                <Tooltip delay={500}>
+                                                    <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => actions.onEdit(document)}>
+                                                        <Pencil size={13} />
+                                                    </AppButton>
+                                                    <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Edit</Tooltip.Content>
+                                                </Tooltip>
                                                 <div className="relative group/more">
-                                                    <button type="button" className="flex size-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="More" onClick={(e) => e.stopPropagation()}>
-                                                        <EllipsisVertical size={13} />
-                                                    </button>
+                                                    <Tooltip delay={500}>
+                                                        <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+                                                            <EllipsisVertical size={13} />
+                                                        </AppButton>
+                                                        <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">More</Tooltip.Content>
+                                                    </Tooltip>
                                                     <div className="absolute right-0 top-full z-20 mt-0.5 hidden w-44 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg group-hover/more:block group-focus-within/more:block">
                                                         <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onGeneratePdf(document); }}>
                                                             <FileText size={12} /> Generate PDF
@@ -676,7 +706,7 @@ function FinanceDocumentWorkspace({
                             <span className="text-[var(--text-muted)]">Due <span className={`font-semibold ${document.remainingTotal > 0 ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>{formatMoney(document.remainingTotal, currency)}</span></span>
                         </div>
                         <div className="flex gap-1.5">
-                            <button type="button" className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]" onClick={(e) => { e.stopPropagation(); router.visit(`/finance/documents/${document.id}`); }}>Open</button>
+                            <button type="button" className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]" onClick={(e) => { e.stopPropagation(); router.visit(docShowUrl(document.id)); }}>Open</button>
                             <div className="relative group/more">
                                 <button type="button" className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]" onClick={(e) => e.stopPropagation()}>
                                     <EllipsisVertical size={13} />
@@ -737,100 +767,194 @@ function PaymentWorkspace({
     useEffect(() => { setTablePage(1); }, [query]);
     const pagedFiltered = useMemo(() => filtered.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE), [filtered, tablePage]);
 
-    return (
-        <section className="space-y-4">
-            <AppCard className="p-2.5">
-                <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
-                        <p className="text-xs font-semibold">Payment workspace</p>
-                        <p className="text-[11px] text-[var(--text-muted)]">{filtered.length} visible payment(s)</p>
-                    </div>
+    const totalAmount = useMemo(() => filtered.reduce((s, p) => s + p.amount, 0), [filtered]);
 
-                    <div className="relative w-full xl:w-[320px]">
+    return (
+        <section className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                    <div className="relative w-[200px]">
                         <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
                             placeholder="Search payments, invoices, clients..."
-                            className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-8 pr-8 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
+                            className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                         />
+                        {query && (
+                            <button
+                                type="button"
+                                onClick={() => setQuery('')}
+                                className="absolute right-0.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
+                            >
+                                <X size={11} />
+                            </button>
+                        )}
                     </div>
                 </div>
-            </AppCard>
 
-            <AppCard className="overflow-hidden p-0">
-                <div className="app-scrollbar overflow-x-auto">
-                    <table className="w-full text-xs">
-                        <thead>
-                            <tr className="border-b border-[var(--border)] text-left text-[11px] text-[var(--text-muted)]">
-                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Payment</th>
-                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Invoice</th>
-                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Client</th>
-                                <th className="px-3 py-2 font-semibold uppercase tracking-wider text-right">Amount</th>
-                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Method</th>
-                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Date</th>
-                                <th className="px-3 py-2 font-semibold uppercase tracking-wider">Receipt</th>
-                                <th className="px-3 py-2 font-semibold uppercase tracking-wider text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.length > 0 ? (
-                                pagedFiltered.map((payment) => (
-                                    <tr key={payment.id} className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
-                                        <td className="px-3 py-2 font-semibold text-[var(--text)]">{payment.paymentNumber}</td>
-                                        <td className="px-3 py-2 text-[var(--text)]">{payment.document?.number || '-'}</td>
-                                        <td className="px-3 py-2 text-[var(--text)]">{payment.client?.name || '-'}</td>
-                                        <td className="px-3 py-2 text-right font-semibold text-emerald-400">{formatMoney(payment.amount, currency)}</td>
-                                        <td className="px-3 py-2 text-[var(--text-muted)]">{payment.method || '-'}</td>
-                                        <td className="px-3 py-2 text-[var(--text-muted)]">{payment.paidAt || '-'}</td>
-                                        <td className="px-3 py-2">
-                                            {payment.receipt ? (
-                                                <div>
-                                                    <p className="text-xs font-semibold text-[var(--text)]">{payment.receipt.number}</p>
-                                                    <p className="text-[11px] text-[var(--text-muted)]">{payment.receipt.status}</p>
-                                                </div>
-                                            ) : (
-                                                <span className="text-[var(--text-muted)]">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            {payment.receipt ? (
-                                                <div className="flex justify-end gap-0.5">
-                                                    <AppButton variant="secondary" size="sm" onPress={() => onReceipt(payment.receipt?.urls.show)}>
-                                                        <Eye size={13} />
+                <div className="ml-auto hidden text-[11px] font-medium text-[var(--text-muted)] md:block">
+                    {filtered.length} paiement{filtered.length !== 1 ? 's' : ''} · {formatMoney(totalAmount, currency)}
+                </div>
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                            <th className="px-3 py-2">
+                                <span className="inline-flex items-center gap-1.5">
+                                    <CircleDollarSign size={11} />
+                                    Payment
+                                </span>
+                            </th>
+                            <th className="px-3 py-2">
+                                <span className="inline-flex items-center gap-1.5">
+                                    <ReceiptText size={11} />
+                                    Invoice / Client
+                                </span>
+                            </th>
+                            <th className="px-3 py-2 text-right">Amount</th>
+                            <th className="px-3 py-2">Receipt</th>
+                            <th className="w-24 px-3 py-2 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {pagedFiltered.length > 0 ? (
+                            pagedFiltered.map((payment) => (
+                                <tr key={payment.id} className="group cursor-pointer border-b border-[var(--border)] text-xs transition hover:bg-[var(--surface-2)] last:border-0">
+                                    <td className="px-3 py-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
+                                                <CircleDollarSign size={12} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-semibold text-[var(--text)]">{payment.paymentNumber}</p>
+                                                <p className="text-[10px] text-[var(--text-muted)]">
+                                                    {payment.paidAt || '-'}
+                                                    {payment.method ? <><span className="mx-1">·</span>{payment.method}</> : null}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-3 py-2">
+                                        <p className="max-w-[180px] truncate text-xs font-medium text-[var(--text)]">{payment.document?.number || '-'}</p>
+                                        <p className="max-w-[180px] truncate text-[10px] text-[var(--text-muted)]">{payment.client?.name || '-'}</p>
+                                    </td>
+                                    <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums text-emerald-400">{formatMoney(payment.amount, currency)}</td>
+                                    <td className="px-3 py-2">
+                                        {payment.receipt ? (
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="inline-block size-1.5 rounded-full bg-emerald-400" />
+                                                <span className="text-[11px] font-medium text-[var(--text)]">{payment.receipt.number}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-[11px] text-[var(--text-muted)]">—</span>
+                                        )}
+                                    </td>
+                                    <td className="px-3 py-2">
+                                        <div className="flex justify-end gap-0.5">
+                                            {payment.receipt?.urls?.show ? (
+                                                <Tooltip delay={500}>
+                                                    <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.show)}>
+                                                        <Eye size={11} />
                                                     </AppButton>
-                                                    <AppButton variant="secondary" size="sm" onPress={() => onReceipt(payment.receipt?.urls.pdf || payment.receipt?.urls.download)}>
-                                                        <FileText size={13} />
+                                                    <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Voir le reçu</Tooltip.Content>
+                                                </Tooltip>
+                                            ) : null}
+                                            {payment.receipt?.urls?.pdf ? (
+                                                <Tooltip delay={500}>
+                                                    <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.pdf)}>
+                                                        <FileText size={11} />
                                                     </AppButton>
-                                                    <AppButton variant="secondary" size="sm" onPress={() => onReceipt(payment.receipt?.urls.excel)}>
-                                                        <FileSpreadsheet size={13} />
+                                                    <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Télécharger PDF</Tooltip.Content>
+                                                </Tooltip>
+                                            ) : null}
+                                            {payment.receipt?.urls?.excel ? (
+                                                <Tooltip delay={500}>
+                                                    <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.excel)}>
+                                                        <FileSpreadsheet size={11} />
                                                     </AppButton>
-                                                </div>
-                                            ) : (
-                                                <span className="text-[11px] text-[var(--text-muted)]">No receipt</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={8}>
-                                        <div className="py-8 text-center">
-                                            <p className="text-xs font-semibold text-[var(--text)]">No payments found</p>
-                                            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Register a payment from an invoice.</p>
+                                                    <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Télécharger Excel</Tooltip.Content>
+                                                </Tooltip>
+                                            ) : null}
+                                            {!payment.receipt?.urls?.show && !payment.receipt?.urls?.pdf && !payment.receipt?.urls?.excel ? (
+                                                <span className="text-[10px] text-[var(--text-muted)]">—</span>
+                                            ) : null}
                                         </div>
                                     </td>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </AppCard>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={5} className="p-6 text-center">
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <WalletCards size={24} className="text-[var(--text-muted)]" />
+                                        <p className="text-xs font-semibold text-[var(--text)]">Aucun paiement trouvé</p>
+                                        <p className="text-[11px] text-[var(--text-muted)]">Enregistrez un paiement depuis une facture.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="divide-y divide-[var(--border)] md:hidden">
+                {pagedFiltered.length > 0 ? (
+                    pagedFiltered.map((payment) => (
+                        <div key={payment.id} className="space-y-2.5 p-3">
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
+                                        <CircleDollarSign size={12} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-xs font-semibold text-[var(--text)]">{payment.paymentNumber}</p>
+                                        <p className="truncate text-[11px] text-[var(--text-muted)]">{payment.paidAt || '-'} / {payment.method || '-'}</p>
+                                    </div>
+                                </div>
+                                <span className="shrink-0 text-xs font-semibold tabular-nums text-emerald-400">{formatMoney(payment.amount, currency)}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                <span className="text-[var(--text-muted)]">Invoice <span className="font-semibold text-[var(--text)]">{payment.document?.number || '-'}</span></span>
+                                <span className="text-[var(--text-muted)]">Client <span className="font-semibold text-[var(--text)]">{payment.client?.name || '-'}</span></span>
+                            </div>
+                            <div className="flex gap-1.5">
+                                {payment.receipt ? (
+                                    <>
+                                        {payment.receipt.urls?.show ? (
+                                            <AppButton variant="bordered" size="sm" className="flex-1 text-[11px]" onPress={() => onReceipt(payment.receipt?.urls?.show)}>View</AppButton>
+                                        ) : null}
+                                        {payment.receipt.urls?.pdf ? (
+                                            <AppButton variant="bordered" size="sm" className="flex-1 text-[11px]" onPress={() => onReceipt(payment.receipt?.urls?.pdf)}>PDF</AppButton>
+                                        ) : null}
+                                        {payment.receipt.urls?.excel ? (
+                                            <AppButton variant="bordered" size="sm" className="flex-1 text-[11px]" onPress={() => onReceipt(payment.receipt?.urls?.excel)}>Excel</AppButton>
+                                        ) : null}
+                                    </>
+                                ) : (
+                                    <span className="w-full py-1.5 text-center text-[11px] text-[var(--text-muted)]">No receipt</span>
+                                )}
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="flex flex-col items-center gap-1.5 px-4 py-12 text-center">
+                        <WalletCards size={24} className="text-[var(--text-muted)]" />
+                        <p className="text-xs font-semibold text-[var(--text)]">Aucun paiement trouvé</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">Enregistrez un paiement depuis une facture.</p>
+                    </div>
+                )}
+            </div>
 
             <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filtered.length} onChange={setTablePage} />
         </section>
     );
-}
+};
 
 function sparklineFor(months: FinanceMonthSummary[], field: (m: FinanceMonthSummary) => number): number[] {
     return [...months]
@@ -872,55 +996,73 @@ function OverviewWorkspace({
     }), [monthlySummaries]);
 
     return (
-        <section className="space-y-5">
-            <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <section className="space-y-4">
+            <section className="grid gap-4 grid-cols-2 md:grid-cols-3">
                 <MetricSparklineCard
-                    icon={<FileText size={20} />}
+                    icon={<FileText size={16} className="text-sky-400" />}
                     label="Quotes"
                     value={formatMoney(metrics.totalQuotes, currency)}
                     sparklineData={sparklines.quotes}
                     detail="Total devis TTC"
+                    metricType="revenue"
+                    fullValue={metrics.totalQuotes}
+                    currency={currency}
                 />
                 <MetricSparklineCard
-                    icon={<ReceiptText size={20} />}
+                    icon={<ReceiptText size={16} className="text-violet-400" />}
                     label="Invoices"
                     value={formatMoney(metrics.totalInvoices, currency)}
                     sparklineData={sparklines.invoices}
                     detail="Total factures TTC"
+                    metricType="revenue"
+                    fullValue={metrics.totalInvoices}
+                    currency={currency}
                 />
                 <MetricSparklineCard
-                    icon={<WalletCards size={20} />}
-                    label="Paid"
-                    value={formatMoney(metrics.paidTotal, currency)}
-                    sparklineData={sparklines.paid}
-                    detail="Collected invoices"
-                />
-                <MetricSparklineCard
-                    icon={<BadgeDollarSign size={20} />}
-                    label="Expenses"
-                    value={formatMoney(metrics.totalExpenses ?? 0, currency)}
-                    sparklineData={sparklines.expenses}
-                    detail="Total expenses"
-                />
-                <MetricSparklineCard
-                    icon={<BadgeDollarSign size={20} />}
+                    icon={<CircleDollarSign size={16} className="text-amber-400" />}
                     label="Remaining"
                     value={formatMoney(metrics.remainingTotal, currency)}
                     sparklineData={sparklines.remaining}
                     detail="Still to collect"
+                    metricType="revenue"
+                    fullValue={metrics.remainingTotal}
+                    currency={currency}
                 />
                 <MetricSparklineCard
-                    icon={<BadgeDollarSign size={20} />}
+                    icon={<Timer size={16} className="text-rose-400" />}
                     label="Overdue"
                     value={formatMoney(metrics.overdueTotal, currency)}
                     sparklineData={sparklines.overdue}
                     detail={`${metrics.draftCount} draft(s)`}
+                    metricType="overdue"
+                    fullValue={metrics.overdueTotal}
+                    currency={currency}
+                />
+                <MetricSparklineCard
+                    icon={<ArrowDownToLine size={16} className="text-emerald-400" />}
+                    label="Encaisse"
+                    value={formatMoney(metrics.paidTotal, currency)}
+                    sparklineData={sparklines.paid}
+                    detail="Total encaissé"
+                    metricType="revenue"
+                    fullValue={metrics.paidTotal}
+                    currency={currency}
+                />
+                <MetricSparklineCard
+                    icon={<ShoppingCart size={16} className="text-orange-400" />}
+                    label="Dépenses"
+                    value={formatMoney(metrics.totalExpenses ?? 0, currency)}
+                    sparklineData={sparklines.expenses}
+                    detail="Total dépenses"
+                    metricType="expense"
+                    fullValue={metrics.totalExpenses ?? 0}
+                    currency={currency}
                 />
             </section>
 
-            {monthlySummaries.length > 0 && <CashFlowChart monthlySummaries={monthlySummaries} currency={currency} />}
+            <TreasuryDashboard months={monthlySummaries} currency={currency} />
 
-            <div className="grid gap-5 xl:grid-cols-2">
+            <div className="grid gap-4 xl:grid-cols-2">
                 <RecentDocuments title="Derniers devis" documents={quotes.slice(0, 6)} onSelect={onSelect} />
                 <RecentDocuments title="Dernieres factures" documents={invoices.slice(0, 6)} onSelect={onSelect} />
             </div>
@@ -936,66 +1078,117 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
     currency?: string;
 }) {
     if (agingBuckets) {
+        const total = agingBuckets.reduce((s, b) => s + b.total, 0);
         return (
             <AppCard className="overflow-hidden p-0">
-                <div className="border-b border-[var(--border)] px-4 py-3">
-                    <h2 className="text-sm font-semibold">{title}</h2>
+                <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
+                    <h2 className="text-xs font-semibold text-[var(--text)]">{title}</h2>
+                    <span className="text-[11px] text-[var(--text-muted)]">{formatMoney(total, currency || 'MAD')}</span>
                 </div>
                 <div className="p-4">
                     {agingBuckets.some((b) => b.count > 0) ? (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {agingBuckets.map((bucket) => {
-                                const total = agingBuckets.reduce((s, b) => s + b.total, 0);
                                 const pct = total > 0 ? (bucket.total / total) * 100 : 0;
                                 return (
                                     <div key={bucket.label}>
-                                        <div className="mb-1 flex items-center justify-between text-sm">
+                                        <div className="mb-1 flex items-center justify-between text-xs">
                                             <span className="font-medium text-[var(--text)]">{bucket.label}</span>
                                             <span className="font-semibold text-[var(--text)]">{formatMoney(bucket.total, currency || 'MAD')}</span>
                                         </div>
-                                        <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                                        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
                                             <div
-                                                className="h-full rounded-full bg-red-400 transition-all"
+                                                className="h-full rounded-full bg-rose-400 transition-all"
                                                 style={{ width: `${pct}%` }}
                                             />
                                         </div>
-                                        <span className="mt-0.5 block text-xs text-[var(--text-muted)]">{bucket.count} document(s)</span>
+                                        <span className="mt-0.5 block text-[11px] text-[var(--text-muted)]">{bucket.count} document{bucket.count > 1 ? 's' : ''}</span>
                                     </div>
                                 );
                             })}
                         </div>
                     ) : (
-                        <p className="text-sm text-[var(--text-muted)]">Aucun impaye.</p>
+                        <p className="py-6 text-center text-xs text-[var(--text-muted)]">Aucun impayé.</p>
                     )}
                 </div>
             </AppCard>
         );
     }
 
+    const statusBarColor: Record<string, string> = {
+        draft: '#a8a29e', sent: '#60a5fa', accepted: '#34d399', rejected: '#f87171',
+        converted: '#a78bfa', issued: '#60a5fa', partially_paid: '#fbbf24',
+        paid: '#34d399', overdue: '#f87171', cancelled: '#a8a29e',
+    };
+
     return (
         <AppCard className="overflow-hidden p-0">
-            <div className="border-b border-[var(--border)] px-4 py-3">
-                <h2 className="text-sm font-semibold">{title}</h2>
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
+                <h2 className="text-xs font-semibold text-[var(--text)]">{title}</h2>
+                <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-muted)]">
+                    {documents.length}
+                </span>
             </div>
             <div className="divide-y divide-[var(--border)]">
-                {documents.length > 0 ? documents.map((document) => (
-                    <button
-                        key={document.id}
-                        type="button"
-                        onClick={() => onSelect(document)}
-                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)]"
-                    >
-                        <span className="min-w-0">
-                            <span className="flex flex-wrap items-center gap-2">
-                                <span className="truncate text-sm font-semibold">{document.number}</span>
-                                <FinanceDocumentLockBadge document={document} compact />
-                            </span>
-                            <span className="block truncate text-xs text-[var(--text-muted)]">{document.client?.name || '-'}</span>
-                        </span>
-                        <span className="shrink-0 text-sm font-semibold text-[var(--accent)]">{formatMoney(document.totalTtc, document.currency)}</span>
-                    </button>
-                )) : (
-                    <p className="p-4 text-sm text-[var(--text-muted)]">Aucun document recent.</p>
+                {documents.length > 0 ? documents.map((document) => {
+                    const paidPct = document.totalTtc > 0 ? (document.paidTotal / document.totalTtc) * 100 : 0;
+                    const barColor = statusBarColor[document.status] || '#a8a29e';
+                    return (
+                        <button
+                            key={document.id}
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); router.visit(docShowUrl(document.id)); }}
+                            className="group relative flex w-full items-stretch text-left transition hover:bg-[var(--surface-2)]"
+                        >
+                            <div
+                                className="w-0.5 shrink-0 transition-colors group-hover:opacity-80"
+                                style={{ backgroundColor: barColor }}
+                            />
+                            <div className="min-w-0 flex-1 px-3 py-2">
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <span
+                                            className="inline-block size-1.5 shrink-0 rounded-full"
+                                            style={{ backgroundColor: barColor }}
+                                        />
+                                        <span className="truncate text-[11px] font-semibold text-[var(--text)]">{document.number}</span>
+                                        <FinanceDocumentLockBadge document={document} />
+                                    </div>
+                                    <span className="shrink-0 text-[11px] font-semibold tabular-nums text-[var(--accent)]">{formatMoney(document.totalTtc, document.currency)}</span>
+                                </div>
+                                <div className="mt-0.5 flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)] min-w-0">
+                                        <span className="truncate">{document.client?.name || '-'}</span>
+                                        {document.dossier && (
+                                            <>
+                                                <span className="shrink-0">·</span>
+                                                <span className="truncate">{document.dossier.number}</span>
+                                            </>
+                                        )}
+                                        {document.issueDate && (
+                                            <>
+                                                <span className="shrink-0">·</span>
+                                                <span className="shrink-0">{document.issueDate}</span>
+                                            </>
+                                        )}
+                                    </div>
+                                    {document.remainingTotal > 0 && (
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <div className="h-1 w-12 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                                                <div
+                                                    className="h-full rounded-full transition-all"
+                                                    style={{ width: `${Math.min(paidPct, 100)}%`, backgroundColor: barColor }}
+                                                />
+                                            </div>
+                                            <span className="text-[10px] text-[var(--text-muted)]">{Math.round(paidPct)}%</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </button>
+                    );
+                }) : (
+                    <p className="p-4 text-xs text-[var(--text-muted)]">Aucun document recent.</p>
                 )}
             </div>
         </AppCard>
@@ -1029,10 +1222,15 @@ export default function FinanceDocumentsIndex({
     const [paymentInvoice, setPaymentInvoice] = useState<FinanceDocument | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<FinanceDocument | null>(null);
     const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
+    const [expenseDrawerMode, setExpenseDrawerMode] = useState<ExpenseViewMode>('create');
     const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
     const quotes = useMemo(() => documents.filter((doc) => doc.type === 'quote'), [documents]);
     const invoices = useMemo(() => documents.filter((doc) => doc.type === 'invoice'), [documents]);
+
+    const totalExpenses = useMemo(() =>
+        expenses.reduce((sum, e) => sum + e.amount, 0),
+    [expenses]);
 
     const metrics: FinanceMetrics = {
         totalQuotes: rawMetrics?.totalQuotes ?? quotes.reduce((sum, doc) => sum + doc.totalTtc, 0),
@@ -1040,6 +1238,7 @@ export default function FinanceDocumentsIndex({
         paidTotal: rawMetrics?.paidTotal ?? invoices.reduce((sum, doc) => sum + doc.paidTotal, 0),
         remainingTotal: rawMetrics?.remainingTotal ?? invoices.reduce((sum, doc) => sum + doc.remainingTotal, 0),
         overdueTotal: rawMetrics?.overdueTotal ?? invoices.filter((doc) => doc.status === 'overdue').reduce((sum, doc) => sum + doc.remainingTotal, 0),
+        totalExpenses: rawMetrics?.totalExpenses ?? totalExpenses,
         draftCount: rawMetrics?.draftCount ?? documents.filter((doc) => doc.status === 'draft').length,
         currency: rawMetrics?.currency ?? settings.defaultCurrency,
     };
@@ -1138,7 +1337,7 @@ export default function FinanceDocumentsIndex({
                             <WalletCards size={16} />
                             Paiement
                         </AppButton>
-                        <AppButton variant="secondary" onPress={() => { setSelectedExpense(null); setExpenseDrawerOpen(true); }}>
+                        <AppButton variant="secondary" onPress={() => { setSelectedExpense(null); setExpenseDrawerMode('create'); setExpenseDrawerOpen(true); }}>
                             <Plus size={16} />
                             Depense
                         </AppButton>
@@ -1207,7 +1406,8 @@ export default function FinanceDocumentsIndex({
                         <ExpensesWorkspace
                             expenses={expenses}
                             currency={settings.defaultCurrency}
-                            onEdit={(expense) => { setSelectedExpense(expense); setExpenseDrawerOpen(true); }}
+                            onEdit={(expense) => { setSelectedExpense(expense); setExpenseDrawerMode('edit'); setExpenseDrawerOpen(true); }}
+                            onView={(expense) => { setSelectedExpense(expense); setExpenseDrawerMode('view'); setExpenseDrawerOpen(true); }}
                         />
                     </TabPanel>
 
@@ -1272,6 +1472,7 @@ export default function FinanceDocumentsIndex({
                 isOpen={expenseDrawerOpen}
                 onOpenChange={setExpenseDrawerOpen}
                 expense={selectedExpense}
+                mode={expenseDrawerMode}
             />
 
             <AppConfirmDialog
