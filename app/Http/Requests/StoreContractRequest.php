@@ -25,7 +25,7 @@ class StoreContractRequest extends FormRequest
             'surface' => ['nullable', 'numeric', 'min:0'],
             'price_per_square_meter' => ['nullable', 'numeric', 'min:0'],
             'calculation_mode' => ['nullable', 'string', Rule::in(['percentage', 'forfait'])],
-            'fee_rate_percent' => ['nullable', 'numeric', 'in:0.5,2,0.50,2.00'],
+            'fee_rate_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'forfait_ttc' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'return_to' => ['nullable', 'string', 'max:2000', 'starts_with:/'],

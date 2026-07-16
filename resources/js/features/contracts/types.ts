@@ -43,13 +43,20 @@ export type ContractDossierOption = {
     hasContract: boolean;
 };
 
+export type ContractClientOption = {
+    id: number;
+    fullName: string;
+    cin: string;
+    dossiers: ContractDossierOption[];
+};
+
 export type ContractFormPayload = {
-    dossierId: string;
+    dossier_id: string;
     status: string;
     surface: string;
-    pricePerSquareMeter: string;
-    calculationMode: string;
-    feeRatePercent: string;
-    forfaitTtc: string;
+    price_per_square_meter: string;
+    calculation_mode: string;
+    fee_rate_percent: string;
+    forfait_ttc: string;
     notes: string;
 };

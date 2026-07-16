@@ -46,7 +46,7 @@ class ContractResource extends JsonResource
             'generatedDocumentDownloadUrl' => $hasGeneratedDocument ? route('contracts.download.generated', $this->id) : null,
             'pdfDownloadUrl' => $hasPdf ? route('contracts.download.pdf', $this->id) : null,
             'generatedDocumentPublicUrl' => $hasGeneratedDocument ? Storage::disk('public')->url($this->generated_document_path) : null,
-            'pdfPublicUrl' => $hasPdf ? Storage::disk('public')->url($this->pdf_path) : null,
+            'pdfPublicUrl' => $hasPdf ? route('contracts.preview.pdf', $this->id) : null,
         ];
     }
 }

@@ -95,8 +95,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/contracts/{contract}/generate', [ContractController::class, 'generate'])->name('contracts.generate');
     Route::put('/contracts/{contract}/export-pdf', [ContractController::class, 'exportPdf'])->name('contracts.export-pdf');
     Route::put('/contracts/{contract}/signed', [ContractController::class, 'markSigned'])->name('contracts.signed');
+    Route::get('/contracts/{contract}/print', [ContractController::class, 'print'])->name('contracts.print');
     Route::get('/contracts/{contract}/download/generated', [ContractController::class, 'downloadGenerated'])->name('contracts.download.generated');
     Route::get('/contracts/{contract}/download/pdf', [ContractController::class, 'downloadPdf'])->name('contracts.download.pdf');
+    Route::get('/contracts/{contract}/preview/pdf', [ContractController::class, 'previewPdf'])->name('contracts.preview.pdf');
 
     Route::get('/authorizations', [AuthorizationController::class, 'index'])->name('authorizations.index');
     Route::post('/authorizations', [AuthorizationController::class, 'store'])->name('authorizations.store');
