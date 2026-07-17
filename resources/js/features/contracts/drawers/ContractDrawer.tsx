@@ -11,7 +11,7 @@ import type {
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError, hasErrors } from '@/lib/formErrors';
 import { cn } from '@/lib/cn';
-import { currencyFormat } from '@/lib/currency';
+import { formatCompactMoney } from '@/lib/currency';
 
 type ContractDrawerProps = {
     isOpen: boolean;
@@ -58,6 +58,7 @@ const createSteps = [
     { key: 'project', label: 'Client & Projet' },
     { key: 'calculation', label: 'Calcul' },
     { key: 'review', label: 'Revision' },
+    { key: 'confirm', label: 'Confirmation' },
 ];
 
 const fieldToStep: Record<string, number> = {
@@ -144,7 +145,7 @@ const textAreaBaseClass = 'min-h-28 w-full rounded-[var(--radius-md)] border bor
 
 function ClientAutocomplete({
     selectedClientId, clients, clientQuery, onClientQueryChange, filteredClients,
-    onSelect, onClear,
+    onSelect, onClear,disabled
 }: {
     selectedClientId: string | null;
     clients: ContractClientOption[];
@@ -153,6 +154,7 @@ function ClientAutocomplete({
     filteredClients: ContractClientOption[];
     onSelect: (clientId: string) => void;
     onClear: () => void;
+    disabled?: boolean;
 }) {
     return (
             <Autocomplete
@@ -163,6 +165,7 @@ function ClientAutocomplete({
                 }}
                 onClear={onClear}
                 shouldCloseOnBlur={false}
+                isDisabled={disabled}
             >
             <Autocomplete.Trigger className={triggerClass}>
                 <Autocomplete.Value className="flex-1 text-sm text-[var(--foreground)]" />
@@ -185,7 +188,7 @@ function ClientAutocomplete({
                                 textValue={c.fullName}
                                 className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10"
                             >
-                                <span className="truncate font-medium">{c.fullName}</span>
+                                <span className="truncate font-medium">{c.fullName} </span>
                                 <span className="text-xs text-[var(--text-muted)]">{c.cin}</span>
                             </ListBox.Item>
                         ))}
@@ -197,7 +200,7 @@ function ClientAutocomplete({
 }
 
 function DossierAutocomplete({
-    selectedKey, options, onSelectionChange, onClear, noClient,
+    selectedKey, options, onSelectionChange, onClear, noClient,disabled
 }: {
     selectedKey: string | null;
     options: { id: string; label: string }[];
@@ -206,6 +209,7 @@ function DossierAutocomplete({
     onSelectionChange: (key: string | null) => void;
     onClear: () => void;
     noClient: boolean;
+    disabled?: boolean;
 }) {
     return (
         <Select
@@ -214,6 +218,7 @@ function DossierAutocomplete({
             placeholder={noClient ? 'Selectionnez un client d abord' : 'Selectionner un dossier'}
             isDisabled={noClient}
             shouldCloseOnBlur={false}
+            isDisabled={noClient || disabled}
         >
             <Select.Trigger className={triggerClass}>
                 <Select.Value className="flex-1 truncate text-sm text-[var(--foreground)]" />
@@ -301,15 +306,15 @@ function SelectField<T extends string>({
 function CalculationSummary({ estimation, ht, tva, ttc }: { estimation?: number; ht: number; tva: number; ttc: number }) {
     const items = estimation != null
         ? [
-            { label: 'Estimation projet', value: currencyFormat(estimation), accent: false },
-            { label: 'Honoraires HT', value: currencyFormat(ht), accent: false },
-            { label: 'TVA 20%', value: currencyFormat(tva), accent: false },
-            { label: 'TTC', value: currencyFormat(ttc), accent: true },
+            { label: 'Estimation projet', value: formatCompactMoney(estimation), accent: false },
+            { label: 'Honoraires HT', value: formatCompactMoney(ht), accent: false },
+            { label: 'TVA 20%', value: formatCompactMoney(tva), accent: false },
+            { label: 'TTC', value: formatCompactMoney(ttc), accent: true },
         ]
         : [
-            { label: 'HT', value: currencyFormat(ht), accent: false },
-            { label: 'TVA 20%', value: currencyFormat(tva), accent: false },
-            { label: 'TTC', value: currencyFormat(ttc), accent: true },
+            { label: 'HT', value: formatCompactMoney(ht), accent: false },
+            { label: 'TVA 20%', value: formatCompactMoney(tva), accent: false },
+            { label: 'TTC', value: formatCompactMoney(ttc), accent: true },
         ];
     return (
         <Card className="mt-4 border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
@@ -428,7 +433,7 @@ export function ContractDrawer({
             const { dossier_id: _, ...rest } = errors;
             return rest;
         }
-        return errors;
+        return { ...errors, dossier: 'Ce dossier a deja un contrat. Veuillez selectionner un autre dossier.' };
     }, [errors, selectedDossierHasContract]);
 
     const handleSubmit = useCallback((event: FormEvent<HTMLFormElement>) => {
@@ -475,6 +480,7 @@ export function ContractDrawer({
                                     filteredClients={filteredClients}
                                     onSelect={handleClientSelect}
                                     onClear={handleClearClient}
+                                    disabled
                                 />
                             </div>
                             <DossierAutocomplete
@@ -485,6 +491,7 @@ export function ContractDrawer({
                                 onSelectionChange={handleDossierSelect}
                                 onClear={() => updateField('dossier_id', '')}
                                 noClient={false}
+                                disabled={true}
                             />
                             <SelectField
                                 label="Statut"
@@ -668,6 +675,7 @@ export function ContractDrawer({
                     </section>
                 );
             case 2:
+            case 3:
                 return (
                     <section>
                         <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Revisez et confirmez</h3>
@@ -677,11 +685,11 @@ export function ContractDrawer({
                                 { label: 'Statut', value: form.status, capitalize: true },
                                 { label: 'Mode', value: isForfait ? 'Forfait' : 'Pourcentage', capitalize: false },
                                 ...(isForfait
-                                    ? [{ label: 'Montant FORFAIT TTC', value: form.forfait_ttc ? currencyFormat(Number(form.forfait_ttc)) : '-' }]
+                                    ? [{ label: 'Montant FORFAIT TTC', value: form.forfait_ttc ? formatCompactMoney(Number(form.forfait_ttc)) : '-' }]
                                     : [
                                         { label: 'Taux honoraires', value: `${form.fee_rate_percent}%` },
                                         { label: 'Surface', value: form.surface ? `${form.surface} m²` : '-' },
-                                        { label: 'Prix / m2', value: form.price_per_square_meter ? currencyFormat(Number(form.price_per_square_meter)) : '-' },
+                                        { label: 'Prix / m2', value: form.price_per_square_meter ? formatCompactMoney(Number(form.price_per_square_meter)) : '-' },
                                     ]
                                 ),
                             ].flat().map((row: { label: string; value: string; capitalize?: boolean }) => (
@@ -760,7 +768,10 @@ export function ContractDrawer({
                             const showConnector = i < createSteps.length - 1;
                             return (
                                 <div key={s.key} className="flex-1 flex flex-col items-center relative min-w-0">
-                                    <button type="button" onClick={() => setStep(i)} className="group relative z-10 flex flex-col items-center gap-1.5 transition hover:opacity-90">
+                                    <button type="button" onClick={() => {
+                                        if (i < step) setStep(i);
+                                        else if (i === step + 1 && stepValid) setStep(i);
+                                    }} className="group relative z-10 flex flex-col items-center gap-1.5 transition hover:opacity-90">
                                         <span className={cn(
                                             'flex size-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-200 border-2',
                                             'group-hover:scale-110 group-hover:shadow-md',

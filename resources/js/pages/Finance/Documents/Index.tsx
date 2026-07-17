@@ -36,6 +36,7 @@ import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppPagination } from '@/components/ui/AppPagination';
 import { type FinanceMetrics } from '@/features/finance/components/FinanceMetricCards';
 import { calculateAgingBuckets, type AgingBucket } from '@/features/finance/utils/calculations';
+import { formatCompactMoney } from '@/lib/currency';
 import { TreasuryDashboard } from '@/features/finance/components/TreasuryDashboard';
 import { FinanceMonthlySummary } from '@/features/finance/components/FinanceMonthlySummary';
 import { FinanceDocumentLockBadge, getFinanceDocumentLockedAt } from '@/features/finance/components/FinanceDocumentLockNotice';
@@ -112,30 +113,6 @@ function unwrap<T>(value?: Paginated<T> | T[] | { data?: unknown }): T[] {
     if (data && typeof data === 'object' && 'data' in data) return unwrap<T>(data as Paginated<T>);
 
     return [];
-}
-
-function formatMoney(value: number | null | undefined, currency = 'MAD') {
-    const num = value || 0;
-    const abs = Math.abs(num);
-
-    if (abs >= 1_000_000_000_000) {
-        return `${(num / 1_000_000_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} T ${currency}`;
-    }
-    if (abs >= 1_000_000_000) {
-        return `${(num / 1_000_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mrd ${currency}`;
-    }
-    if (abs >= 1_000_000) {
-        return `${(num / 1_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M ${currency}`;
-    }
-    if (abs >= 1_000) {
-        return `${(num / 1_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} K ${currency}`;
-    }
-
-    return new Intl.NumberFormat('fr-MA', {
-        style: 'currency',
-        currency,
-        maximumFractionDigits: 0,
-    }).format(num);
 }
 
 function statusClass(status: string | undefined | null) {
@@ -285,13 +262,13 @@ function FinanceDocumentDetailPanel({
                     </div>
                     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Total TTC</p>
-                        <p className="mt-0.5 truncate text-xs font-semibold text-[var(--accent)]">{formatMoney(document.totalTtc, document.currency)}</p>
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">HT {formatMoney(document.subtotalHt, document.currency)}</p>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-[var(--accent)]">{formatCompactMoney(document.totalTtc, document.currency)}</p>
+                        <p className="truncate text-[10px] text-[var(--text-muted)]">HT {formatCompactMoney(document.subtotalHt, document.currency)}</p>
                     </div>
                     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Remaining</p>
-                        <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text)]">{formatMoney(document.remainingTotal, document.currency)}</p>
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">Paid {formatMoney(document.paidTotal, document.currency)}</p>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text)]">{formatCompactMoney(document.remainingTotal, document.currency)}</p>
+                        <p className="truncate text-[10px] text-[var(--text-muted)]">Paid {formatCompactMoney(document.paidTotal, document.currency)}</p>
                     </div>
                 </div>
 
@@ -609,10 +586,10 @@ function FinanceDocumentWorkspace({
                                                 {document.status?.replace(/_/g, ' ') || document.status}
                                             </span>
                                         </td>
-                                        <td className="px-3 py-2 text-right text-xs font-semibold text-[var(--text)]">{formatMoney(document.totalTtc, currency)}</td>
-                                        <td className="px-3 py-2 text-right text-xs font-medium text-emerald-400">{formatMoney(document.paidTotal, currency)}</td>
+                                        <td className="px-3 py-2 text-right text-xs font-semibold text-[var(--text)]">{formatCompactMoney(document.totalTtc, currency)}</td>
+                                        <td className="px-3 py-2 text-right text-xs font-medium text-emerald-400">{formatCompactMoney(document.paidTotal, currency)}</td>
                                         <td className={`px-3 py-2 text-right text-xs font-medium ${document.remainingTotal > 0 ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>
-                                            {formatMoney(document.remainingTotal, currency)}
+                                            {formatCompactMoney(document.remainingTotal, currency)}
                                         </td>
                                         <td className="px-3 py-2">
                                             <div className="flex justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
@@ -701,9 +678,9 @@ function FinanceDocumentWorkspace({
                             </span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-[11px]">
-                            <span className="text-[var(--text-muted)]">Total <span className="font-semibold text-[var(--text)]">{formatMoney(document.totalTtc, currency)}</span></span>
-                            <span className="text-[var(--text-muted)]">Paid <span className="font-semibold text-emerald-400">{formatMoney(document.paidTotal, currency)}</span></span>
-                            <span className="text-[var(--text-muted)]">Due <span className={`font-semibold ${document.remainingTotal > 0 ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>{formatMoney(document.remainingTotal, currency)}</span></span>
+                            <span className="text-[var(--text-muted)]">Total <span className="font-semibold text-[var(--text)]">{formatCompactMoney(document.totalTtc, currency)}</span></span>
+                            <span className="text-[var(--text-muted)]">Paid <span className="font-semibold text-emerald-400">{formatCompactMoney(document.paidTotal, currency)}</span></span>
+                            <span className="text-[var(--text-muted)]">Due <span className={`font-semibold ${document.remainingTotal > 0 ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>{formatCompactMoney(document.remainingTotal, currency)}</span></span>
                         </div>
                         <div className="flex gap-1.5">
                             <button type="button" className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]" onClick={(e) => { e.stopPropagation(); router.visit(docShowUrl(document.id)); }}>Open</button>
@@ -795,7 +772,7 @@ function PaymentWorkspace({
                 </div>
 
                 <div className="ml-auto hidden text-[11px] font-medium text-[var(--text-muted)] md:block">
-                    {filtered.length} paiement{filtered.length !== 1 ? 's' : ''} · {formatMoney(totalAmount, currency)}
+                    {filtered.length} paiement{filtered.length !== 1 ? 's' : ''} · {formatCompactMoney(totalAmount, currency)}
                 </div>
             </div>
 
@@ -843,7 +820,7 @@ function PaymentWorkspace({
                                         <p className="max-w-[180px] truncate text-xs font-medium text-[var(--text)]">{payment.document?.number || '-'}</p>
                                         <p className="max-w-[180px] truncate text-[10px] text-[var(--text-muted)]">{payment.client?.name || '-'}</p>
                                     </td>
-                                    <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums text-emerald-400">{formatMoney(payment.amount, currency)}</td>
+                                    <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums text-emerald-400">{formatCompactMoney(payment.amount, currency)}</td>
                                     <td className="px-3 py-2">
                                         {payment.receipt ? (
                                             <div className="flex items-center gap-1.5">
@@ -917,7 +894,7 @@ function PaymentWorkspace({
                                         <p className="truncate text-[11px] text-[var(--text-muted)]">{payment.paidAt || '-'} / {payment.method || '-'}</p>
                                     </div>
                                 </div>
-                                <span className="shrink-0 text-xs font-semibold tabular-nums text-emerald-400">{formatMoney(payment.amount, currency)}</span>
+                                <span className="shrink-0 text-xs font-semibold tabular-nums text-emerald-400">{formatCompactMoney(payment.amount, currency)}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-[11px]">
                                 <span className="text-[var(--text-muted)]">Invoice <span className="font-semibold text-[var(--text)]">{payment.document?.number || '-'}</span></span>
@@ -1001,7 +978,7 @@ function OverviewWorkspace({
                 <MetricSparklineCard
                     icon={<FileText size={16} className="text-sky-400" />}
                     label="Quotes"
-                    value={formatMoney(metrics.totalQuotes, currency)}
+                    value={formatCompactMoney(metrics.totalQuotes, currency)}
                     sparklineData={sparklines.quotes}
                     detail="Total devis TTC"
                     metricType="revenue"
@@ -1011,7 +988,7 @@ function OverviewWorkspace({
                 <MetricSparklineCard
                     icon={<ReceiptText size={16} className="text-violet-400" />}
                     label="Invoices"
-                    value={formatMoney(metrics.totalInvoices, currency)}
+                    value={formatCompactMoney(metrics.totalInvoices, currency)}
                     sparklineData={sparklines.invoices}
                     detail="Total factures TTC"
                     metricType="revenue"
@@ -1021,7 +998,7 @@ function OverviewWorkspace({
                 <MetricSparklineCard
                     icon={<CircleDollarSign size={16} className="text-amber-400" />}
                     label="Remaining"
-                    value={formatMoney(metrics.remainingTotal, currency)}
+                    value={formatCompactMoney(metrics.remainingTotal, currency)}
                     sparklineData={sparklines.remaining}
                     detail="Still to collect"
                     metricType="revenue"
@@ -1031,7 +1008,7 @@ function OverviewWorkspace({
                 <MetricSparklineCard
                     icon={<Timer size={16} className="text-rose-400" />}
                     label="Overdue"
-                    value={formatMoney(metrics.overdueTotal, currency)}
+                    value={formatCompactMoney(metrics.overdueTotal, currency)}
                     sparklineData={sparklines.overdue}
                     detail={`${metrics.draftCount} draft(s)`}
                     metricType="overdue"
@@ -1041,7 +1018,7 @@ function OverviewWorkspace({
                 <MetricSparklineCard
                     icon={<ArrowDownToLine size={16} className="text-emerald-400" />}
                     label="Encaisse"
-                    value={formatMoney(metrics.paidTotal, currency)}
+                    value={formatCompactMoney(metrics.paidTotal, currency)}
                     sparklineData={sparklines.paid}
                     detail="Total encaissé"
                     metricType="revenue"
@@ -1051,7 +1028,7 @@ function OverviewWorkspace({
                 <MetricSparklineCard
                     icon={<ShoppingCart size={16} className="text-orange-400" />}
                     label="Dépenses"
-                    value={formatMoney(metrics.totalExpenses ?? 0, currency)}
+                    value={formatCompactMoney(metrics.totalExpenses ?? 0, currency)}
                     sparklineData={sparklines.expenses}
                     detail="Total dépenses"
                     metricType="expense"
@@ -1083,7 +1060,7 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
             <AppCard className="overflow-hidden p-0">
                 <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
                     <h2 className="text-xs font-semibold text-[var(--text)]">{title}</h2>
-                    <span className="text-[11px] text-[var(--text-muted)]">{formatMoney(total, currency || 'MAD')}</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">{formatCompactMoney(total, currency || 'MAD')}</span>
                 </div>
                 <div className="p-4">
                     {agingBuckets.some((b) => b.count > 0) ? (
@@ -1094,7 +1071,7 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
                                     <div key={bucket.label}>
                                         <div className="mb-1 flex items-center justify-between text-xs">
                                             <span className="font-medium text-[var(--text)]">{bucket.label}</span>
-                                            <span className="font-semibold text-[var(--text)]">{formatMoney(bucket.total, currency || 'MAD')}</span>
+                                            <span className="font-semibold text-[var(--text)]">{formatCompactMoney(bucket.total, currency || 'MAD')}</span>
                                         </div>
                                         <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
                                             <div
@@ -1154,7 +1131,7 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
                                         <span className="truncate text-[11px] font-semibold text-[var(--text)]">{document.number}</span>
                                         <FinanceDocumentLockBadge document={document} />
                                     </div>
-                                    <span className="shrink-0 text-[11px] font-semibold tabular-nums text-[var(--accent)]">{formatMoney(document.totalTtc, document.currency)}</span>
+                                    <span className="shrink-0 text-[11px] font-semibold tabular-nums text-[var(--accent)]">{formatCompactMoney(document.totalTtc, document.currency)}</span>
                                 </div>
                                 <div className="mt-0.5 flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)] min-w-0">

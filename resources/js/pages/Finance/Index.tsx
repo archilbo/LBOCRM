@@ -20,7 +20,7 @@ import { useMemo, useState } from 'react';
 import type { FormErrors } from '@/lib/formErrors';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppBadge } from '@/components/ui/AppBadge';
+import { formatCompactMoney } from '@/lib/currency';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppDataTable } from '@/components/ui/AppDataTable';
@@ -57,29 +57,6 @@ type PageProps = {
 };
 
 type BadgeTone = 'neutral' | 'blue' | 'green' | 'amber' | 'red' | 'violet';
-
-function formatMoney(value: number) {
-    const abs = Math.abs(value);
-
-    if (abs >= 1_000_000_000_000) {
-        return `${(value / 1_000_000_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} T MAD`;
-    }
-    if (abs >= 1_000_000_000) {
-        return `${(value / 1_000_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mrd MAD`;
-    }
-    if (abs >= 1_000_000) {
-        return `${(value / 1_000_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M MAD`;
-    }
-    if (abs >= 1_000) {
-        return `${(value / 1_000).toLocaleString('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} K MAD`;
-    }
-
-    return new Intl.NumberFormat('fr-MA', {
-        style: 'currency',
-        currency: 'MAD',
-        maximumFractionDigits: 0,
-    }).format(value);
-}
 
 function getStatusTone(status: FinanceRecordStatus): BadgeTone {
     switch (status) {
@@ -339,7 +316,7 @@ export default function FinanceIndex({
                 header: 'Total TTC',
                 cell: ({ row }) => (
                     <span className="text-sm font-semibold">
-                        {formatMoney(row.original.totalTtc)}
+                        {formatCompactMoney(row.original.totalTtc)}
                     </span>
                 ),
             },
@@ -348,7 +325,7 @@ export default function FinanceIndex({
                 header: 'Remaining',
                 cell: ({ row }) => (
                     <span className="text-sm font-semibold">
-                        {formatMoney(row.original.remaining)}
+                        {formatCompactMoney(row.original.remaining)}
                     </span>
                 ),
             },
@@ -454,25 +431,25 @@ export default function FinanceIndex({
     const metricCards = [
         {
             label: 'Total TTC',
-            value: formatMoney(metrics.totalTtc),
+            value: formatCompactMoney(metrics.totalTtc),
             icon: Receipt,
             accent: 'var(--accent)',
         },
         {
             label: 'Paid',
-            value: formatMoney(metrics.paid),
+            value: formatCompactMoney(metrics.paid),
             icon: CheckCircle2,
             accent: '#22c55e',
         },
         {
             label: 'Remaining',
-            value: formatMoney(metrics.remaining),
+            value: formatCompactMoney(metrics.remaining),
             icon: TrendingUp,
             accent: '#f59e0b',
         },
         {
             label: 'Overdue',
-            value: formatMoney(metrics.overdue),
+            value: formatCompactMoney(metrics.overdue),
             icon: AlertCircle,
             accent: '#ef4444',
         },
@@ -542,7 +519,7 @@ export default function FinanceIndex({
                         <div className="w-full md:max-w-xs">
                             <div className="mb-2 flex items-center justify-between text-sm">
                                 <span className="font-medium">{collectionRate}% collected</span>
-                                <span className="text-[var(--text-muted)]">{formatMoney(metrics.paid)} / {formatMoney(metrics.totalTtc)}</span>
+                                <span className="text-[var(--text-muted)]">{formatCompactMoney(metrics.paid)} / {formatCompactMoney(metrics.totalTtc)}</span>
                             </div>
                             <MiniBar value={collectionRate} />
                         </div>
@@ -601,21 +578,21 @@ export default function FinanceIndex({
                                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5">
                                             <p className="text-xs text-[var(--text-muted)]">Total TTC</p>
                                             <p className="mt-1 text-sm font-semibold">
-                                                {formatMoney(selectedRecord.totalTtc)}
+                                                {formatCompactMoney(selectedRecord.totalTtc)}
                                             </p>
                                         </div>
 
                                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5">
                                             <p className="text-xs text-[var(--text-muted)]">Paid</p>
                                             <p className="mt-1 text-sm font-semibold text-green-400">
-                                                {formatMoney(selectedRecord.paid)}
+                                                {formatCompactMoney(selectedRecord.paid)}
                                             </p>
                                         </div>
 
                                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5">
                                             <p className="text-xs text-[var(--text-muted)]">Remaining</p>
                                             <p className="mt-1 text-sm font-semibold text-amber-400">
-                                                {formatMoney(selectedRecord.remaining)}
+                                                {formatCompactMoney(selectedRecord.remaining)}
                                             </p>
                                         </div>
                                     </div>

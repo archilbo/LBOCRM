@@ -7,8 +7,8 @@ import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
 import {
     FinanceRecordRow,
     FinanceRecordStatus,
-    formatMoney,
 } from '@/features/finance/data/mockFinance';
+import { formatMoney } from '@/lib/currency';
 import { useTranslation } from '@/lib/i18n';
 
 type FinanceFocusPanelProps = {

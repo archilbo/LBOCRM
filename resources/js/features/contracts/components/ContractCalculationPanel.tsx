@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppTextField } from '@/components/ui/AppTextField';
-import { currencyFormat } from '@/lib/currency';
+import { formatCompactMoney } from '@/lib/currency';
 import { useTranslation } from '@/lib/i18n';
 
 function toNumber(value: string) {
@@ -111,22 +111,22 @@ export function ContractCalculationPanel() {
             <div className="mt-5 grid gap-4 md:grid-cols-4">
                 <div className="rounded-2xl border bg-[var(--surface-2)] p-4">
                     <p className="text-xs text-[var(--text-muted)]">{t('contractsWorkspace.calculator.estimation')}</p>
-                    <p className="mt-1 text-lg font-semibold">{currencyFormat(result.estimation)}</p>
+                    <p className="mt-1 text-lg font-semibold">{formatCompactMoney(result.estimation)}</p>
                 </div>
 
                 <div className="rounded-2xl border bg-[var(--surface-2)] p-4">
                     <p className="text-xs text-[var(--text-muted)]">{t('contractsWorkspace.calculator.ht')}</p>
-                    <p className="mt-1 text-lg font-semibold">{currencyFormat(result.ht)}</p>
+                    <p className="mt-1 text-lg font-semibold">{formatCompactMoney(result.ht)}</p>
                 </div>
 
                 <div className="rounded-2xl border bg-[var(--surface-2)] p-4">
                     <p className="text-xs text-[var(--text-muted)]">{t('contractsWorkspace.calculator.tvaAmount')}</p>
-                    <p className="mt-1 text-lg font-semibold">{currencyFormat(result.tvaAmount)}</p>
+                    <p className="mt-1 text-lg font-semibold">{formatCompactMoney(result.tvaAmount)}</p>
                 </div>
 
                 <div className="rounded-2xl border bg-[color-mix(in_srgb,var(--accent)_9%,var(--surface))] p-4">
                     <p className="text-xs text-[var(--accent)]">{t('contractsWorkspace.calculator.ttc')}</p>
-                    <p className="mt-1 text-lg font-semibold text-[var(--accent)]">{currencyFormat(result.ttc)}</p>
+                    <p className="mt-1 text-lg font-semibold text-[var(--accent)]">{formatCompactMoney(result.ttc)}</p>
                 </div>
             </div>
         </AppCard>

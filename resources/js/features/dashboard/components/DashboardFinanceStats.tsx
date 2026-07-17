@@ -1,6 +1,7 @@
 ﻿import { BadgeDollarSign } from 'lucide-react';
 import { AppCard } from '@/components/ui/AppCard';
-import { financeRows, formatMoney, getFinanceMetrics } from '@/features/finance/data/mockFinance';
+import { financeRows, getFinanceMetrics } from '@/features/finance/data/mockFinance';
+import { formatMoney } from '@/lib/currency';
 import { useTranslation } from '@/lib/i18n';
 
 function MiniBar({ value }: { value: number }) {

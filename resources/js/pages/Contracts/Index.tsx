@@ -14,7 +14,7 @@ import { AppModal } from '@/components/ui/AppModal';
 import { ContractDrawer } from '@/features/contracts/drawers/ContractDrawer';
 import type { ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow, ContractStatus } from '@/features/contracts/types';
 import { cn } from '@/lib/cn';
-import { currencyFormat } from '@/lib/currency';
+import { formatCompactMoney } from '@/lib/currency';
 
 type PageProps = {
     contracts: ContractRow[];
@@ -165,7 +165,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
         { label: 'Brouillon', value: metrics.draft, detail: 'Non genere', icon: AlertTriangle, color: metrics.draft > 0 ? 'text-amber-400' : 'text-[var(--text-muted)]' },
         { label: 'Genere', value: metrics.generated, detail: 'DOCX/PDF cree', icon: FileText, color: metrics.generated > 0 ? 'text-sky-400' : 'text-[var(--text-muted)]' },
         { label: 'Signe', value: metrics.signed, detail: 'Signature client', icon: CheckCircle2, color: metrics.signed > 0 ? 'text-emerald-400' : 'text-[var(--text-muted)]' },
-        { label: 'Total TTC', value: currencyFormat(metrics.totalTtc), detail: 'Somme tous contrats', icon: ScrollText, color: 'text-[var(--accent)]' },
+        { label: 'Total TTC', value: formatCompactMoney(metrics.totalTtc), detail: 'Somme tous contrats', icon: ScrollText, color: 'text-[var(--accent)]' },
     ], [metrics]);
 
     const statusFilterBg: Record<string, string> = {
@@ -335,7 +335,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                 <span className="truncate text-[var(--text)]">{c.clientName || '-'}</span>
                                             </div>
                                         </td>
-                                        <td className="px-3 py-2 text-right font-semibold text-[var(--text)]">{currencyFormat(c.ttc)}</td>
+                                        <td className="px-3 py-2 text-right font-semibold text-[var(--text)]">{formatCompactMoney(c.ttc)}</td>
                                         <td className="px-3 py-2">
                                             <Chip variant="flat" size="sm" color={statusChipColor[c.status] || 'default'}>
                                                 {statusLabel[c.status] || c.status}
@@ -417,7 +417,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                                 classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
                                                                 <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
                                                                     <div className="flex items-center gap-2">
-                                                                        <Trash2 size={13} className="shrink-0" />
+                                                                        <Trash2 size={13} className="shrink-0 text-red-400" />
                                                                         <span>Supprimer</span>
                                                                     </div>
                                                                 </Dropdown.Item>
@@ -501,7 +501,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                 </Card>
                                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
                                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Montant</p>
-                                    <p className="mt-1 text-lg font-semibold text-[var(--accent)]">{currencyFormat(previewContract.ttc)}</p>
+                                    <p className="mt-1 text-lg font-semibold text-[var(--accent)]">{formatCompactMoney(previewContract.ttc)}</p>
                                 </Card>
                                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
                                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Statut</p>
@@ -518,15 +518,15 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                 <div className="grid grid-cols-3 gap-2">
                                     <div className="rounded-lg bg-[var(--surface-2)] p-2 text-center">
                                         <p className="text-[10px] text-[var(--text-muted)]">HT</p>
-                                        <p className="text-sm font-semibold text-[var(--foreground)]">{currencyFormat(previewContract.ht)}</p>
+                                        <p className="text-sm font-semibold text-[var(--foreground)]">{formatCompactMoney(previewContract.ht)}</p>
                                     </div>
                                     <div className="rounded-lg bg-[var(--surface-2)] p-2 text-center">
                                         <p className="text-[10px] text-[var(--text-muted)]">TVA</p>
-                                        <p className="text-sm font-semibold text-[var(--foreground)]">{currencyFormat(previewContract.tva)}</p>
+                                        <p className="text-sm font-semibold text-[var(--foreground)]">{formatCompactMoney(previewContract.tva)}</p>
                                     </div>
                                     <div className="rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface-2))] p-2 text-center">
                                         <p className="text-[10px] text-[var(--accent)]">TTC</p>
-                                        <p className="text-sm font-semibold text-[var(--accent)]">{currencyFormat(previewContract.ttc)}</p>
+                                        <p className="text-sm font-semibold text-[var(--accent)]">{formatCompactMoney(previewContract.ttc)}</p>
                                     </div>
                                 </div>
                                 <div className="my-3 h-px bg-[var(--border)]" />
@@ -535,7 +535,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                         { label: 'Mode', value: previewContract.calculationMode },
                                         { label: 'Taux', value: `${previewContract.feeRatePercent}%` },
                                         { label: 'Surface', value: previewContract.surface ? `${previewContract.surface} m²` : '-' },
-                                        { label: 'Prix/m²', value: currencyFormat(previewContract.pricePerSquareMeter) },
+                                        { label: 'Prix/m²', value: formatCompactMoney(previewContract.pricePerSquareMeter) },
                                     ].map((item) => (
                                         <div key={item.label} className="flex items-center justify-between rounded-lg bg-[var(--surface-2)] px-2.5 py-1.5">
                                             <span className="text-[11px] text-[var(--text-muted)]">{item.label}</span>
@@ -554,26 +554,24 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
 
                             <Card className="gap-0 p-4" classNames={{ base: 'border border-[var(--border)] shadow-sm' }}>
                                 <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Chronologie</p>
-                                <div className="space-y-3">
+                                <div className="grid grid-cols-3 gap-3">
                                     {[
                                         { label: 'Cree', date: previewContract.createdAt, color: 'bg-[var(--accent)]', icon: ScrollText },
                                         { label: 'Genere', date: previewContract.generatedAt, color: 'bg-purple-400', icon: FileText },
                                         { label: 'Signe', date: previewContract.signedAt, color: 'bg-emerald-400', icon: CheckCircle2 },
-                                    ].filter((e) => e.date).map((event, idx, arr) => (
-                                        <div key={event.label} className="flex items-center gap-3">
-                                            <div className="relative flex flex-col items-center">
-                                                <div className={cn('flex size-8 items-center justify-center rounded-full', event.color === 'bg-[var(--accent)]' ? 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]' : `${event.color}/15`)}>
-                                                    <div className={cn('size-2.5 rounded-full', event.color)} />
-                                                </div>
-                                                {idx < arr.length - 1 ? (
-                                                    <div className="w-px flex-1 bg-[var(--border)]" />
-                                                ) : null}
+                                    ].map((event) => (
+                                        <Card key={event.label} className={cn(
+                                            'flex flex-col items-center gap-1.5 rounded-xl p-3 shadow-none text-center',
+                                            event.date ? 'bg-[var(--surface-2)]' : 'border border-dashed border-[var(--border)] bg-transparent opacity-50',
+                                        )}>
+                                            <div className={cn('flex size-7 items-center justify-center rounded-full', event.color === 'bg-[var(--accent)]' ? 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]' : `${event.color}/15`)}>
+                                                <div className={cn('size-2.5 rounded-full', event.color)} />
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-[12px] font-medium text-[var(--foreground)]">{event.label}</p>
-                                                <p className="text-[11px] text-[var(--text-muted)]">{event.date}</p>
-                                            </div>
-                                        </div>
+                                            <p className="text-[11px] font-medium text-[var(--foreground)]">{event.label}</p>
+                                            <p className={cn('text-[10px]', event.date ? 'text-[var(--text-muted)]' : 'text-[var(--text-subtle)]')}>
+                                                {event.date || '—'}
+                                            </p>
+                                        </Card>
                                     ))}
                                 </div>
                             </Card>
@@ -611,8 +609,8 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                     </Button>
                                 )}
                                 <span className="h-5 w-px bg-[var(--border)]" />
-                                <Button variant="solid" color="danger" size="sm" className="min-w-0 size-8 p-0 hover:opacity-80" onPress={() => { setDeleteTarget(previewContract); setPreviewContract(null); }} title="Supprimer">
-                                    <Trash2 size={13} />
+                                <Button variant="solid" color="default" size="sm" className="min-w-0 size-8 p-0 hover:opacity-80" onPress={() => { setDeleteTarget(previewContract); setPreviewContract(null); }}>
+                                    <Trash2 size={13} className="text-red-400" />
                                 </Button>
                             </div>
                         </div>
@@ -625,13 +623,13 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                     title="Supprimer le contrat ?"
                     size="sm"
                 >
-                    <p className="mb-5 text-sm text-[var(--text-muted)]">
-                        Confirmez la suppression de <strong>{deleteTarget?.contractNumber}</strong>.
-                        Cette action est irreversible.
+                    <p className="mb-5 flex items-start gap-2 text-sm text-[var(--text-muted)]">
+                        <Trash2 size={16} className="mt-0.5 shrink-0 text-red-400" />
+                        <span>Confirmez la suppression de <strong>{deleteTarget?.contractNumber}</strong>. Cette action est <span className="font-semibold text-red-400">irreversible</span>.</span>
                     </p>
                     <div className="flex justify-end gap-2">
                         <Button variant="bordered" color="default" onPress={() => setDeleteTarget(null)} isDisabled={actionLoading}>Annuler</Button>
-                        <Button variant="solid" color="danger" onPress={confirmDelete} isLoading={actionLoading}>Supprimer</Button>
+                        <Button variant="solid" onPress={confirmDelete} isLoading={actionLoading} className="bg-red-500 text-white hover:bg-red-600">Supprimer</Button>
                     </div>
                 </AppModal>
             </AppShell>

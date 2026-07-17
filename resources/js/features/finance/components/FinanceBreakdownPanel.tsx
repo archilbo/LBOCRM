@@ -1,5 +1,6 @@
 ﻿import { AppCard } from '@/components/ui/AppCard';
-import { FinanceRecordRow, formatMoney } from '@/features/finance/data/mockFinance';
+import { FinanceRecordRow } from '@/features/finance/data/mockFinance';
+import { formatMoney } from '@/lib/currency';
 import { useTranslation } from '@/lib/i18n';
 
 type FinanceBreakdownPanelProps = {
