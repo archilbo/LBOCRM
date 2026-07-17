@@ -38,7 +38,7 @@ function hasSearchMatch(contract: ContractRow, query: string) {
         .filter(Boolean).join(' ').toLowerCase().includes(query.trim().toLowerCase());
 }
 
-type ActionId = 'preview' | 'edit' | 'print' | 'mark-signed' | 'generate-docx' | 'generate-pdf' | 'download-pdf' | 'download-docx' | 'delete';
+type ActionId = 'preview' | 'edit' | 'print' | 'mark-signed' | 'generate-docx' | 'generate-pdf' | 'download-pdf' | 'download-docx' | 'documents' | 'delete';
 
 type SortKey = 'contractNumber' | 'dossierNumber' | 'clientName' | 'ttc' | 'status' | 'updatedAt';
 type SortDir = 'asc' | 'desc';
@@ -156,6 +156,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
             case 'generate-pdf': generateDocument(contract.id, 'pdf'); break;
             case 'download-pdf': if (contract.pdfDownloadUrl) window.location.href = contract.pdfDownloadUrl; break;
             case 'download-docx': if (contract.generatedDocumentDownloadUrl) window.location.href = contract.generatedDocumentDownloadUrl; break;
+            case 'documents': router.visit(`/finance/documents?dossier_id=${contract.dossierId}`); break;
             case 'delete': setDeleteTarget(contract); break;
         }
     }
@@ -309,7 +310,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                             Modifie <SortIcon col="updatedAt" />
                                         </button>
                                     </th>
-                                    <th className="w-10 px-3 py-2"></th>
+                                    <th className="w-10 px-3 py-2 text-right"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -342,16 +343,18 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                             </Chip>
                                         </td>
                                         <td className="px-3 py-2 text-[var(--text-muted)]">{c.updatedAt || '-'}</td>
-                                        <td className="px-3 py-2">
-                                            <div className="flex items-center gap-0.5">
+                                        <td className="px-3 py-2 text-right">
+                                            <div className="flex items-center justify-end gap-0.5">
                                                 <button type="button" onClick={() => handleAction(c, 'preview')}
                                                     className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Apercu">
                                                     <Eye size={12} />
                                                 </button>
-                                                <button type="button" onClick={() => handleAction(c, 'edit')}
-                                                    className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Modifier">
-                                                    <Pencil size={12} />
-                                                </button>
+                                                {c.status !== 'signed' && (
+                                                    <button type="button" onClick={() => handleAction(c, 'edit')}
+                                                        className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Modifier">
+                                                        <Pencil size={12} />
+                                                    </button>
+                                                )}
                                                 <Dropdown>
                                                     <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]">
                                                         <span className="contents">
@@ -403,6 +406,12 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                                 <div className="flex items-center gap-2">
                                                                     <Printer size={13} className="text-amber-400 shrink-0" />
                                                                     <span>Imprimer</span>
+                                                                </div>
+                                                            </Dropdown.Item>
+                                                            <Dropdown.Item key="documents" id="documents" className="text-[var(--text)]">
+                                                                <div className="flex items-center gap-2">
+                                                                    <FileText size={13} className="text-sky-400 shrink-0" />
+                                                                    <span>Documents</span>
                                                                 </div>
                                                             </Dropdown.Item>
                                                             {c.status !== 'signed' && (
@@ -577,9 +586,11 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                             </Card>
 
                             <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 shadow-sm">
-                                <Button variant="solid" color="primary" size="sm" className="min-w-0 h-8 text-[11px]" onPress={() => { openEditDrawer(previewContract); setPreviewContract(null); }}>
-                                    <Pencil size={13} /> Modifier
-                                </Button>
+                                {previewContract.status !== 'signed' && (
+                                    <Button variant="solid" color="primary" size="sm" className="min-w-0 h-8 text-[11px]" onPress={() => { openEditDrawer(previewContract); setPreviewContract(null); }}>
+                                        <Pencil size={13} /> Modifier
+                                    </Button>
+                                )}
                                 <span className="h-5 w-px bg-[var(--border)]" />
                                 {previewContract.hasGeneratedDocument ? (
                                     <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[11px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.generatedDocumentDownloadUrl!; }}>

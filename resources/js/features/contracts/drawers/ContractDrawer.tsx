@@ -3,7 +3,8 @@ import {
     Autocomplete, Button, Card, Input, ListBox, Select, TextArea,
 } from '@heroui/react';
 import { Input as RacInput } from 'react-aria-components/Input';
-import { ChevronDown, Check, ChevronLeft, ChevronRight, TriangleAlert, AlertCircle } from 'lucide-react';
+import { ChevronDown, Check, ChevronLeft, ChevronRight, TriangleAlert, AlertCircle, FileText, PiggyBank } from 'lucide-react';
+import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import type {
     ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow,
@@ -20,6 +21,7 @@ type ContractDrawerProps = {
     clients: ContractClientOption[];
     dossiers: ContractDossierOption[];
     initialDossierId?: string;
+    lockProject?: boolean;
     onOpenChange: (isOpen: boolean) => void;
     onSubmit: (payload: ContractFormPayload) => void;
     errors?: FormErrors;
@@ -131,17 +133,17 @@ function FormErrorSummary({ errors }: { errors?: FormErrors }) {
     );
 }
 
-const triggerClass = 'flex h-10 w-full min-w-0 items-center gap-2 rounded-[var(--radius-md)] border bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] outline-none transition border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)]';
+const triggerClass = 'flex h-8 w-full min-w-0 items-center gap-2 rounded-[var(--radius-md)] border bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] outline-none transition border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)]';
 
 const popoverClass = 'z-[70] min-w-[var(--trigger-width)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg';
 
-const inputClass = 'mx-3 mt-3 flex h-9 w-[calc(100%-1.5rem)] rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm outline-none';
+const inputClass = 'mx-2.5 mt-2.5 flex h-8 w-[calc(100%-1.25rem)] rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs outline-none';
 
-const itemClass = 'flex cursor-pointer items-center rounded-lg px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10';
+const itemClass = 'flex cursor-pointer items-center rounded-lg px-2.5 py-2 text-xs text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10';
 
-const inputBaseClass = 'h-10 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)] aria-invalid:border-[var(--danger)] aria-invalid:ring-4 aria-invalid:ring-[color-mix(in_srgb,var(--danger)_12%,transparent)]';
+const inputBaseClass = 'h-8 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)] aria-invalid:border-[var(--danger)] aria-invalid:ring-2 aria-invalid:ring-[color-mix(in_srgb,var(--danger)_12%,transparent)]';
 
-const textAreaBaseClass = 'min-h-28 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)] aria-invalid:border-[var(--danger)] aria-invalid:ring-4 aria-invalid:ring-[color-mix(in_srgb,var(--danger)_12%,transparent)]';
+const textAreaBaseClass = 'min-h-20 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)] aria-invalid:border-[var(--danger)] aria-invalid:ring-2 aria-invalid:ring-[color-mix(in_srgb,var(--danger)_12%,transparent)]';
 
 function ClientAutocomplete({
     selectedClientId, clients, clientQuery, onClientQueryChange, filteredClients,
@@ -168,10 +170,10 @@ function ClientAutocomplete({
                 isDisabled={disabled}
             >
             <Autocomplete.Trigger className={triggerClass}>
-                <Autocomplete.Value className="flex-1 text-sm text-[var(--foreground)]" />
+                <Autocomplete.Value className="flex-1 text-xs text-[var(--foreground)]" />
                 <Autocomplete.ClearButton className="mr-1.5" />
                 <Autocomplete.Indicator>
-                    <ChevronDown size={15} className="text-[var(--text-muted)]" />
+                    <ChevronDown size={13} className="text-[var(--text-muted)]" />
                 </Autocomplete.Indicator>
             </Autocomplete.Trigger>
             <Autocomplete.Popover isNonModal className={popoverClass}>
@@ -186,10 +188,10 @@ function ClientAutocomplete({
                                 key={c.id}
                                 id={c.id}
                                 textValue={c.fullName}
-                                className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10"
+                                className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-xs text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10"
                             >
                                 <span className="truncate font-medium">{c.fullName} </span>
-                                <span className="text-xs text-[var(--text-muted)]">{c.cin}</span>
+                                <span className="text-[10px] text-[var(--text-muted)]">{c.cin}</span>
                             </ListBox.Item>
                         ))}
                     </ListBox>
@@ -221,9 +223,9 @@ function DossierAutocomplete({
             isDisabled={noClient || disabled}
         >
             <Select.Trigger className={triggerClass}>
-                <Select.Value className="flex-1 truncate text-sm text-[var(--foreground)]" />
+                <Select.Value className="flex-1 truncate text-xs text-[var(--foreground)]" />
                 <Select.Indicator>
-                    <ChevronDown size={15} className="text-[var(--text-muted)]" />
+                    <ChevronDown size={13} className="text-[var(--text-muted)]" />
                 </Select.Indicator>
             </Select.Trigger>
             <Select.Popover isNonModal className={popoverClass}>
@@ -261,8 +263,8 @@ function SelectField<T extends string>({
     error?: string; placeholder?: string;
 }) {
     return (
-        <div className="flex min-w-0 flex-col gap-1.5">
-            {label ? <label className="text-xs font-semibold text-[var(--foreground)]">{label}</label> : null}
+        <div className="flex min-w-0 flex-col gap-1">
+            {label ? <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</label> : null}
             <Select
                 selectedKey={value || null}
                 onSelectionChange={(k) => onChange((k ?? '') as T)}
@@ -275,9 +277,9 @@ function SelectField<T extends string>({
                         error && 'border-[var(--danger)]',
                     )}
                 >
-                    <Select.Value className="flex-1 truncate text-left text-sm" />
+                    <Select.Value className="flex-1 truncate text-left text-xs" />
                     <Select.Indicator>
-                        <ChevronDown size={15} className="text-[var(--text-muted)]" />
+                        <ChevronDown size={13} className="text-[var(--text-muted)]" />
                     </Select.Indicator>
                 </Select.Trigger>
                 <Select.Popover isNonModal className={popoverClass}>
@@ -287,18 +289,15 @@ function SelectField<T extends string>({
                                 key={opt.id}
                                 id={opt.id}
                                 textValue={opt.label}
-                                className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10 data-[selected]:text-[var(--accent)]"
+                                className={itemClass}
                             >
-                                <span className="flex-1 truncate">{opt.label}</span>
-                                <ListBox.Item.Indicator>
-                                    <Check size={14} className="text-[var(--accent)]" />
-                                </ListBox.Item.Indicator>
+                                <span className="text-xs">{opt.label}</span>
                             </ListBox.Item>
                         ))}
                     </ListBox>
                 </Select.Popover>
             </Select>
-            {error ? <p className="text-xs font-medium text-[var(--danger)]">{error}</p> : null}
+            {error ? <span className="text-xs text-[var(--danger)]">{error}</span> : null}
         </div>
     );
 }
@@ -336,13 +335,14 @@ function CalculationSummary({ estimation, ht, tva, ttc }: { estimation?: number;
 
 export function ContractDrawer({
     isOpen, mode, contract, clients, dossiers,
-    initialDossierId = '', onOpenChange, onSubmit, errors = {}, isSubmitting = false,
+    initialDossierId = '', lockProject = false, onOpenChange, onSubmit, errors = {}, isSubmitting = false,
 }: ContractDrawerProps) {
     const [form, setForm] = useState<ContractFormPayload>(emptyForm);
     const [step, setStep] = useState(0);
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
     const [clientQuery, setClientQuery] = useState('');
     const [dossierQuery, setDossierQuery] = useState('');
+    const visibleStatusOptions = mode === 'create' ? statusOptions.filter((o) => o.id !== 'generated') : statusOptions;
 
     const filteredClients = useMemo(() => {
         const q = clientQuery.trim().toLowerCase();
@@ -364,6 +364,7 @@ export function ContractDrawer({
         }));
     }, [clientDossiers]);
 
+    console.log(clients.find((c) => c.id === selectedClientId));
     const filteredDossierOptions = useMemo(() => {
         const q = dossierQuery.trim().toLowerCase();
         if (!q) return dossierOptions;
@@ -391,8 +392,17 @@ export function ContractDrawer({
             });
             return;
         }
+        if (initialDossierId) {
+            const client = clients.find((c) =>
+                c.dossiers.some((d) => d.id === initialDossierId),
+            );
+            setSelectedClientId(client?.id ?? null);
+            setClientQuery(client?.fullName ?? '');
+            setForm({ ...emptyForm, dossier_id: initialDossierId,surface: floorArea ? String(floorArea) : '', });
+            return;
+        }
         setSelectedClientId(null);
-        setForm({ ...emptyForm, dossier_id: initialDossierId });
+        setForm(emptyForm);
     }, [contract, clients, initialDossierId, isOpen, mode]);
 
     useEffect(() => {
@@ -457,21 +467,30 @@ export function ContractDrawer({
     }, []);
 
     const handleDossierSelect = useCallback((key: string | null) => {
-        updateField('dossier_id', key ?? '');
-    }, [updateField]);
+    updateField('dossier_id', key ?? '');
+    
+    if (key) {
+        const selectedDossier = clientDossiers.find((d) => d.id === key);
+        // Cast to any or your specific type if floor_area isn't in the base ContractDossierOption type yet
+        const floorArea = (selectedDossier as any)?.floor_area; 
+        if (floorArea) {
+            updateField('surface', String(floorArea));
+        }
+    }
+}, [updateField, clientDossiers]);
 
     const stepContent = () => {
         if (mode === 'edit') {
             return (
                 <>
                     <section>
-                        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
-                            <span className="flex size-6 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[11px] font-bold text-[var(--accent)]">1</span>
+                        <h3 className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                            <FileText size={13} />
                             Projet et statut
                         </h3>
-                        <div className="grid gap-4">
-                            <div className="flex min-w-0 flex-col gap-1.5">
-                                <label className="text-xs font-semibold text-[var(--foreground)]">Client</label>
+                        <div className="grid gap-3">
+                            <div className="flex min-w-0 flex-col gap-1">
+                                <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Client</label>
                                 <ClientAutocomplete
                                     selectedClientId={selectedClientId}
                                     clients={clients}
@@ -495,18 +514,18 @@ export function ContractDrawer({
                             />
                             <SelectField
                                 label="Statut"
-                                options={statusOptions}
+                                options={visibleStatusOptions}
                                 value={form.status}
                                 onChange={(v) => updateField('status', v)}
                             />
                         </div>
                     </section>
                     <section>
-                        <h3 className="mb-3 mt-6 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
-                            <span className="flex size-6 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[11px] font-bold text-[var(--accent)]">2</span>
+                        <h3 className="mb-3 mt-5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                            <PiggyBank size={13} />
                             Calcul des honoraires
                         </h3>
-                        <div className="grid gap-4">
+                        <div className="grid gap-3">
                             <SelectField
                                 label="Mode de calcul"
                                 options={calculationModeOptions}
@@ -514,8 +533,8 @@ export function ContractDrawer({
                                 onChange={(v) => updateField('calculation_mode', v)}
                             />
                             {isForfait ? (
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-xs font-semibold text-[var(--foreground)]">FORFAIT TTC</label>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Forfait TTC</label>
                                     <Input
                                         type="number" min="0" step="0.01"
                                         value={form.forfait_ttc}
@@ -523,7 +542,7 @@ export function ContractDrawer({
                                         aria-invalid={firstError(errors, 'forfait_ttc') ? true : undefined}
                                         className={inputBaseClass}
                                     />
-                                    <p className="text-xs text-[var(--text-muted)]">Saisissez le montant TTC final. HT et TVA sont calcules automatiquement.</p>
+                                    <p className="text-[10px] text-[var(--text-muted)]">Saisissez le montant TTC final. HT et TVA sont calcules automatiquement.</p>
 
                                 </div>
                             ) : (
@@ -534,9 +553,9 @@ export function ContractDrawer({
                                         value={form.fee_rate_percent}
                                         onChange={(v) => updateField('fee_rate_percent', v)}
                                     />
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-xs font-semibold text-[var(--foreground)]">Surface (m2)</label>
+                                    <div className="grid gap-3 md:grid-cols-2">
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Surface (m2)</label>
                                             <Input
                                                 type="number" min="0" step="0.01"
                                                 value={form.surface}
@@ -545,8 +564,8 @@ export function ContractDrawer({
                                                 className={inputBaseClass}
                                             />
                                         </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-xs font-semibold text-[var(--foreground)]">Prix / m2</label>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Prix / m2</label>
                                             <Input
                                                 type="number" min="0" step="0.01"
                                                 value={form.price_per_square_meter}
@@ -562,15 +581,16 @@ export function ContractDrawer({
                         <CalculationSummary estimation={!isForfait ? estimation : undefined} ht={ht} tva={tva} ttc={ttc} />
                     </section>
                     <section>
-                        <h3 className="mb-3 mt-6 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
-                            <span className="flex size-6 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[11px] font-bold text-[var(--accent)]">3</span>
+                        <h3 className="mb-3 mt-5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                            <FileText size={13} />
                             Notes
                         </h3>
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-1">
                             <TextArea
                                 value={form.notes}
                                 onChange={(e) => updateField('notes', e.target.value)}
                                 className={textAreaBaseClass}
+                                placeholder="Ajouter des notes..."
                             />
                         </div>
                     </section>
@@ -582,10 +602,13 @@ export function ContractDrawer({
             case 0:
                 return (
                     <section>
-                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Selectionnez le client et le projet</h3>
-                        <div className="grid gap-4">
-                            <div className="flex min-w-0 flex-col gap-1.5">
-                                <label className="text-xs font-semibold text-[var(--foreground)]">Client</label>
+                        <h3 className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                            <FileText size={13} />
+                            Selectionnez le client et le projet
+                        </h3>
+                        <div className="grid gap-3">
+                            <div className="flex min-w-0 flex-col gap-1">
+                                <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Client</label>
                                 <ClientAutocomplete
                                     selectedClientId={selectedClientId}
                                     clients={clients}
@@ -594,6 +617,7 @@ export function ContractDrawer({
                                     filteredClients={filteredClients}
                                     onSelect={handleClientSelect}
                                     onClear={handleClearClient}
+                                    disabled={lockProject}
                                 />
                             </div>
                             <DossierAutocomplete
@@ -604,10 +628,11 @@ export function ContractDrawer({
                                 onSelectionChange={handleDossierSelect}
                                 onClear={() => updateField('dossier_id', '')}
                                 noClient={!selectedClientId}
+                                disabled={lockProject}
                             />
                             <SelectField
                                 label="Statut"
-                                options={statusOptions}
+                                options={visibleStatusOptions}
                                 value={form.status}
                                 onChange={(v) => updateField('status', v)}
                             />
@@ -617,8 +642,11 @@ export function ContractDrawer({
             case 1:
                 return (
                     <section>
-                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Configurez les parametres de calcul</h3>
-                        <div className="grid gap-4">
+                        <h3 className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                            <PiggyBank size={13} />
+                            Configurez les parametres de calcul
+                        </h3>
+                        <div className="grid gap-3">
                             <SelectField
                                 label="Mode de calcul"
                                 options={calculationModeOptions}
@@ -626,8 +654,8 @@ export function ContractDrawer({
                                 onChange={(v) => updateField('calculation_mode', v)}
                             />
                             {isForfait ? (
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-xs font-semibold text-[var(--foreground)]">FORFAIT TTC</label>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Forfait TTC</label>
                                     <Input
                                         type="number" min="0" step="0.01"
                                         value={form.forfait_ttc}
@@ -635,7 +663,7 @@ export function ContractDrawer({
                                         aria-invalid={firstError(errors, 'forfait_ttc') ? true : undefined}
                                         className={inputBaseClass}
                                     />
-                                    <p className="text-xs text-[var(--text-muted)]">Saisissez le montant TTC final. HT et TVA sont calcules automatiquement.</p>
+                                    <p className="text-[10px] text-[var(--text-muted)]">Saisissez le montant TTC final. HT et TVA sont calcules automatiquement.</p>
 
                                 </div>
                             ) : (
@@ -646,9 +674,9 @@ export function ContractDrawer({
                                         value={form.fee_rate_percent}
                                         onChange={(v) => updateField('fee_rate_percent', v)}
                                     />
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-xs font-semibold text-[var(--foreground)]">Surface (m2)</label>
+                                    <div className="grid gap-3 md:grid-cols-2">
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Surface (m2)</label>
                                             <Input
                                                 type="number" min="0" step="0.01"
                                                 value={form.surface}
@@ -676,36 +704,44 @@ export function ContractDrawer({
                 );
             case 2:
             case 3:
+                const summaryRows = [
+                    { label: 'Projet', value: dossiers.find((d) => d.id === form.dossier_id)?.label || form.dossier_id || '-' },
+                    { label: 'Statut', value: form.status, capitalize: true },
+                    { label: 'Mode de calcul', value: isForfait ? 'Forfait' : 'Pourcentage' },
+                    ...(isForfait
+                        ? [{ label: 'Forfait TTC', value: form.forfait_ttc ? formatCompactMoney(Number(form.forfait_ttc)) : '-' }]
+                        : [
+                            { label: 'Taux honoraires', value: `${form.fee_rate_percent}%` },
+                            { label: 'Surface', value: form.surface ? `${form.surface} m²` : '-' },
+                            { label: 'Prix / m²', value: form.price_per_square_meter ? formatCompactMoney(Number(form.price_per_square_meter)) : '-' },
+                        ]
+                    ),
+                ];
                 return (
                     <section>
-                        <h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Revisez et confirmez</h3>
-                        <div className="mb-4 space-y-3">
-                            {[
-                                { label: 'Projet', value: dossiers.find((d) => d.id === form.dossier_id)?.label || form.dossier_id || '-' },
-                                { label: 'Statut', value: form.status, capitalize: true },
-                                { label: 'Mode', value: isForfait ? 'Forfait' : 'Pourcentage', capitalize: false },
-                                ...(isForfait
-                                    ? [{ label: 'Montant FORFAIT TTC', value: form.forfait_ttc ? formatCompactMoney(Number(form.forfait_ttc)) : '-' }]
-                                    : [
-                                        { label: 'Taux honoraires', value: `${form.fee_rate_percent}%` },
-                                        { label: 'Surface', value: form.surface ? `${form.surface} m²` : '-' },
-                                        { label: 'Prix / m2', value: form.price_per_square_meter ? formatCompactMoney(Number(form.price_per_square_meter)) : '-' },
-                                    ]
-                                ),
-                            ].flat().map((row: { label: string; value: string; capitalize?: boolean }) => (
-                                <Card key={row.label} className="flex items-center justify-between border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 shadow-none">
-                                    <span className="text-xs text-[var(--text-muted)]">{row.label}</span>
-                                    <span className={cn('text-[13px] font-medium text-[var(--foreground)]', row.capitalize && 'capitalize')}>{row.value}</span>
-                                </Card>
+                        <h3 className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                            <Check size={13} />
+                            Revisez et confirmez
+                        </h3>
+                        <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+                            {summaryRows.map((row, idx) => (
+                                <div key={row.label} className={cn(
+                                    'flex items-center justify-between px-3 py-2',
+                                    idx < summaryRows.length - 1 && 'border-b border-[var(--border)]',
+                                )}>
+                                    <span className="text-[11px] text-[var(--text-muted)]">{row.label}</span>
+                                    <span className={cn('text-xs font-medium text-[var(--foreground)]', row.capitalize && 'capitalize')}>{row.value}</span>
+                                </div>
                             ))}
                         </div>
                         <CalculationSummary estimation={!isForfait ? estimation : undefined} ht={ht} tva={tva} ttc={ttc} />
-                        <div className="mt-4 flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-[var(--foreground)]">Notes</label>
+                        <div className="mt-4 flex flex-col gap-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Notes</label>
                             <TextArea
                                 value={form.notes}
                                 onChange={(e) => updateField('notes', e.target.value)}
                                 className={textAreaBaseClass}
+                                placeholder="Ajouter des notes..."
                             />
                         </div>
                     </section>
@@ -718,33 +754,33 @@ export function ContractDrawer({
     const drawerFooter = () => {
         if (mode === 'edit') {
             return (
-                <>
-                    <Button variant="bordered" color="default" onPress={() => onOpenChange(false)} isDisabled={isSubmitting}>
+                <div className="flex w-full items-center justify-end gap-2">
+                    <AppButton variant="light" onPress={() => onOpenChange(false)} isDisabled={isSubmitting}>
                         Annuler
-                    </Button>
-                    <Button variant="solid" color="primary" type="submit" form="contract-form" isLoading={isSubmitting}>
+                    </AppButton>
+                    <AppButton variant="solid" color="primary" type="submit" form="contract-form" isLoading={isSubmitting}>
                         Enregistrer
-                    </Button>
-                </>
+                    </AppButton>
+                </div>
             );
         }
         return (
-            <>
+            <div className="flex w-full items-center justify-between gap-2">
                 {step > 0 ? (
-                    <Button variant="bordered" color="default" onPress={() => setStep((s) => s - 1)} isDisabled={isSubmitting}>
-                        <ChevronLeft size={15} /> Retour
-                    </Button>
+                    <AppButton variant="light" onPress={() => setStep((s) => s - 1)} isDisabled={isSubmitting}>
+                        <ChevronLeft size={14} /> Retour
+                    </AppButton>
                 ) : <div />}
                 {step === createSteps.length - 1 ? (
-                    <Button variant="solid" color="primary" type="submit" form="contract-form" isLoading={isSubmitting}>
-                        <Check size={15} /> {isSubmitting ? 'Creation...' : 'Creer le contrat'}
-                    </Button>
+                    <AppButton variant="solid" color="primary" type="submit" form="contract-form" isLoading={isSubmitting}>
+                        <Check size={14} /> {isSubmitting ? 'Création...' : 'Créer le contrat'}
+                    </AppButton>
                 ) : (
-                    <Button variant="solid" color="primary" onPress={() => setStep((s) => s + 1)} isDisabled={isSubmitting || !stepValid}>
-                        Suivant <ChevronRight size={15} />
-                    </Button>
+                    <AppButton variant="solid" color="primary" onPress={() => setStep((s) => s + 1)} isDisabled={isSubmitting || !stepValid}>
+                        Suivant <ChevronRight size={14} />
+                    </AppButton>
                 )}
-            </>
+            </div>
         );
     };
 

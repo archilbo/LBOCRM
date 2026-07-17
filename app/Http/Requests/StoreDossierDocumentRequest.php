@@ -19,7 +19,8 @@ class StoreDossierDocumentRequest extends FormRequest
             'status' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'file' => ['nullable', 'file', 'max:20480'],
-            'return_to' => ['nullable', 'string', 'max:2000', 'starts_with:/'],
+            'workflow_step_key' => ['nullable', 'string', 'max:100'],
+            'workflow_req_key' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

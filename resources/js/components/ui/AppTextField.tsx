@@ -8,11 +8,12 @@ import {
 } from 'react-aria-components';
 
 type AppTextFieldProps = Omit<TextFieldProps, 'children'> & {
-    label: string;
+    label?: string;
     description?: string;
     error?: string;
     icon?: ReactNode;
     placeholder?: string;
+    size?: 'sm' | 'md';
 };
 
 export function AppTextField({
@@ -22,6 +23,7 @@ export function AppTextField({
     icon,
     placeholder,
     className,
+    size = 'md',
     ...props
 }: AppTextFieldProps) {
     return (
@@ -33,9 +35,11 @@ export function AppTextField({
             ].join(' ')}
             isInvalid={Boolean(error) || props.isInvalid}
         >
-            <Label className="text-sm font-medium text-[var(--text)]">
-                {label}
-            </Label>
+            {label ? (
+                <Label className="text-sm font-medium text-[var(--text)]">
+                    {label}
+                </Label>
+            ) : null}
 
             <div className="relative">
                 {icon ? (
@@ -47,7 +51,8 @@ export function AppTextField({
                 <Input
                     placeholder={placeholder}
                     className={[
-                        'h-10 w-full rounded-2xl border bg-[var(--surface)] px-3 text-sm outline-none transition',
+                        size === 'sm' ? 'h-8 text-xs' : 'h-10 text-sm',
+                        'w-full rounded-2xl border bg-[var(--surface)] px-3 outline-none transition',
                         'placeholder:text-[var(--text-muted)]',
                         'focus:border-[var(--accent)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)]',
                         'group-data-[invalid]:border-[var(--danger)] group-data-[invalid]:ring-4 group-data-[invalid]:ring-[color-mix(in_srgb,var(--danger)_12%,transparent)]',

@@ -7,7 +7,11 @@ use App\Http\Requests\UpdateDossierRequest;
 use App\Http\Resources\DossierResource;
 use App\Models\City;
 use App\Models\Client;
+use App\Models\Box;
+use App\Models\DocumentTemplate;
 use App\Models\Dossier;
+use App\Models\Room;
+use App\Models\Shelf;
 use App\Services\Dossiers\DossierLocationGroupingService;
 use App\Services\Dossiers\DossierNumberService;
 use App\Services\Dossiers\DossierWorkflowStepperService;
@@ -68,6 +72,58 @@ class DossierController extends Controller
 
         $workflow = $workflowStepper->evaluate($dossier);
 
+        $dossiers = Dossier::query()
+            ->with('client')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (Dossier $d) => [
+                'id' => (string) $d->id,
+                'label' => $d->dossier_number . ' - ' . $d->project_object . ' - ' . ($d->client?->full_name ?? '-'),
+                'clientId' => (string) ($d->client_id ?? $d->client?->id ?? ''),
+            ])
+            ->values();
+
+        $templates = DocumentTemplate::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (DocumentTemplate $t) => [
+                'id' => (string) $t->id,
+                'label' => $t->name,
+                'code' => $t->code,
+                'documentType' => $t->document_type,
+                'isRequired' => (bool) $t->is_required,
+            ])
+            ->values();
+
+        $contractClients = Client::query()
+            ->with(['dossiers' => fn ($q) => $q->with('contract')->orderByDesc('created_at')])
+            ->orderBy('full_name')
+            ->get()
+            ->map(fn (Client $client) => [
+                'id' => (string) $client->id,
+                'fullName' => $client->full_name,
+                'cin' => $client->cin,
+                'dossiers' => $client->dossiers->map(fn (Dossier $d) => [
+                    'id' => (string) $d->id,
+                    'label' => $d->dossier_number . ' - ' . $d->project_object,
+                    'floorArea' => $d->floor_area !== null ? (float) $d->floor_area : null,
+                    'hasContract' => $d->contract !== null,
+                ])->values()->all(),
+            ])
+            ->values();
+
+        $financeDossiers = Dossier::query()
+            ->with('client')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (Dossier $d) => [
+                'id' => (string) $d->id,
+                'label' => $d->dossier_number . ' - ' . $d->project_object . ' - ' . ($d->client?->full_name ?? '-'),
+                'clientName' => $d->client?->full_name ?? '-',
+            ])
+            ->values();
+
         return Inertia::render('Dossiers/Show', [
             'dossier' => DossierResource::make($dossier)->resolve(),
             'workflow' => $workflow,
@@ -82,9 +138,23 @@ class DossierController extends Controller
                 ->values(),
             'contract' => $dossier->contract ? [
                 'id' => $dossier->contract->id,
+                'dossierId' => (string) $dossier->contract->dossier_id,
                 'contractNumber' => $dossier->contract->contract_number,
                 'status' => $dossier->contract->status,
+                'surface' => (float) $dossier->contract->surface,
+                'pricePerSquareMeter' => (float) $dossier->contract->price_per_square_meter,
+                'feeRatePercent' => (float) $dossier->contract->fee_rate_percent,
+                'calculationMode' => $dossier->contract->calculation_mode,
+                'forfaitTtc' => (float) $dossier->contract->forfait_ttc,
+                'ht' => (float) $dossier->contract->ht,
+                'tva' => (float) $dossier->contract->tva,
                 'ttc' => (float) $dossier->contract->ttc,
+                'notes' => $dossier->contract->notes,
+                'generatedAt' => $dossier->contract->generated_at?->format('Y-m-d'),
+                'signedAt' => $dossier->contract->signed_at?->format('Y-m-d'),
+                'createdAt' => $dossier->contract->created_at?->format('Y-m-d'),
+                'hasGeneratedDoc' => !is_null($dossier->contract->generated_document_path),
+                'hasPdf' => !is_null($dossier->contract->pdf_path),
             ] : null,
             'authorization' => $dossier->authorization ? [
                 'id' => $dossier->authorization->id,
@@ -106,13 +176,56 @@ class DossierController extends Controller
                 ->values(),
             'archiveRecord' => $dossier->archiveRecord ? [
                 'id' => $dossier->archiveRecord->id,
+                'dossierId' => (string) $dossier->archiveRecord->dossier_id,
+                'clientId' => (string) ($dossier->client_id ?? ''),
+                'dossierNumber' => $dossier->dossier_number,
+                'projectObject' => $dossier->project_object,
+                'clientName' => $dossier->client?->full_name ?? '',
+                'clientCin' => $dossier->client?->cin ?? '',
                 'archiveNumber' => $dossier->archiveRecord->archive_number,
                 'status' => $dossier->archiveRecord->status,
                 'room' => $dossier->archiveRecord->room,
                 'shelf' => $dossier->archiveRecord->shelf,
                 'box' => $dossier->archiveRecord->box,
                 'folder' => $dossier->archiveRecord->folder,
+                'inDate' => $dossier->archiveRecord->in_date?->format('Y-m-d'),
+                'outDate' => $dossier->archiveRecord->out_date?->format('Y-m-d'),
+                'returnedAt' => $dossier->archiveRecord->returned_at?->format('Y-m-d'),
+                'requestedBy' => $dossier->archiveRecord->requested_by,
+                'notes' => $dossier->archiveRecord->notes,
+                'isOverdue' => $dossier->archiveRecord->isOverdue(),
+                'isLost' => $dossier->archiveRecord->is_lost,
+                'lostReason' => $dossier->archiveRecord->lost_reason,
+                'locationLabel' => trim(implode(' / ', array_filter([
+                    $dossier->archiveRecord->room,
+                    $dossier->archiveRecord->shelf,
+                    $dossier->archiveRecord->box,
+                    $dossier->archiveRecord->folder,
+                ]))),
             ] : null,
+            'clients' => $this->clientOptions(),
+            'cities' => City::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code', 'color']),
+            'dossiers' => $dossiers,
+            'templates' => $templates,
+            'contractClients' => $contractClients,
+            'financeDossiers' => $financeDossiers,
+            'archiveRooms' => Room::with('shelves.boxes')->get()->map(fn ($room) => [
+                'id' => $room->id,
+                'code' => $room->code,
+                'name' => $room->name,
+            ]),
+            'archiveShelves' => Shelf::all()->map(fn ($shelf) => [
+                'id' => $shelf->id,
+                'roomId' => $shelf->room_id,
+                'code' => $shelf->code,
+                'name' => $shelf->name,
+            ]),
+            'archiveBoxes' => Box::all()->map(fn ($box) => [
+                'id' => $box->id,
+                'shelfId' => $box->shelf_id,
+                'code' => $box->code,
+                'name' => $box->name,
+            ]),
         ]);
     }
 

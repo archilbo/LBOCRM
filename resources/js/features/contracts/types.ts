@@ -39,7 +39,7 @@ export type ContractRow = {
 export type ContractDossierOption = {
     id: string;
     label: string;
-    floorArea: number | null;
+    floor_area?: number | string;
     hasContract: boolean;
 };
 

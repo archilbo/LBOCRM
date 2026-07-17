@@ -5,7 +5,9 @@ import {
     ChevronRight,
     Eye,
     FileCheck2,
+    FileText,
     FolderKanban,
+    Globe,
     MapPinned,
     MoreHorizontal,
     Pencil,
@@ -132,11 +134,11 @@ export function DossierLocationExplorer({ groups }: Props) {
         const activeCommunes = groups.reduce((s, g) =>
             s + g.communes.filter((c) => c.stats.projectsCount > 0).length, 0);
         return [
-            { label: 'Provinces', value: totalProvinces, detail: 'Administrative regions', icon: <MapPinned size={15} /> },
-            { label: 'Communes', value: totalCommunes, detail: 'Local divisions' },
-            { label: 'Projects', value: totalProjects, detail: 'Tracked dossiers' },
-            { label: 'Documents', value: totalDocuments, detail: 'Linked files' },
-            { label: 'Active locations', value: activeCommunes, detail: 'Communes with projects' },
+            { label: 'Provinces', value: totalProvinces, icon: Globe, color: 'text-violet-400', bgClass: 'bg-violet-400/10' },
+            { label: 'Communes', value: totalCommunes, icon: Building2, color: 'text-amber-400', bgClass: 'bg-amber-400/10' },
+            { label: 'Projects', value: totalProjects, icon: FolderKanban, color: 'text-sky-400', bgClass: 'bg-sky-400/10' },
+            { label: 'Documents', value: totalDocuments, icon: FileText, color: 'text-emerald-400', bgClass: 'bg-emerald-400/10' },
+            { label: 'Actives', value: activeCommunes, icon: MapPinned, color: activeCommunes > 0 ? 'text-rose-400' : 'text-[var(--text-muted)]', bgClass: activeCommunes > 0 ? 'bg-rose-400/10' : 'bg-[var(--surface-2)]' },
         ];
     }, [groups]);
 
@@ -166,21 +168,21 @@ export function DossierLocationExplorer({ groups }: Props) {
         <div className="space-y-6">
             {/* ── Summary strip ── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-                {summaryCards.map((card) => (
-                    <div key={card.label}
-                        className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
-                        {card.icon ? (
-                            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]">
-                                {card.icon}
+                {summaryCards.map((card) => {
+                    const Icon = card.icon;
+                    return (
+                        <div key={card.label}
+                            className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+                            <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', card.bgClass)}>
+                                <Icon size={15} className={card.color} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-[11px] font-medium text-[var(--text-muted)]">{card.label}</p>
+                                <p className={cn('text-lg font-semibold text-[var(--foreground)]', card.color)}>{card.value}</p>
                             </div>
-                        ) : null}
-                        <div className="min-w-0">
-                            <p className="text-[11px] font-medium text-[var(--text-muted)]">{card.label}</p>
-                            <p className="text-lg font-semibold text-[var(--foreground)]">{card.value}</p>
-                            <p className="text-[10px] text-[var(--text-subtle)]">{card.detail}</p>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* ── Mobile: Province select step ── */}
@@ -448,11 +450,21 @@ function ProjectSearchBar({ query, setQuery, searchRef, compact }: {
 function RowMenu({ project, isOpen, onToggle }: {
     project: DossierLocationRow; isOpen: boolean; onToggle: () => void;
 }) {
+    const iconColor = (id: string) => {
+        const colors: Record<string, string> = {
+            open: 'text-sky-400',
+            edit: 'text-amber-400',
+            documents: 'text-violet-400',
+            finance: 'text-emerald-400',
+        };
+        return colors[id] || 'text-[var(--text-muted)]';
+    };
+
     const items = [
-        { id: 'open', label: 'Open', icon: <Eye size={14} />, action: () => router.visit(`/dossiers/${project.id}`), danger: false },
-        { id: 'edit', label: 'Edit', icon: <Pencil size={14} />, action: () => router.visit(`/dossiers/${project.id}`), danger: false },
-        { id: 'documents', label: 'Documents', icon: <FileCheck2 size={14} />, action: () => router.visit(`/documents?search=${encodeURIComponent(project.dossierNumber)}`), danger: false },
-        { id: 'finance', label: 'Finance', icon: <BadgeDollarSign size={14} />, action: () => router.visit(`/finance/documents?search=${encodeURIComponent(project.dossierNumber)}`), danger: false },
+        { id: 'open', label: 'Open', icon: <Eye size={14} />, action: () => router.visit(`/dossiers/${project.id}`) },
+        { id: 'edit', label: 'Edit', icon: <Pencil size={14} />, action: () => router.visit(`/dossiers/${project.id}`) },
+        { id: 'documents', label: 'Documents', icon: <FileCheck2 size={14} />, action: () => router.visit(`/documents?dossier_id=${project.id}`) },
+        { id: 'finance', label: 'Finance', icon: <BadgeDollarSign size={14} />, action: () => router.visit(`/finance/documents?dossier_id=${project.id}`) },
     ];
 
     return (
@@ -466,13 +478,8 @@ function RowMenu({ project, isOpen, onToggle }: {
                     onClick={(e) => e.stopPropagation()}>
                     {items.map((item) => (
                         <button key={item.id} type="button" onClick={() => { item.action(); }}
-                            className={cn(
-                                'flex h-[32px] w-full items-center gap-2 rounded-lg px-2.5 text-left text-[12px] font-medium transition',
-                                item.danger
-                                    ? 'text-[var(--danger)] hover:bg-[var(--danger)]/10'
-                                    : 'text-[var(--foreground)] hover:bg-[var(--surface-2)]',
-                            )}>
-                            <span className="flex size-[14px] shrink-0 items-center justify-center">{item.icon}</span>
+                            className="flex h-[32px] w-full items-center gap-2 rounded-lg px-2.5 text-left text-[12px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                            <span className={cn('flex size-[14px] shrink-0 items-center justify-center', iconColor(item.id))}>{item.icon}</span>
                             <span>{item.label}</span>
                         </button>
                     ))}
@@ -486,63 +493,42 @@ function ProjectCard({ project, openMenuId, setOpenMenuId }: {
     project: DossierLocationRow; openMenuId: number | null; setOpenMenuId: (v: number | null) => void;
 }) {
     return (
-        <div className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition hover:border-[var(--accent)]/30 hover:shadow-md">
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                        <FolderKanban size={16} />
+        <div className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 transition hover:border-[var(--accent)]/30 hover:shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
+                        <FolderKanban size={14} />
                     </span>
                     <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">
-                            {project.projectObject || project.dossierNumber}
-                        </p>
-                        <p className="truncate text-[11px] text-[var(--text-muted)]">{project.dossierNumber}</p>
+                        <div className="flex items-center gap-1.5">
+                            <p className="truncate text-[12px] font-semibold text-[var(--foreground)]">
+                                {project.projectObject || project.dossierNumber}
+                            </p>
+                            <StatusPill label={project.status} color={statusColor(project.status)} size="sm" />
+                        </div>
+                        <p className="truncate text-[10px] text-[var(--text-muted)]">{project.dossierNumber}</p>
                     </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                    <StatusPill label={project.status} color={statusColor(project.status)} size="sm" />
-                    <AppButton variant="solid" color="primary" size="sm" className="h-7 min-w-0 px-2.5 text-[11px]" onPress={() => router.visit(`/dossiers/${project.id}`)}>
-                        <Eye size={13} />
-                        Open
-                    </AppButton>
-                    <RowMenu project={project} isOpen={openMenuId === project.id}
-                        onToggle={() => setOpenMenuId(openMenuId === project.id ? null : project.id)} />
-                </div>
+                <RowMenu project={project} isOpen={openMenuId === project.id}
+                    onToggle={() => setOpenMenuId(openMenuId === project.id ? null : project.id)} />
             </div>
 
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
-                    <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--foreground)]">{project.ownerName || '-'}</p>
-                    <p className="truncate text-[10px] text-[var(--text-muted)]">{project.clientNumber || '-'}</p>
-                </div>
-                <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Workflow</p>
-                    <p className="mt-0.5 text-[12px] font-medium text-[var(--accent)]">{workflowLabel(project.workflowStep)}</p>
-                </div>
-                <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Documents</p>
-                    <p className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-medium text-[var(--foreground)]">
-                        <FileCheck2 size={12} className="text-[var(--text-muted)]" />
-                        {project.documentsCount} docs
-                    </p>
-                </div>
-                <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Finance</p>
-                    <p className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-medium text-[var(--foreground)]">
-                        <BadgeDollarSign size={12} className="text-[var(--text-muted)]" />
-                        {project.financeDocumentsCount} docs
-                    </p>
-                    {project.remainingTotal > 0 ? (
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">Remaining: {money(project.remainingTotal)}</p>
-                    ) : null}
-                </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-[var(--text-muted)]">
+                <span>{project.ownerName || '-'}</span>
+                <span className="text-[var(--text-subtle)]">·</span>
+                <span className="text-[var(--accent)]">{workflowLabel(project.workflowStep)}</span>
+                <span className="text-[var(--text-subtle)]">·</span>
+                <span>{project.documentsCount} docs</span>
+                {project.remainingTotal > 0 ? (
+                    <>
+                        <span className="text-[var(--text-subtle)]">·</span>
+                        <span>{money(project.remainingTotal)}</span>
+                    </>
+                ) : null}
             </div>
 
             {project.projectAddress ? (
-                <p className="mt-2 truncate text-[11px] text-[var(--text-muted)]">
-                    {project.projectAddress}
-                </p>
+                <p className="mt-1 truncate text-[10px] text-[var(--text-subtle)]">{project.projectAddress}</p>
             ) : null}
         </div>
     );

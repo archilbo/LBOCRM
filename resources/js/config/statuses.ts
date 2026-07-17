@@ -21,6 +21,7 @@ export const dossierStatusOptions: SelectOption[] = [
 
 export const dossierWorkflowOptions: SelectOption[] = [
     { id: 'client', label: 'Client' },
+    { id: 'bureau_etude', label: 'Bureau Etude' },
     { id: 'documents', label: 'Documents' },
     { id: 'contract', label: 'Contract' },
     { id: 'authorization', label: 'Authorization' },
@@ -36,8 +37,15 @@ const dossierStatusClasses: Record<string, string> = {
     paused: 'border-amber-400/25 bg-amber-400/10 text-amber-300',
 };
 
+function snakeToTitle(value: string) {
+    return value
+        .split('_')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+}
+
 export function getDossierWorkflowLabel(value: string) {
-    return dossierWorkflowOptions.find((option) => option.id === value)?.label ?? value;
+    return snakeToTitle(value);
 }
 
 export function getDossierStatusClass(status: string) {

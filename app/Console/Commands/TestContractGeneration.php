@@ -36,7 +36,7 @@ class TestContractGeneration extends Command
             return self::FAILURE;
         }
 
-        $absoluteDocx = Storage::disk('public')->path($paths['docx_path']);
+        $absoluteDocx = Storage::disk('local')->path($paths['docx_path']);
 
         if (!file_exists($absoluteDocx)) {
             $this->error("File does not exist: {$absoluteDocx}");
@@ -54,9 +54,11 @@ class TestContractGeneration extends Command
             $this->warn("Remaining placeholders found: " . implode(', ', $placeholders));
         }
 
-        $absoluteDocx = Storage::disk('public')->path($paths['docx_path']);
-        $pdfRelative = 'contracts/' . $contract->contract_number . '/' . $contract->contract_number . '-contract.pdf';
-        $absolutePdf = Storage::disk('public')->path($pdfRelative);
+        $absoluteDocx = Storage::disk('local')->path($paths['docx_path']);
+        $pathBuilder = app(\App\Services\Dossiers\DossierPathBuilder::class);
+        $contract->loadMissing(['dossier.city', 'dossier.client']);
+        $pdfRelative = $pathBuilder->contractPdfPath($contract, $contract->dossier);
+        $absolutePdf = Storage::disk('local')->path($pdfRelative);
 
         try {
             app(WordDocumentConverter::class)->convertDocxToPdf($absoluteDocx, $absolutePdf);

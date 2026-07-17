@@ -53,6 +53,10 @@ class FinanceDocumentController extends Controller
             });
         }
 
+        if ($dossierId = $request->input('dossier_id')) {
+            $query->where('dossier_id', $dossierId);
+        }
+
         $documents = $query->orderBy('created_at', 'desc')->limit(100)->get();
         $records = FinanceDocumentResource::collection($documents)->resolve($request);
 
@@ -153,7 +157,7 @@ class FinanceDocumentController extends Controller
                 'companyInfo' => [],
                 'bankInfo' => [],
             ],
-            'filters' => $request->only(['type', 'status', 'search']),
+            'filters' => $request->only(['type', 'status', 'search', 'dossier_id']),
         ]);
     }
 

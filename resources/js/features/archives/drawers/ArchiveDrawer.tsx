@@ -69,6 +69,11 @@ type ArchiveDrawerProps = {
     rooms: RoomOption[];
     shelves: ShelfOption[];
     boxes: BoxOption[];
+    initialClientId?: string;
+    initialDossierId?: string;
+    initialClientName?: string;
+    initialDossierLabel?: string;
+    lockProject?: boolean;
     onOpenChange: (isOpen: boolean) => void;
     onSubmit: (payload: ArchiveFormPayload) => void;
 };
@@ -80,6 +85,11 @@ export function ArchiveDrawer({
     rooms,
     shelves,
     boxes,
+    initialClientId,
+    initialDossierId,
+    initialClientName,
+    initialDossierLabel,
+    lockProject,
     onOpenChange,
     onSubmit,
 }: ArchiveDrawerProps) {
@@ -149,6 +159,21 @@ export function ArchiveDrawer({
                 requested_by: archiveRecord.requestedBy ?? '',
                 notes: archiveRecord.notes ?? '',
             });
+        } else if (initialClientId && initialDossierId) {
+            reset({
+                client_id: initialClientId,
+                dossier_id: initialDossierId,
+                status: 'ready_to_archive',
+                room: null,
+                shelf: null,
+                box: null,
+                folder: '',
+                in_date: null,
+                out_date: null,
+                returned_at: null,
+                requested_by: '',
+                notes: '',
+            });
         } else {
             reset({
                 client_id: '',
@@ -165,7 +190,7 @@ export function ArchiveDrawer({
                 notes: '',
             });
         }
-    }, [archiveRecord, isOpen, mode, reset]);
+    }, [archiveRecord, initialClientId, initialDossierId, isOpen, mode, reset]);
 
     function handleClientChange(id: string | null) {
         setValue('client_id', id ?? '', { shouldDirty: true });
@@ -198,11 +223,11 @@ export function ArchiveDrawer({
 
     const clientLabel = mode === 'edit' && archiveRecord?.clientName
         ? archiveRecord.clientName
-        : undefined;
+        : initialClientName;
 
     const projectLabel = mode === 'edit' && archiveRecord?.dossierNumber
         ? `${archiveRecord.projectObject} · ${archiveRecord.dossierNumber}`
-        : undefined;
+        : initialDossierLabel;
 
     return (
         <AppDrawer
@@ -210,8 +235,8 @@ export function ArchiveDrawer({
             onOpenChange={onOpenChange}
             panelClassName="sm:w-[520px]"
             isDismissable={false}
-            title={mode === 'create' ? 'Create archive record' : 'Edit archive record'}
-            description="Save physical archive tracking to the database."
+            title={mode === 'create' ? 'Creer une fiche d archive' : 'Modifier la fiche d archive'}
+            description="Enregistrer le suivi physique de l archivage."
             footer={
                 <>
                     <AppButton variant="light" onPress={() => onOpenChange(false)}>
@@ -225,30 +250,31 @@ export function ArchiveDrawer({
         >
             <form id="archive-form" className="space-y-2" onSubmit={handleSubmit(handleFormSubmit)}>
                 <section>
-                    <h4 className="mb-3 mt-6 text-sm font-semibold text-white first:mt-0">Client and project</h4>
+                    <h4 className="mb-3 mt-6 text-sm font-semibold text-[var(--foreground)] first:mt-0">Client et projet</h4>
 
                     <div className="space-y-4">
                         <AsyncCombobox
                             label="Client"
-                            placeholder="Search clients…"
+                            placeholder="Rechercher un client…"
                             value={clientId || null}
                             onChange={handleClientChange}
                             queryKey={['clients']}
                             queryFn={fetchClients}
-                            emptyMessage="No clients found"
+                            emptyMessage="Aucun client trouve"
                             defaultLabel={clientLabel}
+                            isDisabled={lockProject}
                             error={errors.client_id?.message}
                         />
 
                         <AsyncCombobox
-                            label="Project"
-                            placeholder={clientId ? 'Search projects…' : 'Select a client first'}
+                            label="Projet"
+                            placeholder={clientId ? 'Rechercher un projet…' : 'Selectionnez un client d abord'}
                             value={watch('dossier_id') || null}
                             onChange={(id) => setValue('dossier_id', id ?? '', { shouldDirty: true })}
                             queryKey={['projects', clientId ?? '']}
                             queryFn={(q) => fetchProjects(clientId ?? '', q)}
                             emptyMessage="No projects found"
-                            isDisabled={!clientId}
+                            isDisabled={lockProject || !clientId}
                             defaultLabel={projectLabel}
                             error={errors.dossier_id?.message}
                         />

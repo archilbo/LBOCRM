@@ -1,9 +1,12 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import type { Key } from 'react-aria-components';
+import {
+    Building2, ChevronDown, FileText, FolderKanban, Globe, Hash, MapPin, Maximize2,
+    MessageSquareText, Ruler, Users,
+} from 'lucide-react';
+import { ListBox, Select } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
-import { AppSelect } from '@/components/ui/AppSelect';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppTextarea } from '@/components/ui/AppTextarea';
 import type {
@@ -15,6 +18,45 @@ import type {
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
 import { dossierStatusOptions, dossierWorkflowOptions } from '@/config/statuses';
+import { cn } from '@/lib/cn';
+
+const triggerSm = 'flex h-8 w-full min-w-0 items-center gap-2 rounded-[var(--radius-md)] border bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] outline-none transition border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)]';
+const popover = 'z-[70] min-w-[var(--trigger-width)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg';
+const itemClass = 'flex cursor-pointer items-center rounded-lg px-3 py-2 text-xs text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10';
+
+function HeroSelect<T extends string>({ placeholder, options, value, onChange, error, isDisabled }: {
+    placeholder: string; options: { id: T; label: string }[]; value: T | ''; onChange: (v: T) => void; error?: string; isDisabled?: boolean;
+}) {
+    return (
+        <div className="flex min-w-0 flex-col gap-1">
+            <Select
+                selectedKey={value || null}
+                onSelectionChange={(k) => onChange((k ?? '') as T)}
+                placeholder={placeholder}
+                shouldCloseOnBlur={false}
+                aria-label={placeholder}
+                isDisabled={isDisabled}
+            >
+                <Select.Trigger className={cn(triggerSm, error && 'border-[var(--danger)]')}>
+                    <Select.Value className="flex-1 truncate text-left text-xs" />
+                    <Select.Indicator>
+                        <ChevronDown size={14} className="text-[var(--text-muted)]" />
+                    </Select.Indicator>
+                </Select.Trigger>
+                <Select.Popover isNonModal className={popover}>
+                    <ListBox className="max-h-56 overflow-y-auto p-1">
+                        {options.map((opt) => (
+                            <ListBox.Item key={opt.id} id={opt.id} textValue={opt.label} className={itemClass}>
+                                {opt.label}
+                            </ListBox.Item>
+                        ))}
+                    </ListBox>
+                </Select.Popover>
+            </Select>
+            {error ? <p className="text-[10px] font-medium text-[var(--danger)]">{error}</p> : null}
+        </div>
+    );
+}
 
 type ProjectDrawerProps = {
     isOpen: boolean;
@@ -98,10 +140,6 @@ export function ProjectDrawer({
         setForm((current) => ({ ...current, [field]: value }));
     }
 
-    function updateSelect(field: keyof DossierFormPayload, value: Key | null) {
-        setForm((current) => ({ ...current, [field]: value ? String(value) : '' }));
-    }
-
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         onSubmit(form);
@@ -111,138 +149,162 @@ export function ProjectDrawer({
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            title={mode === 'create' ? 'Create project' : 'Edit project'}
-            description="Save project/dossier information to the database."
+            title={mode === 'create' ? 'Nouveau projet' : 'Modifier le projet'}
+            description={mode === 'create' ? 'Renseignez les informations du nouveau dossier.' : 'Mettez à jour les informations du dossier.'}
             footer={
-                <>
-                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>
-                        Cancel
+                <div className="flex w-full items-center justify-end gap-2">
+                    <AppButton variant="light" onPress={() => onOpenChange(false)}>
+                        Annuler
                     </AppButton>
-                    <AppButton variant="primary" type="submit" form="project-form">
-                        Save
+                    <AppButton variant="solid" color="primary" type="submit" form="project-form">
+                        Enregistrer
                     </AppButton>
-                </>
+                </div>
             }
         >
-            <form id="project-form" className="space-y-6" onSubmit={handleSubmit}>
+            <form id="project-form" className="space-y-3" onSubmit={handleSubmit}>
                 <AppFormErrorSummary errors={errors} />
 
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">Client and workflow</h3>
-                    <div className="grid gap-4">
-                        <AppSelect
-                            label="Client"
-                            placeholder="Select client"
-                            selectedKey={form.clientId}
-                            onSelectionChange={(value) => updateSelect('clientId', value)}
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <Users size={12} /> Client & workflow
+                    </p>
+                    <div className="grid gap-2">
+                        <HeroSelect
+                            placeholder="Sélectionner un client"
+                            value={form.clientId}
+                            onChange={(v) => updateField('clientId', v)}
                             options={clients}
                             error={firstError(errors, 'client_id')}
+                            isDisabled={mode === 'edit'}
                         />
-                        <AppSelect
-                            label="City"
-                            placeholder="Select city"
-                            selectedKey={form.cityId}
-                            onSelectionChange={(value) => updateSelect('cityId', value)}
+                        <HeroSelect
+                            placeholder="Sélectionner une ville"
+                            value={form.cityId}
+                            onChange={(v) => updateField('cityId', v)}
                             options={cityOptions}
                             error={firstError(errors, 'city_id')}
                         />
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <AppSelect
-                                label="Status"
-                                selectedKey={form.status}
-                                onSelectionChange={(value) => updateSelect('status', value)}
+                        <div className="grid gap-2 md:grid-cols-2">
+                            <HeroSelect
+                                placeholder="Statut"
+                                value={form.status}
+                                onChange={(v) => updateField('status', v)}
                                 options={dossierStatusOptions}
                                 error={firstError(errors, 'status')}
                             />
-                            <AppSelect
-                                label="Workflow step"
-                                selectedKey={form.workflowStep}
-                                onSelectionChange={(value) => updateSelect('workflowStep', value)}
+                            <HeroSelect
+                                placeholder="Étape workflow"
+                                value={form.workflowStep}
+                                onChange={(v) => updateField('workflowStep', v)}
                                 options={dossierWorkflowOptions}
                                 error={firstError(errors, 'workflow_step')}
                             />
                         </div>
                     </div>
-                </section>
+                </div>
 
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">Project information</h3>
-                    <div className="grid gap-4">
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <FileText size={12} /> Informations projet
+                    </p>
+                    <div className="grid gap-2">
                         <AppTextField
-                            label="Project object"
-                            placeholder="Example: Villa construction study"
+                            placeholder="Objet du projet"
                             value={form.projectObject}
                             onChange={(value) => updateField('projectObject', value)}
                             error={firstError(errors, 'project_object')}
+                            icon={<FolderKanban size={13} />}
+                            size="sm"
                         />
                         <AppTextarea
-                            label="Description"
+                            placeholder="Description"
                             value={form.description}
                             onChange={(value) => updateField('description', value)}
                             error={firstError(errors, 'description')}
+                            size="sm"
                         />
                     </div>
-                </section>
+                </div>
 
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">Location</h3>
-                    <div className="grid gap-4">
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <MapPin size={12} /> Localisation
+                    </p>
+                    <div className="grid gap-2">
                         <AppTextField
-                            label="Address"
+                            placeholder="Adresse du projet"
                             value={form.projectAddress}
                             onChange={(value) => updateField('projectAddress', value)}
                             error={firstError(errors, 'project_address', 'address')}
+                            icon={<MapPin size={13} />}
+                            size="sm"
                         />
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-2 md:grid-cols-2">
                             <AppTextField
-                                label="Province"
+                                placeholder="Province"
                                 value={form.province}
                                 onChange={(value) => updateField('province', value)}
                                 error={firstError(errors, 'province')}
+                                icon={<Globe size={13} />}
+                                size="sm"
                             />
                             <AppTextField
-                                label="Commune"
+                                placeholder="Commune"
                                 value={form.commune}
                                 onChange={(value) => updateField('commune', value)}
                                 error={firstError(errors, 'commune')}
+                                icon={<Building2 size={13} />}
+                                size="sm"
                             />
                         </div>
                     </div>
-                </section>
+                </div>
 
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">Land and surface</h3>
-                    <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <Ruler size={12} /> Terrain & superficie
+                    </p>
+                    <div className="grid gap-2 md:grid-cols-3">
                         <AppTextField
-                            label="Land title number"
+                            placeholder="N° titre foncier"
                             value={form.landTitleNumber}
                             onChange={(value) => updateField('landTitleNumber', value)}
                             error={firstError(errors, 'land_title_number')}
+                            icon={<Hash size={13} />}
+                            size="sm"
                         />
                         <AppTextField
-                            label="Land surface"
+                            placeholder="Surface terrain"
                             value={form.landSurface}
                             onChange={(value) => updateField('landSurface', value)}
                             error={firstError(errors, 'land_surface')}
+                            icon={<Maximize2 size={13} />}
+                            size="sm"
                         />
                         <AppTextField
-                            label="Floor area"
+                            placeholder="Surface plancher"
                             value={form.floorArea}
                             onChange={(value) => updateField('floorArea', value)}
                             error={firstError(errors, 'floor_area')}
+                            icon={<Building2 size={13} />}
+                            size="sm"
                         />
                     </div>
-                </section>
+                </div>
 
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">Notes</h3>
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <MessageSquareText size={12} /> Notes
+                    </p>
                     <AppTextarea
-                        label="Internal notes"
+                        placeholder="Notes internes"
                         value={form.notes}
                         onChange={(value) => updateField('notes', value)}
                         error={firstError(errors, 'notes')}
+                        size="sm"
                     />
-                </section>
+                </div>
             </form>
         </AppDrawer>
     );

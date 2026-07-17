@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\City;
 
 class ClientController extends Controller
 {
@@ -47,6 +48,7 @@ class ClientController extends Controller
         return Inertia::render('Clients/Show', [
             'tab' => $request->query('tab', 'overview'),
             'client' => ClientResource::make($client)->resolve(),
+            'cities' => City::all(),
             'workspace' => $workspaceService->forClient($client, $selectedDossierId),
             'documentTemplates' => DocumentTemplate::query()
                 ->where('is_active', true)

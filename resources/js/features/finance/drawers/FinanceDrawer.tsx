@@ -1,9 +1,12 @@
 import { FormEvent, useEffect, useState } from 'react';
-import type { Key } from 'react-aria-components';
+import {
+    BadgeDollarSign, CalendarClock, CalendarDays, CalendarPlus, ChevronDown, FileText,
+    Hash, Percent, PiggyBank, ReceiptText,
+} from 'lucide-react';
+import { ListBox, Select } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
 import { AppDrawer } from '@/components/ui/AppDrawer';
-import { AppSelect } from '@/components/ui/AppSelect';
+import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppTextarea } from '@/components/ui/AppTextarea';
 import type {
@@ -11,6 +14,47 @@ import type {
     FinanceFormPayload,
     FinanceRecordRow,
 } from '@/features/finance/types';
+import type { FormErrors } from '@/lib/formErrors';
+import { firstError } from '@/lib/formErrors';
+import { cn } from '@/lib/cn';
+
+const triggerSm = 'flex h-8 w-full min-w-0 items-center gap-2 rounded-[var(--radius-md)] border bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] outline-none transition border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)]';
+const popover = 'z-[70] min-w-[var(--trigger-width)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg';
+const itemClass = 'flex cursor-pointer items-center rounded-lg px-3 py-2 text-xs text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10';
+
+function HeroSelect<T extends string>({ placeholder, options, value, onChange, error, isDisabled }: {
+    placeholder: string; options: { id: T; label: string }[]; value: T | ''; onChange: (v: T) => void; error?: string; isDisabled?: boolean;
+}) {
+    return (
+        <div className="flex min-w-0 flex-col gap-1">
+            <Select
+                selectedKey={value || null}
+                onSelectionChange={(k) => onChange((k ?? '') as T)}
+                placeholder={placeholder}
+                shouldCloseOnBlur={false}
+                aria-label={placeholder}
+                isDisabled={isDisabled}
+            >
+                <Select.Trigger className={cn(triggerSm, error && 'border-[var(--danger)]')}>
+                    <Select.Value className="flex-1 truncate text-left text-xs" />
+                    <Select.Indicator>
+                        <ChevronDown size={14} className="text-[var(--text-muted)]" />
+                    </Select.Indicator>
+                </Select.Trigger>
+                <Select.Popover isNonModal className={popover}>
+                    <ListBox className="max-h-56 overflow-y-auto p-1">
+                        {options.map((opt) => (
+                            <ListBox.Item key={opt.id} id={opt.id} textValue={opt.label} className={itemClass}>
+                                {opt.label}
+                            </ListBox.Item>
+                        ))}
+                    </ListBox>
+                </Select.Popover>
+            </Select>
+            {error ? <p className="text-[10px] font-medium text-[var(--danger)]">{error}</p> : null}
+        </div>
+    );
+}
 
 type FinanceDrawerProps = {
     isOpen: boolean;
@@ -38,17 +82,17 @@ const emptyForm: FinanceFormPayload = {
 
 const typeOptions = [
     { id: 'devis', label: 'Devis' },
-    { id: 'invoice', label: 'Invoice' },
-    { id: 'payment', label: 'Payment' },
+    { id: 'invoice', label: 'Facture' },
+    { id: 'payment', label: 'Paiement' },
 ];
 
 const statusOptions = [
-    { id: 'draft', label: 'Draft' },
-    { id: 'sent', label: 'Sent' },
-    { id: 'paid', label: 'Paid' },
-    { id: 'partially_paid', label: 'Partially paid' },
-    { id: 'overdue', label: 'Overdue' },
-    { id: 'cancelled', label: 'Cancelled' },
+    { id: 'draft', label: 'Brouillon' },
+    { id: 'sent', label: 'Envoyé' },
+    { id: 'paid', label: 'Payé' },
+    { id: 'partially_paid', label: 'Partiellement payé' },
+    { id: 'overdue', label: 'En retard' },
+    { id: 'cancelled', label: 'Annulé' },
 ];
 
 export function FinanceDrawer({
@@ -63,10 +107,7 @@ export function FinanceDrawer({
     const [form, setForm] = useState<FinanceFormPayload>(emptyForm);
 
     useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
-
+        if (!isOpen) return;
         if (mode === 'edit' && record) {
             setForm({
                 dossierId: record.dossierId || '',
@@ -83,16 +124,11 @@ export function FinanceDrawer({
             });
             return;
         }
-
         setForm(emptyForm);
     }, [isOpen, mode, record]);
 
     function updateField(field: keyof FinanceFormPayload, value: string) {
         setForm((current) => ({ ...current, [field]: value }));
-    }
-
-    function updateSelect(field: keyof FinanceFormPayload, value: Key | null) {
-        setForm((current) => ({ ...current, [field]: value ? String(value) : '' }));
     }
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -104,113 +140,137 @@ export function FinanceDrawer({
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            title={mode === 'create' ? 'Create finance record' : 'Edit finance record'}
-            description="Save devis, invoice, or payment tracking to the database."
+            title={mode === 'create' ? 'Nouvel enregistrement' : 'Modifier l\'enregistrement'}
+            description="Enregistrez un devis, une facture ou un paiement."
             footer={
-                <>
-                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>
-                        Cancel
+                <div className="flex w-full items-center justify-end gap-2">
+                    <AppButton variant="light" onPress={() => onOpenChange(false)}>
+                        Annuler
                     </AppButton>
-
-                    <AppButton variant="primary" type="submit" form="finance-form">
-                        Save
+                    <AppButton variant="solid" color="primary" type="submit" form="finance-form">
+                        Enregistrer
                     </AppButton>
-                </>
+                </div>
             }
         >
-            <form id="finance-form" className="space-y-6" onSubmit={handleSubmit}>
+            <form id="finance-form" className="space-y-3" onSubmit={handleSubmit}>
                 <AppFormErrorSummary errors={errors} />
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">Project and type</h3>
 
-                    <div className="grid gap-4">
-                        <AppSelect
-                            label="Dossier / Project"
-                            placeholder="Select dossier"
-                            selectedKey={form.dossierId}
-                            onSelectionChange={(value) => updateSelect('dossierId', value)}
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <BadgeDollarSign size={12} /> Projet & type
+                    </p>
+                    <div className="grid gap-2">
+                        <HeroSelect
+                            placeholder="Sélectionner un dossier"
+                            value={form.dossierId}
+                            onChange={(v) => updateField('dossierId', v)}
                             options={dossiers}
+                            error={firstError(errors, 'dossier_id')}
                         />
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <AppSelect
-                                label="Type"
-                                selectedKey={form.type}
-                                onSelectionChange={(value) => updateSelect('type', value)}
+                        <div className="grid gap-2 md:grid-cols-2">
+                            <HeroSelect
+                                placeholder="Type"
+                                value={form.type}
+                                onChange={(v) => updateField('type', v)}
                                 options={typeOptions}
+                                error={firstError(errors, 'type')}
                             />
-
-                            <AppSelect
-                                label="Status"
-                                selectedKey={form.status}
-                                onSelectionChange={(value) => updateSelect('status', value)}
+                            <HeroSelect
+                                placeholder="Statut"
+                                value={form.status}
+                                onChange={(v) => updateField('status', v)}
                                 options={statusOptions}
+                                error={firstError(errors, 'status')}
                             />
                         </div>
                     </div>
-                </section>
+                </div>
 
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">Amounts</h3>
-
-                    <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <ReceiptText size={12} /> Montants
+                    </p>
+                    <div className="grid gap-2 md:grid-cols-2">
                         <AppTextField
-                            label="HT"
+                            placeholder="HT"
                             value={form.ht}
                             onChange={(value) => updateField('ht', value)}
+                            error={firstError(errors, 'ht')}
+                            icon={<Hash size={13} />}
+                            size="sm"
                         />
-
                         <AppTextField
-                            label="TVA"
+                            placeholder="TVA"
                             value={form.tva}
                             onChange={(value) => updateField('tva', value)}
+                            error={firstError(errors, 'tva')}
+                            icon={<Percent size={13} />}
+                            size="sm"
                         />
-
                         <AppTextField
-                            label="Total TTC"
+                            placeholder="Total TTC"
                             value={form.totalTtc}
                             onChange={(value) => updateField('totalTtc', value)}
+                            error={firstError(errors, 'total_ttc')}
+                            icon={<BadgeDollarSign size={13} />}
+                            size="sm"
                         />
-
                         <AppTextField
-                            label="Paid"
+                            placeholder="Payé"
                             value={form.paid}
                             onChange={(value) => updateField('paid', value)}
+                            error={firstError(errors, 'paid')}
+                            icon={<PiggyBank size={13} />}
+                            size="sm"
                         />
                     </div>
-                </section>
+                </div>
 
-                <section>
-                    <h3 className="mb-3 text-sm font-semibold">Dates</h3>
-
-                    <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <CalendarDays size={12} /> Dates
+                    </p>
+                    <div className="grid gap-2 md:grid-cols-3">
                         <AppTextField
-                            label="Issued at"
+                            placeholder="Date d'émission"
                             value={form.issuedAt}
                             onChange={(value) => updateField('issuedAt', value)}
+                            error={firstError(errors, 'issued_at')}
+                            icon={<CalendarPlus size={13} />}
+                            size="sm"
                         />
-
                         <AppTextField
-                            label="Due date"
+                            placeholder="Date d'échéance"
                             value={form.dueDate}
                             onChange={(value) => updateField('dueDate', value)}
+                            error={firstError(errors, 'due_date')}
+                            icon={<CalendarClock size={13} />}
+                            size="sm"
                         />
-
                         <AppTextField
-                            label="Paid at"
+                            placeholder="Date de paiement"
                             value={form.paidAt}
                             onChange={(value) => updateField('paidAt', value)}
+                            error={firstError(errors, 'paid_at')}
+                            icon={<CalendarDays size={13} />}
+                            size="sm"
                         />
                     </div>
-                </section>
+                </div>
 
-                <section>
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <FileText size={12} /> Notes
+                    </p>
                     <AppTextarea
-                        label="Notes"
+                        placeholder="Notes internes"
                         value={form.notes}
                         onChange={(value) => updateField('notes', value)}
+                        error={firstError(errors, 'notes')}
+                        size="sm"
                     />
-                </section>
+                </div>
             </form>
         </AppDrawer>
     );

@@ -22,6 +22,7 @@ type AppSelectProps = {
     isDisabled?: boolean;
     isRequired?: boolean;
     className?: string;
+    size?: 'sm' | 'md';
 };
 
 export function AppSelect({
@@ -36,6 +37,7 @@ export function AppSelect({
     isDisabled = false,
     isRequired = false,
     className,
+    size = 'md',
 }: AppSelectProps) {
     const keyMap = useMemo(() => {
         return new Map(options.map((option) => [String(option.id), option.id]));
@@ -67,7 +69,8 @@ export function AppSelect({
                     required={isRequired}
                     onChange={handleChange}
                     className={cn(
-                        'h-10 w-full min-w-0 appearance-none rounded-[var(--radius-md)] border bg-[var(--surface)] px-3 pr-10 text-sm text-[var(--foreground)] outline-none transition',
+                        size === 'sm' ? 'h-8 text-xs' : 'h-10 text-sm',
+                        'w-full min-w-0 appearance-none rounded-[var(--radius-md)] border bg-[var(--surface)] px-3 pr-10 text-[var(--foreground)] outline-none transition',
                         'border-[var(--border)] hover:border-[var(--accent)]',
                         'focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]',
                         'disabled:cursor-not-allowed disabled:opacity-60',

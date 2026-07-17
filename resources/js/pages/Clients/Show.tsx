@@ -96,7 +96,7 @@ const TABS: { id: TabId; labelKey: string }[] = [
     { id: 'activity', labelKey: 'clients.show.activity' },
 ];
 
-export default function ClientShow({ client, dossiers, workspace, intermediaries, documentTemplates, tab }: PageProps) {
+export default function ClientShow({ client, dossiers, workspace,cities, intermediaries, documentTemplates, tab }: PageProps) {
     const { t } = useTranslation();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -267,8 +267,26 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
         landSurface: null,
     })), [client.id, dossiers]);
 
+    function toDossierBackendPayload(payload: DossierFormPayload, clientId: number) {
+    return {
+        client_id: payload.clientId || String(clientId),
+        city_id: payload.cityId || null,
+        project_object: payload.projectObject || null,
+        description: payload.description || null,
+        project_address: payload.projectAddress || null,
+        province: payload.province || null,
+        commune: payload.commune || null,
+        land_title_number: payload.landTitleNumber || null,
+        land_surface: payload.landSurface || null,
+        floor_area: payload.floorArea || null,
+        status: payload.status || null,
+        workflow_step: payload.workflowStep || null,
+        notes: payload.notes || null,
+    };
+    }
+
     function handleProjectSubmit(payload: DossierFormPayload) {
-        router.post('/dossiers', payload, {
+        router.post('/dossiers', toDossierBackendPayload(payload, client.id), {
             preserveScroll: true,
             onSuccess: () => {
                 setProjectDrawerOpen(false);
@@ -282,6 +300,7 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
             },
         });
     }
+
 
     function afterCreateReload() {
         router.reload({ only: ['dossiers', 'workspace'], preserveScroll: true });
@@ -973,6 +992,7 @@ export default function ClientShow({ client, dossiers, workspace, intermediaries
                     mode="create"
                     dossier={null}
                     clients={[{ id: String(client.id), label: client.fullName }]}
+                    cities={cities}              // ← add this, wherever the page's city list comes from
                     initialClientId={String(client.id)}
                     onOpenChange={setProjectDrawerOpen}
                     onSubmit={handleProjectSubmit}

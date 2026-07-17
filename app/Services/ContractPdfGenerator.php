@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Contract;
+use App\Services\Dossiers\DossierPathBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 
@@ -10,7 +11,7 @@ class ContractPdfGenerator
 {
     public function generate(Contract $contract): string
     {
-        $contract->loadMissing(['dossier.client']);
+        $contract->loadMissing(['dossier.client', 'dossier.city']);
         $dossier = $contract->dossier;
         $client = $dossier?->client;
 
@@ -47,11 +48,10 @@ class ContractPdfGenerator
         $pdf = Pdf::loadHTML($html);
         $pdf->setPaper('A4', 'portrait');
 
-        $relativeDirectory = 'contracts/' . $contract->contract_number;
-        $relativePdfPath = $relativeDirectory . '/' . $contract->contract_number . '-contract.pdf';
-        $absolutePdfPath = Storage::disk('public')->path($relativePdfPath);
+        $pathBuilder = app(DossierPathBuilder::class);
+        $relativePdfPath = $pathBuilder->contractPdfPath($contract, $dossier);
 
-        Storage::disk('public')->put($relativePdfPath, $pdf->output());
+        Storage::disk('local')->put($relativePdfPath, $pdf->output());
 
         return $relativePdfPath;
     }

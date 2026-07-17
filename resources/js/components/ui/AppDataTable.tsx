@@ -22,11 +22,12 @@ import {
     X,
 } from 'lucide-react';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
+import { cn } from '@/lib/cn';
 
 type AppDataTableProps<TData extends object> = {
     data: TData[];
     columns: ColumnDef<TData, unknown>[];
-    searchPlaceholder: string;
+    searchPlaceholder?: string;
     emptyTitle: string;
     emptyDescription: string;
     pageSize?: number;
@@ -34,6 +35,7 @@ type AppDataTableProps<TData extends object> = {
     filterControls?: ReactNode;
     onRefresh?: () => void;
     onRowClick?: (row: TData) => void;
+    compact?: boolean;
 };
 
 export function AppDataTable<TData extends object>({
@@ -47,6 +49,7 @@ export function AppDataTable<TData extends object>({
     filterControls,
     onRefresh,
     onRowClick,
+    compact = false,
 }: AppDataTableProps<TData>) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
@@ -78,30 +81,32 @@ export function AppDataTable<TData extends object>({
 
     return (
         <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                <SearchField
-                    aria-label="Search"
-                    value={globalFilter}
-                    onChange={setGlobalFilter}
-                    className="relative w-full max-w-[280px]"
-                >
-                    <Search
-                        size={14}
-                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-                    />
-                    <Input
-                        placeholder={searchPlaceholder}
-                        className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-8 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
-                    />
-                    {globalFilter ? (
-                        <Button
-                            className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
-                            onPress={() => setGlobalFilter('')}
-                        >
-                            <X size={14} />
-                        </Button>
-                    ) : null}
-                </SearchField>
+            <div className={cn('flex flex-wrap items-center justify-between gap-3', compact ? 'px-3 py-2' : 'px-4 py-3')}>
+                {searchPlaceholder ? (
+                    <SearchField
+                        aria-label="Search"
+                        value={globalFilter}
+                        onChange={setGlobalFilter}
+                        className="relative w-full max-w-[280px]"
+                    >
+                        <Search
+                            size={14}
+                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                        />
+                        <Input
+                            placeholder={searchPlaceholder}
+                            className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-8 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
+                        />
+                        {globalFilter ? (
+                            <Button
+                                className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
+                                onPress={() => setGlobalFilter('')}
+                            >
+                                <X size={14} />
+                            </Button>
+                        ) : null}
+                    </SearchField>
+                ) : null}
 
                 <div className="flex items-center gap-2">
                     {onRefresh ? (
@@ -131,7 +136,7 @@ export function AppDataTable<TData extends object>({
             ) : null}
 
             <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className={cn('w-full', compact ? 'text-xs' : 'text-sm')}>
                     <thead>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id} className="border-b border-[var(--border)] bg-[var(--surface-2)]">
@@ -139,7 +144,7 @@ export function AppDataTable<TData extends object>({
                                     const sorted = header.column.getIsSorted();
 
                                     return (
-                                        <th key={header.id} className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">
+                                        <th key={header.id} className={cn('text-left text-xs font-medium text-[var(--text-muted)]', compact ? 'px-3 py-2' : 'px-4 py-3')}>
                                             {header.isPlaceholder ? null : (
                                                 <button
                                                     type="button"
@@ -178,7 +183,7 @@ export function AppDataTable<TData extends object>({
                                     onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <td key={cell.id} className="px-4 py-3">
+                                        <td key={cell.id} className={compact ? 'px-3 py-2' : 'px-4 py-3'}>
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext(),
@@ -201,12 +206,12 @@ export function AppDataTable<TData extends object>({
                 </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3">
+            <div className={cn('flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)]', compact ? 'px-3 py-2' : 'px-4 py-3')}>
                 <p className="text-xs text-[var(--text-muted)]">
                     Page {pageIndex + 1} of {Math.max(pageCount, 1)}
                 </p>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                     <button
                         type="button"
                         className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40"

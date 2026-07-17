@@ -9,9 +9,12 @@ use App\Models\Client;
 use App\Models\DocumentTemplate;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
+use App\Models\DossierWorkflowRequirement;
 use App\Notifications\DocumentNotification;
 use App\Services\Documents\DocumentGroupingService;
+use App\Services\Dossiers\DossierPathBuilder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,12 +22,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
-    public function index(DocumentGroupingService $documentGroupingService): Response
+    public function index(Request $request, DocumentGroupingService $documentGroupingService): Response
     {
-        $documents = DossierDocument::query()
-            ->with(['dossier.client', 'template'])
-            ->latest()
-            ->get();
+        $query = DossierDocument::query()
+            ->with(['dossier.client', 'template']);
+
+        if ($dossierId = $request->input('dossier_id')) {
+            $query->where('dossier_id', $dossierId);
+        }
+
+        $documents = $query->latest()->get();
 
         return Inertia::render('Documents/Index', [
             'documents' => DossierDocumentResource::collection($documents)->resolve(),
@@ -46,7 +53,7 @@ class DocumentController extends Controller
     {
         $data = $request->validated();
 
-        $dossier = Dossier::query()->findOrFail($data['dossier_id']);
+        $dossier = Dossier::query()->with(['city', 'client'])->findOrFail($data['dossier_id']);
         $file = $request->file('file');
 
         $payload = [
@@ -57,7 +64,12 @@ class DocumentController extends Controller
         ];
 
         if ($file) {
-            $storedPath = $file->store('dossier-documents/' . $dossier->dossier_number, 'local');
+            $pathBuilder = app(DossierPathBuilder::class);
+            $template = $data['document_template_id']
+                ? DocumentTemplate::find($data['document_template_id'])
+                : null;
+            $relativePath = $pathBuilder->documentPath($dossier, $template, $file->getClientOriginalName());
+            $storedPath = $file->storeAs(dirname($relativePath), basename($relativePath), 'local');
 
             $payload['document_number'] = $this->nextDocumentNumber();
             $payload['original_filename'] = $file->getClientOriginalName();
@@ -92,14 +104,23 @@ class DocumentController extends Controller
             }
         }
 
-        if ($request->filled('return_to')) {
-            return redirect()
-                ->to($request->string('return_to')->toString())
-                ->with('success', 'Document saved successfully.');
+        if ($file && $request->filled('workflow_step_key') && $request->filled('workflow_req_key')) {
+            DossierWorkflowRequirement::updateOrCreate(
+                [
+                    'dossier_id' => $dossier->id,
+                    'step_key' => $request->string('workflow_step_key')->toString(),
+                    'requirement_key' => $request->string('workflow_req_key')->toString(),
+                ],
+                [
+                    'is_done' => true,
+                    'checked_at' => now(),
+                    'checked_by' => $request->user()?->id,
+                ]
+            );
         }
 
         return redirect()
-            ->route('documents.index')
+            ->back()
             ->with('success', 'Document saved successfully.');
     }
 

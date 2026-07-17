@@ -34,7 +34,7 @@ return [
             'label' => 'Cahier de chantier',
             'description' => 'Demande envoyee au centre ingenieur et cahier recu.',
             'requirements' => [
-                ['key' => 'engineer_request', 'label' => 'Demande envoyee au centre ingenieur'],
+                ['key' => 'engineer_request', 'label' => 'Demande envoyee au centre ingenieur', 'manual' => true],
                 ['key' => 'cahier_received', 'label' => 'Cahier de chantier recu'],
             ],
         ],

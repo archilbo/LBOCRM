@@ -36,17 +36,18 @@ class DossierWorkflowStepperService
     {
         $requirements = collect($step['requirements'] ?? [])
             ->map(function (array $requirement) use ($dossier, $step) {
-                $manual = $this->manualRequirement($dossier, (string) $step['key'], (string) $requirement['key']);
+                $manualRecord = $this->manualRequirement($dossier, (string) $step['key'], (string) $requirement['key']);
+                $isManualConfig = $requirement['manual'] ?? false;
 
                 return [
                     ...$requirement,
-                    'done' => $this->requirementDone($dossier, (string) $step['key'], (string) $requirement['key']),
-                    'manual' => $manual !== null,
-                    'notes' => $manual?->notes,
-                    'checkedAt' => optional($manual?->checked_at)->format('Y-m-d H:i'),
-                    'checkedBy' => $manual?->checkedBy?->name,
-                    'actionLabel' => $this->requirementActionLabel((string) $step['key'], (string) $requirement['key']),
-                    'actionUrl' => $this->requirementActionUrl($dossier, (string) $step['key'], (string) $requirement['key']),
+                    'done' => $this->requirementDone($dossier, (string) $step['key'], (string) $requirement['key'], $isManualConfig),
+                    'manual' => $isManualConfig || $manualRecord !== null,
+                    'notes' => $manualRecord?->notes,
+                    'checkedAt' => optional($manualRecord?->checked_at)->format('Y-m-d H:i'),
+                    'checkedBy' => $manualRecord?->checkedBy?->name,
+                    'actionLabel' => $isManualConfig ? null : $this->requirementActionLabel($dossier, (string) $step['key'], (string) $requirement['key']),
+                    'actionUrl' => $isManualConfig ? null : $this->requirementActionUrl($dossier, (string) $step['key'], (string) $requirement['key']),
                 ];
             })
             ->values();
@@ -75,6 +76,17 @@ class DossierWorkflowStepperService
             return DossierWorkflowStepStatus::Completed;
         }
 
+        $hasBlocked = $requirements->contains(function ($req) {
+            if (!$req['done'] && $req['manual'] && filled($req['notes'] ?? null)) {
+                return true;
+            }
+            return false;
+        });
+
+        if ($hasBlocked) {
+            return DossierWorkflowStepStatus::Blocked;
+        }
+
         if ($done > 0) {
             return DossierWorkflowStepStatus::InProgress;
         }
@@ -82,12 +94,16 @@ class DossierWorkflowStepperService
         return DossierWorkflowStepStatus::Pending;
     }
 
-    private function requirementDone(Dossier $dossier, string $step, string $requirement): bool
+    private function requirementDone(Dossier $dossier, string $step, string $requirement, bool $isManualConfig = false): bool
     {
         $manualDone = $this->manualRequirement($dossier, $step, $requirement)?->is_done;
 
         if ($manualDone !== null) {
             return $manualDone;
+        }
+
+        if ($isManualConfig) {
+            return false;
         }
 
         return match ($step . '.' . $requirement) {
@@ -117,6 +133,7 @@ class DossierWorkflowStepperService
             'permis_habiter.recent_certificat_propriete' => $this->hasDocument($dossier, ['certificat propriete recent', 'certificat de propriete recent'])
                 || $this->hasDocument($dossier, ['certificat propriete', 'certificat de propriete', 'titre foncier']),
 
+            'archive.documents_verified' => $this->archiveDocumentsVerified($dossier),
             'archive.archive_created' => (bool) $dossier->archiveRecord,
             'archive.file_stored' => $dossier->archiveRecord?->status === 'stored',
 
@@ -138,6 +155,25 @@ class DossierWorkflowStepperService
 
         return $this->hasDocument($dossier, ['plan cadastral'])
             && $this->hasDocument($dossier, ['calcul contenance', 'contenance']);
+    }
+
+    private function archiveDocumentsVerified(Dossier $dossier): bool
+    {
+        $allSteps = config('archilbo_workflow.client_project_steps', []);
+
+        foreach ($allSteps as $step) {
+            if ($step['key'] === 'archive') {
+                continue;
+            }
+
+            foreach ($step['requirements'] ?? [] as $req) {
+                if (!$this->requirementDone($dossier, (string) $step['key'], (string) $req['key'])) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private function hasDocument(Dossier $dossier, array $aliases): bool
@@ -201,24 +237,27 @@ class DossierWorkflowStepperService
         };
     }
 
-    private function requirementActionLabel(string $step, string $requirement): string
+    private function requirementActionLabel(Dossier $dossier, string $step, string $requirement): string|null
     {
         return match ($step . '.' . $requirement) {
             'contract.contract_created' => 'Creer contrat',
             'contract.contract_generated' => 'Generer contrat',
             'contract.contract_signed' => 'Marquer signe',
             'rokhas.rokhas_upload' => 'Suivre Rokhas',
-            'archive.archive_created' => 'Creer la fiche d archive',
+            'archive.documents_verified' => null,
+            'archive.archive_created' => $dossier->archiveRecord ? 'Ouvrir la fiche d archive' : 'Creer la fiche d archive',
             'archive.file_stored' => 'Ouvrir la fiche d archive',
             default => 'Televerser / ouvrir',
         };
     }
 
-    private function requirementActionUrl(Dossier $dossier, string $step, string $requirement): string
+    private function requirementActionUrl(Dossier $dossier, string $step, string $requirement): string|null
     {
         return match ($step . '.' . $requirement) {
             'contract.contract_created', 'contract.contract_generated', 'contract.contract_signed' => route('contracts.index', ['dossier_id' => $dossier->id]),
             'rokhas.rokhas_upload' => route('authorizations.index', ['dossier_id' => $dossier->id]),
+            'archive.documents_verified' => null,
+            'archive.archive_created', 'archive.file_stored' => route('archives.index', ['dossier_id' => $dossier->id]),
             default => route('documents.index', ['dossier_id' => $dossier->id]),
         };
     }

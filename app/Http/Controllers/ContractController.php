@@ -10,6 +10,7 @@ use App\Models\Contract;
 use App\Models\Dossier;
 use App\Notifications\ContractNotification;
 use App\Services\ContractDocumentGenerator;
+use App\Services\Dossiers\DossierPathBuilder;
 use App\Services\WordDocumentConverter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -82,7 +83,7 @@ class ContractController extends Controller
             ->with('warning', $hadGeneratedFiles ? 'Les documents generes ont ete marques comme a regenerer.' : null);
     }
 
-    public function destroy(Contract $contract): RedirectResponse
+    public function destroy(Request $request, Contract $contract): RedirectResponse
     {
         $directory = 'contracts/' . $contract->contract_number;
 
@@ -92,6 +93,10 @@ class ContractController extends Controller
 
         $contract->delete();
 
+        if ($request->filled('return_to')) {
+            return redirect()->to($request->string('return_to')->toString())->with('success', 'Contrat supprime avec succes.');
+        }
+
         return redirect()
             ->route('contracts.index')
             ->with('success', 'Contrat supprime avec succes.');
@@ -100,14 +105,17 @@ class ContractController extends Controller
     public function generate(Request $request, Contract $contract): RedirectResponse
     {
         try {
-            if ($contract->pdf_path && Storage::disk('public')->exists($contract->pdf_path)) {
-                Storage::disk('public')->delete($contract->pdf_path);
+            if ($contract->generated_document_path && Storage::disk('local')->exists($contract->generated_document_path)) {
+                Storage::disk('local')->delete($contract->generated_document_path);
+            }
+            if ($contract->pdf_path && Storage::disk('local')->exists($contract->pdf_path)) {
+                Storage::disk('local')->delete($contract->pdf_path);
             }
 
             $paths = app(ContractDocumentGenerator::class)->generate($contract);
 
             $contract->update([
-                'status' => 'generated',
+                'status' => $contract->status === 'signed' ? 'signed' : 'generated',
                 'generated_document_path' => $paths['docx_path'],
                 'pdf_path' => null,
                 'generated_at' => now(),
@@ -132,28 +140,38 @@ class ContractController extends Controller
         }
     }
 
-    public function exportPdf(Contract $contract): RedirectResponse
+    public function exportPdf(Request $request, Contract $contract): RedirectResponse
     {
         try {
+            $contract->loadMissing(['dossier.city', 'dossier.client']);
+
             $paths = app(ContractDocumentGenerator::class)->generate($contract);
 
-            $absoluteDocx = Storage::disk('public')->path($paths['docx_path']);
-            $pdfRelative = 'contracts/' . $contract->contract_number . '/' . $contract->contract_number . '-contract.pdf';
-            $absolutePdf = Storage::disk('public')->path($pdfRelative);
+            $absoluteDocx = Storage::disk('local')->path($paths['docx_path']);
+            $pathBuilder = app(DossierPathBuilder::class);
+            $pdfRelative = $pathBuilder->contractPdfPath($contract, $contract->dossier);
+            $absolutePdf = Storage::disk('local')->path($pdfRelative);
 
             app(WordDocumentConverter::class)->convertDocxToPdf($absoluteDocx, $absolutePdf);
 
             $contract->update([
-                'status' => 'generated',
+                'status' => $contract->status === 'signed' ? 'signed' : 'generated',
                 'generated_document_path' => $paths['docx_path'],
                 'pdf_path' => $pdfRelative,
                 'generated_at' => now(),
             ]);
 
+            if ($request->filled('return_to')) {
+                return redirect()->to($request->string('return_to')->toString())->with('success', 'PDF exporte avec succes.');
+            }
+
             return redirect()
                 ->route('contracts.index')
                 ->with('success', 'PDF exporte avec succes.');
         } catch (\Throwable $e) {
+            if ($request->filled('return_to')) {
+                return redirect()->to($request->string('return_to')->toString())->with('error', 'Echec de l\'export PDF: ' . $e->getMessage());
+            }
             return redirect()
                 ->route('contracts.index')
                 ->with('error', 'Echec de l\'export PDF: ' . $e->getMessage());
@@ -162,6 +180,15 @@ class ContractController extends Controller
 
     public function markSigned(Request $request, Contract $contract): RedirectResponse
     {
+        if ($contract->status === 'signed') {
+            if ($request->filled('return_to')) {
+                return redirect()->to($request->string('return_to')->toString())->with('error', 'Ce contrat est deja signe.');
+            }
+            return redirect()
+                ->route('contracts.index')
+                ->with('error', 'Ce contrat est deja signe.');
+        }
+
         $contract->update([
             'status' => 'signed',
             'signed_at' => now(),
@@ -199,11 +226,13 @@ class ContractController extends Controller
 
     public function downloadGenerated(Contract $contract): StreamedResponse|RedirectResponse
     {
-        if (!$contract->generated_document_path || !Storage::disk('public')->exists($contract->generated_document_path)) {
+        $contract->loadMissing(['dossier.city', 'dossier.client']);
+
+        if (!$contract->generated_document_path || !Storage::disk('local')->exists($contract->generated_document_path)) {
             $paths = app(ContractDocumentGenerator::class)->generate($contract);
 
             $contract->update([
-                'status' => 'generated',
+                'status' => $contract->status === 'signed' ? 'signed' : 'generated',
                 'generated_document_path' => $paths['docx_path'],
                 'generated_at' => now(),
             ]);
@@ -211,25 +240,27 @@ class ContractController extends Controller
             $contract->refresh();
         }
 
-        if (!$contract->generated_document_path || !Storage::disk('public')->exists($contract->generated_document_path)) {
+        if (!$contract->generated_document_path || !Storage::disk('local')->exists($contract->generated_document_path)) {
             return redirect()
                 ->route('contracts.index')
                 ->with('error', 'Could not generate contract file.');
         }
 
-        return Storage::disk('public')->download(
+        return Storage::disk('local')->download(
             $contract->generated_document_path,
-            $contract->contract_number . '-contract.docx'
+            $contract->contract_number . '-contrat.docx'
         );
     }
 
     public function downloadPdf(Contract $contract): StreamedResponse|RedirectResponse
     {
-        if (!$contract->generated_document_path || !Storage::disk('public')->exists($contract->generated_document_path)) {
+        $contract->loadMissing(['dossier.city', 'dossier.client']);
+
+        if (!$contract->generated_document_path || !Storage::disk('local')->exists($contract->generated_document_path)) {
             $paths = app(ContractDocumentGenerator::class)->generate($contract);
 
             $contract->update([
-                'status' => 'generated',
+                'status' => $contract->status === 'signed' ? 'signed' : 'generated',
                 'generated_document_path' => $paths['docx_path'],
                 'generated_at' => now(),
             ]);
@@ -237,10 +268,11 @@ class ContractController extends Controller
             $contract->refresh();
         }
 
-        if (!$contract->pdf_path || !Storage::disk('public')->exists($contract->pdf_path)) {
-            $absoluteDocx = Storage::disk('public')->path($contract->generated_document_path);
-            $pdfRelative = 'contracts/' . $contract->contract_number . '/' . $contract->contract_number . '-contract.pdf';
-            $absolutePdf = Storage::disk('public')->path($pdfRelative);
+        if (!$contract->pdf_path || !Storage::disk('local')->exists($contract->pdf_path)) {
+            $absoluteDocx = Storage::disk('local')->path($contract->generated_document_path);
+            $pathBuilder = app(DossierPathBuilder::class);
+            $pdfRelative = $pathBuilder->contractPdfPath($contract, $contract->dossier);
+            $absolutePdf = Storage::disk('local')->path($pdfRelative);
 
             app(WordDocumentConverter::class)->convertDocxToPdf($absoluteDocx, $absolutePdf);
 
@@ -257,9 +289,9 @@ class ContractController extends Controller
                 ->with('error', 'Could not export PDF.');
         }
 
-        return Storage::disk('public')->download(
+        return Storage::disk('local')->download(
             $contract->pdf_path,
-            $contract->contract_number . '-contract.pdf'
+            $contract->contract_number . '-contrat.pdf'
         );
     }
 
@@ -271,18 +303,20 @@ class ContractController extends Controller
                 ->with('error', 'Fichier PDF introuvable.');
         }
 
-        return response()->file(Storage::disk('public')->path($contract->pdf_path), [
-            'Content-Disposition' => 'inline; filename="' . $contract->contract_number . '-contract.pdf"',
+        return response()->file(Storage::disk('local')->path($contract->pdf_path), [
+            'Content-Disposition' => 'inline; filename="' . $contract->contract_number . '-contrat.pdf"',
         ]);
     }
 
     private function ensurePdfExists(Contract $contract): bool
     {
-        if (!$contract->generated_document_path || !Storage::disk('public')->exists($contract->generated_document_path)) {
+        $contract->loadMissing(['dossier.city', 'dossier.client']);
+
+        if (!$contract->generated_document_path || !Storage::disk('local')->exists($contract->generated_document_path)) {
             $paths = app(ContractDocumentGenerator::class)->generate($contract);
 
             $contract->update([
-                'status' => 'generated',
+                'status' => $contract->status === 'signed' ? 'signed' : 'generated',
                 'generated_document_path' => $paths['docx_path'],
                 'generated_at' => now(),
             ]);
@@ -290,10 +324,11 @@ class ContractController extends Controller
             $contract->refresh();
         }
 
-        if (!$contract->pdf_path || !Storage::disk('public')->exists($contract->pdf_path)) {
-            $absoluteDocx = Storage::disk('public')->path($contract->generated_document_path);
-            $pdfRelative = 'contracts/' . $contract->contract_number . '/' . $contract->contract_number . '-contract.pdf';
-            $absolutePdf = Storage::disk('public')->path($pdfRelative);
+        if (!$contract->pdf_path || !Storage::disk('local')->exists($contract->pdf_path)) {
+            $absoluteDocx = Storage::disk('local')->path($contract->generated_document_path);
+            $pathBuilder = app(DossierPathBuilder::class);
+            $pdfRelative = $pathBuilder->contractPdfPath($contract, $contract->dossier);
+            $absolutePdf = Storage::disk('local')->path($pdfRelative);
 
             app(WordDocumentConverter::class)->convertDocxToPdf($absoluteDocx, $absolutePdf);
 
@@ -304,7 +339,7 @@ class ContractController extends Controller
             $contract->refresh();
         }
 
-        return $contract->pdf_path && Storage::disk('public')->exists($contract->pdf_path);
+        return $contract->pdf_path && Storage::disk('local')->exists($contract->pdf_path);
     }
 
     private function invalidateGeneratedFiles(Contract $contract, bool $hadFiles): void
@@ -313,10 +348,14 @@ class ContractController extends Controller
             return;
         }
 
-        $directory = 'contracts/' . $contract->contract_number;
+        $contract->loadMissing(['dossier.city', 'dossier.client']);
 
-        if (Storage::disk('public')->exists($directory)) {
-            Storage::disk('public')->deleteDirectory($directory);
+        if ($contract->generated_document_path && Storage::disk('local')->exists($contract->generated_document_path)) {
+            Storage::disk('local')->delete($contract->generated_document_path);
+        }
+
+        if ($contract->pdf_path && Storage::disk('local')->exists($contract->pdf_path)) {
+            Storage::disk('local')->delete($contract->pdf_path);
         }
 
         $contract->update([

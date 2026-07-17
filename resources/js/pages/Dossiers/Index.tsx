@@ -1,18 +1,16 @@
-import { Head, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import {
-    ChevronDown, ChevronUp, Eye, FolderKanban, MapPin, MoreHorizontal,
+    AlertTriangle, CheckCircle2, ChevronDown, ChevronsUpDown, ChevronUp,
+    Eye, FolderKanban, ListFilter, MapPin, MoreHorizontal,
     Pencil, Plus, RefreshCw, Search, SlidersHorizontal, Trash2, X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { Avatar, Button, Card, Chip, Dropdown } from '@heroui/react';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
-import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppModal } from '@/components/ui/AppModal';
-import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
-import { useTranslation } from '@/lib/i18n';
 import type { City, DossierFormPayload, DossierRow } from '@/features/dossiers/types';
 import type { FormErrors } from '@/lib/formErrors';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
@@ -58,7 +56,6 @@ type SortField = 'projectObject' | 'clientName' | 'status' | 'documentsCount' | 
 type SortDir = 'asc' | 'desc';
 
 export default function DossiersIndex({ dossiers, locationGroups, clients, cities, metrics }: PageProps) {
-    const { t } = useTranslation();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('create');
@@ -70,30 +67,14 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
     const [sortField, setSortField] = useState<SortField>('updatedAt');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
     const [deleteTarget, setDeleteTarget] = useState<DossierRow | null>(null);
-    const [showFilters, setShowFilters] = useState(false);
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+    const [actionLoading, setActionLoading] = useState(false);
     const [viewMode, setViewMode] = useState<'workspace' | 'location'>('workspace');
-    const searchRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        if (openMenuId === null) return;
-        function handleClick(e: MouseEvent) {
-            const target = e.target as HTMLElement;
-            if (!target.closest('[data-row-menu]')) {
-                setOpenMenuId(null);
-            }
-        }
-        function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpenMenuId(null); }
-        document.addEventListener('mousedown', handleClick);
-        document.addEventListener('keydown', handleKey);
-        return () => { document.removeEventListener('mousedown', handleClick); document.removeEventListener('keydown', handleKey); };
-    }, [openMenuId]);
-
-    const workflowOptions = useMemo(() => [
-        { id: 'all', label: 'All', count: dossiers.length },
+    const statusOptions = useMemo(() => [
+        { id: 'all', label: 'Tous', count: dossiers.length },
         ...dossierWorkflowOptions.map((o) => ({
-            ...o,
-            count: dossiers.filter((d) => d.workflowStep === o.id).length,
+            id: o.id, label: o.label, count: dossiers.filter((d) => d.workflowStep === o.id).length,
         })),
     ], [dossiers]);
 
@@ -103,46 +84,36 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
             .filter((d) => {
                 if (workflowFilter !== 'all' && d.workflowStep !== workflowFilter) return false;
                 if (!q) return true;
-                const searchable = [
-                    d.projectObject, d.dossierNumber, d.clientName, d.clientNumber,
-                    d.clientCin, d.province, d.commune, d.projectAddress,
-                ].filter(Boolean).join(' ').toLowerCase();
-                return searchable.includes(q);
+                return [d.projectObject, d.dossierNumber, d.clientName, d.clientNumber, d.clientCin, d.province, d.commune]
+                    .filter(Boolean).join(' ').toLowerCase().includes(q);
             })
             .sort((a, b) => {
-                let cmp = 0;
-                if (sortField === 'projectObject') cmp = a.projectObject.localeCompare(b.projectObject);
-                else if (sortField === 'clientName') cmp = a.clientName.localeCompare(b.clientName);
-                else if (sortField === 'status') cmp = a.status.localeCompare(b.status);
-                else if (sortField === 'documentsCount') cmp = a.documentsCount - b.documentsCount;
-                else if (sortField === 'updatedAt') cmp = (a.updatedAt ?? '').localeCompare(b.updatedAt ?? '');
-                return sortDir === 'asc' ? cmp : -cmp;
+                const va = String(a[sortField] ?? '').toLowerCase();
+                const vb = String(b[sortField] ?? '').toLowerCase();
+                return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
             });
     }, [dossiers, query, workflowFilter, sortField, sortDir]);
 
-    const hasActiveFilters = workflowFilter !== 'all' || query.trim() !== '';
+    const pageSize = 15;
+    const pageCount = Math.max(1, Math.ceil(filteredDossiers.length / pageSize));
+    const [page, setPage] = useState(0);
+    const pageDossiers = filteredDossiers.slice(page * pageSize, (page + 1) * pageSize);
 
     const metricCards = [
-        { label: 'Total projects', value: metrics.total, detail: 'All registered dossiers', icon: <FolderKanban size={16} />, accent: undefined as string | undefined },
-        { label: 'Active', value: metrics.active, detail: 'In current workflow', accent: metrics.active > 0 ? 'text-emerald-500' : 'text-[var(--text-muted)]' },
-        { label: 'Opened', value: metrics.opened, detail: 'Newly started', accent: 'text-[var(--accent)]' },
-        { label: 'Closed', value: metrics.closed, detail: 'Completed dossiers', accent: metrics.closed > 0 ? 'text-[var(--text-muted)]' : undefined },
+        { label: 'Total projets', value: metrics.total, icon: FolderKanban, color: 'text-[var(--text-muted)]', bgClass: 'bg-[var(--surface-2)]' },
+        { label: 'Actifs', value: metrics.active, icon: CheckCircle2, color: metrics.active > 0 ? 'text-emerald-400' : 'text-[var(--text-muted)]', bgClass: metrics.active > 0 ? 'bg-emerald-400/10' : 'bg-[var(--surface-2)]' },
+        { label: 'Ouverts', value: metrics.opened, icon: AlertTriangle, color: 'text-[var(--accent)]', bgClass: 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]' },
+        { label: 'Fermes', value: metrics.closed, icon: CheckCircle2, color: metrics.closed > 0 ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]', bgClass: 'bg-[var(--surface-2)]' },
     ];
 
     function toggleSort(field: SortField) {
-        if (sortField === field) {
-            setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-        } else {
-            setSortField(field);
-            setSortDir('asc');
-        }
+        if (sortField === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+        else { setSortField(field); setSortDir('asc'); }
     }
 
-    function SortIcon({ field }: { field: SortField }) {
-        if (sortField !== field) return <ChevronUp size={11} className="ml-1 opacity-30" />;
-        return sortDir === 'asc'
-            ? <ChevronUp size={11} className="ml-1" />
-            : <ChevronDown size={11} className="ml-1" />;
+    function SortIcon({ col }: { col: SortField }) {
+        if (sortField !== col) return <ChevronsUpDown size={11} className="text-[var(--text-muted)]" />;
+        return sortDir === 'asc' ? <ChevronUp size={11} className="text-[var(--accent)]" /> : <ChevronDown size={11} className="text-[var(--accent)]" />;
     }
 
     function openCreateDrawer() {
@@ -178,84 +149,129 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
 
     function confirmDelete() {
         if (!deleteTarget) return;
+        setActionLoading(true);
         router.delete(`/dossiers/${deleteTarget.id}`, {
             preserveScroll: true,
-            onSuccess: () => { toast.success('Project deleted successfully.'); setDeleteTarget(null); },
-            onError: () => toast.error('Project could not be deleted.'),
+            onSuccess: () => { toast.success('Dossier supprime avec succes.'); setDeleteTarget(null); setActionLoading(false); },
+            onError: () => { toast.error('Impossible de supprimer le dossier.'); setActionLoading(false); },
         });
     }
 
-    function RowMenu({ dossier, isOpen, onToggle }: { dossier: DossierRow; isOpen: boolean; onToggle: () => void }) {
-        const items = [
-            { id: 'open', label: 'Open', icon: <Eye size={14} />, action: () => router.visit(`/dossiers/${dossier.id}`), danger: false },
-            { id: 'edit', label: 'Edit', icon: <Pencil size={14} />, action: () => openEditDrawer(dossier), danger: false },
-            { id: 'documents', label: 'Documents', icon: <FolderKanban size={14} />, action: () => router.visit(`/documents?search=${encodeURIComponent(dossier.dossierNumber)}`), danger: false },
-            { id: 'finance', label: 'Finance', icon: <SlidersHorizontal size={14} />, action: () => router.visit(`/finance/documents?search=${encodeURIComponent(dossier.dossierNumber)}`), danger: false },
-            { id: 'archive', label: 'Archive', icon: <Trash2 size={14} />, action: () => router.visit('/archives'), danger: false },
-            { id: 'delete', label: 'Delete', icon: <Trash2 size={14} />, action: () => setDeleteTarget(dossier), danger: true },
-        ];
+    type ActionId = 'open' | 'edit' | 'documents' | 'finance' | 'archive' | 'delete';
 
+    function handleAction(dossier: DossierRow, action: ActionId) {
+        switch (action) {
+            case 'open': router.visit(`/dossiers/${dossier.id}`); break;
+            case 'edit': openEditDrawer(dossier); break;
+            case 'documents': router.visit(`/documents?dossier_id=${dossier.id}`); break;
+            case 'finance': router.visit(`/finance/documents?dossier_id=${dossier.id}`); break;
+            case 'archive': router.visit('/archives'); break;
+            case 'delete': setDeleteTarget(dossier); break;
+        }
+    }
+
+    function RowMenu({ dossier, isOpen, onToggle }: { dossier: DossierRow; isOpen: boolean; onToggle: () => void }) {
         return (
-            <div className="relative inline-flex" data-row-menu>
-                <button type="button" onClick={(e) => { e.stopPropagation(); onToggle(); }}
-                    className="flex size-8 items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
-                    aria-label="Actions">
-                    <MoreHorizontal size={16} />
+            <div className="flex items-center gap-0.5">
+                <button type="button" onClick={() => setPreviewDossier(dossier)}
+                    className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Apercu">
+                    <Eye size={12} />
                 </button>
-                {isOpen ? (
-                    <div className="absolute right-0 top-full z-50 mt-1 min-w-[170px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl"
-                        onClick={(e) => e.stopPropagation()}>
-                        {items.map((item) => (
-                            <button key={item.id} type="button" onClick={() => { item.action(); setOpenMenuId(null); }}
-                                className={cn(
-                                    'flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] font-medium transition',
-                                    item.danger
-                                        ? 'text-[var(--danger)] hover:bg-[var(--danger)]/10'
-                                        : 'text-[var(--foreground)] hover:bg-[var(--surface-2)]',
-                                )}>
-                                <span className="flex size-[15px] shrink-0 items-center justify-center">{item.icon}</span>
-                                <span>{item.label}</span>
-                            </button>
-                        ))}
-                    </div>
-                ) : null}
+                <button type="button" onClick={() => openEditDrawer(dossier)}
+                    className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Modifier">
+                    <Pencil size={12} />
+                </button>
+                <Dropdown>
+                    <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]">
+                        <span className="contents"><MoreHorizontal size={12} /></span>
+                    </Dropdown.Trigger>
+                    <Dropdown.Popover placement="bottom end"
+                        className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0.5 shadow-xl">
+                        <Dropdown.Menu aria-label="Actions"
+                            onAction={(key) => handleAction(dossier, key as ActionId)}
+                            itemClasses={{
+                                base: 'rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-30',
+                            }}>
+                            <Dropdown.Item key="open" id="open" className="text-[var(--text)]">
+                                <div className="flex items-center gap-2">
+                                    <Eye size={13} className="text-[var(--accent)] shrink-0" />
+                                    <span>View project</span>
+                                </div>
+                            </Dropdown.Item>
+                            <Dropdown.Item key="documents" id="documents" className="text-[var(--text)]">
+                                <div className="flex items-center gap-2">
+                                    <FolderKanban size={13} className="text-sky-400 shrink-0" />
+                                    <span>Documents</span>
+                                </div>
+                            </Dropdown.Item>
+                            <Dropdown.Item key="finance" id="finance" className="text-[var(--text)]">
+                                <div className="flex items-center gap-2">
+                                    <SlidersHorizontal size={13} className="text-amber-400 shrink-0" />
+                                    <span>Finance</span>
+                                </div>
+                            </Dropdown.Item>
+                            <Dropdown.Item key="archive" id="archive" className="text-[var(--text)]">
+                                <div className="flex items-center gap-2">
+                                    <Trash2 size={13} className="text-[var(--text-muted)] shrink-0" />
+                                    <span>Archiver</span>
+                                </div>
+                            </Dropdown.Item>
+                            <Dropdown.Section title="Danger"
+                                classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
+                                <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
+                                    <div className="flex items-center gap-2">
+                                        <Trash2 size={13} className="shrink-0 text-red-400" />
+                                        <span>Supprimer</span>
+                                    </div>
+                                </Dropdown.Item>
+                            </Dropdown.Section>
+                        </Dropdown.Menu>
+                    </Dropdown.Popover>
+                </Dropdown>
             </div>
         );
     }
 
+    const statusFilterBg: Record<string, string> = {
+        draft: 'bg-amber-400/10', generated: 'bg-sky-400/10', signed: 'bg-emerald-400/10', cancelled: 'bg-red-400/10',
+    };
+    const statusFilterColor: Record<string, string> = {
+        draft: 'text-amber-300', generated: 'text-sky-300', signed: 'text-emerald-300', cancelled: 'text-red-300',
+    };
+
     return (
         <>
-            <Head title={t('dossiers.title')} />
-
             <AppShell>
                 {/* ── Page header ── */}
-                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
-                            {t('dossiers.eyebrow')}
-                        </p>
-                        <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">
-                            {t('dossiers.title')}
-                        </h1>
-                        <p className="mt-1 max-w-2xl text-sm text-[var(--text-muted)]">
-                            {t('dossiers.subtitle')}
+                <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Projets</p>
+                        <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">Dossiers</h1>
+                        <p className="mt-1 max-w-3xl text-sm text-[var(--text-muted)]">
+                            Suivez et gerez tous les projets et dossiers.
                         </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="inline-flex rounded-lg border border-[var(--border)] bg-[var(--surface)] p-0.5">
-                            <button type="button" onClick={() => setViewMode('workspace')}
-                                className={`h-7 rounded-md px-2.5 text-[11px] font-semibold ${viewMode === 'workspace' ? 'bg-[var(--accent)] text-black' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}>
-                                Workspace
-                            </button>
-                            <button type="button" onClick={() => setViewMode('location')}
-                                className={`h-7 rounded-md px-2.5 text-[11px] font-semibold ${viewMode === 'location' ? 'bg-[var(--accent)] text-black' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'}`}>
-                                Location
-                            </button>
-                        </div>
-                        <AppButton variant="solid" color="primary" onPress={openCreateDrawer}>
-                            <Plus size={16} />
-                            New project
-                        </AppButton>
+                    <Button variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={openCreateDrawer}>
+                        <Plus size={15} /> Nouveau projet
+                    </Button>
+                </header>
+
+                {/* ── Tab bar ── */}
+                <div className="flex items-center gap-6 border-b border-[var(--border)]">
+                    {['workspace', 'location'].map((mode) => (
+                        <button key={mode} type="button" onClick={() => setViewMode(mode as typeof viewMode)}
+                            className={cn(
+                                'relative pb-2.5 text-[12px] font-semibold transition',
+                                viewMode === mode ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]',
+                            )}>
+                            {mode === 'workspace' ? 'Workspace' : 'Location'}
+                            {viewMode === mode ? (
+                                <span className="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-[var(--accent)]" />
+                            ) : null}
+                        </button>
+                    ))}
+                    <div className="ml-auto">
+                        <p className="text-[10px] text-[var(--text-muted)]">{filteredDossiers.length} dossier(s)</p>
                     </div>
                 </div>
 
@@ -264,288 +280,188 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                 ) : (
                     <>
                         {/* ── Metric cards ── */}
-                        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                            {metricCards.map((card) => (
-                                <div key={card.label}
-                                    className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition hover:border-[var(--accent)]/40 hover:shadow-md">
-                                    {card.icon ? (
-                                        <div className={cn('mb-2 flex size-9 items-center justify-center rounded-lg bg-[var(--surface-2)]', card.accent || 'text-[var(--text-muted)]')}>
-                                            {card.icon}
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            {metricCards.map((card) => {
+                                const Icon = card.icon;
+                                return (
+                                    <div key={card.label}
+                                        className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+                                        <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', card.bgClass)}>
+                                            <Icon size={15} className={card.color} />
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="text-[11px] font-medium text-[var(--text-muted)]">{card.label}</p>
+                                            <p className={cn('text-lg font-semibold text-[var(--foreground)]', card.color)}>{card.value}</p>
                                         </div>
-                                    ) : null}
-                                    <p className="text-[12px] font-medium text-[var(--text-muted)]">{card.label}</p>
-                                    <p className={cn('mt-0.5 text-2xl font-semibold text-[var(--foreground)]', card.accent)}>{card.value}</p>
-                                    {card.detail ? (
-                                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{card.detail}</p>
-                                    ) : null}
-                                </div>
-                            ))}
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {/* ── Table card ── */}
-                        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
                             {/* Toolbar */}
-                            <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] p-3">
-                                <div className="relative flex-1 min-w-[200px] max-w-sm">
-                                    <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-                                    <input
-                                        ref={searchRef}
-                                        type="text"
-                                        value={query}
-                                        onChange={(e) => setQuery(e.target.value)}
-                                        placeholder="Search projects, clients, dossiers..."
-                                        className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-8 text-[13px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
+                            <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-3 py-2">
+                                <div className="relative max-w-[220px] flex-1">
+                                    <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                                    <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }}
+                                        placeholder="Rechercher par projet, client..."
+                                        className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[11px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
                                     />
                                     {query ? (
                                         <button type="button" onClick={() => setQuery('')}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--foreground)]">
-                                            <X size={13} />
+                                            className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]">
+                                            <X size={12} />
                                         </button>
                                     ) : null}
                                 </div>
-
-                                <button type="button" onClick={() => setShowFilters((v) => !v)}
-                                    className={cn(
-                                        'inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-medium transition',
-                                        showFilters || workflowFilter !== 'all'
-                                            ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]'
-                                            : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
-                                    )}>
-                                    <SlidersHorizontal size={13} />
-                                    Filter
-                                </button>
-
-                                <select
-                                    value={`${sortField}:${sortDir}`}
-                                    onChange={(e) => {
-                                        const [f, d] = e.target.value.split(':') as [SortField, SortDir];
-                                        setSortField(f);
-                                        setSortDir(d);
-                                    }}
-                                    className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-[12px] text-[var(--foreground)] outline-none hover:border-[var(--accent)] focus:border-[var(--accent)]"
-                                >
-                                    <option value="updatedAt:desc">Newest</option>
-                                    <option value="updatedAt:asc">Oldest</option>
-                                    <option value="projectObject:asc">Name A-Z</option>
-                                    <option value="projectObject:desc">Name Z-A</option>
-                                    <option value="status:asc">Status A-Z</option>
-                                </select>
-
-                                <button type="button" onClick={() => router.reload({ preserveScroll: true })}
-                                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 text-[12px] font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--foreground)]">
-                                    <RefreshCw size={13} />
-                                    Update
-                                </button>
-
-                                <div className="hidden sm:block">
-                                    <AppButton variant="solid" color="primary" size="sm" onPress={openCreateDrawer}>
-                                        <Plus size={14} />
-                                        Add Project
-                                    </AppButton>
+                                <div className="ml-auto flex items-center gap-1">
+                                    <Dropdown>
+                                        <Dropdown.Trigger className={cn("inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition hover:border-[var(--accent)]/30", workflowFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
+                                            <span className="contents">
+                                                <ListFilter size={12} />
+                                                {workflowFilter === 'all' ? 'Tous' : statusOptions.find((o) => o.id === workflowFilter)?.label}
+                                                <span className="rounded bg-[var(--surface-2)] px-1 py-px text-[9px] font-semibold text-[var(--text-muted)]">
+                                                    {statusOptions.find((o) => o.id === workflowFilter)?.count ?? dossiers.length}
+                                                </span>
+                                            </span>
+                                        </Dropdown.Trigger>
+                                        <Dropdown.Popover placement="bottom start"
+                                            className="min-w-44 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                                            <Dropdown.Menu aria-label="Filtre workflow" selectionMode="single"
+                                                disabledKeys={statusOptions.filter((o) => o.count === 0).map((o) => o.id)}
+                                                onAction={(key) => { setWorkflowFilter(key as string); setPage(0); }}
+                                                itemClasses={{
+                                                    base: 'rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40',
+                                                }}>
+                                                {statusOptions.map((opt) => {
+                                                    const Icon = opt.id === 'all' ? ListFilter : AlertTriangle;
+                                                    return (
+                                                        <Dropdown.Item key={opt.id}
+                                                            id={opt.id}
+                                                            textValue={opt.label}>
+                                                            <div className="flex w-full items-center gap-2">
+                                                                <Dropdown.ItemIndicator>
+                                                                    <CheckCircle2 size={14} className="text-[var(--accent)]" />
+                                                                </Dropdown.ItemIndicator>
+                                                                <Icon size={14} className="shrink-0" />
+                                                                <span className="flex-1">{opt.label}</span>
+                                                                <span className="rounded bg-[var(--surface-2)] px-1.5 py-px text-[10px] font-semibold text-[var(--text-muted)]">{opt.count}</span>
+                                                            </div>
+                                                        </Dropdown.Item>
+                                                    );
+                                                })}
+                                            </Dropdown.Menu>
+                                        </Dropdown.Popover>
+                                    </Dropdown>
+                                    <Button variant="light" size="sm" isIconOnly className="h-7 w-7 min-w-0 text-[var(--text-muted)]" onPress={() => router.reload({ preserveScroll: true })}>
+                                        <RefreshCw size={12} />
+                                    </Button>
                                 </div>
                             </div>
 
-                            {/* Filter chips */}
-                            {showFilters ? (
-                                <div className="border-b border-[var(--border)] px-3 py-3">
-                                    <div className="flex flex-wrap gap-2">
-                                        {workflowOptions.map((option) => (
-                                            <button key={option.id} type="button" onClick={() => setWorkflowFilter(option.id)}
-                                                className={cn(
-                                                    'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition',
-                                                    workflowFilter === option.id
-                                                        ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]'
-                                                        : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--foreground)]',
-                                                )}>
-                                                {option.label}
-                                                <span className="rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px]">{option.count}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : null}
+                            {/* ── Table ── */}
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-xs min-w-[800px]">
+                                    <thead>
+                                        <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                                            <th className="w-8 px-3 py-2"></th>
+                                            <th className="px-3 py-2">
+                                                <button type="button" onClick={() => toggleSort('projectObject')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
+                                                    Projet <SortIcon col="projectObject" />
+                                                </button>
+                                            </th>
+                                            <th className="px-3 py-2">
+                                                <button type="button" onClick={() => toggleSort('clientName')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
+                                                    Client <SortIcon col="clientName" />
+                                                </button>
+                                            </th>
+                                            <th className="px-3 py-2">Ville</th>
+                                            <th className="px-3 py-2">Localisation</th>
+                                            <th className="px-3 py-2">Workflow</th>
+                                            <th className="px-3 py-2">
+                                                <button type="button" onClick={() => toggleSort('status')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
+                                                    Statut <SortIcon col="status" />
+                                                </button>
+                                            </th>
+                                            <th className="px-3 py-2">
+                                                <button type="button" onClick={() => toggleSort('updatedAt')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
+                                                    Modifie <SortIcon col="updatedAt" />
+                                                </button>
+                                            </th>
+                                            <th className="w-10 px-3 py-2"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pageDossiers.length > 0 ? pageDossiers.map((dossier) => (
+                                            <tr key={dossier.id}
+                                                className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0 cursor-pointer"
+                                                onClick={() => setPreviewDossier(dossier)}>
+                                                <td className="px-3 py-2">
+                                                    <span className="flex size-5 items-center justify-center rounded bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[10px] font-bold text-[var(--accent)]">
+                                                        <FolderKanban size={10} />
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    <p className="max-w-[180px] truncate font-medium text-[var(--text)]">{dossier.projectObject}</p>
+                                                    <p className="max-w-[180px] truncate text-[var(--text-muted)]">{dossier.dossierNumber}</p>
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Avatar name={dossier.clientName || '?'} size="sm" className="shrink-0 size-6 text-[9px] font-bold" classNames={{ base: 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' }} />
+                                                        <span className="truncate text-[var(--text)]">{dossier.clientName || '-'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    {dossier.city ? (
+                                                        <span className="inline-flex items-center gap-1.5">
+                                                            <span className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10" style={{ backgroundColor: dossier.city.color }} />
+                                                            <span className="text-[var(--text-muted)]">{dossier.city.code}</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[var(--text-muted)]">—</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-3 py-2 text-[var(--text-muted)]">
+                                                    <p className="max-w-[120px] truncate">{dossier.province || '-'}</p>
+                                                    <p className="max-w-[120px] truncate">{dossier.commune || ''}</p>
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    <Chip variant="flat" size="sm" color={workflowChipColor[dossier.workflowStep] || 'default'}>{getDossierWorkflowLabel(dossier.workflowStep)}</Chip>
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    <Chip variant="flat" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>
+                                                </td>
+                                                <td className="px-3 py-2 text-[var(--text-muted)]">{dossier.updatedAt || '-'}</td>
+                                                <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                                                    <RowMenu dossier={dossier} isOpen={openMenuId === dossier.id}
+                                                        onToggle={() => setOpenMenuId(openMenuId === dossier.id ? null : dossier.id)} />
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan={9} className="px-3 py-8 text-center text-xs text-[var(--text-muted)]">
+                                                    {query || workflowFilter !== 'all' ? 'Aucun dossier trouve.' : 'Creez un projet pour commencer.'}
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                            {/* Result count */}
-                            {hasActiveFilters ? (
-                                <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-2">
-                                    <p className="text-[12px] text-[var(--text-muted)]">
-                                        {filteredDossiers.length} result(s)
-                                    </p>
-                                    <button type="button" onClick={() => { setQuery(''); setWorkflowFilter('all'); }}
-                                        className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
-                                        <X size={12} />
-                                        Reset filters
+                            {/* ── Pagination ── */}
+                            <div className="flex items-center justify-end border-t border-[var(--border)] px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                    <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)}
+                                        className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
+                                        Precedent
+                                    </button>
+                                    <span className="text-[10px] text-[var(--text-muted)]">{page + 1} / {pageCount}</span>
+                                    <button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}
+                                        className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
+                                        Suivant
                                     </button>
                                 </div>
-                            ) : (
-                                <div className="border-b border-[var(--border)] px-3 py-2">
-                                    <p className="text-[12px] text-[var(--text-muted)]">
-                                        {filteredDossiers.length} result(s)
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* ── Desktop table ── */}
-                            <div className="hidden md:block overflow-x-auto">
-                                {filteredDossiers.length > 0 ? (
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-[var(--border)]">
-                                                {[
-                                                    { key: 'projectObject' as SortField, label: 'Project' },
-                                                    { key: 'clientName' as SortField, label: 'Client' },
-                                                    { key: null, label: 'City' },
-                                                    { key: null, label: 'Location' },
-                                                    { key: null, label: 'Workflow' },
-                                                    { key: null, label: 'Readiness' },
-                                                    { key: 'status' as SortField, label: 'Status' },
-                                                    { key: 'updatedAt' as SortField, label: 'Updated' },
-                                                    { key: null, label: '' },
-                                                ].map((col) => (
-                                                    <th key={col.label || 'actions'}
-                                                        className={cn(
-                                                            'h-10 px-3 text-[12px] font-semibold text-[var(--text-muted)] text-left whitespace-nowrap',
-                                                            col.key && 'cursor-pointer select-none hover:text-[var(--foreground)]',
-                                                        )}
-                                                        onClick={col.key ? () => toggleSort(col.key) : undefined}>
-                                                        <span className="inline-flex items-center">
-                                                            {col.label}
-                                                            {col.key ? <SortIcon field={col.key} /> : null}
-                                                        </span>
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredDossiers.map((dossier) => {
-                                                const readiness = getDossierReadiness(dossier);
-                                                const doneSteps = readiness.filter((i) => i.done).length;
-                                                return (
-                                                    <tr key={dossier.id}
-                                                        className="border-b border-[var(--border)] transition last:border-0 hover:bg-[var(--surface-2)] group cursor-pointer"
-                                                        onClick={() => setPreviewDossier(dossier)}>
-                                                        <td className="px-3 py-2.5">
-                                                            <div className="flex items-center gap-2.5">
-                                                                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]">
-                                                                    <FolderKanban size={15} />
-                                                                </span>
-                                                                <div className="min-w-0">
-                                                                    <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">
-                                                                        {dossier.projectObject}
-                                                                    </p>
-                                                                    <p className="truncate text-[11px] text-[var(--text-muted)]">
-                                                                        {dossier.dossierNumber}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3 py-2.5">
-                                                            <div className="min-w-0">
-                                                                <p className="truncate text-[13px] font-medium text-[var(--foreground)]">{dossier.clientName}</p>
-                                                                <p className="truncate text-[11px] text-[var(--text-muted)]">{dossier.clientNumber}</p>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3 py-2.5">
-                                                            {dossier.city ? (
-                                                                <span className="inline-flex items-center gap-2">
-                                                                    <span
-                                                                        className="h-3 w-3 rounded-sm ring-1 ring-black/10"
-                                                                        style={{ backgroundColor: dossier.city.color }}
-                                                                        aria-label={dossier.city.name}
-                                                                    />
-                                                                    <span className="text-xs text-[var(--text-muted)]">{dossier.city.code}</span>
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-xs text-[var(--text-muted)]">—</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-3 py-2.5">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <MapPin size={12} className="shrink-0 text-[var(--text-muted)]" />
-                                                                <div className="min-w-0">
-                                                                    <p className="truncate text-[12px] text-[var(--foreground)]">{dossier.province || '-'}</p>
-                                                                    <p className="truncate text-[10px] text-[var(--text-muted)]">{dossier.commune || '-'}</p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3 py-2.5">
-                                                            <StatusPill label={getDossierWorkflowLabel(dossier.workflowStep)} color="primary" size="sm" />
-                                                        </td>
-                                                        <td className="px-3 py-2.5">
-                                                            <div className="min-w-0 max-w-[100px]">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <div className="h-1.5 flex-1 rounded-full bg-[var(--surface-3)]">
-                                                                        <div className="h-full rounded-full bg-[var(--accent)]"
-                                                                            style={{ width: `${(doneSteps / 6) * 100}%` }} />
-                                                                    </div>
-                                                                    <span className="text-[10px] font-medium text-[var(--text-muted)]">{doneSteps}/6</span>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3 py-2.5">
-                                                            <StatusPill
-                                                                label={dossier.status}
-                                                                color={statusColor(dossier.status)}
-                                                                size="sm"
-                                                            />
-                                                        </td>
-                                                        <td className="px-3 py-2.5 text-[12px] text-[var(--text-muted)] whitespace-nowrap">
-                                                            {dossier.updatedAt || '-'}
-                                                        </td>
-                                                        <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                                                            <RowMenu dossier={dossier} isOpen={openMenuId === dossier.id}
-                                                                onToggle={() => setOpenMenuId(openMenuId === dossier.id ? null : dossier.id)} />
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                ) : (
-                                    <div className="p-6">
-                                        <AppEmptyState
-                                            title="No projects found"
-                                            description="Create your first project to start tracking."
-                                        />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ── Mobile cards ── */}
-                            <div className="block md:hidden divide-y divide-[var(--border)]">
-                                {filteredDossiers.length > 0 ? filteredDossiers.map((dossier) => (
-                                    <div key={dossier.id}
-                                        className="flex items-start gap-3 p-3 transition hover:bg-[var(--surface-2)]"
-                                        onClick={() => setPreviewDossier(dossier)}>
-                                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]">
-                                            <FolderKanban size={16} />
-                                        </span>
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">{dossier.projectObject}</p>
-                                                <StatusPill label={dossier.status} color={statusColor(dossier.status)} size="sm" />
-                                            </div>
-                                            <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
-                                                {dossier.clientName} · {dossier.dossierNumber}
-                                            </p>
-                                            <div className="mt-1 flex items-center gap-3 text-[11px] text-[var(--text-muted)]">
-                                                <span>{getDossierWorkflowLabel(dossier.workflowStep)}</span>
-                                                <span>{dossier.updatedAt || '-'}</span>
-                                            </div>
-                                        </div>
-                                        <div onClick={(e) => e.stopPropagation()}>
-                                            <RowMenu dossier={dossier} isOpen={openMenuId === dossier.id}
-                                                onToggle={() => setOpenMenuId(openMenuId === dossier.id ? null : dossier.id)} />
-                                        </div>
-                                    </div>
-                                )) : (
-                                    <div className="p-6">
-                                        <AppEmptyState
-                                            title="No projects found"
-                                            description="Create your first project to start tracking."
-                                        />
-                                    </div>
-                                )}
                             </div>
                         </div>
 
@@ -578,16 +494,16 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                         <AppModal
                             isOpen={!!deleteTarget}
                             onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
-                            title="Delete project?"
+                            title="Supprimer le dossier ?"
                             size="sm"
                         >
-                            <p className="mb-5 text-sm text-[var(--text-muted)]">
-                                Are you sure you want to delete <strong>{deleteTarget?.dossierNumber}</strong>?
-                                This action cannot be undone.
+                            <p className="mb-5 flex items-start gap-2 text-sm text-[var(--text-muted)]">
+                                <Trash2 size={16} className="mt-0.5 shrink-0 text-red-400" />
+                                <span>Confirmez la suppression de <strong>{deleteTarget?.dossierNumber}</strong>. Cette action est <span className="font-semibold text-red-400">irreversible</span>.</span>
                             </p>
                             <div className="flex justify-end gap-2">
-                                <AppButton variant="bordered" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
-                                <AppButton color="danger" variant="solid" onPress={confirmDelete}>Delete</AppButton>
+                                <Button variant="bordered" color="default" onPress={() => setDeleteTarget(null)} isDisabled={actionLoading}>Annuler</Button>
+                                <Button variant="solid" onPress={confirmDelete} isLoading={actionLoading} className="bg-red-500 text-white hover:bg-red-600">Supprimer</Button>
                             </div>
                         </AppModal>
                     </>
@@ -597,61 +513,90 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
     );
 }
 
+const statusLabel: Record<string, string> = {
+    active: 'Actif', opened: 'Ouvert', closed: 'Ferme', archived: 'Archive', paused: 'Suspendu',
+};
+
+const statusChipColor: Record<string, 'success' | 'primary' | 'default' | 'warning'> = {
+    active: 'success', opened: 'primary', closed: 'default', archived: 'warning', paused: 'warning',
+};
+
+const workflowChipColor: Record<string, 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger'> = {
+    client: 'primary',
+    bureau_etude: 'secondary',
+    documents: 'warning',
+    contract: 'success',
+    authorization: 'secondary',
+    finance: 'primary',
+    archive: 'default',
+};
+
 function PreviewContent({ dossier, onEdit, onDelete }: { dossier: DossierRow; onEdit: (d: DossierRow) => void; onDelete: (d: DossierRow) => void }) {
     const readiness = getDossierReadiness(dossier);
     const doneSteps = readiness.filter((i) => i.done).length;
 
     return (
-        <div className="space-y-5">
-            <div className="flex items-center gap-2.5">
-                <StatusPill label={dossier.status} color={statusColor(dossier.status)} size="sm" />
-                <span className="text-[11px] text-[var(--text-muted)]">{dossier.dossierNumber}</span>
+        <div className="space-y-5 pb-8">
+            <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
+                    <FolderKanban size={18} />
+                </span>
+                <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
+                        {dossier.projectObject}
+                        <Chip variant="flat" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)]">{dossier.dossierNumber}</p>
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
-                    <p className="mt-1 truncate text-[13px] font-semibold text-[var(--foreground)]">{dossier.clientName}</p>
-                    <p className="truncate text-[11px] text-[var(--text-muted)]">{dossier.clientNumber}</p>
-                </div>
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Step</p>
-                    <p className="mt-1 truncate text-[13px] font-semibold text-[var(--accent)]">{getDossierWorkflowLabel(dossier.workflowStep)}</p>
-                    <p className="truncate text-[11px] text-[var(--text-muted)]">Current workflow</p>
-                </div>
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">City</p>
+                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{dossier.clientName || '-'}</p>
+                    <p className="truncate text-xs text-[var(--text-muted)]">{dossier.clientNumber}</p>
+                </Card>
+                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Workflow</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--accent)]">{getDossierWorkflowLabel(dossier.workflowStep)}</p>
+                </Card>
+                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Ville</p>
                     {dossier.city ? (
-                        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
-                            style={{ backgroundColor: `${dossier.city.color}20`, color: dossier.city.color }}>
-                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: dossier.city.color }} />
+                        <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--foreground)]">
+                            <span className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10" style={{ backgroundColor: dossier.city.color }} />
                             {dossier.city.name}
                         </span>
                     ) : (
-                        <p className="mt-1 truncate text-[13px] font-semibold text-[var(--foreground)]">-</p>
+                        <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">-</p>
                     )}
-                </div>
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Location</p>
-                    <p className="mt-1 truncate text-[13px] font-semibold text-[var(--foreground)]">{dossier.province || '-'}</p>
-                    <p className="truncate text-[11px] text-[var(--text-muted)]">{dossier.commune || '-'}</p>
-                </div>
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Surface</p>
-                    <p className="mt-1 truncate text-[13px] font-semibold text-[var(--foreground)]">{dossier.floorArea ? `${formatNumber(dossier.floorArea)} m2` : '-'}</p>
-                    <p className="truncate text-[11px] text-[var(--text-muted)]">Floor area</p>
-                </div>
+                </Card>
+                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Localisation</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{dossier.province || '-'}</p>
+                    <p className="truncate text-xs text-[var(--text-muted)]">{dossier.commune || '-'}</p>
+                </Card>
+                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Surface</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">{dossier.floorArea ? `${formatNumber(dossier.floorArea)} m2` : '-'}</p>
+                </Card>
+                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Statut</p>
+                    <div className="mt-1">
+                        <Chip variant="flat" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>
+                    </div>
+                </Card>
             </div>
 
-            <div>
-                <div className="mb-2 flex items-center justify-between">
-                    <p className="text-[12px] font-semibold text-[var(--foreground)]">Readiness</p>
+            <Card className="gap-0 p-4" classNames={{ base: 'border border-[var(--border)] shadow-sm' }}>
+                <div className="mb-3 flex items-center justify-between">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Readiness</p>
                     <span className="text-[11px] text-[var(--text-muted)]">{doneSteps}/6</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-[var(--surface-3)]">
+                <div className="mb-3 h-1.5 rounded-full bg-[var(--surface-3)]">
                     <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${(doneSteps / 6) * 100}%` }} />
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1.5">
                     {readiness.map((item) => (
                         <span key={item.key}
                             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
@@ -663,32 +608,25 @@ function PreviewContent({ dossier, onEdit, onDelete }: { dossier: DossierRow; on
                         </span>
                     ))}
                 </div>
-            </div>
+            </Card>
 
-            <AppButton variant="solid" color="primary" className="w-full" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
-                <Eye size={15} />
-                Open full project
-            </AppButton>
-
-            <div className="flex gap-2">
-                <AppButton variant="bordered" size="sm" className="flex-1" onPress={() => onEdit(dossier)}>
-                    <Pencil size={14} /> Edit
-                </AppButton>
-                <AppButton variant="bordered" size="sm" className="flex-1" onPress={() => router.visit('/archives')}>
-                    <Trash2 size={14} /> Archive
-                </AppButton>
-                <AppButton color="danger" variant="solid" size="sm" className="flex-1" onPress={() => onDelete(dossier)}>
-                    <Trash2 size={14} /> Delete
-                </AppButton>
+            <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 shadow-sm">
+                <Button variant="solid" color="primary" size="sm" className="min-w-0 h-8 text-[11px]" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
+                    <Eye size={13} /> View project
+                </Button>
+                <span className="h-5 w-px bg-[var(--border)]" />
+                <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[11px]" onPress={() => onEdit(dossier)}>
+                    <Pencil size={13} /> Modifier
+                </Button>
+                <span className="h-5 w-px bg-[var(--border)]" />
+                <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[11px]" onPress={() => router.visit('/archives')}>
+                    <Trash2 size={13} /> Archiver
+                </Button>
+                <span className="h-5 w-px bg-[var(--border)]" />
+                <Button variant="light" size="sm" className="min-w-0 h-8 px-2 text-[11px] text-red-400" onPress={() => onDelete(dossier)}>
+                    <Trash2 size={13} /> Supprimer
+                </Button>
             </div>
         </div>
     );
-}
-
-function statusColor(status: string) {
-    if (status === 'active') return 'success';
-    if (status === 'opened') return 'primary';
-    if (status === 'closed') return 'default';
-    if (status === 'archived' || status === 'paused') return 'warning';
-    return 'default';
 }

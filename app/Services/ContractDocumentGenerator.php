@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Contract;
+use App\Services\Dossiers\DossierPathBuilder;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\TemplateProcessor;
 use ZipArchive;
 
@@ -11,17 +13,15 @@ class ContractDocumentGenerator
 {
     public function generate(Contract $contract): array
     {
-        $contract->loadMissing(['dossier.client']);
+        $contract->loadMissing(['dossier.client', 'dossier.city']);
 
         $templatePath = $this->templatePath($contract);
 
-        $relativeDirectory = 'contracts/' . $contract->contract_number;
-        $absoluteDirectory = storage_path('app/public/' . $relativeDirectory);
+        $pathBuilder = app(DossierPathBuilder::class);
+        $relativeDocxPath = $pathBuilder->contractDocxPath($contract, $contract->dossier);
+        $absoluteDocxPath = Storage::disk('local')->path($relativeDocxPath);
 
-        File::ensureDirectoryExists($absoluteDirectory);
-
-        $relativeDocxPath = $relativeDirectory . '/' . $contract->contract_number . '-contract.docx';
-        $absoluteDocxPath = storage_path('app/public/' . $relativeDocxPath);
+        File::ensureDirectoryExists(dirname($absoluteDocxPath));
 
         File::copy($templatePath, $absoluteDocxPath);
 
