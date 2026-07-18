@@ -69,6 +69,7 @@ class ClientWorkspaceService
             'projectAddress' => $dossier->project_address,
             'province' => $dossier->province,
             'commune' => $dossier->commune,
+            'floorArea' => $dossier->floor_area,
             'status' => $dossier->status,
             'workflowStep' => $dossier->workflow_step,
             'documentsCount' => $dossier->documents->count(),

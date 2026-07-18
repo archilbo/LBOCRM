@@ -71,6 +71,7 @@ export type ClientProjectSummary = {
     projectAddress: string | null;
     province: string | null;
     commune: string | null;
+    floorArea?: number | null;
     status: string;
     workflowStep: string;
     documentsCount: number;

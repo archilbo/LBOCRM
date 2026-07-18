@@ -69,6 +69,7 @@ class ClientController extends Controller
                     'projectObject' => $dossier->project_object,
                     'status' => $dossier->status,
                     'workflowStep' => $dossier->workflow_step,
+                    'floorArea' => $dossier->floor_area,
                     'updatedAt' => optional($dossier->updated_at)->diffForHumans(),
                 ])
                 ->values(),

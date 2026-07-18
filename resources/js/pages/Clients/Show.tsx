@@ -15,14 +15,14 @@ import type { ClientFormPayload, ClientRow, ClientStatus, ClientWorkspace } from
 import type { DossierWorkflowRequirement, DossierWorkflowStep } from '@/features/clients/types';
 import type { DossierFormPayload } from '@/features/dossiers/types';
 import type { FinanceDocumentType } from '@/features/finance/types';
-import { ClientDrawer } from '@/features/clients/drawers/ClientDrawer';
+import { ClientDrawer } from '@/components/drawers';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
-import { FinanceDocumentBuilderDrawer } from '@/features/finance/drawers/FinanceDocumentBuilderDrawer';
+import { FinanceDocumentBuilderDrawer } from '@/components/drawers';
 import { AppWorkflowStepper, type WorkflowRequirementActionContext } from '@/components/ui/AppWorkflowStepper';
-import { DocumentUploadDrawer } from '@/features/documents/drawers/DocumentUploadDrawer';
+import { DocumentDrawer } from '@/components/drawers';
 import type { DocumentUploadPayload } from '@/features/documents/types';
-import { UploadDocumentDrawer } from '@/features/clients/components/UploadDocumentDrawer';
-import { ContractDrawer } from '@/features/clients/components/ContractDrawer';
+import { ContractDrawer } from '@/components/drawers';
+import type { ContractFormPayload, ContractClientOption, ContractDossierOption } from '@/features/contracts/types';
 import { AuthorizationDrawer } from '@/features/clients/components/AuthorizationDrawer';
 import { ClientArchivesCard } from '@/features/clients/components/ClientArchivesCard';
 import { ConfirmActionModal } from '@/features/clients/components/ConfirmActionModal';
@@ -49,6 +49,7 @@ type DossierSummary = {
     status: string;
     workflowStep: string;
     updatedAt: string | null;
+    floorArea?: number | string | null;
 };
 
 type PageProps = {
@@ -109,12 +110,13 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
     const [uploadRequirementKey, setUploadRequirementKey] = useState<string | null>(null);
     const [uploadStepKey, setUploadStepKey] = useState<string | null>(null);
     const [contractDrawerOpen, setContractDrawerOpen] = useState(false);
+    const [editContract, setEditContract] = useState<any>(null);
+    const [contractFormErrors, setContractFormErrors] = useState<FormErrors>({});
     const [authDrawerOpen, setAuthDrawerOpen] = useState(false);
     const [projectDrawerOpen, setProjectDrawerOpen] = useState(false);
     const [projectFormErrors, setProjectFormErrors] = useState<FormErrors>({});
     const [financeDrawerOpen, setFinanceDrawerOpen] = useState(false);
     const [financeDrawerType, setFinanceDrawerType] = useState<FinanceDocumentType>('quote');
-    const [standaloneContractOpen, setStandaloneContractOpen] = useState(false);
     const [standaloneUploadOpen, setStandaloneUploadOpen] = useState(false);
 
     const [confirmActionOpen, setConfirmActionOpen] = useState(false);
@@ -189,7 +191,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                 setUploadDrawerOpen(true);
                 break;
             case 'create_contract':
-                setContractDrawerOpen(true);
+                openContractDrawer();
                 break;
             case 'generate_contract':
                 if (!selectedProject?.contract) {
@@ -263,7 +265,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
         clientId: String(client.id),
         projectObject: d.projectObject || null,
         address: null,
-        floorArea: null,
+        floorArea: d.floorArea ?? null,
         landSurface: null,
     })), [client.id, dossiers]);
 
@@ -307,6 +309,55 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
     }
 
     const [isDocUploading, setIsDocUploading] = useState(false);
+    const contractClients: ContractClientOption[] = useMemo(() => [{
+        id: String(client.id),
+        fullName: client.fullName,
+        cin: client.cin,
+        dossiers: dossiers.map((d) => ({
+            id: String(d.id),
+            label: d.dossierNumber,
+            floorArea: d.floorArea ?? null,
+            hasContract: !!workspace.selectedProject?.contract && String(workspace.selectedProject.id) === String(d.id),
+        })),
+    }], [client, dossiers, workspace.selectedProject]);
+
+    const contractDossiers: ContractDossierOption[] = useMemo(() =>
+        dossiers.map((d) => ({
+            id: String(d.id),
+            label: d.dossierNumber,
+            floorArea: d.floorArea ?? null,
+            hasContract: !!workspace.selectedProject?.contract && String(workspace.selectedProject.id) === String(d.id),
+        })),
+    [dossiers, workspace.selectedProject]);
+
+    function openContractDrawer() {
+        setEditContract(selectedProject?.contract ? {
+            ...selectedProject.contract,
+            dossierId: String(selectedProject.id),
+        } : null);
+        setContractFormErrors({});
+        setContractDrawerOpen(true);
+    }
+
+    function handleContractSubmit(payload: ContractFormPayload) {
+        router.post('/contracts', { ...payload, return_to: window.location.pathname }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => { setContractDrawerOpen(false); setEditContract(null); setContractFormErrors({}); toast.success('Contract created.'); },
+            onError: (err) => { setContractFormErrors(err as FormErrors); toast.error('Could not create contract.'); },
+        });
+    }
+
+    function handleContractUpdate(payload: ContractFormPayload) {
+        if (!editContract) return;
+        router.put(`/contracts/${editContract.id}`, { ...payload, return_to: window.location.pathname }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => { setContractDrawerOpen(false); setEditContract(null); setContractFormErrors({}); toast.success('Contract updated.'); },
+            onError: (err) => { setContractFormErrors(err as FormErrors); toast.error('Could not update contract.'); },
+        });
+    }
+
     function handleDocumentUpload(payload: DocumentUploadPayload) {
         setIsDocUploading(true);
         const formData = new FormData();
@@ -315,11 +366,13 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
         formData.append('status', payload.status || 'uploaded');
         formData.append('notes', payload.notes || '');
         formData.append('return_to', window.location.pathname);
+        if (uploadStepKey) formData.append('workflow_step_key', uploadStepKey);
+        if (uploadRequirementKey) formData.append('workflow_req_key', uploadRequirementKey);
         if (payload.file) formData.append('file', payload.file);
         router.post('/documents', formData, {
             forceFormData: true,
             preserveScroll: true,
-            onSuccess: () => { setStandaloneUploadOpen(false); setIsDocUploading(false); toast.success('Document uploaded.'); },
+            onSuccess: () => { setUploadDrawerOpen(false); setStandaloneUploadOpen(false); setIsDocUploading(false); toast.success('Document uploaded.'); },
             onError: () => { setIsDocUploading(false); toast.error('Please check document form errors.'); },
         });
     }
@@ -446,7 +499,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                                     <Plus size={14} /> New project
                                 </AppButton>
                                 {projects.length > 0 ? (
-                                    <AppButton variant="bordered" size="sm" onPress={() => { setStandaloneContractOpen(true); }}>
+                                    <AppButton variant="bordered" size="sm" onPress={() => { openContractDrawer(); }}>
                                         <Plus size={14} /> New contract
                                     </AppButton>
                                 ) : null}
@@ -955,24 +1008,32 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                 />
 
                 {/* ── Upload document drawer ── */}
-                {selectedProject && (
-                    <UploadDocumentDrawer
-                        isOpen={uploadDrawerOpen}
-                        onOpenChange={setUploadDrawerOpen}
-                        dossierId={selectedProject.id}
-                        dossierNumber={selectedProject.dossierNumber}
-                        requirementKey={uploadRequirementKey}
-                        stepKey={uploadStepKey}
-                        clientId={client.id}
-                    />
-                )}
+                <DocumentDrawer
+                    isOpen={uploadDrawerOpen}
+                    clients={[{ id: String(client.id), label: client.fullName }]}
+                    dossiers={dossierOptions}
+                    templates={documentTemplates}
+                    initialClientId={String(client.id)}
+                    initialDossierId={selectedProject ? String(selectedProject.id) : ''}
+                    lockProject
+                    onOpenChange={(open) => { if (!open) { setUploadRequirementKey(null); setUploadStepKey(null); } setUploadDrawerOpen(open); }}
+                    onSubmit={handleDocumentUpload}
+                    isSubmitting={isDocUploading}
+                />
 
                 {/* ── Contract drawer ── */}
                 <ContractDrawer
                     isOpen={contractDrawerOpen}
-                    onOpenChange={setContractDrawerOpen}
-                    project={selectedProject}
-                    clientId={client.id}
+                    mode={editContract ? 'edit' : 'create'}
+                    contract={editContract}
+                    clients={contractClients}
+                    dossiers={contractDossiers}
+                    initialDossierId={selectedProject ? String(selectedProject.id) : ''}
+                    initialFloorArea={selectedProject?.floorArea ?? null}
+                    lockProject={!editContract}
+                    onOpenChange={(open) => { setContractDrawerOpen(open); if (!open) setEditContract(null); }}
+                    onSubmit={editContract ? handleContractUpdate : handleContractSubmit}
+                    errors={contractFormErrors}
                 />
 
                 {/* ── Authorization drawer ── */}
@@ -1023,7 +1084,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                 />
 
                 {/* ── Standalone upload document drawer ── */}
-                <DocumentUploadDrawer
+                <DocumentDrawer
                     isOpen={standaloneUploadOpen}
                     clients={[{ id: String(client.id), label: client.fullName }]}
                     dossiers={dossierOptions}
@@ -1033,14 +1094,6 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                     onOpenChange={setStandaloneUploadOpen}
                     onSubmit={handleDocumentUpload}
                     isSubmitting={isDocUploading}
-                />
-
-                {/* ── Standalone contract drawer ── */}
-                <ContractDrawer
-                    isOpen={standaloneContractOpen}
-                    onOpenChange={setStandaloneContractOpen}
-                    project={selectedProject}
-                    clientId={client.id}
                 />
 
                 {/* ── Confirm action modal ── */}

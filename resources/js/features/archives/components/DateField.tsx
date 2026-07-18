@@ -28,9 +28,9 @@ export function DateField({
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex min-w-0 flex-col gap-1">
             {label ? (
-                <label className="text-xs font-medium text-white/50">{label}</label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">{label}</label>
             ) : null}
 
             <Popover isOpen={isOpen} onOpenChange={setIsOpen} placement="bottom">
@@ -38,13 +38,13 @@ export function DateField({
                     <Button
                         variant="flat"
                         className={cn(
-                            'h-10 w-full justify-start gap-2 rounded-lg border px-3 text-[13px] font-normal outline-none transition',
-                            'border-white/10 bg-white/[0.04] text-white',
-                            'hover:border-white/20',
-                            !value && 'text-white/40',
+                            'h-8 w-full justify-start gap-2 rounded-[var(--radius-md)] border px-2.5 text-xs font-normal outline-none transition',
+                            'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]',
+                            'hover:border-[var(--accent)]',
+                            !value && 'text-[var(--text-subtle)]',
                         )}
                     >
-                        <Calendar size={15} className="shrink-0 text-white/40" />
+                        <Calendar size={14} className="shrink-0 text-[var(--text-muted)]" />
                         <span className="flex-1 text-left">
                             {value ? format(value, 'dd MMM yyyy') : placeholder}
                         </span>
@@ -56,16 +56,16 @@ export function DateField({
                                     e.stopPropagation();
                                     onChange(null);
                                 }}
-                                className="flex size-5 items-center justify-center rounded-full hover:bg-white/10"
+                                className="flex size-5 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                                 aria-label="Clear date"
                             >
-                                <X size={13} className="text-white/50" />
+                                <X size={13} />
                             </button>
                         ) : null}
                     </Button>
                 </Popover.Trigger>
 
-                <Popover.Content className="w-auto min-w-0 rounded-lg border border-white/10 bg-[#1c1c1c] p-0 shadow-xl">
+                <Popover.Content className="w-auto min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0 shadow-lg">
                     <DayPicker
                         mode="single"
                         selected={value ?? undefined}
@@ -77,38 +77,38 @@ export function DateField({
                         classNames={{
                             root: 'm-0',
                             month: 'p-3',
-                            month_caption: 'text-sm font-semibold text-white px-2 py-1',
-                            caption_label: 'text-sm font-semibold text-white',
-                            chevron: 'fill-white/40 hover:fill-white size-4',
-                            day: 'text-[13px] text-white/70 rounded-md h-9 w-9 transition hover:bg-white/[0.06] focus:outline-none',
-                            day_button: 'h-9 w-9',
-                            day_selected: 'bg-amber-500 text-white font-semibold rounded-md',
-                            day_today: 'ring-1 ring-white/20 rounded-md',
-                            day_disabled: 'text-white/20',
-                            outside: 'text-white/20',
-                            weekday: 'text-[11px] font-medium text-white/40 uppercase tracking-wide',
+                            month_caption: 'text-xs font-semibold text-[var(--foreground)] px-2 py-1',
+                            caption_label: 'text-xs font-semibold text-[var(--foreground)]',
+                            chevron: 'fill-[var(--text-muted)] hover:fill-[var(--foreground)] size-4',
+                            day: 'text-xs text-[var(--text-muted)] rounded-md h-8 w-8 transition hover:bg-[var(--surface-2)] focus:outline-none',
+                            day_button: 'h-8 w-8',
+                            day_selected: 'bg-[var(--accent)] text-[var(--accent-foreground)] font-semibold rounded-md',
+                            day_today: 'ring-1 ring-[var(--accent)]/30 rounded-md',
+                            day_disabled: 'text-[var(--text-subtle)]/40',
+                            outside: 'text-[var(--text-subtle)]/40',
+                            weekday: 'text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wide',
                             weekdays: 'px-3 pt-1 pb-2',
-                            months_dropdown: 'text-xs text-white bg-white/[0.06] border border-white/10 rounded-md px-2 py-1',
-                            years_dropdown: 'text-xs text-white bg-white/[0.06] border border-white/10 rounded-md px-2 py-1',
+                            months_dropdown: 'text-xs text-[var(--foreground)] bg-[var(--surface-2)] border border-[var(--border)] rounded-md px-2 py-1',
+                            years_dropdown: 'text-xs text-[var(--foreground)] bg-[var(--surface-2)] border border-[var(--border)] rounded-md px-2 py-1',
                         }}
                     />
-                    <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
+                    <div className="flex items-center justify-between border-t border-[var(--border)] px-3 py-2">
                         <Button
                             size="sm"
                             variant="light"
                             onPress={() => { onChange(new Date()); setIsOpen(false); }}
-                            className="h-8 px-3 text-[12px] text-white/70 hover:text-white"
+                            className="h-8 px-3 text-xs text-[var(--text-muted)] hover:text-[var(--foreground)]"
                         >
-                            Today
+                            Aujourd hui
                         </Button>
                         {value ? (
                             <Button
                                 size="sm"
                                 variant="light"
                                 onPress={() => { onChange(null); setIsOpen(false); }}
-                                className="h-8 px-3 text-[12px] text-white/50 hover:text-white"
+                                className="h-8 px-3 text-xs text-[var(--text-muted)] hover:text-[var(--foreground)]"
                             >
-                                Clear
+                                Effacer
                             </Button>
                         ) : null}
                     </div>
@@ -116,7 +116,7 @@ export function DateField({
             </Popover>
 
             {error ? (
-                <p className="text-xs font-medium text-red-400">{error}</p>
+                <p className="text-[10px] font-medium text-[var(--danger)]">{error}</p>
             ) : null}
         </div>
     );

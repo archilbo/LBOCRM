@@ -92,7 +92,7 @@ export function FinanceDocumentLockNotice({
     }
 
     return (
-        <div className={`rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100 ${className}`}>
+        <div className={`rounded-[var(--radius-md)] border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100 ${className}`}>
             <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-500">
                     Locked

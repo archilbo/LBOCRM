@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
-import { ContractDrawer } from '@/features/contracts/drawers/ContractDrawer';
+import { ContractDrawer } from '@/components/drawers';
 import type { ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow, ContractStatus } from '@/features/contracts/types';
 import { cn } from '@/lib/cn';
 import { formatCompactMoney } from '@/lib/currency';

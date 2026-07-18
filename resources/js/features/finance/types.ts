@@ -270,6 +270,7 @@ export type FinanceDossierOption = {
     id: string;
     label: string;
     clientName: string;
+    clientId?: string;
 };
 
 export type FinanceFormPayload = {

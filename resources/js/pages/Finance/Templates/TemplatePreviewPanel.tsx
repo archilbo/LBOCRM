@@ -68,8 +68,18 @@ function clampZoom(value: number) {
     return Math.min(1.8, Math.max(0.35, value));
 }
 
+function getAppCssLinks(): string {
+    if (typeof document === 'undefined') return '';
+    const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
+    return links
+        .filter((link) => link.href && link.href.includes('/assets/app-'))
+        .map((link) => `<link rel="stylesheet" href="${link.href}">`)
+        .join('\n');
+}
+
 function injectPreviewReset(html: string, width: number) {
     const resetCss = `
+        ${getAppCssLinks()}
         <style id="archi-lbo-preview-reset">
             html, body { margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #ffffff !important; }
             body { width: ${width}px !important; min-width: ${width}px !important; }

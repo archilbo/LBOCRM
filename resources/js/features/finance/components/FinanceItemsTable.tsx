@@ -1,15 +1,18 @@
-﻿import { Copy, Plus, Trash2 } from 'lucide-react';
-import { AppButton } from '@/components/ui/AppButton';
+﻿import { Copy, FileText, Plus, Trash2 } from 'lucide-react';
+import { Button, Input } from '@heroui/react';
 import type { FinanceDocumentItem } from '@/features/finance/types';
 import { calculateItem, formatCompactMoney, normalizeNumber } from '@/features/finance/utils/calculations';
+
+const compactInput = 'h-8 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)]';
 
 type FinanceItemsTableProps = {
     items: FinanceDocumentItem[];
     currency: string;
     onChange: (items: FinanceDocumentItem[]) => void;
+    disabled?: boolean;
 };
 
-export function FinanceItemsTable({ items, currency, onChange }: FinanceItemsTableProps) {
+export function FinanceItemsTable({ items, currency, onChange, disabled = false }: FinanceItemsTableProps) {
     function updateItem(index: number, field: keyof FinanceDocumentItem, value: string) {
         const next = items.map((item, itemIndex) => {
             if (itemIndex !== index) {
@@ -52,16 +55,16 @@ export function FinanceItemsTable({ items, currency, onChange }: FinanceItemsTab
         <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <h3 className="text-sm font-semibold text-[var(--text)]">Lignes du document</h3>
+                    <div className="flex items-center gap-1.5 mb-2"><FileText size={13} className="text-[var(--text-subtle)]" /><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Lignes du document</p></div>
                     <p className="text-xs text-[var(--text-muted)]">Les totaux sont recalcules en direct.</p>
                 </div>
-                <AppButton variant="secondary" size="sm" onPress={addItem}>
+                <Button variant="flat" size="sm" onPress={addItem} isDisabled={disabled}>
                     <Plus size={14} />
                     Ajouter
-                </AppButton>
+                </Button>
             </div>
 
-            <div className="app-scrollbar overflow-x-auto rounded-2xl border">
+            <div className="app-scrollbar overflow-x-auto rounded-[var(--radius-md)] border">
                 <table className="min-w-[980px] w-full text-left text-sm">
                     <thead className="bg-[var(--surface-2)] text-xs text-[var(--text-muted)]">
                         <tr>
@@ -77,32 +80,32 @@ export function FinanceItemsTable({ items, currency, onChange }: FinanceItemsTab
                     <tbody>
                         {items.map((item, index) => (
                             <tr key={`${item.id || 'new'}-${index}`} className="border-t align-top">
-                                <td className="px-3 py-2">
-                                    <input className="react-aria-Input h-9 min-w-36" value={item.title} onChange={(event) => updateItem(index, 'title', event.target.value)} placeholder="Etude architecture" />
+                                <td className="px-3 py-2 min-w-36">
+                                    <Input isDisabled={disabled} className={compactInput} value={item.title} onChange={(e) => updateItem(index, 'title', e.target.value)} placeholder="Etude architecture" />
                                 </td>
-                                <td className="px-3 py-2">
-                                    <input className="react-aria-Input h-9 min-w-56" value={item.description || ''} onChange={(event) => updateItem(index, 'description', event.target.value)} placeholder="Description" />
+                                <td className="px-3 py-2 min-w-48">
+                                    <Input isDisabled={disabled} className={compactInput} value={item.description || ''} onChange={(e) => updateItem(index, 'description', e.target.value)} placeholder="Description" />
                                 </td>
-                                <td className="px-3 py-2">
-                                    <input className="react-aria-Input h-9 w-20" type="number" min="0" step="0.001" value={item.quantity} onChange={(event) => updateItem(index, 'quantity', event.target.value)} />
+                                <td className="px-3 py-2 w-16">
+                                    <Input isDisabled={disabled} className={compactInput} type="number" min="0" step="0.001" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} />
                                 </td>
-                                <td className="px-3 py-2">
-                                    <input className="react-aria-Input h-9 w-20" value={item.unit || ''} onChange={(event) => updateItem(index, 'unit', event.target.value)} placeholder="m2" />
+                                <td className="px-3 py-2 w-16">
+                                    <Input isDisabled={disabled} className={compactInput} value={item.unit || ''} onChange={(e) => updateItem(index, 'unit', e.target.value)} placeholder="m2" />
                                 </td>
-                                <td className="px-3 py-2">
-                                    <input className="react-aria-Input h-9 w-28" type="number" min="0" step="0.01" value={item.unitPrice} onChange={(event) => updateItem(index, 'unitPrice', event.target.value)} />
+                                <td className="px-3 py-2 w-28">
+                                    <Input isDisabled={disabled} className={compactInput} type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(index, 'unitPrice', e.target.value)} />
                                 </td>
-                                <td className="px-3 py-2 text-right font-mono text-xs font-semibold">
+                                <td className="px-3 py-2 w-28 text-right font-mono text-xs font-semibold">
                                     {formatCompactMoney(item.totalTtc, currency)}
                                 </td>
-                                <td className="px-3 py-2">
+                                <td className="px-3 py-2 w-16">
                                     <div className="flex justify-end gap-1">
-                                        <AppButton variant="ghost" size="sm" onPress={() => duplicateItem(index)} aria-label="Dupliquer">
+                                        <Button variant="ghost" size="sm" onPress={() => duplicateItem(index)} isDisabled={disabled} aria-label="Dupliquer">
                                             <Copy size={13} />
-                                        </AppButton>
-                                        <AppButton variant="ghost" size="sm" onPress={() => deleteItem(index)} isDisabled={items.length === 1} aria-label="Supprimer">
+                                        </Button>
+                                        <Button variant="ghost" size="sm" onPress={() => deleteItem(index)} isDisabled={disabled || items.length === 1} aria-label="Supprimer">
                                             <Trash2 size={13} />
-                                        </AppButton>
+                                        </Button>
                                     </div>
                                 </td>
                             </tr>

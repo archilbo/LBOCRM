@@ -29,7 +29,7 @@ import { AppModal } from '@/components/ui/AppModal';
 import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
 import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
 import { AppTableActions } from '@/components/ui/AppTableActions';
-import { FinanceDrawer } from '@/features/finance/drawers/FinanceDrawer';
+import { FinanceDrawer } from '@/components/drawers';
 import { countByValue, filterByValue } from '@/lib/filters';
 import type {
     FinanceDossierOption,

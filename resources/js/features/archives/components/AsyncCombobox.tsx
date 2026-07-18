@@ -131,9 +131,9 @@ export function AsyncCombobox({
     }
 
     return (
-        <div className={cn('flex min-w-0 flex-col gap-1.5', isDisabled && 'opacity-60')}>
+        <div className={cn('flex min-w-0 flex-col gap-1', isDisabled && 'opacity-60')}>
             {label ? (
-                <label className="text-xs font-medium text-white/50">{label}</label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</label>
             ) : null}
 
             <div ref={triggerRef} className="relative">
@@ -153,14 +153,14 @@ export function AsyncCombobox({
                         if (e.key === 'Escape') setIsOpen(false);
                     }}
                     className={cn(
-                        'flex h-10 w-full cursor-pointer items-center gap-2 rounded-lg border px-3 text-[13px] text-white outline-none transition',
-                        'border-white/10 bg-white/[0.04] hover:border-white/20',
-                        'focus-visible:border-white/30',
+                        'flex h-8 w-full cursor-pointer items-center gap-2 rounded-[var(--radius-md)] border px-2.5 text-xs text-[var(--foreground)] outline-none transition',
+                        'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]',
+                        'focus-visible:border-[var(--accent)]',
                         isDisabled && 'pointer-events-none opacity-60',
                     )}
                 >
-                    <Search size={14} className="shrink-0 text-white/40" />
-                    <span className={cn('flex-1 truncate text-left', !selectedLabel && 'text-white/40')}>
+                    <Search size={14} className="shrink-0 text-[var(--text-muted)]" />
+                    <span className={cn('flex-1 truncate text-left', !selectedLabel && 'text-[var(--text-subtle)]')}>
                         {selectedLabel || placeholder}
                     </span>
                     {selectedLabel ? (
@@ -169,50 +169,50 @@ export function AsyncCombobox({
                             tabIndex={-1}
                             onClick={(e) => { e.stopPropagation(); handleClear(); }}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleClear(); }}
-                            className="flex size-5 items-center justify-center rounded-full hover:bg-white/10"
+                            className="flex size-5 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                             aria-label="Clear selection"
                         >
-                            <X size={13} className="text-white/50" />
+                            <X size={13} />
                         </span>
                     ) : null}
-                    <ChevronsUpDown size={14} className="shrink-0 text-white/40" />
+                    <ChevronsUpDown size={14} className="shrink-0 text-[var(--text-muted)]" />
                 </div>
 
                 {isOpen && createPortal(
                     <div
                         ref={dropdownRef}
                         style={getDropdownStyle()}
-                        className="overflow-hidden rounded-lg border border-white/10 bg-[#1a1a1a] shadow-xl"
+                        className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg"
                     >
-                        <div className="border-b border-white/5 px-3 py-2">
+                        <div className="border-b border-[var(--border)] px-2 py-2">
                             <Input
                                 ref={searchRef}
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
-                                placeholder="Type to search..."
-                                startContent={<Search size={14} className="text-white/40" />}
+                                placeholder="Rechercher..."
+                                startContent={<Search size={14} className="text-[var(--text-muted)]" />}
                                 isClearable
                                 onClear={() => setSearchQuery('')}
-                                className="[&>div]:h-9 [&>div]:rounded-md [&_input]:text-[13px]"
+                                className="[&>div]:h-9 [&>div]:rounded-lg [&_input]:text-xs"
                                 classNames={{
                                     inputWrapper: [
-                                        'h-9 rounded-md border border-white/10 bg-white/[0.04]',
-                                        'hover:border-white/20',
-                                        'focus-within:border-white/30',
-                                        'group-data-[focus-within]:border-white/30',
+                                        'h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)]',
+                                        'hover:border-[var(--accent)]',
+                                        'focus-within:border-[var(--accent)]',
+                                        'group-data-[focus-within]:border-[var(--accent)]',
                                     ].join(' '),
-                                    input: 'text-[13px] text-white placeholder:text-white/40',
+                                    input: 'text-xs text-[var(--foreground)] placeholder:text-[var(--text-subtle)]',
                                 }}
                             />
                         </div>
 
                         {isFetching ? (
-                            <div className="flex items-center gap-2 px-3 py-5 text-[13px] text-white/50">
+                            <div className="flex items-center gap-2 px-3 py-5 text-xs text-[var(--text-muted)]">
                                 <Loader2 size={14} className="animate-spin" />
-                                Searching...
+                                Recherche...
                             </div>
                         ) : items.length === 0 ? (
-                            <p className="px-3 py-5 text-center text-[13px] text-white/50">{emptyMessage}</p>
+                            <p className="px-3 py-5 text-center text-xs text-[var(--text-muted)]">{emptyMessage}</p>
                         ) : (
                             <ListBox
                                 items={items}
@@ -229,12 +229,12 @@ export function AsyncCombobox({
                                     <ListBoxItem
                                         key={item.id}
                                         textValue={item.label}
-                                        className="rounded-md px-3 py-2 text-[13px] text-white data-[hover=true]:bg-white/[0.06] data-[selected=true]:bg-amber-500/[0.1] data-[selected=true]:text-amber-300"
+                                        className="rounded-lg px-2.5 py-2 text-xs text-[var(--foreground)] data-[hover=true]:bg-[var(--surface-2)] data-[selected=true]:bg-[var(--accent)]/10 data-[selected=true]:text-[var(--accent)]"
                                     >
                                         <div className="flex items-center gap-2">
                                             <span className="flex-1 truncate">{highlightMatch(item.label, searchQuery)}</span>
                                             {item.id === value ? (
-                                                <Check size={14} className="shrink-0 text-amber-400" />
+                                                <Check size={14} className="shrink-0 text-[var(--accent)]" />
                                             ) : null}
                                         </div>
                                     </ListBoxItem>
@@ -247,7 +247,7 @@ export function AsyncCombobox({
             </div>
 
             {error ? (
-                <p className="text-xs font-medium text-red-400">{error}</p>
+                <p className="text-[10px] font-medium text-[var(--danger)]">{error}</p>
             ) : null}
         </div>
     );

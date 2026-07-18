@@ -41,11 +41,10 @@ import { TreasuryDashboard } from '@/features/finance/components/TreasuryDashboa
 import { FinanceMonthlySummary } from '@/features/finance/components/FinanceMonthlySummary';
 import { FinanceDocumentLockBadge, getFinanceDocumentLockedAt } from '@/features/finance/components/FinanceDocumentLockNotice';
 import { FinanceTabs } from '@/features/finance/components/FinanceTabs';
-import { FinanceDocumentBuilderDrawer } from '@/features/finance/drawers/FinanceDocumentBuilderDrawer';
-import { PaymentDrawer } from '@/features/finance/drawers/PaymentDrawer';
+import { FinanceDocumentBuilderDrawer, PaymentDrawer, ExpenseDrawer } from '@/components/drawers';
+import type { ExpenseViewMode } from '@/components/drawers/entities/ExpenseDrawer';
 import { MetricSparklineCard } from '@/features/finance/components/MetricSparklineCard';
 import { ExpensesWorkspace } from '@/features/finance/components/ExpensesWorkspace';
-import { ExpenseDrawer, type ExpenseViewMode } from '@/features/finance/drawers/ExpenseDrawer';
 import type {
     ClientOption,
     DossierOption,
@@ -1189,6 +1188,7 @@ export default function FinanceDocumentsIndex({
     const documents = unwrap(rawDocuments);
     const payments = unwrap(rawPayments);
     const expenses = unwrap(rawExpenses) as Expense[];
+
     const settings = { ...defaultSettings, ...rawSettings };
     const [activeTab, setActiveTab] = useState(filters?.tab || new URLSearchParams(window.location.search).get('tab') || 'overview');
     const [builderOpen, setBuilderOpen] = useState(false);
@@ -1443,6 +1443,7 @@ export default function FinanceDocumentsIndex({
                 onOpenChange={setPaymentOpen}
                 invoices={invoices}
                 invoice={paymentInvoice}
+                clients={clients}
             />
 
             <ExpenseDrawer

@@ -141,6 +141,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/finance/documents/{financeDocument}', [FinanceDocumentController::class, 'show'])->name('finance.documents.show');
     Route::put('/finance/documents/{financeDocument}', [FinanceDocumentController::class, 'update'])->name('finance.documents.update');
     Route::delete('/finance/documents/{financeDocument}', [FinanceDocumentController::class, 'destroy'])->name('finance.documents.destroy');
+    Route::get('/finance/documents/{financeDocument}/preview-html', [FinanceDocumentController::class, 'previewHtml'])->name('finance.documents.preview-html');
+    Route::post('/finance/documents/preview', [FinanceDocumentController::class, 'previewDraft'])->name('finance.documents.preview-draft');
     Route::put('/finance/documents/{financeDocument}/generate', [FinanceDocumentController::class, 'generate'])->name('finance.documents.generate');
     Route::put('/finance/documents/{financeDocument}/generate-pdf', [FinanceDocumentController::class, 'generatePdf'])->name('finance.documents.generate-pdf');
     Route::put('/finance/documents/{financeDocument}/generate-excel', [FinanceDocumentController::class, 'generateExcel'])->name('finance.documents.generate-excel');

@@ -13,7 +13,7 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
 import type { ClientFormPayload, ClientRow, ClientStatus, IntermediaryOption } from '@/features/clients/types';
-import { ClientDrawer } from '@/features/clients/drawers/ClientDrawer';
+import { ClientDrawer } from '@/components/drawers';
 import type { FormErrors } from '@/lib/formErrors';
 
 type PageProps = {

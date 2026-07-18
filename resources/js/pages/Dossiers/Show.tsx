@@ -44,9 +44,9 @@ import { cn } from '@/lib/cn';
 import { ProjectWorkflowStepper } from '@/features/dossiers/components/ProjectWorkflowStepper';
 import { WorkflowTab } from '@/features/dossiers/components/WorkflowTab';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
-import { DocumentUploadDrawer } from '@/features/documents/drawers/DocumentUploadDrawer';
-import { ContractDrawer } from '@/features/contracts/drawers/ContractDrawer';
-import { FinanceDrawer } from '@/features/finance/drawers/FinanceDrawer';
+import { DocumentDrawer } from '@/components/drawers';
+import { ContractDrawer } from '@/components/drawers';
+import { FinanceDrawer } from '@/components/drawers';
 import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
 import type { DossierRow, ClientOption, City } from '@/features/dossiers/types';
 import type { DossierOption, DocumentTemplateOption, DocumentUploadPayload } from '@/features/documents/types';
@@ -440,7 +440,7 @@ export default function DossierShow({
                     onSubmit={handleProjectSubmit}
                     errors={formErrors}
                 />
-                <DocumentUploadDrawer
+                <DocumentDrawer
                     isOpen={documentDrawerOpen}
                     clients={clients}
                     dossiers={dossiersOptions}
@@ -460,6 +460,7 @@ export default function DossierShow({
                     clients={contractClients}
                     dossiers={contractDossiers}
                     initialDossierId={String(dossier.id)}
+                    initialFloorArea={dossier.floorArea}
                     lockProject={!editContract}
                     onOpenChange={(open) => { setContractDrawerOpen(open); if (!open) setEditContract(null); }}
                     onSubmit={editContract ? handleContractUpdate : handleContractSubmit}
@@ -470,6 +471,7 @@ export default function DossierShow({
                     mode="create"
                     record={null}
                     dossiers={financeDossiers}
+                    clients={clients}
                     onOpenChange={setFinanceDrawerOpen}
                     onSubmit={handleFinanceSubmit}
                     errors={formErrors}
@@ -481,6 +483,11 @@ export default function DossierShow({
                     rooms={archiveRooms}
                     shelves={archiveShelves}
                     boxes={archiveBoxes}
+                    initialClientId={String(dossier.clientId)}
+                    initialDossierId={String(dossier.id)}
+                    initialClientName={dossier.clientName}
+                    initialDossierLabel={`${dossier.projectObject} · ${dossier.dossierNumber}`}
+                    lockProject
                     onOpenChange={setArchiveDrawerOpen}
                     onSubmit={handleArchiveSubmit}
                 />

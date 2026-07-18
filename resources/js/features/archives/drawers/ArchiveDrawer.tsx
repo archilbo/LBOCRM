@@ -2,19 +2,24 @@ import { useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { ChevronDown, MapPin, Archive, Calendar, User } from 'lucide-react';
+import { Select, ListBox, TextArea } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
-import { AppTextField } from '@/components/ui/AppTextField';
-import { AppSelect } from '@/components/ui/AppSelect';
 import { ARCHIVE_STATUS } from '@/config/statuses';
 import { AsyncCombobox } from '@/features/archives/components/AsyncCombobox';
 import { DateField } from '@/features/archives/components/DateField';
 import type { ArchiveFormPayload, ArchiveRecordRow, RoomOption, ShelfOption, BoxOption } from '@/features/archives/types';
 import { format } from 'date-fns';
 
+const triggerClass = 'flex h-8 w-full min-w-0 items-center gap-2 rounded-[var(--radius-md)] border bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] outline-none transition border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)]';
+const popoverClass = 'z-[70] min-w-[var(--trigger-width)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg';
+const itemClass = 'flex cursor-pointer items-center rounded-lg px-2.5 py-2 text-xs text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10';
+const inputBaseClass = 'h-8 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)] aria-invalid:border-[var(--danger)]';
+
 const schema = z.object({
-    client_id: z.string().min(1, { message: 'Select a client' }),
-    dossier_id: z.string().min(1, { message: 'Select a project' }),
+    client_id: z.string().min(1, { message: 'Selectionnez un client' }),
+    dossier_id: z.string().min(1, { message: 'Selectionnez un projet' }),
     status: z.string().min(1),
     room: z.string().nullable().default(null),
     shelf: z.string().nullable().default(null),
@@ -26,7 +31,7 @@ const schema = z.object({
     requested_by: z.string().optional().default(''),
     notes: z.string().optional().default(''),
 }).refine((d) => !d.out_date || !d.in_date || d.out_date >= d.in_date, {
-    message: 'Out date must be after in date',
+    message: 'La date de sortie doit etre apres la date d entree',
     path: ['out_date'],
 });
 
@@ -94,7 +99,6 @@ export function ArchiveDrawer({
     onSubmit,
 }: ArchiveDrawerProps) {
     const {
-        register,
         handleSubmit,
         watch,
         setValue,
@@ -240,22 +244,25 @@ export function ArchiveDrawer({
             footer={
                 <>
                     <AppButton variant="light" onPress={() => onOpenChange(false)}>
-                        Cancel
+                        Annuler
                     </AppButton>
                     <AppButton variant="primary" type="submit" form="archive-form">
-                        Save
+                        Enregistrer
                     </AppButton>
                 </>
             }
         >
-            <form id="archive-form" className="space-y-2" onSubmit={handleSubmit(handleFormSubmit)}>
-                <section>
-                    <h4 className="mb-3 mt-6 text-sm font-semibold text-[var(--foreground)] first:mt-0">Client et projet</h4>
+            <form id="archive-form" className="flex flex-col gap-3" onSubmit={handleSubmit(handleFormSubmit)}>
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <Archive size={12} />
+                        Client et projet
+                    </p>
 
-                    <div className="space-y-4">
+                    <div className="flex flex-col gap-2">
                         <AsyncCombobox
                             label="Client"
-                            placeholder="Rechercher un client…"
+                            placeholder="Chercher un client…"
                             value={clientId || null}
                             onChange={handleClientChange}
                             queryKey={['clients']}
@@ -273,151 +280,238 @@ export function ArchiveDrawer({
                             onChange={(id) => setValue('dossier_id', id ?? '', { shouldDirty: true })}
                             queryKey={['projects', clientId ?? '']}
                             queryFn={(q) => fetchProjects(clientId ?? '', q)}
-                            emptyMessage="No projects found"
+                            emptyMessage="Aucun projet trouve"
                             isDisabled={lockProject || !clientId}
                             defaultLabel={projectLabel}
                             error={errors.dossier_id?.message}
                         />
 
-                        <div className="w-1/2 min-w-0">
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Statut</label>
                             <Controller
                                 name="status"
                                 control={control}
                                 render={({ field }) => (
-                                    <AppSelect
-                                        label="Status"
-                                        selectedKey={field.value || 'ready_to_archive'}
-                                        onSelectionChange={(key) => field.onChange(String(key ?? 'ready_to_archive'))}
-                                        options={statusOptions}
+                                    <Select
+                                        selectedKey={field.value || null}
+                                        onSelectionChange={(key) => field.onChange(key ? String(key) : 'ready_to_archive')}
+                                        placeholder="Selectionner..."
+                                        shouldCloseOnBlur={false}
+                                    >
+                                        <Select.Trigger className={triggerClass}>
+                                            <Select.Value className="flex-1 truncate text-left text-xs" />
+                                            <Select.Indicator>
+                                                <ChevronDown size={14} className="text-[var(--text-muted)]" />
+                                            </Select.Indicator>
+                                        </Select.Trigger>
+                                        <Select.Popover isNonModal className={popoverClass}>
+                                            <ListBox className="max-h-56 overflow-y-auto p-1">
+                                                {statusOptions.map((opt) => (
+                                                    <ListBox.Item key={opt.id} id={opt.id} textValue={opt.label} className={itemClass}>
+                                                        {opt.label}
+                                                    </ListBox.Item>
+                                                ))}
+                                            </ListBox>
+                                        </Select.Popover>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <MapPin size={12} />
+                        Emplacement physique
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Salle</label>
+                            <Controller
+                                name="room"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select
+                                        selectedKey={field.value || null}
+                                        onSelectionChange={(key) => {
+                                            field.onChange(key ? String(key) : null);
+                                            setValue('shelf', null, { shouldDirty: true });
+                                            setValue('box', null, { shouldDirty: true });
+                                        }}
+                                        placeholder="Selectionner salle"
+                                        shouldCloseOnBlur={false}
+                                    >
+                                        <Select.Trigger className={triggerClass}>
+                                            <Select.Value className="flex-1 truncate text-left text-xs" />
+                                            <Select.Indicator>
+                                                <ChevronDown size={14} className="text-[var(--text-muted)]" />
+                                            </Select.Indicator>
+                                        </Select.Trigger>
+                                        <Select.Popover isNonModal className={popoverClass}>
+                                            <ListBox className="max-h-56 overflow-y-auto p-1">
+                                                {roomOptions.map((opt) => (
+                                                    <ListBox.Item key={opt.id} id={opt.id} textValue={opt.label} className={itemClass}>
+                                                        {opt.label}
+                                                    </ListBox.Item>
+                                                ))}
+                                            </ListBox>
+                                        </Select.Popover>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Etagere</label>
+                            <Controller
+                                name="shelf"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select
+                                        selectedKey={field.value || null}
+                                        onSelectionChange={(key) => {
+                                            field.onChange(key ? String(key) : null);
+                                            setValue('box', null, { shouldDirty: true });
+                                        }}
+                                        placeholder={room ? 'Selectionner etagere' : 'Salle d abord'}
+                                        isDisabled={!room}
+                                        shouldCloseOnBlur={false}
+                                    >
+                                        <Select.Trigger className={triggerClass}>
+                                            <Select.Value className="flex-1 truncate text-left text-xs" />
+                                            <Select.Indicator>
+                                                <ChevronDown size={14} className="text-[var(--text-muted)]" />
+                                            </Select.Indicator>
+                                        </Select.Trigger>
+                                        <Select.Popover isNonModal className={popoverClass}>
+                                            <ListBox className="max-h-56 overflow-y-auto p-1">
+                                                {shelfOptions.map((opt) => (
+                                                    <ListBox.Item key={opt.id} id={opt.id} textValue={opt.label} className={itemClass}>
+                                                        {opt.label}
+                                                    </ListBox.Item>
+                                                ))}
+                                            </ListBox>
+                                        </Select.Popover>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Boite</label>
+                            <Controller
+                                name="box"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select
+                                        selectedKey={field.value || null}
+                                        onSelectionChange={(key) => field.onChange(key ? String(key) : null)}
+                                        placeholder={shelf ? 'Selectionner boite' : 'Etagere d abord'}
+                                        isDisabled={!shelf}
+                                        shouldCloseOnBlur={false}
+                                    >
+                                        <Select.Trigger className={triggerClass}>
+                                            <Select.Value className="flex-1 truncate text-left text-xs" />
+                                            <Select.Indicator>
+                                                <ChevronDown size={14} className="text-[var(--text-muted)]" />
+                                            </Select.Indicator>
+                                        </Select.Trigger>
+                                        <Select.Popover isNonModal className={popoverClass}>
+                                            <ListBox className="max-h-56 overflow-y-auto p-1">
+                                                {boxOptions.map((opt) => (
+                                                    <ListBox.Item key={opt.id} id={opt.id} textValue={opt.label} className={itemClass}>
+                                                        {opt.label}
+                                                    </ListBox.Item>
+                                                ))}
+                                            </ListBox>
+                                        </Select.Popover>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Dossier</label>
+                            <Controller
+                                name="folder"
+                                control={control}
+                                render={({ field }) => (
+                                    <input
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        placeholder="Numero dossier"
+                                        className={inputBaseClass}
                                     />
                                 )}
                             />
                         </div>
                     </div>
-                </section>
+                </div>
 
-                <section>
-                    <h4 className="mb-3 mt-6 text-sm font-semibold text-white">Physical location</h4>
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <Calendar size={12} />
+                        Dates de mouvement
+                    </p>
 
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                        <Controller
-                            name="room"
-                            control={control}
-                            render={({ field }) => (
-                                <AppSelect
-                                    label="Room"
-                                    placeholder="Select room"
-                                    selectedKey={field.value || null}
-                                    onSelectionChange={(key) => {
-                                        field.onChange(key ? String(key) : null);
-                                        setValue('shelf', null, { shouldDirty: true });
-                                        setValue('box', null, { shouldDirty: true });
-                                    }}
-                                    options={roomOptions}
-                                />
-                            )}
-                        />
-
-                        <Controller
-                            name="shelf"
-                            control={control}
-                            render={({ field }) => (
-                                <AppSelect
-                                    label="Shelf"
-                                    placeholder={room ? 'Select shelf' : 'Room first'}
-                                    selectedKey={field.value || null}
-                                    onSelectionChange={(key) => {
-                                        field.onChange(key ? String(key) : null);
-                                        setValue('box', null, { shouldDirty: true });
-                                    }}
-                                    options={shelfOptions}
-                                    isDisabled={!room}
-                                />
-                            )}
-                        />
-
-                        <Controller
-                            name="box"
-                            control={control}
-                            render={({ field }) => (
-                                <AppSelect
-                                    label="Box"
-                                    placeholder={shelf ? 'Select box' : 'Shelf first'}
-                                    selectedKey={field.value || null}
-                                    onSelectionChange={(key) => field.onChange(key ? String(key) : null)}
-                                    options={boxOptions}
-                                    isDisabled={!shelf}
-                                />
-                            )}
-                        />
-
-                        <Controller
-                            name="folder"
-                            control={control}
-                            render={({ field }) => (
-                                <AppTextField
-                                    label="Folder"
-                                    value={field.value ?? ''}
-                                    onChange={field.onChange}
-                                />
-                            )}
-                        />
-                    </div>
-                </section>
-
-                <section>
-                    <h4 className="mb-3 mt-6 text-sm font-semibold text-white">Movement dates</h4>
-
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-2 sm:grid-cols-3">
                         <DateField
-                            label="In date"
+                            label="Date d entree"
                             value={watch('in_date')}
                             onChange={(d) => setValue('in_date', d, { shouldDirty: true })}
                             error={errors.in_date?.message}
                         />
                         <DateField
-                            label="Out date"
+                            label="Date de sortie"
                             value={watch('out_date')}
                             onChange={(d) => setValue('out_date', d, { shouldDirty: true })}
                             error={errors.out_date?.message}
                         />
                         <DateField
-                            label="Returned at"
+                            label="Retourne le"
                             value={watch('returned_at')}
                             onChange={(d) => setValue('returned_at', d, { shouldDirty: true })}
                             error={errors.returned_at?.message}
                         />
                     </div>
-                </section>
+                </div>
 
-                <section>
-                    <h4 className="mb-3 mt-6 text-sm font-semibold text-white">Additional info</h4>
+                <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                        <User size={12} />
+                        Infos supplementaires
+                    </p>
 
-                    <div className="space-y-4">
-                        <Controller
-                            name="requested_by"
-                            control={control}
-                            render={({ field }) => (
-                                <AppTextField
-                                    label="Requested by"
-                                    placeholder="Name of requester"
-                                    value={field.value ?? ''}
-                                    onChange={field.onChange}
-                                />
-                            )}
-                        />
+                    <div className="flex flex-col gap-2">
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Demande par</label>
+                            <Controller
+                                name="requested_by"
+                                control={control}
+                                render={({ field }) => (
+                                    <input
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        placeholder="Nom du demandeur"
+                                        className={inputBaseClass}
+                                    />
+                                )}
+                            />
+                        </div>
 
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-medium text-white/50">Notes</label>
-                            <textarea
-                                {...register('notes')}
-                                rows={4}
-                                className="h-auto w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-[13px] text-white outline-none transition placeholder:text-white/40 hover:border-white/20 focus:border-white/30"
-                                placeholder="Optional notes…"
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Notes</label>
+                            <TextArea
+                                value={watch('notes') ?? ''}
+                                onChange={(e) => setValue('notes', e.target.value, { shouldDirty: true })}
+                                placeholder="Notes optionnelles…"
+                                className="min-h-20 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)]"
                             />
                         </div>
                     </div>
-                </section>
+                </div>
             </form>
         </AppDrawer>
     );

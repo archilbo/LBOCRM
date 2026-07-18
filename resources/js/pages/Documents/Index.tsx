@@ -12,7 +12,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppDataTable } from '@/components/ui/AppDataTable';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
-import { DocumentUploadDrawer } from '@/features/documents/drawers/DocumentUploadDrawer';
+import { DocumentDrawer } from '@/components/drawers';
 import { DocumentGroupedExplorer } from '@/features/documents/components/DocumentGroupedExplorer';
 import type {
     ClientOption, DocumentStatus, DocumentTemplateOption, DocumentUploadPayload,
@@ -557,7 +557,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                     </>
                 )}
 
-                <DocumentUploadDrawer
+                <DocumentDrawer
                     isOpen={drawerOpen}
                     clients={clients}
                     dossiers={dossiers}

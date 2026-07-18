@@ -1,15 +1,5 @@
 @import './archilbo-theme.css';
 @import "tailwindcss";
-@plugin "tailwindcss-react-aria-components";
-@import './calendar.css';
-
-button:not(:disabled),
-a:not([aria-disabled]),
-[role="button"]:not([aria-disabled]),
-select:not(:disabled),
-summary {
-    cursor: pointer;
-}
 
 @theme {
     --color-bg: var(--background);
@@ -34,6 +24,17 @@ summary {
     --radius-lg: 16px;
     --radius-xl: 20px;
     --radius-pill: 999px;
+}
+
+@plugin "tailwindcss-react-aria-components";
+@import './calendar.css';
+
+button:not(:disabled),
+a:not([aria-disabled]),
+[role="button"]:not([aria-disabled]),
+select:not(:disabled),
+summary {
+    cursor: pointer;
 }
 
 :root {

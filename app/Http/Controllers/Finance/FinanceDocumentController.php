@@ -21,8 +21,12 @@ use App\Services\Finance\FinanceNumberService;
 use App\Services\Finance\FinancePdfGenerator;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\Finance\FinanceMonthlySummaryService;
+use App\Services\Finance\FinanceTemplateRenderer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -388,6 +392,134 @@ class FinanceDocumentController extends Controller
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', 'Impossible d ouvrir Explorer : ' . $e->getMessage());
         }
+    }
+
+    public function previewHtml(FinanceDocument $financeDocument, FinanceTemplateRenderer $renderer): JsonResponse
+    {
+        $financeDocument->loadMissing(['client', 'dossier', 'items', 'payments', 'template']);
+        $html = $renderer->renderHtml($financeDocument);
+
+        return response()->json(['html' => $html]);
+    }
+
+    public function previewDraft(Request $request, FinanceTemplateRenderer $renderer): JsonResponse
+    {
+        $data = $request->validate([
+            'type' => 'required|in:quote,invoice,receipt',
+            'template_id' => 'nullable|string',
+            'client_id' => 'nullable|string',
+            'dossier_id' => 'nullable|string',
+            'issue_date' => 'nullable|string',
+            'due_date' => 'nullable|string',
+            'valid_until' => 'nullable|string',
+            'currency' => 'nullable|string',
+            'tva_rate' => 'nullable|numeric',
+            'discount_total' => 'nullable|numeric',
+            'notes' => 'nullable|string',
+            'terms' => 'nullable|string',
+            'items' => 'nullable|array',
+            'items.*.title' => 'nullable|string',
+            'items.*.description' => 'nullable|string',
+            'items.*.quantity' => 'nullable|numeric',
+            'items.*.unit' => 'nullable|string',
+            'items.*.unit_price' => 'nullable|numeric',
+            'items.*.total_ht' => 'nullable|numeric',
+            'items.*.total_tva' => 'nullable|numeric',
+            'items.*.total_ttc' => 'nullable|numeric',
+        ]);
+
+        $template = $data['template_id']
+            ? FinanceTemplate::query()->find($data['template_id'])
+            : FinanceTemplate::query()->where('type', $data['type'])->where('is_default', true)->first();
+
+        $client = $data['client_id'] ? Client::find($data['client_id']) : null;
+        $dossier = $data['dossier_id'] ? Dossier::find($data['dossier_id']) : null;
+        $currency = $data['currency'] ?: FinanceSettingsService::getCurrency();
+
+        $items = collect($data['items'] ?? [])->values()->map(fn ($item, $i) => [
+            'position' => $i + 1,
+            'title' => $item['title'] ?? '',
+            'description' => $item['description'] ?? '',
+            'quantity' => (float) ($item['quantity'] ?? 1),
+            'unit' => $item['unit'] ?? '',
+            'unit_price' => (float) ($item['unit_price'] ?? 0),
+            'unit_price_display' => number_format((float) ($item['unit_price'] ?? 0), 2, '.', ' ') . ' ' . $currency,
+            'total_ht' => (float) ($item['total_ht'] ?? 0),
+            'total_ht_display' => number_format((float) ($item['total_ht'] ?? 0), 2, '.', ' ') . ' ' . $currency,
+            'total_tva' => (float) ($item['total_tva'] ?? 0),
+            'total_tva_display' => number_format((float) ($item['total_tva'] ?? 0), 2, '.', ' ') . ' ' . $currency,
+            'total_ttc' => (float) ($item['total_ttc'] ?? 0),
+            'total_ttc_display' => number_format((float) ($item['total_ttc'] ?? 0), 2, '.', ' ') . ' ' . $currency,
+        ])->all();
+
+        $formatMoney = fn (float $v) => number_format($v, 2, '.', ' ') . ' ' . $currency;
+        $discountRaw = (float) ($data['discount_total'] ?? 0);
+        $issueDate = $data['issue_date'] ? Carbon::parse($data['issue_date'])->format('d/m/Y') : '';
+
+        $renderData = [
+            'company' => [
+                'name' => FinanceSettingsService::getCompanyName(),
+                'address' => FinanceSettingsService::getCompanyAddress(),
+                'phone' => FinanceSettingsService::getCompanyPhone(),
+                'email' => FinanceSettingsService::getCompanyEmail(),
+                'ice' => FinanceSettingsService::getCompanyIce(),
+                'tva' => (string) FinanceSettingsService::getTvaRate(),
+                'patente' => (string) FinanceSettingsService::get('company', 'patente', ''),
+                'cnss' => (string) FinanceSettingsService::get('company', 'cnss', ''),
+                'logo_path' => (string) FinanceSettingsService::get('company', 'logo_path', ''),
+            ],
+            'bank' => [
+                'name' => FinanceSettingsService::getBankName(),
+                'rib' => FinanceSettingsService::getBankRib(),
+            ],
+            'document' => [
+                'id' => null,
+                'type' => $data['type'],
+                'type_label' => match ($data['type']) { 'quote' => 'Devis', 'invoice' => 'Facture', 'receipt' => 'Recu', default => ucfirst($data['type']) },
+                'number' => '',
+                'status' => 'draft',
+                'issue_date' => $issueDate,
+                'due_date' => $data['due_date'] ? Carbon::parse($data['due_date'])->format('d/m/Y') : '',
+                'valid_until' => $data['valid_until'] ? Carbon::parse($data['valid_until'])->format('d/m/Y') : '',
+                'currency' => $currency,
+                'notes' => $data['notes'] ?? '',
+                'terms' => $data['terms'] ?? '',
+            ],
+            'client' => [
+                'name' => $client?->full_name ?? '',
+                'cin' => $client?->cin ?? '',
+                'address' => $client?->address ?? '',
+                'phone' => $client?->phone ?? '',
+                'email' => $client?->email ?? '',
+            ],
+            'dossier' => [
+                'number' => $dossier?->dossier_number ?? '',
+                'project_object' => $dossier?->project_object ?? '',
+                'address' => $dossier?->project_address ?? '',
+                'commune' => $dossier?->commune ?? '',
+                'province' => $dossier?->province ?? '',
+            ],
+            'items' => $items,
+            'totals' => [
+                'subtotal_ht' => $formatMoney((float) array_sum(array_column($items, 'total_ht'))),
+                'subtotal_ht_raw' => (float) array_sum(array_column($items, 'total_ht')),
+                'discount_total' => $formatMoney($discountRaw),
+                'discount_total_raw' => $discountRaw,
+                'tax_total' => $formatMoney((float) array_sum(array_column($items, 'total_tva'))),
+                'tax_total_raw' => (float) array_sum(array_column($items, 'total_tva')),
+                'total_ttc' => $formatMoney((float) array_sum(array_column($items, 'total_ttc')) - $discountRaw),
+                'total_ttc_raw' => (float) array_sum(array_column($items, 'total_ttc')) - $discountRaw,
+                'paid_total' => $formatMoney(0),
+                'paid_total_raw' => 0,
+                'remaining_total' => $formatMoney((float) array_sum(array_column($items, 'total_ttc')) - $discountRaw),
+                'remaining_total_raw' => (float) array_sum(array_column($items, 'total_ttc')) - $discountRaw,
+            ],
+            'payments' => [],
+        ];
+
+        $html = $renderer->renderTemplatePreview($template, $renderData);
+
+        return response()->json(['html' => $html]);
     }
 
     public function accept(Request $request, FinanceDocument $financeDocument): RedirectResponse
