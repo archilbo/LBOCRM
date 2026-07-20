@@ -3,7 +3,15 @@
 namespace App\Providers;
 
 use App\Models\DocumentTemplate;
+use App\Models\Expense;
+use App\Models\FinanceDocument;
+use App\Models\FinanceTemplate;
+use App\Models\Payment;
+use App\Policies\ExpensePolicy;
+use App\Policies\FinanceDocumentPolicy;
+use App\Policies\FinanceTemplatePolicy;
 use App\Policies\NotificationPolicy;
+use App\Policies\PaymentPolicy;
 use App\Observers\DocumentTemplateObserver;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Gate;
@@ -25,6 +33,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(DatabaseNotification::class, NotificationPolicy::class);
+        Gate::policy(FinanceDocument::class, FinanceDocumentPolicy::class);
+        Gate::policy(Payment::class, PaymentPolicy::class);
+        Gate::policy(Expense::class, ExpensePolicy::class);
+        Gate::policy(FinanceTemplate::class, FinanceTemplatePolicy::class);
         DocumentTemplate::observe(DocumentTemplateObserver::class);
         //
     }

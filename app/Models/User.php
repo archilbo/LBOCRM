@@ -12,12 +12,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'invitation_token', 'invited_at', 'accepted_at', 'invited_by', 'last_seen_at', 'module_permissions', 'suspended_at'])]
+#[Fillable(['company_id', 'branch_id', 'name', 'email', 'password', 'invitation_token', 'invited_at', 'accepted_at', 'invited_by', 'last_seen_at', 'module_permissions', 'suspended_at'])]
 #[Hidden(['password', 'remember_token', 'invitation_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
+
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     public function invitedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

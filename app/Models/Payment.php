@@ -12,6 +12,8 @@ class Payment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'finance_document_id',
         'client_id',
         'dossier_id',
@@ -24,6 +26,9 @@ class Payment extends Model
         'receipt_document_id',
         'created_by',
     ];
+
+    public function company(): BelongsTo { return $this->belongsTo(Company::class); }
+    public function branch(): BelongsTo { return $this->belongsTo(Branch::class); }
 
     protected $casts = [
         'amount' => 'decimal:2',

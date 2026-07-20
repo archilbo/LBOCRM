@@ -47,7 +47,7 @@ export function getFinanceDocumentLockMessage(document?: LockableFinanceDocument
     return document?.lock?.message ?? 'Document verrouillé après export. Le numéro, le type et la date d\'émission ne peuvent plus être modifiés.';
 }
 
-export function FinanceDocumentLockBadge({ document }: { document?: LockableFinanceDocument | null }) {
+export function FinanceDocumentLockBadge({ document, compact: _compact = false, className = '' }: Pick<NoticeProps, 'document' | 'compact' | 'className'>) {
     if (!isFinanceDocumentLocked(document)) {
         return null;
     }
@@ -56,7 +56,7 @@ export function FinanceDocumentLockBadge({ document }: { document?: LockableFina
 
     return (
         <Tooltip delay={500}>
-            <span className="inline-flex items-center justify-center text-amber-500 hover:text-amber-400 transition-colors cursor-help">
+            <span className={`inline-flex items-center justify-center text-amber-500 hover:text-amber-400 transition-colors cursor-help ${className}`}>
                 <Lock size={10} />
             </span>
             <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">{message}</Tooltip.Content>

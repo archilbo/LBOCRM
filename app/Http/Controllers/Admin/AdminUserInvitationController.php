@@ -27,6 +27,8 @@ class AdminUserInvitationController extends Controller
 
         if (app()->environment('local', 'development', 'testing')) {
             $user = User::create([
+                'company_id' => $request->user()->company_id,
+                'branch_id' => $request->user()->branch_id,
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => bcrypt('password'),
@@ -39,6 +41,8 @@ class AdminUserInvitationController extends Controller
             $message = "User {$user->email} created with password 'password'.";
         } else {
             $user = User::create([
+                'company_id' => $request->user()->company_id,
+                'branch_id' => $request->user()->branch_id,
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => bcrypt(Str::password(16)),
@@ -114,6 +118,8 @@ class AdminUserInvitationController extends Controller
 
                     $isLocal = app()->environment('local', 'development', 'testing');
                     $user = User::create([
+                        'company_id' => $request->user()->company_id,
+                        'branch_id' => $request->user()->branch_id,
                         'name' => $entry['name'],
                         'email' => $entry['email'],
                         'password' => bcrypt($isLocal ? 'password' : Str::password(16)),

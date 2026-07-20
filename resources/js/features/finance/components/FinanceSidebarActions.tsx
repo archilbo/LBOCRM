@@ -1,10 +1,12 @@
-import { CheckCircle2, Download, FileSpreadsheet, FileText, Landmark, RotateCcw, ShieldCheck, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle2, Download, Eye, Landmark, Printer, RotateCcw, ShieldCheck, Trash2, XCircle } from 'lucide-react';
 import type { FinanceDocument } from '@/features/finance/types';
 
 type FinanceSidebarActionsProps = {
     document: FinanceDocument;
     isProcessing: boolean;
     onGenerate: () => void;
+    onView: () => void;
+    onPrint: () => void;
     onDownloadPdf: () => void;
     onDownloadExcel: () => void;
     onAcceptQuote: () => void;
@@ -18,6 +20,8 @@ export function FinanceSidebarActions({
     document,
     isProcessing,
     onGenerate,
+    onView,
+    onPrint,
     onDownloadPdf,
     onDownloadExcel,
     onAcceptQuote,
@@ -40,6 +44,14 @@ export function FinanceSidebarActions({
                 {/* Export */}
                 <div>
                     <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Export</p>
+                    <div className="mb-2 grid grid-cols-2 gap-2">
+                        <button type="button" onClick={onView} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-[11px] font-semibold text-[var(--text)] transition hover:border-amber-500/30 hover:text-amber-400">
+                            <Eye size={13} /> View
+                        </button>
+                        <button type="button" onClick={onPrint} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-[11px] font-semibold text-[var(--text)] transition hover:border-amber-500/30 hover:text-amber-400">
+                            <Printer size={13} /> Print
+                        </button>
+                    </div>
                     <button
                         type="button"
                         disabled={disabled}

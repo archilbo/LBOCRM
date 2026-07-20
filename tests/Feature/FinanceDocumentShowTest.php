@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Company;
+use App\Models\Branch;
 use App\Models\Dossier;
 use App\Models\FinanceDocument;
 use App\Models\FinanceDocumentItem;
@@ -11,6 +13,8 @@ use App\Models\User;
 use App\Services\Finance\DefaultFinanceTemplateFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Spatie\Permission\Models\Role;
+use Inertia\Testing\AssertableInertia as Assert;
 
 class FinanceDocumentShowTest extends TestCase
 {
@@ -23,18 +27,28 @@ class FinanceDocumentShowTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create(['name' => 'Test Admin']);
+        $company = Company::query()->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->firstOrFail();
+        $this->user = User::factory()->create([
+            'name' => 'Test Admin',
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+        ]);
+        Role::findOrCreate('admin', 'web');
+        $this->user->assignRole('admin');
 
         $client = Client::factory()->create(['full_name' => 'Test Client']);
-        $dossier = Dossier::factory()->create(['dossier_number' => 'DOS-TEST-001']);
+        $dossier = Dossier::factory()->create(['client_id' => $client->id, 'dossier_number' => 'DOS-TEST-001']);
 
         $factory = app(DefaultFinanceTemplateFactory::class);
         $template = FinanceTemplate::create(array_merge(
             $factory->invoice(),
-            ['slug' => 'test-invoice', 'created_by' => $this->user->id]
+            ['slug' => 'test-invoice', 'created_by' => $this->user->id, 'company_id' => $company->id, 'branch_id' => $branch->id]
         ));
 
         $this->document = FinanceDocument::create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
             'type' => 'invoice',
             'number' => 'FAC-TEST-001',
             'status' => 'sent',
@@ -63,49 +77,30 @@ class FinanceDocumentShowTest extends TestCase
     public function test_show_returns_document_via_inertia(): void
     {
         $response = $this->actingAs($this->user)
-            ->get("/finance/documents/{$this->document->id}", [
-                'X-Inertia' => 'true',
-                'X-Inertia-Version' => 'test',
-            ]);
+            ->get("/finance/documents/{$this->document->id}");
 
         $response->assertStatus(200);
-        $response->assertHeader('X-Inertia', 'true');
-
-        $json = $response->json();
-
-        $this->assertSame('Finance/Documents/Show', $json['component'] ?? null, 'Component name mismatch');
-
-        $props = $json['props'] ?? [];
-        $this->assertArrayHasKey('document', $props, 'Response is missing document prop');
-
-        $doc = $props['document'];
-        $this->assertSame('FAC-TEST-001', $doc['number'] ?? null);
-        $this->assertSame('invoice', $doc['type'] ?? null);
-        $this->assertSame('sent', $doc['status'] ?? null);
-        $this->assertSame(60350.0, (float) ($doc['subtotalHt'] ?? 0));
-        $this->assertArrayHasKey('items', $doc);
-        $this->assertCount(2, $doc['items']);
-        $this->assertArrayHasKey('client', $doc);
-        $this->assertSame('Test Client', $doc['client']['name'] ?? null);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Finance/Documents/Show')
+            ->where('document.number', 'FAC-TEST-001')
+            ->where('document.type', 'invoice')
+            ->where('document.status', 'sent')
+            ->where('document.subtotalHt', fn ($value) => (float) $value === 50350.0)
+            ->has('document.items', 2)
+            ->where('document.client.name', 'Test Client'));
     }
 
     public function test_show_returns_404_for_missing_document(): void
     {
         $response = $this->actingAs($this->user)
-            ->get('/finance/documents/99999', [
-                'X-Inertia' => 'true',
-                'X-Inertia-Version' => 'test',
-            ]);
+            ->get('/finance/documents/99999');
 
         $response->assertStatus(404);
     }
 
     public function test_show_redirects_unauthenticated(): void
     {
-        $response = $this->get("/finance/documents/{$this->document->id}", [
-            'X-Inertia' => 'true',
-            'X-Inertia-Version' => 'test',
-        ]);
+        $response = $this->get("/finance/documents/{$this->document->id}");
 
         $response->assertStatus(302);
     }

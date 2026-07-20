@@ -14,6 +14,8 @@ class FinanceTemplate extends Model
     protected $table = 'finance_templates';
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'type',
         'name',
         'slug',
@@ -28,6 +30,9 @@ class FinanceTemplate extends Model
         'logo_path',
         'created_by',
     ];
+
+    public function company(): BelongsTo { return $this->belongsTo(Company::class); }
+    public function branch(): BelongsTo { return $this->belongsTo(Branch::class); }
 
     protected $casts = [
         'is_default' => 'boolean',

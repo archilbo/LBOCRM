@@ -6,10 +6,10 @@ use App\Models\FinanceDocument;
 use App\Services\Finance\FinanceExcelExporter;
 use App\Services\Finance\FinancePdfGenerator;
 use App\Services\Finance\FinanceSettingsService;
+use App\Services\Finance\FinanceFileStorageService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Throwable;
 
@@ -109,11 +109,12 @@ class FinanceExportQaCommand extends Command
                 return $this->qaFail('PDF generator did not return or save a path.');
             }
 
-            if (!Storage::disk('public')->exists($path)) {
-                return $this->qaFail("PDF file does not exist on public disk: {$path}");
+            $disk = app(FinanceFileStorageService::class)->disk();
+            if (!$disk->exists($path)) {
+                return $this->qaFail("PDF file does not exist on private disk: {$path}");
             }
 
-            $absolutePath = Storage::disk('public')->path($path);
+            $absolutePath = $disk->path($path);
             $size = filesize($absolutePath) ?: 0;
 
             if ($size < 100) {
@@ -128,6 +129,10 @@ class FinanceExportQaCommand extends Command
 
             if ($signature !== '%PDF') {
                 return $this->qaFail("PDF signature is invalid: {$path}");
+            }
+
+            if ($document->pdf_checksum && hash_file('sha256', $absolutePath) !== $document->pdf_checksum) {
+                return $this->qaFail("PDF checksum does not match: {$path}");
             }
 
             $this->line('<fg=green>PASS</> PDF generated: ' . $path . ' (' . $size . ' bytes)');
@@ -149,11 +154,12 @@ class FinanceExportQaCommand extends Command
                 return $this->qaFail('Excel exporter did not return or save a path.');
             }
 
-            if (!Storage::disk('public')->exists($path)) {
-                return $this->qaFail("XLSX file does not exist on public disk: {$path}");
+            $disk = app(FinanceFileStorageService::class)->disk();
+            if (!$disk->exists($path)) {
+                return $this->qaFail("XLSX file does not exist on private disk: {$path}");
             }
 
-            $absolutePath = Storage::disk('public')->path($path);
+            $absolutePath = $disk->path($path);
             $size = filesize($absolutePath) ?: 0;
 
             if ($size < 100) {
@@ -171,6 +177,10 @@ class FinanceExportQaCommand extends Command
             }
 
             IOFactory::load($absolutePath);
+
+            if ($document->excel_checksum && hash_file('sha256', $absolutePath) !== $document->excel_checksum) {
+                return $this->qaFail("XLSX checksum does not match: {$path}");
+            }
 
             $this->line('<fg=green>PASS</> Excel generated: ' . $path . ' (' . $size . ' bytes)');
             return 0;

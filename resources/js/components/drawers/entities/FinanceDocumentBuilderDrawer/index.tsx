@@ -168,7 +168,7 @@ export function FinanceDocumentBuilderDrawer({
                     total_ttc: item.totalTtc,
                 })),
             };
-            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const token = window.document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             const response = await fetch('/finance/documents/preview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest' },
@@ -349,8 +349,8 @@ export function FinanceDocumentBuilderDrawer({
                                     <div className="flex items-center gap-1.5 mb-2"><Settings size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Template</p></div>
                                     <Select
                                         isDisabled={isBlocked}
-                                        selectedKeys={[form.templateId || '']}
-                                        onSelectionChange={(key) => { update('templateId', key != null ? String(key) : ''); }}
+                                        selectedKey={form.templateId || null}
+                                        onSelectionChange={(key) => update('templateId', key != null ? String(key) : '')}
                                     >
                                         <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" placeholder="Template optionnel" /><Select.Indicator /></Select.Trigger>
                                         <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">

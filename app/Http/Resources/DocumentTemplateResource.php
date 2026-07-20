@@ -33,6 +33,7 @@ class DocumentTemplateResource extends JsonResource
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
             'urls' => [
                 'update' => route('finance.templates.update', $this->resource),
+                'rename' => route('finance.templates.rename', $this->resource),
                 'delete' => route('finance.templates.destroy', $this->resource),
                 'duplicate' => route('finance.templates.duplicate', $this->resource),
                 'setDefault' => route('finance.templates.default', $this->resource),

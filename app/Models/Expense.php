@@ -12,6 +12,8 @@ class Expense extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'dossier_id',
         'category',
         'vendor',
@@ -23,6 +25,9 @@ class Expense extends Model
         'receipt_path',
         'created_by',
     ];
+
+    public function company(): BelongsTo { return $this->belongsTo(Company::class); }
+    public function branch(): BelongsTo { return $this->belongsTo(Branch::class); }
 
     protected $casts = [
         'amount' => 'decimal:2',

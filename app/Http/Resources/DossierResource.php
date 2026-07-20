@@ -40,7 +40,7 @@ class DossierResource extends JsonResource
             'notes' => $this->notes,
 
             'documentsCount' => $this->documents_count ?? $this->documents()->count(),
-            'financeRecordsCount' => $this->finance_records_count ?? $this->financeRecords()->count(),
+            'financeRecordsCount' => $this->finance_documents_count ?? $this->financeDocuments()->count(),
             'hasContract' => (bool) ($this->contract_exists ?? $this->contract()->exists()),
             'hasAuthorization' => (bool) ($this->authorization_exists ?? $this->authorization()->exists()),
             'hasArchiveRecord' => (bool) ($this->archive_record_exists ?? $this->archiveRecord()->exists()),

@@ -245,8 +245,8 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                     <span className="text-[11px] text-[var(--text-muted)]">{items.length} item(s)</span>
                                 </div>
                                 {items.length > 0 ? (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-xs">
+                                    <div className="finance-table-shell">
+                                        <table className="finance-table min-w-[620px] text-xs">
                                             <thead>
                                                 <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                                                     <th className="px-4 py-2.5">Item</th>
@@ -284,8 +284,8 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                     <span className="text-[11px] text-[var(--text-muted)]">{payments.length} payment(s)</span>
                                 </div>
                                 {payments.length > 0 ? (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-xs">
+                                    <div className="finance-table-shell">
+                                        <table className="finance-table min-w-[520px] text-xs">
                                             <thead>
                                                 <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                                                     <th className="px-4 py-2.5">Reference</th>
@@ -333,6 +333,8 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                 document={document}
                                 isProcessing={false}
                                 onGenerate={() => putAction(document.generateUrl, 'Document generated.')}
+                                onView={() => document.viewUrl && window.open(document.viewUrl, '_blank', 'noopener,noreferrer')}
+                                onPrint={() => document.printUrl && window.open(document.printUrl, '_blank', 'noopener,noreferrer')}
                                 onDownloadPdf={() => document.pdfDownloadUrl ? download(document.pdfDownloadUrl) : putAction(document.generatePdfUrl, 'PDF generated.')}
                                 onDownloadExcel={() => document.excelDownloadUrl ? download(document.excelDownloadUrl) : putAction(document.generateExcelUrl, 'Excel generated.')}
                                 onAcceptQuote={() => putAction(document.acceptUrl, 'Quote accepted.')}

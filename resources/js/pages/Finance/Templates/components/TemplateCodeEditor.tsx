@@ -1,10 +1,10 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
 import { closeBrackets } from '@codemirror/autocomplete';
 
 type TemplateCodeEditorProps = {
@@ -16,6 +16,27 @@ type TemplateCodeEditorProps = {
     onSave?: () => void;
 };
 
+const archilboEditorTheme = EditorView.theme({
+    '&': { backgroundColor: 'var(--surface)', color: 'var(--text)' },
+    '.cm-content': {
+        caretColor: 'var(--accent)',
+        fontFamily: 'var(--font-mono)',
+        padding: '10px 0',
+    },
+    '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--accent)' },
+    '.cm-gutters': {
+        backgroundColor: 'var(--background)',
+        color: 'var(--text-muted)',
+        borderRight: '1px solid var(--border)',
+    },
+    '.cm-activeLine, .cm-activeLineGutter': {
+        backgroundColor: 'color-mix(in srgb, var(--accent) 6%, transparent)',
+    },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
+        backgroundColor: 'color-mix(in srgb, var(--accent) 22%, transparent)',
+    },
+}, { dark: true });
+
 export type TemplateCodeEditorHandle = {
     insertAtCursor: (text: string) => void;
 };
@@ -26,6 +47,11 @@ export const TemplateCodeEditor = forwardRef<TemplateCodeEditorHandle, TemplateC
         ref,
     ) {
         const cmRef = useRef<ReactCodeMirrorRef>(null);
+        const onSaveRef = useRef(onSave);
+
+        useEffect(() => {
+            onSaveRef.current = onSave;
+        }, [onSave]);
 
         useImperativeHandle(ref, () => ({
             insertAtCursor(text: string) {
@@ -38,12 +64,20 @@ export const TemplateCodeEditor = forwardRef<TemplateCodeEditorHandle, TemplateC
             },
         }));
 
-        const extensions = [
+        const extensions = useMemo(() => [
             oneDark,
+            archilboEditorTheme,
             EditorView.lineWrapping,
             closeBrackets(),
+            keymap.of([{
+                key: 'Mod-s',
+                run: () => {
+                    onSaveRef.current?.();
+                    return true;
+                },
+            }]),
             language === 'css' ? css() : html(),
-        ];
+        ], [language]);
 
         return (
             <CodeMirror

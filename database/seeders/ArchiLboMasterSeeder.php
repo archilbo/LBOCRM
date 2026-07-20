@@ -25,6 +25,7 @@ class ArchiLboMasterSeeder extends Seeder
             ['email' => 'admin@archilbo.local'],
             ['name' => 'ARCHI LBO Admin', 'password' => Hash::make('password')],
         );
+        $scope = ['company_id' => $admin->company_id, 'branch_id' => $admin->branch_id];
 
         \App\Models\User::query()->firstOrCreate(
             ['email' => 'manager@archilbo.local'],
@@ -152,10 +153,11 @@ class ArchiLboMasterSeeder extends Seeder
             ['dossier' => 7, 'status' => 'generated', 'surface' => 1200, 'rate' => 6.5, 'ttc' => 780000],
         ];
         foreach ($contractsData as $data) {
+            $contractNumber = 'CT-' . str_pad((string) ($data['dossier'] + 1), 4, '0', STR_PAD_LEFT);
             Contract::query()->updateOrCreate(
-                ['dossier_id' => $dossiers[$data['dossier']]->id],
+                ['contract_number' => $contractNumber],
                 [
-                    'contract_number' => 'CT-' . str_pad((string) ($data['dossier'] + 1), 4, '0', STR_PAD_LEFT),
+                    'dossier_id' => $dossiers[$data['dossier']]->id,
                     'status' => $data['status'],
                     'surface' => $data['surface'],
                     'fee_rate_percent' => $data['rate'],
@@ -186,24 +188,29 @@ class ArchiLboMasterSeeder extends Seeder
             ['dossier' => 0, 'client' => 0, 'type' => 'quote', 'status' => 'sent', 'items' => [['label' => 'Honoraires architecture', 'qty' => 1, 'price' => 50000], ['label' => 'Etude de sol', 'qty' => 1, 'price' => 8500]]],
             ['dossier' => 0, 'client' => 0, 'type' => 'invoice', 'status' => 'paid', 'items' => [['label' => 'Acompte 30%', 'qty' => 1, 'price' => 63750]]],
             ['dossier' => 1, 'client' => 0, 'type' => 'quote', 'status' => 'draft', 'items' => [['label' => 'Extension maison', 'qty' => 1, 'price' => 35000]]],
-            ['dossier' => 2, 'client' => 1, 'type' => 'invoice', 'status' => 'partial', 'items' => [['label' => 'Honoraires R+3', 'qty' => 1, 'price' => 120000]]],
+            ['dossier' => 2, 'client' => 1, 'type' => 'invoice', 'status' => 'partially_paid', 'items' => [['label' => 'Honoraires R+3', 'qty' => 1, 'price' => 120000]]],
             ['dossier' => 4, 'client' => 2, 'type' => 'quote', 'status' => 'sent', 'items' => [['label' => 'Villa piscine honoraires', 'qty' => 1, 'price' => 95000], ['label' => 'Piscine etude', 'qty' => 1, 'price' => 15000]]],
             ['dossier' => 4, 'client' => 2, 'type' => 'invoice', 'status' => 'overdue', 'items' => [['label' => 'Acompte villa', 'qty' => 1, 'price' => 44000]]],
             ['dossier' => 5, 'client' => 2, 'type' => 'receipt', 'status' => 'paid', 'items' => [['label' => 'Paiement riad', 'qty' => 1, 'price' => 18000]]],
             ['dossier' => 7, 'client' => 4, 'type' => 'invoice', 'status' => 'sent', 'items' => [['label' => 'Honoraires R+5', 'qty' => 1, 'price' => 200000]]],
             ['dossier' => 10, 'client' => 6, 'type' => 'quote', 'status' => 'draft', 'items' => [['label' => 'Villa Al Hanaa', 'qty' => 1, 'price' => 65000]]],
         ];
-        foreach ($financeDocsData as $data) {
+        $seedFinanceDocuments = [];
+        foreach ($financeDocsData as $financeIndex => $data) {
             $total = collect($data['items'])->sum(fn ($item) => $item['qty'] * $item['price']);
+            $number = 'SEED-' . strtoupper($data['type']) . '-' . str_pad((string) ($financeIndex + 1), 3, '0', STR_PAD_LEFT);
             $fin = FinanceDocument::query()->updateOrCreate(
-                ['dossier_id' => $dossiers[$data['dossier']]->id, 'type' => $data['type'], 'number' => strtoupper($data['type']) . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT)],
+                ['number' => $number],
                 [
+                    ...$scope,
+                    'dossier_id' => $dossiers[$data['dossier']]->id,
+                    'type' => $data['type'],
                     'client_id' => $clients[$data['client']]->id,
                     'status' => $data['status'],
                     'subtotal_ht' => $total,
                     'total_ttc' => $total * 1.2,
-                    'remaining_total' => $data['status'] === 'paid' ? 0 : ($data['status'] === 'partial' ? $total * 0.3 : $total * 1.2),
-                    'paid_total' => $data['status'] === 'paid' ? $total * 1.2 : ($data['status'] === 'partial' ? $total * 1.2 * 0.7 : 0),
+                    'remaining_total' => $data['status'] === 'paid' ? 0 : ($data['status'] === 'partially_paid' ? $total * 0.3 : $total * 1.2),
+                    'paid_total' => $data['status'] === 'paid' ? $total * 1.2 : ($data['status'] === 'partially_paid' ? $total * 1.2 * 0.7 : 0),
                 ],
             );
             foreach ($data['items'] as $pos => $itemData) {
@@ -212,6 +219,7 @@ class ArchiLboMasterSeeder extends Seeder
                     ['position' => $pos + 1, 'quantity' => $itemData['qty'], 'unit_price' => $itemData['price'], 'total_ht' => $itemData['qty'] * $itemData['price']],
                 );
             }
+            $seedFinanceDocuments[] = $fin;
         }
 
         $paymentsData = [
@@ -219,17 +227,16 @@ class ArchiLboMasterSeeder extends Seeder
             ['dossier' => 2, 'finDocIdx' => 3, 'amount' => 84000, 'method' => 'check'],
             ['dossier' => 5, 'finDocIdx' => 6, 'amount' => 18000, 'method' => 'cash'],
         ];
-        $finDocs = FinanceDocument::all();
-        foreach ($paymentsData as $data) {
-            $finDoc = $finDocs->get($data['finDocIdx']);
+        foreach ($paymentsData as $paymentIndex => $data) {
+            $finDoc = $seedFinanceDocuments[$data['finDocIdx']] ?? null;
             if (! $finDoc) {
                 continue;
             }
             $client = $clients[$data['dossier']];
             $dossier = $dossiers[$data['dossier']];
             Payment::query()->updateOrCreate(
-                ['finance_document_id' => $finDoc->id, 'payment_number' => 'PAY-' . $finDoc->id . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT)],
-                ['dossier_id' => $dossier->id, 'client_id' => $client->id, 'amount' => $data['amount'], 'method' => $data['method'], 'paid_at' => now()->subDays(random_int(1, 30))],
+                ['payment_number' => 'PAY-SEED-' . str_pad((string) ($paymentIndex + 1), 3, '0', STR_PAD_LEFT)],
+                [...$scope, 'finance_document_id' => $finDoc->id, 'dossier_id' => $dossier->id, 'client_id' => $client->id, 'amount' => $data['amount'], 'method' => $data['method'], 'paid_at' => now()->subDays(random_int(1, 30))],
             );
         }
 

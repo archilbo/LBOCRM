@@ -1,32 +1,57 @@
+import { BarChart3, CalendarRange, FileText, LayoutDashboard, ReceiptText, Settings2, ShoppingCart, WalletCards } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { AppCompactTabs } from '@/components/ui/AppCompactTabs';
+import { Tab, TabList, Tabs } from 'react-aria-components';
 
 export const financeTabs = [
-    { id: 'overview', label: 'Vue generale' },
-    { id: 'quotes', label: 'Devis' },
-    { id: 'invoices', label: 'Factures' },
-    { id: 'payments', label: 'Paiements' },
-    { id: 'expenses', label: 'Depenses' },
-    { id: 'monthly', label: 'Mensuel' },
-    { id: 'templates', label: 'Templates' },
-    { id: 'settings', label: 'Parametres' },
+    { id: 'overview', label: 'Vue generale', icon: LayoutDashboard },
+    { id: 'quotes', label: 'Devis', icon: FileText },
+    { id: 'invoices', label: 'Factures', icon: ReceiptText },
+    { id: 'payments', label: 'Paiements', icon: WalletCards },
+    { id: 'expenses', label: 'Depenses', icon: ShoppingCart },
+    { id: 'monthly', label: 'Mensuel', icon: CalendarRange },
+    { id: 'templates', label: 'Templates', icon: BarChart3 },
+    { id: 'settings', label: 'Parametres', icon: Settings2 },
 ];
 
 type FinanceTabsProps = {
     selectedKey: string;
     onSelectionChange: (key: string) => void;
+    counts?: Partial<Record<string, number>>;
     children: ReactNode;
 };
 
-export function FinanceTabs({ selectedKey, onSelectionChange, children }: FinanceTabsProps) {
+export function FinanceTabs({ selectedKey, onSelectionChange, counts = {}, children }: FinanceTabsProps) {
     return (
-        <AppCompactTabs
-            tabs={financeTabs}
+        <Tabs
             selectedKey={selectedKey}
             onSelectionChange={(key) => onSelectionChange(String(key))}
+            className="min-w-0"
         >
+            <div className="mb-3 overflow-hidden">
+                <TabList className="flex min-w-max gap-1 overflow-x-auto">
+                    {financeTabs.map((tab) => {
+                        const Icon = tab.icon;
+                        const count = counts[tab.id];
+                        return (
+                            <Tab
+                                key={tab.id}
+                                id={tab.id}
+                                className="group relative flex h-10 shrink-0 cursor-pointer items-center gap-2 border-x-0 border-y-0 bg-transparent px-3 text-xs font-medium text-[var(--text-muted)] shadow-none outline-none transition data-[hovered]:text-[var(--text)] data-[selected]:border-x-0 data-[selected]:border-y-0 data-[selected]:bg-transparent data-[selected]:font-semibold data-[selected]:text-[var(--accent)] data-[selected]:shadow-none data-[focus-visible]:text-[var(--accent)] data-[focus-visible]:underline data-[focus-visible]:decoration-[var(--accent)] data-[focus-visible]:underline-offset-4"
+                            >
+                                <span className="flex size-6 items-center justify-center text-[var(--text-muted)] transition group-data-[selected]:text-[var(--accent)]">
+                                    <Icon size={14} />
+                                </span>
+                                <span>{tab.label}</span>
+                                {typeof count === 'number' ? (
+                                    <span className="text-[9px] font-semibold text-[var(--text-muted)] group-data-[selected]:text-[var(--accent)]">{count}</span>
+                                ) : null}
+                            </Tab>
+                        );
+                    })}
+                </TabList>
+            </div>
             {children}
-        </AppCompactTabs>
+        </Tabs>
     );
 }
 

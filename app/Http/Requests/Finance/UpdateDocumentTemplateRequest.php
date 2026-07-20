@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Finance;
 
+use App\Enums\FinanceDocumentType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,7 +18,7 @@ class UpdateDocumentTemplateRequest extends FormRequest
         $id = $this->route('documentTemplate')?->id;
 
         return [
-            'type' => ['nullable', Rule::in(['quote', 'invoice', 'receipt'])],
+            'type' => ['nullable', Rule::enum(FinanceDocumentType::class)],
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('finance_templates', 'slug')->ignore($id)],
             'paper_size' => ['nullable', Rule::in(['A4', 'A5', 'Letter'])],

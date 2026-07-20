@@ -32,6 +32,8 @@ class FinanceDemoSeeder extends Seeder
         $invoice = FinanceDocument::updateOrCreate(
             ['number' => 'FAC-DEMO-001'],
             [
+                'company_id' => $admin->company_id,
+                'branch_id' => $admin->branch_id,
                 'type' => 'invoice',
                 'status' => 'sent',
                 'client_id' => $client->id,
@@ -62,6 +64,8 @@ class FinanceDemoSeeder extends Seeder
         Payment::updateOrCreate(
             ['payment_number' => 'PAY-DEMO-001'],
             [
+                'company_id' => $admin->company_id,
+                'branch_id' => $admin->branch_id,
                 'finance_document_id' => $invoice->id,
                 'client_id' => $client->id,
                 'dossier_id' => $dossier->id,
@@ -79,6 +83,8 @@ class FinanceDemoSeeder extends Seeder
         $quote = FinanceDocument::updateOrCreate(
             ['number' => 'DEV-DEMO-001'],
             [
+                'company_id' => $admin->company_id,
+                'branch_id' => $admin->branch_id,
                 'type' => 'quote',
                 'status' => 'draft',
                 'client_id' => $client->id,

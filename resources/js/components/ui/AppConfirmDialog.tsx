@@ -1,78 +1,43 @@
-﻿import { ReactNode } from 'react';
-import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
+import { Modal, ModalCloseTrigger } from '@heroui/react';
 import { AlertTriangle } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { AppButton } from '@/components/ui/AppButton';
 
 type AppConfirmDialogProps = {
     isOpen: boolean;
-    onOpenChange: (isOpen: boolean) => void;
     title: string;
     description: string;
     confirmLabel: string;
-    cancelLabel: string;
+    cancelLabel?: string;
     onConfirm: () => void;
+    onCancel: () => void;
     icon?: ReactNode;
+    variant?: 'danger' | 'default';
 };
 
-export function AppConfirmDialog({
-    isOpen,
-    onOpenChange,
-    title,
-    description,
-    confirmLabel,
-    cancelLabel,
-    onConfirm,
-    icon,
-}: AppConfirmDialogProps) {
+export function AppConfirmDialog({ isOpen, title, description, confirmLabel, cancelLabel = 'Annuler', onConfirm, onCancel, icon, variant = 'danger' }: AppConfirmDialogProps) {
     return (
-        <ModalOverlay
-            isOpen={isOpen}
-            onOpenChange={onOpenChange}
-            className="app-modal-overlay app-dialog-overlay"
-            isDismissable
-        >
-            <Modal className="app-dialog-panel">
-                <Dialog className="outline-none">
-                    {({ close }) => (
-                        <div className="p-5">
-                            <div className="flex gap-4">
-                                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300">
-                                    {icon ?? <AlertTriangle size={20} />}
-                                </div>
-
-                                <div className="min-w-0">
-                                    <Heading slot="title" className="text-base font-semibold">
-                                        {title}
-                                    </Heading>
-
-                                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-                                        {description}
-                                    </p>
-                                </div>
+        <Modal.Backdrop isOpen={isOpen} onOpenChange={(open) => { if (!open) onCancel(); }} isDismissable>
+            <Modal.Container size="sm">
+                <Modal.Dialog>
+                    <Modal.Header>
+                        <Modal.Heading>{title}</Modal.Heading>
+                        <ModalCloseTrigger />
+                    </Modal.Header>
+                    <Modal.Body>
+                        <div className="flex gap-3">
+                            <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${variant === 'danger' ? 'bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] text-[var(--danger)]' : 'bg-[var(--surface-2)] text-[var(--accent)]'}`}>
+                                {icon ?? <AlertTriangle size={18} />}
                             </div>
-
-                            <div className="mt-6 flex justify-end gap-2">
-                                <AppButton
-                                    variant="secondary"
-                                    onPress={close}
-                                >
-                                    {cancelLabel}
-                                </AppButton>
-
-                                <AppButton
-                                    variant="danger"
-                                    onPress={() => {
-                                        onConfirm();
-                                        close();
-                                    }}
-                                >
-                                    {confirmLabel}
-                                </AppButton>
-                            </div>
+                            <p className="pt-1 text-sm leading-6 text-[var(--text-muted)]">{description}</p>
                         </div>
-                    )}
-                </Dialog>
-            </Modal>
-        </ModalOverlay>
+                        <div className="mt-5 flex justify-end gap-2">
+                            <AppButton variant="secondary" onPress={onCancel}>{cancelLabel}</AppButton>
+                            <AppButton variant={variant === 'danger' ? 'danger' : 'primary'} onPress={onConfirm}>{confirmLabel}</AppButton>
+                        </div>
+                    </Modal.Body>
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }

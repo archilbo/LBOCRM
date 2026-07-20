@@ -25,5 +25,15 @@ class DatabaseSeeder extends Seeder
             ArchiveDemoSeeder::class,
             FinanceDemoSeeder::class,
         ]);
+
+        $company = \App\Models\Company::query()->where('is_active', true)->first();
+        $branch = $company?->branches()->where('is_active', true)->first();
+
+        if ($company) {
+            \App\Models\User::query()->whereNull('company_id')->update([
+                'company_id' => $company->id,
+                'branch_id' => $branch?->id,
+            ]);
+        }
     }
 }

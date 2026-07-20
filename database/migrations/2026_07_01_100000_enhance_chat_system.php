@@ -9,7 +9,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE messages MODIFY body TEXT NULL');
+        Schema::table('messages', function (Blueprint $table) {
+            $table->text('body')->nullable()->change();
+        });
 
         Schema::table('messages', function (Blueprint $table) {
             $table->foreignId('reply_to_message_id')->nullable()->after('user_id')->constrained('messages')->nullOnDelete();
@@ -39,6 +41,8 @@ return new class extends Migration
             $table->dropColumn(['reply_to_message_id', 'is_forwarded']);
         });
 
-        DB::statement('ALTER TABLE messages MODIFY body TEXT NOT NULL');
+        Schema::table('messages', function (Blueprint $table) {
+            $table->text('body')->nullable(false)->change();
+        });
     }
 };

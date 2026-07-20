@@ -114,21 +114,22 @@ class FinanceFoundationSeeder extends Seeder
     private function seedDefaultTemplate(): void
     {
         $admin = User::first();
+        $scope = ['company_id' => $admin?->company_id, 'branch_id' => $admin?->branch_id];
         $factory = app(DefaultFinanceTemplateFactory::class);
 
         $defaultQuote = FinanceTemplate::updateOrCreate(
             ['slug' => 'default-quote'],
-            array_merge($factory->quote(), ['slug' => 'default-quote', 'created_by' => $admin?->id]),
+            array_merge($factory->quote(), $scope, ['slug' => 'default-quote', 'created_by' => $admin?->id]),
         );
 
         $defaultInvoice = FinanceTemplate::updateOrCreate(
             ['slug' => 'default-invoice'],
-            array_merge($factory->invoice(), ['slug' => 'default-invoice', 'created_by' => $admin?->id]),
+            array_merge($factory->invoice(), $scope, ['slug' => 'default-invoice', 'created_by' => $admin?->id]),
         );
 
         $defaultReceipt = FinanceTemplate::updateOrCreate(
             ['slug' => 'default-receipt'],
-            array_merge($factory->receipt(), ['slug' => 'default-receipt', 'created_by' => $admin?->id]),
+            array_merge($factory->receipt(), $scope, ['slug' => 'default-receipt', 'created_by' => $admin?->id]),
         );
 
         $this->command?->info('Default document templates seeded.');

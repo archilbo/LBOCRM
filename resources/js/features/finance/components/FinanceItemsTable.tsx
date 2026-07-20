@@ -1,5 +1,6 @@
 ﻿import { Copy, FileText, Plus, Trash2 } from 'lucide-react';
-import { Button, Input } from '@heroui/react';
+import { Button } from '@heroui/react';
+import { AppInput } from '@/components/ui/AppInput';
 import type { FinanceDocumentItem } from '@/features/finance/types';
 import { calculateItem, formatCompactMoney, normalizeNumber } from '@/features/finance/utils/calculations';
 
@@ -58,14 +59,14 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
                     <div className="flex items-center gap-1.5 mb-2"><FileText size={13} className="text-[var(--text-subtle)]" /><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Lignes du document</p></div>
                     <p className="text-xs text-[var(--text-muted)]">Les totaux sont recalcules en direct.</p>
                 </div>
-                <Button variant="flat" size="sm" onPress={addItem} isDisabled={disabled}>
+                <Button variant="secondary" size="sm" onPress={addItem} isDisabled={disabled}>
                     <Plus size={14} />
                     Ajouter
                 </Button>
             </div>
 
-            <div className="app-scrollbar overflow-x-auto rounded-[var(--radius-md)] border">
-                <table className="min-w-[980px] w-full text-left text-sm">
+            <div className="finance-table-shell app-scrollbar rounded-[var(--radius-md)] border">
+                <table className="finance-table min-w-[980px] text-left text-sm">
                     <thead className="bg-[var(--surface-2)] text-xs text-[var(--text-muted)]">
                         <tr>
                             <th className="px-3 py-2">Titre</th>
@@ -81,19 +82,19 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
                         {items.map((item, index) => (
                             <tr key={`${item.id || 'new'}-${index}`} className="border-t align-top">
                                 <td className="px-3 py-2 min-w-36">
-                                    <Input isDisabled={disabled} className={compactInput} value={item.title} onChange={(e) => updateItem(index, 'title', e.target.value)} placeholder="Etude architecture" />
+                                    <AppInput isDisabled={disabled} className={compactInput} value={item.title || ''} onChange={(value) => updateItem(index, 'title', value)} placeholder="Etude architecture" />
                                 </td>
                                 <td className="px-3 py-2 min-w-48">
-                                    <Input isDisabled={disabled} className={compactInput} value={item.description || ''} onChange={(e) => updateItem(index, 'description', e.target.value)} placeholder="Description" />
+                                    <AppInput isDisabled={disabled} className={compactInput} value={item.description || ''} onChange={(value) => updateItem(index, 'description', value)} placeholder="Description" />
                                 </td>
                                 <td className="px-3 py-2 w-16">
-                                    <Input isDisabled={disabled} className={compactInput} type="number" min="0" step="0.001" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} />
+                                    <AppInput isDisabled={disabled} className={compactInput} type="number" min={0} step={0.001} value={String(item.quantity)} onChange={(value) => updateItem(index, 'quantity', value)} />
                                 </td>
                                 <td className="px-3 py-2 w-16">
-                                    <Input isDisabled={disabled} className={compactInput} value={item.unit || ''} onChange={(e) => updateItem(index, 'unit', e.target.value)} placeholder="m2" />
+                                    <AppInput isDisabled={disabled} className={compactInput} value={item.unit || ''} onChange={(value) => updateItem(index, 'unit', value)} placeholder="m2" />
                                 </td>
                                 <td className="px-3 py-2 w-28">
-                                    <Input isDisabled={disabled} className={compactInput} type="number" min="0" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(index, 'unitPrice', e.target.value)} />
+                                    <AppInput isDisabled={disabled} className={compactInput} type="number" min={0} step={0.01} value={String(item.unitPrice)} onChange={(value) => updateItem(index, 'unitPrice', value)} />
                                 </td>
                                 <td className="px-3 py-2 w-28 text-right font-mono text-xs font-semibold">
                                     {formatCompactMoney(item.totalTtc, currency)}

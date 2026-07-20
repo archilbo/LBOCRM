@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import {
     BadgeDollarSign,
@@ -14,16 +14,25 @@ import { toast } from 'sonner';
 import { Tooltip } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
+import { AppFilterTabs } from '@/components/ui/AppFilterTabs';
 import { AppPagination } from '@/components/ui/AppPagination';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import type { Expense } from '@/features/finance/types';
 import { formatCompactMoney } from '@/features/finance/utils/calculations';
+import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirection } from '@/features/finance/components/FinanceSortableHeader';
 
 type ExpensesWorkspaceProps = {
     expenses: Expense[];
     currency: string;
     onEdit: (expense: Expense) => void;
     onView: (expense: Expense) => void;
+    pagination: { page: number; pageSize: number; total: number };
+    filters?: {
+        expense_search?: string;
+        expense_category?: string;
+        expense_sort?: string;
+        expense_direction?: FinanceSortDirection;
+    };
 };
 
 const categoryOptions = [
@@ -41,36 +50,35 @@ const categoryLabels: Record<string, string> = Object.fromEntries(categoryOption
 
 const categoryFilterOptions = [{ id: 'all', label: 'Toutes' }, ...categoryOptions];
 
-function expenseMatches(expense: Expense, query: string, categoryFilter: string) {
-    if (categoryFilter !== 'all' && expense.category !== categoryFilter) return false;
-    if (!query.trim()) return true;
-    return [
-        expense.vendor,
-        expense.notes,
-        expense.category,
-        expense.dossier?.number,
-        expense.paymentMethod,
-    ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(query.trim().toLowerCase());
-}
-
-export function ExpensesWorkspace({ expenses, currency, onEdit, onView }: ExpensesWorkspaceProps) {
-    const [query, setQuery] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('all');
+export function ExpensesWorkspace({ expenses, currency, onEdit, onView, pagination, filters }: ExpensesWorkspaceProps) {
+    const [query, setQuery] = useState(filters?.expense_search || '');
+    const [categoryFilter, setCategoryFilter] = useState(filters?.expense_category || 'all');
     const [showFilters, setShowFilters] = useState(false);
-    const [tablePage, setTablePage] = useState(1);
     const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
-    const TABLE_PAGE_SIZE = 15;
+    const pagedFiltered = expenses;
+    const sort = filters?.expense_sort || 'expense_date';
+    const direction = filters?.expense_direction || 'desc';
 
-    const filtered = useMemo(() => {
-        return expenses.filter((expense) => expenseMatches(expense, query, categoryFilter));
-    }, [expenses, query, categoryFilter]);
+    function applyExpenseFilters(overrides: Record<string, string | number | undefined> = {}) {
+        router.get('/finance/documents', {
+            ...Object.fromEntries(new URLSearchParams(window.location.search)),
+            tab: 'expenses',
+            expense_search: query || undefined,
+            expense_category: categoryFilter === 'all' ? undefined : categoryFilter,
+            expense_sort: sort,
+            expense_direction: direction,
+            expenses_per_page: pagination.pageSize,
+            ...overrides,
+        }, { preserveState: true, preserveScroll: true, replace: true });
+    }
 
-    useEffect(() => { setTablePage(1); }, [query, categoryFilter]);
-    const pagedFiltered = useMemo(() => filtered.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE), [filtered, tablePage]);
+    function changeSort(column: string) {
+        applyExpenseFilters({
+            expense_sort: column,
+            expense_direction: nextFinanceSortDirection(sort, direction, column),
+            expenses_page: 1,
+        });
+    }
 
     function handleDelete() {
         if (!deleteTarget) return;
@@ -98,23 +106,27 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView }: Expens
         return colors[category] || colors.other;
     }
 
-    const totalAmount = filtered.reduce((sum, e) => sum + e.amount, 0);
+    const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
     return (
-        <section className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
-                <div className="relative w-full max-w-[260px]">
+        <section className="min-w-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+            <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative w-full sm:max-w-[300px]">
                     <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                     <input
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
+                        onKeyDown={(event) => { if (event.key === 'Enter') applyExpenseFilters({ expense_search: query || undefined, expenses_page: 1 }); }}
                         placeholder="Rechercher fournisseur, notes, dossier..."
                         className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-8 pr-7 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                     />
                     {query ? (
                         <button
                             type="button"
-                            onClick={() => setQuery('')}
+                            onClick={() => {
+                                setQuery('');
+                                applyExpenseFilters({ expense_search: undefined, expenses_page: 1 });
+                            }}
                             className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                         >
                             <X size={12} />
@@ -138,49 +150,39 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView }: Expens
                 </div>
 
                 <div className="hidden text-[11px] font-medium text-[var(--text-muted)] md:block">
-                    {filtered.length} depense(s) · Total {formatCompactMoney(totalAmount, currency)}
+                    {pagination.total} depense(s) / page {formatCompactMoney(totalAmount, currency)}
                 </div>
             </div>
 
             {showFilters && (
-                <div className="border-b border-[var(--border)] px-3 py-2.5">
-                    <div className="flex flex-wrap items-center gap-4">
-                        <div className="space-y-1.5">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Categorie</p>
-                            <div className="flex flex-wrap gap-1.5">
-                                {categoryFilterOptions.map((c) => (
-                                    <button key={c.id} type="button" onClick={() => setCategoryFilter(c.id)}
-                                        className={[
-                                            'rounded-lg border px-2.5 py-1 text-[11px] font-medium transition',
-                                            categoryFilter === c.id
-                                                ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
-                                                : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]',
-                                        ].join(' ')}
-                                    >
-                                        {c.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                <div className="border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface-2)_35%,transparent)] px-3 py-3">
+                    <AppFilterTabs
+                        label="Categorie"
+                        value={categoryFilter}
+                        options={categoryFilterOptions}
+                        onChange={(value) => {
+                            setCategoryFilter(value);
+                            applyExpenseFilters({ expense_category: value === 'all' ? undefined : value, expenses_page: 1 });
+                        }}
+                    />
                 </div>
             )}
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-xs min-w-[900px]">
+            <div className="finance-table-shell hidden md:block">
+                <table className="finance-table min-w-[820px] text-xs">
                     <thead>
                         <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                            <th className="px-3 py-2"><BadgeDollarSign size={11} className="mr-1 inline" /> Date</th>
-                            <th className="px-3 py-2">Categorie</th>
-                            <th className="px-3 py-2">Fournisseur</th>
+                            <FinanceSortableHeader column="expense_date" label={<><BadgeDollarSign size={11} /> Date</>} sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="category" label="Categorie" sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="vendor" label="Fournisseur" sort={sort} direction={direction} onSort={changeSort} />
                             <th className="px-3 py-2">Dossier</th>
-                            <th className="px-3 py-2">Montant</th>
-                            <th className="px-3 py-2">Paiement</th>
+                            <FinanceSortableHeader column="amount" label="Montant" sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="payment_method" label="Paiement" sort={sort} direction={direction} onSort={changeSort} />
                             <th className="px-3 py-2 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filtered.length > 0 ? (
+                        {pagedFiltered.length > 0 ? (
                             pagedFiltered.map((expense) => (
                                 <tr key={expense.id} className="group border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
                                     <td className="px-3 py-2 font-semibold text-[var(--text)]">{expense.expenseDate}</td>
@@ -200,21 +202,21 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView }: Expens
                                     <td className="px-3 py-2 font-semibold text-rose-300">{formatCompactMoney(expense.amount, currency)}</td>
                                     <td className="px-3 py-2 text-[var(--text-muted)]">{expense.paymentMethod || <span className="text-[var(--text-muted)]">-</span>}</td>
                                     <td className="px-3 py-2">
-                                        <div className="flex justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                                        <div className="finance-table-actions flex justify-end gap-0.5">
                                             <Tooltip delay={500}>
-                                                <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onView(expense)}>
+                                                <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onView(expense)}>
                                                     <Eye size={13} />
                                                 </AppButton>
                                                 <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Voir</Tooltip.Content>
                                             </Tooltip>
                                             <Tooltip delay={500}>
-                                                <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onEdit(expense)}>
+                                                <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onEdit(expense)}>
                                                     <Pencil size={13} />
                                                 </AppButton>
                                                 <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Modifier</Tooltip.Content>
                                             </Tooltip>
                                             <Tooltip delay={500}>
-                                                <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => setDeleteTarget(expense)}>
+                                                <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => setDeleteTarget(expense)}>
                                                     <Trash2 size={13} />
                                                 </AppButton>
                                                 <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Supprimer</Tooltip.Content>
@@ -237,7 +239,46 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView }: Expens
                 </table>
             </div>
 
-            <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filtered.length} onChange={setTablePage} variant="reference" />
+            <div className="divide-y divide-[var(--border)] md:hidden">
+                {pagedFiltered.length > 0 ? pagedFiltered.map((expense) => (
+                    <article key={expense.id} className="space-y-3 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${categoryBadge(expense.category)}`}>
+                                        {categoryLabels[expense.category] || expense.category}
+                                    </span>
+                                    <span className="text-[10px] text-[var(--text-muted)]">{expense.expenseDate}</span>
+                                </div>
+                                <p className="mt-1.5 truncate text-xs font-semibold text-[var(--text)]">{expense.vendor || 'Sans fournisseur'}</p>
+                                <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">
+                                    {expense.dossier?.number || 'Sans dossier'} / {expense.paymentMethod || 'Paiement non precise'}
+                                </p>
+                            </div>
+                            <span className="shrink-0 text-sm font-semibold tabular-nums text-rose-300">
+                                {formatCompactMoney(expense.amount, currency)}
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                            <AppButton size="sm" variant="outline" className="h-8 text-[11px]" onPress={() => onView(expense)}>
+                                <Eye size={12} /> Voir
+                            </AppButton>
+                            <AppButton size="sm" variant="outline" className="h-8 text-[11px]" onPress={() => onEdit(expense)}>
+                                <Pencil size={12} /> Modifier
+                            </AppButton>
+                            <AppButton size="sm" variant="danger-soft" className="h-8 text-[11px]" onPress={() => setDeleteTarget(expense)}>
+                                <Trash2 size={12} /> Supprimer
+                            </AppButton>
+                        </div>
+                    </article>
+                )) : (
+                    <div className="p-5">
+                        <AppEmptyState title="Aucune depense" description="Ajoutez une depense pour commencer le suivi." />
+                    </div>
+                )}
+            </div>
+
+            <AppPagination page={pagination.page} pageSize={pagination.pageSize} total={pagination.total} onChange={(page) => applyExpenseFilters({ expenses_page: page })} variant="reference" />
 
             <AppConfirmDialog
                 isOpen={Boolean(deleteTarget)}

@@ -17,7 +17,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DossierController;
 use App\Http\Controllers\DossierWorkflowRequirementController;
 use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\Finance\DocumentTemplateController;
 use App\Http\Controllers\Finance\DocumentTemplateVersionController;
 use App\Http\Controllers\Finance\FinanceDocumentController;
@@ -110,18 +109,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/finance/monthly-summary/export-pdf', [MonthlySummaryExportController::class, 'exportPdf'])->name('finance.monthly-summary.export-pdf');
     Route::get('/finance/monthly-summary/export-excel', [MonthlySummaryExportController::class, 'exportExcel'])->name('finance.monthly-summary.export-excel');
     Route::get('/finance/monthly-summary/export-csv', [MonthlySummaryExportController::class, 'exportCsv'])->name('finance.monthly-summary.export-csv');
-    Route::post('/finance', [FinanceController::class, 'store'])->name('finance.store');
-    Route::put('/finance/{financeRecord}', [FinanceController::class, 'update'])->name('finance.update');
-    Route::put('/finance/{financeRecord}/paid', [FinanceController::class, 'markPaid'])->name('finance.paid');
-    Route::delete('/finance/{financeRecord}', [FinanceController::class, 'destroy'])->name('finance.destroy');
-    Route::put('/finance/{financeRecord}/generate', [FinanceController::class, 'generate'])->name('finance.generate');
-    Route::get('/finance/{financeRecord}/download', [FinanceController::class, 'download'])->name('finance.download');
-    Route::put('/finance/{financeRecord}/export-pdf', [FinanceController::class, 'exportPdf'])->name('finance.export-pdf');
-    Route::get('/finance/{financeRecord}/download-pdf', [FinanceController::class, 'downloadPdf'])->name('finance.download-pdf');
-
-    Route::get('/finance/settings', [FinanceSettingsController::class, 'index'])->name('finance.settings');
-    Route::put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update');
-
     Route::get('/finance/templates', [DocumentTemplateController::class, 'index'])->name('finance.templates.index');
     Route::get('/finance/templates/{documentTemplate}/versions', [DocumentTemplateVersionController::class, 'index'])->name('finance.templates.versions.index');
     Route::post('/finance/templates/{documentTemplate}/versions', [DocumentTemplateVersionController::class, 'store'])->name('finance.templates.versions.store');
@@ -131,6 +118,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/finance/templates/reset/{type}', [DocumentTemplateController::class, 'resetDefault'])->name('finance.templates.reset');
     Route::get('/finance/templates/{documentTemplate}', [DocumentTemplateController::class, 'show'])->name('finance.templates.show');
     Route::put('/finance/templates/{documentTemplate}', [DocumentTemplateController::class, 'update'])->name('finance.templates.update');
+    Route::patch('/finance/templates/{documentTemplate}/rename', [DocumentTemplateController::class, 'rename'])->name('finance.templates.rename');
     Route::delete('/finance/templates/{documentTemplate}', [DocumentTemplateController::class, 'destroy'])->name('finance.templates.destroy');
     Route::post('/finance/templates/{documentTemplate}/duplicate', [DocumentTemplateController::class, 'duplicate'])->name('finance.templates.duplicate');
     Route::put('/finance/templates/{documentTemplate}/default', [DocumentTemplateController::class, 'setDefault'])->name('finance.templates.default');
@@ -149,6 +137,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/finance/documents/{financeDocument}/download', [FinanceDocumentController::class, 'download'])->name('finance.documents.download');
     Route::get('/finance/documents/{financeDocument}/download-excel', [FinanceDocumentController::class, 'downloadExcel'])->name('finance.documents.download-excel');
     Route::get('/finance/documents/{financeDocument}/download-pdf', [FinanceDocumentController::class, 'downloadPdf'])->name('finance.documents.download-pdf');
+    Route::get('/finance/documents/{financeDocument}/view', [FinanceDocumentController::class, 'viewHtml'])->name('finance.documents.view');
+    Route::get('/finance/documents/{financeDocument}/view-pdf', [FinanceDocumentController::class, 'viewPdf'])->name('finance.documents.view-pdf');
+    Route::get('/finance/documents/{financeDocument}/print', [FinanceDocumentController::class, 'print'])->name('finance.documents.print');
     Route::post('/finance/documents/{financeDocument}/reveal-generated-files', [FinanceDocumentController::class, 'revealGeneratedFiles'])->name('finance.documents.reveal-generated-files');
     Route::put('/finance/documents/{financeDocument}/accept', [FinanceDocumentController::class, 'accept'])->name('finance.documents.accept');
     Route::put('/finance/documents/{financeDocument}/reject', [FinanceDocumentController::class, 'reject'])->name('finance.documents.reject');

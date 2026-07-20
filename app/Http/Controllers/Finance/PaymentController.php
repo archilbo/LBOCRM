@@ -5,38 +5,40 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\StorePaymentRequest;
 use App\Http\Requests\Finance\UpdatePaymentRequest;
-use App\Http\Resources\PaymentResource;
 use App\Models\FinanceDocument;
 use App\Models\Payment;
 use App\Notifications\FinanceDocumentNotification;
 use App\Services\Finance\PaymentLedgerService;
+use App\Services\Finance\FinanceActivityService;
+use App\Services\Finance\FinanceContextService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class PaymentController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): RedirectResponse
     {
-        $query = Payment::with(['document', 'client', 'dossier', 'receiptDocument']);
+        $this->authorize('viewAny', Payment::class);
 
-        $paginator = $query->orderBy('created_at', 'desc')->paginate(20);
-        $payments = $paginator->through(fn ($payment) => new PaymentResource($payment));
-
-        return Inertia::render('Finance/Payments/Index', [
-            'payments' => $payments,
-        ]);
+        return redirect()->route('finance.documents.index', ['tab' => 'payments']);
     }
 
     public function store(StorePaymentRequest $request, PaymentLedgerService $ledger): RedirectResponse
     {
+        $this->authorize('create', Payment::class);
         $data = $request->validated();
         $data['created_by'] = Auth::id();
 
-        $financeDocument = FinanceDocument::findOrFail($data['finance_document_id']);
+        $financeDocument = app(FinanceContextService::class)
+            ->apply(FinanceDocument::query(), $request->user())
+            ->findOrFail($data['finance_document_id']);
         $payment = $ledger->recordPayment($financeDocument, $data);
+        app(FinanceActivityService::class)->log($payment, $request->user(), 'finance.payment.created', [], [
+            'payment_number' => $payment->payment_number,
+            'amount' => $payment->amount,
+            'finance_document_id' => $financeDocument->id,
+        ]);
 
         $request->user()->notify(new FinanceDocumentNotification($financeDocument, 'payment_received', 'Payment received: ' . number_format((float) ($data['amount'] ?? 0), 2) . ' for ' . $financeDocument->number));
 
@@ -49,7 +51,10 @@ class PaymentController extends Controller
 
     public function update(UpdatePaymentRequest $request, Payment $payment, PaymentLedgerService $ledger): RedirectResponse
     {
+        $this->authorize('update', $payment);
+        $old = $payment->only(['finance_document_id', 'amount', 'method', 'reference', 'paid_at']);
         $payment = $ledger->updatePayment($payment, $request->validated());
+        app(FinanceActivityService::class)->log($payment, $request->user(), 'finance.payment.updated', $old, $payment->only(array_keys($old)));
 
         $receiptNumber = $payment->receiptDocument?->number;
 
@@ -61,7 +66,9 @@ class PaymentController extends Controller
 
     public function destroy(Payment $payment, PaymentLedgerService $ledger): RedirectResponse
     {
+        $this->authorize('delete', $payment);
         $number = $payment->payment_number;
+        app(FinanceActivityService::class)->log($payment, request()->user(), 'finance.payment.reversed', $payment->toArray());
 
         $ledger->deletePayment($payment);
 

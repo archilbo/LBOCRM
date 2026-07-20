@@ -47,6 +47,17 @@ class FinanceDocumentLockGuard
         ]);
     }
 
+    public function assertCanEditContent(FinanceDocument $document): void
+    {
+        if (! $document->issued_at && ! $this->wasAlreadyLocked($document)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'finance_document_lock' => 'Ce document est emis et immuable. Annulez-le puis creez un nouveau document.',
+        ]);
+    }
+
     protected function wasAlreadyLocked(FinanceDocument $document): bool
     {
         if (! Schema::hasTable($document->getTable())) {
@@ -65,7 +76,23 @@ class FinanceDocumentLockGuard
         return [
             'number',
             'type',
+            'company_id',
+            'branch_id',
+            'client_id',
+            'dossier_id',
+            'source_document_id',
             'issue_date',
+            'due_date',
+            'valid_until',
+            'currency',
+            'tva_rate',
+            'subtotal_ht',
+            'discount_total',
+            'tax_total',
+            'total_ttc',
+            'notes',
+            'terms',
+            'template_id',
             'number_locked',
             'number_locked_at',
         ];

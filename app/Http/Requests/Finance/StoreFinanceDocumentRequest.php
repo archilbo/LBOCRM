@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Finance;
 
+use App\Enums\FinanceDocumentType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,7 +16,7 @@ class StoreFinanceDocumentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', Rule::in(['quote', 'invoice', 'receipt'])],
+            'type' => ['required', Rule::enum(FinanceDocumentType::class)],
             'client_id' => ['nullable', 'exists:clients,id'],
             'dossier_id' => ['nullable', 'exists:dossiers,id'],
             'source_document_id' => ['nullable', 'exists:finance_documents,id'],

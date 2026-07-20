@@ -111,6 +111,44 @@ summary {
     --focus-ring: #fcb12d;
 }
 
+/* HeroUI v3 token bridge. Library primitives inherit the ARCHI LBO palette. */
+:root,
+.dark {
+    --surface-foreground: var(--foreground);
+    --surface-secondary: var(--surface-2);
+    --surface-secondary-foreground: var(--foreground);
+    --surface-tertiary: var(--surface-3);
+    --surface-tertiary-foreground: var(--foreground);
+    --surface-hover: var(--surface-2);
+    --overlay: var(--surface);
+    --overlay-foreground: var(--foreground);
+    --muted: var(--text-muted);
+    --default: var(--surface-2);
+    --default-foreground: var(--foreground);
+    --default-hover: var(--surface-3);
+    --field-background: var(--surface);
+    --field-foreground: var(--foreground);
+    --field-placeholder: var(--text-muted);
+    --field-border: var(--border);
+    --field-border-hover: var(--border-strong);
+    --field-border-focus: var(--accent);
+    --segment: var(--surface-2);
+    --segment-foreground: var(--foreground);
+    --separator: var(--border);
+    --focus: var(--focus-ring);
+    --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+    --accent-soft-foreground: var(--accent);
+    --accent-soft-hover: color-mix(in srgb, var(--accent) 20%, transparent);
+    --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
+    --danger-soft-foreground: var(--danger);
+    --success-soft: color-mix(in srgb, var(--success) 14%, transparent);
+    --success-soft-foreground: var(--success);
+    --warning-soft: color-mix(in srgb, var(--warning) 14%, transparent);
+    --warning-soft-foreground: var(--warning);
+    --radius: var(--radius-md);
+    --field-radius: var(--radius-md);
+}
+
 html,
 body {
     min-height: 100%;
@@ -605,4 +643,73 @@ body.login-no-scroll #app {
     width: 100vw;
     height: 100dvh;
     overflow: hidden !important;
+}
+
+/* Finance tables share one dense, readable operational pattern. */
+.finance-table-shell {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-gutter: stable;
+}
+
+.finance-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.finance-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    height: 36px;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface-2) 82%, var(--surface));
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.finance-table tbody td {
+    height: 44px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.finance-table tbody tr {
+    background: transparent;
+    transition: background-color 140ms ease;
+}
+
+.finance-table tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--surface-2) 18%, transparent);
+}
+
+.finance-table tbody tr:hover {
+    background: var(--surface-2);
+}
+
+.finance-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.finance-table-actions {
+    opacity: 0.62;
+    transition: opacity 140ms ease;
+}
+
+.finance-table tr:hover .finance-table-actions,
+.finance-table tr:focus-within .finance-table-actions {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .finance-table-actions {
+        opacity: 1;
+    }
 }

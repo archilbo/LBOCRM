@@ -22,6 +22,8 @@ class PaymentLedgerService
             $this->assertPaymentAmountIsValid($invoice, $amount);
 
             $payment = Payment::create([
+                'company_id' => $invoice->company_id,
+                'branch_id' => $invoice->branch_id,
                 'finance_document_id' => $invoice->id,
                 'client_id' => $invoice->client_id,
                 'dossier_id' => $invoice->dossier_id,
@@ -53,7 +55,10 @@ class PaymentLedgerService
 
             $oldInvoice = $payment->document;
             $newInvoiceId = $data['finance_document_id'] ?? $payment->finance_document_id;
-            $newInvoice = FinanceDocument::findOrFail($newInvoiceId);
+            $newInvoice = FinanceDocument::query()
+                ->where('company_id', $payment->company_id)
+                ->when($payment->branch_id, fn ($query, $branchId) => $query->where('branch_id', $branchId))
+                ->findOrFail($newInvoiceId);
             $amount = $this->normalizeAmount($data['amount'] ?? $payment->amount);
 
             $this->assertCanReceivePayment($newInvoice);
@@ -165,6 +170,8 @@ class PaymentLedgerService
         }
 
         $receipt->forceFill([
+            'company_id' => $invoice->company_id,
+            'branch_id' => $invoice->branch_id,
             'client_id' => $invoice->client_id,
             'dossier_id' => $invoice->dossier_id,
             'source_document_id' => $invoice->id,

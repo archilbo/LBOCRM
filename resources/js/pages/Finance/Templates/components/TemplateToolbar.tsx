@@ -1,17 +1,20 @@
+import { Dropdown } from '@heroui/react';
 import {
-    ChevronDown,
     Copy,
     History,
+    LoaderCircle,
     MoreHorizontal,
+    Pencil,
     Plus,
-    RefreshCcw,
     Save,
-    Sparkles,
     Star,
     Trash2,
+    X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { AppButton } from '@/components/ui/AppButton';
 import type { FinanceDocumentType } from '@/features/finance/types';
+
+type TemplateActionId = 'versions' | 'default' | 'rename' | 'duplicate' | 'delete';
 
 type TemplateToolbarProps = {
     selectedType: FinanceDocumentType;
@@ -22,14 +25,15 @@ type TemplateToolbarProps = {
     variablesTotal: number;
     draftName?: string;
     dirty: boolean;
+    saving: boolean;
     onNew: () => void;
     onSave: () => void;
-    onExactPreview: () => void;
     onVersions?: () => void;
     onDuplicate: () => void;
+    onRename: () => void;
     onDelete: () => void;
     onSetDefault: () => void;
-    onResetDefault: () => void;
+    onClose: () => void;
 };
 
 export function TemplateToolbar({
@@ -41,135 +45,134 @@ export function TemplateToolbar({
     variablesTotal,
     draftName,
     dirty,
+    saving,
     onNew,
     onSave,
-    onExactPreview,
     onVersions,
     onDuplicate,
+    onRename,
     onDelete,
     onSetDefault,
-    onResetDefault,
+    onClose,
 }: TemplateToolbarProps) {
-    const [menuOpen, setMenuOpen] = useState(false);
+    function handleAction(action: TemplateActionId) {
+        const actions: Record<TemplateActionId, (() => void) | undefined> = {
+            versions: onVersions,
+            default: onSetDefault,
+            rename: onRename,
+            duplicate: onDuplicate,
+            delete: onDelete,
+        };
+        actions[action]?.();
+    }
 
     return (
-        <div className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface)] px-4">
-            <div className="flex min-w-0 items-center gap-3">
-                <span className="text-sm font-semibold text-[var(--text)]">Templates</span>
+        <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 lg:px-4">
+            <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+                <span className="hidden shrink-0 text-sm font-semibold text-[var(--text)] sm:inline">Templates</span>
 
-                <div className="flex items-center gap-1 rounded-lg bg-[var(--surface-2)] p-0.5">
+                <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg bg-[var(--surface-2)] p-0.5">
                     {documentTypes.map((item) => {
                         const active = item.type === selectedType;
                         return (
-                            <button
+                            <AppButton
                                 key={item.type}
-                                type="button"
-                                onClick={() => onSelectType(item.type)}
-                                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                                    active
-                                        ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm'
-                                        : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                                }`}
+                                size="sm"
+                                variant={active ? 'secondary' : 'ghost'}
+                                onPress={() => onSelectType(item.type)}
+                                className={`h-7 min-w-0 shrink-0 rounded-md px-2.5 text-xs ${active ? 'text-[var(--accent)] shadow-sm' : 'text-[var(--text-muted)]'}`}
                             >
                                 {item.label}
-                                <span className="ml-1.5 text-[10px] text-[var(--text-muted)]">
-                                    {typeCounts[item.type] ?? 0}
-                                </span>
-                            </button>
+                                <span className="text-[9px] tabular-nums text-[var(--text-muted)]">{typeCounts[item.type] ?? 0}</span>
+                            </AppButton>
                         );
                     })}
                 </div>
 
-                <span className="text-xs text-[var(--text-muted)]">
-                    {templatesTotal} template{templatesTotal !== 1 ? 's' : ''} · {variablesTotal} variables
+                <span className="hidden shrink-0 text-[11px] text-[var(--text-muted)] 2xl:inline">
+                    {templatesTotal} template{templatesTotal !== 1 ? 's' : ''} / {variablesTotal} variables
                 </span>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5">
                 {draftName ? (
                     <>
-                        <button type="button" onClick={onNew} className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
+                        <AppButton size="sm" variant="outline" onPress={onNew} className="h-8 px-2.5 text-xs">
                             <Plus size={14} />
-                            New
-                        </button>
+                            <span className="hidden sm:inline">Nouveau</span>
+                        </AppButton>
 
-                        <button
-                            type="button"
-                            onClick={onSave}
-                            className="flex h-8 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-2.5 text-xs font-medium text-black transition hover:opacity-90 disabled:opacity-40"
+                        <AppButton
+                            size="sm"
+                            variant="primary"
+                            onPress={onSave}
+                            isDisabled={!dirty || saving}
+                            className="h-8 px-2.5 text-xs"
+                            aria-label="Enregistrer le template (Ctrl+S)"
                         >
-                            <Save size={14} />
-                            Save
-                        </button>
+                            {saving ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />}
+                            <span className="hidden sm:inline">{saving ? 'Enregistrement...' : 'Enregistrer'}</span>
+                        </AppButton>
 
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setMenuOpen((v) => !v)}
-                                className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+                        <Dropdown>
+                            <Dropdown.Trigger
+                                className="flex size-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] outline-none transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] data-[open]:border-[var(--accent)] data-[open]:text-[var(--accent)]"
+                                aria-label="Actions du template"
                             >
                                 <MoreHorizontal size={14} />
-                            </button>
-                            {menuOpen ? (
-                                <>
-                                    <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                                    <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-[var(--border)] bg-[var(--surface)] py-1 shadow-xl">
-                                        <MenuButton icon={Sparkles} label="Exact preview" onClick={() => { setMenuOpen(false); onExactPreview(); }} />
-                                        {onVersions ? (
-                                            <MenuButton icon={History} label="Versions" onClick={() => { setMenuOpen(false); onVersions(); }} />
-                                        ) : null}
-                                        <MenuButton icon={Star} label="Set as default" onClick={() => { setMenuOpen(false); onSetDefault(); }} />
-                                        <MenuButton icon={Copy} label="Duplicate" onClick={() => { setMenuOpen(false); onDuplicate(); }} />
-                                        <MenuButton icon={RefreshCcw} label="Reset default" onClick={() => { setMenuOpen(false); onResetDefault(); }} />
-                                        <div className="my-1 border-t border-[var(--border)]" />
-                                        <MenuButton icon={Trash2} label="Delete" onClick={() => { setMenuOpen(false); onDelete(); }} danger />
-                                    </div>
-                                </>
-                            ) : null}
-                        </div>
+                            </Dropdown.Trigger>
+                            <Dropdown.Popover placement="bottom end" className="min-w-48 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                                <Dropdown.Menu
+                                    aria-label="Actions du template"
+                                    onAction={(key) => handleAction(String(key) as TemplateActionId)}
+                                    className="outline-none"
+                                >
+                                    <Dropdown.Item id="versions" isDisabled={!onVersions} textValue="Versions" className="rounded-md px-2.5 py-2 text-xs font-medium text-[var(--text)] outline-none data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40">
+                                        <div className="flex items-center gap-2"><History size={14} /><span>Versions</span></div>
+                                    </Dropdown.Item>
+                                    <Dropdown.Item id="default" textValue="Definir par defaut" className="rounded-md px-2.5 py-2 text-xs font-medium text-[var(--text)] outline-none data-[hover]:bg-[var(--surface-2)]">
+                                        <div className="flex items-center gap-2"><Star size={14} /><span>Definir par defaut</span></div>
+                                    </Dropdown.Item>
+                                    <Dropdown.Item id="rename" textValue="Renommer" className="rounded-md px-2.5 py-2 text-xs font-medium text-[var(--text)] outline-none data-[hover]:bg-[var(--surface-2)]">
+                                        <div className="flex items-center gap-2"><Pencil size={14} /><span>Renommer</span></div>
+                                    </Dropdown.Item>
+                                    <Dropdown.Item id="duplicate" textValue="Dupliquer" className="rounded-md px-2.5 py-2 text-xs font-medium text-[var(--text)] outline-none data-[hover]:bg-[var(--surface-2)]">
+                                        <div className="flex items-center gap-2"><Copy size={14} /><span>Dupliquer</span></div>
+                                    </Dropdown.Item>
+                                    <Dropdown.Section className="mt-1 border-t border-[var(--border)] pt-1">
+                                        <Dropdown.Item id="delete" textValue="Supprimer" className="rounded-md px-2.5 py-2 text-xs font-medium text-[var(--danger)] outline-none data-[hover]:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]">
+                                            <div className="flex items-center gap-2"><Trash2 size={14} /><span>Supprimer</span></div>
+                                        </Dropdown.Item>
+                                    </Dropdown.Section>
+                                </Dropdown.Menu>
+                            </Dropdown.Popover>
+                        </Dropdown>
 
                         <span
-                            className={`flex items-center gap-1 text-xs ${
-                                dirty ? 'text-amber-400' : 'text-emerald-400'
-                            }`}
+                            className={`hidden items-center gap-1 text-[10px] lg:flex ${saving ? 'text-[var(--accent)]' : dirty ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}
                         >
-                            <span className={`inline-block size-1.5 rounded-full ${dirty ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                            {dirty ? 'Unsaved' : 'Saved'}
+                            <span className={`size-1.5 rounded-full ${saving ? 'animate-pulse bg-[var(--accent)]' : dirty ? 'bg-[var(--warning)]' : 'bg-[var(--success)]'}`} />
+                            {saving ? 'Enregistrement' : dirty ? 'Non enregistre' : 'Enregistre'}
                         </span>
                     </>
                 ) : (
-                    <button type="button" onClick={onNew} className="flex h-8 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 text-xs font-medium text-black transition hover:opacity-90">
-                        <Plus size={14} />
-                        New template
-                    </button>
+                    <AppButton size="sm" variant="primary" onPress={onNew} className="h-8 px-3 text-xs">
+                        <Plus size={14} /> Nouveau template
+                    </AppButton>
                 )}
+
+                <div className="ml-0.5 h-5 w-px bg-[var(--border)]" />
+                <AppButton
+                    size="sm"
+                    variant="ghost"
+                    onPress={onClose}
+                    className="size-8 min-w-0 text-[var(--text-muted)]"
+                    aria-label="Fermer l editeur de templates"
+                >
+                    <X size={15} />
+                </AppButton>
             </div>
         </div>
-    );
-}
-
-function MenuButton({
-    icon: Icon,
-    label,
-    onClick,
-    danger,
-}: {
-    icon: React.ComponentType<{ size?: number }>;
-    label: string;
-    onClick: () => void;
-    danger?: boolean;
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition ${
-                danger ? 'text-red-400 hover:bg-red-500/10' : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
-            }`}
-        >
-            <Icon size={14} />
-            {label}
-        </button>
     );
 }
 

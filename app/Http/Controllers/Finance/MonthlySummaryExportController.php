@@ -17,6 +17,7 @@ class MonthlySummaryExportController extends Controller
 {
     public function exportPdf(Request $request, FinanceMonthlySummaryService $service): RedirectResponse|BinaryFileResponse|StreamedResponse
     {
+        abort_unless($request->user()->can('finance.reports.export') || $request->user()->can('manage finance'), 403);
         $months = $this->parseMonths($request);
         $typeFilter = $this->parseType($request);
 
@@ -80,6 +81,7 @@ class MonthlySummaryExportController extends Controller
 
     public function exportExcel(Request $request, FinanceMonthlySummaryService $service): BinaryFileResponse|RedirectResponse
     {
+        abort_unless($request->user()->can('finance.reports.export') || $request->user()->can('manage finance'), 403);
         $months = $this->parseMonths($request);
         $typeFilter = $this->parseType($request);
 
@@ -111,6 +113,7 @@ class MonthlySummaryExportController extends Controller
 
     public function exportCsv(Request $request, FinanceMonthlySummaryService $service): StreamedResponse|RedirectResponse
     {
+        abort_unless($request->user()->can('finance.reports.export') || $request->user()->can('manage finance'), 403);
         $months = $this->parseMonths($request);
         $typeFilter = $this->parseType($request);
 
@@ -211,7 +214,7 @@ class MonthlySummaryExportController extends Controller
 
     private function gatherData(FinanceMonthlySummaryService $service, array $monthKeys, string $typeFilter = 'all'): array
     {
-        $allMonths = collect($service->months());
+        $allMonths = collect($service->months(null, request()->user()));
         $selectedMonths = $allMonths->whereIn('key', $monthKeys)->values();
         $currency = FinanceSettingsService::getCurrency();
 

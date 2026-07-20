@@ -3,7 +3,7 @@
 namespace App\Services\Finance;
 
 use App\Models\FinanceDocument;
-use Illuminate\Support\Facades\Storage;
+use App\Models\User;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -17,18 +17,21 @@ class FinanceExcelExporter
     public function __construct(
         private readonly FinanceDocumentRenderData $renderData,
         private readonly FinanceLockedDocumentNumberResolver $numberResolver,
+        private readonly FinanceDocumentIssuanceService $issuance,
+        private readonly FinanceFileStorageService $storage,
     ) {
     }
 
-    public function generate(FinanceDocument $document): string
+    public function generate(FinanceDocument $document, ?User $user = null): string
     {
         $spreadsheet = new Spreadsheet();
 
         try {
             $this->numberResolver->forModel($document, $document->type, 'number', $document->issue_date);
             $document->refresh()->loadMissing(['client', 'dossier', 'items', 'payments', 'template']);
+            $document = $this->issuance->issue($document, $user);
 
-            $data = $this->renderData->toArray($document);
+            $data = $document->render_data_snapshot ?: $this->renderData->toArray($document);
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->setTitle(substr($data['document']['type_label'] . ' ' . $document->number, 0, 31));
 
@@ -132,10 +135,10 @@ class FinanceExcelExporter
             $sheet->freezePane('A9');
             $sheet->getStyle('A:K')->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
 
-            $directory = $this->directory($document);
-            Storage::disk('public')->makeDirectory($directory);
+            $directory = $this->storage->directory($document);
+            $this->storage->disk()->makeDirectory($directory);
             $relativePath = $directory . '/' . $document->number . '.xlsx';
-            $absolutePath = Storage::disk('public')->path($relativePath);
+            $absolutePath = $this->storage->disk()->path($relativePath);
 
             IOFactory::createWriter($spreadsheet, 'Xlsx')->save($absolutePath);
 
@@ -143,7 +146,10 @@ class FinanceExcelExporter
                 throw new RuntimeException('Excel file was not created.');
             }
 
-            $document->forceFill(['excel_path' => $relativePath])->save();
+            $document->forceFill([
+                'excel_path' => $relativePath,
+                'excel_checksum' => hash_file('sha256', $absolutePath),
+            ])->save();
 
             return $relativePath;
         } catch (Throwable $e) {
@@ -172,13 +178,4 @@ class FinanceExcelExporter
         return $row + 1;
     }
 
-    private function directory(FinanceDocument $document): string
-    {
-        return 'finance/' . match ($document->type) {
-            'quote' => 'quotes',
-            'invoice' => 'invoices',
-            'receipt' => 'receipts',
-            default => 'documents',
-        } . '/' . $document->number;
-    }
 }

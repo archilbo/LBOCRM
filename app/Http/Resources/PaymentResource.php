@@ -71,10 +71,10 @@ class PaymentResource extends JsonResource
                     'status' => $receipt->status,
                     'issueDate' => optional($receipt->issue_date)->format('Y-m-d'),
                     'amount' => (float) ($receipt->total_ttc ?? 0),
-                    'pdfPath' => $receipt->pdf_path,
-                    'excelPath' => $receipt->excel_path,
                     'urls' => [
                         'show' => $this->safeRoute('finance.documents.show', ['financeDocument' => $receipt->id]),
+                        'view' => $this->safeRoute('finance.documents.view', ['financeDocument' => $receipt->id]),
+                        'print' => $this->safeRoute('finance.documents.print', ['financeDocument' => $receipt->id]),
                         'download' => $receipt->excel_path ? $this->safeRoute('finance.documents.download', ['financeDocument' => $receipt->id]) : null,
                         'pdf' => $receipt->pdf_path ? $this->safeRoute('finance.documents.download-pdf', ['financeDocument' => $receipt->id]) : null,
                         'excel' => $receipt->excel_path ? $this->safeRoute('finance.documents.download-excel', ['financeDocument' => $receipt->id]) : null,

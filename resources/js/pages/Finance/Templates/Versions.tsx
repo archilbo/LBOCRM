@@ -163,7 +163,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                                 </h1>
 
                                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                                    Review snapshots, restore older versions, and protect your Devis / Facture / ReÃ§u designs.
+                                    Consultez les versions, restaurez un modele et protegez vos designs Devis / Facture / Recu.
                                 </p>
                             </div>
 
@@ -219,7 +219,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-semibold">Version #{version.versionNumber}</p>
                                                         <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                                            {reasonLabel(version.snapshotReason)} Â· {version.createdAtHuman}
+                                                            {reasonLabel(version.snapshotReason)} / {version.createdAtHuman}
                                                         </p>
                                                     </div>
 
@@ -230,7 +230,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
 
                                                 <p className="mt-3 truncate text-xs text-[var(--text-muted)]">
                                                     {version.createdAt}
-                                                    {version.createdBy ? ` Â· ${version.createdBy}` : ''}
+                                                    {version.createdBy ? ` / ${version.createdBy}` : ''}
                                                 </p>
                                             </button>
                                         );

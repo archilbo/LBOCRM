@@ -3,8 +3,8 @@
 namespace App\Services\Finance;
 
 use App\Models\FinanceDocument;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
 
@@ -13,22 +13,25 @@ class FinancePdfGenerator
     public function __construct(
         private readonly FinanceTemplateRenderer $renderer,
         private readonly FinanceLockedDocumentNumberResolver $numberResolver,
+        private readonly FinanceDocumentIssuanceService $issuance,
+        private readonly FinanceFileStorageService $storage,
     ) {
     }
 
-    public function generate(FinanceDocument $document): string
+    public function generate(FinanceDocument $document, ?User $user = null): string
     {
         try {
             $document->loadMissing(['client', 'dossier', 'items', 'payments', 'template']);
             $this->numberResolver->forModel($document, $document->type, 'number', $document->issue_date);
             $document->refresh()->loadMissing(['client', 'dossier', 'items', 'payments', 'template']);
+            $document = $this->issuance->issue($document, $user);
 
-            $html = $this->renderer->renderHtml($document);
-            $directory = $this->directory($document);
-            Storage::disk('public')->makeDirectory($directory);
+            $html = $document->rendered_html_snapshot ?: $this->renderer->renderHtml($document);
+            $directory = $this->storage->directory($document);
+            $this->storage->disk()->makeDirectory($directory);
 
             $relativePath = $directory . '/' . $document->number . '.pdf';
-            $absolutePath = Storage::disk('public')->path($relativePath);
+            $absolutePath = $this->storage->disk()->path($relativePath);
 
             Pdf::loadHTML($html)
                 ->setPaper('a4', 'portrait')
@@ -40,6 +43,7 @@ class FinancePdfGenerator
 
             $document->forceFill([
                 'pdf_path' => $relativePath,
+                'pdf_checksum' => hash_file('sha256', $absolutePath),
                 'generated_at' => now(),
             ])->save();
 
@@ -49,13 +53,4 @@ class FinancePdfGenerator
         }
     }
 
-    private function directory(FinanceDocument $document): string
-    {
-        return 'finance/' . match ($document->type) {
-            'quote' => 'quotes',
-            'invoice' => 'invoices',
-            'receipt' => 'receipts',
-            default => 'documents',
-        } . '/' . $document->number;
-    }
 }

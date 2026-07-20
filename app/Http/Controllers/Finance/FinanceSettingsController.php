@@ -14,6 +14,7 @@ class FinanceSettingsController extends Controller
 {
     public function index(FinanceSettingsService $settings): Response
     {
+        abort_unless(request()->user()->can('finance.settings.view') || request()->user()->can('manage finance'), 403);
         return Inertia::render('Finance/Settings/Index', [
             'settings' => $settings->allGrouped(),
             'routes' => [
@@ -29,6 +30,7 @@ class FinanceSettingsController extends Controller
 
     public function update(UpdateFinanceSettingsRequest $request): RedirectResponse
     {
+        abort_unless($request->user()->can('finance.settings.update') || $request->user()->can('manage finance'), 403);
         $data = $request->validated();
 
         $finance = $data['finance'] ?? [];
@@ -62,6 +64,7 @@ class FinanceSettingsController extends Controller
 
     public function reset(): RedirectResponse
     {
+        abort_unless(request()->user()->can('finance.settings.update') || request()->user()->can('manage finance'), 403);
         CompanySetting::setValue('finance', 'default_tva_rate', 20, 'decimal', 'Default TVA rate');
         CompanySetting::setValue('finance', 'default_currency', 'MAD', 'string', 'Default currency');
         CompanySetting::setValue('finance', 'default_payment_terms_days', 30, 'integer', 'Payment terms days');

@@ -4821,3 +4821,348 @@ curl.exe -I --max-redirs 0 http://127.0.0.1:8000
 ## Next Recommended Step
 
 Seed or create a local admin user if login access is needed on the freshly migrated database.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-18
+
+## Step Completed
+
+Fixed finance document drawer template preview selection.
+
+## What Was Changed
+
+- Fixed the finance document builder template select to use the single selected key API so the selected DB template stays in sync with form state.
+- Fixed draft preview CSRF lookup to use `window.document` because the drawer prop named `document` shadows the browser document object.
+- Hardened backend draft preview template resolution so selected templates must match the document type or shared `finance` type, then fallback to the default template for the document type.
+
+## Files Modified
+
+- `resources/js/components/drawers/entities/FinanceDocumentBuilderDrawer/index.tsx`
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `docs/AI_WORK_REPORT.md`
+
+## Commands Run
+
+```powershell
+npm run build
+php -l app/Http/Controllers/Finance/FinanceDocumentController.php
+git diff --check -- resources/js/components/drawers/entities/FinanceDocumentBuilderDrawer/index.tsx app/Http/Controllers/Finance/FinanceDocumentController.php
+```
+
+## Build/Test Result
+
+- `npm run build` passed.
+- PHP syntax check passed.
+- `git diff --check` passed with only an existing CRLF/LF normalization warning.
+
+## How To Test
+
+1. Open Finance.
+2. Create a Devis, Facture, or Recu.
+3. Go to the Template step.
+4. Select a DB template for that document type.
+5. Open preview and confirm it changes to the selected template layout.
+
+## Known Issues
+
+- Vite still reports the existing large bundle warning.
+- Git reports CRLF normalization for the PHP controller.
+
+## Next Recommended Step
+
+Test the three finance document types in browser and then clean up any template content/placeholder issues found in the DB templates.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-18
+
+## Step Completed
+
+Consolidated and hardened the Finance module.
+
+## What Was Built
+
+- Consolidated active routes, search, dossier counts, seed data, and UI on `FinanceDocument` instead of the empty legacy `FinanceRecord` runtime.
+- Added finance document/status/payment enums, granular policies and permissions, company/branch scope, and finance activity logs.
+- Added immutable issuance snapshots with template/render data/HTML hashes and export checksums.
+- Moved generated PDF/XLSX files to private tenant-scoped storage.
+- Added secure view, inline PDF, print, PDF download, Excel download, and local reveal actions.
+- Added server-side finance document search, filters, sorting, and pagination.
+- Added ARCHI LBO company and Marrakech branch data sourced from the supplied receipt workbook.
+
+## Database Changes
+
+- Added `companies`, `branches`, and `finance_activity_logs`.
+- Added tenant columns to users, finance documents, payments, expenses, and finance templates.
+- Added issuance snapshot and checksum columns to finance documents.
+- Migrated legacy finance rows when their document numbers are not already present.
+- Final scope audit: 31 documents, 11 payments, 56 expenses, and 4 templates; zero unscoped rows and zero users without a company.
+
+## New Routes
+
+- `finance.documents.view`
+- `finance.documents.view-pdf`
+- `finance.documents.print`
+
+## New Permissions
+
+- `finance.view`
+- `finance.documents.create|update|issue|cancel|delete`
+- `finance.payments.view|create|update|reverse`
+- `finance.expenses.view|create|update|delete`
+- `finance.templates.view|manage`
+- `finance.settings.view|update`
+- `finance.reports.export`
+
+## Commands Run
+
+```powershell
+php artisan migrate --force
+php artisan db:seed --force
+php artisan finance:migrate-private-files
+php artisan optimize:clear
+npm.cmd run build
+php artisan test
+php artisan archilbo:finance-ui-lock-payload-qa
+php artisan archilbo:finance-export-qa
+php artisan archilbo:finance-document-lock-guard-qa
+```
+
+## Build/Test Result
+
+- Migration passed.
+- Seed passed.
+- Private file migration verified 7 files with 0 missing.
+- Frontend build passed.
+- Laravel tests passed: 5 tests, 25 assertions.
+- All three finance QA commands passed.
+- Existing Vite large-bundle and optional `fontaine` notices remain warnings only.
+
+## Important Decisions
+
+- Existing originals are preserved until a private copy is verified; public generated copies are removed only after successful migration.
+- Issued document content is immutable, while payment totals and lifecycle status remain mutable.
+- The supplied workbook was used only for company/branch values it actually contains; no tax or bank identifiers were invented.
+
+## How To Test
+
+1. Open `/finance`, switch between Devis and Factures, search, filter, and paginate.
+2. Generate a draft and confirm it becomes issued and locked.
+3. Open View, Print, Download PDF, and Download Excel; confirm no storage path appears in page props.
+4. Register a payment and confirm the receipt inherits company/branch scope.
+5. Log in as staff/viewer and confirm backend permissions restrict sensitive actions.
+
+## Known Issues
+
+- The production JS bundle remains large and should be code-split in a separate performance step.
+- Global company settings predate tenant scoping; finance records and files are scoped, while a future settings migration should make settings company-specific before adding a second company.
+
+## Next Recommended Step
+
+Add focused feature tests for cross-company denial, immutable snapshot regeneration, and secure file response headers, then code-split the finance workspace.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-18
+
+## Step Completed
+
+Finance template database visibility and rename workflow.
+
+## What Was Built
+
+- The Templates workspace now opens the first document type that actually has persisted templates instead of showing an empty Devis tab.
+- Selected template state refreshes after Inertia updates, including rename operations.
+- Added rename actions to template rows and the selected-template toolbar menu.
+- Added a validated, policy-protected rename endpoint and finance activity log event.
+- Template slugs remain immutable during rename to protect document and version references.
+
+## Files Created
+
+- `app/Http/Requests/Finance/RenameDocumentTemplateRequest.php`
+- `app/Services/Finance/RenameFinanceTemplateService.php`
+- `tests/Feature/FinanceTemplateManagementTest.php`
+
+## Files Modified
+
+- `app/Http/Controllers/Finance/DocumentTemplateController.php`
+- `app/Http/Resources/DocumentTemplateResource.php`
+- `routes/web.php`
+- `resources/js/features/finance/types.ts`
+- `resources/js/pages/Finance/Templates/Index.tsx`
+- `resources/js/pages/Finance/Templates/components/TemplateList.tsx`
+- `resources/js/pages/Finance/Templates/components/TemplateToolbar.tsx`
+
+## New Routes
+
+- `PATCH /finance/templates/{documentTemplate}/rename` (`finance.templates.rename`)
+
+## Commands Run
+
+```powershell
+npm.cmd run build
+php artisan test --filter=FinanceTemplateManagementTest
+php artisan test
+```
+
+## How To Test
+
+1. Open `/finance/templates`; the first template type present in the database should be selected automatically.
+2. Use the pencil action on a template row or choose Rename from the toolbar menu.
+3. Rename it and verify the list and editor title update without changing its slug.
+
+## Next Recommended Step
+
+Add template archive/restore controls so unused templates can be hidden without deleting their history.
+
+## Embedded Finance Tab Correction
+
+- Corrected `/finance/documents?tab=templates`, which previously rendered only `defaultTemplates` and incorrectly showed an empty state when persisted templates were not marked default.
+- The tab now renders every company/branch-scoped template from the database.
+- Added default status, slug, update time, direct editor navigation, and same-page rename controls.
+- Consolidated the controller to one template query shared by the tab and finance document drawers.
+- Focused result: 3 tests passed with 25 assertions; frontend production build passed.
+
+---
+
+# AI Work Report
+
+## Date
+
+2026-07-18
+
+## Step Completed
+
+Finance workspace UI modernization, phase 1.
+
+## What Was Built
+
+- Replaced the oversized generic Finance page header with a compact Finance command center.
+- Added responsive icon tabs with active-state contrast, horizontal overflow protection, and live record counts.
+- Reduced KPI card size and changed the overview to six columns on wide screens.
+- Standardized document, payment, expense, and monthly surfaces with compact 8px containers and responsive toolbars.
+- Added a searchable/filterable template management workspace with direct edit and rename actions.
+- Replaced the sparse settings tab with a structured settings summary and working configuration action.
+- Preserved the existing dark-gold theme and every Finance workflow.
+
+## Files Created
+
+- `resources/js/features/finance/components/FinanceWorkspaceHeader.tsx`
+- `resources/js/features/finance/components/FinanceTemplateManager.tsx`
+- `resources/js/features/finance/components/FinanceSettingsSummary.tsx`
+
+## Files Modified
+
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+- `resources/js/features/finance/components/FinanceTabs.tsx`
+- `resources/js/features/finance/components/MetricSparklineCard.tsx`
+- `resources/js/features/finance/components/ExpensesWorkspace.tsx`
+- `resources/js/features/finance/components/FinanceMonthlySummary.tsx`
+
+## Commands Run
+
+```powershell
+npm.cmd run build
+npx.cmd tsc --noEmit --ignoreDeprecations 6.0
+php artisan test
+php artisan route:list --name=finance --except-vendor
+```
+
+## Build/Test Result
+
+- Production build passed.
+- Laravel suite passed: 8 tests, 50 assertions.
+- New Finance components have no TypeScript diagnostics.
+- The full TypeScript command remains blocked by pre-existing project-wide HeroUI wrapper and declaration errors.
+- Existing large-bundle and optional `fontaine` notices remain warnings only.
+
+## How To Test
+
+1. Open `/finance` or `/finance/documents` and test every Finance tab.
+2. Resize through desktop, tablet, and mobile widths; tabs should scroll horizontally without clipping.
+3. Test the four command-center actions: payment, expense, invoice, and quote.
+4. Search/filter templates, rename one, and open its editor.
+5. Open Parameters and confirm the configuration button routes to Finance settings.
+
+## Next Recommended Step
+
+Extract the document and payment workspaces from the large Finance index, then standardize their tables on the shared data-table wrapper and code-split heavy Finance charts/editor modules.
+
+## Finance Theme And Tabs Refinement
+
+- Added a HeroUI v3 token bridge so library primitives inherit the ARCHI LBO dark-gold surfaces, borders, fields, focus states, and semantic colors.
+- Updated the shared `AppButton` and `AppInput` adapters to use supported HeroUI v3 variants and props while preserving existing call-site compatibility.
+- Removed the decorative yellow line from the Finance workspace header.
+- Reworked Finance tabs into compact raised dark tiles. The active tab now uses a gold icon treatment and a slim bottom marker instead of a full yellow fill.
+- Production build passed.
+- Focused TypeScript validation reported no errors in the changed wrappers or Finance header/tabs.
+- Laravel suite passed: 8 tests, 50 assertions.
+- Existing optional `fontaine` and large bundle notices remain non-blocking build warnings.
+
+## Finance Filter Tabs Refinement
+
+- Added reusable `AppFilterTabs` for compact, accessible secondary filtering.
+- Replaced repeated document status/type chips and expense category chips with the shared control.
+- Added clear selected states, per-filter reset actions, keyboard focus treatment, and horizontal overflow behavior for narrow screens.
+- Kept the ARCHI LBO dark-gold palette and existing server-side document filtering behavior.
+- Production build passed. Existing unrelated Finance TypeScript diagnostics remain in lock-badge and confirmation-dialog call sites.
+- Aligned the Templates workspace with the Documents toolbar: matching compact search field, collapsible filter trigger, active-filter indicator, result count, shared filter tabs, and per-type template counts.
+- Added an accessible close action to the template editor toolbar. Its destination is supplied by Laravel's named `finance.documents.index` route and returns to the Templates tab.
+
+## Template Editor Reliability Pass
+
+- Fixed placeholder insertion incorrectly producing nested braces such as `{{{{company.name}}}}`; registry values are now inserted exactly as stored.
+- Added ARCHI LBO dark-gold CodeMirror surface, gutter, cursor, selection, and active-line styling.
+- Added native CodeMirror `Ctrl/Cmd+S` handling and visible save/saving/saved states.
+- Disabled duplicate saves and saves when the template has no changes.
+- Added validation feedback for unsafe scripts, unknown placeholders, missing item tables, and empty content.
+- Protected dirty templates on editor close and browser/tab exit.
+- Prevented exact server preview from presenting stale output when the current draft is unsaved.
+- Made template metadata fields responsive and clarified template search/list labels.
+- Production build passed; Laravel suite passed with 8 tests and 50 assertions.
+- Pre-existing page-level TypeScript diagnostics remain around the project ES target, an uninitialized ref, and Inertia request payload typing.
+
+## Template Editor HeroUI And Actions Cleanup
+
+- Migrated template toolbar buttons, type controls, overflow menu, metadata inputs/selects, list search, and variable search to HeroUI v3 or the shared HeroUI-backed adapters.
+- Kept CodeMirror as the intentional code-editor dependency while retaining ARCHI LBO theme tokens.
+- Replaced the hand-built overflow popover with a typed HeroUI `Dropdown` and a closed `TemplateActionId` union.
+- Removed duplicated `Exact preview` and global `Reset default` commands from selected-template actions.
+- The action menu now contains only Versions, Define as default, Rename, Duplicate, and Delete.
+- Removed unused reset URLs from the Inertia template-editor payload.
+- Focused TypeScript validation for migrated editor components passed; production build and Laravel tests passed.
+
+## Finance Tables UI And Contract Cleanup
+
+- Added one shared Finance table visual contract for document, payment, expense, monthly, document-detail, and editable item tables.
+- Standardized sticky headers, 44px operational rows, tabular numeric alignment, subtle zebra separation, hover states, and action visibility.
+- Added stable horizontal overflow only where wide desktop tables require it; expense records now render as dedicated mobile cards instead of a 900px scrolling table.
+- Removed unsupported HeroUI v2 `isIconOnly` usage from Finance table actions.
+- Migrated the shared confirmation dialog to HeroUI v3 and corrected Finance lock-badge, popover placement, and disabled-input contracts.
+- Added v2-compatible `isDisabled` mapping inside the shared HeroUI-backed `AppInput` adapter.
+- Corrected remaining malformed Finance separator/receipt labels encountered during the UI audit.
+- Focused TypeScript validation passed for all changed table/control files. Production build passed; Laravel suite passed with 8 tests and 50 assertions.
+
+## Finance Pagination And Column Sorting
+
+- Added reusable accessible sortable headers with ascending/descending indicators for Finance tables.
+- Added server-side sorting to documents, payments, and expenses through whitelisted database columns.
+- Added namespaced server-side search, filtering, page, direction, and page-size parameters for payments and expenses.
+- Removed the duplicate client pagination that previously paginated an already paginated server response.
+- Added sortable columns and client pagination to the aggregated monthly ledger.
+- Updated Finance tab counts to use paginator totals and translated the shared pagination controls to French.
+- Production build passed; full Laravel suite passed with 8 tests and 50 assertions.

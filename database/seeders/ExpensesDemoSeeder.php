@@ -72,6 +72,8 @@ class ExpensesDemoSeeder extends Seeder
                     'expense_date' => $data['date']->toDateString(),
                 ],
                 [
+                    'company_id' => $admin?->company_id,
+                    'branch_id' => $admin?->branch_id,
                     'dossier_id' => $dossierId,
                     'category' => $data['category'],
                     'currency' => 'MAD',

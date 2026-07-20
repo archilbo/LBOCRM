@@ -1,6 +1,8 @@
-import { ChevronDown, ChevronRight, Circle } from 'lucide-react';
+import { Input, ListBox, Select } from '@heroui/react';
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Circle } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import type { DocumentTemplate, TemplatePlaceholder } from '@/features/finance/types';
+import { validateTemplateContent } from '@/features/finance/templates/templateValidation';
 import { TemplateCodeEditor } from './TemplateCodeEditor';
 import type { TemplateCodeEditorHandle } from './TemplateCodeEditor';
 import { TemplatePlaceholderPanel } from './TemplatePlaceholderPanel';
@@ -13,6 +15,7 @@ type TemplateEditorFormProps = {
     placeholders: TemplatePlaceholder[];
     activeSection: 'bodyHtml' | 'headerHtml' | 'footerHtml' | 'css';
     onSectionChange: (section: 'bodyHtml' | 'headerHtml' | 'footerHtml' | 'css') => void;
+    onSave: () => void;
 };
 
 const TABS: Array<{ key: TemplateDraftSection; label: string; language: 'html' | 'css' }> = [
@@ -24,12 +27,45 @@ const TABS: Array<{ key: TemplateDraftSection; label: string; language: 'html' |
 
 type TemplateDraftSection = 'bodyHtml' | 'headerHtml' | 'footerHtml' | 'css';
 
+const compactField = 'h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]';
+const selectPopover = 'z-[80] min-w-[var(--trigger-width)] rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl';
+const selectItem = 'cursor-pointer rounded-md px-2 py-1.5 text-xs text-[var(--text)] outline-none data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:text-[var(--accent)]';
+
+function EditorSelect<T extends string>({ label, value, options, onChange }: {
+    label: string;
+    value: T;
+    options: Array<{ id: T; label: string }>;
+    onChange: (value: T) => void;
+}) {
+    return (
+        <label className="space-y-1">
+            <span className="text-[10px] font-semibold text-[var(--text-muted)]">{label}</span>
+            <Select selectedKey={value} onSelectionChange={(key) => onChange(String(key) as T)} aria-label={label}>
+                <Select.Trigger className={compactField}>
+                    <Select.Value className="flex-1 truncate text-left" />
+                    <Select.Indicator><ChevronDown size={13} className="text-[var(--text-muted)]" /></Select.Indicator>
+                </Select.Trigger>
+                <Select.Popover isNonModal className={selectPopover}>
+                    <ListBox className="outline-none">
+                        {options.map((option) => (
+                            <ListBox.Item key={option.id} id={option.id} textValue={option.label} className={selectItem}>
+                                {option.label}
+                            </ListBox.Item>
+                        ))}
+                    </ListBox>
+                </Select.Popover>
+            </Select>
+        </label>
+    );
+}
+
 export function TemplateEditorForm({
     draft,
     onUpdate,
     placeholders,
     activeSection,
     onSectionChange,
+    onSave,
 }: TemplateEditorFormProps) {
     const [metaOpen, setMetaOpen] = useState(false);
     const editorRef = useRef<TemplateCodeEditorHandle>(null);
@@ -49,7 +85,13 @@ export function TemplateEditorForm({
         return !!(draft[key] as string)?.trim();
     }
 
-    const metaSummary = `${draft.name} · ${draft.paperSize} ${draft.orientation}`;
+    const validation = useMemo(() => validateTemplateContent(
+        draft.type,
+        [draft.headerHtml, draft.bodyHtml, draft.footerHtml, draft.css].filter(Boolean).join('\n'),
+        placeholders,
+    ), [draft, placeholders]);
+    const validationMessage = [...validation.errors, ...validation.warnings].join(' ');
+    const metaSummary = `${draft.name} / ${draft.paperSize} ${draft.orientation}`;
 
     return (
         <div className="flex flex-col min-h-0 flex-1">
@@ -65,10 +107,10 @@ export function TemplateEditorForm({
                 </button>
 
                 {metaOpen ? (
-                    <div className="grid grid-cols-4 gap-3 border-t border-[var(--border)] px-3 pb-3 pt-2">
+                    <div className="grid grid-cols-1 gap-3 border-t border-[var(--border)] px-3 pb-3 pt-2 sm:grid-cols-2 xl:grid-cols-4">
                         <label className="space-y-1">
                             <span className="text-[10px] font-semibold text-[var(--text-muted)]">Name</span>
-                            <input
+                            <Input
                                 className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
                                 value={draft.name}
                                 onChange={(e) => onUpdate({ name: e.target.value })}
@@ -76,35 +118,24 @@ export function TemplateEditorForm({
                         </label>
                         <label className="space-y-1">
                             <span className="text-[10px] font-semibold text-[var(--text-muted)]">Slug</span>
-                            <input
+                            <Input
                                 className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
                                 value={draft.slug}
                                 onChange={(e) => onUpdate({ slug: e.target.value })}
                             />
                         </label>
-                        <label className="space-y-1">
-                            <span className="text-[10px] font-semibold text-[var(--text-muted)]">Paper</span>
-                            <select
-                                className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
-                                value={draft.paperSize}
-                                onChange={(e) => onUpdate({ paperSize: e.target.value })}
-                            >
-                                <option value="A4">A4</option>
-                                <option value="A5">A5</option>
-                                <option value="Letter">Letter</option>
-                            </select>
-                        </label>
-                        <label className="space-y-1">
-                            <span className="text-[10px] font-semibold text-[var(--text-muted)]">Orientation</span>
-                            <select
-                                className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
-                                value={draft.orientation}
-                                onChange={(e) => onUpdate({ orientation: e.target.value })}
-                            >
-                                <option value="portrait">Portrait</option>
-                                <option value="landscape">Landscape</option>
-                            </select>
-                        </label>
+                        <EditorSelect
+                            label="Papier"
+                            value={draft.paperSize}
+                            options={[{ id: 'A4', label: 'A4' }, { id: 'A5', label: 'A5' }, { id: 'Letter', label: 'Letter' }]}
+                            onChange={(paperSize) => onUpdate({ paperSize })}
+                        />
+                        <EditorSelect
+                            label="Orientation"
+                            value={draft.orientation}
+                            options={[{ id: 'portrait', label: 'Portrait' }, { id: 'landscape', label: 'Paysage' }]}
+                            onChange={(orientation) => onUpdate({ orientation })}
+                        />
                     </div>
                 ) : null}
             </div>
@@ -133,7 +164,22 @@ export function TemplateEditorForm({
                         </button>
                     );
                 })}
-                <span className="ml-auto truncate text-[10px] text-[var(--text-muted)]">{activeSection.replace('Html', '.html').replace('css', '.css')}</span>
+                <div className="ml-auto flex min-w-0 items-center gap-2 pl-2">
+                    {validation.errors.length > 0 ? (
+                        <span className="flex items-center gap-1 text-[10px] font-medium text-[var(--danger)]" title={validationMessage}>
+                            <AlertTriangle size={11} /> {validation.errors.length} erreur(s)
+                        </span>
+                    ) : validation.warnings.length > 0 ? (
+                        <span className="flex items-center gap-1 text-[10px] font-medium text-[var(--warning)]" title={validationMessage}>
+                            <AlertTriangle size={11} /> {validation.warnings.length} alerte(s)
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-1 text-[10px] font-medium text-[var(--success)]">
+                            <CheckCircle2 size={11} /> Valide
+                        </span>
+                    )}
+                    <span className="hidden truncate text-[10px] text-[var(--text-muted)] sm:inline">{activeSection.replace('Html', '.html').replace('css', '.css')}</span>
+                </div>
             </div>
 
             {/* Single CodeMirror fills remaining height */}
@@ -144,6 +190,7 @@ export function TemplateEditorForm({
                     onChange={handleChange}
                     language={currentLang}
                     minHeight="0"
+                    onSave={onSave}
                 />
             </div>
 

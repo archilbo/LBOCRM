@@ -50,8 +50,8 @@ export function MetricSparklineCard({ icon, label, value, sparklineData, trend, 
     const trendTextClass = trendIsFavorable ? 'text-emerald-400' : 'text-rose-400';
 
     return (
-        <div className={cn('rounded-xl border border-[var(--border)] bg-[var(--surface)]', className)}>
-            <div className="p-4 pb-2">
+        <div className={cn('rounded-lg border border-[var(--border)] bg-[var(--surface)] transition hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border))]', className)}>
+            <div className="p-3 pb-1.5">
                 <div className="flex items-center justify-between gap-1.5">
                     <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                         {icon}
@@ -71,12 +71,12 @@ export function MetricSparklineCard({ icon, label, value, sparklineData, trend, 
                         ) : null}
                     </div>
                 </div>
-                <p className="mt-1 text-lg font-bold tracking-tight text-[var(--text)]" title={fullTitle}>{value}</p>
+                <p className="mt-1 text-base font-bold tracking-tight text-[var(--text)]" title={fullTitle}>{value}</p>
                 {detail && (
                     <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{detail}</p>
                 )}
             </div>
-            <div className="h-7 w-full px-1 pb-1.5">
+            <div className="h-6 w-full px-1 pb-1">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                         <defs>

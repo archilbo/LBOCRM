@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Finance;
 
+use App\Enums\FinanceDocumentType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,7 +16,7 @@ class StoreDocumentTemplateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', Rule::in(['quote', 'invoice', 'receipt'])],
+            'type' => ['required', Rule::enum(FinanceDocumentType::class)],
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:finance_templates,slug'],
             'paper_size' => ['nullable', Rule::in(['A4', 'A5', 'Letter'])],

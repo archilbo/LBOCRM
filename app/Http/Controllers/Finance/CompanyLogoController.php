@@ -12,6 +12,7 @@ class CompanyLogoController extends Controller
 {
     public function store(UploadCompanyLogoRequest $request): RedirectResponse
     {
+        abort_unless($request->user()->can('finance.settings.update') || $request->user()->can('manage finance'), 403);
         $oldPath = CompanySetting::getValue('company', 'company_logo_path', '');
 
         if ($oldPath && str_starts_with((string) $oldPath, 'company/')) {
@@ -34,6 +35,7 @@ class CompanyLogoController extends Controller
 
     public function destroy(): RedirectResponse
     {
+        abort_unless(request()->user()->can('finance.settings.update') || request()->user()->can('manage finance'), 403);
         $oldPath = CompanySetting::getValue('company', 'company_logo_path', '');
 
         if ($oldPath && str_starts_with((string) $oldPath, 'company/')) {

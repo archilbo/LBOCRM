@@ -11,7 +11,7 @@ import {
     FileSpreadsheet,
     FileText,
     Pencil,
-    Plus,
+    Printer,
     RefreshCw,
     ReceiptText,
     Search,
@@ -32,7 +32,9 @@ import { AppButton } from '@/components/ui/AppButton';
 import { Tooltip } from '@heroui/react';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
-import { AppEmptyState } from '@/components/ui/AppEmptyState';
+import { AppFilterTabs } from '@/components/ui/AppFilterTabs';
+import { AppInput } from '@/components/ui/AppInput';
+import { AppModal } from '@/components/ui/AppModal';
 import { AppPagination } from '@/components/ui/AppPagination';
 import { type FinanceMetrics } from '@/features/finance/components/FinanceMetricCards';
 import { calculateAgingBuckets, type AgingBucket } from '@/features/finance/utils/calculations';
@@ -41,10 +43,14 @@ import { TreasuryDashboard } from '@/features/finance/components/TreasuryDashboa
 import { FinanceMonthlySummary } from '@/features/finance/components/FinanceMonthlySummary';
 import { FinanceDocumentLockBadge, getFinanceDocumentLockedAt } from '@/features/finance/components/FinanceDocumentLockNotice';
 import { FinanceTabs } from '@/features/finance/components/FinanceTabs';
+import { FinanceTemplateManager } from '@/features/finance/components/FinanceTemplateManager';
+import { FinanceSettingsSummary } from '@/features/finance/components/FinanceSettingsSummary';
+import { FinanceWorkspaceHeader } from '@/features/finance/components/FinanceWorkspaceHeader';
 import { FinanceDocumentBuilderDrawer, PaymentDrawer, ExpenseDrawer } from '@/components/drawers';
 import type { ExpenseViewMode } from '@/components/drawers/entities/ExpenseDrawer';
 import { MetricSparklineCard } from '@/features/finance/components/MetricSparklineCard';
 import { ExpensesWorkspace } from '@/features/finance/components/ExpensesWorkspace';
+import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirection } from '@/features/finance/components/FinanceSortableHeader';
 import type {
     ClientOption,
     DossierOption,
@@ -72,24 +78,50 @@ const docShowUrl = (id: number) => `/finance/documents/${id}?from=${new URLSearc
 
 type Paginated<T> = {
     data: T[] | Paginated<T>;
+    meta?: { current_page: number; per_page: number; total: number; last_page: number };
+    current_page?: number;
+    per_page?: number;
+    total?: number;
+    last_page?: number;
 };
 
 type PageProps = {
     documents?: Paginated<FinanceDocument> | FinanceDocument[];
     payments?: Paginated<Payment> | Payment[];
-    expenses?: Expense[];
+    expenses?: Paginated<Expense> | Expense[];
     monthlySummaries?: FinanceMonthSummary[];
     metrics?: Partial<FinanceMetrics>;
     clients?: ClientOption[];
     dossiers?: DossierOption[];
     templates?: TemplateOption[];
-    defaultTemplates?: Array<TemplateOption & { slug?: string }>;
-    templateEditorUrl?: string;
+    templateEditorUrl: string;
+    settingsEditorUrl: string;
     settings?: Partial<FinanceSettings>;
-    filters?: { tab?: string };
+    filters?: {
+        tab?: string; search?: string; status?: string; type?: string; page?: number; per_page?: number;
+        sort?: string; direction?: FinanceSortDirection;
+        payment_search?: string; payment_sort?: string; payment_direction?: FinanceSortDirection;
+        payments_page?: number; payments_per_page?: number;
+        expense_search?: string; expense_category?: string; expense_sort?: string;
+        expense_direction?: FinanceSortDirection; expenses_page?: number; expenses_per_page?: number;
+    };
 };
 
+function paginationOf<T>(value?: Paginated<T> | T[]) {
+    if (!value || Array.isArray(value)) return { page: 1, pageSize: 15, total: Array.isArray(value) ? value.length : 0 };
+    const meta = value.meta;
+    return {
+        page: meta?.current_page ?? value.current_page ?? 1,
+        pageSize: meta?.per_page ?? value.per_page ?? 15,
+        total: meta?.total ?? value.total ?? unwrap(value).length,
+    };
+}
+
 type DocumentActionHandlers = {
+    onView: (document: FinanceDocument) => void;
+    onPrint: (document: FinanceDocument) => void;
+    onDownloadPdf: (document: FinanceDocument) => void;
+    onDownloadExcel: (document: FinanceDocument) => void;
     onEdit: (document: FinanceDocument) => void;
     onAccept: (document: FinanceDocument) => void;
     onReject: (document: FinanceDocument) => void;
@@ -152,16 +184,16 @@ function documentMatches(document: FinanceDocument, query: string, statusFilter?
 }
 
 const statusFilterOptions = [
-    { id: 'all', label: 'All' },
-    { id: 'draft', label: 'Draft' },
-    { id: 'issued', label: 'Issued' },
-    { id: 'sent', label: 'Sent' },
-    { id: 'accepted', label: 'Accepted' },
-    { id: 'partially_paid', label: 'Partial' },
-    { id: 'paid', label: 'Paid' },
-    { id: 'overdue', label: 'Overdue' },
-    { id: 'rejected', label: 'Rejected' },
-    { id: 'cancelled', label: 'Cancelled' },
+    { id: 'all', label: 'Tous' },
+    { id: 'draft', label: 'Brouillon' },
+    { id: 'issued', label: 'Emis' },
+    { id: 'sent', label: 'Envoye' },
+    { id: 'accepted', label: 'Accepte' },
+    { id: 'partially_paid', label: 'Partiel' },
+    { id: 'paid', label: 'Paye' },
+    { id: 'overdue', label: 'En retard' },
+    { id: 'rejected', label: 'Refuse' },
+    { id: 'cancelled', label: 'Annule' },
 ];
 
 const typeFilterOptions = [
@@ -170,24 +202,6 @@ const typeFilterOptions = [
     { id: 'invoice', label: 'Facture' },
     { id: 'receipt', label: 'Recu' },
 ];
-
-function paymentMatches(payment: Payment, query: string) {
-    if (!query.trim()) return true;
-
-    return [
-        payment.paymentNumber,
-        payment.method,
-        payment.paidAt,
-        payment.document?.number,
-        payment.client?.name,
-        payment.receipt?.number,
-        payment.receipt?.status,
-    ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(query.trim().toLowerCase());
-}
 
 function DocumentFileBadges({ document }: { document: FinanceDocument }) {
     return (
@@ -280,6 +294,14 @@ function FinanceDocumentDetailPanel({
                 </div>
 
                 <div className="space-y-1.5">
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <AppButton variant="flat" size="sm" onPress={() => actions.onView(document)}>
+                            <Eye size={13} /> View
+                        </AppButton>
+                        <AppButton variant="flat" size="sm" onPress={() => actions.onPrint(document)}>
+                            <Printer size={13} /> Print
+                        </AppButton>
+                    </div>
                     <AppButton variant="primary" className="w-full" size="sm" onPress={() => actions.onGeneratePdf(document)}>
                         <FileText size={13} />
                         Generate PDF
@@ -332,6 +354,9 @@ function FinanceDocumentWorkspace({
     onSelect,
     actions,
     searchPlaceholder,
+    pagination,
+    filters,
+    activeTab,
 }: {
     documents: FinanceDocument[];
     currency: string;
@@ -339,20 +364,43 @@ function FinanceDocumentWorkspace({
     onSelect: (document: FinanceDocument) => void;
     actions: DocumentActionHandlers;
     searchPlaceholder: string;
+    pagination: { page: number; pageSize: number; total: number };
+    filters?: PageProps['filters'];
+    activeTab: string;
 }) {
-    const [query, setQuery] = useState('');
+    const [query, setQuery] = useState(filters?.search || '');
     const [showFilters, setShowFilters] = useState(false);
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [typeFilter, setTypeFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState(filters?.status || 'all');
+    const [typeFilter, setTypeFilter] = useState(filters?.type || 'all');
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const filtered = useMemo(() => documents.filter((document) => documentMatches(document, query, statusFilter, typeFilter)), [documents, query, statusFilter, typeFilter]);
-    const [tablePage, setTablePage] = useState(1);
+    const filtered = documents;
     const [selectedRows, setSelectedRows] = useState<number[]>([]);
-    const TABLE_PAGE_SIZE = 15;
-    useEffect(() => { setTablePage(1); }, [query, statusFilter, typeFilter]);
-    const pagedFiltered = useMemo(() => filtered.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE), [filtered, tablePage]);
+    const pagedFiltered = filtered;
     const selectedVisible = selected && filtered.some((document) => document.id === selected.id) ? selected : filtered[0] ?? null;
     const allPageRowsSelected = pagedFiltered.length > 0 && pagedFiltered.every((document) => selectedRows.includes(document.id));
+    const sort = filters?.sort || 'created_at';
+    const direction = filters?.direction || 'desc';
+
+    function applyServerFilters(overrides: Record<string, string | number | undefined> = {}) {
+        router.get('/finance/documents', {
+            tab: activeTab,
+            search: query || undefined,
+            status: statusFilter === 'all' ? undefined : statusFilter,
+            type: typeFilter === 'all' ? undefined : typeFilter,
+            per_page: pagination.pageSize,
+            sort,
+            direction,
+            ...overrides,
+        }, { preserveState: true, preserveScroll: true, replace: true });
+    }
+
+    function changeSort(column: string) {
+        applyServerFilters({
+            sort: column,
+            direction: nextFinanceSortDirection(sort, direction, column),
+            page: 1,
+        });
+    }
 
     function toggleRow(documentId: number) {
         setSelectedRows((current) => (
@@ -407,22 +455,26 @@ function FinanceDocumentWorkspace({
     }
 
     return (
-        <section className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <section className="min-w-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
-                <div className="flex items-center gap-1.5">
-                    <div className="relative w-[200px]">
+            <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center">
+                <div className="flex min-w-0 items-center gap-1.5">
+                    <div className="relative min-w-0 flex-1 sm:w-[260px] sm:flex-none">
                         <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
+                            onKeyDown={(event) => { if (event.key === 'Enter') applyServerFilters({ search: query || undefined, page: 1 }); }}
                             placeholder={searchPlaceholder}
                             className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                         />
                         {query ? (
                             <button
                                 type="button"
-                                onClick={() => setQuery('')}
+                                onClick={() => {
+                                    setQuery('');
+                                    applyServerFilters({ search: undefined, page: 1 });
+                                }}
                                 className="absolute right-0.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                             >
                                 <X size={11} />
@@ -454,42 +506,26 @@ function FinanceDocumentWorkspace({
 
             {/* Filter panel */}
             {showFilters ? (
-                <div className="border-t border-[var(--border)] px-3 py-2.5">
-                    <div className="flex flex-wrap items-center gap-4">
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Status</p>
-                            <div className="flex flex-wrap gap-1">
-                                {statusFilterOptions.map((opt) => (
-                                    <button key={opt.id} type="button" onClick={() => setStatusFilter(opt.id)}
-                                        className={[
-                                            'rounded-lg border px-2 py-1 text-[11px] font-medium transition',
-                                            statusFilter === opt.id
-                                                ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
-                                                : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]',
-                                        ].join(' ')}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Type</p>
-                            <div className="flex flex-wrap gap-1">
-                                {typeFilterOptions.map((opt) => (
-                                    <button key={opt.id} type="button" onClick={() => setTypeFilter(opt.id)}
-                                        className={[
-                                            'rounded-lg border px-2 py-1 text-[11px] font-medium transition',
-                                            typeFilter === opt.id
-                                                ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
-                                                : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]',
-                                        ].join(' ')}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                <div className="border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--surface-2)_35%,transparent)] px-3 py-3">
+                    <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
+                        <AppFilterTabs
+                            label="Statut"
+                            value={statusFilter}
+                            options={statusFilterOptions}
+                            onChange={(value) => {
+                                setStatusFilter(value);
+                                applyServerFilters({ status: value === 'all' ? undefined : value, page: 1 });
+                            }}
+                        />
+                        <AppFilterTabs
+                            label="Type de document"
+                            value={typeFilter}
+                            options={typeFilterOptions}
+                            onChange={(value) => {
+                                setTypeFilter(value);
+                                applyServerFilters({ type: value === 'all' ? undefined : value, page: 1 });
+                            }}
+                        />
                     </div>
                 </div>
             ) : null}
@@ -514,30 +550,25 @@ function FinanceDocumentWorkspace({
             ) : null}
 
             {/* Desktop table */}
-            <div className="hidden md:block">
-                <table className="w-full text-sm">
+            <div className="finance-table-shell hidden md:block">
+                <table className="finance-table min-w-[980px] text-sm">
                     <thead>
                         <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                             <th className="w-10 px-3 py-2">
                                 <Checkbox checked={allPageRowsSelected} onChange={togglePageRows} label="Select all visible" />
                             </th>
-                            <th className="px-3 py-2">
-                                <span className="inline-flex items-center gap-1.5">
-                                    <ReceiptText size={11} />
-                                    Document
-                                </span>
-                            </th>
-                            <th className="px-3 py-2">Type</th>
+                            <FinanceSortableHeader column="number" label={<><ReceiptText size={11} /> Document</>} sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="type" label="Type" sort={sort} direction={direction} onSort={changeSort} />
                             <th className="px-3 py-2">
                                 <span className="inline-flex items-center gap-1.5">
                                     <FileText size={11} />
                                     Client / Dossier
                                 </span>
                             </th>
-                            <th className="px-3 py-2">Status</th>
-                            <th className="px-3 py-2 text-right">Total</th>
-                            <th className="px-3 py-2 text-right">Paid</th>
-                            <th className="px-3 py-2 text-right">Remaining</th>
+                            <FinanceSortableHeader column="status" label="Status" sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="total_ttc" label="Total" sort={sort} direction={direction} onSort={changeSort} align="right" />
+                            <FinanceSortableHeader column="paid_total" label="Paid" sort={sort} direction={direction} onSort={changeSort} align="right" />
+                            <FinanceSortableHeader column="remaining_total" label="Remaining" sort={sort} direction={direction} onSort={changeSort} align="right" />
                             <th className="w-24 px-3 py-2 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -591,27 +622,36 @@ function FinanceDocumentWorkspace({
                                             {formatCompactMoney(document.remainingTotal, currency)}
                                         </td>
                                         <td className="px-3 py-2">
-                                            <div className="flex justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                                            <div className="finance-table-actions flex justify-end gap-0.5">
                                                 <Tooltip delay={500}>
-                                                    <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => router.visit(docShowUrl(document.id))}>
+                                                    <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => router.visit(docShowUrl(document.id))}>
                                                         <Eye size={13} />
                                                     </AppButton>
                                                     <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Open</Tooltip.Content>
                                                 </Tooltip>
                                                 <Tooltip delay={500}>
-                                                    <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => actions.onEdit(document)}>
+                                                    <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => actions.onEdit(document)}>
                                                         <Pencil size={13} />
                                                     </AppButton>
                                                     <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Edit</Tooltip.Content>
                                                 </Tooltip>
                                                 <div className="relative group/more">
                                                     <Tooltip delay={500}>
-                                                        <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+                                                        <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
                                                             <EllipsisVertical size={13} />
                                                         </AppButton>
                                                         <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">More</Tooltip.Content>
                                                     </Tooltip>
                                                     <div className="absolute right-0 top-full z-20 mt-0.5 hidden w-44 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg group-hover/more:block group-focus-within/more:block">
+                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onView(document); }}>
+                                                            <Eye size={12} /> View document
+                                                        </button>
+                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onPrint(document); }}>
+                                                            <Printer size={12} /> Print
+                                                        </button>
+                                                        {document.hasPdf ? <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onDownloadPdf(document); }}><Download size={12} /> Download PDF</button> : null}
+                                                        {document.hasExcel ? <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onDownloadExcel(document); }}><Download size={12} /> Download Excel</button> : null}
+                                                        <div className="my-1 h-px bg-[var(--border)]" />
                                                         <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onGeneratePdf(document); }}>
                                                             <FileText size={12} /> Generate PDF
                                                         </button>
@@ -722,7 +762,7 @@ function FinanceDocumentWorkspace({
                 ))}
             </div>
 
-            <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filtered.length} onChange={setTablePage} variant="reference" />
+            <AppPagination page={pagination.page} pageSize={pagination.pageSize} total={pagination.total} onChange={(page) => applyServerFilters({ page })} variant="reference" />
         </section>
     );
 }
@@ -731,37 +771,63 @@ function PaymentWorkspace({
     payments,
     currency,
     onReceipt,
+    pagination,
+    filters,
 }: {
     payments: Payment[];
     currency: string;
     onReceipt: (url: string | null | undefined) => void;
+    pagination: { page: number; pageSize: number; total: number };
+    filters?: PageProps['filters'];
 }) {
-    const [query, setQuery] = useState('');
-    const filtered = useMemo(() => payments.filter((payment) => paymentMatches(payment, query)), [payments, query]);
-    const [tablePage, setTablePage] = useState(1);
-    const TABLE_PAGE_SIZE = 15;
-    useEffect(() => { setTablePage(1); }, [query]);
-    const pagedFiltered = useMemo(() => filtered.slice((tablePage - 1) * TABLE_PAGE_SIZE, tablePage * TABLE_PAGE_SIZE), [filtered, tablePage]);
+    const [query, setQuery] = useState(filters?.payment_search || '');
+    const pagedFiltered = payments;
+    const sort = filters?.payment_sort || 'paid_at';
+    const direction = filters?.payment_direction || 'desc';
 
-    const totalAmount = useMemo(() => filtered.reduce((s, p) => s + p.amount, 0), [filtered]);
+    const totalAmount = useMemo(() => payments.reduce((sum, payment) => sum + payment.amount, 0), [payments]);
+
+    function applyPaymentFilters(overrides: Record<string, string | number | undefined> = {}) {
+        router.get('/finance/documents', {
+            ...Object.fromEntries(new URLSearchParams(window.location.search)),
+            tab: 'payments',
+            payment_search: query || undefined,
+            payment_sort: sort,
+            payment_direction: direction,
+            payments_per_page: pagination.pageSize,
+            ...overrides,
+        }, { preserveState: true, preserveScroll: true, replace: true });
+    }
+
+    function changeSort(column: string) {
+        applyPaymentFilters({
+            payment_sort: column,
+            payment_direction: nextFinanceSortDirection(sort, direction, column),
+            payments_page: 1,
+        });
+    }
 
     return (
-        <section className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <section className="min-w-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
-                <div className="flex items-center gap-1.5">
-                    <div className="relative w-[200px]">
+            <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center">
+                <div className="flex min-w-0 items-center gap-1.5">
+                    <div className="relative min-w-0 flex-1 sm:w-[280px] sm:flex-none">
                         <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
-                            placeholder="Search payments, invoices, clients..."
+                            onKeyDown={(event) => { if (event.key === 'Enter') applyPaymentFilters({ payment_search: query || undefined, payments_page: 1 }); }}
+                            placeholder="Rechercher paiements, factures, clients..."
                             className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                         />
                         {query && (
                             <button
                                 type="button"
-                                onClick={() => setQuery('')}
+                                onClick={() => {
+                                    setQuery('');
+                                    applyPaymentFilters({ payment_search: undefined, payments_page: 1 });
+                                }}
                                 className="absolute right-0.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                             >
                                 <X size={11} />
@@ -771,29 +837,24 @@ function PaymentWorkspace({
                 </div>
 
                 <div className="ml-auto hidden text-[11px] font-medium text-[var(--text-muted)] md:block">
-                    {filtered.length} paiement{filtered.length !== 1 ? 's' : ''} · {formatCompactMoney(totalAmount, currency)}
+                    {pagination.total} paiement{pagination.total !== 1 ? 's' : ''} / page {formatCompactMoney(totalAmount, currency)}
                 </div>
             </div>
 
             {/* Desktop table */}
-            <div className="hidden md:block">
-                <table className="w-full text-sm">
+            <div className="finance-table-shell hidden md:block">
+                <table className="finance-table min-w-[720px] text-sm">
                     <thead>
                         <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                            <th className="px-3 py-2">
-                                <span className="inline-flex items-center gap-1.5">
-                                    <CircleDollarSign size={11} />
-                                    Payment
-                                </span>
-                            </th>
+                            <FinanceSortableHeader column="payment_number" label={<><CircleDollarSign size={11} /> Paiement</>} sort={sort} direction={direction} onSort={changeSort} />
                             <th className="px-3 py-2">
                                 <span className="inline-flex items-center gap-1.5">
                                     <ReceiptText size={11} />
-                                    Invoice / Client
+                                    Facture / Client
                                 </span>
                             </th>
-                            <th className="px-3 py-2 text-right">Amount</th>
-                            <th className="px-3 py-2">Receipt</th>
+                            <FinanceSortableHeader column="amount" label="Montant" sort={sort} direction={direction} onSort={changeSort} align="right" />
+                            <th className="px-3 py-2">Recu</th>
                             <th className="w-24 px-3 py-2 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -834,7 +895,7 @@ function PaymentWorkspace({
                                         <div className="flex justify-end gap-0.5">
                                             {payment.receipt?.urls?.show ? (
                                                 <Tooltip delay={500}>
-                                                    <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.show)}>
+                                                    <AppButton size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.show)}>
                                                         <Eye size={11} />
                                                     </AppButton>
                                                     <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Voir le reçu</Tooltip.Content>
@@ -842,7 +903,7 @@ function PaymentWorkspace({
                                             ) : null}
                                             {payment.receipt?.urls?.pdf ? (
                                                 <Tooltip delay={500}>
-                                                    <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.pdf)}>
+                                                    <AppButton size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.pdf)}>
                                                         <FileText size={11} />
                                                     </AppButton>
                                                     <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Télécharger PDF</Tooltip.Content>
@@ -850,7 +911,7 @@ function PaymentWorkspace({
                                             ) : null}
                                             {payment.receipt?.urls?.excel ? (
                                                 <Tooltip delay={500}>
-                                                    <AppButton isIconOnly size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.excel)}>
+                                                    <AppButton size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.excel)}>
                                                         <FileSpreadsheet size={11} />
                                                     </AppButton>
                                                     <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Télécharger Excel</Tooltip.Content>
@@ -927,7 +988,7 @@ function PaymentWorkspace({
                 )}
             </div>
 
-            <AppPagination page={tablePage} pageSize={TABLE_PAGE_SIZE} total={filtered.length} onChange={setTablePage} />
+            <AppPagination page={pagination.page} pageSize={pagination.pageSize} total={pagination.total} onChange={(page) => applyPaymentFilters({ payments_page: page })} />
         </section>
     );
 };
@@ -973,7 +1034,7 @@ function OverviewWorkspace({
 
     return (
         <section className="space-y-4">
-            <section className="grid gap-4 grid-cols-2 md:grid-cols-3">
+            <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
                 <MetricSparklineCard
                     icon={<FileText size={16} className="text-sky-400" />}
                     label="Quotes"
@@ -1180,14 +1241,17 @@ export default function FinanceDocumentsIndex({
     clients = [],
     dossiers = [],
     templates = [],
-    defaultTemplates = [],
-    templateEditorUrl = '/finance/templates',
+    templateEditorUrl,
+    settingsEditorUrl,
     settings: rawSettings,
     filters,
 }: PageProps) {
     const documents = unwrap(rawDocuments);
+    const documentPagination = paginationOf(rawDocuments);
     const payments = unwrap(rawPayments);
+    const paymentPagination = paginationOf(rawPayments);
     const expenses = unwrap(rawExpenses) as Expense[];
+    const expensePagination = paginationOf(rawExpenses);
 
     const settings = { ...defaultSettings, ...rawSettings };
     const [activeTab, setActiveTab] = useState(filters?.tab || new URLSearchParams(window.location.search).get('tab') || 'overview');
@@ -1201,6 +1265,19 @@ export default function FinanceDocumentsIndex({
     const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
     const [expenseDrawerMode, setExpenseDrawerMode] = useState<ExpenseViewMode>('create');
     const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+    const [renameTemplate, setRenameTemplate] = useState<TemplateOption | null>(null);
+    const [renameTemplateName, setRenameTemplateName] = useState('');
+    const [renameTemplateError, setRenameTemplateError] = useState<string>();
+
+    function changeTab(tab: string) {
+        setActiveTab(tab);
+        router.get('/finance/documents', { tab }, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            only: ['documents', 'payments', 'expenses', 'filters'],
+        });
+    }
 
     const quotes = useMemo(() => documents.filter((doc) => doc.type === 'quote'), [documents]);
     const invoices = useMemo(() => documents.filter((doc) => doc.type === 'invoice'), [documents]);
@@ -1248,6 +1325,31 @@ export default function FinanceDocumentsIndex({
         window.open(url, '_blank');
     }
 
+    function openTemplateRename(template: TemplateOption) {
+        setRenameTemplate(template);
+        setRenameTemplateName(template.label);
+        setRenameTemplateError(undefined);
+    }
+
+    function submitTemplateRename() {
+        if (!renameTemplate?.renameUrl) return;
+        const name = renameTemplateName.trim();
+        if (!name) {
+            setRenameTemplateError('Le nom du template est obligatoire.');
+            return;
+        }
+
+        router.patch(renameTemplate.renameUrl, { name }, {
+            preserveScroll: true,
+            only: ['templates'],
+            onSuccess: () => {
+                toast.success('Template renomme.');
+                setRenameTemplate(null);
+            },
+            onError: (errors) => setRenameTemplateError(String(errors.name || 'Impossible de renommer le template.')),
+        });
+    }
+
     function putAction(url: string | null | undefined, success: string, error: string) {
         if (!url) {
             toast.error('Action non disponible.');
@@ -1288,6 +1390,10 @@ export default function FinanceDocumentsIndex({
     }
 
     const commonActions: DocumentActionHandlers = {
+        onView: (document) => window.open(document.viewUrl || document.showUrl || docShowUrl(document.id), '_blank', 'noopener,noreferrer'),
+        onPrint: (document) => window.open(document.printUrl || document.viewUrl || docShowUrl(document.id), '_blank', 'noopener,noreferrer'),
+        onDownloadPdf: (document) => document.pdfDownloadUrl && window.open(document.pdfDownloadUrl, '_blank', 'noopener,noreferrer'),
+        onDownloadExcel: (document) => document.excelDownloadUrl && window.open(document.excelDownloadUrl, '_blank', 'noopener,noreferrer'),
         onEdit: openEdit,
         onAccept: (document) => putAction(document.acceptUrl || `/finance/documents/${document.id}/accept`, 'Devis accepte.', 'Impossible accepter le devis.'),
         onReject: (document) => putAction(document.rejectUrl || `/finance/documents/${document.id}/reject`, 'Devis refuse.', 'Impossible refuser le devis.'),
@@ -1304,32 +1410,29 @@ export default function FinanceDocumentsIndex({
         <>
             <Head title="Finance" />
 
-            <AppShell
-                eyebrowKey="financeWorkspace.eyebrow"
-                titleKey="financeWorkspace.title"
-                subtitleKey="financeWorkspace.subtitle"
-                action={
-                    <div className="flex flex-wrap gap-2">
-                        <AppButton variant="secondary" onPress={() => openPayment()}>
-                            <WalletCards size={16} />
-                            Paiement
-                        </AppButton>
-                        <AppButton variant="secondary" onPress={() => { setSelectedExpense(null); setExpenseDrawerMode('create'); setExpenseDrawerOpen(true); }}>
-                            <Plus size={16} />
-                            Depense
-                        </AppButton>
-                        <AppButton variant="secondary" onPress={() => openCreate('invoice')}>
-                            <ReceiptText size={16} />
-                            Nouvelle facture
-                        </AppButton>
-                        <AppButton variant="primary" onPress={() => openCreate('quote')}>
-                            <Plus size={16} />
-                            Nouveau devis
-                        </AppButton>
-                    </div>
-                }
-            >
-                <FinanceTabs selectedKey={activeTab} onSelectionChange={setActiveTab}>
+            <AppShell>
+                <FinanceWorkspaceHeader
+                    metrics={metrics}
+                    currency={settings.defaultCurrency}
+                    documentsCount={documentPagination.total}
+                    onCreatePayment={() => openPayment()}
+                    onCreateExpense={() => { setSelectedExpense(null); setExpenseDrawerMode('create'); setExpenseDrawerOpen(true); }}
+                    onCreateInvoice={() => openCreate('invoice')}
+                    onCreateQuote={() => openCreate('quote')}
+                />
+
+                <FinanceTabs
+                    selectedKey={activeTab}
+                    onSelectionChange={changeTab}
+                    counts={{
+                        quotes: quotes.length,
+                        invoices: invoices.length,
+                        payments: paymentPagination.total,
+                        expenses: expensePagination.total,
+                        monthly: monthlySummaries.length,
+                        templates: templates.length,
+                    }}
+                >
                     <TabPanel id="overview" className="space-y-5 outline-none">
                         <OverviewWorkspace
                             metrics={metrics}
@@ -1353,6 +1456,9 @@ export default function FinanceDocumentsIndex({
                             onSelect={setSelectedDocument}
                             actions={commonActions}
                             searchPlaceholder="Search quotes, clients, dossiers..."
+                            pagination={documentPagination}
+                            filters={filters}
+                            activeTab={activeTab}
                         />
                     </TabPanel>
 
@@ -1364,6 +1470,9 @@ export default function FinanceDocumentsIndex({
                             onSelect={setSelectedDocument}
                             actions={commonActions}
                             searchPlaceholder="Search invoices, clients, dossiers..."
+                            pagination={documentPagination}
+                            filters={filters}
+                            activeTab={activeTab}
                         />
                     </TabPanel>
 
@@ -1376,6 +1485,8 @@ export default function FinanceDocumentsIndex({
                             payments={payments}
                             currency={settings.defaultCurrency}
                             onReceipt={openPaymentReceiptUrl}
+                            pagination={paymentPagination}
+                            filters={filters}
                         />
                     </TabPanel>
 
@@ -1383,44 +1494,28 @@ export default function FinanceDocumentsIndex({
                         <ExpensesWorkspace
                             expenses={expenses}
                             currency={settings.defaultCurrency}
+                            pagination={expensePagination}
+                            filters={filters}
                             onEdit={(expense) => { setSelectedExpense(expense); setExpenseDrawerMode('edit'); setExpenseDrawerOpen(true); }}
                             onView={(expense) => { setSelectedExpense(expense); setExpenseDrawerMode('view'); setExpenseDrawerOpen(true); }}
                         />
                     </TabPanel>
 
                     <TabPanel id="templates" className="outline-none">
-                        <AppCard className="p-6">
-                            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                <div>
-                                    <h2 className="text-base font-semibold">Templates finance</h2>
-                                    <p className="mt-1 text-sm text-[var(--text-muted)]">Modifiez les modeles PDF des devis, factures et recus.</p>
-                                </div>
-                                <AppButton variant="primary" onPress={() => router.visit(templateEditorUrl)}>
-                                    <Settings2 size={16} />
-                                    Ouvrir l editeur
-                                </AppButton>
-                            </div>
-                            <div className="mt-5 grid gap-3 md:grid-cols-3">
-                                {defaultTemplates.length ? defaultTemplates.map((template) => (
-                                    <div key={template.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-                                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{template.type}</p>
-                                        <p className="mt-2 font-semibold">{template.label}</p>
-                                        <p className="mt-1 text-xs text-[var(--text-muted)]">{template.slug || '-'}</p>
-                                    </div>
-                                )) : <AppEmptyState title="Aucun template defaut" description="Ouvrez l editeur pour recreer les templates par defaut." />}
-                            </div>
-                        </AppCard>
+                        <FinanceTemplateManager
+                            templates={templates}
+                            editorUrl={templateEditorUrl}
+                            onOpenEditor={(url) => router.visit(url)}
+                            onRename={openTemplateRename}
+                        />
                     </TabPanel>
 
                     <TabPanel id="settings" className="outline-none">
-                        <AppCard className="p-6">
-                            <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                                <p>Devise: <strong>{settings.defaultCurrency}</strong></p>
-                                <p>TVA: <strong>{settings.defaultTvaRate}%</strong></p>
-                                <p>Delai paiement: <strong>{settings.defaultPaymentTermsDays} jours</strong></p>
-                                <p>Validite devis: <strong>{settings.defaultQuoteValidityDays} jours</strong></p>
-                            </div>
-                        </AppCard>
+                        <FinanceSettingsSummary
+                            settings={settings}
+                            settingsUrl={settingsEditorUrl}
+                            onOpen={(url) => router.visit(url)}
+                        />
                     </TabPanel>
                 </FinanceTabs>
             </AppShell>
@@ -1452,6 +1547,30 @@ export default function FinanceDocumentsIndex({
                 expense={selectedExpense}
                 mode={expenseDrawerMode}
             />
+
+            <AppModal
+                isOpen={!!renameTemplate}
+                onOpenChange={(open) => { if (!open) setRenameTemplate(null); }}
+                title="Renommer le template"
+                size="sm"
+            >
+                <form onSubmit={(event) => { event.preventDefault(); submitTemplateRename(); }}>
+                    <AppInput
+                        label="Nom"
+                        value={renameTemplateName}
+                        onChange={(value) => {
+                            setRenameTemplateName(value);
+                            setRenameTemplateError(undefined);
+                        }}
+                        error={renameTemplateError}
+                        autoFocus
+                    />
+                    <div className="mt-5 flex justify-end gap-2">
+                        <AppButton variant="secondary" onPress={() => setRenameTemplate(null)}>Annuler</AppButton>
+                        <AppButton type="submit" isDisabled={!renameTemplateName.trim()}>Renommer</AppButton>
+                    </div>
+                </form>
+            </AppModal>
 
             <AppConfirmDialog
                 isOpen={Boolean(deleteTarget)}

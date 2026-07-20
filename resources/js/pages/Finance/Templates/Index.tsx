@@ -1,11 +1,13 @@
 import { Head, router } from '@inertiajs/react';
 import { Code, FileText } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppInput } from '@/components/ui/AppInput';
 import { AppModal } from '@/components/ui/AppModal';
 import type { DocumentTemplate, FinanceDocumentType, TemplatePlaceholder } from '@/features/finance/types';
+import { validateTemplateContent } from '@/features/finance/templates/templateValidation';
 import { TemplatePreviewPanel } from './TemplatePreviewPanel';
 import { TemplateList } from './components/TemplateList';
 import { TemplateToolbar } from './components/TemplateToolbar';
@@ -17,9 +19,7 @@ type PageProps = {
     sampleData: Record<string, unknown>;
     routes: {
         store: string;
-        resetQuote: string;
-        resetInvoice: string;
-        resetReceipt: string;
+        close: string;
     };
 };
 
@@ -38,12 +38,6 @@ function unwrapTemplates(value?: DocumentTemplate[] | { data?: DocumentTemplate[
 
 function cloneTemplate(template: DocumentTemplate): TemplateDraft {
     return JSON.parse(JSON.stringify(template)) as TemplateDraft;
-}
-
-function resetUrlFor(type: FinanceDocumentType, routes: PageProps['routes']): string {
-    if (type === 'invoice') return routes.resetInvoice;
-    if (type === 'receipt') return routes.resetReceipt;
-    return routes.resetQuote;
 }
 
 function templatePayload(template: TemplateDraft) {
@@ -123,7 +117,12 @@ export default function FinanceTemplatesIndex({
     const templates = useMemo(() => unwrapTemplates(rawTemplates), [rawTemplates]);
     const params = new URLSearchParams(window.location.search);
     const requestedType = params.get('type') as FinanceDocumentType | null;
-    const initialType = documentTypes.some((item) => item.type === requestedType) ? requestedType! : 'quote';
+    const requestedTypeExists = documentTypes.some((item) => item.type === requestedType)
+        && templates.some((template) => template.type === requestedType);
+    const firstPersistedType = templates.find((template) =>
+        documentTypes.some((item) => item.type === template.type),
+    )?.type;
+    const initialType = requestedTypeExists ? requestedType! : firstPersistedType || 'quote';
 
     const [selectedType, setSelectedType] = useState<FinanceDocumentType>(initialType);
     const visibleTemplates = useMemo(
@@ -150,7 +149,11 @@ export default function FinanceTemplatesIndex({
 
     const dirty = isDirty(draft, selectedTemplate);
     const [deleteTarget, setDeleteTarget] = useState<DocumentTemplate | null>(null);
+    const [renameTarget, setRenameTarget] = useState<DocumentTemplate | null>(null);
+    const [renameName, setRenameName] = useState('');
+    const [renameError, setRenameError] = useState<string>();
     const [showStarterModal, setShowStarterModal] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [pendingConfirmAction, setPendingConfirmAction] = useState<(() => void) | null>(null);
     const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('tpl_left_collapsed') === '1');
     const [previewCollapsed, setPreviewCollapsed] = useState(() => localStorage.getItem('tpl_preview_collapsed') === '1');
@@ -174,6 +177,16 @@ export default function FinanceTemplatesIndex({
     }, [previewCollapsed]);
 
     useEffect(() => {
+        if (!dirty) return;
+        const preventAccidentalExit = (event: BeforeUnloadEvent) => {
+            event.preventDefault();
+            event.returnValue = '';
+        };
+        window.addEventListener('beforeunload', preventAccidentalExit);
+        return () => window.removeEventListener('beforeunload', preventAccidentalExit);
+    }, [dirty]);
+
+    useEffect(() => {
         if (!selectedTemplate) {
             setDraft(null);
             setRawPreviewHtml('');
@@ -183,7 +196,13 @@ export default function FinanceTemplatesIndex({
         const next = cloneTemplate(selectedTemplate);
         setDraft(next);
         setRawPreviewHtml(renderPreview(next, sampleData));
-    }, [selectedTemplate?.id]);
+    }, [selectedTemplate?.id, selectedTemplate?.name, selectedTemplate?.updatedAt]);
+
+    useEffect(() => {
+        if (selectedTemplate && selectedId !== selectedTemplate.id) {
+            setSelectedId(selectedTemplate.id);
+        }
+    }, [selectedId, selectedTemplate?.id]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -272,12 +291,32 @@ export default function FinanceTemplatesIndex({
     }
 
     function save() {
-        if (!draft) return;
+        if (!draft || !dirty || saving) return;
+        const validation = validateTemplateContent(
+            draft.type,
+            [draft.headerHtml, draft.bodyHtml, draft.footerHtml, draft.css].filter(Boolean).join('\n'),
+            placeholders,
+        );
+        if (validation.errors.length > 0) {
+            toast.error(validation.errors[0]);
+            return;
+        }
         router.put(draft.urls.update, templatePayload(draft), {
             preserveScroll: true,
+            onStart: () => setSaving(true),
             onSuccess: () => toast.success('Template saved.'),
             onError: () => toast.error('Could not save template.'),
+            onFinish: () => setSaving(false),
         });
+    }
+
+    function closeEditor() {
+        const close = () => router.visit(routes.close);
+        if (dirty) {
+            setPendingConfirmAction(() => close);
+            return;
+        }
+        close();
     }
 
     function createTemplate() {
@@ -304,14 +343,6 @@ export default function FinanceTemplatesIndex({
         });
     }
 
-    function resetDefault() {
-        router.put(resetUrlFor(selectedType, routes), {}, {
-            preserveScroll: true,
-            onSuccess: () => toast.success('Default template recreated.'),
-            onError: () => toast.error('Could not reset default template.'),
-        });
-    }
-
     function duplicateTemplate(template: DocumentTemplate) {
         router.post(template.urls.duplicate, {}, {
             preserveScroll: true,
@@ -322,6 +353,31 @@ export default function FinanceTemplatesIndex({
 
     function deleteTemplate(template: DocumentTemplate) {
         setDeleteTarget(template);
+    }
+
+    function openRename(template: DocumentTemplate) {
+        setRenameTarget(template);
+        setRenameName(template.name);
+        setRenameError(undefined);
+    }
+
+    function confirmRename() {
+        if (!renameTarget) return;
+        const name = renameName.trim();
+        if (!name) {
+            setRenameError('Le nom du template est obligatoire.');
+            return;
+        }
+
+        router.patch(renameTarget.urls.rename, { name }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Template renomme.');
+                setRenameTarget(null);
+                setRenameError(undefined);
+            },
+            onError: (errors) => setRenameError(String(errors.name || 'Impossible de renommer le template.')),
+        });
     }
 
     function confirmDelete() {
@@ -343,6 +399,10 @@ export default function FinanceTemplatesIndex({
 
     async function exactPreview() {
         if (!draft?.urls.preview) return;
+        if (dirty) {
+            toast.warning('Enregistrez le template avant de charger l apercu exact.');
+            return;
+        }
         try {
             const response = await fetch(draft.urls.preview, { headers: { Accept: 'application/json' } });
             const data = await response.json() as { html?: string };
@@ -386,6 +446,7 @@ export default function FinanceTemplatesIndex({
                     placeholders={placeholders}
                     activeSection={activeSection}
                     onSectionChange={setActiveSection}
+                    onSave={save}
                 />
             );
         }
@@ -415,14 +476,15 @@ export default function FinanceTemplatesIndex({
                         variablesTotal={placeholders.reduce((s, g) => s + g.items.length, 0)}
                         draftName={draft?.name}
                         dirty={dirty}
+                        saving={saving}
                         onNew={createTemplate}
                         onSave={save}
-                        onExactPreview={exactPreview}
                         onVersions={draft?.urls.versions ? () => router.visit(draft.urls.versions!) : undefined}
                         onDuplicate={() => draft && duplicateTemplate(draft)}
+                        onRename={() => draft && openRename(draft)}
                         onDelete={() => draft && deleteTemplate(draft)}
                         onSetDefault={() => draft && setDefault(draft)}
-                        onResetDefault={resetDefault}
+                        onClose={closeEditor}
                     />
 
                     {/* Desktop 3-pane layout — fills all width */}
@@ -431,6 +493,7 @@ export default function FinanceTemplatesIndex({
                             templates={visibleTemplates}
                             selectedId={selectedId}
                             onSelect={selectTemplate}
+                            onRename={openRename}
                             collapsed={leftCollapsed}
                             onToggleCollapse={() => setLeftCollapsed((v) => !v)}
                         />
@@ -455,6 +518,7 @@ export default function FinanceTemplatesIndex({
                             templates={visibleTemplates}
                             selectedId={selectedId}
                             onSelect={selectTemplate}
+                            onRename={openRename}
                             collapsed={leftCollapsed}
                             onToggleCollapse={() => setLeftCollapsed((v) => !v)}
                         />
@@ -494,6 +558,7 @@ export default function FinanceTemplatesIndex({
                                     templates={visibleTemplates}
                                     selectedId={selectedId}
                                     onSelect={(t) => { selectTemplate(t); setMobileTab('editor'); }}
+                                    onRename={openRename}
                                     collapsed={false}
                                     onToggleCollapse={() => {}}
                                 />
@@ -513,6 +578,38 @@ export default function FinanceTemplatesIndex({
                         </div>
                     </div>
                 </div>
+
+                <AppModal
+                    isOpen={!!renameTarget}
+                    onOpenChange={(open) => { if (!open) setRenameTarget(null); }}
+                    title="Renommer le template"
+                    size="sm"
+                >
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            confirmRename();
+                        }}
+                    >
+                        <AppInput
+                            label="Nom"
+                            value={renameName}
+                            onChange={(value) => {
+                                setRenameName(value);
+                                setRenameError(undefined);
+                            }}
+                            error={renameError}
+                            autoFocus
+                        />
+                        <p className="mt-2 text-xs text-[var(--text-muted)]">
+                            Le slug reste inchange afin de proteger les references existantes.
+                        </p>
+                        <div className="mt-5 flex justify-end gap-2">
+                            <AppButton variant="secondary" onPress={() => setRenameTarget(null)}>Annuler</AppButton>
+                            <AppButton type="submit" isDisabled={!renameName.trim()}>Renommer</AppButton>
+                        </div>
+                    </form>
+                </AppModal>
 
                 <AppModal
                     isOpen={!!deleteTarget}

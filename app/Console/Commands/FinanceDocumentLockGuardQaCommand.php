@@ -106,7 +106,7 @@ class FinanceDocumentLockGuardQaCommand extends Command
 
         $safeField = null;
 
-        foreach (['notes', 'status', 'pdf_path', 'excel_path'] as $candidate) {
+        foreach (['paid_total', 'remaining_total', 'status'] as $candidate) {
             if (Schema::hasColumn('finance_documents', $candidate)) {
                 $safeField = $candidate;
                 break;
@@ -119,7 +119,9 @@ class FinanceDocumentLockGuardQaCommand extends Command
                     $fresh = FinanceDocument::query()->findOrFail($document->id);
                     $original = $fresh->{$safeField};
 
-                    if (is_string($original) || is_null($original)) {
+                    if (is_numeric($original)) {
+                        $fresh->{$safeField} = (float) $original + 0.01;
+                    } elseif (is_string($original) || is_null($original)) {
                         $fresh->{$safeField} = trim((string) $original).' ';
                     } else {
                         $fresh->{$safeField} = $original;

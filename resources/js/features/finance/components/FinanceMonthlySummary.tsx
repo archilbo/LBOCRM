@@ -1,11 +1,13 @@
 import { router } from '@inertiajs/react';
 import { ChevronRight, Download, FileSpreadsheet, FileText, FileDown, Files, Receipt, Search, Wallet, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Popover } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { toast } from 'sonner';
 import type { FinanceMonthDocumentRow, FinanceMonthPaymentRow, FinanceMonthSummary as FinanceMonthSummaryType } from '@/features/finance/types';
 import { formatCompactMoney } from '@/features/finance/utils/calculations';
+import { AppPagination } from '@/components/ui/AppPagination';
+import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirection } from '@/features/finance/components/FinanceSortableHeader';
 
 type Props = {
     months: FinanceMonthSummaryType[];
@@ -50,6 +52,10 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
     const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter, setTypeFilter] = useState<string>('all');
+    const [sort, setSort] = useState('date');
+    const [direction, setDirection] = useState<FinanceSortDirection>('desc');
+    const [page, setPage] = useState(1);
+    const pageSize = 15;
 
     function toggleMonth(key: string) {
         setSelectedKeys((prev) => {
@@ -140,6 +146,36 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
         return r;
     }, [rows, typeFilter, searchQuery]);
 
+    const sortedRows = useMemo(() => [...filteredRows].sort((left, right) => {
+        const value = (row: Row): string | number => {
+            if (sort === 'number') return row._type === 'document' ? row.number : row.paymentNumber;
+            if (sort === 'client') return row.clientName || '';
+            if (sort === 'date') return row._type === 'document' ? row.issueDate || '' : row.paidAt || '';
+            if (sort === 'status') return row._type === 'document' ? row.status : 'payment';
+            if (sort === 'total') return row._type === 'document' ? row.totalTtc : row.amount;
+            if (sort === 'remaining') return row._type === 'document' ? row.remainingTotal : 0;
+            return '';
+        };
+        const leftValue = value(left);
+        const rightValue = value(right);
+        const comparison = typeof leftValue === 'number' && typeof rightValue === 'number'
+            ? leftValue - rightValue
+            : String(leftValue).localeCompare(String(rightValue), 'fr', { numeric: true, sensitivity: 'base' });
+        return direction === 'asc' ? comparison : -comparison;
+    }), [direction, filteredRows, sort]);
+
+    useEffect(() => setPage(1), [searchQuery, selectedKeys, sort, direction, typeFilter]);
+
+    const pagedRows = useMemo(
+        () => sortedRows.slice((page - 1) * pageSize, page * pageSize),
+        [page, sortedRows],
+    );
+
+    function changeSort(column: string) {
+        setDirection(nextFinanceSortDirection(sort, direction, column));
+        setSort(column);
+    }
+
     const typeCounts = useMemo(() => {
         const counts: Record<string, number> = { all: rows.length };
         for (const type of ['quote', 'invoice', 'receipt', 'payment']) {
@@ -195,7 +231,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
 
     if (!months.length) {
         return (
-            <section className="flex flex-col items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center">
+            <section className="flex flex-col items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center">
                 <p className="text-sm font-semibold text-[var(--text)]">Aucune synthese mensuelle</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">Les donnees apparaitront ici une fois les documents crees.</p>
             </section>
@@ -205,7 +241,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
     return (
         <section className="space-y-4">
             {/* Month filter — popover with years accordion */}
-            <Popover placement="bottom-start">
+            <Popover>
                 <Popover.Trigger>
                     <button type="button"
                         className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:border-[var(--accent)]">
@@ -213,7 +249,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                         <ChevronRight size={12} className="text-[var(--text-muted)]" />
                     </button>
                 </Popover.Trigger>
-                <Popover.Content className="w-64 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
+                <Popover.Content placement="bottom start" className="w-64 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
                     <div className="max-h-72 overflow-y-auto">
                         <div className="mb-1.5 flex items-center justify-between gap-2 px-2 py-1">
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Mois</span>
@@ -285,7 +321,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
             )}
 
             {/* Documents & Payments unified table */}
-            <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+            <div className="min-w-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
                 <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-3 py-2">
                     <div className="flex flex-wrap items-center gap-1">
                         {typeFilters.map((f) => {
@@ -310,7 +346,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                         })}
                     </div>
                     <div className="ml-auto flex items-center gap-1">
-                        <Popover placement="bottom-end">
+                        <Popover>
                             <Popover.Trigger>
                                 <AppButton size="sm" variant="ghost"
                                     className="h-7 min-w-0 gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-[11px] font-medium text-[var(--text)] transition hover:border-[var(--accent)]">
@@ -318,7 +354,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                     Exporter
                                 </AppButton>
                             </Popover.Trigger>
-                            <Popover.Content className="min-w-44 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                            <Popover.Content placement="bottom end" className="min-w-44 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                                 <button type="button" onClick={exportPdf}
                                     className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[11px] font-medium text-rose-400 transition hover:bg-rose-500/10">
                                     <FileText size={14} />
@@ -361,21 +397,21 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-xs min-w-[700px]">
+                <div className="finance-table-shell">
+                    <table className="finance-table min-w-[700px] text-xs">
                         <thead>
                             <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                                 <th className="w-8 px-3 py-2"></th>
-                                <th className="px-3 py-2">Numero</th>
-                                <th className="px-3 py-2">Client</th>
-                                <th className="px-3 py-2">Date</th>
-                                <th className="px-3 py-2">Statut</th>
-                                <th className="px-3 py-2 text-right">Total</th>
-                                <th className="px-3 py-2 text-right">Restant</th>
+                                <FinanceSortableHeader column="number" label="Numero" sort={sort} direction={direction} onSort={changeSort} />
+                                <FinanceSortableHeader column="client" label="Client" sort={sort} direction={direction} onSort={changeSort} />
+                                <FinanceSortableHeader column="date" label="Date" sort={sort} direction={direction} onSort={changeSort} />
+                                <FinanceSortableHeader column="status" label="Statut" sort={sort} direction={direction} onSort={changeSort} />
+                                <FinanceSortableHeader column="total" label="Total" sort={sort} direction={direction} onSort={changeSort} align="right" />
+                                <FinanceSortableHeader column="remaining" label="Restant" sort={sort} direction={direction} onSort={changeSort} align="right" />
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredRows.length > 0 ? filteredRows.map((row) => {
+                            {pagedRows.length > 0 ? pagedRows.map((row) => {
                                 const type = row._type === 'payment' ? 'payment' : (row as FinanceMonthDocumentRow).type;
                                 const meta = typeMeta(type);
                                 return (
@@ -432,6 +468,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                     <p className="text-[10px] text-[var(--text-muted)]">{filteredRows.length} element(s)</p>
                     <p className="text-[10px] text-[var(--text-muted)]">{selectedMonths.length} mois selectionne(s)</p>
                 </div>
+                <AppPagination page={page} pageSize={pageSize} total={filteredRows.length} onChange={setPage} variant="reference" />
             </div>
         </section>
     );

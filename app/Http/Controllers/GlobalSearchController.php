@@ -8,7 +8,7 @@ use App\Models\Client;
 use App\Models\Contract;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
-use App\Models\FinanceRecord;
+use App\Models\FinanceDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -196,11 +196,13 @@ class GlobalSearchController extends Controller
 
     private function finance(string $like): Collection
     {
-        return FinanceRecord::query()
+        return FinanceDocument::query()
             ->with(['dossier', 'client'])
+            ->where('company_id', auth()->user()->company_id)
+            ->when(auth()->user()->branch_id, fn ($query, $branchId) => $query->where('branch_id', $branchId))
             ->where(function ($builder) use ($like) {
                 $builder
-                    ->where('record_number', 'like', $like)
+                    ->where('number', 'like', $like)
                     ->orWhere('type', 'like', $like)
                     ->orWhere('status', 'like', $like)
                     ->orWhereHas('dossier', function ($dossierQuery) use ($like) {
@@ -217,12 +219,12 @@ class GlobalSearchController extends Controller
             ->latest()
             ->limit(4)
             ->get()
-            ->map(fn (FinanceRecord $record) => [
+            ->map(fn (FinanceDocument $record) => [
                 'id' => 'finance-' . $record->id,
                 'type' => 'Finance',
-                'title' => $record->record_number,
+                'title' => $record->number,
                 'subtitle' => ($record->client?->full_name ?? '-') . ' Â· ' . number_format((float) $record->total_ttc, 0) . ' MAD',
-                'href' => '/finance',
+                'href' => route('finance.documents.show', $record),
                 'badge' => $record->status,
             ]);
     }

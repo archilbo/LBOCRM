@@ -21,7 +21,7 @@ export function AppPagination({ page, pageSize, total, onChange, variant = 'defa
     return (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3">
             <p className="text-xs text-[var(--text-muted)]">
-                Showing {start}-{end} of {total}
+                Affichage {start}-{end} sur {total}
             </p>
             <div className="flex items-center gap-2">
                 <button
@@ -31,7 +31,7 @@ export function AppPagination({ page, pageSize, total, onChange, variant = 'defa
                     onClick={() => onChange(page - 1)}
                 >
                     <ChevronLeft size={13} />
-                    Previous
+                    Precedent
                 </button>
                 <span className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text)]">
                     {page} / {totalPages}
@@ -42,7 +42,7 @@ export function AppPagination({ page, pageSize, total, onChange, variant = 'defa
                     disabled={page >= totalPages}
                     onClick={() => onChange(page + 1)}
                 >
-                    Next
+                    Suivant
                     <ChevronRight size={13} />
                 </button>
             </div>

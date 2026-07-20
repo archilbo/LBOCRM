@@ -1,4 +1,5 @@
-import { Search, ChevronLeft, ChevronRight, Star, FileText } from 'lucide-react';
+import { Input } from '@heroui/react';
+import { Search, ChevronLeft, ChevronRight, Star, FileText, Pencil } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { DocumentTemplate } from '@/features/finance/types';
 
@@ -6,6 +7,7 @@ type TemplateListProps = {
     templates: DocumentTemplate[];
     selectedId: number | undefined;
     onSelect: (template: DocumentTemplate) => void;
+    onRename: (template: DocumentTemplate) => void;
     collapsed: boolean;
     onToggleCollapse: () => void;
 };
@@ -14,6 +16,7 @@ export function TemplateList({
     templates,
     selectedId,
     onSelect,
+    onRename,
     collapsed,
     onToggleCollapse,
 }: TemplateListProps) {
@@ -34,7 +37,7 @@ export function TemplateList({
                     type="button"
                     onClick={onToggleCollapse}
                     className="flex size-5 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]"
-                    title="Expand list"
+                    title="Afficher la liste"
                 >
                     <ChevronRight size={14} />
                 </button>
@@ -46,18 +49,18 @@ export function TemplateList({
         <aside className="flex w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)]">
             <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-2">
                 <Search size={14} className="shrink-0 text-[var(--text-muted)]" />
-                <input
+                <Input
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search templates…"
+                    placeholder="Rechercher un template..."
                     className="h-7 flex-1 border-0 bg-transparent text-xs text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]"
                 />
                 <button
                     type="button"
                     onClick={onToggleCollapse}
                     className="flex size-5 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]"
-                    title="Collapse list"
+                    title="Reduire la liste"
                 >
                     <ChevronLeft size={14} />
                 </button>
@@ -68,7 +71,7 @@ export function TemplateList({
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                         <FileText size={20} className="text-[var(--text-muted)]" />
                         <p className="mt-2 text-xs text-[var(--text-muted)]">
-                            {search ? 'No templates match' : 'No templates'}
+                            {search ? 'Aucun resultat' : 'Aucun template'}
                         </p>
                     </div>
                 ) : (
@@ -79,17 +82,19 @@ export function TemplateList({
                             : '';
 
                         return (
-                            <button
+                            <div
                                 key={template.id}
-                                type="button"
-                                onClick={() => onSelect(template)}
-                                className={`flex w-full items-center gap-2 border-l-2 px-3 py-2 text-left transition ${
+                                className={`group flex w-full items-center border-l-2 transition ${
                                     active
                                         ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]'
                                         : 'border-transparent hover:bg-[var(--surface-2)]'
                                 }`}
                             >
-                                <div className="min-w-0 flex-1">
+                                <button
+                                    type="button"
+                                    onClick={() => onSelect(template)}
+                                    className="min-w-0 flex-1 px-3 py-2 text-left"
+                                >
                                     <div className="flex items-center gap-1.5">
                                         <p className="truncate text-sm font-medium text-[var(--text)]">
                                             {template.name}
@@ -99,11 +104,20 @@ export function TemplateList({
                                         ) : null}
                                     </div>
                                     <p className="truncate text-[11px] text-[var(--text-muted)]">
-                                        {template.paperSize} · {template.orientation}
-                                        {timeAgo ? ` · ${timeAgo}` : ''}
+                                        {template.paperSize} / {template.orientation}
+                                        {timeAgo ? ` / ${timeAgo}` : ''}
                                     </p>
-                                </div>
-                            </button>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => onRename(template)}
+                                    className="mr-2 flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--text-muted)] opacity-0 transition hover:bg-[var(--surface-3)] hover:text-[var(--accent)] focus:opacity-100 group-hover:opacity-100"
+                                    title="Renommer le template"
+                                    aria-label={`Renommer ${template.name}`}
+                                >
+                                    <Pencil size={13} />
+                                </button>
+                            </div>
                         );
                     })
                 )}
@@ -118,13 +132,13 @@ function formatTimeAgo(dateStr: string): string {
     if (isNaN(date.getTime())) return dateStr;
     const diff = Date.now() - date.getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1) return 'a l instant';
+    if (mins < 60) return `il y a ${mins} min`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return `il y a ${hours} h`;
     const days = Math.floor(hours / 24);
-    if (days < 30) return `${days}d ago`;
-    return `${Math.floor(days / 30)}mo ago`;
+    if (days < 30) return `il y a ${days} j`;
+    return `il y a ${Math.floor(days / 30)} mois`;
 }
 
 export default TemplateList;

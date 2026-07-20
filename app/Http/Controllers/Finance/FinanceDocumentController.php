@@ -17,6 +17,11 @@ use App\Models\FinanceDocumentItem;
 use App\Models\FinanceTemplate;
 use App\Models\Payment;
 use App\Services\Finance\FinanceExcelExporter;
+use App\Services\Finance\FinanceActivityService;
+use App\Services\Finance\FinanceContextService;
+use App\Services\Finance\FinanceDocumentLockGuard;
+use App\Services\Finance\FinanceDocumentQueryService;
+use App\Services\Finance\FinanceFileStorageService;
 use App\Services\Finance\FinanceNumberService;
 use App\Services\Finance\FinancePdfGenerator;
 use App\Services\Finance\FinanceSettingsService;
@@ -29,66 +34,25 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\Process\Process;
 
 class FinanceDocumentController extends Controller
 {
-    public function index(Request $request, FinanceMonthlySummaryService $monthlySummaryService): Response
+    public function index(
+        Request $request,
+        FinanceMonthlySummaryService $monthlySummaryService,
+        FinanceDocumentQueryService $queries,
+        FinanceContextService $context,
+    ): Response
     {
-        $query = FinanceDocument::with(['client', 'dossier', 'items', 'payments'])
-            ->withCount('payments');
-
-        if ($type = $request->input('type')) {
-            $query->where('type', $type);
-        }
-
-        if ($status = $request->input('status')) {
-            $query->where('status', $status);
-        }
-
-        if ($search = $request->input('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('number', 'like', "%{$search}%")
-                    ->orWhereHas('client', fn ($cq) => $cq->where('full_name', 'like', "%{$search}%"))
-                    ->orWhereHas('dossier', fn ($dq) => $dq->where('dossier_number', 'like', "%{$search}%"));
-            });
-        }
-
-        if ($dossierId = $request->input('dossier_id')) {
-            $query->where('dossier_id', $dossierId);
-        }
-
-        $documents = $query->orderBy('created_at', 'desc')->limit(100)->get();
-        $records = FinanceDocumentResource::collection($documents)->resolve($request);
-
-        $payments = Payment::with(['document', 'client', 'dossier', 'receiptDocument'])
-            ->orderByDesc('paid_at')
-            ->orderByDesc('created_at')
-            ->limit(100)
-            ->get();
+        $this->authorize('viewAny', FinanceDocument::class);
+        $user = $request->user();
+        $context->payload($user);
 
         $currency = FinanceSettingsService::getCurrency();
-
-        $metrics = [
-            'totalQuotes' => (float) FinanceDocument::where('type', 'quote')->sum('total_ttc'),
-            'totalInvoices' => (float) FinanceDocument::where('type', 'invoice')->sum('total_ttc'),
-            'paidTotal' => (float) FinanceDocument::where('type', 'invoice')->sum('paid_total'),
-            'remainingTotal' => (float) FinanceDocument::where('type', 'invoice')->sum('remaining_total'),
-            'overdueTotal' => (float) FinanceDocument::where('type', 'invoice')->where('status', 'overdue')->sum('remaining_total'),
-            'draftCount' => FinanceDocument::where('status', 'draft')->count(),
-            'totalExpenses' => (float) Expense::sum('amount'),
-            'currency' => $currency,
-        ];
-
-        $expensesRecords = Expense::with(['dossier', 'creator'])
-            ->orderByDesc('expense_date')
-            ->orderByDesc('created_at')
-            ->limit(100)
-            ->get()
-            ->map(fn (Expense $expense) => [
+        $expenses = $queries->expenses($request, $user)->through(fn (Expense $expense) => [
                 'id' => $expense->id,
                 'category' => $expense->category,
                 'vendor' => $expense->vendor,
@@ -104,13 +68,18 @@ class FinanceDocumentController extends Controller
                 'createdBy' => $expense->creator?->name,
                 'createdAt' => $expense->created_at?->toDateTimeString(),
             ]);
+        $financeTemplates = $context->apply(FinanceTemplate::query(), $user)
+            ->orderBy('type')
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render('Finance/Documents/Index', [
-            'documents' => $records,
-            'payments' => PaymentResource::collection($payments)->resolve($request),
-            'expenses' => $expensesRecords,
-            'monthlySummaries' => $monthlySummaryService->months(),
-            'metrics' => $metrics,
+            'documents' => FinanceDocumentResource::collection($queries->documents($request, $user)),
+            'payments' => PaymentResource::collection($queries->payments($request, $user)),
+            'expenses' => $expenses,
+            'monthlySummaries' => $monthlySummaryService->months(null, $user),
+            'metrics' => $queries->metrics($user, $currency),
             'clients' => Client::select('id', 'full_name', 'cin', 'address')
                 ->orderBy('full_name')
                 ->get()
@@ -132,25 +101,21 @@ class FinanceDocumentController extends Controller
                     'floorArea' => $d->floor_area,
                     'landSurface' => $d->land_surface,
                 ]),
-            'templates' => FinanceTemplate::query()
-                ->orderBy('name')
-                ->get()
-                ->map(fn ($template) => [
-                    'id' => (string) $template->id,
-                    'label' => $template->name,
-                    'type' => $template->type,
-                ]),
-            'defaultTemplates' => FinanceTemplate::query()
-                ->where('is_default', true)
-                ->orderBy('type')
-                ->get()
-                ->map(fn ($template) => [
+            'templates' => $financeTemplates->map(fn ($template) => [
                     'id' => (string) $template->id,
                     'label' => $template->name,
                     'type' => $template->type,
                     'slug' => $template->slug,
+                    'isDefault' => (bool) $template->is_default,
+                    'updatedAt' => $template->updated_at?->diffForHumans(),
+                    'renameUrl' => route('finance.templates.rename', $template),
+                    'editorUrl' => route('finance.templates.index', [
+                        'type' => $template->type,
+                        'template' => $template->id,
+                    ]),
                 ]),
             'templateEditorUrl' => route('finance.templates.index'),
+            'settingsEditorUrl' => route('finance.settings.index'),
             'settings' => [
                 'defaultTvaRate' => FinanceSettingsService::getTvaRate(),
                 'defaultCurrency' => $currency,
@@ -161,18 +126,26 @@ class FinanceDocumentController extends Controller
                 'companyInfo' => [],
                 'bankInfo' => [],
             ],
-            'filters' => $request->only(['type', 'status', 'search', 'dossier_id']),
+            'filters' => $request->only([
+                'tab', 'type', 'status', 'search', 'client_id', 'dossier_id',
+                'date_from', 'date_to', 'sort', 'direction', 'per_page', 'page',
+                'payment_search', 'payment_sort', 'payment_direction', 'payments_per_page', 'payments_page',
+                'expense_search', 'expense_category', 'expense_sort', 'expense_direction', 'expenses_per_page', 'expenses_page',
+            ]),
         ]);
     }
 
     public function store(StoreFinanceDocumentRequest $request): RedirectResponse
     {
+        $this->authorize('create', FinanceDocument::class);
         $data = $request->validated();
+        $scope = app(FinanceContextService::class)->payload($request->user());
 
-        $document = DB::transaction(function () use ($data, $request) {
+        $document = DB::transaction(function () use ($data, $request, $scope) {
             $number = FinanceNumberService::nextDocumentNumber($data['type']);
 
             $document = FinanceDocument::create([
+                ...$scope,
                 'type' => $data['type'],
                 'number' => $number,
                 'status' => 'draft',
@@ -210,6 +183,12 @@ class FinanceDocumentController extends Controller
             return $document;
         });
 
+        app(FinanceActivityService::class)->log($document, $request->user(), 'finance.document.created', [], [
+            'number' => $document->number,
+            'type' => $document->type,
+            'total_ttc' => $document->total_ttc,
+        ]);
+
         $request->user()->notify(new FinanceDocumentNotification($document, 'created', ucfirst($document->type) . ' created: ' . $document->number));
 
         return redirect()->route('finance.documents.index', [
@@ -224,6 +203,7 @@ class FinanceDocumentController extends Controller
 
     public function show(FinanceDocument $financeDocument): Response
     {
+        $this->authorize('view', $financeDocument);
         $financeDocument->loadMissing(['client', 'dossier', 'items', 'payments', 'template', 'creator']);
 
         return Inertia::render('Finance/Documents/Show', [
@@ -233,7 +213,10 @@ class FinanceDocumentController extends Controller
 
     public function update(UpdateFinanceDocumentRequest $request, FinanceDocument $financeDocument): RedirectResponse
     {
+        $this->authorize('update', $financeDocument);
+        app(FinanceDocumentLockGuard::class)->assertCanEditContent($financeDocument);
         $data = $request->validated();
+        $old = $financeDocument->only(['type', 'client_id', 'dossier_id', 'status', 'total_ttc', 'template_id']);
 
         DB::transaction(function () use ($data, $financeDocument) {
             $financeDocument->update([
@@ -272,6 +255,10 @@ class FinanceDocumentController extends Controller
             $financeDocument->recalculateTotals()->save();
         });
 
+        app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.document.updated', $old, [
+            ...$financeDocument->fresh()->only(['type', 'client_id', 'dossier_id', 'status', 'total_ttc', 'template_id']),
+        ]);
+
         return redirect()->route('finance.documents.index', [
             'tab' => match ($financeDocument->type) {
                 'quote' => 'quotes',
@@ -284,7 +271,10 @@ class FinanceDocumentController extends Controller
 
     public function destroy(FinanceDocument $financeDocument): RedirectResponse
     {
+        $this->authorize('delete', $financeDocument);
+        app(FinanceDocumentLockGuard::class)->assertCanEditContent($financeDocument);
         $number = $financeDocument->number;
+        app(FinanceActivityService::class)->log($financeDocument, request()->user(), 'finance.document.deleted', $financeDocument->toArray());
         $financeDocument->delete();
 
         return redirect()->route('finance.documents.index')
@@ -293,13 +283,16 @@ class FinanceDocumentController extends Controller
 
     public function generate(Request $request, FinanceDocument $financeDocument, FinancePdfGenerator $pdfGenerator, FinanceExcelExporter $excelExporter): RedirectResponse
     {
+        $this->authorize('issue', $financeDocument);
         if ($financeDocument->items()->count() === 0) {
             return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant generation.');
         }
 
         try {
-            $pdfGenerator->generate($financeDocument);
-            $excelExporter->generate($financeDocument->refresh());
+            $pdfGenerator->generate($financeDocument, $request->user());
+            $excelExporter->generate($financeDocument->refresh(), $request->user());
+
+            app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.document.exports_generated');
 
             $request->user()->notify(new FinanceDocumentNotification($financeDocument, 'generated', ucfirst($financeDocument->type) . ' generated: ' . $financeDocument->number));
 
@@ -309,14 +302,16 @@ class FinanceDocumentController extends Controller
         }
     }
 
-    public function generatePdf(FinanceDocument $financeDocument, FinancePdfGenerator $generator): RedirectResponse
+    public function generatePdf(Request $request, FinanceDocument $financeDocument, FinancePdfGenerator $generator): RedirectResponse
     {
+        $this->authorize('issue', $financeDocument);
         if ($financeDocument->items()->count() === 0) {
             return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant generation PDF.');
         }
 
         try {
-            $generator->generate($financeDocument);
+            $generator->generate($financeDocument, $request->user());
+            app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.document.pdf_generated');
 
             return redirect()->back()->with('success', "PDF {$financeDocument->number} genere avec succes.");
         } catch (\Throwable $e) {
@@ -324,14 +319,16 @@ class FinanceDocumentController extends Controller
         }
     }
 
-    public function generateExcel(FinanceDocument $financeDocument, FinanceExcelExporter $exporter): RedirectResponse
+    public function generateExcel(Request $request, FinanceDocument $financeDocument, FinanceExcelExporter $exporter): RedirectResponse
     {
+        $this->authorize('issue', $financeDocument);
         if ($financeDocument->items()->count() === 0) {
             return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant export Excel.');
         }
 
         try {
-            $exporter->generate($financeDocument);
+            $exporter->generate($financeDocument, $request->user());
+            app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.document.excel_generated');
 
             return redirect()->back()->with('success', "Excel {$financeDocument->number} genere avec succes.");
         } catch (\Throwable $e) {
@@ -339,30 +336,66 @@ class FinanceDocumentController extends Controller
         }
     }
 
-    public function download(FinanceDocument $financeDocument)
+    public function download(FinanceDocument $financeDocument, FinanceFileStorageService $storage)
     {
-        return $this->downloadExcel($financeDocument);
+        return $this->downloadExcel($financeDocument, $storage);
     }
 
-    public function downloadExcel(FinanceDocument $financeDocument)
+    public function downloadExcel(FinanceDocument $financeDocument, FinanceFileStorageService $storage)
     {
-        if (!$financeDocument->excel_path || !Storage::disk('public')->exists($financeDocument->excel_path)) {
+        $this->authorize('download', $financeDocument);
+        if (! $financeDocument->excel_path) {
             return redirect()->back()->with('error', 'Aucun fichier Excel disponible.');
         }
 
-        return Storage::disk('public')->download($financeDocument->excel_path, $financeDocument->number . '.xlsx');
+        return $storage->response($financeDocument->excel_path, $financeDocument->number.'.xlsx');
     }
 
-    public function downloadPdf(FinanceDocument $financeDocument)
+    public function downloadPdf(FinanceDocument $financeDocument, FinanceFileStorageService $storage)
     {
-        if (!$financeDocument->pdf_path || !Storage::disk('public')->exists($financeDocument->pdf_path)) {
+        $this->authorize('download', $financeDocument);
+        if (! $financeDocument->pdf_path) {
             return redirect()->back()->with('error', 'Aucun PDF disponible.');
         }
 
-        return Storage::disk('public')->download($financeDocument->pdf_path, $financeDocument->number . '.pdf');
+        return $storage->response($financeDocument->pdf_path, $financeDocument->number.'.pdf');
     }
-    public function revealGeneratedFiles(FinanceDocument $financeDocument): RedirectResponse
+
+    public function viewPdf(FinanceDocument $financeDocument, FinanceFileStorageService $storage)
     {
+        $this->authorize('download', $financeDocument);
+        if (! $financeDocument->pdf_path) {
+            return redirect()->back()->with('error', 'Generez d abord le PDF.');
+        }
+
+        return $storage->response($financeDocument->pdf_path, $financeDocument->number.'.pdf', true);
+    }
+
+    public function viewHtml(FinanceDocument $financeDocument, FinanceTemplateRenderer $renderer)
+    {
+        $this->authorize('view', $financeDocument);
+        $financeDocument->loadMissing(['client', 'dossier', 'items', 'payments', 'template']);
+
+        return response($financeDocument->rendered_html_snapshot ?: $renderer->renderHtml($financeDocument))
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
+    public function print(FinanceDocument $financeDocument, FinanceTemplateRenderer $renderer)
+    {
+        $this->authorize('view', $financeDocument);
+        $financeDocument->loadMissing(['client', 'dossier', 'items', 'payments', 'template']);
+        $html = $financeDocument->rendered_html_snapshot ?: $renderer->renderHtml($financeDocument);
+        $script = '<script>window.addEventListener("load",()=>window.print());</script>';
+        $html = str_contains($html, '</body>') ? str_replace('</body>', $script.'</body>', $html) : $html.$script;
+
+        return response($html)->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
+    public function revealGeneratedFiles(FinanceDocument $financeDocument, FinanceFileStorageService $storage): RedirectResponse
+    {
+        $this->authorize('download', $financeDocument);
         if (!app()->environment('local')) {
             return redirect()->back()->with('error', 'Ouverture Explorer disponible uniquement en local.');
         }
@@ -373,12 +406,13 @@ class FinanceDocumentController extends Controller
 
         $relativePath = $financeDocument->pdf_path ?: $financeDocument->excel_path;
 
-        if (!$relativePath || !Storage::disk('public')->exists($relativePath)) {
+        $relativePath = $storage->ensurePrivate($relativePath);
+        if (! $relativePath) {
             return redirect()->back()->with('error', 'Aucun fichier genere disponible.');
         }
 
-        $absolutePath = Storage::disk('public')->path($relativePath);
-        $storageRoot = realpath(Storage::disk('public')->path(''));
+        $absolutePath = $storage->disk()->path($relativePath);
+        $storageRoot = realpath($storage->disk()->path(''));
         $realFile = realpath($absolutePath);
 
         if (!$storageRoot || !$realFile || !str_starts_with($realFile, $storageRoot)) {
@@ -396,14 +430,16 @@ class FinanceDocumentController extends Controller
 
     public function previewHtml(FinanceDocument $financeDocument, FinanceTemplateRenderer $renderer): JsonResponse
     {
+        $this->authorize('view', $financeDocument);
         $financeDocument->loadMissing(['client', 'dossier', 'items', 'payments', 'template']);
-        $html = $renderer->renderHtml($financeDocument);
+        $html = $financeDocument->rendered_html_snapshot ?: $renderer->renderHtml($financeDocument);
 
         return response()->json(['html' => $html]);
     }
 
     public function previewDraft(Request $request, FinanceTemplateRenderer $renderer): JsonResponse
     {
+        $this->authorize('create', FinanceDocument::class);
         $data = $request->validate([
             'type' => 'required|in:quote,invoice,receipt',
             'template_id' => 'nullable|string',
@@ -429,8 +465,18 @@ class FinanceDocumentController extends Controller
         ]);
 
         $template = $data['template_id']
-            ? FinanceTemplate::query()->find($data['template_id'])
-            : FinanceTemplate::query()->where('type', $data['type'])->where('is_default', true)->first();
+            ? FinanceTemplate::query()
+                ->whereKey($data['template_id'])
+                ->whereIn('type', [$data['type'], 'finance'])
+                ->first()
+            : null;
+
+        $template ??= FinanceTemplate::query()
+            ->where('type', $data['type'])
+            ->where('is_default', true)
+            ->first()
+            ?: FinanceTemplate::query()->where('type', $data['type'])->first()
+            ?: FinanceTemplate::query()->where('type', 'finance')->where('is_default', true)->first();
 
         $client = $data['client_id'] ? Client::find($data['client_id']) : null;
         $dossier = $data['dossier_id'] ? Dossier::find($data['dossier_id']) : null;
@@ -524,6 +570,7 @@ class FinanceDocumentController extends Controller
 
     public function accept(Request $request, FinanceDocument $financeDocument): RedirectResponse
     {
+        $this->authorize('update', $financeDocument);
         if (!$financeDocument->isQuote()) {
             return redirect()->back()->with('error', 'Seul un devis peut etre accepte.');
         }
@@ -534,12 +581,14 @@ class FinanceDocumentController extends Controller
         ]);
 
         $request->user()->notify(new FinanceDocumentNotification($financeDocument->fresh(), 'accepted', 'Quote accepted: ' . $financeDocument->number));
+        app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.quote.accepted');
 
         return redirect()->back()->with('success', "Devis {$financeDocument->number} accepte !");
     }
 
     public function reject(Request $request, FinanceDocument $financeDocument): RedirectResponse
     {
+        $this->authorize('update', $financeDocument);
         if (!$financeDocument->isQuote()) {
             return redirect()->back()->with('error', 'Seul un devis peut etre refuse.');
         }
@@ -550,33 +599,39 @@ class FinanceDocumentController extends Controller
         ]);
 
         $request->user()->notify(new FinanceDocumentNotification($financeDocument->fresh(), 'rejected', 'Quote rejected: ' . $financeDocument->number));
+        app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.quote.rejected');
 
         return redirect()->back()->with('success', "Devis {$financeDocument->number} refuse !");
     }
 
     public function cancel(Request $request, FinanceDocument $financeDocument): RedirectResponse
     {
+        $this->authorize('cancel', $financeDocument);
         $financeDocument->update([
             'status' => 'cancelled',
         ]);
 
         $request->user()->notify(new FinanceDocumentNotification($financeDocument->fresh(), 'cancelled', ucfirst($financeDocument->type) . ' cancelled: ' . $financeDocument->number));
+        app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.document.cancelled');
 
         return redirect()->back()->with('success', "Document {$financeDocument->number} annule !");
     }
 
     public function convertToInvoice(ConvertQuoteToInvoiceRequest $request, FinanceDocument $financeDocument): RedirectResponse
     {
+        $this->authorize('convert', $financeDocument);
         if (!$financeDocument->canConvertToInvoice()) {
             return redirect()->back()->with('error', 'Ce devis ne peut pas etre converti.');
         }
 
         $data = $request->validated();
 
-        $invoice = DB::transaction(function () use ($financeDocument, $data) {
+        $scope = app(FinanceContextService::class)->payload($request->user());
+        $invoice = DB::transaction(function () use ($financeDocument, $data, $scope) {
             $invoiceNumber = FinanceNumberService::nextDocumentNumber('invoice');
 
             $invoice = FinanceDocument::create([
+                ...$scope,
                 'type' => 'invoice',
                 'number' => $invoiceNumber,
                 'status' => 'issued',
@@ -613,6 +668,9 @@ class FinanceDocumentController extends Controller
         });
 
         $request->user()->notify(new FinanceDocumentNotification($invoice, 'converted', 'Quote converted to invoice: ' . $invoice->number));
+        app(FinanceActivityService::class)->log($invoice, $request->user(), 'finance.quote.converted_to_invoice', [], [
+            'source_document_id' => $financeDocument->id,
+        ]);
 
         return redirect()->route('finance.documents.show', $invoice)
             ->with('success', "Facture {$invoice->number} creee a partir du devis {$financeDocument->number} !");

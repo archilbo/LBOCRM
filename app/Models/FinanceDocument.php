@@ -13,6 +13,8 @@ class FinanceDocument extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'type',
         'number',
         'status',
@@ -36,6 +38,14 @@ class FinanceDocument extends Model
         'pdf_path',
         'excel_path',
         'generated_at',
+        'issued_at',
+        'issued_by',
+        'template_snapshot',
+        'render_data_snapshot',
+        'rendered_html_snapshot',
+        'snapshot_hash',
+        'pdf_checksum',
+        'excel_checksum',
         'sent_at',
         'accepted_at',
         'rejected_at',
@@ -48,6 +58,9 @@ class FinanceDocument extends Model
         'due_date' => 'date',
         'valid_until' => 'date',
         'generated_at' => 'datetime',
+        'issued_at' => 'datetime',
+        'template_snapshot' => 'array',
+        'render_data_snapshot' => 'array',
         'sent_at' => 'datetime',
         'accepted_at' => 'datetime',
         'rejected_at' => 'datetime',
@@ -60,6 +73,10 @@ class FinanceDocument extends Model
         'paid_total' => 'decimal:2',
         'remaining_total' => 'decimal:2',
     ];
+
+    public function company(): BelongsTo { return $this->belongsTo(Company::class); }
+    public function branch(): BelongsTo { return $this->belongsTo(Branch::class); }
+    public function issuer(): BelongsTo { return $this->belongsTo(User::class, 'issued_by'); }
 
     public function client(): BelongsTo
     {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\FinanceDocumentType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,12 +13,7 @@ class FinanceDocumentResource extends JsonResource
         return [
             'id' => $this->id,
             'type' => $this->type,
-            'typeLabel' => match ($this->type) {
-                'quote' => 'Devis',
-                'invoice' => 'Facture',
-                'receipt' => 'Recu',
-                default => ucfirst($this->type),
-            },
+            'typeLabel' => FinanceDocumentType::tryFrom($this->type)?->label() ?? ucfirst($this->type),
             'number' => $this->number,
             'numberLocked' => (bool) ($this->number_locked ?? false),
             'numberLockedAt' => $this->number_locked_at ? (string) $this->number_locked_at : null,
@@ -52,19 +48,22 @@ class FinanceDocumentResource extends JsonResource
             'notes' => $this->notes,
             'terms' => $this->terms,
             'templateId' => $this->template_id,
-            'pdfPath' => $this->pdf_path,
-            'excelPath' => $this->excel_path,
+            'issuedAt' => $this->issued_at?->toISOString(),
+            'snapshotHash' => $this->snapshot_hash,
             'generatedAt' => $this->generated_at?->toISOString(),
             'sentAt' => $this->sent_at?->toISOString(),
             'acceptedAt' => $this->accepted_at?->toISOString(),
             'rejectedAt' => $this->rejected_at?->toISOString(),
             'paidAt' => $this->paid_at?->toISOString(),
-            'items' => FinanceDocumentItemResource::collection($this->whenLoaded('items'))->resolve($request),
-            'payments' => PaymentResource::collection($this->whenLoaded('payments'))->resolve($request),
+            'items' => $this->whenLoaded('items', fn () => FinanceDocumentItemResource::collection($this->items)->resolve($request), []),
+            'payments' => $this->whenLoaded('payments', fn () => PaymentResource::collection($this->payments)->resolve($request), []),
             'paymentsCount' => $this->payments_count ?? $this->whenLoaded('payments', fn() => $this->payments->count(), 0),
             'createdAt' => $this->created_at?->toISOString(),
             'updatedAt' => $this->updated_at?->toISOString(),
             'showUrl' => route('finance.documents.show', $this),
+            'viewUrl' => route('finance.documents.view', $this),
+            'viewPdfUrl' => $this->pdf_path ? route('finance.documents.view-pdf', $this) : null,
+            'printUrl' => route('finance.documents.print', $this),
             'updateUrl' => route('finance.documents.update', $this),
             'deleteUrl' => route('finance.documents.destroy', $this),
             'acceptUrl' => $this->isQuote() ? route('finance.documents.accept', $this) : null,

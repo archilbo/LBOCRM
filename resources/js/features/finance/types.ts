@@ -82,8 +82,8 @@ export type FinanceDocument = {
     notes: string | null;
     terms: string | null;
     templateId: number | string | null;
-    pdfPath: string | null;
-    excelPath: string | null;
+    issuedAt?: string | null;
+    snapshotHash?: string | null;
     generatedAt: string | null;
     items: FinanceDocumentItem[];
     payments?: Payment[];
@@ -91,6 +91,9 @@ export type FinanceDocument = {
     createdAt?: string | null;
     updatedAt?: string | null;
     showUrl?: string | null;
+    viewUrl?: string | null;
+    viewPdfUrl?: string | null;
+    printUrl?: string | null;
     updateUrl?: string | null;
     deleteUrl?: string | null;
     acceptUrl?: string | null;
@@ -128,6 +131,7 @@ export type DocumentTemplate = {
     updatedAt?: string | null;
     urls: {
         update: string;
+        rename: string;
         delete: string;
         duplicate: string;
         setDefault: string;
@@ -177,10 +181,17 @@ export type TemplateOption = {
     id: string;
     label: string;
     type: FinanceDocumentType | string;
+    slug?: string;
+    isDefault?: boolean;
+    updatedAt?: string | null;
+    renameUrl?: string;
+    editorUrl?: string;
 };
 
 export type PaymentReceiptUrls = {
     show: string | null;
+    view: string | null;
+    print: string | null;
     download: string | null;
     pdf: string | null;
     excel: string | null;
@@ -195,8 +206,6 @@ export type PaymentReceipt = {
     status: FinanceDocumentStatus | string;
     issueDate: string | null;
     amount: number;
-    pdfPath: string | null;
-    excelPath: string | null;
     urls: PaymentReceiptUrls;
 };
 

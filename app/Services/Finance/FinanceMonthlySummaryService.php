@@ -5,14 +5,29 @@ namespace App\Services\Finance;
 use App\Models\Expense;
 use App\Models\FinanceDocument;
 use App\Models\Payment;
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 class FinanceMonthlySummaryService
 {
-    public function months(?int $year = null): array
+    public function __construct(private readonly FinanceContextService $context)
     {
-        $expenses = Expense::query()
+    }
+
+    public function months(?int $year = null, ?User $user = null): array
+    {
+        $expenseQuery = Expense::query();
+        $documentQuery = FinanceDocument::query()->with(['client', 'dossier']);
+        $paymentQuery = Payment::query()->with(['document', 'client', 'dossier']);
+
+        if ($user) {
+            $this->context->apply($expenseQuery, $user);
+            $this->context->apply($documentQuery, $user);
+            $this->context->apply($paymentQuery, $user);
+        }
+
+        $expenses = $expenseQuery
             ->when($year, fn ($query) => $query->where(function ($q) use ($year) {
                 $q->whereYear('expense_date', $year)
                     ->orWhere(function ($fallback) use ($year) {
@@ -22,8 +37,7 @@ class FinanceMonthlySummaryService
             ->latest()
             ->get();
 
-        $documents = FinanceDocument::query()
-            ->with(['client', 'dossier'])
+        $documents = $documentQuery
             ->when($year, fn ($query) => $query->where(function ($q) use ($year) {
                 $q->whereYear('issue_date', $year)
                     ->orWhere(function ($fallback) use ($year) {
@@ -33,8 +47,7 @@ class FinanceMonthlySummaryService
             ->latest()
             ->get();
 
-        $payments = Payment::query()
-            ->with(['document', 'client', 'dossier'])
+        $payments = $paymentQuery
             ->when($year, fn ($query) => $query->where(function ($q) use ($year) {
                 $q->whereYear('paid_at', $year)
                     ->orWhere(function ($fallback) use ($year) {

@@ -84,7 +84,7 @@ export function FinanceFocusPanel({ record }: FinanceFocusPanelProps) {
                         <div className="min-w-0">
                             <p className="text-sm font-semibold">{record.recordNumber}</p>
                             <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
-                                {record.dossierNumber} Â· {record.client}
+                                {record.dossierNumber} / {record.client}
                             </p>
                         </div>
                     </div>

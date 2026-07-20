@@ -9,7 +9,6 @@ use App\Models\Contract;
 use App\Models\DocumentTemplate;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
-use App\Models\FinanceRecord;
 use App\Models\Intermediary;
 use Illuminate\Database\Seeder;
 
@@ -209,40 +208,6 @@ class ArchiLboDemoSeeder extends Seeder
                 'status' => 'submitted',
                 'submitted_at' => now()->toDateString(),
                 'receipt_path' => 'demo/authorizations/receipt-dos-2026-0001.pdf',
-            ],
-        );
-
-        FinanceRecord::updateOrCreate(
-            ['record_number' => 'DEV-2026-0001'],
-            [
-                'dossier_id' => $dossier1->id,
-                'client_id' => $client1->id,
-                'type' => 'devis',
-                'status' => 'sent',
-                'ht' => 28000,
-                'tva' => 5600,
-                'total_ttc' => 33600,
-                'paid' => 0,
-                'remaining' => 33600,
-                'issued_at' => now()->toDateString(),
-                'due_date' => now()->addDays(7)->toDateString(),
-            ],
-        );
-
-        FinanceRecord::updateOrCreate(
-            ['record_number' => 'INV-2026-0002'],
-            [
-                'dossier_id' => $dossier2->id,
-                'client_id' => $client2->id,
-                'type' => 'invoice',
-                'status' => 'partially_paid',
-                'ht' => 14000,
-                'tva' => 2800,
-                'total_ttc' => 16800,
-                'paid' => 8000,
-                'remaining' => 8800,
-                'issued_at' => now()->subDay()->toDateString(),
-                'due_date' => now()->addDays(7)->toDateString(),
             ],
         );
 
