@@ -16,7 +16,7 @@ export function useTyping(conversationId: number | null, currentUserId: number, 
 
         const channel = echo().private(`conversation.${conversationId}`);
 
-        const handler = (payload: any) => {
+        const handler = (payload: { user?: { id?: number; name?: string } }) => {
 
             const userId = Number(payload?.user?.id);
             if (!userId || userId === currentUserId) return;
@@ -41,18 +41,11 @@ export function useTyping(conversationId: number | null, currentUserId: number, 
             }, 2200);
         };
 
-        const allEventsHandler = (event: string, payload: any) => {
-            const normalizedEvent = event.replace(/^\./, '');
-            if (normalizedEvent === 'client-typing') handler(payload);
-        };
-
-        channel.error((error: any) => console.error('[chat] typing subscription error', conversationId, error));
+        channel.error((error: unknown) => console.error('[chat] typing subscription error', conversationId, error));
         channel.listenForWhisper('typing', handler);
-        channel.listenToAll(allEventsHandler);
 
         return () => {
             channel.stopListeningForWhisper('typing', handler);
-            channel.stopListeningToAll(allEventsHandler);
             Object.values(timersRef.current).forEach(clearTimeout);
             timersRef.current = {};
             setTypingUsers([]);

@@ -10,7 +10,8 @@ class AuditLog extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'user_id', 'action', 'description', 'metadata', 'ip_address', 'created_at',
+        'user_id', 'action', 'description', 'metadata', 'ip_address', 'user_agent',
+        'auditable_type', 'auditable_id', 'created_at',
     ];
 
     protected $casts = [
@@ -21,5 +22,10 @@ class AuditLog extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function auditable(): \Illuminate\Database\Eloquent\Relations\MorphTo
+    {
+        return $this->morphTo();
     }
 }

@@ -1,16 +1,20 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
+import { Button, Card } from '@heroui/react';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { echo } from '@laravel/echo-react';
 import { AppShell } from '@/components/layout/AppShell';
 import type { FormErrors } from '@/lib/formErrors';
 import type { ChatUserOption, ConversationRow, MessageRow } from '@/features/chat/types';
-import { conversationInitial, conversationName, messagePreview } from '@/features/chat/helpers';
+import { conversationName, messagePreview } from '@/features/chat/helpers';
 import { ConversationList } from '@/features/inbox/components/ConversationList';
 import { MessageThread } from '@/features/inbox/components/MessageThread';
 import { NewConversationDrawer, type NewConvFormData } from '@/features/inbox/components/NewConversationDrawer';
 import { ConversationInfoPanel } from '@/features/inbox/components/ConversationInfoPanel';
+import { inboxApi, InboxApiError, type Paginator } from '@/features/inbox/api';
+import { useInboxPresence } from '@/features/inbox/components/useInboxPresence';
+import { useRealtimeConnection } from '@/features/inbox/components/useRealtimeConnection';
 
 type PageProps = {
     conversations: ConversationRow[];
@@ -18,11 +22,19 @@ type PageProps = {
     currentUserId?: number;
     unreadCount: number;
     archivedCount?: number;
+    conversationPaginator?: Paginator;
+    companyId?: number | null;
 };
+
+type InboxEventPayload = { conversation?: ConversationRow; eventType?: string; conversationId?: number };
+type MessageEventPayload = { message?: MessageRow; messageId?: number; conversationId?: number };
+type MessagesReadPayload = { conversationId?: number; userId?: number; lastReadMessageId?: number };
 
 function playMessageSound() {
     try {
-        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextClass) return;
+        const ctx = new AudioContextClass();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
@@ -50,6 +62,7 @@ function isTempMessage(message: MessageRow) {
 
 function isLikelyOptimisticMatch(temp: MessageRow, real: MessageRow) {
     if (!isTempMessage(temp)) return false;
+    if (real.clientMessageId && temp.clientMessageId && real.clientMessageId === temp.clientMessageId) return true;
     if (temp.userId !== real.userId) return false;
     if ((temp.body || '') !== (real.body || '')) return false;
 
@@ -91,9 +104,11 @@ function upsertMessages(prev: MessageRow[], incoming: MessageRow[]) {
     return incoming.reduce((next, message) => upsertMessage(next, message), prev);
 }
 
-export default function InboxIndex({ conversations: _conversations, users, currentUserId: pageCurrentUserId, unreadCount: _unreadCount }: PageProps) {
+export default function InboxIndex({ conversations: _conversations, users, currentUserId: pageCurrentUserId, unreadCount: _unreadCount, conversationPaginator: initialConversationPaginator, companyId }: PageProps) {
     const authUser = (usePage().props.auth?.user as { id: number; name: string } | undefined) || { id: 0, name: '' };
     const currentUserId = pageCurrentUserId || authUser.id;
+    const onlineUserIds = useInboxPresence(companyId);
+    const realtimeState = useRealtimeConnection();
 
     const [conversations, setConversations] = useState<ConversationRow[]>(_conversations);
     const [archivedConversations, setArchivedConversations] = useState<ConversationRow[]>([]);
@@ -111,12 +126,16 @@ export default function InboxIndex({ conversations: _conversations, users, curre
     const [highlightMsgId, setHighlightMsgId] = useState<number | null>(null);
     const [newMsgAvailable, setNewMsgAvailable] = useState(false);
     const [infoPanelCollapsed, setInfoPanelCollapsed] = useState(false);
+    const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
+    const [conversationPaginator, setConversationPaginator] = useState<Paginator | null>(initialConversationPaginator || null);
+    const [loadingConversations, setLoadingConversations] = useState(false);
 
     const prevLastMsgIds = useRef<Record<number, number | null>>({});
     const selectedConvRef = useRef<ConversationRow | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const nearBottomRef = useRef(true);
     const autoOpenDone = useRef(false);
+    const messageRequestRef = useRef<AbortController | null>(null);
 
     selectedConvRef.current = selectedConv;
 
@@ -200,23 +219,28 @@ export default function InboxIndex({ conversations: _conversations, users, curre
     }, [selectedConv?.id]);
 
     useEffect(() => {
-        if (convTab !== 'archived') return;
-
-        fetch('/inbox/archived')
-            .then((response) => response.json())
-            .then((data) => {
-                const fetched = (data.conversations || []) as ConversationRow[];
-                setArchivedConversations((prev) => {
-                    const merged = new Map<number, ConversationRow>();
-                    for (const item of prev) merged.set(item.id, item);
-                    for (const item of fetched) merged.set(item.id, item);
-                    return Array.from(merged.values())
-                        .filter((item) => item.archivedAt)
-                        .sort((a, b) => new Date(b.lastMessageAt || b.createdAt || 0).getTime() - new Date(a.lastMessageAt || a.createdAt || 0).getTime());
-                });
-            })
-            .catch(() => toast.error('Failed to load archived conversations'));
-    }, [convTab]);
+        const controller = new AbortController();
+        const timer = window.setTimeout(async () => {
+            setLoadingConversations(true);
+            try {
+                const page = await inboxApi.conversations({
+                    search: search.trim() || undefined,
+                    type: convTab === 'direct' || convTab === 'groups' ? (convTab === 'groups' ? 'group' : 'direct') : undefined,
+                    unread: convTab === 'unread',
+                    archived: convTab === 'archived',
+                    page: 1,
+                }, controller.signal);
+                if (convTab === 'archived') setArchivedConversations(page.conversations);
+                else setConversations(page.conversations);
+                setConversationPaginator(page.paginator);
+            } catch (error) {
+                if (!(error instanceof DOMException && error.name === 'AbortError')) toast.error('Impossible de charger les conversations.');
+            } finally {
+                if (!controller.signal.aborted) setLoadingConversations(false);
+            }
+        }, search.trim() ? 250 : 0);
+        return () => { window.clearTimeout(timer); controller.abort(); };
+    }, [convTab, search]);
 
     useEffect(() => {
         setConversations(_conversations);
@@ -254,7 +278,12 @@ export default function InboxIndex({ conversations: _conversations, users, curre
         const e = echo();
         const channel = e.private(`user.${currentUserId}.inbox`);
 
-        const applyInboxUpdate = (payload: any) => {
+        const applyInboxUpdate = (payload: InboxEventPayload) => {
+            if (payload.eventType === 'participant_removed' && payload.conversationId && !payload.conversation) {
+                setConversations((previous) => previous.filter((conversation) => conversation.id !== payload.conversationId));
+                if (selectedConvRef.current?.id === payload.conversationId) goToConversationList();
+                return;
+            }
             if (!payload.conversation) return;
 
             const conv = payload.conversation as ConversationRow;
@@ -274,11 +303,8 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             }
         };
 
-        channel.error((error: any) => console.error('[chat] inbox subscription error', currentUserId, error));
+        channel.error((error: unknown) => console.error('[chat] inbox subscription error', currentUserId, error));
         channel.listen('.inbox.updated', applyInboxUpdate);
-        channel.listenToAll((event: string, payload: any) => {
-            if (event.replace(/^\./, '') === 'inbox.updated') applyInboxUpdate(payload);
-        });
 
         return () => {
             channel.stopListening('.inbox.updated', applyInboxUpdate);
@@ -291,7 +317,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
         if (!selectedConv) return;
         const channel = echo().private(`conversation.${selectedConv.id}`);
 
-        const applyMessageCreated = (payload: any) => {
+        const applyMessageCreated = (payload: MessageEventPayload) => {
             const msg = payload.message as MessageRow | undefined;
             if (!msg) return;
 
@@ -317,35 +343,40 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             }
         };
 
-        const applyMessageUpdated = (payload: any) => {
+        const applyMessageUpdated = (payload: MessageEventPayload) => {
             const msg = payload.message as MessageRow | undefined;
             if (!msg) return;
             setMessages((prev) => upsertMessage(prev, msg));
         };
 
-        const applyMessageDeleted = (payload: any) => {
+        const applyMessageDeleted = (payload: MessageEventPayload) => {
             const messageId = Number(payload.messageId);
             if (!messageId) return;
             setMessages((prev) => prev.filter((m) => m.id !== messageId));
         };
 
-        const applyConversationEvent = (event: string, payload: any) => {
-            const normalizedEvent = event.replace(/^\./, '');
-            if (normalizedEvent === 'message.created') applyMessageCreated(payload);
-            if (normalizedEvent === 'message.updated') applyMessageUpdated(payload);
-            if (normalizedEvent === 'message.deleted') applyMessageDeleted(payload);
+        const applyMessagesRead = (payload: MessagesReadPayload) => {
+            const userId = Number(payload.userId);
+            const lastReadMessageId = Number(payload.lastReadMessageId);
+            if (!userId || !lastReadMessageId || userId === currentUserId) return;
+            setMessages((previous) => previous.map((message) => (
+                message.userId === currentUserId && message.id <= lastReadMessageId
+                    ? { ...message, readBy: Array.from(new Set([...(message.readBy || []), userId])) }
+                    : message
+            )));
         };
 
-        channel.error((error: any) => console.error('[chat] conversation subscription error', selectedConv.id, error));
+        channel.error((error: unknown) => console.error('[chat] conversation subscription error', selectedConv.id, error));
         channel.listen('.message.created', applyMessageCreated);
         channel.listen('.message.updated', applyMessageUpdated);
         channel.listen('.message.deleted', applyMessageDeleted);
-        channel.listenToAll(applyConversationEvent);
+        channel.listen('.messages.read', applyMessagesRead);
 
         return () => {
             channel.stopListening('.message.created', applyMessageCreated);
             channel.stopListening('.message.updated', applyMessageUpdated);
             channel.stopListening('.message.deleted', applyMessageDeleted);
+            channel.stopListening('.messages.read', applyMessagesRead);
             echo().leave(`conversation.${selectedConv.id}`);
         };
     }, [selectedConv?.id, currentUserId]);
@@ -356,31 +387,37 @@ export default function InboxIndex({ conversations: _conversations, users, curre
     }, [messages]);
 
     function openConversation(conv: ConversationRow) {
+        messageRequestRef.current?.abort();
+        const controller = new AbortController();
+        messageRequestRef.current = controller;
         setSelectedConv(conv);
         setMobileView('chat');
         setLoading(true);
         setPaginator(null);
         setNewMsgAvailable(false);
-        fetch(`/inbox/${conv.id}?page=1`)
-            .then((r) => r.json())
+        inboxApi.messages(conv.id, 1, controller.signal)
             .then((data) => {
+                if (selectedConvRef.current?.id !== conv.id) return;
                 setMessages(upsertMessages([], (data.messages || []).reverse()));
                 setPaginator(data.paginator || null);
                 setConversations((prev) => prev.map((c) =>
                     c.id === conv.id ? { ...c, unreadCount: 0 } : c
                 ));
             })
-            .catch(() => toast.error('Failed to load messages'))
-            .finally(() => setLoading(false));
+            .catch((error) => {
+                if (!(error instanceof DOMException && error.name === 'AbortError')) toast.error('Impossible de charger les messages.');
+            })
+            .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     }
 
     function loadOlderMessages() {
         if (!selectedConv || loadingOlder || (paginator && paginator.currentPage >= paginator.lastPage)) return;
         setLoadingOlder(true);
         const nextPage = (paginator?.currentPage || 1) + 1;
-        fetch(`/inbox/${selectedConv.id}?page=${nextPage}`)
-            .then((r) => r.json())
+        const conversationId = selectedConv.id;
+        inboxApi.messages(conversationId, nextPage)
             .then((data) => {
+                if (selectedConvRef.current?.id !== conversationId) return;
                 setMessages((prev) => upsertMessages(prev, (data.messages || []).reverse()));
                 setPaginator(data.paginator || null);
             })
@@ -398,16 +435,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
 
     function toggleArchive(conv: ConversationRow) {
         const nextArchived = !conv.archivedAt;
-        const url = `/inbox/${conv.id}/${nextArchived ? 'archive' : 'unarchive'}`;
-
-        fetch(url, {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': (window as any).csrfToken || '' },
-        })
-            .then((response) => {
-                if (!response.ok) throw new Error('Archive failed');
-                return response.json();
-            })
+        inboxApi.archive(conv.id, nextArchived)
             .then((data) => {
                 const updated = (data.conversation || { ...conv, archivedAt: nextArchived ? new Date().toISOString() : null }) as ConversationRow;
 
@@ -435,15 +463,19 @@ export default function InboxIndex({ conversations: _conversations, users, curre
 
     let tempIdCounter = useRef(0);
 
-    function sendMessage(body: string, images: File[], replyToId?: number) {
-        if (!selectedConv || (!body.trim() && images.length === 0)) return;
+    function sendMessage(body: string, files: File[], replyToId?: number): Promise<MessageRow> {
+        if (!selectedConv || (!body.trim() && files.length === 0)) return Promise.reject(new InboxApiError('Impossible d\'envoyer le message.', 0));
+        const conversationId = selectedConv.id;
 
         // Optimistic message
         const tempId = -(Date.now() + (tempIdCounter.current++));
+        const clientMessageId = `${currentUserId}_${Date.now()}_${tempIdCounter.current}`;
         const optimisticMsg: MessageRow = {
             id: tempId,
+            clientMessageId,
             body: body.trim() || null,
             isEdited: false,
+            editedAt: null,
             isForwarded: false,
             forwardedFromMessageId: null,
             forwardedFrom: null,
@@ -455,6 +487,9 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             attachmentsCount: 0,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+            pendingBody: body,
+            pendingFiles: files,
+            pendingReplyToId: replyToId,
         };
 
         setMessages((prev) => upsertMessage(prev, optimisticMsg));
@@ -464,33 +499,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
         // Scroll to bottom after optimistic add
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
 
-        const hasImages = images.length > 0;
-        let promise: Promise<Response>;
-
-        if (hasImages) {
-            const formData = new FormData();
-            if (body.trim()) formData.append('body', body);
-            for (const img of images) formData.append('images[]', img);
-            if (replyToId) formData.append('reply_to_message_id', String(replyToId));
-
-            promise = fetch(`/inbox/${selectedConv.id}/messages`, {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': (window as any).csrfToken || '' },
-                body: formData,
-            });
-        } else {
-            promise = fetch(`/inbox/${selectedConv.id}/messages`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (window as any).csrfToken || '' },
-                body: JSON.stringify({
-                    body: body.trim(),
-                    ...(replyToId ? { reply_to_message_id: replyToId } : {}),
-                }),
-            });
-        }
-
-        return promise
-            .then((r) => r.json())
+        return inboxApi.sendMessage(conversationId, body, files, replyToId, clientMessageId)
             .then((msg: MessageRow) => {
                 setMessages((prev) => {
                     const withoutTempAndDuplicate = prev.filter((item) =>
@@ -499,17 +508,60 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                     return upsertMessage(withoutTempAndDuplicate, msg);
                 });
                 setConversations((prev) => prev.map((c) =>
-                    c.id === selectedConv!.id
+                    c.id === conversationId
                         ? { ...c, lastMessage: msg, lastMessageAt: msg.createdAt }
                         : c
                 ));
                 return msg;
             })
-            .catch(() => {
-                setMessages((prev) => prev.map((item) => item.id === tempId ? { ...item, isFailed: true as any } : item));
-                toast.error('Failed to send message');
-                throw new Error('Send failed');
+            .catch((error) => {
+                setMessages((prev) => prev.map((item) => item.id === tempId ? { ...item, isFailed: true } : item));
+                toast.error(error instanceof InboxApiError ? error.message : 'Impossible d’envoyer le message.');
+                throw error;
             });
+    }
+
+    function retryMessage(message: MessageRow) {
+        setMessages((prev) => prev.filter((item) => item.id !== message.id));
+        return sendMessage(message.pendingBody || message.body || '', message.pendingFiles || [], message.pendingReplyToId);
+    }
+
+    const handleSearchMessagesLoaded = useCallback((results: MessageRow[]) => {
+        setMessages((current) => upsertMessages(current, results));
+    }, []);
+
+    async function loadMoreConversations() {
+        if (loadingConversations || !conversationPaginator || conversationPaginator.currentPage >= conversationPaginator.lastPage) return;
+        setLoadingConversations(true);
+        try {
+            const page = await inboxApi.conversations({
+                search: search.trim() || undefined,
+                type: convTab === 'direct' || convTab === 'groups' ? (convTab === 'groups' ? 'group' : 'direct') : undefined,
+                unread: convTab === 'unread', archived: convTab === 'archived', page: conversationPaginator.currentPage + 1,
+            });
+            const setter = convTab === 'archived' ? setArchivedConversations : setConversations;
+            setter((prev) => Array.from(new Map([...prev, ...page.conversations].map((item) => [item.id, item])).values()));
+            setConversationPaginator(page.paginator);
+        } catch { toast.error('Impossible de charger plus de conversations.'); }
+        finally { setLoadingConversations(false); }
+    }
+
+    async function updatePreference(conversation: ConversationRow, preference: 'pinned' | 'muted', value: boolean) {
+        try {
+            await inboxApi.preferences(conversation.id, { [preference]: value });
+            const patch = preference === 'pinned' ? { isPinned: value } : { isMuted: value };
+            setConversations((current) => current.map((item) => item.id === conversation.id ? { ...item, ...patch } : item));
+            setArchivedConversations((current) => current.map((item) => item.id === conversation.id ? { ...item, ...patch } : item));
+            setSelectedConv((current) => current?.id === conversation.id ? { ...current, ...patch } : current);
+        } catch { toast.error('Impossible de mettre à jour la conversation.'); }
+    }
+
+    async function markConversationUnread(conversation: ConversationRow) {
+        try {
+            await inboxApi.markUnread(conversation.id);
+            setConversations((current) => current.map((item) => item.id === conversation.id ? { ...item, unreadCount: Math.max(1, item.unreadCount) } : item));
+            toast.success('Conversation marquée comme non lue.');
+        } catch { toast.error('Impossible de marquer la conversation.'); }
     }
 
     function handleNewConv(event: FormEvent<HTMLFormElement>) {
@@ -546,7 +598,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             <AppShell fullBleed hideMobileNav={selectedConv !== null}>
                 <div className="flex h-full min-h-0 w-full overflow-hidden">
                     {/* Conversation sidebar — mobile: full width when list, hidden when chat; md+: fixed width */}
-                    <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} h-full min-w-0 w-full flex-col border-r border-[var(--crm-border)] bg-[var(--crm-elevated)] lg:flex lg:w-[360px] xl:w-[380px] ${mobileView === 'list' ? 'app-safe-bottom lg:pb-0' : ''}`}>
+                    <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} h-full min-w-0 w-full flex-col border-r border-[var(--border)] bg-[var(--surface)] lg:flex lg:w-[340px] xl:w-[350px] ${mobileView === 'list' ? 'app-safe-bottom lg:pb-0' : ''}`}>
                         <ConversationList
                             conversations={filteredConvs}
                             selectedConvId={selectedConv?.id ?? null}
@@ -558,6 +610,11 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                             onArchiveToggle={toggleArchive}
                             currentUserId={currentUserId}
                             onNewConversation={() => { setFormErrors({}); setNewConvOpen(true); }}
+                            loading={loadingConversations}
+                            hasMore={!!conversationPaginator && conversationPaginator.currentPage < conversationPaginator.lastPage}
+                            onLoadMore={loadMoreConversations}
+                            onlineUserIds={onlineUserIds}
+                            realtimeState={realtimeState}
                         />
                     </div>
 
@@ -565,19 +622,6 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                     <div className={`${mobileView === 'list' ? 'hidden' : 'flex'} min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex`}>
                         {selectedConv ? (
                             <>
-                                {/* Mobile back button + header */}
-                                <div className="flex shrink-0 items-center gap-3 border-b border-[var(--crm-border)] bg-[var(--crm-surface)] px-4 py-3 lg:hidden">
-                                    <button type="button" onClick={goToConversationList}
-                                        className="flex size-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]">
-                                        <ArrowLeft size={18} />
-                                    </button>
-                                    <div className="flex size-8 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-xs font-bold text-[var(--crm-gold)]">
-                                        {conversationInitial(selectedConv, currentUserId)}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-semibold text-[var(--crm-text)]">{conversationName(selectedConv, currentUserId)}</p>
-                                    </div>
-                                </div>
                                 <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
                                     <MessageThread
                                         conversation={selectedConv}
@@ -592,24 +636,30 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                                         onMessageUpdate={(message) => setMessages((prev) => upsertMessage(prev, message))}
                                         onMessageDelete={(messageId) => setMessages((prev) => prev.filter((item) => item.id !== messageId))}
                                         onScroll={handleScroll}
+                                        onRetryMessage={retryMessage}
+                                        onSearchMessagesLoaded={handleSearchMessagesLoaded}
+                                        users={users}
+                                        onOpenInfo={() => setMobileInfoOpen(true)}
+                                        onBack={goToConversationList}
                                     />
                                     {/* New messages floating button */}
                                     {newMsgAvailable ? (
-                                        <button type="button" onClick={scrollToBottom}
-                                            className="absolute bottom-20 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-4 py-2 text-[11px] font-semibold text-[var(--crm-gold)] shadow-xl transition hover:brightness-110 animate-in fade-in slide-in-from-bottom-2">
+                                        <Button variant="secondary" size="sm" onPress={scrollToBottom}
+                                            className="absolute bottom-20 left-1/2 z-10 -translate-x-1/2 rounded-full border border-[var(--border)] text-[var(--accent)] shadow-xl animate-in fade-in slide-in-from-bottom-2">
                                             <MessageSquare size={12} />
-                                            New messages
+                                            Nouveaux messages
                                             <ArrowLeft size={12} className="rotate-90" />
-                                        </button>
+                                        </Button>
                                     ) : null}
                                 </div>
                             </>
                         ) : (
-                            <div className="hidden flex-1 items-center justify-center lg:flex">
-                                <div className="text-center">
+                            <div className="hidden flex-1 items-center justify-center p-6 lg:flex">
+                                <Card className="items-center border-dashed bg-transparent px-10 py-12 text-center shadow-none">
                                     <MessageSquare size={40} className="mx-auto text-[var(--crm-muted)]" />
-                                    <p className="mt-3 text-sm text-[var(--crm-text-muted)]">Select a conversation</p>
-                                </div>
+                                    <p className="mt-3 text-sm font-semibold text-[var(--text)]">Selectionnez une conversation</p>
+                                    <p className="mt-1 text-xs text-[var(--text-muted)]">Vos messages et fichiers apparaitront ici.</p>
+                                </Card>
                             </div>
                         )}
                     </div>
@@ -621,6 +671,10 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                         onArchiveToggle={toggleArchive}
                         collapsed={infoPanelCollapsed}
                         onToggleCollapsed={() => setInfoPanelCollapsed((value) => !value)}
+                        mobileOpen={mobileInfoOpen}
+                        onMobileClose={() => setMobileInfoOpen(false)}
+                        onPreference={updatePreference}
+                        onMarkUnread={markConversationUnread}
                     />
                 </div>
 

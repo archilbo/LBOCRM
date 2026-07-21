@@ -1,13 +1,17 @@
-import { FormEvent, useState } from 'react';
-import { AppDrawer } from '@/components/ui/AppDrawer';
+import { FormEvent, useMemo, useRef, useState } from 'react';
+import { Avatar } from '@heroui/react';
+import { Check, MessageCircle, Search, UserPlus, Users, X } from 'lucide-react';
+import { AppBadge } from '@/components/ui/AppBadge';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppDrawer } from '@/components/ui/AppDrawer';
+import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
-import { AppSelect } from '@/components/ui/AppSelect';
+import { AppInput } from '@/components/ui/AppInput';
+import type { ChatUserOption } from '@/features/chat/types';
+import { CATEGORY_OPTIONS, getAvatarTone } from '@/features/inbox/utils';
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
-import type { ChatUserOption } from '@/features/chat/types';
-import { CATEGORY_OPTIONS } from '@/features/inbox/utils';
-import { Search, Check, Users, MessageCircle } from 'lucide-react';
+import { cn } from '@/lib/cn';
 
 export type NewConvFormData = {
     type: 'direct' | 'group';
@@ -22,120 +26,359 @@ type Props = {
     users: ChatUserOption[];
     formErrors: FormErrors;
     form: NewConvFormData;
-    onOpenChange: (o: boolean) => void;
-    onFormChange: (f: NewConvFormData) => void;
-    onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+    onOpenChange: (open: boolean) => void;
+    onFormChange: (form: NewConvFormData) => void;
+    onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-export function NewConversationDrawer({ isOpen, users, formErrors, form, onOpenChange, onFormChange, onSubmit }: Props) {
+// ── Sub-components ────────────────────────────────────────────
+
+function ConversationModeToggle({
+    mode,
+    onChange,
+}: {
+    mode: 'direct' | 'group';
+    onChange: (m: 'direct' | 'group') => void;
+}) {
+    return (
+        <div className="flex rounded-xl bg-[var(--surface-2)] p-0.5" role="radiogroup" aria-label="Type de conversation">
+            {(['direct', 'group'] as const).map((value) => {
+                const active = mode === value;
+                return (
+                    <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        onClick={() => onChange(value)}
+                        className={cn(
+                            'flex flex-1 items-center justify-center gap-1.5 rounded-[11px] px-3 py-1.5 text-[11px] font-semibold outline-none transition-all',
+                            active
+                                ? 'bg-[var(--surface)] text-[var(--accent)] shadow-sm'
+                                : 'text-[var(--text-muted)] hover:text-[var(--text)]',
+                        )}
+                    >
+                        {value === 'direct' ? <MessageCircle size={14} /> : <Users size={14} />}
+                        {value === 'direct' ? 'Direct' : 'Groupe'}
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
+function SelectedRecipients({
+    users,
+    onRemove,
+}: {
+    users: ChatUserOption[];
+    onRemove: (id: number) => void;
+}) {
+    if (users.length === 0) return null;
+    return (
+        <div className="flex flex-wrap gap-1.5">
+            {users.map((user) => {
+                const t = getAvatarTone(user.id);
+                return (
+                    <span
+                        key={user.id}
+                        className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-2)] py-0.5 pl-0.5 pr-1 text-xs"
+                    >
+                        <Avatar size="sm" name={user.name} className={`size-5 min-w-5 text-[9px] ${t.bg} ${t.text}`} />
+                        <span className="max-w-24 truncate">{user.name}</span>
+                        <button
+                            type="button"
+                            onClick={() => onRemove(user.id)}
+                            className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
+                            aria-label={`Retirer ${user.name}`}
+                        >
+                            <X size={10} />
+                        </button>
+                    </span>
+                );
+            })}
+        </div>
+    );
+}
+
+function ConversationUserRow({
+    user,
+    selected,
+    onToggle,
+}: {
+    user: ChatUserOption;
+    selected: boolean;
+    onToggle: () => void;
+}) {
+    const rowRef = useRef<HTMLDivElement>(null);
+    const t = getAvatarTone(user.id);
+    return (
+        <div
+            ref={rowRef}
+            role="checkbox"
+            aria-checked={selected}
+            tabIndex={0}
+            onClick={onToggle}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggle();
+                }
+            }}
+            className={cn(
+                'flex h-[62px] cursor-pointer items-center gap-3 border-b border-[color-mix(in_srgb,var(--border)_55%,transparent)] px-3 outline-none transition last:border-0',
+                selected
+                    ? 'bg-[color-mix(in_srgb,var(--accent)_9%,transparent)]'
+                    : 'hover:bg-[var(--surface-2)]',
+                'focus-visible:bg-[var(--surface-2)]',
+            )}
+        >
+            <div
+                className={cn(
+                    'flex size-5 shrink-0 items-center justify-center rounded-md border transition',
+                    selected
+                        ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                        : 'border-[var(--border)] bg-[var(--surface-2)]',
+                )}
+            >
+                {selected ? <Check size={12} /> : null}
+            </div>
+            <Avatar size="sm" name={user.name} className={`shrink-0 ${t.bg} ${t.text}`} />
+            <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-[var(--text)]">{user.name}</div>
+                <div className="truncate text-xs text-[var(--text-muted)]">{user.email}</div>
+            </div>
+        </div>
+    );
+}
+
+function ConversationGroupFields({
+    category,
+    customCategory,
+    onCategoryChange,
+    onCustomCategoryChange,
+    errors,
+}: {
+    category: string;
+    customCategory: string;
+    onCategoryChange: (cat: string) => void;
+    onCustomCategoryChange: (val: string) => void;
+    errors: FormErrors;
+}) {
+    return (
+        <div className="space-y-3">
+            <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-[var(--foreground)]">Catégorie</label>
+                <div className="flex flex-wrap gap-1.5">
+                    {CATEGORY_OPTIONS.map((opt) => {
+                        const active = category === opt.id;
+                        return (
+                            <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => onCategoryChange(opt.id)}
+                                className={cn(
+                                    'rounded-lg border px-2.5 py-1 text-xs font-medium transition',
+                                    active
+                                        ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                                        : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]',
+                                )}
+                            >
+                                {opt.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+            {category === 'custom' ? (
+                <AppInput
+                    label="Nouvelle catégorie"
+                    value={customCategory}
+                    onChange={onCustomCategoryChange}
+                    placeholder="Ex. Fournisseurs"
+                    error={firstError(errors, 'custom_category')}
+                />
+            ) : null}
+        </div>
+    );
+}
+
+function ConversationDrawerFooter({
+    userCount,
+    isDirect,
+    onCancel,
+}: {
+    userCount: number;
+    isDirect: boolean;
+    onCancel: () => void;
+}) {
+    return (
+        <>
+            <span className="mr-auto text-[10px] text-[var(--text-muted)]">
+                {userCount > 0
+                    ? `${userCount} sélectionné${userCount > 1 ? 's' : ''}`
+                    : 'Aucun destinataire'}
+            </span>
+            <AppButton variant="secondary" onPress={onCancel}>
+                Annuler
+            </AppButton>
+            <AppButton type="submit" form="new-conversation-form" variant="primary" isDisabled={userCount === 0}>
+                {isDirect ? 'Démarrer' : 'Créer le groupe'}
+            </AppButton>
+        </>
+    );
+}
+
+// ── Main drawer ───────────────────────────────────────────────
+
+export function NewConversationDrawer({
+    isOpen,
+    users,
+    formErrors,
+    form,
+    onOpenChange,
+    onFormChange,
+    onSubmit,
+}: Props) {
     const [userSearch, setUserSearch] = useState('');
-
-    const filteredUsers = userSearch.trim()
-        ? users.filter((u) => u.name.toLowerCase().includes(userSearch.toLowerCase()))
-        : users;
-
-    const toggleUser = (id: number) => {
-        const next = form.user_ids.includes(id)
-            ? form.user_ids.filter((uid) => uid !== id)
-            : [...form.user_ids, id];
-        onFormChange({ ...form, user_ids: next });
-    };
-
     const isDirect = form.type === 'direct';
+    const filteredUsers = useMemo(() => {
+        const query = userSearch.trim().toLocaleLowerCase();
+        return query
+            ? users.filter((u) => `${u.name} ${u.email}`.toLocaleLowerCase().includes(query))
+            : users;
+    }, [userSearch, users]);
+    const selectedUsers = useMemo(
+        () => users.filter((u) => form.user_ids.includes(u.id)),
+        [form.user_ids, users],
+    );
 
-    const showCustomCategory = form.category === 'custom' && !isDirect;
+    function selectUser(id: number, selected: boolean) {
+        const userIds = isDirect
+            ? (selected ? [] : [id])
+            : selected
+              ? form.user_ids.filter((uid) => uid !== id)
+              : [...form.user_ids, id];
+        onFormChange({ ...form, user_ids: userIds });
+    }
+
+    function handleOpenChange(open: boolean) {
+        onOpenChange(open);
+        if (!open) {
+            setUserSearch('');
+        }
+    }
 
     return (
-        <AppDrawer isOpen={isOpen} onOpenChange={(o) => { onOpenChange(o); if (!o) onOpenChange(false); }}
-            title={isDirect ? "New conversation" : "New group"}
-            description={isDirect ? "Start a direct conversation with another user." : "Create a group conversation with multiple users."}
-            footer={<><AppButton variant="secondary" onPress={() => onOpenChange(false)}>Cancel</AppButton><AppButton variant="primary" type="submit" form="new-conv-form">Create</AppButton></>}>
-            <form id="new-conv-form" className="space-y-5" onSubmit={onSubmit}>
+        <AppDrawer
+            isOpen={isOpen}
+            onOpenChange={handleOpenChange}
+            title="Nouvelle conversation"
+            headerIcon={<UserPlus size={18} />}
+            panelClassName="max-w-[430px]"
+            contentClassName="[scrollbar-width:none]"
+            footer={
+                <ConversationDrawerFooter
+                    userCount={form.user_ids.length}
+                    isDirect={isDirect}
+                    onCancel={() => handleOpenChange(false)}
+                />
+            }
+        >
+            <form
+                id="new-conversation-form"
+                className="flex h-full flex-col gap-4"
+                onSubmit={onSubmit}
+            >
                 <AppFormErrorSummary errors={formErrors} />
 
-                <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-[var(--text)]">Type</label>
-                    <div className="flex gap-2">
-                        <button type="button" onClick={() => onFormChange({ ...form, type: 'direct' })}
-                            className={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
-                                isDirect ? 'border-[var(--crm-gold)] bg-[color-mix(in_srgb,var(--crm-gold)_15%,transparent)] text-[var(--crm-gold)]' : 'border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:border-[var(--crm-muted)]'
-                            }`}>
-                            <MessageCircle size={16} /> Direct
-                        </button>
-                        <button type="button" onClick={() => onFormChange({ ...form, type: 'group' })}
-                            className={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
-                                !isDirect ? 'border-[var(--crm-gold)] bg-[color-mix(in_srgb,var(--crm-gold)_15%,transparent)] text-[var(--crm-gold)]' : 'border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:border-[var(--crm-muted)]'
-                            }`}>
-                            <Users size={16} /> Group
-                        </button>
+                <ConversationModeToggle
+                    mode={form.type}
+                    onChange={(m) => onFormChange({ ...form, type: m, user_ids: [] })}
+                />
+
+                <AppInput
+                    label="Sujet"
+                    value={form.subject}
+                    onChange={(val) => onFormChange({ ...form, subject: val })}
+                    placeholder={isDirect ? 'Ex. Suivi du dossier' : 'Ex. Equipe finance'}
+                    description={
+                        isDirect ? 'Optionnel' : 'Donnez un nom clair au groupe.'
+                    }
+                />
+
+                {!isDirect ? (
+                    <ConversationGroupFields
+                        category={form.category}
+                        customCategory={form.custom_category}
+                        onCategoryChange={(cat) => onFormChange({ ...form, category: cat })}
+                        onCustomCategoryChange={(val) =>
+                            onFormChange({ ...form, custom_category: val })
+                        }
+                        errors={formErrors}
+                    />
+                ) : null}
+
+                <section className="space-y-2.5" aria-labelledby="participants-heading">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <h3 id="participants-heading" className="text-sm font-semibold">
+                                {isDirect ? 'Destinataire' : 'Participants'}
+                            </h3>
+                            <p className="text-xs text-[var(--text-muted)]">
+                                {isDirect
+                                    ? 'Sélectionnez une personne.'
+                                    : 'Vous serez ajouté automatiquement.'}
+                            </p>
+                        </div>
+                        {!isDirect && form.user_ids.length > 0 ? (
+                            <AppBadge variant="subtle" tone="amber">
+                                {form.user_ids.length} choisis
+                            </AppBadge>
+                        ) : null}
                     </div>
-                </div>
 
-                <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-[var(--text)]">Subject (optional)</label>
-                    <input value={form.subject} onChange={(e) => onFormChange({ ...form, subject: e.target.value })}
-                        placeholder={isDirect ? "e.g. Re: Task 42" : "e.g. Project Alpha discussion"}
-                        className="h-10 w-full rounded-xl border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)]" />
-                </div>
-
-                {!isDirect && (
-                    <>
-                        <AppSelect label="Category" placeholder="Select category" selectedKey={form.category} onSelectionChange={(v) => onFormChange({ ...form, category: v ? String(v) : 'general' })}
-                            options={CATEGORY_OPTIONS.map((c) => ({ id: c.id, label: c.label }))} />
-                        {showCustomCategory && (
-                            <div>
-                                <label className="mb-1.5 block text-xs font-semibold text-[var(--text)]">Custom category name</label>
-                                <input value={form.custom_category} onChange={(e) => onFormChange({ ...form, custom_category: e.target.value })}
-                                    placeholder="e.g. Suppliers"
-                                    className="h-10 w-full rounded-xl border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)]" />
-                                {formErrors.custom_category && <p className="mt-1 text-xs font-medium text-red-500">{firstError(formErrors, 'custom_category')}</p>}
-                            </div>
-                        )}
-                    </>
-                )}
-
-                <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-[var(--text)]">
-                        {isDirect ? 'User' : 'Participants'} <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative mb-2">
-                        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]" />
-                        <input value={userSearch} onChange={(e) => setUserSearch(e.target.value)}
-                            placeholder="Search users..."
-                            className="h-9 w-full rounded-xl border border-[var(--crm-border)] bg-[var(--crm-surface)] pl-8 pr-3 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)]" />
+                    <div className="relative">
+                        <Search
+                            size={14}
+                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                        />
+                        <input
+                            type="text"
+                            value={userSearch}
+                            onChange={(e) => setUserSearch(e.target.value)}
+                            placeholder="Rechercher..."
+                            className="h-9 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-9 pr-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+                            aria-label="Rechercher un utilisateur"
+                        />
                     </div>
-                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-[var(--crm-border)] p-1.5">
+
+                    <SelectedRecipients
+                        users={selectedUsers}
+                        onRemove={(id) => selectUser(id, true)}
+                    />
+
+                    <div className="max-h-[280px] overflow-y-auto rounded-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface-2)_65%,transparent)] p-1 [scrollbar-width:none] [-ms-overflow-style:none]">
                         {filteredUsers.length === 0 ? (
-                            <p className="py-4 text-center text-xs text-[var(--crm-text-muted)]">No users found</p>
-                        ) : filteredUsers.map((u) => {
-                            const selected = form.user_ids.includes(u.id);
-                            return (
-                                <button key={u.id} type="button"
-                                    onClick={() => {
-                                        if (isDirect) {
-                                            onFormChange({ ...form, user_ids: selected ? [] : [u.id] });
-                                        } else {
-                                            toggleUser(u.id);
-                                        }
-                                    }}
-                                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition ${
-                                        selected ? 'bg-[color-mix(in_srgb,var(--crm-gold)_10%,transparent)] text-[var(--crm-gold)]' : 'text-[var(--crm-text)] hover:bg-[var(--crm-surface)]'
-                                    }`}>
-                                    <div className={`flex size-5 shrink-0 items-center justify-center rounded border ${
-                                        selected ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)] text-black' : 'border-[var(--crm-border)]'
-                                    }`}>
-                                        {selected && <Check size={12} />}
-                                    </div>
-                                    <span className="truncate">{u.name}</span>
-                                    <span className="ml-auto text-[10px] text-[var(--crm-text-muted)]">{u.email}</span>
-                                </button>
-                            );
-                        })}
+                            <AppEmptyState
+                                title="Aucun utilisateur trouvé"
+                                description="Essayez un autre terme de recherche."
+                                className="border-none bg-transparent py-8"
+                            />
+                        ) : (
+                            filteredUsers.map((user) => (
+                                <ConversationUserRow
+                                    key={user.id}
+                                    user={user}
+                                    selected={form.user_ids.includes(user.id)}
+                                    onToggle={() =>
+                                        selectUser(user.id, form.user_ids.includes(user.id))
+                                    }
+                                />
+                            ))
+                        )}
                     </div>
-                    {!isDirect && form.user_ids.length > 0 && (
-                        <p className="mt-1 text-[10px] text-[var(--crm-text-muted)]">{form.user_ids.length} participant(s) selected (you will be added automatically)</p>
-                    )}
-                </div>
+                </section>
             </form>
         </AppDrawer>
     );

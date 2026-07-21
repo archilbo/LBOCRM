@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Chat;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
+use Illuminate\Contracts\Validation\Validator;
 
 class StoreMessageRequest extends FormRequest
 {
@@ -15,28 +15,34 @@ class StoreMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'body' => ['nullable', 'string', 'max:10000'],
-            'images' => ['nullable', 'array', 'max:10'],
-            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+            'body' => ['nullable', 'string', 'max:10000', 'required_without:files'],
+            'files' => ['nullable', 'array', 'max:'.config('chat.max_attachments', 10), 'required_without:body'],
+            'files.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx,csv,zip', 'max:'.config('chat.max_attachment_kilobytes', 15360)],
             'reply_to_message_id' => ['nullable', 'integer', 'exists:messages,id'],
+            'client_message_id' => ['nullable', 'string', 'max:255'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'images.*.image' => 'Each file must be a valid image.',
-            'images.*.mimes' => 'Only JPG, JPEG, PNG, and WebP images are allowed.',
-            'images.*.max' => 'Each image must be 8MB or smaller.',
+            'files.*.mimes' => 'Formats autorisés : images, PDF, Word et Excel.',
+            'files.*.max' => 'Chaque fichier doit faire '.round(config('chat.max_attachment_kilobytes', 15360) / 1024).' Mo maximum.',
+            'body.required_without' => 'Un message ou un fichier est obligatoire.',
+            'files.required_without' => 'Un message ou un fichier est obligatoire.',
         ];
     }
 
-    public function withValidator(Validator $validator): void
+    protected function failedValidation(Validator $validator): void
     {
-        $validator->after(function (Validator $validator) {
-            if (! $this->filled('body') && ! $this->hasFile('images')) {
-                $validator->errors()->add('body', 'Message text or at least one image is required.');
-            }
-        });
+        logger()->warning('Inbox message validation failed', [
+            'user_id' => $this->user()?->id,
+            'conversation_id' => $this->route('conversation')?->id,
+            'fields' => array_keys($this->all()),
+            'file_count' => count($this->file('files', [])),
+            'errors' => $validator->errors()->toArray(),
+        ]);
+
+        parent::failedValidation($validator);
     }
 }

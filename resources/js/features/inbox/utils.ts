@@ -73,7 +73,9 @@ export function getLastMessagePreview(conv: ConversationRow, currentUserId: numb
 
 export function formatConversationTime(dateStr: string | null | undefined): string {
   if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  const diff = Date.now() - d.getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'now';
   if (mins < 60) return `${mins}m`;
@@ -81,7 +83,7 @@ export function formatConversationTime(dateStr: string | null | undefined): stri
   if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d`;
-  return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
 export function highlightSearchMatch(text: string, query: string): { before: string; match: string; after: string } | null {

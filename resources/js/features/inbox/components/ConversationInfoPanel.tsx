@@ -1,6 +1,12 @@
-import { Archive, ArchiveRestore, ImageIcon, Info, PanelRightClose, PanelRightOpen, Users } from 'lucide-react';
-import type { ConversationRow, MessageRow } from '@/features/chat/types';
+import { Avatar, Button, Chip, ScrollShadow } from '@heroui/react';
+import { Archive, ArchiveRestore, Bell, BellOff, BriefcaseBusiness, FileText, FolderKanban, Image as ImageIcon, Info, ListChecks, MailOpen, PanelRightClose, PanelRightOpen, Pin, PinOff, ReceiptText, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ConversationRow, MessageAttachmentRow, MessageRow } from '@/features/chat/types';
 import { conversationInitial, conversationName, conversationStatus } from '@/features/chat/helpers';
+import { inboxApi } from '@/features/inbox/api';
+import { InboxIconButton } from '@/features/inbox/components/InboxIconButton';
+import { AppDrawer } from '@/components/ui/AppDrawer';
+import { isImageAttachment } from '@/features/inbox/utils/fileFormatters';
 
 type Props = {
     conversation: ConversationRow | null;
@@ -9,140 +15,154 @@ type Props = {
     onArchiveToggle: (conversation: ConversationRow) => void;
     collapsed: boolean;
     onToggleCollapsed: () => void;
+    mobileOpen?: boolean;
+    onMobileClose?: () => void;
+    onPreference?: (conversation: ConversationRow, preference: 'pinned' | 'muted', value: boolean) => void;
+    onMarkUnread?: (conversation: ConversationRow) => void;
 };
 
-export function ConversationInfoPanel({ conversation, messages, currentUserId, onArchiveToggle, collapsed, onToggleCollapsed }: Props) {
-    if (collapsed) {
+function isOnline(lastSeenAt?: string | null, explicit?: boolean): boolean {
+    return Boolean(explicit || (lastSeenAt && Date.now() - new Date(lastSeenAt).getTime() < 300000));
+}
+
+export function ConversationInfoPanel({ conversation, messages, currentUserId, onArchiveToggle, collapsed, onToggleCollapsed, mobileOpen = false, onMobileClose, onPreference, onMarkUnread }: Props) {
+    const [attachments, setAttachments] = useState<MessageAttachmentRow[]>([]);
+
+    useEffect(() => {
+        if (!conversation) { setAttachments([]); return; }
+        const controller = new AbortController();
+        inboxApi.attachments(conversation.id, 1, controller.signal)
+            .then((result) => setAttachments(result.attachments))
+            .catch(() => undefined);
+        return () => controller.abort();
+    }, [conversation?.id]);
+
+    const panel = useMemo(() => {
+        if (!conversation) return null;
+        const participants = Array.isArray(conversation.participants) ? conversation.participants : [];
+        const availableAttachments = attachments.length > 0 ? attachments : messages.flatMap((message) => message.attachments || []);
+        const images = availableAttachments.filter((a) => isImageAttachment(a)).slice(0, 9);
+        const files = availableAttachments.filter((a) => !isImageAttachment(a)).slice(0, 6);
+        const onlineCount = participants.filter((participant) => isOnline(participant.user?.lastSeenAt, participant.user?.isOnline)).length;
+        const status = conversationStatus(conversation, currentUserId) || 'Details de la conversation';
+
         return (
-            <aside className="hidden w-12 shrink-0 border-l border-[var(--crm-border)] bg-[var(--crm-elevated)] xl:flex xl:flex-col xl:items-center">
-                <button type="button" onClick={onToggleCollapsed}
-                    className="mt-3 flex size-8 items-center justify-center rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]"
-                    title="Show details">
-                    <PanelRightOpen size={15} />
-                </button>
-                {conversation ? (
-                    <div className="mt-4 flex size-8 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[10px] font-black text-[var(--crm-gold)]">
-                        {conversationInitial(conversation, currentUserId)}
+            <div className="flex h-full min-h-0 flex-col bg-[var(--surface)] text-[var(--text)]">
+                <header className="border-b border-[var(--border)] px-5 py-4 text-center">
+                    <Avatar size="lg" name={conversationName(conversation, currentUserId)} className="mx-auto bg-[var(--accent-soft)] font-bold text-[var(--accent)]">
+                        {conversation.type === 'group' ? <Users size={22} /> : conversationInitial(conversation, currentUserId)}
+                    </Avatar>
+                    <h2 className="mt-3 truncate text-base font-semibold">{conversationName(conversation, currentUserId)}</h2>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                        {conversation.type === 'group' ? `${participants.length} membres` : 'Conversation directe'}
+                    </p>
+                    <Chip size="sm" variant="flat" color={onlineCount > 0 ? 'success' : 'default'} className="mt-3">
+                        {conversation.type === 'group' ? `${onlineCount} en ligne` : status}
+                    </Chip>
+                </header>
+
+                <ScrollShadow className="min-h-0 flex-1 space-y-5 px-4 py-4">
+                    <section aria-labelledby="members-heading">
+                        <h3 id="members-heading" className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><Users size={14} /> Membres</h3>
+                        <div>
+                            {participants.map((participant) => {
+                                const user = participant.user ?? participant;
+                                const name = user?.name || 'Utilisateur';
+                                const online = isOnline(user?.lastSeenAt, user?.isOnline);
+                                return (
+                                    <div key={participant.id} className="flex items-center gap-2.5 border-b border-[color-mix(in_srgb,var(--border)_60%,transparent)] px-1 py-2.5 last:border-0">
+                                        <div className="relative">
+                                            <Avatar size="sm" name={name} />
+                                            {online ? <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--surface-2)] bg-emerald-400" /> : null}
+                                        </div>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate text-xs font-semibold">{name}</span>
+                                            <span className="block truncate text-[10px] text-[var(--text-muted)]">{online ? 'En ligne' : user?.email || 'Hors ligne'}</span>
+                                        </span>
+                                        {participant.role && participant.role !== 'member' ? <Chip size="sm" variant="soft">{participant.role}</Chip> : null}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+
+                    <section aria-labelledby="images-heading">
+                        <h3 id="images-heading" className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><ImageIcon size={14} /> Images partagees</h3>
+                        {images.length > 0 ? (
+                            <div className="grid grid-cols-3 gap-1.5">
+                                {images.map((image) => <img key={image.id} src={image.thumbnailUrl || image.url || ''} alt={image.originalFilename} loading="lazy" className="aspect-square rounded-lg object-cover" />)}
+                            </div>
+                        ) : <div className="rounded-lg border border-dashed border-[var(--border)] p-4 text-center text-xs text-[var(--text-muted)]">Aucune image partagee.</div>}
+                    </section>
+
+                    {files.length > 0 ? (
+                        <section aria-labelledby="files-heading">
+                            <h3 id="files-heading" className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><FileText size={14} /> Fichiers</h3>
+                            <div className="space-y-1.5">
+                                {files.map((file) => (
+                                    <Button key={file.id} href={file.downloadUrl || file.url || '#'} variant="secondary" size="sm" className="w-full justify-start">
+                                        <FileText size={13} className="text-[var(--accent)]" /><span className="truncate">{file.originalFilename}</span>
+                                    </Button>
+                                ))}
+                            </div>
+                        </section>
+                    ) : null}
+
+                    {conversation.context && Object.values(conversation.context).some(Boolean) ? (
+                        <section aria-labelledby="context-heading">
+                            <h3 id="context-heading" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Contexte lie</h3>
+                            <div className="grid grid-cols-2 gap-1.5">
+                                {conversation.context.clientId ? <Button size="sm" variant="secondary" href={`/clients/${conversation.context.clientId}`}><BriefcaseBusiness size={13} />Client</Button> : null}
+                                {conversation.context.dossierId ? <Button size="sm" variant="secondary" href={`/dossiers/${conversation.context.dossierId}`}><FolderKanban size={13} />Dossier</Button> : null}
+                                {conversation.context.taskId ? <Button size="sm" variant="secondary" href={`/tasks?task=${conversation.context.taskId}`}><ListChecks size={13} />Tache</Button> : null}
+                                {conversation.context.financeDocumentId ? <Button size="sm" variant="secondary" href={`/finance/documents/${conversation.context.financeDocumentId}`}><ReceiptText size={13} />Finance</Button> : null}
+                            </div>
+                        </section>
+                    ) : null}
+                </ScrollShadow>
+
+                <footer className="border-t border-[var(--border)] p-4">
+                    <div className="mb-2 grid grid-cols-3 gap-1.5">
+                        <InboxIconButton label={conversation.isPinned ? 'Desepingler' : 'Epingler'} tone="accent" onPress={() => onPreference?.(conversation, 'pinned', !conversation.isPinned)} className="w-full border border-[var(--border)]">{conversation.isPinned ? <PinOff size={14} /> : <Pin size={14} />}</InboxIconButton>
+                        <InboxIconButton label={conversation.isMuted ? 'Reactiver les notifications' : 'Mettre en sourdine'} tone="accent" onPress={() => onPreference?.(conversation, 'muted', !conversation.isMuted)} className="w-full border border-[var(--border)]">{conversation.isMuted ? <Bell size={14} /> : <BellOff size={14} />}</InboxIconButton>
+                        <InboxIconButton label="Marquer non lu" tone="accent" onPress={() => onMarkUnread?.(conversation)} className="w-full border border-[var(--border)]"><MailOpen size={14} /></InboxIconButton>
                     </div>
-                ) : null}
-            </aside>
+                    <Button variant="secondary" onPress={() => onArchiveToggle(conversation)} className="w-full">
+                        {conversation.archivedAt ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+                        {conversation.archivedAt ? 'Restaurer la conversation' : 'Archiver la conversation'}
+                    </Button>
+                    <p className="mt-2 flex items-center justify-center gap-1 text-[10px] text-[var(--text-muted)]"><Info size={11} /> L archivage est personnel.</p>
+                </footer>
+            </div>
         );
-    }
-
-    if (!conversation) {
-        return (
-            <aside className="hidden w-[300px] shrink-0 border-l border-[var(--crm-border)] bg-[var(--crm-elevated)] xl:block">
-                <div className="flex justify-end p-3">
-                    <button type="button" onClick={onToggleCollapsed}
-                        className="flex size-8 items-center justify-center rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]"
-                        title="Hide details">
-                        <PanelRightClose size={15} />
-                    </button>
-                </div>
-                <div className="flex h-full items-center justify-center p-6 pt-0 text-center text-xs text-[var(--crm-muted)]">
-                    Select a conversation to see details.
-                </div>
-            </aside>
-        );
-    }
-
-    const participants = Array.isArray(conversation.participants) ? conversation.participants : [];
-    const images = messages.flatMap((message) => message.attachments || []).filter((attachment) => attachment.url).slice(0, 9);
-    const isOnline = (lastSeenAt?: string | null, explicit?: boolean) => {
-        if (explicit) return true;
-        return !!lastSeenAt && Date.now() - new Date(lastSeenAt).getTime() < 300000;
-    };
-    const onlineCount = participants.filter((participant) => isOnline(participant.user?.lastSeenAt, participant.user?.isOnline)).length;
-    const status = conversationStatus(conversation, currentUserId) || 'Conversation details';
+    }, [attachments, conversation, currentUserId, messages, onArchiveToggle, onMarkUnread, onPreference]);
 
     return (
-        <aside className="hidden w-[300px] shrink-0 border-l border-[var(--crm-border)] bg-[var(--crm-elevated)] xl:flex xl:flex-col">
-            <div className="border-b border-[var(--crm-border)] p-4">
-                <div className="mb-2 flex justify-end">
-                    <button type="button" onClick={onToggleCollapsed}
-                        className="flex size-8 items-center justify-center rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]"
-                        title="Hide details">
-                        <PanelRightClose size={15} />
-                    </button>
-                </div>
-                <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-[var(--crm-gold-soft)] text-xl font-black text-[var(--crm-gold)]">
-                    {conversationInitial(conversation, currentUserId)}
-                </div>
-                <h3 className="mt-3 truncate text-center text-base font-black text-[var(--crm-text)]">
-                    {conversationName(conversation, currentUserId)}
-                </h3>
-                <p className="mt-1 text-center text-xs text-[var(--crm-muted)]">
-                    {conversation.type === 'group' ? `${participants.length} members` : 'Direct conversation'}
-                </p>
-                <div className="mt-3 flex justify-center">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-                        onlineCount > 0
-                            ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300'
-                            : 'border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text-muted)]'
-                    }`}>
-                        <span className={`size-1.5 rounded-full ${onlineCount > 0 ? 'bg-emerald-400' : 'bg-[var(--crm-muted)]'}`} />
-                        {conversation.type === 'group' ? `${onlineCount} online` : status}
-                    </span>
-                </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 scrollbar-none">
-                <section>
-                    <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--crm-muted)]">
-                        <Users size={14} /> Members
+        <>
+            <aside className={`hidden shrink-0 border-l border-[var(--border)] bg-[var(--surface)] xl:flex ${collapsed ? 'w-12 items-start justify-center' : 'w-[292px]'}`}>
+                {collapsed ? (
+                    <div className="space-y-3 py-3">
+                        <InboxIconButton label="Afficher les details" tone="accent" onPress={onToggleCollapsed} className="border border-[var(--border)]"><PanelRightOpen size={15} /></InboxIconButton>
+                        {conversation ? <Avatar size="sm" name={conversationName(conversation, currentUserId)}>{conversationInitial(conversation, currentUserId)}</Avatar> : null}
                     </div>
-                    <div className="space-y-2">
-                        {participants.map((participant) => {
-                            const user = participant.user ?? participant;
-                            const name = user?.name || 'Unknown user';
-                            const email = user?.email || 'No email';
-                            const initial = name?.charAt(0)?.toUpperCase() || '?';
-                            const online = isOnline(user?.lastSeenAt, user?.isOnline);
-                            return (
-                                <div key={participant.id} className="flex items-center gap-2 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-surface)] p-2">
-                                    <div className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[10px] font-black text-[var(--crm-gold)]">
-                                        {initial}
-                                        {online ? <span className="absolute bottom-0 right-0 size-2 rounded-full border border-[var(--crm-surface)] bg-emerald-400" /> : null}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="truncate text-xs font-bold text-[var(--crm-text)]">{name}</p>
-                                        <p className="truncate text-[10px] text-[var(--crm-text-muted)]">{online ? 'Online now' : email}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                ) : (
+                    <div className="relative h-full min-h-0 w-full">
+                        <InboxIconButton label="Masquer les details" onPress={onToggleCollapsed} className="absolute right-3 top-3 z-10 border border-[var(--border)] bg-[var(--surface)]"><PanelRightClose size={15} /></InboxIconButton>
+                        {panel || <div className="flex h-full items-center justify-center p-8 text-center text-sm text-[var(--text-muted)]">Selectionnez une conversation.</div>}
                     </div>
-                </section>
+                )}
+            </aside>
 
-                <section className="mt-5">
-                    <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--crm-muted)]">
-                        <ImageIcon size={14} /> Shared images
-                    </div>
-                    {images.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-1.5">
-                            {images.map((image) => (
-                                <img key={image.id} src={image.url || ''} alt={image.originalFilename}
-                                    className="aspect-square rounded-lg object-cover" />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="rounded-xl border border-dashed border-[var(--crm-border)] p-4 text-center text-xs text-[var(--crm-muted)]">
-                            No shared images yet.
-                        </div>
-                    )}
-                </section>
-            </div>
-
-            <div className="border-t border-[var(--crm-border)] p-4">
-                <button type="button" onClick={() => onArchiveToggle(conversation)}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-xs font-black text-[var(--crm-text)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]">
-                    {conversation.archivedAt ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-                    {conversation.archivedAt ? 'Unarchive conversation' : 'Archive conversation'}
-                </button>
-                <p className="mt-2 flex items-center justify-center gap-1 text-[10px] text-[var(--crm-muted)]">
-                    <Info size={11} /> Archive is private to your inbox.
-                </p>
-            </div>
-        </aside>
+            <AppDrawer
+                isOpen={mobileOpen}
+                onOpenChange={(open) => { if (!open) onMobileClose?.(); }}
+                hideHeader
+                isDismissable
+                panelClassName="xl:hidden !w-[min(100vw,384px)]"
+                contentClassName="!p-0"
+            >
+                {panel}
+            </AppDrawer>
+        </>
     );
 }

@@ -1,8 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
-import { AppSelect } from '@/components/ui/AppSelect';
-import type { AppSelectOption } from '@/components/ui/AppSelect';
+import { DrawerField, DrawerSelect } from '@/components/drawers';
 import type { ArchiveRecordRow, TreeNode } from '@/features/archives/types';
 
 type MoveDrawerProps = {
@@ -18,15 +17,15 @@ export function MoveDrawer({ isOpen, onOpenChange, archives, tree, onConfirm }: 
     const [shelfCode, setShelfCode] = useState('');
     const [boxCode, setBoxCode] = useState('');
 
-    const roomOptions: AppSelectOption[] = useMemo(() => tree.map((r) => ({ id: r.code, label: `${r.code} - ${r.name}` })), [tree]);
+    const roomOptions = useMemo(() => tree.map((r) => ({ id: r.code, label: `${r.code} - ${r.name}` })), [tree]);
 
-    const shelfOptions: AppSelectOption[] = useMemo(() => {
+    const shelfOptions = useMemo(() => {
         const room = tree.find((r) => r.code === roomCode);
         if (!room?.shelves) return [];
         return room.shelves.map((s) => ({ id: s.code, label: s.code }));
     }, [tree, roomCode]);
 
-    const boxOptions: AppSelectOption[] = useMemo(() => {
+    const boxOptions = useMemo(() => {
         const room = tree.find((r) => r.code === roomCode);
         const shelf = room?.shelves?.find((s) => s.code === shelfCode);
         if (!shelf?.boxes) return [];
@@ -44,12 +43,12 @@ export function MoveDrawer({ isOpen, onOpenChange, archives, tree, onConfirm }: 
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            title={`Move ${archives.length} archive${archives.length > 1 ? 's' : ''}`}
-            description="Select target location."
+            title={`Déplacer ${archives.length} archive${archives.length > 1 ? 's' : ''}`}
+            description="Sélectionnez la localisation cible."
             footer={
                 <>
-                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>Cancel</AppButton>
-                    <AppButton variant="primary" type="submit" form="move-form">Move</AppButton>
+                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>Annuler</AppButton>
+                    <AppButton variant="primary" type="submit" form="move-form">Déplacer</AppButton>
                 </>
             }
         >
@@ -63,11 +62,34 @@ export function MoveDrawer({ isOpen, onOpenChange, archives, tree, onConfirm }: 
                     ))}
                 </div>
 
-                <AppSelect label="Room" placeholder="Select room" selectedKey={roomCode || null} onSelectionChange={(v) => { setRoomCode(v ? String(v) : ''); setShelfCode(''); setBoxCode(''); }} options={roomOptions} />
+                <DrawerField label="Salle">
+                    <DrawerSelect
+                        value={roomCode}
+                        onChange={(v) => { setRoomCode(v); setShelfCode(''); setBoxCode(''); }}
+                        options={roomOptions}
+                        placeholder="Sélectionner salle"
+                    />
+                </DrawerField>
 
-                <AppSelect label="Shelf" placeholder={roomCode ? 'Select shelf' : 'Select room first'} selectedKey={shelfCode || null} onSelectionChange={(v) => { setShelfCode(v ? String(v) : ''); setBoxCode(''); }} options={shelfOptions} isDisabled={!roomCode} />
+                <DrawerField label="Étagère">
+                    <DrawerSelect
+                        value={shelfCode}
+                        onChange={(v) => { setShelfCode(v); setBoxCode(''); }}
+                        options={shelfOptions}
+                        placeholder={roomCode ? 'Sélectionner étagère' : 'Salle d\'abord'}
+                        isDisabled={!roomCode}
+                    />
+                </DrawerField>
 
-                <AppSelect label="Box" placeholder={shelfCode ? 'Select box' : 'Select shelf first'} selectedKey={boxCode || null} onSelectionChange={(v) => setBoxCode(v ? String(v) : '')} options={boxOptions} isDisabled={!shelfCode} />
+                <DrawerField label="Boîte">
+                    <DrawerSelect
+                        value={boxCode}
+                        onChange={(v) => setBoxCode(v)}
+                        options={boxOptions}
+                        placeholder={shelfCode ? 'Sélectionner boîte' : 'Étagère d\'abord'}
+                        isDisabled={!shelfCode}
+                    />
+                </DrawerField>
             </form>
         </AppDrawer>
     );

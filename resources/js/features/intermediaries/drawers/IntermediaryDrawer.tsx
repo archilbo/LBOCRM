@@ -1,11 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
-import type { Key } from 'react-aria-components';
+import { Input, TextArea } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
-import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
-import { AppSelect } from '@/components/ui/AppSelect';
-import { AppTextField } from '@/components/ui/AppTextField';
-import { AppTextarea } from '@/components/ui/AppTextarea';
+import { DrawerField, DrawerSelect, drawerStyles } from '@/components/drawers';
 import type { IntermediaryFormPayload, IntermediaryRow } from '@/features/intermediaries/types';
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
@@ -75,11 +72,11 @@ export function IntermediaryDrawer({
         setForm((current) => ({ ...current, [field]: value }));
     }
 
-    function updateType(value: Key | null) {
-        updateField('type', value ? String(value) : 'person');
+    function updateType(value: string) {
+        updateField('type', value || 'person');
     }
 
-    function updateStatus(value: Key | null) {
+    function updateStatus(value: string) {
         updateField('isActive', value !== 'inactive');
     }
 
@@ -105,58 +102,36 @@ export function IntermediaryDrawer({
                 </>
             }
         >
-            <form id="intermediary-form" className="space-y-5" onSubmit={handleSubmit}>
-                <AppFormErrorSummary errors={errors} />
+            <form id="intermediary-form" className="space-y-4" onSubmit={handleSubmit}>
+                <DrawerField label="Nom" error={firstError(errors, 'name')}>
+                    <Input type="text" value={form.name} onChange={(e) => updateField('name', e.target.value)}
+                        className={drawerStyles.input} />
+                </DrawerField>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                    <div className="md:col-span-2">
-                        <AppTextField
-                            label="Nom"
-                            value={form.name}
-                            error={firstError(errors, 'name')}
-                            onChange={(value) => updateField('name', value)}
-                        />
-                    </div>
+                    <DrawerField label="Type" error={firstError(errors, 'type')}>
+                        <DrawerSelect value={form.type} onChange={updateType} options={typeOptions} />
+                    </DrawerField>
 
-                    <AppSelect
-                        label="Type"
-                        selectedKey={form.type}
-                        options={typeOptions}
-                        error={firstError(errors, 'type')}
-                        onSelectionChange={updateType}
-                    />
+                    <DrawerField label="Statut" error={firstError(errors, 'is_active')}>
+                        <DrawerSelect value={form.isActive ? 'active' : 'inactive'} onChange={updateStatus} options={statusOptions} />
+                    </DrawerField>
 
-                    <AppSelect
-                        label="Statut"
-                        selectedKey={form.isActive ? 'active' : 'inactive'}
-                        options={statusOptions}
-                        error={firstError(errors, 'is_active')}
-                        onSelectionChange={updateStatus}
-                    />
+                    <DrawerField label="Telephone" error={firstError(errors, 'phone')}>
+                        <Input type="tel" value={form.phone} onChange={(e) => updateField('phone', e.target.value)}
+                            className={drawerStyles.input} />
+                    </DrawerField>
 
-                    <AppTextField
-                        label="Telephone"
-                        value={form.phone}
-                        error={firstError(errors, 'phone')}
-                        onChange={(value) => updateField('phone', value)}
-                    />
-
-                    <AppTextField
-                        label="Email"
-                        value={form.email}
-                        error={firstError(errors, 'email')}
-                        onChange={(value) => updateField('email', value)}
-                    />
-
-                    <div className="md:col-span-2">
-                        <AppTextarea
-                            label="Notes"
-                            value={form.notes}
-                            error={firstError(errors, 'notes')}
-                            onChange={(value) => updateField('notes', value)}
-                        />
-                    </div>
+                    <DrawerField label="Email" error={firstError(errors, 'email')}>
+                        <Input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)}
+                            className={drawerStyles.input} />
+                    </DrawerField>
                 </div>
+
+                <DrawerField label="Notes" error={firstError(errors, 'notes')}>
+                    <TextArea value={form.notes} onChange={(e) => updateField('notes', e.target.value)}
+                        className={drawerStyles.textarea} />
+                </DrawerField>
             </form>
         </AppDrawer>
     );

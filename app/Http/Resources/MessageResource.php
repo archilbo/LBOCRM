@@ -11,6 +11,7 @@ class MessageResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'clientMessageId' => $this->client_message_id,
             'body' => $this->body,
             'isEdited' => $this->is_edited,
             'isForwarded' => $this->is_forwarded,
@@ -34,8 +35,9 @@ class MessageResource extends JsonResource
             ] : null),
             'attachments' => MessageAttachmentResource::collection($this->whenLoaded('attachments')),
             'attachmentsCount' => $this->whenLoaded('attachments', fn () => $this->attachments->count()),
-            'createdAt' => $this->created_at?->toISOString(),
-            'updatedAt' => $this->updated_at?->diffForHumans(),
+            'createdAt' => $this->created_at?->toIso8601String(),
+            'updatedAt' => $this->updated_at?->toIso8601String(),
+            'editedAt' => $this->edited_at?->toIso8601String(),
         ];
     }
 }

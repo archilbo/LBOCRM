@@ -14,6 +14,7 @@ use App\Policies\NotificationPolicy;
 use App\Policies\PaymentPolicy;
 use App\Observers\DocumentTemplateObserver;
 use Illuminate\Notifications\DatabaseNotification;
+use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -38,6 +39,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Expense::class, ExpensePolicy::class);
         Gate::policy(FinanceTemplate::class, FinanceTemplatePolicy::class);
         DocumentTemplate::observe(DocumentTemplateObserver::class);
-        //
+
+        Gate::before(function (User $user) {
+            return $user->hasRole('admin') ? true : null;
+        });
     }
 }

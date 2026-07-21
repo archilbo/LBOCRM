@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\ProjectDesign\ProjectDesignFile;
+use App\Models\ProjectDesign\ProjectDesignFolder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -93,5 +95,15 @@ class Dossier extends Model
     public function workflowRequirementHistories(): HasMany
     {
         return $this->hasMany(DossierWorkflowRequirementHistory::class);
+    }
+
+    public function designFolders(): HasMany
+    {
+        return $this->hasMany(ProjectDesignFolder::class, 'dossier_id');
+    }
+
+    public function designFiles(): HasMany
+    {
+        return $this->hasMany(ProjectDesignFile::class, 'dossier_id');
     }
 }

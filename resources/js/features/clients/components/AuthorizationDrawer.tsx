@@ -7,6 +7,8 @@ import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppTextarea } from '@/components/ui/AppTextarea';
+import { DateField } from '@/features/archives/components/DateField';
+import { strToDate, dateToStr } from '@/lib/dateUtils';
 import { useTranslation } from '@/lib/i18n';
 import type { ClientSelectedProjectWorkspace } from '@/features/clients/types';
 
@@ -142,8 +144,8 @@ export function AuthorizationDrawer({ isOpen, onOpenChange, project, clientId }:
                 <AppSelect label="Status" options={STATUS_OPTIONS} selectedKey={status} onSelectionChange={setStatus} />
 
                 <div className="grid grid-cols-2 gap-3">
-                    <AppInput label="Submitted date" type="date" value={submittedAt} onChange={setSubmittedAt} />
-                    <AppInput label="Approved date" type="date" value={approvedAt} onChange={setApprovedAt} />
+                    <DateField label="Submitted date" value={strToDate(submittedAt)} onChange={(d) => setSubmittedAt(dateToStr(d))} />
+                    <DateField label="Approved date" value={strToDate(approvedAt)} onChange={(d) => setApprovedAt(dateToStr(d))} />
                 </div>
 
                 <AppTextarea label="Observations" value={observationsText} onChange={setObservationsText} placeholder="Authority observations..." />

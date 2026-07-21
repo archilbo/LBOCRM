@@ -51,6 +51,9 @@ class ConversationResource extends JsonResource
             }),
             'lastMessageAt' => optional($this->last_message_at)->toISOString(),
             'unreadCount' => $this->when($user, function () use ($user) {
+                if (isset($this->unread_messages_count)) {
+                    return (int) $this->unread_messages_count;
+                }
                 return Message::where('conversation_id', $this->id)
                     ->where('user_id', '!=', $user->id)
                     ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
@@ -58,6 +61,15 @@ class ConversationResource extends JsonResource
             }),
             'createdAt' => $this->created_at?->toISOString(),
             'archivedAt' => $participant ? optional($participant->archived_at)->toISOString() : null,
+            'isPinned' => (bool) $participant?->pinned_at,
+            'isMuted' => (bool) $participant?->muted_at,
+            'draft' => $participant?->draft,
+            'context' => [
+                'taskId' => $this->task_id,
+                'dossierId' => $this->dossier_id,
+                'clientId' => $this->client_id,
+                'financeDocumentId' => $this->finance_document_id,
+            ],
         ];
     }
 }

@@ -12,6 +12,10 @@ export type ConversationParticipant = {
     user: ParticipantUser;
     lastReadAt: string | null;
     archivedAt: string | null;
+    role?: 'owner' | 'admin' | 'member';
+    isPinned?: boolean;
+    isMuted?: boolean;
+    draft?: string | null;
 };
 
 export type ConversationRow = {
@@ -29,6 +33,11 @@ export type ConversationRow = {
     unreadCount: number;
     archivedAt: string | null;
     createdAt: string;
+    updatedAt?: string;
+    isPinned?: boolean;
+    isMuted?: boolean;
+    draft?: string | null;
+    context?: { taskId?: number | null; dossierId?: number | null; clientId?: number | null; financeDocumentId?: number | null };
 };
 
 export type MessageAttachmentRow = {
@@ -39,7 +48,13 @@ export type MessageAttachmentRow = {
     size: number;
     url: string | null;
     thumbnailUrl: string | null;
+    downloadUrl?: string | null;
     createdAt: string;
+    pages?: number;
+    width?: number;
+    height?: number;
+    uploadStatus?: 'pending' | 'uploading' | 'completed' | 'failed';
+    linkedDocument?: { id: number; code: string; type?: string } | null;
 };
 
 export type MessageReplyPreview = {
@@ -59,6 +74,7 @@ export type MessageForwardedFrom = {
 
 export type MessageRow = {
     id: number;
+    clientMessageId?: string | null;
     body: string | null;
     isEdited: boolean;
     isForwarded: boolean;
@@ -73,6 +89,11 @@ export type MessageRow = {
     attachmentsCount: number;
     createdAt: string;
     updatedAt: string;
+    editedAt?: string | null;
+    isFailed?: boolean;
+    pendingBody?: string;
+    pendingFiles?: File[];
+    pendingReplyToId?: number;
 };
 
 export type ChatUserOption = {

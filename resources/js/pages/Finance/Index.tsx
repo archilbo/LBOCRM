@@ -27,8 +27,7 @@ import { AppDataTable } from '@/components/ui/AppDataTable';
 import { AppFilterBar } from '@/components/ui/AppFilterBar';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
-import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
-import { AppTableActions } from '@/components/ui/AppTableActions';
+import { FinanceRowActions } from '@/features/finance/components/FinanceRowActions';
 import { FinanceDrawer } from '@/components/drawers';
 import { countByValue, filterByValue } from '@/lib/filters';
 import type {
@@ -353,71 +352,16 @@ export default function FinanceIndex({
                 id: 'actions',
                 header: 'Actions',
                 cell: ({ row }) => (
-                    <AppTableActions>
-                        <AppTableActionButton
-                            label="Preview"
-                            tone="view"
-                            onPress={() => setSelectedRecord(row.original)}
-                        >
-                            <Eye size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Edit"
-                            tone="edit"
-                            onPress={() => openEditDrawer(row.original)}
-                        >
-                            <Pencil size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Generate"
-                            tone="documents"
-                            onPress={() => generateRecord(row.original)}
-                        >
-                            <WandSparkles size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Download Excel"
-                            tone="documents"
-                            onPress={() => downloadRecord(row.original)}
-                        >
-                            <FileSpreadsheet size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Export PDF"
-                            tone="documents"
-                            onPress={() => exportPdf(row.original)}
-                        >
-                            <FileText size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Download PDF"
-                            tone="documents"
-                            onPress={() => downloadPdf(row.original)}
-                        >
-                            <Download size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Mark paid"
-                            tone="create"
-                            onPress={() => markPaid(row.original)}
-                        >
-                            <CheckCircle2 size={15} />
-                        </AppTableActionButton>
-
-                        <AppTableActionButton
-                            label="Delete"
-                            tone="delete"
-                            onPress={() => setDeleteTarget(row.original)}
-                        >
-                            <Trash2 size={15} />
-                        </AppTableActionButton>
-                    </AppTableActions>
+                    <FinanceRowActions actions={[
+                        { id: 'preview', label: 'Apercu', icon: <Eye size={14} />, onPress: () => setSelectedRecord(row.original) },
+                        { id: 'edit', label: 'Modifier', icon: <Pencil size={14} />, onPress: () => openEditDrawer(row.original) },
+                        { id: 'generate', label: 'Generer', icon: <WandSparkles size={14} />, onPress: () => generateRecord(row.original), tone: 'accent', dividerBefore: true },
+                        { id: 'download-excel', label: 'Telecharger Excel', icon: <FileSpreadsheet size={14} />, onPress: () => downloadRecord(row.original), tone: 'accent' },
+                        { id: 'export-pdf', label: 'Exporter PDF', icon: <FileText size={14} />, onPress: () => exportPdf(row.original), tone: 'accent' },
+                        { id: 'download-pdf', label: 'Telecharger PDF', icon: <Download size={14} />, onPress: () => downloadPdf(row.original), tone: 'accent' },
+                        { id: 'mark-paid', label: 'Marquer paye', icon: <CheckCircle2 size={14} />, onPress: () => markPaid(row.original), tone: 'success', dividerBefore: true },
+                        { id: 'delete', label: 'Supprimer', icon: <Trash2 size={14} />, onPress: () => setDeleteTarget(row.original), tone: 'danger', dividerBefore: true },
+                    ]} />
                 ),
             },
         ],

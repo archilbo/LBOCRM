@@ -26,14 +26,26 @@ class MessageController extends Controller
         $this->authorize('view', $conversation);
         $this->authorize('create', Message::class);
 
-        $images = $request->hasFile('images') ? $request->file('images') : [];
+        // Idempotency: return existing message if client_message_id matches
+        if ($request->filled('client_message_id')) {
+            $existing = Message::where('conversation_id', $conversation->id)
+                ->where('user_id', $request->user()->id)
+                ->where('client_message_id', $request->input('client_message_id'))
+                ->with(['user', 'attachments', 'replyTo.user', 'reads', 'forwardedFrom.user'])
+                ->first();
+            if ($existing) {
+                return response()->json(new MessageResource($existing));
+            }
+        }
+
+        $files = array_merge($request->file('files', []), $request->file('images', []));
         $replyToMessageId = $request->integer('reply_to_message_id') ?: null;
 
         if ($replyToMessageId) {
             abort_unless(
                 Message::where('id', $replyToMessageId)->where('conversation_id', $conversation->id)->exists(),
                 422,
-                'Reply target does not belong to this conversation.'
+                'La cible de réponse n\'appartient pas à cette conversation.'
             );
         }
 
@@ -41,8 +53,9 @@ class MessageController extends Controller
             $conversation,
             $request->user(),
             $request->input('body'),
-            $images,
+            $files,
             $replyToMessageId,
+            clientMessageId: $request->input('client_message_id'),
         );
 
         $message->load(['user', 'attachments', 'replyTo.user', 'reads']);
@@ -62,6 +75,7 @@ class MessageController extends Controller
             'is_edited' => true,
             'edited_at' => now(),
         ]);
+        app(\App\Services\Chat\ChatActivityService::class)->log($conversation, $request->user(), 'chat.message.updated', [], [], $message);
 
         $message->load(['user', 'attachments', 'replyTo.user', 'reads', 'forwardedFrom.user']);
 
@@ -70,13 +84,14 @@ class MessageController extends Controller
         return response()->json(new MessageResource($message));
     }
 
-    public function destroy(Conversation $conversation, Message $message): JsonResponse
+    public function destroy(Request $request, Conversation $conversation, Message $message): JsonResponse
     {
         $this->authorize('view', $conversation);
         $this->authorize('delete', $message);
         abort_unless($message->conversation_id === $conversation->id, 404);
         $convId = $message->conversation_id;
         $message->delete();
+        app(\App\Services\Chat\ChatActivityService::class)->log($conversation, $request->user(), 'chat.message.deleted', [], [], $message);
         try { broadcast(new MessageDeleted($message->id, $convId))->toOthers(); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
         $conversation->participants()
             ->where('user_id', '!=', $request->user()->id)

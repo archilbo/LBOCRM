@@ -11,7 +11,6 @@ import {
     X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Tooltip } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
 import { AppFilterTabs } from '@/components/ui/AppFilterTabs';
@@ -20,6 +19,7 @@ import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import type { Expense } from '@/features/finance/types';
 import { formatCompactMoney } from '@/features/finance/utils/calculations';
 import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirection } from '@/features/finance/components/FinanceSortableHeader';
+import { FinanceRowActions } from '@/features/finance/components/FinanceRowActions';
 
 type ExpensesWorkspaceProps = {
     expenses: Expense[];
@@ -202,26 +202,11 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                                     <td className="px-3 py-2 font-semibold text-rose-300">{formatCompactMoney(expense.amount, currency)}</td>
                                     <td className="px-3 py-2 text-[var(--text-muted)]">{expense.paymentMethod || <span className="text-[var(--text-muted)]">-</span>}</td>
                                     <td className="px-3 py-2">
-                                        <div className="finance-table-actions flex justify-end gap-0.5">
-                                            <Tooltip delay={500}>
-                                                <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onView(expense)}>
-                                                    <Eye size={13} />
-                                                </AppButton>
-                                                <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Voir</Tooltip.Content>
-                                            </Tooltip>
-                                            <Tooltip delay={500}>
-                                                <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onEdit(expense)}>
-                                                    <Pencil size={13} />
-                                                </AppButton>
-                                                <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Modifier</Tooltip.Content>
-                                            </Tooltip>
-                                            <Tooltip delay={500}>
-                                                <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => setDeleteTarget(expense)}>
-                                                    <Trash2 size={13} />
-                                                </AppButton>
-                                                <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Supprimer</Tooltip.Content>
-                                            </Tooltip>
-                                        </div>
+                                        <FinanceRowActions actions={[
+                                            { id: 'view', label: 'Voir', icon: <Eye size={13} />, onPress: () => onView(expense) },
+                                            { id: 'edit', label: 'Modifier', icon: <Pencil size={13} />, onPress: () => onEdit(expense) },
+                                            { id: 'delete', label: 'Supprimer', icon: <Trash2 size={13} />, onPress: () => setDeleteTarget(expense), tone: 'danger', dividerBefore: true },
+                                        ]} />
                                     </td>
                                 </tr>
                             ))

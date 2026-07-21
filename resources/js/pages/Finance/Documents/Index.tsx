@@ -6,7 +6,6 @@ import {
     CheckCircle2,
     CircleDollarSign,
     Download,
-    EllipsisVertical,
     Eye,
     FileSpreadsheet,
     FileText,
@@ -29,7 +28,6 @@ import { TabPanel } from 'react-aria-components';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
-import { Tooltip } from '@heroui/react';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
 import { AppFilterTabs } from '@/components/ui/AppFilterTabs';
@@ -51,6 +49,7 @@ import type { ExpenseViewMode } from '@/components/drawers/entities/ExpenseDrawe
 import { MetricSparklineCard } from '@/features/finance/components/MetricSparklineCard';
 import { ExpensesWorkspace } from '@/features/finance/components/ExpensesWorkspace';
 import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirection } from '@/features/finance/components/FinanceSortableHeader';
+import { FinanceRowActions, type FinanceRowAction } from '@/features/finance/components/FinanceRowActions';
 import type {
     ClientOption,
     DossierOption,
@@ -402,6 +401,23 @@ function FinanceDocumentWorkspace({
         });
     }
 
+    function rowActionsFor(document: FinanceDocument): FinanceRowAction[] {
+        return [
+            { id: 'open', label: 'Ouvrir la fiche', icon: <Eye size={13} />, onPress: () => router.visit(docShowUrl(document.id)) },
+            { id: 'edit', label: 'Modifier', icon: <Pencil size={13} />, onPress: () => actions.onEdit(document) },
+            { id: 'preview', label: 'Apercu du document', icon: <FileText size={13} />, onPress: () => actions.onView(document), dividerBefore: true },
+            { id: 'print', label: 'Imprimer', icon: <Printer size={13} />, onPress: () => actions.onPrint(document) },
+            document.hasPdf && { id: 'download-pdf', label: 'Telecharger PDF', icon: <Download size={13} />, onPress: () => actions.onDownloadPdf(document) },
+            document.hasExcel && { id: 'download-excel', label: 'Telecharger Excel', icon: <FileSpreadsheet size={13} />, onPress: () => actions.onDownloadExcel(document) },
+            { id: 'generate-pdf', label: document.hasPdf ? 'Regenerer PDF' : 'Generer PDF', icon: <FileText size={13} />, onPress: () => actions.onGeneratePdf(document), tone: 'accent', dividerBefore: true },
+            { id: 'generate-excel', label: document.hasExcel ? 'Regenerer Excel' : 'Generer Excel', icon: <FileSpreadsheet size={13} />, onPress: () => actions.onGenerateExcel(document), tone: 'accent' },
+            document.type === 'invoice' && { id: 'payment', label: 'Enregistrer un paiement', icon: <WalletCards size={13} />, onPress: () => actions.onPayment(document), tone: 'success', dividerBefore: true },
+            document.type === 'quote' && { id: 'reject', label: 'Refuser le devis', icon: <XCircle size={13} />, onPress: () => actions.onReject(document), tone: 'danger', dividerBefore: true },
+            { id: 'cancel', label: 'Annuler le document', icon: <XCircle size={13} />, onPress: () => actions.onCancel(document), tone: 'danger', dividerBefore: document.type !== 'quote' },
+            { id: 'delete', label: 'Supprimer', icon: <Trash2 size={13} />, onPress: () => actions.onDelete(document), tone: 'danger' },
+        ].filter((action): action is FinanceRowAction => Boolean(action));
+    }
+
     function toggleRow(documentId: number) {
         setSelectedRows((current) => (
             current.includes(documentId)
@@ -622,63 +638,7 @@ function FinanceDocumentWorkspace({
                                             {formatCompactMoney(document.remainingTotal, currency)}
                                         </td>
                                         <td className="px-3 py-2">
-                                            <div className="finance-table-actions flex justify-end gap-0.5">
-                                                <Tooltip delay={500}>
-                                                    <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => router.visit(docShowUrl(document.id))}>
-                                                        <Eye size={13} />
-                                                    </AppButton>
-                                                    <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Open</Tooltip.Content>
-                                                </Tooltip>
-                                                <Tooltip delay={500}>
-                                                    <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => actions.onEdit(document)}>
-                                                        <Pencil size={13} />
-                                                    </AppButton>
-                                                    <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Edit</Tooltip.Content>
-                                                </Tooltip>
-                                                <div className="relative group/more">
-                                                    <Tooltip delay={500}>
-                                                        <AppButton size="sm" variant="light" className="min-w-0 h-7 w-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-                                                            <EllipsisVertical size={13} />
-                                                        </AppButton>
-                                                        <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">More</Tooltip.Content>
-                                                    </Tooltip>
-                                                    <div className="absolute right-0 top-full z-20 mt-0.5 hidden w-44 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg group-hover/more:block group-focus-within/more:block">
-                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onView(document); }}>
-                                                            <Eye size={12} /> View document
-                                                        </button>
-                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onPrint(document); }}>
-                                                            <Printer size={12} /> Print
-                                                        </button>
-                                                        {document.hasPdf ? <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onDownloadPdf(document); }}><Download size={12} /> Download PDF</button> : null}
-                                                        {document.hasExcel ? <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onDownloadExcel(document); }}><Download size={12} /> Download Excel</button> : null}
-                                                        <div className="my-1 h-px bg-[var(--border)]" />
-                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onGeneratePdf(document); }}>
-                                                            <FileText size={12} /> Generate PDF
-                                                        </button>
-                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onGenerateExcel(document); }}>
-                                                            <FileSpreadsheet size={12} /> Generate Excel
-                                                        </button>
-                                                        {document.type === 'invoice' ? (
-                                                            <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onPayment(document); }}>
-                                                                <WalletCards size={12} /> Record payment
-                                                            </button>
-                                                        ) : null}
-                                                        <div className="my-1 h-px bg-[var(--border)]" />
-                                                        {document.type === 'quote' ? (
-                                                            <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onReject(document); }}>
-                                                                <XCircle size={12} /> Reject
-                                                            </button>
-                                                        ) : null}
-                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onCancel(document); }}>
-                                                            <XCircle size={12} /> Cancel
-                                                        </button>
-                                                        <div className="my-1 h-px bg-[var(--border)]" />
-                                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-red-400 transition hover:bg-[var(--surface-2)]" onClick={(e) => { e.stopPropagation(); actions.onDelete(document); }}>
-                                                            <Trash2 size={12} /> Delete
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <FinanceRowActions actions={rowActionsFor(document)} />
                                         </td>
                                     </tr>
                                 );
@@ -721,43 +681,7 @@ function FinanceDocumentWorkspace({
                             <span className="text-[var(--text-muted)]">Paid <span className="font-semibold text-emerald-400">{formatCompactMoney(document.paidTotal, currency)}</span></span>
                             <span className="text-[var(--text-muted)]">Due <span className={`font-semibold ${document.remainingTotal > 0 ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>{formatCompactMoney(document.remainingTotal, currency)}</span></span>
                         </div>
-                        <div className="flex gap-1.5">
-                            <button type="button" className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]" onClick={(e) => { e.stopPropagation(); router.visit(docShowUrl(document.id)); }}>Open</button>
-                            <div className="relative group/more">
-                                <button type="button" className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]" onClick={(e) => e.stopPropagation()}>
-                                    <EllipsisVertical size={13} />
-                                </button>
-                                <div className="absolute bottom-full right-0 z-20 mb-1 hidden w-44 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg group-hover/more:block group-focus-within/more:block">
-                                    <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onEdit(document); }}>
-                                        <Pencil size={12} /> Edit
-                                    </button>
-                                    <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onGeneratePdf(document); }}>
-                                        <FileText size={12} /> Generate PDF
-                                    </button>
-                                    <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onGenerateExcel(document); }}>
-                                        <FileSpreadsheet size={12} /> Generate Excel
-                                    </button>
-                                    {document.type === 'invoice' ? (
-                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onPayment(document); }}>
-                                            <WalletCards size={12} /> Payment
-                                        </button>
-                                    ) : null}
-                                    <div className="my-1 h-px bg-[var(--border)]" />
-                                    {document.type === 'quote' ? (
-                                        <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onReject(document); }}>
-                                            <XCircle size={12} /> Reject
-                                        </button>
-                                    ) : null}
-                                    <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={(e) => { e.stopPropagation(); actions.onCancel(document); }}>
-                                        <XCircle size={12} /> Cancel
-                                    </button>
-                                    <div className="my-1 h-px bg-[var(--border)]" />
-                                    <button type="button" className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[11px] text-red-400 transition hover:bg-[var(--surface-2)]" onClick={(e) => { e.stopPropagation(); actions.onDelete(document); }}>
-                                        <Trash2 size={12} /> Delete
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <FinanceRowActions actions={rowActionsFor(document)} visibleCount={1} className="justify-end" />
                     </div>
                 ))}
             </div>
@@ -805,6 +729,14 @@ function PaymentWorkspace({
             payment_direction: nextFinanceSortDirection(sort, direction, column),
             payments_page: 1,
         });
+    }
+
+    function paymentActionsFor(payment: Payment): FinanceRowAction[] {
+        return [
+            payment.receipt?.urls?.show && { id: 'view-receipt', label: 'Voir le recu', icon: <Eye size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.show) },
+            payment.receipt?.urls?.pdf && { id: 'download-pdf', label: 'Telecharger PDF', icon: <FileText size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.pdf), tone: 'accent' },
+            payment.receipt?.urls?.excel && { id: 'download-excel', label: 'Telecharger Excel', icon: <FileSpreadsheet size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.excel), tone: 'accent' },
+        ].filter((action): action is FinanceRowAction => Boolean(action));
     }
 
     return (
@@ -892,35 +824,7 @@ function PaymentWorkspace({
                                         )}
                                     </td>
                                     <td className="px-3 py-2">
-                                        <div className="flex justify-end gap-0.5">
-                                            {payment.receipt?.urls?.show ? (
-                                                <Tooltip delay={500}>
-                                                    <AppButton size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.show)}>
-                                                        <Eye size={11} />
-                                                    </AppButton>
-                                                    <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Voir le reçu</Tooltip.Content>
-                                                </Tooltip>
-                                            ) : null}
-                                            {payment.receipt?.urls?.pdf ? (
-                                                <Tooltip delay={500}>
-                                                    <AppButton size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.pdf)}>
-                                                        <FileText size={11} />
-                                                    </AppButton>
-                                                    <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Télécharger PDF</Tooltip.Content>
-                                                </Tooltip>
-                                            ) : null}
-                                            {payment.receipt?.urls?.excel ? (
-                                                <Tooltip delay={500}>
-                                                    <AppButton size="sm" variant="light" className="min-w-0 h-6 w-6 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onPress={() => onReceipt(payment.receipt?.urls?.excel)}>
-                                                        <FileSpreadsheet size={11} />
-                                                    </AppButton>
-                                                    <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Télécharger Excel</Tooltip.Content>
-                                                </Tooltip>
-                                            ) : null}
-                                            {!payment.receipt?.urls?.show && !payment.receipt?.urls?.pdf && !payment.receipt?.urls?.excel ? (
-                                                <span className="text-[10px] text-[var(--text-muted)]">—</span>
-                                            ) : null}
-                                        </div>
+                                        <FinanceRowActions actions={paymentActionsFor(payment)} visibleCount={1} />
                                     </td>
                                 </tr>
                             ))
@@ -960,23 +864,7 @@ function PaymentWorkspace({
                                 <span className="text-[var(--text-muted)]">Invoice <span className="font-semibold text-[var(--text)]">{payment.document?.number || '-'}</span></span>
                                 <span className="text-[var(--text-muted)]">Client <span className="font-semibold text-[var(--text)]">{payment.client?.name || '-'}</span></span>
                             </div>
-                            <div className="flex gap-1.5">
-                                {payment.receipt ? (
-                                    <>
-                                        {payment.receipt.urls?.show ? (
-                                            <AppButton variant="bordered" size="sm" className="flex-1 text-[11px]" onPress={() => onReceipt(payment.receipt?.urls?.show)}>View</AppButton>
-                                        ) : null}
-                                        {payment.receipt.urls?.pdf ? (
-                                            <AppButton variant="bordered" size="sm" className="flex-1 text-[11px]" onPress={() => onReceipt(payment.receipt?.urls?.pdf)}>PDF</AppButton>
-                                        ) : null}
-                                        {payment.receipt.urls?.excel ? (
-                                            <AppButton variant="bordered" size="sm" className="flex-1 text-[11px]" onPress={() => onReceipt(payment.receipt?.urls?.excel)}>Excel</AppButton>
-                                        ) : null}
-                                    </>
-                                ) : (
-                                    <span className="w-full py-1.5 text-center text-[11px] text-[var(--text-muted)]">No receipt</span>
-                                )}
-                            </div>
+                            <FinanceRowActions actions={paymentActionsFor(payment)} visibleCount={1} className="justify-end" />
                         </div>
                     ))
                 ) : (

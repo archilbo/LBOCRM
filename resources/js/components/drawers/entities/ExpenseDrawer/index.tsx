@@ -3,6 +3,8 @@ import { router } from '@inertiajs/react';
 import { Button, Card, Input, ListBox, Select, TextArea } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppDrawer } from '@/components/ui/AppDrawer';
+import { DateField } from '@/features/archives/components/DateField';
+import { strToDate, dateToStr } from '@/lib/dateUtils';
 import type { Expense } from '@/features/finance/types';
 import { formatCompactMoney } from '@/features/finance/utils/calculations';
 
@@ -156,10 +158,7 @@ export function ExpenseDrawer({ isOpen, onOpenChange, expense, mode = expense ? 
                             <label className={labelCls}>Montant</label>
                             <Input className={compactInput} type="number" min="0" step="0.01" value={form.amount} onChange={(e) => update('amount', e.target.value)} />
                         </div>
-                        <div className="flex min-w-0 flex-col gap-1">
-                            <label className={labelCls}>Date depense</label>
-                            <Input className={compactInput} type="date" value={form.expenseDate} onChange={(e) => update('expenseDate', e.target.value)} />
-                        </div>
+                        <DateField label="Date depense" value={strToDate(form.expenseDate)} onChange={(d) => update('expenseDate', dateToStr(d))} />
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2">
                         <div className="flex min-w-0 flex-col gap-1">

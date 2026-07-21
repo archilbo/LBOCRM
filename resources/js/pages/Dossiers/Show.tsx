@@ -43,6 +43,7 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { ProjectWorkflowStepper } from '@/features/dossiers/components/ProjectWorkflowStepper';
 import { WorkflowTab } from '@/features/dossiers/components/WorkflowTab';
+import { DesignTab } from '@/features/dossiers/components/DesignTab';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
 import { DocumentDrawer } from '@/components/drawers';
 import { ContractDrawer } from '@/components/drawers';
@@ -100,14 +101,16 @@ type PageProps = {
     archiveRooms: ArchiveLocationOption[];
     archiveShelves: ArchiveLocationOption[];
     archiveBoxes: ArchiveLocationOption[];
+    canDesign?: boolean;
 };
 
-type TabId = 'overview' | 'workflow' | 'documents' | 'contract' | 'finance' | 'authorizations' | 'notes' | 'activity';
+type TabId = 'overview' | 'workflow' | 'documents' | 'design' | 'contract' | 'finance' | 'authorizations' | 'notes' | 'activity';
 
 const TABS: { id: TabId; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'workflow', label: 'Workflow' },
     { id: 'documents', label: 'Documents' },
+    { id: 'design', label: 'Design' },
     { id: 'contract', label: 'Contract' },
     { id: 'finance', label: 'Finance' },
     { id: 'authorizations', label: 'Authorizations' },
@@ -154,7 +157,7 @@ function workflowLabel(value: string) {
 export default function DossierShow({
     dossier, workflow, documents, contract, authorization, financeRecords, archiveRecord,
     clients, cities, dossiers: dossiersOptions, templates, contractClients, financeDossiers,
-    archiveRooms, archiveShelves, archiveBoxes,
+    archiveRooms, archiveShelves, archiveBoxes, canDesign,
 }: PageProps) {
     const initialTab = (new URLSearchParams(window.location.search).get('tab') as TabId) || 'overview';
     const [activeTab, setActiveTab] = useState<TabId>(initialTab);
@@ -188,17 +191,21 @@ export default function DossierShow({
             const match: Record<string, string> = {
                 cin: 'CIN',
                 certificat_propriete: 'Certificat de propriete',
-                terrain_documents: 'Plan cadastral',
+                plan_cadastral: 'Plan cadastral',
+                calcul_contenance: 'Calcul de contenance',
+                plan_parcellaire: 'Plan parcellaire',
                 cahier_received: 'Cahier de chantier',
                 contract_bureau_etude: 'Contrat BE',
                 plan_beton: 'Plan beton arme',
+                attestation_implantation: 'Attestation implantation',
+                contrat_topographie: 'Contrat topographie',
+                contrat_laboratoire: 'Contrat laboratoire',
+                bureau_controle: 'Bureau de controle',
                 fiche_energetique: 'Fiche energetique',
                 site_images: 'Plan cadastral',
                 demande_permis_habiter: 'Certificat de propriete',
                 recent_certificat_propriete: 'Certificat de propriete',
                 engineer_request: 'Cahier de chantier',
-                implantation_topographie: 'Plan cadastral',
-                laboratoire_controle: 'Contrat BE',
             };
             const templateName = match[reqKey];
             const tmpl = templateName ? templates.find((t) => t.label === templateName) : undefined;
@@ -421,6 +428,7 @@ export default function DossierShow({
                             <WorkflowTab workflow={workflow} selectedStepKey={selectedStepKey} onSelectStep={setSelectedStepKey} dossierId={dossier.id} onOpenUpload={handleOpenUpload} onOpenArchive={() => setArchiveDrawerOpen(true)} />
                         )}
                         {activeTab === 'documents' && <DocumentsTab documents={documents} dossierNumber={dossier.dossierNumber} contract={contract} />}
+                        {activeTab === 'design' && <DesignTab dossierId={dossier.id} canDesign={canDesign} />}
                         {activeTab === 'contract' && <ContractTab contract={contract} dossierId={dossier.id} contractSigned={contractSigned} onSignedChange={setContractSigned} onEdit={(c) => { setEditContract(c); setContractDrawerOpen(true); }} onShowDocuments={() => handleTabChange('documents')} />}
                         {activeTab === 'finance' && <FinanceTab records={financeRecords} total={totalFinance} paid={paidFinance} remaining={remainingFinance} />}
                         {activeTab === 'authorizations' && <AuthorizationsTab authorization={authorization} dossierId={dossier.id} dossierNumber={dossier.dossierNumber} />}

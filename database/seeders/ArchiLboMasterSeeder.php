@@ -109,7 +109,7 @@ class ArchiLboMasterSeeder extends Seeder
         }
 
         $templates = [];
-        $templateNames = ['CIN', 'Certificat de propriete', 'Plan cadastral', 'Attestation de contenance', 'Cahier de chantier', 'Contrat BE', 'Plan beton arme', 'Fiche energetique'];
+        $templateNames = ['CIN', 'Certificat de propriete', 'Plan cadastral', 'Calcul de contenance', 'Plan parcellaire', 'Cahier de chantier', 'Contrat BE', 'Plan beton arme', 'Attestation implantation', 'Contrat topographie', 'Contrat laboratoire', 'Bureau de controle', 'Fiche energetique'];
         foreach ($templateNames as $name) {
             $templates[] = \App\Models\DocumentTemplate::query()->updateOrCreate(
                 ['code' => 'TMPL-' . str_replace(' ', '-', $name)],

@@ -5,6 +5,8 @@ import { AlertTriangle, FileDown, FileSpreadsheet, FileText, Printer, ReceiptTex
 import { Button, Card, Input, ListBox, Select, TextArea } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppDrawer } from '@/components/ui/AppDrawer';
+import { DateField } from '@/features/archives/components/DateField';
+import { strToDate, dateToStr } from '@/lib/dateUtils';
 import type { ClientOption, FinanceDocument } from '@/features/finance/types';
 import { formatCompactMoney, normalizeNumber } from '@/features/finance/utils/calculations';
 
@@ -161,10 +163,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                 errorMessage={isOverpayment ? 'Depasse le reste a payer.' : undefined}
                             />
                         </div>
-                        <div className="flex min-w-0 flex-col gap-1">
-                            <label className={labelCls}>Date paiement</label>
-                            <Input className={compactInput} type="date" value={form.paidAt} onChange={(e) => update('paidAt', e.target.value)} />
-                        </div>
+                        <DateField label="Date paiement" value={strToDate(form.paidAt)} onChange={(d) => update('paidAt', dateToStr(d))} />
                     </div>
 
                     <div className="grid gap-2 sm:grid-cols-2">

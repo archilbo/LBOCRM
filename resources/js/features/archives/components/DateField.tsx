@@ -1,31 +1,48 @@
 import { useState } from 'react';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/style.css';
-import { Button, Popover } from '@heroui/react';
-import { Calendar, X } from 'lucide-react';
+import { CalendarDate } from '@internationalized/date';
+import { Calendar, CalendarYearPicker, Button, Popover } from '@heroui/react';
+import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/cn';
+import { toCalendarDate, fromCalendarDate } from '@/lib/dateUtils';
 
 type DateFieldProps = {
     label: string;
     value: Date | null;
     onChange: (date: Date | null) => void;
     placeholder?: string;
-    fromYear?: number;
-    toYear?: number;
     error?: string;
+    isDisabled?: boolean;
 };
 
 export function DateField({
     label,
     value,
     onChange,
-    placeholder = 'Pick a date',
-    fromYear = 2015,
-    toYear = 2035,
+    placeholder = 'Choisir une date',
     error,
+    isDisabled = false,
 }: DateFieldProps) {
+    const calDate = toCalendarDate(value);
     const [isOpen, setIsOpen] = useState(false);
+
+    if (isDisabled) {
+        return (
+            <div className="flex min-w-0 flex-col gap-1">
+                {label ? (
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">{label}</label>
+                ) : null}
+                <div className={cn(
+                    'flex h-8 w-full items-center gap-2 rounded-[var(--radius-md)] border px-2.5 text-xs',
+                    'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]',
+                )}>
+                    <CalendarIcon size={14} className="shrink-0 text-[var(--text-subtle)]" />
+                    <span>{value ? format(value, 'dd MMM yyyy') : '—'}</span>
+                </div>
+                {error ? <p className="text-[10px] font-medium text-[var(--danger)]">{error}</p> : null}
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-w-0 flex-col gap-1">
@@ -33,7 +50,7 @@ export function DateField({
                 <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">{label}</label>
             ) : null}
 
-            <Popover isOpen={isOpen} onOpenChange={setIsOpen} placement="bottom">
+            <Popover placement="bottom" isOpen={isOpen} onOpenChange={setIsOpen}>
                 <Popover.Trigger>
                     <Button
                         variant="flat"
@@ -44,7 +61,7 @@ export function DateField({
                             !value && 'text-[var(--text-subtle)]',
                         )}
                     >
-                        <Calendar size={14} className="shrink-0 text-[var(--text-muted)]" />
+                        <CalendarIcon size={14} className="shrink-0 text-[var(--text-muted)]" />
                         <span className="flex-1 text-left">
                             {value ? format(value, 'dd MMM yyyy') : placeholder}
                         </span>
@@ -57,7 +74,7 @@ export function DateField({
                                     onChange(null);
                                 }}
                                 className="flex size-5 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
-                                aria-label="Clear date"
+                                aria-label="Effacer"
                             >
                                 <X size={13} />
                             </button>
@@ -66,32 +83,37 @@ export function DateField({
                 </Popover.Trigger>
 
                 <Popover.Content className="w-auto min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0 shadow-lg">
-                    <DayPicker
-                        mode="single"
-                        selected={value ?? undefined}
-                        onSelect={(d) => { onChange(d ?? null); setIsOpen(false); }}
-                        showOutsideDays
-                        captionLayout="dropdown"
-                        fromYear={fromYear}
-                        toYear={toYear}
-                        classNames={{
-                            root: 'm-0',
-                            month: 'p-3',
-                            month_caption: 'text-xs font-semibold text-[var(--foreground)] px-2 py-1',
-                            caption_label: 'text-xs font-semibold text-[var(--foreground)]',
-                            chevron: 'fill-[var(--text-muted)] hover:fill-[var(--foreground)] size-4',
-                            day: 'text-xs text-[var(--text-muted)] rounded-md h-8 w-8 transition hover:bg-[var(--surface-2)] focus:outline-none',
-                            day_button: 'h-8 w-8',
-                            day_selected: 'bg-[var(--accent)] text-[var(--accent-foreground)] font-semibold rounded-md',
-                            day_today: 'ring-1 ring-[var(--accent)]/30 rounded-md',
-                            day_disabled: 'text-[var(--text-subtle)]/40',
-                            outside: 'text-[var(--text-subtle)]/40',
-                            weekday: 'text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wide',
-                            weekdays: 'px-3 pt-1 pb-2',
-                            months_dropdown: 'text-xs text-[var(--foreground)] bg-[var(--surface-2)] border border-[var(--border)] rounded-md px-2 py-1',
-                            years_dropdown: 'text-xs text-[var(--foreground)] bg-[var(--surface-2)] border border-[var(--border)] rounded-md px-2 py-1',
-                        }}
-                    />
+                    <Calendar.Root
+                        value={calDate ?? undefined}
+                        onChange={(cd: CalendarDate) => { onChange(fromCalendarDate(cd)); setIsOpen(false); }}
+                        className="[&_[data-slot=calendar-header]]:px-3 [&_[data-slot=calendar-header]]:pt-3"
+                    >
+                        <Calendar.Header>
+                            <CalendarYearPicker.Trigger>
+                                <CalendarYearPicker.TriggerHeading className="text-sm font-semibold" />
+                                <CalendarYearPicker.TriggerIndicator />
+                            </CalendarYearPicker.Trigger>
+                            <Calendar.NavButton slot="previous" />
+                            <Calendar.NavButton slot="next" />
+                        </Calendar.Header>
+                        <Calendar.Grid>
+                            <Calendar.GridHeader>
+                                {(day: string) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
+                            </Calendar.GridHeader>
+                            <Calendar.GridBody>
+                                {(date: CalendarDate) => <Calendar.Cell date={date}>{({ formattedDate }: { formattedDate: string }) => formattedDate}</Calendar.Cell>}
+                            </Calendar.GridBody>
+                        </Calendar.Grid>
+                        <CalendarYearPicker.Grid>
+                            <CalendarYearPicker.GridBody>
+                                {(values) => (
+                                    <CalendarYearPicker.Cell year={values.year}>
+                                        {values.formattedYear}
+                                    </CalendarYearPicker.Cell>
+                                )}
+                            </CalendarYearPicker.GridBody>
+                        </CalendarYearPicker.Grid>
+                    </Calendar.Root>
                     <div className="flex items-center justify-between border-t border-[var(--border)] px-3 py-2">
                         <Button
                             size="sm"

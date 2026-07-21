@@ -14,12 +14,12 @@ type AppTableActionButtonProps = {
 };
 
 const toneClasses: Record<AppTableActionTone, string> = {
-    view: 'border-blue-200 bg-blue-50 text-blue-700 data-[hovered]:bg-blue-100 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300 dark:data-[hovered]:bg-blue-500/20',
-    edit: 'border-amber-200 bg-amber-50 text-amber-700 data-[hovered]:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 dark:data-[hovered]:bg-amber-500/20',
-    documents: 'border-violet-200 bg-violet-50 text-violet-700 data-[hovered]:bg-violet-100 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300 dark:data-[hovered]:bg-violet-500/20',
-    create: 'border-green-200 bg-green-50 text-green-700 data-[hovered]:bg-green-100 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300 dark:data-[hovered]:bg-green-500/20',
-    archive: 'border-slate-200 bg-slate-50 text-slate-700 data-[hovered]:bg-slate-100 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-300 dark:data-[hovered]:bg-slate-500/20',
-    delete: 'border-red-200 bg-red-50 text-red-700 data-[hovered]:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:data-[hovered]:bg-red-500/20',
+    view: 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] data-[hovered]:border-[color-mix(in_srgb,var(--accent)_45%,var(--border))] data-[hovered]:bg-[var(--surface-2)] data-[hovered]:text-[var(--accent)]',
+    edit: 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] data-[hovered]:border-[color-mix(in_srgb,var(--accent)_45%,var(--border))] data-[hovered]:bg-[var(--surface-2)] data-[hovered]:text-[var(--text)]',
+    documents: 'border-[color-mix(in_srgb,var(--accent)_25%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] text-[var(--accent)] data-[hovered]:bg-[color-mix(in_srgb,var(--accent)_16%,var(--surface))]',
+    create: 'border-[color-mix(in_srgb,var(--success)_28%,var(--border))] bg-[color-mix(in_srgb,var(--success)_8%,var(--surface))] text-[var(--success)] data-[hovered]:bg-[color-mix(in_srgb,var(--success)_15%,var(--surface))]',
+    archive: 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] data-[hovered]:bg-[var(--surface-2)] data-[hovered]:text-[var(--text)]',
+    delete: 'border-[color-mix(in_srgb,var(--danger)_25%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_7%,var(--surface))] text-[var(--danger)] data-[hovered]:bg-[color-mix(in_srgb,var(--danger)_14%,var(--surface))]',
 };
 
 export function AppTableActionButton({
@@ -36,7 +36,7 @@ export function AppTableActionButton({
                 isDisabled={isDisabled}
                 onPress={onPress}
                 className={cn(
-                    'inline-flex size-8 shrink-0 items-center justify-center rounded-lg border outline-none transition',
+                    'inline-flex size-7 shrink-0 items-center justify-center rounded-md border outline-none transition',
                     'data-[focus-visible]:ring-2 data-[focus-visible]:ring-[var(--focus-ring)] data-[focus-visible]:ring-offset-2 data-[focus-visible]:ring-offset-[var(--surface)]',
                     'data-[pressed]:scale-95 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
                     toneClasses[tone],

@@ -1,12 +1,10 @@
 import { router } from '@inertiajs/react';
 import { FormEvent, useMemo, useState } from 'react';
+import { Input, TextArea } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
-import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
-import { AppSelect } from '@/components/ui/AppSelect';
-import { AppTextarea } from '@/components/ui/AppTextarea';
-import { AppTextField } from '@/components/ui/AppTextField';
+import { DrawerField, DrawerSelect, drawerStyles } from '@/components/drawers';
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
 
@@ -82,11 +80,11 @@ export function TaskRequestCreateDrawer({ isOpen, requestTypes, requestTypeLabel
             onSuccess: () => {
                 setForm(emptyForm);
                 close();
-                toast.success('Task request submitted.');
+                toast.success('Demande de tâche envoyée.');
             },
             onError: (validationErrors) => {
                 setErrors(validationErrors);
-                toast.error('Please check the task request form.');
+                toast.error('Veuillez vérifier le formulaire de demande.');
             },
         });
     };
@@ -95,61 +93,56 @@ export function TaskRequestCreateDrawer({ isOpen, requestTypes, requestTypeLabel
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={(open) => (open ? onOpenChange(true) : close())}
-            title="New task request"
-            description="Create an operations request and link it to real CRM context."
+            title="Nouvelle demande de tâche"
+            description="Créez une demande d'opération liée au CRM."
             footer={
                 <>
-                    <AppButton variant="secondary" onPress={close}>Cancel</AppButton>
-                    <AppButton variant="primary" type="submit" form="task-request-create-form">Submit request</AppButton>
+                    <AppButton variant="secondary" onPress={close}>Annuler</AppButton>
+                    <AppButton variant="primary" type="submit" form="task-request-create-form">Envoyer la demande</AppButton>
                 </>
             }
         >
-            <form id="task-request-create-form" className="space-y-5" onSubmit={submit}>
-                <AppFormErrorSummary errors={errors} />
-                <AppSelect
-                    label="Request type"
-                    selectedKey={form.request_type}
-                    onSelectionChange={(key) => setForm({ ...form, request_type: key ? String(key) : 'admin_help' })}
-                    options={requestTypes.map((type) => ({ id: type, label: requestTypeLabels[type] ?? type }))}
-                    error={firstError(errors, 'request_type')}
-                    isRequired
-                />
-                <AppTextField
-                    label="Title"
-                    value={form.title}
-                    onChange={(value) => setForm({ ...form, title: value })}
-                    error={firstError(errors, 'title')}
-                    placeholder="What needs to be done?"
-                    isRequired
-                />
-                <AppTextarea
-                    label="Description"
-                    value={form.description}
-                    onChange={(value) => setForm({ ...form, description: value })}
-                    placeholder="Add useful details for the person who will handle it."
-                />
-                <AppSelect
-                    label="Target user"
-                    placeholder="Optional"
-                    selectedKey={form.target_user_id ? String(form.target_user_id) : null}
-                    onSelectionChange={(key) => setForm({ ...form, target_user_id: key ? Number(key) : null })}
-                    options={options.users.map((user) => ({ id: String(user.id), label: user.label }))}
-                />
-                <div className="grid gap-4 md:grid-cols-2">
-                    <AppSelect
-                        label="Client"
-                        placeholder="Optional"
-                        selectedKey={form.client_id ? String(form.client_id) : null}
-                        onSelectionChange={(key) => setForm({ ...form, client_id: key ? Number(key) : null, dossier_id: null })}
-                        options={options.clients.map((client) => ({ id: String(client.id), label: client.label }))}
+            <form id="task-request-create-form" className="space-y-4" onSubmit={submit}>
+                <DrawerField label="Type de demande" error={firstError(errors, 'request_type')}>
+                    <DrawerSelect
+                        value={form.request_type}
+                        onChange={(v) => setForm({ ...form, request_type: v })}
+                        options={requestTypes.map((type) => ({ id: type, label: requestTypeLabels[type] ?? type }))}
                     />
-                    <AppSelect
-                        label="Dossier"
-                        placeholder="Optional"
-                        selectedKey={form.dossier_id ? String(form.dossier_id) : null}
-                        onSelectionChange={(key) => updateDossier(key ? Number(key) : null)}
-                        options={dossierOptions.map((dossier) => ({ id: String(dossier.id), label: dossier.label }))}
+                </DrawerField>
+                <DrawerField label="Titre" error={firstError(errors, 'title')}>
+                    <Input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+                        placeholder="Que faut-il faire ?" className={drawerStyles.input} />
+                </DrawerField>
+                <DrawerField label="Description">
+                    <TextArea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                        placeholder="Ajoutez des détails utiles pour la personne qui traitera la demande." className={drawerStyles.textarea} />
+                </DrawerField>
+                <DrawerField label="Utilisateur cible">
+                    <DrawerSelect
+                        value={form.target_user_id ? String(form.target_user_id) : ''}
+                        onChange={(v) => setForm({ ...form, target_user_id: v ? Number(v) : null })}
+                        options={options.users.map((user) => ({ id: String(user.id), label: user.label }))}
+                        placeholder="Optionnel"
                     />
+                </DrawerField>
+                <div className="grid gap-3 md:grid-cols-2">
+                    <DrawerField label="Client">
+                        <DrawerSelect
+                            value={form.client_id ? String(form.client_id) : ''}
+                            onChange={(v) => setForm({ ...form, client_id: v ? Number(v) : null, dossier_id: null })}
+                            options={options.clients.map((client) => ({ id: String(client.id), label: client.label }))}
+                            placeholder="Optionnel"
+                        />
+                    </DrawerField>
+                    <DrawerField label="Dossier">
+                        <DrawerSelect
+                            value={form.dossier_id ? String(form.dossier_id) : ''}
+                            onChange={(v) => updateDossier(v ? Number(v) : null)}
+                            options={dossierOptions.map((dossier) => ({ id: String(dossier.id), label: dossier.label }))}
+                            placeholder="Optionnel"
+                        />
+                    </DrawerField>
                 </div>
             </form>
         </AppDrawer>

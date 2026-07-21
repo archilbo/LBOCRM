@@ -12,6 +12,7 @@ class DossierFactory extends Factory
     public function definition(): array
     {
         return [
+            'client_id' => \App\Models\Client::factory(),
             'dossier_number' => 'DOS-TEST-' . $this->faker->unique()->randomNumber(5),
             'project_object' => $this->faker->sentence(3),
             'status' => 'active',

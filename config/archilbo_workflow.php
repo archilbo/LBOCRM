@@ -16,7 +16,9 @@ return [
             'requirements' => [
                 ['key' => 'cin', 'label' => 'CIN'],
                 ['key' => 'certificat_propriete', 'label' => 'Certificat de propriete'],
-                ['key' => 'terrain_documents', 'label' => 'Plan cadastral + calcul de contenance ou plan parcellaire'],
+                ['key' => 'plan_cadastral', 'label' => 'Plan cadastral'],
+                ['key' => 'calcul_contenance', 'label' => 'Calcul de contenance'],
+                ['key' => 'plan_parcellaire', 'label' => 'Plan parcellaire'],
             ],
         ],
         [
@@ -54,8 +56,10 @@ return [
             'requirements' => [
                 ['key' => 'contract_bureau_etude', 'label' => 'Contrat bureau d etude'],
                 ['key' => 'plan_beton', 'label' => 'Plan beton arme'],
-                ['key' => 'implantation_topographie', 'label' => 'Attestation implantation + contrat topographie'],
-                ['key' => 'laboratoire_controle', 'label' => 'Contrat laboratoire + bureau de controle'],
+                ['key' => 'attestation_implantation', 'label' => 'Attestation implantation'],
+                ['key' => 'contrat_topographie', 'label' => 'Contrat topographie'],
+                ['key' => 'contrat_laboratoire', 'label' => 'Contrat laboratoire'],
+                ['key' => 'bureau_controle', 'label' => 'Bureau de controle'],
             ],
         ],
         [

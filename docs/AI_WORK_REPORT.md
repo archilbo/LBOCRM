@@ -5166,3 +5166,137 @@ Extract the document and payment workspaces from the large Finance index, then s
 - Added sortable columns and client pagination to the aggregated monthly ledger.
 - Updated Finance tab counts to use paginator totals and translated the shared pagination controls to French.
 - Production build passed; full Laravel suite passed with 8 tests and 50 assertions.
+
+## Finance Table Actions Consolidation
+
+- Added a reusable `FinanceRowActions` component backed by HeroUI Dropdown and the shared accessible action button.
+- Standardized document, payment, expense, legacy Finance, and editable line-item table actions.
+- Limited visible row commands to the one or two most useful actions and moved secondary commands into a keyboard-accessible overflow menu.
+- Grouped preview, file generation/download, payment, workflow, and destructive actions with clear labels and semantic tones.
+- Removed hover-only custom menus and prevented action clicks from triggering parent row navigation.
+- Updated action styling to the ARCHI LBO dark-gold theme with compact sizing, visible focus, pressed, disabled, success, and danger states.
+- Production build passed; full Laravel suite passed with 8 tests and 50 assertions.
+
+## Finance Table Pagination Coverage
+
+- Audited every Finance data table and confirmed server pagination remains active for documents, payments, and expenses.
+- Confirmed the legacy Finance overview uses TanStack client pagination and the monthly ledger uses the shared paginator.
+- Added reusable client pagination to finance document detail lines, document detail payments, and editable document line items.
+- New document lines automatically open on the final page, while deletion safely clamps the selected page to the remaining range.
+- Pagination controls remain hidden for one-page datasets to keep compact tables uncluttered.
+- Printable previews and generated template HTML are intentionally not paginated because they represent document output rather than application data tables.
+- Production build passed.
+# Inbox architecture and product upgrade - 2026-07-20
+
+## Step Completed
+
+Inbox architecture, performance, security, realtime, and responsive UX stabilization.
+
+## What Was Built
+
+- Tenant-scoped, paginated conversation listing and full server message search.
+- Unique direct-thread keys, participant roles/preferences, bulk read tracking, presence, drafts, retries, shared files, and activity logs.
+- Private storage for new chat attachments with secure view/download routes.
+- One responsive details panel with media, context links, archive, pin, mute, and mark-unread actions.
+- Configurable message edit/delete windows and queued chat notifications.
+
+## Database Changes
+
+- Added Inbox company/branch scope, direct keys, participant roles/preferences/read pointer, attachment storage paths, and `chat_activity_logs`.
+- Migration `2026_07_20_100000_harden_inbox_architecture` applied successfully.
+
+## Commands Run
+
+- `php artisan migrate --force` - passed.
+- `php artisan optimize:clear` - passed.
+- `php artisan test tests/Feature/InboxArchitectureTest.php` - 5 tests, 16 assertions passed.
+- `npm.cmd run build` - passed with existing bundle-size/font fallback warnings.
+
+## Known Issue
+
+- New attachments are private. A maintenance command for physically moving historical public attachment copies was not added because workspace permission review timed out; schedule this before production exposure.
+
+## Next Recommended Step
+
+Run two-user browser QA for presence, typing, archive, search, retry, and responsive details behavior, then relocate legacy public attachment copies.
+
+# Inbox HeroUI UX and realtime completion - 2026-07-20
+
+## Step Completed
+
+Rebuilt the Inbox interaction layer with HeroUI v3 and completed realtime group/read synchronization.
+
+## What Was Built
+
+- Replaced legacy/raw conversation controls with HeroUI Drawer, Modal, Popover, Tabs, SearchField, Input, Select, Checkbox, Button, Avatar, Chip, Card, ScrollShadow, Spinner, and Tooltip components.
+- Reorganized the conversation list around search, status tabs, group categories, online users, draft previews, unread counts, pin/mute/archive actions, and incremental loading.
+- Modernized message bubbles, attachment grids, image preview, forward selection, inline search, reply/edit states, typing presence, retry, and the compact message composer.
+- Rebuilt group creation and group management with searchable participants, categories, membership controls, and responsive HeroUI surfaces.
+- Removed the duplicate compact-screen thread header and moved back/search/info/group actions into the canonical thread header.
+- Replaced the duplicated details overlays with one information model rendered as a collapsible desktop rail or responsive HeroUI Drawer.
+- Upgraded the global message popover to the same HeroUI and dark-gold visual contract.
+
+## Backend And Realtime
+
+- Added the `MessagesRead` broadcast event so sender read indicators update without refresh.
+- Centralized participant-wide conversation refresh broadcasts in `ChatService`.
+- Group rename, participant addition, and participant removal now update every affected Inbox in realtime.
+- Removed participants immediately lose the conversation from their local list.
+- Added focused regression coverage for the read-receipt event.
+
+## Files Created
+
+- `app/Events/Chat/MessagesRead.php`
+- `resources/js/features/inbox/components/InboxIconButton.tsx`
+
+## Main Files Modified
+
+- `app/Http/Controllers/ConversationController.php`
+- `app/Services/Chat/ChatService.php`
+- `resources/js/pages/Inbox/Index.tsx`
+- `resources/js/features/inbox/components/ConversationList.tsx`
+- `resources/js/features/inbox/components/MessageThread.tsx`
+- `resources/js/features/inbox/components/NewConversationDrawer.tsx`
+- `resources/js/features/inbox/components/ConversationInfoPanel.tsx`
+- `resources/js/features/inbox/components/MessagePopover.tsx`
+- `tests/Feature/InboxArchitectureTest.php`
+
+## Commands Run
+
+- `npm.cmd run build` - passed; existing bundle-size and optional font fallback warnings remain.
+- `php artisan test tests/Feature/InboxArchitectureTest.php` - 5 tests and 17 assertions passed.
+- `php artisan test` - 13 tests and 67 assertions passed.
+- `php artisan optimize:clear` - passed.
+
+## Known Issues
+
+- Historical chat attachments stored on the legacy public disk still need a controlled one-time migration to private storage.
+- Production bundle code splitting remains a broader frontend performance task; this change does not add new runtime packages.
+
+## Next Recommended Step
+
+Complete two-user browser QA for group changes, read receipts, typing, attachment preview, and the responsive details drawer, then schedule the legacy attachment migration.
+
+## Inbox Tabs Runtime Fix
+
+- Removed the manually rendered HeroUI `Tabs.Indicator` from the conversation filters.
+- HeroUI now owns the underline indicator through the selected tab context, preventing the `SharedElementTransition` runtime exception.
+
+## Inbox Compact Chat UX Follow-up
+
+- Restored the `conversationName` helper import used by Inbox search, fixing the runtime `ReferenceError`.
+- Added icon-led, non-wrapping conversation tabs and compact online avatars.
+- Reduced conversation rows to a modern operational density with presence, unread, category, pin, mute, preview, and overflow states.
+- Redesigned received and sent messages with grouped sender avatars, chat tails, and side-mounted reply/forward/overflow actions.
+- Reworked forwarding into a compact recipient picker with previews, removable selected avatars, and recipient count.
+- Replaced the hidden double-click message deletion behavior with an explicit HeroUI confirmation modal.
+
+## Inbox Reference-led Visual Redesign
+
+- Reworked the Inbox around the reference applications' flat three-column hierarchy while preserving the ARCHI LBO dark-gold theme.
+- Removed card-per-row styling from conversations and members; column separators and selected states now carry hierarchy.
+- Reduced the conversation rail to 350px and the details rail to 292px to prioritize the message canvas.
+- Added a fixed-height identity header, centered message lane, quiet canvas surface, line-based date separators, grouped sender avatars, and natural-width chat bubbles.
+- Rebuilt the composer as a floating HeroUI card with a paperclip action, borderless text area, and circular send button.
+- Made message actions pointer- and touch-safe: quick actions appear beside hovered bubbles and the full overflow menu remains available on compact screens.
+- Added icon-led linked-context actions and flattened member rows in the details panel.

@@ -21,11 +21,17 @@ class MessagePolicy
 
     public function update(User $user, Message $message): bool
     {
-        return $message->user_id === $user->id || $user->can('manage inbox') || $user->hasRole('admin');
+        return $user->can('manage inbox') || $user->hasRole('admin') || (
+            $message->user_id === $user->id
+            && $message->created_at?->gte(now()->subMinutes(config('chat.message_edit_window_minutes', 30)))
+        );
     }
 
     public function delete(User $user, Message $message): bool
     {
-        return $message->user_id === $user->id || $user->can('manage inbox') || $user->hasRole('admin');
+        return $user->can('manage inbox') || $user->hasRole('admin') || (
+            $message->user_id === $user->id
+            && $message->created_at?->gte(now()->subMinutes(config('chat.message_delete_window_minutes', 30)))
+        );
     }
 }

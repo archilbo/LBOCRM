@@ -7,7 +7,7 @@ type AppTableActionsProps = PropsWithChildren<{
 
 export function AppTableActions({ children, className }: AppTableActionsProps) {
     return (
-        <div className={cn('flex items-center justify-end gap-1.5', className)}>
+        <div className={cn('flex items-center justify-end gap-1', className)}>
             {children}
         </div>
     );

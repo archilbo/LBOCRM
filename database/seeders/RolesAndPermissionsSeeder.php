@@ -54,6 +54,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view operations reports',
             'manage users',
             'view qa',
+            'project_design',
         ];
 
         foreach ($permissions as $permission) {
@@ -88,7 +89,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ->whereIn('name', $permissions)
             ->get();
 
-        $admin->syncPermissions($permissionModels);
+        $admin->syncPermissions(Permission::all());
 
         $manager->syncPermissions(
             $permissionModels->whereIn('name', [
@@ -130,6 +131,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view workload',
                 'view operations reports',
                 'view qa',
+                'project_design',
             ])
         );
 
@@ -174,21 +176,6 @@ class RolesAndPermissionsSeeder extends Seeder
                 'finance.settings.view',
             ])
         );
-
-        $adminEmail = env('ADMIN_EMAIL', 'admin@archilbo.local');
-
-        $adminUser = User::query()->where('email', $adminEmail)->first();
-
-        if ($adminUser) {
-            $adminUser->syncRoles([$admin]);
-        }
-
-        User::query()
-            ->whereDoesntHave('roles')
-            ->get()
-            ->each(function (User $user) use ($staff) {
-                $user->assignRole($staff);
-            });
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

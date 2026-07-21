@@ -1,7 +1,10 @@
 import { FormEvent, useState } from 'react';
+import { Input } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
-import { AppTextField } from '@/components/ui/AppTextField';
+import { DrawerField, drawerStyles } from '@/components/drawers';
+import { DateField } from '@/features/archives/components/DateField';
+import { strToDate, dateToStr } from '@/lib/dateUtils';
 import type { ArchiveRecordRow } from '@/features/archives/types';
 
 type CheckoutDrawerProps = {
@@ -41,12 +44,12 @@ export function CheckoutDrawer({ isOpen, onOpenChange, archives, onConfirm }: Ch
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            title={`Check out ${archives.length} archive${archives.length > 1 ? 's' : ''}`}
-            description="Fill requester details and due date."
+            title={`Sortie de ${archives.length} archive${archives.length > 1 ? 's' : ''}`}
+            description="Remplissez les informations de sortie."
             footer={
                 <>
-                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>Cancel</AppButton>
-                    <AppButton variant="primary" type="submit" form="checkout-form">Confirm</AppButton>
+                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>Annuler</AppButton>
+                    <AppButton variant="primary" type="submit" form="checkout-form">Confirmer</AppButton>
                 </>
             }
         >
@@ -60,22 +63,13 @@ export function CheckoutDrawer({ isOpen, onOpenChange, archives, onConfirm }: Ch
                     ))}
                 </div>
 
-                <AppTextField
-                    label="Requester (optional)"
-                    value={requester}
-                    onChange={setRequester}
-                    placeholder="Name of requester"
-                />
+                <DrawerField label="Demandeur (optionnel)">
+                    <Input type="text" value={requester} onChange={(e) => setRequester(e.target.value)}
+                        placeholder="Nom du demandeur" className={drawerStyles.input} />
+                </DrawerField>
 
                 <div>
-                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Due date</label>
-                    <input
-                        type="date"
-                        value={dueAt}
-                        onChange={(e) => setDueAt(e.target.value)}
-                        className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
-                        required
-                    />
+                    <DateField label="Date d'échéance" value={strToDate(dueAt)} onChange={(d) => setDueAt(dateToStr(d))} />
                     <div className="mt-1 flex gap-1">
                         {[7, 14, 30].map((days) => (
                             <button
@@ -84,18 +78,16 @@ export function CheckoutDrawer({ isOpen, onOpenChange, archives, onConfirm }: Ch
                                 onClick={() => presetDays(days)}
                                 className="rounded-md border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
                             >
-                                +{days}d
+                                +{days}j
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <AppTextField
-                    label="Purpose (optional)"
-                    value={purpose}
-                    onChange={setPurpose}
-                    placeholder="Why is this being checked out?"
-                />
+                <DrawerField label="Motif (optionnel)">
+                    <Input type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)}
+                        placeholder="Pourquoi cette sortie ?" className={drawerStyles.input} />
+                </DrawerField>
             </form>
         </AppDrawer>
     );

@@ -109,7 +109,12 @@ class DossierWorkflowStepperService
         return match ($step . '.' . $requirement) {
             'documents.cin' => $this->hasDocument($dossier, ['cin', 'cni', 'carte nationale']),
             'documents.certificat_propriete' => $this->hasDocument($dossier, ['certificat propriete', 'certificat de propriete', 'titre foncier']),
-            'documents.terrain_documents' => $this->terrainDocumentsReady($dossier),
+            'documents.plan_cadastral' => $this->hasDocument($dossier, ['plan cadastral'])
+                || $this->isTerrainAlternativeSatisfied($dossier),
+            'documents.calcul_contenance' => $this->hasDocument($dossier, ['calcul contenance', 'contenance'])
+                || $this->isTerrainAlternativeSatisfied($dossier),
+            'documents.plan_parcellaire' => $this->hasDocument($dossier, ['plan parcellaire'])
+                || $this->isTerrainPrimarySatisfied($dossier),
 
             'contract.contract_created' => (bool) $dossier->contract,
             'contract.contract_generated' => filled($dossier->contract?->generated_document_path) || filled($dossier->contract?->generated_at),
@@ -125,8 +130,10 @@ class DossierWorkflowStepperService
 
             'bureau_etude.contract_bureau_etude' => $this->hasDocument($dossier, ['contrat bureau etude', 'contract bureau etude']),
             'bureau_etude.plan_beton' => $this->hasDocument($dossier, ['plan beton', 'beton arme', 'plan ba']),
-            'bureau_etude.implantation_topographie' => $this->hasDocument($dossier, ['implantation', 'topographie', 'topographe']),
-            'bureau_etude.laboratoire_controle' => $this->hasDocument($dossier, ['laboratoire', 'bureau de controle', 'controle technique']),
+            'bureau_etude.attestation_implantation' => $this->hasDocument($dossier, ['attestation implantation', 'implantation']),
+            'bureau_etude.contrat_topographie' => $this->hasDocument($dossier, ['contrat topographie', 'topographie', 'topographe']),
+            'bureau_etude.contrat_laboratoire' => $this->hasDocument($dossier, ['contrat laboratoire', 'laboratoire']),
+            'bureau_etude.bureau_controle' => $this->hasDocument($dossier, ['bureau de controle', 'controle technique']),
 
             'permis_habiter.demande_permis_habiter' => $this->hasDocument($dossier, ['demande permis habiter', 'permis d habiter', 'permis habiter']),
             'permis_habiter.site_images' => $this->hasDocument($dossier, ['image site', 'photo site', 'photos site', 'location']),
@@ -147,14 +154,22 @@ class DossierWorkflowStepperService
             ->first(fn ($item) => $item->step_key === $step && $item->requirement_key === $requirement);
     }
 
-    private function terrainDocumentsReady(Dossier $dossier): bool
+    private function isTerrainAlternativeSatisfied(Dossier $dossier): bool
     {
-        if ($this->hasDocument($dossier, ['plan parcellaire'])) {
-            return true;
+        $manual = $this->manualRequirement($dossier, 'documents', 'plan_parcellaire');
+        if ($manual !== null) {
+            return (bool) $manual->is_done;
         }
+        return $this->hasDocument($dossier, ['plan parcellaire']);
+    }
 
-        return $this->hasDocument($dossier, ['plan cadastral'])
-            && $this->hasDocument($dossier, ['calcul contenance', 'contenance']);
+    private function isTerrainPrimarySatisfied(Dossier $dossier): bool
+    {
+        $manualPlan = $this->manualRequirement($dossier, 'documents', 'plan_cadastral');
+        $manualCalcul = $this->manualRequirement($dossier, 'documents', 'calcul_contenance');
+        $planDone = $manualPlan !== null ? (bool) $manualPlan->is_done : $this->hasDocument($dossier, ['plan cadastral']);
+        $calculDone = $manualCalcul !== null ? (bool) $manualCalcul->is_done : $this->hasDocument($dossier, ['calcul contenance', 'contenance']);
+        return $planDone && $calculDone;
     }
 
     private function archiveDocumentsVerified(Dossier $dossier): bool

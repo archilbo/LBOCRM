@@ -11,7 +11,7 @@ class Message extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['conversation_id', 'user_id', 'body', 'is_edited', 'edited_at', 'reply_to_message_id', 'is_forwarded', 'forwarded_from_message_id'];
+    protected $fillable = ['conversation_id', 'user_id', 'body', 'is_edited', 'edited_at', 'reply_to_message_id', 'is_forwarded', 'forwarded_from_message_id', 'client_message_id'];
 
     protected $casts = ['is_edited' => 'boolean', 'edited_at' => 'datetime', 'is_forwarded' => 'boolean'];
 

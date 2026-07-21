@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 
 class MessageAttachment extends Model
 {
-    protected $fillable = ['message_id', 'user_id', 'filename', 'original_filename', 'mime_type', 'size', 'disk'];
+    protected $fillable = ['message_id', 'user_id', 'filename', 'storage_path', 'original_filename', 'mime_type', 'size', 'disk'];
 
     protected $casts = ['disk' => 'string'];
 
@@ -17,15 +17,16 @@ class MessageAttachment extends Model
 
     public function getUrlAttribute(): ?string
     {
-        $path = 'message-attachments/' . $this->message_id . '/' . $this->filename;
-        if ($this->disk === 'public') {
-            return Storage::disk('public')->exists($path) ? Storage::disk('public')->url($path) : null;
-        }
-        return Storage::disk($this->disk ?? 'public')->exists($path) ? Storage::disk($this->disk ?? 'public')->url($path) : null;
+        return route('inbox.attachments.view', $this);
     }
 
     public function getThumbnailUrlAttribute(): ?string
     {
-        return $this->url;
+        return str_starts_with((string) $this->mime_type, 'image/') ? $this->url : null;
+    }
+
+    public function storagePath(): string
+    {
+        return $this->storage_path ?: 'message-attachments/'.$this->message_id.'/'.$this->filename;
     }
 }

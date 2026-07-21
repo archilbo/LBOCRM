@@ -2,9 +2,10 @@ import { FormEvent, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppInput } from '@/components/ui/AppInput';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppTextarea } from '@/components/ui/AppTextarea';
+import { DateField } from '@/features/archives/components/DateField';
+import { strToDate, dateToStr } from '@/lib/dateUtils';
 import { useTranslation } from '@/lib/i18n';
 
 type Props = {
@@ -85,11 +86,10 @@ export function ConfirmActionModal({
                     <p className="text-[13px] text-[var(--text-muted)]">{description}</p>
                 )}
                 {showDateField && (
-                    <AppInput
+                    <DateField
                         label={dateFieldLabel || t('workflow.date') || 'Date'}
-                        type="date"
-                        value={date}
-                        onChange={setDate}
+                        value={strToDate(date)}
+                        onChange={(d) => setDate(dateToStr(d))}
                     />
                 )}
                 <AppTextarea

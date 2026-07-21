@@ -7,11 +7,13 @@ import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppModal } from '@/components/ui/AppModal';
+import { AppPagination } from '@/components/ui/AppPagination';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { FinanceDocumentLockBadge, FinanceDocumentLockNotice } from '@/features/finance/components/FinanceDocumentLockNotice';
 import { FinanceSidebarActions } from '@/features/finance/components/FinanceSidebarActions';
 import { FinanceSidebarDetails } from '@/features/finance/components/FinanceSidebarDetails';
 import { FinanceSidebarClientProject } from '@/features/finance/components/FinanceSidebarClientProject';
+import { useFinanceTablePagination } from '@/features/finance/components/useFinanceTablePagination';
 import type { FinanceDocument, FinanceDocumentItem, Payment } from '@/features/finance/types';
 
 type PageProps = {
@@ -83,6 +85,8 @@ export default function FinanceDocumentShow({ document }: PageProps) {
     const currency = document.currency || 'MAD';
     const items = document.items ?? [];
     const payments = document.payments ?? [];
+    const itemPagination = useFinanceTablePagination(items);
+    const paymentPagination = useFinanceTablePagination(payments);
     const locked = Boolean(document.lock?.isLocked ?? document.numberLocked);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -257,7 +261,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {items.map((item: FinanceDocumentItem) => (
+                                                {itemPagination.paginatedRows.map((item: FinanceDocumentItem) => (
                                                     <tr key={item.id ?? item.position} className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
                                                         <td className="px-4 py-2.5">
                                                             <p className="max-w-[320px] truncate font-semibold text-[var(--text)]">{item.title}</p>
@@ -271,6 +275,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                                 ))}
                                             </tbody>
                                         </table>
+                                        <AppPagination page={itemPagination.page} pageSize={itemPagination.pageSize} total={itemPagination.total} onChange={itemPagination.setPage} variant="reference" />
                                     </div>
                                 ) : (
                                     <div className="px-4 py-8"><EmptyState label="No items in this document." /></div>
@@ -295,7 +300,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {payments.map((payment: Payment) => (
+                                                {paymentPagination.paginatedRows.map((payment: Payment) => (
                                                     <tr key={payment.id} className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
                                                         <td className="px-4 py-2.5 font-semibold text-[var(--text)]">{payment.paymentNumber}</td>
                                                         <td className="px-4 py-2.5 text-[var(--text-muted)]">{payment.method || '-'}{payment.reference ? ` / ${payment.reference}` : ''}</td>
@@ -305,6 +310,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                                 ))}
                                             </tbody>
                                         </table>
+                                        <AppPagination page={paymentPagination.page} pageSize={paymentPagination.pageSize} total={paymentPagination.total} onChange={paymentPagination.setPage} variant="reference" />
                                     </div>
                                 ) : (
                                     <div className="px-4 py-8"><EmptyState label="No payments recorded for this document." /></div>

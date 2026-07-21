@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Button, Card, Input, ListBox, Select, TextArea } from '@heroui/react';
 import { AppDrawer } from '@/components/ui/AppDrawer';
+import { DateField } from '@/features/archives/components/DateField';
+import { strToDate, dateToStr } from '@/lib/dateUtils';
 import type { ClientOption, FinanceDossierOption, FinanceFormPayload, FinanceRecordRow } from '@/features/finance/types';
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
@@ -195,13 +197,7 @@ export function FinanceDrawer({ isOpen, mode, record, dossiers, clients = [], on
                     <p className={labelCls}>Dates</p>
                     <div className="grid gap-2 md:grid-cols-3">
                         {([['issuedAt', "Date d'emission", 'issued_at'], ['dueDate', "Date d'echeance", 'due_date'], ['paidAt', 'Date de paiement', 'paid_at']] as const).map(([field, label, errKey]) => (
-                            <div key={field} className="flex min-w-0 flex-col gap-1">
-                                <label className={labelCls}>{label}</label>
-                                <Input className={compactInput} type="date" value={form[field]} onChange={(e) => updateField(field, e.target.value)}
-                                    validationState={errors[errKey] ? 'invalid' : 'valid'}
-                                    errorMessage={firstError(errors, errKey)}
-                                />
-                            </div>
+                            <DateField key={field} label={label} value={strToDate(form[field])} onChange={(d) => updateField(field, dateToStr(d))} error={firstError(errors, errKey)} />
                         ))}
                     </div>
                 </Card>

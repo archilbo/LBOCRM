@@ -37,7 +37,7 @@ export function TaskCard({ task, onClick }: { task: TaskRow; onClick: () => void
                             <MoreHorizontal size={14} />
                         </button>
                         {menuOpen ? (
-                            <div className="absolute right-0 top-7 z-50 w-44 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-1 shadow-2xl shadow-black/40"
+                            <div className="absolute right-0 top-7 z-50 w-44 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[var(--surface)] p-1 shadow-2xl shadow-black/40"
                                 onMouseLeave={() => setMenuOpen(false)}>
                                 {COLUMNS.filter((s) => s !== task.status).map((status) => (
                                     <button key={status} type="button"

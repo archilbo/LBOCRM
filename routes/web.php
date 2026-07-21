@@ -16,6 +16,7 @@ use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DossierController;
 use App\Http\Controllers\DossierWorkflowRequirementController;
+use App\Http\Controllers\ProjectDesignController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\Finance\DocumentTemplateController;
 use App\Http\Controllers\Finance\DocumentTemplateVersionController;
@@ -80,6 +81,22 @@ Route::middleware('auth')->group(function () {
     ]);
     Route::put('/dossiers/{dossier}/workflow-requirements', [DossierWorkflowRequirementController::class, 'update'])
         ->name('dossiers.workflow-requirements.update');
+
+    Route::get('/dossiers/{dossier}/design/summary', [ProjectDesignController::class, 'summary'])->name('dossiers.design.summary');
+    Route::get('/dossiers/{dossier}/design/folders', [ProjectDesignController::class, 'folders'])->name('dossiers.design.folders');
+    Route::post('/dossiers/design/folders', [ProjectDesignController::class, 'storeFolder'])->name('dossiers.design.folders.store');
+    Route::put('/dossiers/design/folders/{folder}', [ProjectDesignController::class, 'updateFolder'])->name('dossiers.design.folders.update');
+    Route::delete('/dossiers/design/folders/{folder}', [ProjectDesignController::class, 'destroyFolder'])->name('dossiers.design.folders.destroy');
+    Route::get('/dossiers/{dossier}/design/files', [ProjectDesignController::class, 'index'])->name('dossiers.design.files');
+    Route::post('/dossiers/design/files', [ProjectDesignController::class, 'store'])->name('dossiers.design.files.store');
+    Route::put('/dossiers/design/files/{file}', [ProjectDesignController::class, 'update'])->name('dossiers.design.files.update');
+    Route::delete('/dossiers/design/files/{file}', [ProjectDesignController::class, 'destroy'])->name('dossiers.design.files.destroy');
+    Route::post('/dossiers/design/files/{file}/restore', [ProjectDesignController::class, 'restore'])->name('dossiers.design.files.restore');
+    Route::get('/dossiers/design/files/{file}/versions', [ProjectDesignController::class, 'versions'])->name('dossiers.design.files.versions');
+    Route::post('/dossiers/design/versions', [ProjectDesignController::class, 'uploadVersion'])->name('dossiers.design.versions.upload');
+    Route::get('/dossiers/design/versions/{version}/preview', [ProjectDesignController::class, 'preview'])->name('dossiers.design.versions.preview');
+    Route::get('/dossiers/design/versions/{version}/download', [ProjectDesignController::class, 'download'])->name('dossiers.design.versions.download');
+    Route::get('/dossiers/{dossier}/design/activity', [ProjectDesignController::class, 'activity'])->name('dossiers.design.activity');
 
     Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
@@ -235,7 +252,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/inbox', [\App\Http\Controllers\ConversationController::class, 'index'])->name('inbox.index');
     Route::post('/inbox', [\App\Http\Controllers\ConversationController::class, 'store'])->name('inbox.store');
     Route::get('/inbox/archived', [\App\Http\Controllers\ConversationController::class, 'archived'])->name('inbox.archived');
+    Route::get('/inbox/conversations/list', [\App\Http\Controllers\ConversationController::class, 'listing'])->name('inbox.list');
+    Route::get('/inbox/attachments/{messageAttachment}/view', [\App\Http\Controllers\MessageAttachmentController::class, 'view'])->name('inbox.attachments.view');
+    Route::get('/inbox/attachments/{messageAttachment}/download', [\App\Http\Controllers\MessageAttachmentController::class, 'download'])->name('inbox.attachments.download');
     Route::get('/inbox/{conversation}', [\App\Http\Controllers\ConversationController::class, 'show'])->name('inbox.show');
+    Route::get('/inbox/{conversation}/search', [\App\Http\Controllers\ConversationController::class, 'searchMessages'])->name('inbox.search');
+    Route::get('/inbox/{conversation}/attachments', [\App\Http\Controllers\ConversationController::class, 'attachments'])->name('inbox.attachments');
     Route::post('/inbox/{conversation}/messages', [\App\Http\Controllers\MessageController::class, 'store'])->name('inbox.messages.store');
     Route::put('/inbox/{conversation}/messages/{message}', [\App\Http\Controllers\MessageController::class, 'update'])->name('inbox.messages.update');
     Route::delete('/inbox/{conversation}/messages/{message}', [\App\Http\Controllers\MessageController::class, 'destroy'])->name('inbox.messages.destroy');
@@ -247,6 +269,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/inbox/{conversation}/participants/{user}', [\App\Http\Controllers\ConversationController::class, 'removeParticipant'])->name('inbox.participants.remove');
     Route::post('/inbox/{conversation}/archive', [\App\Http\Controllers\ConversationController::class, 'archive'])->name('inbox.archive');
     Route::post('/inbox/{conversation}/unarchive', [\App\Http\Controllers\ConversationController::class, 'unarchive'])->name('inbox.unarchive');
+    Route::put('/inbox/{conversation}/preferences', [\App\Http\Controllers\ConversationController::class, 'preferences'])->name('inbox.preferences');
+    Route::post('/inbox/{conversation}/mark-unread', [\App\Http\Controllers\ConversationController::class, 'markUnread'])->name('inbox.mark-unread');
 
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');

@@ -22,6 +22,10 @@ class ConversationParticipantResource extends JsonResource
             ],
             'lastReadAt' => optional($this->last_read_at)->toISOString(),
             'archivedAt' => optional($this->archived_at)->toISOString(),
+            'role' => $this->role ?? 'member',
+            'isPinned' => $this->pinned_at !== null,
+            'isMuted' => $this->muted_at !== null,
+            'draft' => $this->draft,
         ];
     }
 }

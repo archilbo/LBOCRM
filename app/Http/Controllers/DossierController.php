@@ -16,6 +16,7 @@ use App\Services\Dossiers\DossierLocationGroupingService;
 use App\Services\Dossiers\DossierNumberService;
 use App\Services\Dossiers\DossierWorkflowStepperService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -56,7 +57,7 @@ class DossierController extends Controller
         ]);
     }
 
-    public function show(Dossier $dossier, DossierWorkflowStepperService $workflowStepper): Response
+    public function show(Request $request, Dossier $dossier, DossierWorkflowStepperService $workflowStepper): Response
     {
         $dossier
             ->load([
@@ -126,6 +127,7 @@ class DossierController extends Controller
 
         return Inertia::render('Dossiers/Show', [
             'dossier' => DossierResource::make($dossier)->resolve(),
+            'canDesign' => $request->user()?->can('project_design') || $request->user()?->hasRole('admin') ?? false,
             'workflow' => $workflow,
             'documents' => $dossier->documents
                 ->map(fn ($document) => [

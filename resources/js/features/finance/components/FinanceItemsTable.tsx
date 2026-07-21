@@ -3,6 +3,9 @@ import { Button } from '@heroui/react';
 import { AppInput } from '@/components/ui/AppInput';
 import type { FinanceDocumentItem } from '@/features/finance/types';
 import { calculateItem, formatCompactMoney, normalizeNumber } from '@/features/finance/utils/calculations';
+import { FinanceRowActions } from '@/features/finance/components/FinanceRowActions';
+import { AppPagination } from '@/components/ui/AppPagination';
+import { useFinanceTablePagination } from '@/features/finance/components/useFinanceTablePagination';
 
 const compactInput = 'h-8 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)]';
 
@@ -14,6 +17,7 @@ type FinanceItemsTableProps = {
 };
 
 export function FinanceItemsTable({ items, currency, onChange, disabled = false }: FinanceItemsTableProps) {
+    const pagination = useFinanceTablePagination(items);
     function updateItem(index: number, field: keyof FinanceDocumentItem, value: string) {
         const next = items.map((item, itemIndex) => {
             if (itemIndex !== index) {
@@ -31,10 +35,12 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
     }
 
     function addItem() {
-        onChange([
+        const nextItems = [
             ...items,
             calculateItem({ position: items.length + 1, quantity: 1, unitPrice: 0 }),
-        ]);
+        ];
+        onChange(nextItems);
+        pagination.goToLastPage(nextItems.length);
     }
 
     function duplicateItem(index: number) {
@@ -79,7 +85,9 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
                         </tr>
                     </thead>
                     <tbody>
-                        {items.map((item, index) => (
+                        {pagination.paginatedRows.map((item, pageIndex) => {
+                            const index = pagination.startIndex + pageIndex;
+                            return (
                             <tr key={`${item.id || 'new'}-${index}`} className="border-t align-top">
                                 <td className="px-3 py-2 min-w-36">
                                     <AppInput isDisabled={disabled} className={compactInput} value={item.title || ''} onChange={(value) => updateItem(index, 'title', value)} placeholder="Etude architecture" />
@@ -100,19 +108,17 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
                                     {formatCompactMoney(item.totalTtc, currency)}
                                 </td>
                                 <td className="px-3 py-2 w-16">
-                                    <div className="flex justify-end gap-1">
-                                        <Button variant="ghost" size="sm" onPress={() => duplicateItem(index)} isDisabled={disabled} aria-label="Dupliquer">
-                                            <Copy size={13} />
-                                        </Button>
-                                        <Button variant="ghost" size="sm" onPress={() => deleteItem(index)} isDisabled={disabled || items.length === 1} aria-label="Supprimer">
-                                            <Trash2 size={13} />
-                                        </Button>
-                                    </div>
+                                    <FinanceRowActions actions={[
+                                        { id: `duplicate-${index}`, label: 'Dupliquer la ligne', icon: <Copy size={13} />, onPress: () => duplicateItem(index), isDisabled: disabled },
+                                        { id: `delete-${index}`, label: 'Supprimer la ligne', icon: <Trash2 size={13} />, onPress: () => deleteItem(index), isDisabled: disabled || items.length === 1, tone: 'danger' },
+                                    ]} />
                                 </td>
                             </tr>
-                        ))}
+                            );
+                        })}
                     </tbody>
                 </table>
+                <AppPagination page={pagination.page} pageSize={pagination.pageSize} total={pagination.total} onChange={pagination.setPage} variant="reference" />
             </div>
         </div>
     );

@@ -12,3 +12,9 @@ Broadcast::channel('conversation.{conversationId}', function ($user, $conversati
 Broadcast::channel('user.{userId}.inbox', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 }, ['guards' => ['web']]);
+
+Broadcast::channel('company.{companyId}.presence', function ($user, $companyId) {
+    if ((int) $user->company_id !== (int) $companyId) return false;
+
+    return ['id' => $user->id, 'name' => $user->name];
+}, ['guards' => ['web']]);

@@ -12,13 +12,17 @@ export function getRequirementActionType(stepKey: string, requirementKey: string
     switch (key) {
         case 'documents.cin':
         case 'documents.certificat_propriete':
-        case 'documents.terrain_documents':
+        case 'documents.plan_cadastral':
+        case 'documents.calcul_contenance':
+        case 'documents.plan_parcellaire':
         case 'cahier_chantier.cahier_received':
         case 'rokhas.fiche_energetique':
         case 'bureau_etude.contract_bureau_etude':
         case 'bureau_etude.plan_beton':
-        case 'bureau_etude.implantation_topographie':
-        case 'bureau_etude.laboratoire_controle':
+        case 'bureau_etude.attestation_implantation':
+        case 'bureau_etude.contrat_topographie':
+        case 'bureau_etude.contrat_laboratoire':
+        case 'bureau_etude.bureau_controle':
         case 'permis_habiter.demande_permis_habiter':
         case 'permis_habiter.site_images':
         case 'permis_habiter.recent_certificat_propriete':
