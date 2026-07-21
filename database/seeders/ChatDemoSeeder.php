@@ -181,7 +181,10 @@ class ChatDemoSeeder extends Seeder
             if ($existing) return $existing;
         }
 
+        $firstUser = User::find($userIds[0]);
+
         $conv = Conversation::create([
+            'company_id' => $firstUser?->company_id,
             'type' => $type,
             'subject' => $subject,
             'last_message_at' => now(),

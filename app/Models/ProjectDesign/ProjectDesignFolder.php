@@ -2,6 +2,7 @@
 
 namespace App\Models\ProjectDesign;
 
+use App\Models\Company;
 use App\Models\Dossier;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,8 @@ class ProjectDesignFolder extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'dossier_id',
         'parent_id',
         'name',
@@ -29,6 +32,11 @@ class ProjectDesignFolder extends Model
                 $folder->slug = Str::slug($folder->name);
             }
         });
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function dossier(): BelongsTo

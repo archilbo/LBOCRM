@@ -127,7 +127,7 @@ class DossierController extends Controller
 
         return Inertia::render('Dossiers/Show', [
             'dossier' => DossierResource::make($dossier)->resolve(),
-            'canDesign' => $request->user()?->can('project_design') || $request->user()?->hasRole('admin') ?? false,
+            'canDesign' => $request->user()?->can('project-design.view') || $request->user()?->hasRole('admin') ?? false,
             'workflow' => $workflow,
             'documents' => $dossier->documents
                 ->map(fn ($document) => [

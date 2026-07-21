@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Company;
 use App\Models\Dossier;
 use App\Models\ProjectDesign\ProjectDesignFile;
 use App\Models\ProjectDesign\ProjectDesignFileVersion;
@@ -17,21 +18,41 @@ class ProjectDesignTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+    private Company $company;
 
     protected function setUp(): void
     {
         parent::setUp();
-        Permission::create(['name' => 'project_design', 'guard_name' => 'web']);
-        $this->user = User::factory()->create();
+        $this->company = Company::factory()->create();
+        $this->user = User::factory()->create(['company_id' => $this->company->id]);
+    }
+
+    private function grant(string ...$permissions): void
+    {
+        foreach ($permissions as $perm) {
+            Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
+        }
+        $this->user->givePermissionTo($permissions);
+    }
+
+    private function dossier(): Dossier
+    {
+        return Dossier::factory()->create();
+    }
+
+    private function pdUrl(Dossier $dossier, string $path = ''): string
+    {
+        $base = "/dossiers/{$dossier->id}/project-design";
+        return $path ? "{$base}/{$path}" : $base;
     }
 
     public function test_summary_returns_zero_counts_when_empty(): void
     {
-        $this->user->givePermissionTo('project_design');
-        $dossier = Dossier::factory()->create();
+        $this->grant('project-design.view');
+        $dossier = $this->dossier();
 
         $response = $this->actingAs($this->user)
-            ->getJson("/dossiers/{$dossier->id}/design/summary");
+            ->getJson($this->pdUrl($dossier, 'summary'));
 
         $response->assertOk();
         $response->assertJson([
@@ -42,26 +63,27 @@ class ProjectDesignTest extends TestCase
         ]);
     }
 
-    public function test_summary_requires_project_design_permission(): void
+    public function test_summary_requires_view_permission(): void
     {
-        $dossier = Dossier::factory()->create();
+        $dossier = $this->dossier();
 
         $response = $this->actingAs($this->user)
-            ->getJson("/dossiers/{$dossier->id}/design/summary");
+            ->getJson($this->pdUrl($dossier, 'summary'));
 
         $response->assertForbidden();
     }
 
     public function test_can_create_file(): void
     {
-        $this->user->givePermissionTo('project_design');
-        $dossier = Dossier::factory()->create();
+        $this->grant('project-design.view', 'project-design.create-file');
+        $dossier = $this->dossier();
+        $folder = ProjectDesignFolder::factory()->create(['dossier_id' => $dossier->id, 'company_id' => $this->company->id]);
 
         $response = $this->actingAs($this->user)
-            ->postJson('/dossiers/design/files', [
-                'dossier_id' => $dossier->id,
+            ->postJson($this->pdUrl($dossier, 'files'), [
+                'folder_id' => $folder->id,
                 'name' => 'Ground Floor Plan',
-                'type' => 'source',
+                'discipline' => 'architecture',
             ]);
 
         $response->assertCreated();
@@ -74,13 +96,11 @@ class ProjectDesignTest extends TestCase
 
     public function test_create_file_requires_permission(): void
     {
-        $dossier = Dossier::factory()->create();
+        $dossier = $this->dossier();
 
         $response = $this->actingAs($this->user)
-            ->postJson('/dossiers/design/files', [
-                'dossier_id' => $dossier->id,
+            ->postJson($this->pdUrl($dossier, 'files'), [
                 'name' => 'Test',
-                'type' => 'source',
             ]);
 
         $response->assertForbidden();
@@ -88,15 +108,16 @@ class ProjectDesignTest extends TestCase
 
     public function test_can_update_file_with_optimistic_concurrency(): void
     {
-        $this->user->givePermissionTo('project_design');
-        $dossier = Dossier::factory()->create();
+        $this->grant('project-design.view', 'project-design.update-file');
+        $dossier = $this->dossier();
         $file = ProjectDesignFile::factory()->create([
             'dossier_id' => $dossier->id,
+            'company_id' => $this->company->id,
             'record_version' => 1,
         ]);
 
         $response = $this->actingAs($this->user)
-            ->putJson("/dossiers/design/files/{$file->id}", [
+            ->putJson($this->pdUrl($dossier, "files/{$file->id}"), [
                 'name' => 'Updated Plan',
                 'record_version' => 1,
             ]);
@@ -108,15 +129,16 @@ class ProjectDesignTest extends TestCase
 
     public function test_update_returns_409_on_stale_record_version(): void
     {
-        $this->user->givePermissionTo('project_design');
-        $dossier = Dossier::factory()->create();
+        $this->grant('project-design.view', 'project-design.update-file');
+        $dossier = $this->dossier();
         $file = ProjectDesignFile::factory()->create([
             'dossier_id' => $dossier->id,
+            'company_id' => $this->company->id,
             'record_version' => 2,
         ]);
 
         $response = $this->actingAs($this->user)
-            ->putJson("/dossiers/design/files/{$file->id}", [
+            ->putJson($this->pdUrl($dossier, "files/{$file->id}"), [
                 'name' => 'Stale Update',
                 'record_version' => 1,
             ]);
@@ -125,115 +147,152 @@ class ProjectDesignTest extends TestCase
         $response->assertJsonPath('message', 'This record was changed by another user. Reload the latest data before saving.');
     }
 
-    public function test_can_delete_file(): void
+    public function test_can_archive_file(): void
     {
-        $this->user->givePermissionTo('project_design');
-        $dossier = Dossier::factory()->create();
-        $file = ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id]);
+        $this->grant('project-design.view', 'project-design.delete');
+        $dossier = $this->dossier();
+        $file = ProjectDesignFile::factory()->create([
+            'dossier_id' => $dossier->id,
+            'company_id' => $this->company->id,
+        ]);
 
         $response = $this->actingAs($this->user)
-            ->deleteJson("/dossiers/design/files/{$file->id}");
+            ->deleteJson($this->pdUrl($dossier, "files/{$file->id}"));
 
-        $response->assertNoContent();
-        $this->assertSoftDeleted($file);
+        $response->assertOk();
+        $response->assertJsonPath('message', 'File archived.');
+        $this->assertEquals('archived', $file->fresh()->status);
+        $this->assertNotNull($file->fresh()->archived_at);
     }
 
     public function test_list_files_is_project_scoped(): void
     {
-        $this->user->givePermissionTo('project_design');
-        $dossier1 = Dossier::factory()->create();
-        $dossier2 = Dossier::factory()->create();
-        ProjectDesignFile::factory()->count(3)->create(['dossier_id' => $dossier1->id]);
-        ProjectDesignFile::factory()->count(2)->create(['dossier_id' => $dossier2->id]);
+        $this->grant('project-design.view');
+        $dossier1 = $this->dossier();
+        $dossier2 = $this->dossier();
+        ProjectDesignFile::factory()->count(3)->create(['dossier_id' => $dossier1->id, 'company_id' => $this->company->id]);
+        ProjectDesignFile::factory()->count(2)->create(['dossier_id' => $dossier2->id, 'company_id' => $this->company->id]);
 
         $response = $this->actingAs($this->user)
-            ->getJson("/dossiers/{$dossier1->id}/design/files");
+            ->getJson($this->pdUrl($dossier1, 'files'));
 
         $response->assertOk();
-        $response->assertJsonPath('meta.total', 3);
+        $response->assertJsonStructure(['data']);
+        $data = $response->json('data');
+        $this->assertCount(3, $data);
     }
 
     public function test_summary_is_project_scoped(): void
     {
-        $this->user->givePermissionTo('project_design');
-        $dossier1 = Dossier::factory()->create();
-        $dossier2 = Dossier::factory()->create();
-        ProjectDesignFile::factory()->count(3)->create(['dossier_id' => $dossier1->id]);
-        ProjectDesignFile::factory()->create(['dossier_id' => $dossier2->id]);
+        $this->grant('project-design.view');
+        $dossier1 = $this->dossier();
+        $dossier2 = $this->dossier();
+        ProjectDesignFile::factory()->count(3)->create(['dossier_id' => $dossier1->id, 'company_id' => $this->company->id]);
+        ProjectDesignFile::factory()->create(['dossier_id' => $dossier2->id, 'company_id' => $this->company->id]);
 
         $response = $this->actingAs($this->user)
-            ->getJson("/dossiers/{$dossier1->id}/design/summary");
+            ->getJson($this->pdUrl($dossier1, 'summary'));
 
         $response->assertOk();
         $response->assertJsonPath('files', 3);
     }
 
-    public function test_can_create_folder(): void
+    public function test_summary_includes_review_and_remark_metrics(): void
     {
-        $this->user->givePermissionTo('project_design');
-        $dossier = Dossier::factory()->create();
+        $this->grant('project-design.view');
+        $dossier = $this->dossier();
 
-        $folder = ProjectDesignFolder::create([
+        $submittedFile = ProjectDesignFile::factory()->create([
             'dossier_id' => $dossier->id,
-            'name' => 'Architecture',
-            'slug' => 'architecture',
+            'company_id' => $this->company->id,
+            'requires_approval' => true,
         ]);
 
+        $submittedVersion = ProjectDesignFileVersion::factory()->create([
+            'file_id' => $submittedFile->id,
+            'dossier_id' => $dossier->id,
+            'company_id' => $this->company->id,
+            'version_number' => 1,
+            'review_status' => 'submitted',
+        ]);
+
+        ProjectDesignRemark::factory()->create([
+            'version_id' => $submittedVersion->id,
+            'company_id' => $this->company->id,
+            'status' => 'open',
+            'due_date' => now()->subDay(),
+            'created_by' => $this->user->id,
+        ]);
+
+        $approvedFile = ProjectDesignFile::factory()->create([
+            'dossier_id' => $dossier->id,
+            'company_id' => $this->company->id,
+            'requires_approval' => true,
+        ]);
+
+        $approvedVersion = ProjectDesignFileVersion::factory()->create([
+            'file_id' => $approvedFile->id,
+            'dossier_id' => $dossier->id,
+            'company_id' => $this->company->id,
+            'version_number' => 1,
+            'review_status' => 'approved',
+        ]);
+
+        $approvedFile->update(['latest_approved_version_id' => $approvedVersion->id]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson($this->pdUrl($dossier, 'summary'));
+
+        $response->assertOk();
+        $response->assertJsonPath('awaitingReview', 1);
+        $response->assertJsonPath('openRemarks', 1);
+        $response->assertJsonPath('overdueRemarks', 1);
+        $response->assertJsonPath('approvedFiles', 1);
+        $response->assertJsonPath('approvalProgress', 50);
+    }
+
+    public function test_can_create_folder(): void
+    {
+        $this->grant('project-design.view', 'project-design.create-folder');
+        $dossier = $this->dossier();
+
+        $response = $this->actingAs($this->user)
+            ->postJson($this->pdUrl($dossier, 'folders'), [
+                'name' => 'Architecture',
+            ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('name', 'Architecture');
         $this->assertDatabaseHas('project_design_folders', [
             'dossier_id' => $dossier->id,
             'name' => 'Architecture',
         ]);
-        $this->assertEquals(0, $folder->sort_order);
-    }
-
-    public function test_file_has_indexes(): void
-    {
-        $this->user->givePermissionTo('project_design');
-        $dossier = Dossier::factory()->create();
-        ProjectDesignFile::factory()->count(5)->create(['dossier_id' => $dossier->id, 'type' => 'source']);
-
-        $response = $this->actingAs($this->user)
-            ->getJson("/dossiers/{$dossier->id}/design/files?type=source");
-
-        $response->assertOk();
-        $response->assertJsonPath('meta.total', 5);
-    }
-
-    public function test_can_filter_files_by_type(): void
-    {
-        $this->user->givePermissionTo('project_design');
-        $dossier = Dossier::factory()->create();
-        ProjectDesignFile::factory()->count(3)->create(['dossier_id' => $dossier->id, 'type' => 'source']);
-        ProjectDesignFile::factory()->count(2)->create(['dossier_id' => $dossier->id, 'type' => 'review']);
-
-        $response = $this->actingAs($this->user)
-            ->getJson("/dossiers/{$dossier->id}/design/files?type=review");
-
-        $response->assertOk();
-        $response->assertJsonPath('meta.total', 2);
     }
 
     public function test_can_search_files_by_name(): void
     {
-        $this->user->givePermissionTo('project_design');
-        $dossier = Dossier::factory()->create();
-        ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id, 'name' => 'Ground Floor Plan']);
-        ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id, 'name' => 'First Floor Plan']);
-        ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id, 'name' => 'Elevation']);
+        $this->grant('project-design.view');
+        $dossier = $this->dossier();
+        ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id, 'company_id' => $this->company->id, 'name' => 'Ground Floor Plan']);
+        ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id, 'company_id' => $this->company->id, 'name' => 'First Floor Plan']);
+        ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id, 'company_id' => $this->company->id, 'name' => 'Elevation']);
 
         $response = $this->actingAs($this->user)
-            ->getJson("/dossiers/{$dossier->id}/design/files?search=Floor");
+            ->getJson($this->pdUrl($dossier, 'files?search=Floor'));
 
         $response->assertOk();
-        $response->assertJsonPath('meta.total', 2);
+        $data = $response->json('data');
+        $this->assertCount(2, $data);
     }
 
     public function test_version_belongs_to_file(): void
     {
-        $dossier = Dossier::factory()->create();
-        $file = ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id]);
+        $dossier = $this->dossier();
+        $file = ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id, 'company_id' => $this->company->id]);
         $version = ProjectDesignFileVersion::factory()->create([
             'file_id' => $file->id,
+            'dossier_id' => $dossier->id,
+            'company_id' => $this->company->id,
             'version_number' => 1,
         ]);
 
@@ -243,10 +302,12 @@ class ProjectDesignTest extends TestCase
 
     public function test_remark_belongs_to_version(): void
     {
-        $dossier = Dossier::factory()->create();
-        $file = ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id]);
+        $dossier = $this->dossier();
+        $file = ProjectDesignFile::factory()->create(['dossier_id' => $dossier->id, 'company_id' => $this->company->id]);
         $version = ProjectDesignFileVersion::factory()->create([
             'file_id' => $file->id,
+            'dossier_id' => $dossier->id,
+            'company_id' => $this->company->id,
             'version_number' => 1,
         ]);
         $remark = ProjectDesignRemark::factory()->create([

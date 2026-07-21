@@ -7,11 +7,14 @@ use App\Models\Expense;
 use App\Models\FinanceDocument;
 use App\Models\FinanceTemplate;
 use App\Models\Payment;
+use App\Models\ProjectDesign\ProjectDesignFile;
+use App\Models\ProjectDesign\ProjectDesignFolder;
 use App\Policies\ExpensePolicy;
 use App\Policies\FinanceDocumentPolicy;
 use App\Policies\FinanceTemplatePolicy;
 use App\Policies\NotificationPolicy;
 use App\Policies\PaymentPolicy;
+use App\Policies\ProjectDesignPolicy;
 use App\Observers\DocumentTemplateObserver;
 use Illuminate\Notifications\DatabaseNotification;
 use App\Models\User;
@@ -38,6 +41,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(Expense::class, ExpensePolicy::class);
         Gate::policy(FinanceTemplate::class, FinanceTemplatePolicy::class);
+        Gate::policy(ProjectDesignFile::class, ProjectDesignPolicy::class);
+        Gate::policy(ProjectDesignFolder::class, ProjectDesignPolicy::class);
         DocumentTemplate::observe(DocumentTemplateObserver::class);
 
         Gate::before(function (User $user) {

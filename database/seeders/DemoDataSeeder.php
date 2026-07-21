@@ -244,7 +244,8 @@ class DemoDataSeeder extends Seeder
                 return $existing;
             }
         }
-        $conv = Conversation::create(['type' => $type, 'subject' => $subject, 'last_message_at' => now()]);
+        $firstUser = \App\Models\User::find($userIds[0]);
+        $conv = Conversation::create(['company_id' => $firstUser?->company_id, 'type' => $type, 'subject' => $subject, 'last_message_at' => now()]);
         foreach ($userIds as $uid) {
             $conv->participants()->create(['user_id' => $uid]);
         }

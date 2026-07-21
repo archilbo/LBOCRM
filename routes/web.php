@@ -17,6 +17,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DossierController;
 use App\Http\Controllers\DossierWorkflowRequirementController;
 use App\Http\Controllers\ProjectDesignController;
+use App\Http\Controllers\ProjectDesignUploadSessionController;
+use App\Http\Controllers\TusController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\Finance\DocumentTemplateController;
 use App\Http\Controllers\Finance\DocumentTemplateVersionController;
@@ -82,21 +84,48 @@ Route::middleware('auth')->group(function () {
     Route::put('/dossiers/{dossier}/workflow-requirements', [DossierWorkflowRequirementController::class, 'update'])
         ->name('dossiers.workflow-requirements.update');
 
-    Route::get('/dossiers/{dossier}/design/summary', [ProjectDesignController::class, 'summary'])->name('dossiers.design.summary');
-    Route::get('/dossiers/{dossier}/design/folders', [ProjectDesignController::class, 'folders'])->name('dossiers.design.folders');
-    Route::post('/dossiers/design/folders', [ProjectDesignController::class, 'storeFolder'])->name('dossiers.design.folders.store');
-    Route::put('/dossiers/design/folders/{folder}', [ProjectDesignController::class, 'updateFolder'])->name('dossiers.design.folders.update');
-    Route::delete('/dossiers/design/folders/{folder}', [ProjectDesignController::class, 'destroyFolder'])->name('dossiers.design.folders.destroy');
-    Route::get('/dossiers/{dossier}/design/files', [ProjectDesignController::class, 'index'])->name('dossiers.design.files');
-    Route::post('/dossiers/design/files', [ProjectDesignController::class, 'store'])->name('dossiers.design.files.store');
-    Route::put('/dossiers/design/files/{file}', [ProjectDesignController::class, 'update'])->name('dossiers.design.files.update');
-    Route::delete('/dossiers/design/files/{file}', [ProjectDesignController::class, 'destroy'])->name('dossiers.design.files.destroy');
-    Route::post('/dossiers/design/files/{file}/restore', [ProjectDesignController::class, 'restore'])->name('dossiers.design.files.restore');
-    Route::get('/dossiers/design/files/{file}/versions', [ProjectDesignController::class, 'versions'])->name('dossiers.design.files.versions');
-    Route::post('/dossiers/design/versions', [ProjectDesignController::class, 'uploadVersion'])->name('dossiers.design.versions.upload');
-    Route::get('/dossiers/design/versions/{version}/preview', [ProjectDesignController::class, 'preview'])->name('dossiers.design.versions.preview');
-    Route::get('/dossiers/design/versions/{version}/download', [ProjectDesignController::class, 'download'])->name('dossiers.design.versions.download');
-    Route::get('/dossiers/{dossier}/design/activity', [ProjectDesignController::class, 'activity'])->name('dossiers.design.activity');
+    Route::get('/dossiers/{dossier}/project-design/summary', [ProjectDesignController::class, 'summary'])->name('dossiers.project-design.summary');
+    Route::get('/dossiers/{dossier}/project-design/folders', [ProjectDesignController::class, 'folders'])->name('dossiers.project-design.folders');
+    Route::post('/dossiers/{dossier}/project-design/folders', [ProjectDesignController::class, 'storeFolder'])->name('dossiers.project-design.folders.store');
+    Route::put('/dossiers/{dossier}/project-design/folders/{folder}', [ProjectDesignController::class, 'updateFolder'])->name('dossiers.project-design.folders.update');
+    Route::delete('/dossiers/{dossier}/project-design/folders/{folder}', [ProjectDesignController::class, 'destroyFolder'])->name('dossiers.project-design.folders.destroy');
+    Route::get('/dossiers/{dossier}/project-design/files', [ProjectDesignController::class, 'index'])->name('dossiers.project-design.files');
+    Route::post('/dossiers/{dossier}/project-design/files', [ProjectDesignController::class, 'store'])->name('dossiers.project-design.files.store');
+    Route::put('/dossiers/{dossier}/project-design/files/{file}', [ProjectDesignController::class, 'update'])->name('dossiers.project-design.files.update');
+    Route::delete('/dossiers/{dossier}/project-design/files/{file}', [ProjectDesignController::class, 'destroy'])->name('dossiers.project-design.files.destroy');
+    Route::post('/dossiers/{dossier}/project-design/files/{file}/restore', [ProjectDesignController::class, 'restore'])->name('dossiers.project-design.files.restore');
+    Route::get('/dossiers/{dossier}/project-design/files/{file}/versions', [ProjectDesignController::class, 'versions'])->name('dossiers.project-design.files.versions');
+    Route::post('/dossiers/{dossier}/project-design/files/{file}/versions', [ProjectDesignController::class, 'uploadVersion'])->name('dossiers.project-design.versions.upload');
+    Route::get('/dossiers/{dossier}/project-design/versions/{version}/preview', [ProjectDesignController::class, 'preview'])->name('dossiers.project-design.versions.preview');
+    Route::get('/dossiers/{dossier}/project-design/versions/{version}/download', [ProjectDesignController::class, 'download'])->name('dossiers.project-design.versions.download');
+    Route::get('/dossiers/{dossier}/project-design/activity', [ProjectDesignController::class, 'activity'])->name('dossiers.project-design.activity');
+    Route::get('/dossiers/{dossier}/project-design/files/{file}', [ProjectDesignController::class, 'show'])->name('dossiers.project-design.files.show');
+    Route::get('/dossiers/{dossier}/project-design/versions/{version}/annotations', [ProjectDesignController::class, 'getAnnotations'])->name('dossiers.project-design.versions.annotations');
+    Route::post('/dossiers/{dossier}/project-design/versions/{version}/annotations', [ProjectDesignController::class, 'storeAnnotation'])->name('dossiers.project-design.versions.annotations.store');
+    Route::put('/dossiers/{dossier}/project-design/versions/{version}/annotations/{annotation}', [ProjectDesignController::class, 'updateAnnotation'])->name('dossiers.project-design.versions.annotations.update');
+    Route::delete('/dossiers/{dossier}/project-design/versions/{version}/annotations/{annotation}', [ProjectDesignController::class, 'destroyAnnotation'])->name('dossiers.project-design.versions.annotations.destroy');
+    Route::post('/dossiers/{dossier}/project-design/versions/{version}/submit-review', [ProjectDesignController::class, 'submitForReview'])->name('dossiers.project-design.versions.submit-review');
+    Route::post('/dossiers/{dossier}/project-design/versions/{version}/reviews/{review}/start', [ProjectDesignController::class, 'startReview'])->name('dossiers.project-design.versions.reviews.start');
+    Route::post('/dossiers/{dossier}/project-design/versions/{version}/reviews/{review}/decision', [ProjectDesignController::class, 'decideReview'])->name('dossiers.project-design.versions.reviews.decision');
+    Route::get('/dossiers/{dossier}/project-design/reviews', [ProjectDesignController::class, 'reviewQueue'])->name('dossiers.project-design.reviews');
+    Route::get('/dossiers/{dossier}/project-design/remarks', [ProjectDesignController::class, 'listRemarks'])->name('dossiers.project-design.remarks');
+    Route::post('/dossiers/{dossier}/project-design/versions/{version}/remarks', [ProjectDesignController::class, 'storeRemark'])->name('dossiers.project-design.remarks.store');
+    Route::put('/dossiers/{dossier}/project-design/remarks/{remark}', [ProjectDesignController::class, 'updateRemark'])->name('dossiers.project-design.remarks.update');
+    Route::delete('/dossiers/{dossier}/project-design/remarks/{remark}', [ProjectDesignController::class, 'destroyRemark'])->name('dossiers.project-design.remarks.destroy');
+    Route::get('/project-design/assets/{asset}/preview', [ProjectDesignController::class, 'assetPreview'])->name('project-design.assets.preview');
+    Route::get('/project-design/assets/{asset}/download', [ProjectDesignController::class, 'assetDownload'])->name('project-design.assets.download');
+
+    // Upload sessions
+    Route::post('/dossiers/{dossier}/project-design/upload-sessions', [ProjectDesignUploadSessionController::class, 'create'])->name('dossiers.project-design.upload-sessions.create');
+    Route::post('/dossiers/{dossier}/project-design/upload-sessions/{session}/finalize', [ProjectDesignUploadSessionController::class, 'finalize'])->name('dossiers.project-design.upload-sessions.finalize');
+    Route::get('/dossiers/{dossier}/project-design/upload-sessions/{session}', [ProjectDesignUploadSessionController::class, 'status'])->name('dossiers.project-design.upload-sessions.status');
+    Route::post('/dossiers/{dossier}/project-design/upload-sessions/{session}/cancel', [ProjectDesignUploadSessionController::class, 'cancel'])->name('dossiers.project-design.upload-sessions.cancel');
+
+    // Tus protocol
+    Route::match(['OPTIONS', 'POST'], '/tus', [TusController::class, 'post'])->name('tus.create');
+    Route::match(['GET', 'HEAD'], '/tus/{upload}', [TusController::class, 'head'])->name('tus.head');
+    Route::patch('/tus/{upload}', [TusController::class, 'patch'])->name('tus.patch');
+    Route::delete('/tus/{upload}', [TusController::class, 'delete'])->name('tus.delete');
 
     Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');

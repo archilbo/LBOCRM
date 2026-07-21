@@ -54,5 +54,15 @@ class DatabaseSeeder extends Seeder
                 'branch_id' => $branch?->id,
             ]);
         }
+
+        \App\Models\Conversation::query()
+            ->whereNull('company_id')
+            ->whereHas('participants')
+            ->each(function (\App\Models\Conversation $c) {
+                $first = $c->participants()->with('user')->first();
+                if ($first && $first->user?->company_id) {
+                    $c->update(['company_id' => $first->user->company_id]);
+                }
+            });
     }
 }

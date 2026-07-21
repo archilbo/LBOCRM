@@ -2,8 +2,10 @@
 
 namespace Database\Factories\ProjectDesign;
 
+use App\Models\Company;
 use App\Models\ProjectDesign\ProjectDesignFile;
 use App\Models\ProjectDesign\ProjectDesignFileVersion;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ProjectDesignFileVersionFactory extends Factory
@@ -12,15 +14,18 @@ class ProjectDesignFileVersionFactory extends Factory
 
     public function definition(): array
     {
+        $file = ProjectDesignFile::factory()->create();
+        $company = Company::first() ?? Company::factory()->create();
         return [
-            'file_id' => ProjectDesignFile::factory(),
+            'company_id' => $company->id,
+            'dossier_id' => $file->dossier_id,
+            'file_id' => $file->id,
             'version_number' => 1,
             'status' => 'draft',
-            'file_size' => $this->faker->numberBetween(1000, 5000000),
-            'mime_type' => $this->faker->mimeType(),
-            'original_filename' => $this->faker->word() . '.pdf',
-            'disk_path' => 'project-design/' . $this->faker->uuid() . '.pdf',
-            'disk' => 'local',
+            'upload_status' => 'pending',
+            'preview_status' => 'pending',
+            'review_status' => 'none',
+            'uploaded_by' => User::factory(),
         ];
     }
 }

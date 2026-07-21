@@ -2,348 +2,629 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProjectDesign\StoreProjectDesignFileRequest;
-use App\Http\Requests\ProjectDesign\UpdateProjectDesignFileRequest;
-use App\Http\Requests\ProjectDesign\UploadDesignFileVersionRequest;
-use App\Http\Resources\ProjectDesign\ProjectDesignFileResource;
-use App\Http\Resources\ProjectDesign\ProjectDesignFileVersionResource;
-use App\Http\Resources\ProjectDesign\ProjectDesignFolderResource;
-use App\Http\Resources\ProjectDesign\ProjectDesignSummaryResource;
 use App\Models\Dossier;
+use App\Models\ProjectDesign\ProjectDesignAnnotation;
+use App\Models\ProjectDesign\ProjectDesignAsset;
 use App\Models\ProjectDesign\ProjectDesignFile;
 use App\Models\ProjectDesign\ProjectDesignFileVersion;
 use App\Models\ProjectDesign\ProjectDesignFolder;
-use Illuminate\Support\Facades\Storage;
-use App\Services\ProjectDesign\ProjectDesignActivityService;
+use App\Models\ProjectDesign\ProjectDesignRemark;
+use App\Models\ProjectDesign\ProjectDesignReview;
+use App\Enums\ProjectDesign\ProjectDesignVersionStatus;
+use App\Http\Resources\ProjectDesign\ProjectDesignAnnotationResource;
+use App\Http\Resources\ProjectDesign\ProjectDesignFileResource;
+use App\Http\Resources\ProjectDesign\ProjectDesignFileVersionResource;
+use App\Http\Resources\ProjectDesign\ProjectDesignReviewResource;
+use App\Http\Resources\ProjectDesign\ProjectDesignRemarkResource;
+use App\Services\ProjectDesign\ProjectDesignUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectDesignController extends Controller
 {
-    public function __construct(
-        private ProjectDesignActivityService $activityService,
-    ) {}
+    private function dossier(Dossier $dossier): Dossier
+    {
+        Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
+        return $dossier;
+    }
 
     public function summary(Request $request, Dossier $dossier): JsonResponse
     {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
-        }
+        $dossier = $this->dossier($dossier);
+        $user = $request->user();
+        $designFilesQuery = $dossier->designFiles();
+        $designFileIds = (clone $designFilesQuery)->select('id');
+        $versionIds = ProjectDesignFileVersion::whereIn('file_id', $designFileIds)->select('id');
+        $openRemarkStatuses = ['open', 'assigned', 'in_progress', 'reopened'];
+        $activeApprovalFiles = (clone $designFilesQuery)
+            ->where('requires_approval', true)
+            ->whereNull('archived_at');
+        $activeApprovalFilesCount = (clone $activeApprovalFiles)->count();
+        $approvedFilesCount = (clone $activeApprovalFiles)
+            ->whereNotNull('latest_approved_version_id')
+            ->count();
 
-        $folders = $dossier->designFolders()->count();
-        $files = $dossier->designFiles()->count();
-        $versions = $dossier->designFiles()->withCount('versions')->get()->sum('versions_count');
-        $activities = $this->activityService->countForProject($dossier);
-
-        return response()->json(
-            ProjectDesignSummaryResource::make([
-                'folders' => $folders,
-                'files' => $files,
-                'versions' => $versions,
-                'activities' => $activities,
-            ])->resolve($request)
-        );
+        return response()->json([
+            'folders' => $dossier->designFolders()->count(),
+            'files' => $dossier->designFiles()->count(),
+            'versions' => ProjectDesignFileVersion::whereIn('file_id', $designFileIds)->count(),
+            'activities' => 0, // Activity logging is not fully implemented yet.
+            'awaitingReview' => ProjectDesignFileVersion::whereIn('file_id', $designFileIds)
+                ->whereIn('review_status', ['submitted', 'pending', 'in_review', 'changes_requested', 'ready_for_verification'])
+                ->count(),
+            'openRemarks' => ProjectDesignRemark::whereIn('version_id', $versionIds)
+                ->whereIn('status', $openRemarkStatuses)
+                ->count(),
+            'overdueRemarks' => ProjectDesignRemark::whereIn('version_id', $versionIds)
+                ->whereIn('status', $openRemarkStatuses)
+                ->whereDate('due_date', '<', now())
+                ->count(),
+            'approvedFiles' => $approvedFilesCount,
+            'approvalProgress' => $activeApprovalFilesCount > 0
+                ? (int) round(($approvedFilesCount / $activeApprovalFilesCount) * 100)
+                : 0,
+            'canUpload' => $user->can('project-design.upload'),
+        ]);
     }
 
     public function folders(Request $request, Dossier $dossier): JsonResponse
     {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
-        }
-
-        $folders = $dossier->designFolders()
-            ->withCount('files')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
-
-        return response()->json([
-            'data' => ProjectDesignFolderResource::collection($folders)->resolve($request),
-        ]);
+        $this->dossier($dossier);
+        return response()->json($dossier->designFolders()->orderBy('sort_order')->get());
     }
 
-    public function storeFolder(Request $request): JsonResponse
+    public function storeFolder(Request $request, Dossier $dossier): JsonResponse
     {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'dossier_id' => ['required', 'exists:dossiers,id'],
-            'name' => ['required', 'string', 'max:255'],
-            'parent_id' => ['nullable', 'exists:project_design_folders,id'],
+        Gate::authorize('createFolder', [ProjectDesignFolder::class, $dossier]);
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'parent_id' => 'nullable|exists:project_design_folders,id',
         ]);
 
-        $folder = ProjectDesignFolder::create($validated);
-
-        return response()->json(
-            ProjectDesignFolderResource::make($folder)->resolve($request),
-            201
-        );
-    }
-
-    public function updateFolder(Request $request, ProjectDesignFolder $folder): JsonResponse
-    {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
+        if ($data['parent_id'] ?? null) {
+            $parent = ProjectDesignFolder::findOrFail($data['parent_id']);
+            abort_unless((int) $parent->dossier_id === (int) $dossier->id, 403);
         }
 
-        $validated = $request->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
+        $folder = $dossier->designFolders()->create([
+            'company_id' => $request->user()->company_id,
+            'name' => $data['name'],
+            'parent_id' => $data['parent_id'] ?? null,
         ]);
 
-        $folder->update($validated);
-
-        return response()->json(
-            ProjectDesignFolderResource::make($folder->fresh())->resolve($request)
-        );
+        return response()->json($folder, 201);
     }
 
-    public function destroyFolder(Request $request, ProjectDesignFolder $folder): JsonResponse
+    public function updateFolder(Request $request, Dossier $dossier, ProjectDesignFolder $folder): JsonResponse
     {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
-        }
+        Gate::authorize('updateFolder', [$folder, $dossier]);
+        abort_unless((int) $folder->dossier_id === (int) $dossier->id, 403);
+
+        $data = $request->validate(['name' => 'required|string|max:255']);
+        $folder->update($data);
+
+        return response()->json($folder);
+    }
+
+    public function destroyFolder(Request $request, Dossier $dossier, ProjectDesignFolder $folder): JsonResponse
+    {
+        Gate::authorize('deleteFolder', [$folder, $dossier]);
+        abort_unless((int) $folder->dossier_id === (int) $dossier->id, 403);
 
         $folder->delete();
-
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Folder deleted.']);
     }
 
     public function index(Request $request, Dossier $dossier): JsonResponse
     {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
+        $this->dossier($dossier);
+
+        $query = $dossier->designFiles()->with('latestVersion', 'folder', 'responsibleUser', 'reviewer')->withCount('openRemarks');
+
+        if ($folderId = $request->get('folder_id')) {
+            $query->where('folder_id', $folderId);
+        }
+        if ($search = $request->get('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+        if ($discipline = $request->get('discipline')) {
+            $query->where('discipline', $discipline);
+        }
+        if ($status = $request->get('status')) {
+            $query->where('status', $status);
         }
 
-        $files = $dossier->designFiles()
-            ->with(['latestVersion', 'folder'])
-            ->withCount('versions')
-            ->when($request->type, fn ($q, $type) => $q->where('type', $type))
-            ->when($request->status, fn ($q, $status) => $q->where('status', $status))
-            ->when($request->folder_id, fn ($q, $id) => $q->where('folder_id', $id))
-            ->when($request->search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
-            ->orderBy($request->sort ?? 'sort_order')
-            ->paginate(min($request->integer('per_page', 50), 100));
+        $sortWhitelist = ['name', 'discipline', 'status', 'created_at', 'updated_at'];
+        $sort = in_array($request->get('sort', 'name'), $sortWhitelist) ? $request->get('sort') : 'name';
+        $dir = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $query->orderBy($sort, $dir);
 
-        return response()->json([
-            'data' => ProjectDesignFileResource::collection($files)->resolve($request),
-            'meta' => [
-                'currentPage' => $files->currentPage(),
-                'lastPage' => $files->lastPage(),
-                'total' => $files->total(),
-            ],
+        $files = $query->paginate(min(max((int) ($request->get('per_page') ?? 30), 10), 100));
+
+        return response()->json($files);
+    }
+
+    public function store(Request $request, Dossier $dossier): JsonResponse
+    {
+        Gate::authorize('createFile', [ProjectDesignFile::class, $dossier]);
+
+        $data = $request->validate([
+            'folder_id' => 'nullable|exists:project_design_folders,id',
+            'name' => 'required|string|max:255',
+            'code' => 'nullable|string|max:100',
+            'description' => 'nullable|string',
+            'discipline' => 'nullable|string|max:100',
+            'category' => 'nullable|string|max:100',
         ]);
+
+        if ($data['folder_id'] ?? null) {
+            $folder = ProjectDesignFolder::findOrFail($data['folder_id']);
+            abort_unless((int) $folder->dossier_id === (int) $dossier->id, 403);
+        }
+
+        $data['company_id'] = $request->user()->company_id;
+        $data['created_by'] = $request->user()->id;
+
+        $file = $dossier->designFiles()->create($data);
+
+        return response()->json($file, 201);
     }
 
-    public function store(StoreProjectDesignFileRequest $request): JsonResponse
+    public function update(Request $request, Dossier $dossier, ProjectDesignFile $file): JsonResponse
     {
-        $file = ProjectDesignFile::create($request->validated());
+        Gate::authorize('updateFile', [$file, $dossier]);
+        abort_unless((int) $file->dossier_id === (int) $dossier->id, 403);
 
-        $this->activityService->record(
-            dossierId: $file->dossier_id,
-            action: 'file.created',
-            metadata: ['file_id' => $file->id, 'name' => $file->name],
-        );
+        $data = $request->validate([
+            'name' => 'string|max:255',
+            'code' => 'nullable|string|max:100',
+            'description' => 'nullable|string',
+            'discipline' => 'nullable|string|max:100',
+            'category' => 'nullable|string|max:100',
+            'record_version' => 'required|integer',
+        ]);
 
-        return response()->json(
-            ProjectDesignFileResource::make($file)->resolve($request),
-            201
-        );
-    }
+        $affected = $file->where('id', $file->id)->where('record_version', $data['record_version'])->update([
+            'name' => $data['name'] ?? $file->name,
+            'code' => $data['code'] ?? $file->code,
+            'description' => $data['description'] ?? $file->description,
+            'discipline' => $data['discipline'] ?? $file->discipline,
+            'category' => $data['category'] ?? $file->category,
+            'record_version' => $data['record_version'] + 1,
+        ]);
 
-    public function update(UpdateProjectDesignFileRequest $request, ProjectDesignFile $file): JsonResponse
-    {
-        if ((int) $request->input('record_version') !== $file->record_version) {
+        if (! $affected) {
             return response()->json([
                 'message' => 'This record was changed by another user. Reload the latest data before saving.',
             ], 409);
         }
 
-        $file->update($request->validated());
-        $file->increment('record_version');
-
-        $this->activityService->record(
-            dossierId: $file->dossier_id,
-            action: 'file.updated',
-            metadata: ['file_id' => $file->id, 'name' => $file->name],
-        );
-
-        return response()->json(
-            ProjectDesignFileResource::make($file->fresh())->resolve($request)
-        );
+        return response()->json($file->fresh());
     }
 
-    public function destroy(Request $request, ProjectDesignFile $file): JsonResponse
+    public function destroy(Request $request, Dossier $dossier, ProjectDesignFile $file): JsonResponse
     {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
-        }
+        Gate::authorize('delete', [$file, $dossier]);
+        abort_unless((int) $file->dossier_id === (int) $dossier->id, 403);
 
-        $file->delete();
-
-        $this->activityService->record(
-            dossierId: $file->dossier_id,
-            action: 'file.deleted',
-            metadata: ['file_id' => $file->id, 'name' => $file->name],
-        );
-
-        return response()->json(null, 204);
+        $file->archiveFile();
+        return response()->json(['message' => 'File archived.']);
     }
 
-    public function restore(Request $request, int $file): JsonResponse
+    public function restore(Request $request, Dossier $dossier, ProjectDesignFile $file): JsonResponse
     {
-        $file = ProjectDesignFile::withTrashed()->findOrFail($file);
+        Gate::authorize('restoreFile', [$file, $dossier]);
+        abort_unless((int) $file->dossier_id === (int) $dossier->id, 403);
 
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
-        }
-
-        $file->restore();
-
-        $this->activityService->record(
-            dossierId: $file->dossier_id,
-            action: 'file.restored',
-            metadata: ['file_id' => $file->id, 'name' => $file->name],
-        );
-
-        return response()->json(
-            ProjectDesignFileResource::make($file)->resolve($request)
-        );
+        $file->update(['status' => 'active', 'archived_at' => null]);
+        return response()->json(['message' => 'File restored.']);
     }
 
-    public function versions(Request $request, ProjectDesignFile $file): JsonResponse
+    public function versions(Request $request, Dossier $dossier, ProjectDesignFile $file): JsonResponse
     {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
-        }
+        $this->dossier($dossier);
+        abort_unless((int) $file->dossier_id === (int) $dossier->id, 403);
 
-        $versions = $file->versions()
-            ->with('uploadedBy')
-            ->orderByDesc('version_number')
-            ->paginate(min($request->integer('per_page', 20), 100));
+        $versions = $file->versions()->with('uploadedBy', 'assets')->orderByDesc('version_number')->get();
+        return response()->json(['data' => ProjectDesignFileVersionResource::collection($versions)]);
+    }
 
-        return response()->json([
-            'data' => ProjectDesignFileVersionResource::collection($versions)->resolve($request),
-            'meta' => [
-                'currentPage' => $versions->currentPage(),
-                'lastPage' => $versions->lastPage(),
-                'total' => $versions->total(),
-            ],
+    public function uploadVersion(Request $request, Dossier $dossier, ProjectDesignFile $file, ProjectDesignUploadService $uploadService): JsonResponse
+    {
+        Gate::authorize('uploadVersion', [$file, $dossier]);
+        abort_unless((int) $file->dossier_id === (int) $dossier->id, 403);
+
+        $data = $request->validate([
+            'note' => 'nullable|string',
+            'change_summary' => 'nullable|string',
+            'revision_code' => 'nullable|string|max:50',
+            'idempotency_key' => 'nullable|string|max:64',
+            'intent' => 'nullable|string|in:draft,submit',
+            'asset_types' => 'nullable|array',
+            'asset_types.*' => 'string|max:50',
+            'file' => 'nullable|file|max:204800',
+            'files' => 'nullable|array',
+            'files.*' => 'file|max:204800',
         ]);
-    }
 
-    public function uploadVersion(UploadDesignFileVersionRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-        /** @var \App\Models\ProjectDesign\ProjectDesignFile $file */
-        $file = ProjectDesignFile::findOrFail($validated['file_id']);
+        $uploadedFiles = [];
 
-        $idempotencyKey = $validated['idempotency_key'] ?? null;
-        if ($idempotencyKey) {
-            $existing = $file->versions()->where('checksum', $validated['checksum'] ?? '')->first();
-            if ($existing) {
-                return response()->json(
-                    ProjectDesignFileVersionResource::make($existing)->resolve($request)
-                );
+        if ($request->hasFile('file')) {
+            $uploadedFiles[] = $request->file('file');
+        }
+
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $f) {
+                $uploadedFiles[] = $f;
             }
         }
 
-        $uploadedFile = $request->file('file');
-        $checksum = $validated['checksum'] ?? hash_file('sha256', $uploadedFile->getRealPath());
-        $diskPath = $uploadedFile->store('project-design', 'project_design');
-
-        if (!$diskPath) {
-            return response()->json(['message' => 'File storage failed.'], 500);
+        if (empty($uploadedFiles)) {
+            return response()->json(['message' => 'No file provided.'], 422);
         }
 
-        $latestVersion = $file->versions()->max('version_number') ?? 0;
+        $version = $uploadService->createVersion(
+            $file,
+            $dossier,
+            $uploadedFiles,
+            $data,
+            $request->user()->id,
+        );
 
-        $version = $file->versions()->create([
-            'version_number' => $latestVersion + 1,
-            'status' => 'draft',
-            'checksum' => $checksum,
-            'file_size' => $uploadedFile->getSize(),
-            'mime_type' => $uploadedFile->getMimeType(),
-            'original_filename' => $uploadedFile->getClientOriginalName(),
-            'disk_path' => $diskPath,
-            'disk' => 'project_design',
-            'uploaded_by' => $request->user()?->id,
-            'notes' => $validated['notes'] ?? null,
+        return response()->json(new ProjectDesignFileVersionResource($version), 201);
+    }
+
+    public function preview(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
+
+        $previewAsset = $version->assets()->where('previewable', true)->orderBy('sort_order')->first();
+
+        if (! $previewAsset || ! Storage::disk($previewAsset->disk)->exists($previewAsset->path)) {
+            abort(404);
+        }
+
+        $disk = Storage::disk($previewAsset->disk);
+        $mime = $previewAsset->mime_type ?? 'application/octet-stream';
+
+        return response()->file($disk->path($previewAsset->path), [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="' . $previewAsset->original_filename . '"',
         ]);
-
-        $this->activityService->record(
-            dossierId: $file->dossier_id,
-            action: 'version.uploaded',
-            metadata: ['file_id' => $file->id, 'version_id' => $version->id, 'version_number' => $version->version_number],
-        );
-
-        return response()->json(
-            ProjectDesignFileVersionResource::make($version)->resolve($request),
-            201
-        );
     }
 
-    public function preview(Request $request, ProjectDesignFileVersion $version)
+    public function download(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
-        }
+        Gate::authorize('downloadVersion', [$version, $dossier]);
 
-        $disk = Storage::disk($version->disk);
+        $asset = $version->assets()->orderBy('sort_order')->first();
 
-        if (! $disk->exists($version->disk_path)) {
+        if (! $asset || ! Storage::disk($asset->disk)->exists($asset->path)) {
             abort(404);
         }
 
-        $mime = $version->mime_type ?? 'application/octet-stream';
+        $disk = Storage::disk($asset->disk);
 
-        if (in_array($mime, ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/tiff'])) {
-            return response()->file($disk->path($version->disk_path), [
-                'Content-Type' => $mime,
-                'Content-Disposition' => 'inline; filename="' . $version->original_filename . '"',
-            ]);
-        }
-
-        abort(415, 'Unsupported file type for preview.');
-    }
-
-    public function download(Request $request, ProjectDesignFileVersion $version)
-    {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
-        }
-
-        $disk = Storage::disk($version->disk);
-
-        if (! $disk->exists($version->disk_path)) {
-            abort(404);
-        }
-
-        return response()->download($disk->path($version->disk_path), $version->original_filename);
+        return response()->download($disk->path($asset->path), $asset->original_filename);
     }
 
     public function activity(Request $request, Dossier $dossier): JsonResponse
     {
-        if (! $request->user()?->can('project_design')) {
-            abort(403);
+        $this->dossier($dossier);
+
+        return response()->json(['data' => []]);
+    }
+
+    public function show(Request $request, Dossier $dossier, ProjectDesignFile $file): JsonResponse
+    {
+        Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
+        abort_unless((int) $file->dossier_id === (int) $dossier->id, 403);
+
+        $file->load('latestVersion.assets', 'folder', 'responsibleUser', 'reviewer');
+
+        return response()->json(new ProjectDesignFileResource($file));
+    }
+
+    public function getAnnotations(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
+    {
+        Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
+
+        $annotations = $version->annotations()->with('authoredBy', 'remarks')->orderBy('id')->get();
+
+        return response()->json(['data' => ProjectDesignAnnotationResource::collection($annotations)]);
+    }
+
+    public function storeAnnotation(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
+    {
+        Gate::authorize('annotate', [$version, $dossier]);
+
+        $data = $request->validate([
+            'type' => 'required|string|in:pin,rectangle,arrow,cloud,freehand,text,highlight',
+            'geometry' => 'required|array',
+        ]);
+
+        $annotation = $version->annotations()->create([
+            'company_id' => $request->user()->company_id,
+            'type' => $data['type'],
+            'geometry' => $data['geometry'],
+            'authored_by' => $request->user()->id,
+        ]);
+
+        return response()->json(new ProjectDesignAnnotationResource($annotation), 201);
+    }
+
+    public function updateAnnotation(Request $request, Dossier $dossier, ProjectDesignFileVersion $version, ProjectDesignAnnotation $annotation): JsonResponse
+    {
+        Gate::authorize('annotate', [$version, $dossier]);
+        abort_unless((int) $annotation->version_id === (int) $version->id, 403);
+
+        $data = $request->validate([
+            'geometry' => 'required|array',
+            'record_version' => 'required|integer',
+        ]);
+
+        $affected = $annotation->where('id', $annotation->id)
+            ->where('record_version', $data['record_version'])
+            ->update([
+                'geometry' => $data['geometry'],
+                'record_version' => $data['record_version'] + 1,
+            ]);
+
+        if (! $affected) {
+            return response()->json(['message' => 'Stale update.'], 409);
         }
 
-        $activities = $this->activityService->getForProject($dossier);
+        return response()->json(new ProjectDesignAnnotationResource($annotation->fresh()));
+    }
+
+    public function destroyAnnotation(Request $request, Dossier $dossier, ProjectDesignFileVersion $version, ProjectDesignAnnotation $annotation): JsonResponse
+    {
+        Gate::authorize('annotate', [$version, $dossier]);
+        abort_unless((int) $annotation->version_id === (int) $version->id, 403);
+
+        $annotation->delete();
+
+        return response()->json(['message' => 'Annotation deleted.']);
+    }
+
+    public function submitForReview(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
+    {
+        Gate::authorize('submitReview', [$version, $dossier]);
+
+        $data = $request->validate([
+            'reviewer_id' => 'required|exists:users,id',
+            'notes' => 'nullable|string',
+            'due_at' => 'nullable|date',
+        ]);
+
+        if ($version->status !== 'draft') {
+            return response()->json(['message' => 'Only draft versions can be submitted.'], 422);
+        }
+
+        $review = ProjectDesignReview::create([
+            'company_id' => $request->user()->company_id,
+            'file_id' => $version->file_id,
+            'version_id' => $version->id,
+            'requested_by' => $request->user()->id,
+            'reviewer_id' => $data['reviewer_id'],
+            'status' => 'pending',
+            'notes' => $data['notes'] ?? null,
+            'requested_at' => now(),
+            'due_at' => $data['due_at'] ?? now()->addDays(config('project_design.review.default_due_days', 14)),
+        ]);
+
+        $version->update(['status' => 'submitted', 'review_status' => 'pending', 'submitted_at' => now(), 'submitted_by' => $request->user()->id]);
+
+        return response()->json(new ProjectDesignReviewResource($review->load('requestedBy', 'reviewer', 'file', 'version')), 201);
+    }
+
+    public function startReview(Request $request, Dossier $dossier, ProjectDesignFileVersion $version, ProjectDesignReview $review): JsonResponse
+    {
+        Gate::authorize('reviewVersion', [$version, $dossier]);
+        abort_unless((int) $review->version_id === (int) $version->id, 403);
+
+        if ($review->status !== 'pending') {
+            return response()->json(['message' => 'Review is not pending.'], 422);
+        }
+
+        $review->update(['status' => 'in_progress', 'started_at' => now()]);
+        $version->update(['review_status' => 'in_review']);
+
+        return response()->json(new ProjectDesignReviewResource($review->fresh()->load('requestedBy', 'reviewer')));
+    }
+
+    public function decideReview(Request $request, Dossier $dossier, ProjectDesignFileVersion $version, ProjectDesignReview $review): JsonResponse
+    {
+        Gate::authorize('reviewVersion', [$version, $dossier]);
+        abort_unless((int) $review->version_id === (int) $version->id, 403);
+
+        $data = $request->validate([
+            'decision' => 'required|string|in:approved,rejected,changes_requested',
+            'general_note' => 'nullable|string',
+        ]);
+
+        $review->update([
+            'decision' => $data['decision'],
+            'general_note' => $data['general_note'] ?? null,
+            'status' => $data['decision'],
+            'completed_at' => now(),
+        ]);
+
+        $versionStatus = match ($data['decision']) {
+            'approved' => 'approved',
+            'rejected' => 'rejected',
+            'changes_requested' => 'draft',
+        };
+
+        $version->update([
+            'status' => $versionStatus,
+            'review_status' => $data['decision'],
+            'approved_at' => $data['decision'] === 'approved' ? now() : $version->approved_at,
+            'approved_by' => $data['decision'] === 'approved' ? $request->user()->id : $version->approved_by,
+            'rejected_at' => $data['decision'] === 'rejected' ? now() : $version->rejected_at,
+            'rejected_by' => $data['decision'] === 'rejected' ? $request->user()->id : $version->rejected_by,
+        ]);
+
+        if ($data['decision'] === 'approved') {
+            $version->file()->update(['latest_approved_version_id' => $version->id]);
+        }
+
+        return response()->json(new ProjectDesignReviewResource($review->fresh()->load('requestedBy', 'reviewer')));
+    }
+
+    public function reviewQueue(Request $request, Dossier $dossier): JsonResponse
+    {
+        $this->dossier($dossier);
+
+        $reviews = ProjectDesignReview::whereHas('file', fn ($q) => $q->where('dossier_id', $dossier->id))
+            ->with('requestedBy', 'reviewer', 'file', 'version.assets')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json(['data' => ProjectDesignReviewResource::collection($reviews)]);
+    }
+
+    public function assetPreview(ProjectDesignAsset $asset): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $asset->loadMissing('version.file');
+
+        $dossier = $asset->version?->file?->dossier;
+
+        if (! $dossier) {
+            abort(404);
+        }
+
+        Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
+
+        if (! Storage::disk($asset->disk)->exists($asset->path)) {
+            abort(404);
+        }
+
+        $disk = Storage::disk($asset->disk);
+        $mime = $asset->mime_type ?? 'application/octet-stream';
+
+        return response()->file($disk->path($asset->path), [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="' . $asset->original_filename . '"',
+        ]);
+    }
+
+    public function assetDownload(ProjectDesignAsset $asset): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $asset->loadMissing('version.file');
+
+        $dossier = $asset->version?->file?->dossier;
+        $version = $asset->version;
+
+        if (! $dossier || ! $version) {
+            abort(404);
+        }
+
+        Gate::authorize('downloadVersion', [$version, $dossier]);
+
+        if (! Storage::disk($asset->disk)->exists($asset->path)) {
+            abort(404);
+        }
+
+        $disk = Storage::disk($asset->disk);
+
+        return response()->download($disk->path($asset->path), $asset->original_filename);
+    }
+
+    public function storeRemark(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
+    {
+        Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
+
+        $data = $request->validate([
+            'annotation_id' => 'required|exists:project_design_annotations,id',
+            'severity' => 'required|string|in:critical,major,minor,cosmetic,question',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'assigned_to' => 'nullable|exists:users,id',
+            'due_date' => 'nullable|date',
+        ]);
+
+        $annotation = ProjectDesignAnnotation::findOrFail($data['annotation_id']);
+        abort_unless((int) $annotation->version_id === (int) $version->id, 422);
+
+        $remark = ProjectDesignRemark::create([
+            'company_id' => $request->user()->company_id,
+            'version_id' => $version->id,
+            'annotation_id' => $data['annotation_id'],
+            'severity' => $data['severity'],
+            'status' => 'open',
+            'title' => $data['title'],
+            'description' => $data['description'] ?? null,
+            'assigned_to' => $data['assigned_to'] ?? null,
+            'due_date' => $data['due_date'] ?? null,
+            'created_by' => $request->user()->id,
+        ]);
+
+        $remark->load('createdBy');
+        return response()->json(new ProjectDesignRemarkResource($remark), 201);
+    }
+
+    public function updateRemark(Request $request, Dossier $dossier, ProjectDesignRemark $remark): JsonResponse
+    {
+        Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
+        abort_unless((int) $remark->version->file->dossier_id === (int) $dossier->id, 403);
+
+        $data = $request->validate([
+            'severity' => 'nullable|string|in:critical,major,minor,cosmetic,question',
+            'status' => 'nullable|string|in:open,assigned,in_progress,resolved,closed,reopened',
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'assigned_to' => 'nullable|exists:users,id',
+            'due_date' => 'nullable|date',
+        ]);
+
+        $remark->update($data);
+        $remark->load('createdBy', 'assignedTo', 'version.file');
+
+        return response()->json(new ProjectDesignRemarkResource($remark));
+    }
+
+    public function destroyRemark(Request $request, Dossier $dossier, ProjectDesignRemark $remark): JsonResponse
+    {
+        Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
+        abort_unless((int) $remark->version->file->dossier_id === (int) $dossier->id, 403);
+
+        $remark->delete();
+        return response()->json(['message' => 'Remark deleted.']);
+    }
+
+    public function listRemarks(Request $request, Dossier $dossier): JsonResponse
+    {
+        $this->dossier($dossier);
+
+        $query = \App\Models\ProjectDesign\ProjectDesignRemark::whereHas('version.file', fn ($q) => $q->where('dossier_id', $dossier->id))
+            ->with('createdBy', 'assignedTo', 'version.file')
+            ->orderByDesc('created_at');
+
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($severity = $request->query('severity')) {
+            $query->where('severity', $severity);
+        }
+
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        $remarks = $query->paginate($request->query('per_page', 50));
 
         return response()->json([
-            'data' => $activities->through(fn ($log) => [
-                'id' => $log->id,
-                'action' => $log->action,
-                'description' => $log->description,
-                'metadata' => $log->metadata,
-                'user' => $log->user ? ['id' => $log->user->id, 'name' => $log->user->name] : null,
-                'createdAt' => $log->created_at?->diffForHumans(),
-            ])->values(),
-            'meta' => [
-                'nextCursor' => $activities->nextCursor()?->encode(),
-                'hasMore' => $activities->hasMorePages(),
-            ],
+            'data' => ProjectDesignRemarkResource::collection($remarks),
+            'meta' => ['total' => $remarks->total(), 'page' => $remarks->currentPage(), 'lastPage' => $remarks->lastPage()],
         ]);
     }
 }

@@ -8,4 +8,5 @@ enum ProjectDesignReviewStatus: string
     case InProgress = 'in_progress';
     case Approved = 'approved';
     case Rejected = 'rejected';
+    case ChangesRequested = 'changes_requested';
 }

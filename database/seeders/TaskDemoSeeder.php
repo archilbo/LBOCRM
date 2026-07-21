@@ -108,7 +108,8 @@ class TaskDemoSeeder extends Seeder
             ->first();
         if ($existing) return $existing;
 
-        $conv = Conversation::create(['type' => 'direct', 'last_message_at' => now()]);
+        $firstUser = \App\Models\User::find($uid1);
+        $conv = Conversation::create(['company_id' => $firstUser?->company_id, 'type' => 'direct', 'last_message_at' => now()]);
         $conv->participants()->createMany([
             ['user_id' => $uid1],
             ['user_id' => $uid2],

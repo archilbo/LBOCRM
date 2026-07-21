@@ -6,4 +6,5 @@ enum ProjectDesignFileStatus: string
 {
     case Active = 'active';
     case Archived = 'archived';
+    case Draft = 'draft';
 }

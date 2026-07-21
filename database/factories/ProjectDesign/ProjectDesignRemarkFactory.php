@@ -2,6 +2,7 @@
 
 namespace Database\Factories\ProjectDesign;
 
+use App\Models\Company;
 use App\Models\ProjectDesign\ProjectDesignFileVersion;
 use App\Models\ProjectDesign\ProjectDesignRemark;
 use App\Models\User;
@@ -13,9 +14,12 @@ class ProjectDesignRemarkFactory extends Factory
 
     public function definition(): array
     {
+        $company = Company::first() ?? Company::factory()->create();
+        $version = ProjectDesignFileVersion::factory()->create();
         return [
-            'version_id' => ProjectDesignFileVersion::factory(),
-            'severity' => $this->faker->randomElement(['cosmetic', 'minor', 'major', 'critical']),
+            'company_id' => $company->id,
+            'version_id' => $version->id,
+            'severity' => $this->faker->randomElement(['information', 'minor', 'normal', 'major', 'critical']),
             'status' => 'open',
             'title' => $this->faker->sentence(),
             'description' => $this->faker->paragraph(),

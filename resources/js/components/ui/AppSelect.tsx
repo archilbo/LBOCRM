@@ -23,6 +23,7 @@ type AppSelectProps = {
     isRequired?: boolean;
     className?: string;
     size?: 'sm' | 'md';
+    'aria-label'?: string;
 };
 
 export function AppSelect({
@@ -38,6 +39,7 @@ export function AppSelect({
     isRequired = false,
     className,
     size = 'md',
+    'aria-label': ariaLabel,
 }: AppSelectProps) {
     const keyMap = useMemo(() => {
         return new Map(options.map((option) => [String(option.id), option.id]));
@@ -68,6 +70,7 @@ export function AppSelect({
                     disabled={isDisabled}
                     required={isRequired}
                     onChange={handleChange}
+                    aria-label={ariaLabel}
                     className={cn(
                         size === 'sm' ? 'h-8 text-xs' : 'h-10 text-sm',
                         'w-full min-w-0 appearance-none rounded-[var(--radius-md)] border bg-[var(--surface)] px-3 pr-10 text-[var(--foreground)] outline-none transition',

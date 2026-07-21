@@ -10,11 +10,11 @@ class ProjectDesignSummaryResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'folders' => (int) $this->resource['folders'] ?? 0,
-            'files' => (int) $this->resource['files'] ?? 0,
-            'versions' => (int) $this->resource['versions'] ?? 0,
-            'activities' => (int) $this->resource['activities'] ?? 0,
-            'canUpload' => $request->user()?->can('project_design') ?? false,
+            'folders' => (int) ($this->resource['folders'] ?? 0),
+            'files' => (int) ($this->resource['files'] ?? 0),
+            'versions' => (int) ($this->resource['versions'] ?? 0),
+            'activities' => (int) ($this->resource['activities'] ?? 0),
+            'canUpload' => $request->user()?->can('project-design.upload') ?? false,
         ];
     }
 }

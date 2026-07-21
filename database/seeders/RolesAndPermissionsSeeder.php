@@ -55,6 +55,29 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage users',
             'view qa',
             'project_design',
+            'project-design.view',
+            'project-design.create-folder',
+            'project-design.update-folder',
+            'project-design.delete-folder',
+            'project-design.create-file',
+            'project-design.update-file',
+            'project-design.upload',
+            'project-design.download-source',
+            'project-design.create-version',
+            'project-design.submit-review',
+            'project-design.review',
+            'project-design.annotate',
+            'project-design.create-remark',
+            'project-design.assign-remark',
+            'project-design.address-remark',
+            'project-design.verify-remark',
+            'project-design.reopen-remark',
+            'project-design.approve',
+            'project-design.request-changes',
+            'project-design.archive',
+            'project-design.restore',
+            'project-design.delete',
+            'project-design.manage',
         ];
 
         foreach ($permissions as $permission) {
@@ -84,6 +107,33 @@ class RolesAndPermissionsSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
+        $projectDesignPerms = [
+            'project-design.view',
+            'project-design.create-folder',
+            'project-design.create-file',
+            'project-design.upload',
+            'project-design.download-source',
+            'project-design.create-version',
+            'project-design.submit-review',
+            'project-design.annotate',
+            'project-design.create-remark',
+            'project-design.address-remark',
+        ];
+
+        $projectDesignManagerPerms = array_merge($projectDesignPerms, [
+            'project-design.update-folder',
+            'project-design.delete-folder',
+            'project-design.update-file',
+            'project-design.review',
+            'project-design.assign-remark',
+            'project-design.verify-remark',
+            'project-design.reopen-remark',
+            'project-design.approve',
+            'project-design.request-changes',
+            'project-design.archive',
+            'project-design.restore',
+        ]);
+
         $permissionModels = Permission::query()
             ->where('guard_name', 'web')
             ->whereIn('name', $permissions)
@@ -92,7 +142,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $admin->syncPermissions(Permission::all());
 
         $manager->syncPermissions(
-            $permissionModels->whereIn('name', [
+            $permissionModels->whereIn('name', array_merge([
                 'view dashboard',
                 'manage clients',
                 'manage dossiers',
@@ -131,12 +181,11 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view workload',
                 'view operations reports',
                 'view qa',
-                'project_design',
-            ])
+            ], $projectDesignManagerPerms))
         );
 
         $staff->syncPermissions(
-            $permissionModels->whereIn('name', [
+            $permissionModels->whereIn('name', array_merge([
                 'view dashboard',
                 'manage clients',
                 'manage dossiers',
@@ -160,11 +209,11 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view inbox',
                 'manage inbox',
                 'view notifications',
-            ])
+            ], $projectDesignPerms))
         );
 
         $viewer->syncPermissions(
-            $permissionModels->whereIn('name', [
+            $permissionModels->whereIn('name', array_merge([
                 'view dashboard',
                 'view tasks',
                 'view inbox',
@@ -174,7 +223,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 'finance.expenses.view',
                 'finance.templates.view',
                 'finance.settings.view',
-            ])
+            ], [
+                'project-design.view',
+            ]))
         );
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

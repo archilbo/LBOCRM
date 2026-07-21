@@ -2,8 +2,10 @@
 
 namespace Database\Factories\ProjectDesign;
 
+use App\Models\Company;
 use App\Models\Dossier;
 use App\Models\ProjectDesign\ProjectDesignFile;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ProjectDesignFileFactory extends Factory
@@ -12,28 +14,23 @@ class ProjectDesignFileFactory extends Factory
 
     public function definition(): array
     {
+        $dossier = Dossier::factory()->create();
+        $company = Company::first() ?? Company::factory()->create();
         return [
-            'dossier_id' => Dossier::factory(),
+            'company_id' => $company->id,
+            'dossier_id' => $dossier->id,
             'name' => $this->faker->words(3, true),
             'description' => $this->faker->sentence(),
-            'type' => $this->faker->randomElement(['source', 'review', 'supporting']),
+            'discipline' => $this->faker->randomElement(['architecture', 'structure', 'mep', 'interior', 'landscape']),
+            'category' => $this->faker->randomElement(['plan', 'section', 'elevation', 'detail', 'schedule']),
             'status' => 'active',
-            'sort_order' => 0,
+            'requires_approval' => true,
+            'created_by' => User::factory(),
         ];
-    }
-
-    public function source(): static
-    {
-        return $this->state(['type' => 'source']);
-    }
-
-    public function review(): static
-    {
-        return $this->state(['type' => 'review']);
     }
 
     public function archived(): static
     {
-        return $this->state(['status' => 'archived']);
+        return $this->state(['status' => 'archived', 'archived_at' => now()]);
     }
 }

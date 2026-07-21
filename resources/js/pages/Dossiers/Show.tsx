@@ -35,7 +35,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { Button, Dropdown } from '@heroui/react';
 import { AppModal } from '@/components/ui/AppModal';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
@@ -43,7 +43,7 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { ProjectWorkflowStepper } from '@/features/dossiers/components/ProjectWorkflowStepper';
 import { WorkflowTab } from '@/features/dossiers/components/WorkflowTab';
-import { DesignTab } from '@/features/dossiers/components/DesignTab';
+const DesignTab = React.lazy(() => import('@/features/dossiers/components/DesignTab'));
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
 import { DocumentDrawer } from '@/components/drawers';
 import { ContractDrawer } from '@/components/drawers';
@@ -104,13 +104,15 @@ type PageProps = {
     canDesign?: boolean;
 };
 
-type TabId = 'overview' | 'workflow' | 'documents' | 'design' | 'contract' | 'finance' | 'authorizations' | 'notes' | 'activity';
+export type ProjectDesignQuery = { tab: string; mode?: string; file?: string; version?: string; remark?: string };
+
+type TabId = 'overview' | 'workflow' | 'project-design' | 'documents' | 'contract' | 'finance' | 'authorizations' | 'notes' | 'activity';
 
 const TABS: { id: TabId; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'workflow', label: 'Workflow' },
+    { id: 'project-design', label: 'Project Design' },
     { id: 'documents', label: 'Documents' },
-    { id: 'design', label: 'Design' },
     { id: 'contract', label: 'Contract' },
     { id: 'finance', label: 'Finance' },
     { id: 'authorizations', label: 'Authorizations' },
@@ -159,16 +161,44 @@ export default function DossierShow({
     clients, cities, dossiers: dossiersOptions, templates, contractClients, financeDossiers,
     archiveRooms, archiveShelves, archiveBoxes, canDesign,
 }: PageProps) {
-    const initialTab = (new URLSearchParams(window.location.search).get('tab') as TabId) || 'overview';
-    const [activeTab, setActiveTab] = useState<TabId>(initialTab);
-    function handleTabChange(tab: TabId) {
-        setActiveTab(tab);
-        const params = new URLSearchParams(window.location.search);
-        params.set('tab', tab);
-        const qs = params.toString();
-        const url = window.location.pathname + (qs ? '?' + qs : '');
-        window.history.replaceState(null, '', url);
+    function parseQuery(): { tab: TabId; pdMode: string; pdFile: string; pdVersion: string; pdRemark: string } {
+        const p = new URLSearchParams(window.location.search);
+        const tab = (TABS.find((t) => t.id === p.get('tab'))?.id as TabId) || 'overview';
+        return { tab, pdMode: p.get('mode') || '', pdFile: p.get('file') || '', pdVersion: p.get('version') || '', pdRemark: p.get('remark') || '' };
     }
+    const [query, setQuery] = useState(() => parseQuery());
+    const [activeTab, setActiveTab] = useState<TabId>(query.tab);
+    const [pdState, setPdState] = useState({ mode: query.pdMode, file: query.pdFile, version: query.pdVersion, remark: query.pdRemark });
+
+    useEffect(() => {
+        const handler = () => {
+            const q = parseQuery();
+            setActiveTab(q.tab);
+            setPdState({ mode: q.pdMode, file: q.pdFile, version: q.pdVersion, remark: q.pdRemark });
+        };
+        window.addEventListener('popstate', handler);
+        return () => window.removeEventListener('popstate', handler);
+    }, []);
+
+    function pushQuery(overrides: Record<string, string>) {
+        const p = new URLSearchParams(window.location.search);
+        for (const [k, v] of Object.entries(overrides)) { if (v) p.set(k, v); else p.delete(k); }
+        const qs = p.toString();
+        const url = window.location.pathname + (qs ? '?' + qs : '');
+        window.history.pushState(null, '', url);
+        const q = parseQuery();
+        setActiveTab(q.tab);
+        setPdState({ mode: q.pdMode, file: q.pdFile, version: q.pdVersion, remark: q.pdRemark });
+    }
+
+    function handleTabChange(tab: TabId) {
+        pushQuery({ tab, mode: '', file: '', version: '', remark: '' });
+    }
+
+    function handlePdNavigate(updates: { mode?: string; file?: string; version?: string; remark?: string }) {
+        pushQuery({ tab: 'project-design', ...updates });
+    }
+
     const [selectedStepKey, setSelectedStepKey] = useState(workflow.currentStep ?? workflow.steps[0]?.key ?? null);
     const tabsRef = useRef<HTMLDivElement>(null);
 
@@ -428,7 +458,7 @@ export default function DossierShow({
                             <WorkflowTab workflow={workflow} selectedStepKey={selectedStepKey} onSelectStep={setSelectedStepKey} dossierId={dossier.id} onOpenUpload={handleOpenUpload} onOpenArchive={() => setArchiveDrawerOpen(true)} />
                         )}
                         {activeTab === 'documents' && <DocumentsTab documents={documents} dossierNumber={dossier.dossierNumber} contract={contract} />}
-                        {activeTab === 'design' && <DesignTab dossierId={dossier.id} canDesign={canDesign} />}
+                        {activeTab === 'project-design' && <DesignTab dossierId={dossier.id} canDesign={canDesign} urlState={pdState} onNavigate={handlePdNavigate} />}
                         {activeTab === 'contract' && <ContractTab contract={contract} dossierId={dossier.id} contractSigned={contractSigned} onSignedChange={setContractSigned} onEdit={(c) => { setEditContract(c); setContractDrawerOpen(true); }} onShowDocuments={() => handleTabChange('documents')} />}
                         {activeTab === 'finance' && <FinanceTab records={financeRecords} total={totalFinance} paid={paidFinance} remaining={remainingFinance} />}
                         {activeTab === 'authorizations' && <AuthorizationsTab authorization={authorization} dossierId={dossier.id} dossierNumber={dossier.dossierNumber} />}

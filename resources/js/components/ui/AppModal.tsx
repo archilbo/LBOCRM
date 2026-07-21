@@ -6,13 +6,16 @@ type AppModalProps = {
     onOpenChange: (open: boolean) => void;
     title: string;
     children: React.ReactNode;
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
 };
 
 const sizeMap: Record<string, string> = {
     sm: 'sm',
     md: 'md',
     lg: 'lg',
+    xl: 'xl',
+    '2xl': '2xl',
+    full: 'full',
 };
 
 export function AppModal({ isOpen, onOpenChange, title, children, size = 'md' }: AppModalProps) {

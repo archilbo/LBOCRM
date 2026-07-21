@@ -2,6 +2,7 @@
 
 namespace App\Models\ProjectDesign;
 
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ProjectDesignRemark extends Model
 {
     use HasFactory;
+
     protected $fillable = [
+        'company_id',
         'version_id',
         'annotation_id',
         'severity',
@@ -29,6 +32,11 @@ class ProjectDesignRemark extends Model
         return [
             'due_date' => 'date',
         ];
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function version(): BelongsTo
