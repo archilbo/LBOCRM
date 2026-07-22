@@ -1,6 +1,6 @@
 import type {
     ProjectDesignSummary, ProjectDesignFolder, ProjectDesignFile, ProjectDesignVersion,
-    ProjectDesignReview, ProjectDesignRemark, ProjectDesignActivity,
+    ProjectDesignReview, ProjectDesignRemark, ProjectDesignActivity, ProjectDesignAnnotation,
 } from '../types/projectDesign';
 
 export class ProjectDesignApiError extends Error {
@@ -155,19 +155,34 @@ export const projectDesignApi = {
 
     // ─── Annotations ─────────────────────────────────────────────────
 
-    getAnnotations(dossierId: number, versionId: number, signal?: AbortSignal): Promise<{ data: any[] }> {
+    getAnnotations(dossierId: number, versionId: number, signal?: AbortSignal): Promise<{ data: ProjectDesignAnnotation[] }> {
         return request(pdUrl(dossierId, `versions/${versionId}/annotations`), { signal });
     },
 
-    storeAnnotation(dossierId: number, versionId: number, data: { type: string; geometry: Record<string, unknown> }): Promise<{ id: number }> {
-        return request(pdUrl(dossierId, `versions/${versionId}/annotations`), {
+    storeAnnotation(dossierId: number, versionId: number, data: {
+        annotation_type: string;
+        coordinate_space: string;
+        asset_id: number;
+        page_number?: number | null;
+        geometry: Record<string, unknown>;
+        style?: Record<string, unknown> | null;
+        viewport?: Record<string, unknown> | null;
+        reference_width?: number | null;
+        reference_height?: number | null;
+        source_rotation?: number;
+    }): Promise<ProjectDesignAnnotation> {
+        return request<ProjectDesignAnnotation>(pdUrl(dossierId, `versions/${versionId}/annotations`), {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
 
-    updateAnnotation(dossierId: number, versionId: number, annotationId: number, data: { type: string; geometry: Record<string, unknown> }): Promise<void> {
-        return request<void>(pdUrl(dossierId, `versions/${versionId}/annotations/${annotationId}`), {
+    updateAnnotation(dossierId: number, versionId: number, annotationId: number, data: {
+        geometry?: Record<string, unknown>;
+        style?: Record<string, unknown> | null;
+        record_version: number;
+    }): Promise<ProjectDesignAnnotation> {
+        return request<ProjectDesignAnnotation>(pdUrl(dossierId, `versions/${versionId}/annotations/${annotationId}`), {
             method: 'PUT',
             body: JSON.stringify(data),
         });

@@ -1,10 +1,11 @@
 import { useState, useRef, lazy, Suspense, useEffect, useLayoutEffect, useCallback } from 'react';
-import { ZoomIn, ZoomOut, RotateCw, Maximize, FileWarning, Download, Loader2, MessageSquare } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, FileWarning, Download, Loader2, MessageSquare, AlignCenter, AlignStartVertical } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { DesignAnnotationToolbar, type AnnotationTool } from './DesignAnnotationToolbar';
 import { DesignRemarkComposer } from './DesignRemarkComposer';
 import { toast } from 'sonner';
 import { projectDesignApi } from '@/features/project-design/api/projectDesignApi';
+import { fitWidth, fitPage } from '../utils/viewport';
 import type { ViewerFrame } from './DesignAnnotationLayer';
 
 const DesignAnnotationLayer = lazy(() => import('./DesignAnnotationLayer'));
@@ -21,12 +22,52 @@ export interface AnnotationShape {
     height?: number;
     points?: number[];
     color?: string;
+    style?: Record<string, unknown> | null;
+    viewport?: Record<string, unknown> | null;
+    referenceWidth?: number | null;
+    referenceHeight?: number | null;
+    sourceRotation?: number;
     serverId?: number;
+    assetId?: number;
+    pageNumber?: number | null;
+    authoredBy?: { id: number; name: string } | null;
+    createdBy?: { id: number; name: string } | null;
+    createdAt?: string | null;
+    recordVersion?: number;
+    remark?: { id: number; severity: string; status: string; title: string; description: string | null; createdBy: { id: number; name: string } | null; createdAt: string | null } | null;
 }
 
 function isPdf(mime: string) { return mime === 'application/pdf'; }
 function isImage(mime: string) { return SUPPORTED_IMAGE_TYPES.includes(mime); }
 function isSupported(mime: string) { return isPdf(mime) || isImage(mime); }
+
+function normalizePoints(points: number[], pw: number, ph: number): number[] {
+    const out: number[] = [];
+    for (let i = 0; i < points.length - 1; i += 2) {
+        out.push(points[i] / pw, points[i + 1] / ph);
+    }
+    return out;
+}
+
+function denormalizePoints(points: number[], rw: number, rh: number): number[] {
+    const out: number[] = [];
+    for (let i = 0; i < points.length - 1; i += 2) {
+        out.push(points[i] * rw, points[i + 1] * rh);
+    }
+    return out;
+}
+
+function buildGeometry(shape: AnnotationShape, pw: number, ph: number): Record<string, unknown> {
+    const geom: Record<string, unknown> = {
+        x: shape.x / pw,
+        y: shape.y / ph,
+        color: shape.color,
+    };
+    if (shape.width != null) geom.width = shape.width / pw;
+    if (shape.height != null) geom.height = shape.height / ph;
+    if (shape.points?.length) geom.points = normalizePoints(shape.points, pw, ph);
+    return geom;
+}
 
 const defaultFrame: ViewerFrame = { scale: 1, rotation: 0, pageX: 0, pageY: 0, pageWidth: 0, pageHeight: 0 };
 
@@ -63,8 +104,8 @@ function ImageViewer({ src, filename, containerRef, stageParentRef, onFrameChang
                 <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{filename}</p>
             </div>
             <div ref={containerRef} className="relative flex-1 overflow-hidden bg-[var(--surface-2)]/50">
-                <div className="flex h-full w-full items-center justify-center transition-transform"
-                    style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom}) rotate(${rotation}deg)` }}>
+                <div className="h-full w-full transition-transform"
+                    style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom}) rotate(${rotation}deg)`, transformOrigin: '0 0' }}>
                     <img ref={imgRef} src={src} alt={filename} className="max-h-full max-w-full object-contain" draggable={false} onLoad={reportFrame} />
                 </div>
             </div>
@@ -93,8 +134,8 @@ function UnsupportedViewer({ filename }: { filename: string }) {
     );
 }
 
-export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, isOpen, onClose, versionId, dossierId, containerRef: externalContainerRef }: {
-    previewUrl: string; downloadUrl: string; mimeType: string; filename: string; isOpen: boolean; onClose: () => void; versionId?: number; dossierId?: number; containerRef?: React.RefObject<HTMLDivElement | null>;
+export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, assetId, isOpen, onClose, versionId, dossierId, containerRef: externalContainerRef }: {
+    previewUrl: string; downloadUrl: string; mimeType: string; filename: string; assetId?: number; isOpen: boolean; onClose: () => void; versionId?: number; dossierId?: number; containerRef?: React.RefObject<HTMLDivElement | null>;
 }) {
     const [activeTool, setActiveTool] = useState<AnnotationTool>('select');
     const [annotations, setAnnotations] = useState<AnnotationShape[]>([]);
@@ -105,9 +146,12 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
     const [viewerZoom, setViewerZoom] = useState(1);
     const [viewerPan, setViewerPan] = useState({ x: 0, y: 0 });
     const [viewerRotation, setViewerRotation] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [fullscreen, setFullscreen] = useState(false);
     const internalContainerRef = useRef<HTMLDivElement>(null);
     const containerRef = externalContainerRef ?? internalContainerRef;
     const viewerAreaRef = useRef<HTMLDivElement>(null);
+    const workspaceRef = useRef<HTMLDivElement>(null);
     const composerAnnotationId = useRef<string | null>(null);
     const pendingShapeRef = useRef<AnnotationShape | null>(null);
 
@@ -135,29 +179,103 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
         if (!versionId || !dossierId) return;
         try {
             const res = await projectDesignApi.getAnnotations(dossierId, versionId);
-            const mapped: AnnotationShape[] = res.data.map((a: any) => ({
-                id: `server-${a.id}`,
-                serverId: a.id,
-                type: a.type,
-                x: a.geometry.x ?? 0,
-                y: a.geometry.y ?? 0,
-                width: a.geometry.width,
-                height: a.geometry.height,
-                points: a.geometry.points,
-                color: a.geometry.color,
-            }));
+            const mapped: AnnotationShape[] = res.data.map((a) => {
+                const rw = a.referenceWidth ?? 1;
+                const rh = a.referenceHeight ?? 1;
+                const geom = a.geometry as Record<string, unknown>;
+                return {
+                    id: `server-${a.id}`,
+                    serverId: a.id,
+                    type: a.annotationType,
+                    x: ((geom.x as number) ?? 0) * rw,
+                    y: ((geom.y as number) ?? 0) * rh,
+                    width: (geom.width as number) != null ? (geom.width as number) * rw : undefined,
+                    height: (geom.height as number) != null ? (geom.height as number) * rh : undefined,
+                    points: (geom.points as number[])?.length
+                        ? denormalizePoints(geom.points as number[], rw, rh)
+                        : undefined,
+                    color: geom.color as string | undefined,
+                    style: a.style,
+                    viewport: a.viewport,
+                    referenceWidth: a.referenceWidth,
+                    referenceHeight: a.referenceHeight,
+                    sourceRotation: a.sourceRotation,
+                    assetId: a.assetId ?? undefined,
+                    pageNumber: a.pageNumber,
+                    authoredBy: a.authoredBy,
+                    createdBy: a.createdBy,
+                    createdAt: a.createdAt,
+                    recordVersion: a.recordVersion,
+                    remark: a.remark ? {
+                        id: a.remark.id,
+                        severity: a.remark.severity,
+                        status: a.remark.status,
+                        title: a.remark.title,
+                        description: a.remark.description,
+                        createdBy: a.remark.createdBy,
+                        createdAt: a.remark.createdAt,
+                    } : null,
+                };
+            });
             setAnnotations(mapped);
         } catch {}
     }
 
+    const toggleFullscreen = useCallback(async () => {
+        const el = workspaceRef.current;
+        if (!el) return;
+        if (!fullscreen) {
+            if (el.requestFullscreen) {
+                await el.requestFullscreen();
+            }
+        } else {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+            }
+        }
+    }, [fullscreen]);
+
+    useEffect(() => {
+        function onFsChange() {
+            setFullscreen(!!document.fullscreenElement);
+        }
+        document.addEventListener('fullscreenchange', onFsChange);
+        return () => document.removeEventListener('fullscreenchange', onFsChange);
+    }, []);
+
+    const handleFitWidth = useCallback(() => {
+        const viewer = viewerAreaRef.current;
+        if (!viewer || !viewerFrame.pageWidth) return;
+        const vr = viewer.getBoundingClientRect();
+        const vp = fitWidth(vr.width, vr.height, viewerFrame.pageWidth, viewerFrame.pageHeight);
+        setViewerZoom(vp.zoom);
+        setViewerPan({ x: vp.panX, y: vp.panY });
+    }, [viewerFrame]);
+
+    const handleFitPage = useCallback(() => {
+        const viewer = viewerAreaRef.current;
+        if (!viewer || !viewerFrame.pageWidth) return;
+        const vr = viewer.getBoundingClientRect();
+        const vp = fitPage(vr.width, vr.height, viewerFrame.pageWidth, viewerFrame.pageHeight);
+        setViewerZoom(vp.zoom);
+        setViewerPan({ x: vp.panX, y: vp.panY });
+    }, [viewerFrame]);
+
     const handleViewerZoom = useCallback((delta: number, cx: number, cy: number) => {
         const factor = delta > 0 ? 1.1 : 0.9;
-        setViewerZoom((prev) => Math.max(0.1, Math.min(5, prev * factor)));
-        setViewerPan((prev) => ({
-            x: prev.x * factor + cx * (1 - factor),
-            y: prev.y * factor + cy * (1 - factor),
-        }));
-    }, []);
+        setViewerZoom((prev) => Math.max(0.1, Math.min(10, prev * factor)));
+        setViewerPan((prev) => {
+            // PDF viewer uses flex justify-center (X centering only)
+            // Image viewer uses transform-origin: 0 0 (no centering)
+            const el = viewerAreaRef.current;
+            const vw = el?.clientWidth ?? 800;
+            const xCorr = isPdf(mimeType) ? vw * (factor - 1) / 2 : 0;
+            return {
+                x: prev.x * factor + cx * (1 - factor) + xCorr,
+                y: prev.y * factor + cy * (1 - factor),
+            };
+        });
+    }, [mimeType]);
 
     const handleViewerPan = useCallback((dx: number, dy: number) => {
         setViewerPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
@@ -194,12 +312,22 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
             let annotationId = shape.serverId;
 
             if (!annotationId) {
+                const pw = viewerFrame.pageWidth || 1;
+                const ph = viewerFrame.pageHeight || 1;
                 const created = await projectDesignApi.storeAnnotation(dossierId!, versionId!, {
-                    type: shape.type,
-                    geometry: { x: shape.x, y: shape.y, width: shape.width, height: shape.height, points: shape.points, color: shape.color },
+                    annotation_type: shape.type,
+                    coordinate_space: 'page-normalized-v1',
+                    asset_id: shape.assetId ?? assetId ?? 1,
+                    page_number: shape.pageNumber ?? currentPage,
+                    geometry: buildGeometry(shape, pw, ph),
+                    style: shape.style ?? null,
+                    viewport: shape.viewport ?? null,
+                    reference_width: Math.round(pw),
+                    reference_height: Math.round(ph),
+                    source_rotation: shape.sourceRotation ?? 0,
                 });
                 annotationId = created.id;
-                setAnnotations((prev) => prev.map((a) => a.id === shape.id ? { ...a, serverId: annotationId } : a));
+                setAnnotations((prev) => prev.map((a) => a.id === shape.id ? { ...a, serverId: annotationId, recordVersion: created.recordVersion } : a));
             }
 
             await projectDesignApi.createRemark(dossierId!, versionId!, annotationId, {
@@ -220,20 +348,30 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
 
     async function handleAnnotationToolbarSave() {
         if (annotations.length === 0 || !versionId || !dossierId) return;
+        const pw = viewerFrame.pageWidth || 1;
+        const ph = viewerFrame.pageHeight || 1;
         setSaving(true);
         try {
             for (const shape of annotations) {
                 if (shape.serverId) {
-                    await projectDesignApi.updateAnnotation(dossierId, versionId, shape.serverId, {
-                        type: shape.type,
-                        geometry: { x: shape.x, y: shape.y, width: shape.width, height: shape.height, points: shape.points, color: shape.color },
+                    const updated = await projectDesignApi.updateAnnotation(dossierId, versionId, shape.serverId, {
+                        geometry: buildGeometry(shape, pw, ph),
+                        record_version: shape.recordVersion ?? 1,
                     });
+                    setAnnotations((prev) => prev.map((a) => a.id === shape.id ? { ...a, recordVersion: updated.recordVersion } : a));
                 } else {
                     const created = await projectDesignApi.storeAnnotation(dossierId, versionId, {
-                        type: shape.type,
-                        geometry: { x: shape.x, y: shape.y, width: shape.width, height: shape.height, points: shape.points, color: shape.color },
+                        annotation_type: shape.type,
+                        coordinate_space: 'page-normalized-v1',
+                        asset_id: shape.assetId ?? assetId ?? 1,
+                        page_number: shape.pageNumber ?? currentPage,
+                        geometry: buildGeometry(shape, pw, ph),
+                        style: null,
+                        reference_width: Math.round(pw),
+                        reference_height: Math.round(ph),
+                        source_rotation: 0,
                     });
-                    setAnnotations((prev) => prev.map((a) => a.id === shape.id ? { ...a, serverId: created.id } : a));
+                    setAnnotations((prev) => prev.map((a) => a.id === shape.id ? { ...a, serverId: created.id, recordVersion: created.recordVersion } : a));
                 }
             }
             toast.success(`${annotations.length} annotation(s) saved.`);
@@ -250,10 +388,14 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
             if (e.key === '+' || e.key === '=') setViewerZoom((z) => Math.min(5, z + 0.1));
             if (e.key === '-') setViewerZoom((z) => Math.max(0.1, z - 0.1));
             if (e.key === 'r') setViewerRotation((r) => (r + 90) % 360);
+            if (e.key === 'f') toggleFullscreen();
+            if (e.key === 'Escape' && fullscreen) {
+                document.exitFullscreen();
+            }
         }
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, []);
+    }, [fullscreen, toggleFullscreen]);
 
     async function handleAnnotationDelete(annotationId: string) {
         const shape = annotations.find((a) => a.id === annotationId);
@@ -284,21 +426,28 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
             <Suspense fallback={<ViewerLoading />}>
                 <PdfDesignViewer previewUrl={previewUrl} downloadUrl={downloadUrl} filename={filename}
                     containerRef={containerRef} stageParentRef={viewerAreaRef} onFrameChange={setViewerFrame}
+                    onPageChange={setCurrentPage}
                     zoom={viewerZoom} panX={viewerPan.x} panY={viewerPan.y} rotation={viewerRotation} />
             </Suspense>
         );
 
     return (
-        <div className="flex h-full w-full flex-col">
+        <div ref={workspaceRef} className="flex h-full w-full flex-col">
             <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
                 <DesignAnnotationToolbar activeTool={activeTool} onToolChange={setActiveTool}
                     onSave={handleAnnotationToolbarSave} saving={saving} hasUnsaved={annotations.some((a) => !a.serverId)} />
                 <div className="flex items-center gap-1">
+                    <Button isIconOnly size="sm" variant="light" onPress={handleFitWidth} aria-label="Fit width"><AlignStartVertical size={13} /></Button>
+                    <Button isIconOnly size="sm" variant="light" onPress={handleFitPage} aria-label="Fit page"><AlignCenter size={13} /></Button>
+                    <div className="mx-1 h-4 w-px bg-[var(--border)]" />
                     <Button isIconOnly size="sm" variant="light" onPress={() => setViewerZoom((z) => Math.max(0.1, z - 0.1))} aria-label="Zoom out"><ZoomOut size={13} /></Button>
                     <span className="min-w-[3ch] text-center text-[11px] text-[var(--text-muted)]">{Math.round(viewerZoom * 100)}%</span>
                     <Button isIconOnly size="sm" variant="light" onPress={() => setViewerZoom((z) => Math.min(5, z + 0.1))} aria-label="Zoom in"><ZoomIn size={13} /></Button>
                     <Button isIconOnly size="sm" variant="light" onPress={() => setViewerRotation((r) => (r + 90) % 360)} aria-label="Rotate"><RotateCw size={13} /></Button>
-                    <Button isIconOnly size="sm" variant="light" onPress={() => { setViewerZoom(1); setViewerPan({ x: 0, y: 0 }); setViewerRotation(0); }} aria-label="Fit to screen"><Maximize size={13} /></Button>
+                    <div className="mx-1 h-4 w-px bg-[var(--border)]" />
+                    <Button isIconOnly size="sm" variant="light" onPress={toggleFullscreen} aria-label={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+                        {fullscreen ? <Minimize size={13} /> : <Maximize size={13} />}
+                    </Button>
                     <div className="mx-1 h-4 w-px bg-[var(--border)]" />
                     {selectedAnnotationId && (
                         <Button size="sm" variant="light" onPress={() => setShowComposer(!showComposer)}

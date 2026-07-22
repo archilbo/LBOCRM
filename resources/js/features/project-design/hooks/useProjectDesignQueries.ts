@@ -3,7 +3,7 @@ import { projectDesignApi } from '../api/projectDesignApi';
 import { projectDesignKeys } from '../api/projectDesignKeys';
 import type {
     ProjectDesignSummary, ProjectDesignFolder, ProjectDesignFile,
-    ProjectDesignReview, ProjectDesignRemark, ProjectDesignActivity,
+    ProjectDesignReview, ProjectDesignRemark, ProjectDesignActivity, ProjectDesignVersion,
 } from '../types/projectDesign';
 
 export function useSummary(dossierId: number) {
@@ -54,6 +54,15 @@ export function useRemarks(dossierId: number, params: Record<string, string | un
         queryFn: ({ signal }) => projectDesignApi.getRemarks(dossierId, params, signal),
         staleTime: 15_000,
         placeholderData: (prev) => prev,
+    });
+}
+
+export function useVersions(dossierId: number, fileId: number | null) {
+    return useQuery<{ data: ProjectDesignVersion[] }>({
+        queryKey: projectDesignKeys.versions(dossierId, fileId ?? 0),
+        queryFn: ({ signal }) => projectDesignApi.getVersions(dossierId, fileId!, signal),
+        enabled: !!fileId,
+        staleTime: 30_000,
     });
 }
 

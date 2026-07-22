@@ -1,14 +1,16 @@
-import { MousePointer2, Pin, Square, ArrowUpRight, Cloud, Pencil, Type, Highlighter, Loader2 } from 'lucide-react';
+import { MousePointer2, Pin, Square, ArrowUpRight, Cloud, Pencil, Type, Highlighter, Loader2, Circle, Minus } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { cn } from '@/lib/cn';
 
-export type AnnotationTool = 'select' | 'pin' | 'rectangle' | 'arrow' | 'cloud' | 'freehand' | 'text' | 'highlight';
+export type AnnotationTool = 'select' | 'pin' | 'rectangle' | 'arrow' | 'cloud' | 'freehand' | 'text' | 'highlight' | 'ellipse' | 'line';
 
 const TOOLS: { id: AnnotationTool; icon: typeof Pin; label: string }[] = [
-    { id: 'select', icon: MousePointer2, label: 'Select' },
+    { id: 'select', icon: MousePointer2, label: 'Select / Pan' },
     { id: 'pin', icon: Pin, label: 'Pin' },
     { id: 'rectangle', icon: Square, label: 'Rectangle' },
+    { id: 'ellipse', icon: Circle, label: 'Ellipse' },
     { id: 'arrow', icon: ArrowUpRight, label: 'Arrow' },
+    { id: 'line', icon: Minus, label: 'Line' },
     { id: 'cloud', icon: Cloud, label: 'Cloud' },
     { id: 'freehand', icon: Pencil, label: 'Freehand' },
     { id: 'text', icon: Type, label: 'Text' },

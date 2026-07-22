@@ -11,11 +11,14 @@ use App\Models\ProjectDesign\ProjectDesignFolder;
 use App\Models\ProjectDesign\ProjectDesignRemark;
 use App\Models\ProjectDesign\ProjectDesignReview;
 use App\Enums\ProjectDesign\ProjectDesignVersionStatus;
+use App\Http\Requests\ProjectDesign\StoreProjectDesignAnnotationRequest;
+use App\Http\Requests\ProjectDesign\UpdateProjectDesignAnnotationRequest;
 use App\Http\Resources\ProjectDesign\ProjectDesignAnnotationResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignFileResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignFileVersionResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignReviewResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignRemarkResource;
+use App\Services\CompanyContext;
 use App\Services\ProjectDesign\ProjectDesignUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -333,49 +336,63 @@ class ProjectDesignController extends Controller
     {
         Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
 
-        $annotations = $version->annotations()->with('authoredBy', 'remarks')->orderBy('id')->get();
+        $annotations = $version->annotations()
+            ->with(['authoredBy', 'createdBy', 'remarks.createdBy', 'asset'])
+            ->orderBy('id')
+            ->get();
 
         return response()->json(['data' => ProjectDesignAnnotationResource::collection($annotations)]);
     }
 
-    public function storeAnnotation(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
+    public function storeAnnotation(StoreProjectDesignAnnotationRequest $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
     {
         Gate::authorize('annotate', [$version, $dossier]);
 
-        $data = $request->validate([
-            'type' => 'required|string|in:pin,rectangle,arrow,cloud,freehand,text,highlight',
-            'geometry' => 'required|array',
-        ]);
+        $data = $request->validated();
+        $companyId = app(CompanyContext::class)->id($request->user());
 
-        $annotation = $version->annotations()->create([
-            'company_id' => $request->user()->company_id,
-            'type' => $data['type'],
+        $annotation = ProjectDesignAnnotation::create([
+            'company_id' => $companyId,
+            'dossier_id' => $dossier->id,
+            'file_id' => $version->file_id,
+            'version_id' => $version->id,
+            'asset_id' => $data['asset_id'],
+            'page_number' => $data['page_number'] ?? null,
+            'type' => $data['annotation_type'],
+            'coordinate_space' => $data['coordinate_space'] ?? 'page-normalized-v1',
             'geometry' => $data['geometry'],
+            'style_json' => $data['style'] ?? null,
+            'viewport_json' => $data['viewport'] ?? null,
+            'reference_width' => $data['reference_width'] ?? null,
+            'reference_height' => $data['reference_height'] ?? null,
+            'source_rotation' => $data['source_rotation'] ?? 0,
             'authored_by' => $request->user()->id,
+            'created_by' => $request->user()->id,
         ]);
 
         return response()->json(new ProjectDesignAnnotationResource($annotation), 201);
     }
 
-    public function updateAnnotation(Request $request, Dossier $dossier, ProjectDesignFileVersion $version, ProjectDesignAnnotation $annotation): JsonResponse
+    public function updateAnnotation(UpdateProjectDesignAnnotationRequest $request, Dossier $dossier, ProjectDesignFileVersion $version, ProjectDesignAnnotation $annotation): JsonResponse
     {
         Gate::authorize('annotate', [$version, $dossier]);
         abort_unless((int) $annotation->version_id === (int) $version->id, 403);
+        abort_unless((int) $annotation->dossier_id === (int) $dossier->id, 403);
+        abort_unless((int) $annotation->file_id === (int) $version->file_id, 403);
 
-        $data = $request->validate([
-            'geometry' => 'required|array',
-            'record_version' => 'required|integer',
-        ]);
+        $data = $request->validated();
+        $oldVersion = $data['record_version'];
 
-        $affected = $annotation->where('id', $annotation->id)
-            ->where('record_version', $data['record_version'])
+        $affected = ProjectDesignAnnotation::where('id', $annotation->id)
+            ->where('record_version', $oldVersion)
             ->update([
-                'geometry' => $data['geometry'],
-                'record_version' => $data['record_version'] + 1,
+                'geometry' => $data['geometry'] ?? $annotation->geometry,
+                'style_json' => $data['style'] ?? $annotation->style_json,
+                'record_version' => $oldVersion + 1,
             ]);
 
         if (! $affected) {
-            return response()->json(['message' => 'Stale update.'], 409);
+            return response()->json(['message' => 'Cette annotation a été modifiée par un autre utilisateur. Rechargez les dernières données avant de sauvegarder.'], 409);
         }
 
         return response()->json(new ProjectDesignAnnotationResource($annotation->fresh()));
@@ -385,10 +402,12 @@ class ProjectDesignController extends Controller
     {
         Gate::authorize('annotate', [$version, $dossier]);
         abort_unless((int) $annotation->version_id === (int) $version->id, 403);
+        abort_unless((int) $annotation->dossier_id === (int) $dossier->id, 403);
+        abort_unless((int) $annotation->file_id === (int) $version->file_id, 403);
 
         $annotation->delete();
 
-        return response()->json(['message' => 'Annotation deleted.']);
+        return response()->json(['message' => 'Annotation supprimée.']);
     }
 
     public function submitForReview(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
@@ -486,6 +505,69 @@ class ProjectDesignController extends Controller
             ->get();
 
         return response()->json(['data' => ProjectDesignReviewResource::collection($reviews)]);
+    }
+
+    public function addReviewAsset(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
+    {
+        Gate::authorize('uploadVersion', [$version->file, $dossier]);
+
+        $data = $request->validate([
+            'file' => 'required|file|max:204800',
+            'asset_type' => 'nullable|string|max:50',
+        ]);
+
+        $uploadedFile = $request->file('file');
+        $assetType = $data['asset_type'] ?? app(\App\Services\ProjectDesign\ProjectDesignUploadService::class)->guessAssetType($uploadedFile);
+
+        $disk = config('project_design.storage.disk', 'project_design');
+        $companyId = $version->company_id;
+        $directory = "companies/{$companyId}/dossiers/{$dossier->id}/files/{$version->file_id}/versions/{$version->id}/review";
+        $storedFilename = \Illuminate\Support\Str::uuid() . '.' . $uploadedFile->getClientOriginalExtension();
+        $path = $uploadedFile->storeAs($directory, $storedFilename, ['disk' => $disk]);
+
+        if ($path === false) {
+            return response()->json(['message' => 'Failed to store file.'], 500);
+        }
+
+        $reviewAsset = $version->file->assets()->create([
+            'company_id' => $companyId,
+            'version_id' => $version->id,
+            'asset_type' => $assetType,
+            'disk' => $disk,
+            'path' => $path,
+            'original_filename' => $uploadedFile->getClientOriginalName(),
+            'stored_filename' => $storedFilename,
+            'mime_type' => $uploadedFile->getMimeType(),
+            'extension' => $uploadedFile->getClientOriginalExtension(),
+            'size_bytes' => $uploadedFile->getSize(),
+            'checksum_sha256' => hash_file('sha256', $uploadedFile->getRealPath()),
+            'scan_status' => 'pending',
+            'previewable' => in_array($uploadedFile->getMimeType(), [
+                'application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp',
+            ], true),
+            'sort_order' => $version->assets()->count(),
+            'uploaded_by' => $request->user()->id,
+        ]);
+
+        return response()->json(new ProjectDesignAssetResource($reviewAsset), 201);
+    }
+
+    public function retryConversion(Request $request, Dossier $dossier, ProjectDesignAsset $asset): JsonResponse
+    {
+        Gate::authorize('uploadVersion', [$asset->version->file, $dossier]);
+
+        if ($asset->conversion_status !== 'failed') {
+            return response()->json(['message' => 'Asset is not in failed state.'], 422);
+        }
+
+        $asset->update([
+            'conversion_status' => 'uploaded',
+            'scan_status' => 'pending',
+        ]);
+
+        \App\Jobs\ProjectDesign\ProcessProjectDesignPreview::dispatch($asset->version);
+
+        return response()->json(['message' => 'Conversion retry initiated.']);
     }
 
     public function assetPreview(ProjectDesignAsset $asset): \Symfony\Component\HttpFoundation\BinaryFileResponse

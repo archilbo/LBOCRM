@@ -17,11 +17,29 @@ export type ProjectDesignFolder = {
     id: number; dossierId: number; parentId: number | null; name: string; slug: string; filesCount: number;
 };
 
+export type FormatCapability = {
+    label: string;
+    application: string;
+    category: string;
+    previewStrategy: string;
+    directBrowserPreview: boolean;
+    conversionProvider: string | null;
+    supportedViewer: string | null;
+    supports2d: boolean;
+    supports3d: boolean;
+    supportsAnnotations: boolean;
+    requiresConversion: boolean;
+    fallbackMessage: string | null;
+};
+
 export type ProjectDesignAsset = {
-    id: number; assetType: string; originalFilename: string; mimeType: string; extension: string;
+    id: number; assetType: string; sourceApplication?: string;
+    originalFilename: string; mimeType: string; extension: string;
     sizeBytes: number; previewable: boolean; sortOrder: number;
     previewUrl: string | null; downloadUrl: string | null; thumbnailUrl: string | null;
-    scanStatus: string | null; createdAt: string;
+    scanStatus: string | null; conversionStatus?: string | null;
+    formatCapability: FormatCapability | null;
+    createdAt: string;
 };
 
 export type ProjectDesignVersion = {
@@ -79,6 +97,32 @@ export type ProjectDesignActivity = {
 
 export type DesignFileRow = ProjectDesignFile & {
     _assetCount?: number;
+};
+
+export type ProjectDesignAnnotation = {
+    id: number;
+    companyId: number;
+    dossierId: number;
+    fileId: number;
+    versionId: number;
+    assetId: number | null;
+    remarkId: number | null;
+    annotationType: string;
+    pageNumber: number | null;
+    coordinateSpace: string;
+    geometry: Record<string, unknown>;
+    style: Record<string, unknown> | null;
+    viewport: Record<string, unknown> | null;
+    referenceWidth: number | null;
+    referenceHeight: number | null;
+    sourceRotation: number;
+    authoredBy: { id: number; name: string } | null;
+    createdBy: { id: number; name: string } | null;
+    hasRemark: boolean | null;
+    remark: ProjectDesignRemark | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+    recordVersion: number;
 };
 
 export type PaginationMeta = {

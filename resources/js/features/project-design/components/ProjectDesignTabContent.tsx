@@ -1,14 +1,17 @@
-import { FolderOpen, MessageSquareText, NotebookTabs, Undo2, Loader2, FileWarning, Download } from 'lucide-react';
+import { useState } from 'react';
+import { FolderOpen, MessageSquareText, NotebookTabs, Undo2, Loader2, FileWarning, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, HardDrive } from 'lucide-react';
 import { AppButton } from '@/components/ui/AppButton';
+import { Chip, Button } from '@heroui/react';
 import { ProjectDesignFileBrowser } from './ProjectDesignFileBrowser';
 import { DesignReviewQueue } from '@/features/dossiers/components/DesignReviewQueue';
 import { DesignRemarksTab } from '@/features/dossiers/components/DesignRemarksTab';
 import { ProjectDesignActivityFeed } from './ProjectDesignActivityFeed';
 import { ProjectDesignSummaryBar } from './ProjectDesignSummaryBar';
-import { useFileDetail, useSummary } from '../hooks/useProjectDesignQueries';
+import { DesignViewerTabs } from '@/features/dossiers/components/DesignViewerTabs';
+import { DesignInspector } from '@/features/dossiers/components/DesignInspector';
+import { useFileDetail, useSummary, useVersions } from '../hooks/useProjectDesignQueries';
 import { formatProjectDesignStatus } from '../utils/projectDesignFormatters';
-import { DesignFileViewer } from '@/features/dossiers/components/DesignFileViewer';
-import type { DesignMode, ProjectDesignFile } from '../types/projectDesign';
+import type { DesignMode, ProjectDesignFile, ProjectDesignAsset, ProjectDesignVersion } from '../types/projectDesign';
 import type { WorkspaceState } from '../hooks/useProjectDesignWorkspace';
 
 const MODES: { id: DesignMode; label: string }[] = [
@@ -141,20 +144,23 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
     workspaceState: WorkspaceState;
     onNavigate?: (updates: { mode?: string; file?: string; version?: string; remark?: string }) => void;
 }) {
-    const version = selectedFile.latestVersion;
-    const assets = version?.assets;
-    const primaryAsset = assets?.find((a) => a.previewable) ?? assets?.[0];
+    const [showBrowser, setShowBrowser] = useState(true);
+    const [showInspector, setShowInspector] = useState(true);
+    const [activeAssetId, setActiveAssetId] = useState<number | null>(null);
 
-    if (!primaryAsset) {
+    const version = selectedFile.latestVersion;
+    const assets = version?.assets ?? [];
+    const { data: versionsData } = useVersions(dossierId, selectedFile.id);
+    const versions = versionsData?.data ?? [];
+
+    if (!assets.length) {
         const msg = !version
             ? 'This file has no uploaded versions yet.'
-            : !assets?.length
-                ? 'The latest version has no assets.'
-                : 'Preview is being generated. Please refresh in a moment.';
+            : 'The latest version has no assets.';
         return (
             <div className="flex flex-col items-center justify-center py-16 text-center">
                 <FileWarning size={32} className="text-amber-400" />
-                <p className="mt-3 text-sm font-medium text-[var(--foreground)]">No preview available</p>
+                <p className="mt-3 text-sm font-medium text-[var(--foreground)]">No assets available</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">{msg}</p>
                 <AppButton size="sm" className="mt-4 h-8 text-[11px]"
                     onPress={() => onNavigate?.({ file: '', version: '', remark: '', mode: 'files' })}>
@@ -166,17 +172,102 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
 
     return (
         <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-            <div className="flex h-[70vh] flex-col">
-                <DesignFileViewer
-                    previewUrl={primaryAsset.previewUrl ?? ''}
-                    downloadUrl={primaryAsset.downloadUrl ?? ''}
-                    mimeType={primaryAsset.mimeType}
-                    filename={primaryAsset.originalFilename}
-                    isOpen={true}
-                    onClose={() => onNavigate?.({ file: '', version: '', remark: '', mode: 'files' })}
-                    versionId={version?.id}
-                    dossierId={dossierId}
-                />
+            {/* Editor header */}
+            <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                <div className="flex items-center gap-2">
+                    <Button isIconOnly size="sm" variant="light" className="h-7 w-7 min-w-0" onPress={() => setShowBrowser(!showBrowser)}>
+                        {showBrowser ? <PanelLeftClose size={14} /> : <PanelLeft size={14} />}
+                    </Button>
+                    <AppButton variant="bordered" size="sm" className="h-7 text-[11px]"
+                        onPress={() => onNavigate?.({ file: '', version: '', remark: '', mode: 'files' })}>
+                        <Undo2 size={12} /> Files
+                    </AppButton>
+                    <span className="mx-1 h-4 w-px bg-[var(--border)]" />
+                    <FolderOpen size={13} className="text-[var(--text-muted)]" />
+                    <span className="text-[13px] font-medium text-[var(--foreground)]">{selectedFile.name}</span>
+                    {version && (
+                        <>
+                            <span className="text-[11px] text-[var(--text-muted)]">·</span>
+                            <Chip size="sm" variant="flat" className="h-5 text-[10px]">{version.label}</Chip>
+                        </>
+                    )}
+                    <Chip size="sm" variant="flat" color="default" className="h-5 text-[10px]" startContent={<HardDrive size={10} />}>
+                        {assets.length} asset(s)
+                    </Chip>
+                </div>
+                <div className="flex items-center gap-2">
+                    {/* Version selector */}
+                    {versions.length > 1 && version && (
+                        <div className="flex items-center gap-1">
+                            {versions.slice(0, 5).map((v) => (
+                                <button
+                                    key={v.id}
+                                    type="button"
+                                    onClick={() => onNavigate?.({ file: String(selectedFile.id), version: String(v.id), remark: '' })}
+                                    className={`rounded-md px-2 py-1 text-[10px] font-medium transition ${
+                                        v.id === version.id
+                                            ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                                            : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
+                                    }`}
+                                >
+                                    {v.label}
+                                </button>
+                            ))}
+                            {versions.length > 5 && (
+                                <span className="text-[10px] text-[var(--text-muted)]">+{versions.length - 5}</span>
+                            )}
+                        </div>
+                    )}
+                    <Button isIconOnly size="sm" variant="light" className="h-7 w-7 min-w-0" onPress={() => setShowInspector(!showInspector)}>
+                        {showInspector ? <PanelRightClose size={14} /> : <PanelRight size={14} />}
+                    </Button>
+                </div>
+            </div>
+
+            {/* Three-panel body */}
+            <div className="flex h-[70vh]">
+                {/* Left: File browser */}
+                {showBrowser && (
+                    <div className="w-64 shrink-0 overflow-y-auto border-r border-[var(--border)]">
+                        <ProjectDesignFileBrowser
+                            dossierId={dossierId}
+                            onFileSelect={(f) => onNavigate?.({ file: String(f.id), version: '', remark: '', mode: 'files' })}
+                            selectedFileId={selectedFile.id}
+                        />
+                    </div>
+                )}
+
+                {/* Center: Viewer */}
+                <div className="flex-1 overflow-hidden">
+                    <DesignViewerTabs
+                        assets={assets}
+                        dossierId={dossierId}
+                        versionId={version!.id}
+                        fileMeta={selectedFile}
+                        activeAssetId={activeAssetId}
+                        onAssetChange={setActiveAssetId}
+                        onUploadDerivative={() => {
+                            // Will open upload drawer
+                        }}
+                        onOpenReviewAsset={(asset) => setActiveAssetId(asset.id)}
+                    />
+                </div>
+
+                {/* Right: Inspector */}
+                {showInspector && (
+                    <div className="w-72 shrink-0">
+                        <DesignInspector
+                            file={selectedFile}
+                            versions={versions}
+                            assets={assets}
+                            activeAsset={assets.find(a => a.id === activeAssetId) ?? assets[0]}
+                            remarks={null}
+                            activities={null}
+                            onOpenReviewAsset={(asset) => setActiveAssetId(asset.id)}
+                            onSwitchVersion={(versionId) => onNavigate?.({ file: String(selectedFile.id), version: String(versionId), remark: '' })}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

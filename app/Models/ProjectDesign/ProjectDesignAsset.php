@@ -18,6 +18,7 @@ class ProjectDesignAsset extends Model
         'design_file_id',
         'version_id',
         'asset_type',
+        'source_application',
         'disk',
         'path',
         'original_filename',
@@ -27,6 +28,7 @@ class ProjectDesignAsset extends Model
         'size_bytes',
         'checksum_sha256',
         'scan_status',
+        'conversion_status',
         'scan_error',
         'previewable',
         'sort_order',
@@ -41,6 +43,21 @@ class ProjectDesignAsset extends Model
             'metadata_json' => 'array',
             'size_bytes' => 'integer',
         ];
+    }
+
+    public function isSource(): bool
+    {
+        return in_array($this->asset_type, ['source'], true);
+    }
+
+    public function isReview(): bool
+    {
+        return in_array($this->asset_type, ['review_pdf', 'image', 'ifc', 'viewer_derivative'], true);
+    }
+
+    public function formatCapability(): ?array
+    {
+        return \App\Support\DesignFormats::find($this->extension);
     }
 
     public function company(): BelongsTo

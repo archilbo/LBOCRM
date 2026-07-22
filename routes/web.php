@@ -114,6 +114,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/dossiers/{dossier}/project-design/remarks/{remark}', [ProjectDesignController::class, 'destroyRemark'])->name('dossiers.project-design.remarks.destroy');
     Route::get('/project-design/assets/{asset}/preview', [ProjectDesignController::class, 'assetPreview'])->name('project-design.assets.preview');
     Route::get('/project-design/assets/{asset}/download', [ProjectDesignController::class, 'assetDownload'])->name('project-design.assets.download');
+    Route::post('/dossiers/{dossier}/project-design/versions/{version}/review-assets', [ProjectDesignController::class, 'addReviewAsset'])->name('dossiers.project-design.versions.review-assets.store');
+    Route::post('/dossiers/{dossier}/project-design/versions/{asset}/retry-conversion', [ProjectDesignController::class, 'retryConversion'])->name('dossiers.project-design.assets.retry-conversion');
 
     // Upload sessions
     Route::post('/dossiers/{dossier}/project-design/upload-sessions', [ProjectDesignUploadSessionController::class, 'create'])->name('dossiers.project-design.upload-sessions.create');

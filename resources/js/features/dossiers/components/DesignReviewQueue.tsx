@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppButton } from '@/components/ui/AppButton';
 import { DesignReviewDecisionDialog } from './DesignReviewDecisionDialog';
-import { DesignFileViewer } from './DesignFileViewer';
+import { DesignViewerTabs } from './DesignViewerTabs';
 import { useReviews } from '@/features/project-design/hooks/useProjectDesignQueries';
 import { useStartReview, useDecideReview } from '@/features/project-design/hooks/useProjectDesignMutations';
 import { formatProjectDesignDate } from '@/features/project-design/utils/projectDesignFormatters';
@@ -107,21 +107,17 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
                     setSelectedReview(null);
                 }}
             />
-            {previewVersion && (() => {
-                const asset = previewVersion.assets?.[0];
-                return (
-                    <DesignFileViewer
-                        previewUrl={asset?.previewUrl ?? ''}
-                        downloadUrl={asset?.downloadUrl ?? ''}
-                        mimeType={asset?.mimeType ?? 'application/octet-stream'}
-                        filename={asset?.originalFilename ?? previewVersion.label}
-                        isOpen={!!previewVersion}
-                        onClose={() => setPreviewVersion(null)}
-                        versionId={previewVersion.id}
-                        dossierId={dossierId}
-                    />
-                );
-            })()}
+            {previewVersion && previewVersion.assets?.length ? (
+                <div className="mt-4 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                    <div className="flex h-[60vh] flex-col">
+                        <DesignViewerTabs
+                            assets={previewVersion.assets}
+                            dossierId={dossierId}
+                            versionId={previewVersion.id}
+                        />
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }
