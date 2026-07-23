@@ -24,7 +24,7 @@ const MODES: { id: DesignMode; label: string }[] = [
     { id: 'activity', label: 'Activity' },
 ];
 
-const PANEL_SIZES_KEY = 'pd-panel-sizes-v2';
+const PANEL_SIZES_KEY = 'pd-panel-sizes';
 
 function loadPanelSizes(): { left: number; right: number } | null {
     try {
@@ -32,11 +32,10 @@ function loadPanelSizes(): { left: number; right: number } | null {
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         if (typeof parsed.left === 'number' && typeof parsed.right === 'number'
-            && parsed.left >= 22 && parsed.left <= 38
-            && parsed.right >= 26 && parsed.right <= 45) {
+            && parsed.left >= 18 && parsed.left <= 30
+            && parsed.right >= 22 && parsed.right <= 40) {
             return parsed;
         }
-        localStorage.removeItem(PANEL_SIZES_KEY);
         return null;
     } catch { return null; }
 }
@@ -226,10 +225,10 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
 
             {/* Three-panel resizable body */}
             <div className="flex flex-1 min-h-0">
-                <PanelGroup direction="horizontal" className="h-full w-full">
+                <PanelGroup direction="horizontal" className="h-full">
                     {showBrowser && (
                         <>
-                            <Panel defaultSize={savedSizes?.left ?? 26} minSize={22} maxSize={38}>
+                            <Panel defaultSize={savedSizes?.left ?? 20} minSize={18} maxSize={30}>
                                 <div className="h-full overflow-hidden">
                                     <ProjectDesignFileBrowser
                                         dossierId={dossierId}
@@ -264,7 +263,7 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
                     {showInspector && (
                         <>
                             <PanelResizeHandle className="w-[3px] bg-[var(--border)] transition hover:w-[3px] hover:bg-[var(--accent)]/50 data-[resize-handle-active]:bg-[var(--accent)]/50" />
-                            <Panel defaultSize={savedSizes?.right ?? 30} minSize={26} maxSize={45}>
+                            <Panel defaultSize={savedSizes?.right ?? 26} minSize={22} maxSize={40}>
                                 <div className="h-full overflow-hidden">
                                     <DesignInspector
                                         file={selectedFile}
