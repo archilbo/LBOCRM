@@ -29,6 +29,7 @@ import { DesignInspector } from '@/features/dossiers/components/DesignInspector'
 import { resolveProjectDesignViewer } from '@/features/dossiers/utils/viewerResolver';
 import { useActivity, useAnnotations, useFileDetail, useRemarks, useVersions } from '../hooks/useProjectDesignQueries';
 import { useProjectDesignViewerController } from '../viewer/useProjectDesignViewerController';
+import { useProjectDesignRealtime } from '../realtime/useProjectDesignRealtime';
 import type { DesignMode, ProjectDesignFile, ProjectDesignRemark } from '../types/projectDesign';
 import type { WorkspaceState, WorkspaceUpdate } from '../hooks/useProjectDesignWorkspace';
 
@@ -100,6 +101,7 @@ export function ProjectDesignTabContent({
     onNavigate?: (updates: WorkspaceUpdate) => void;
 }) {
     const { mode } = workspaceState;
+    useProjectDesignRealtime(dossierId);
     const { data: selectedFile, isLoading: loadingFile } = useFileDetail(
         dossierId,
         workspaceState.fileId,

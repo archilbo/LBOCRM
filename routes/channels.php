@@ -18,3 +18,9 @@ Broadcast::channel('company.{companyId}.presence', function ($user, $companyId) 
 
     return ['id' => $user->id, 'name' => $user->name];
 }, ['guards' => ['web']]);
+Broadcast::channel('project-design.dossier.{dossierId}', function ($user, int $dossierId): bool {
+    return \App\Models\Dossier::query()
+        ->whereKey($dossierId)
+        ->where('company_id', $user->company_id)
+        ->exists();
+}, ['guards' => ['web']]);

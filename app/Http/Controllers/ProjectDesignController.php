@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ProjectDesign\ProjectDesignChanged;
 use App\Models\Dossier;
 use App\Models\ProjectDesign\ProjectDesignAnnotation;
 use App\Models\ProjectDesign\ProjectDesignAsset;
@@ -85,18 +86,16 @@ class ProjectDesignController extends Controller
             'name' => 'required|string|max:255',
             'parent_id' => 'nullable|exists:project_design_folders,id',
         ]);
-
         if ($data['parent_id'] ?? null) {
             $parent = ProjectDesignFolder::findOrFail($data['parent_id']);
             abort_unless((int) $parent->dossier_id === (int) $dossier->id, 403);
         }
-
         $folder = $dossier->designFolders()->create([
             'company_id' => $request->user()->company_id,
             'name' => $data['name'],
             'parent_id' => $data['parent_id'] ?? null,
         ]);
-
+        $this->broadcastDesignChange($request, $dossier, 'folder.created', 'folder', $folder->id, payload: $folder->toArray());
         return response()->json($folder, 201);
     }
 
@@ -104,10 +103,10 @@ class ProjectDesignController extends Controller
     {
         Gate::authorize('updateFolder', [$folder, $dossier]);
         abort_unless((int) $folder->dossier_id === (int) $dossier->id, 403);
-
         $data = $request->validate(['name' => 'required|string|max:255']);
         $folder->update($data);
-
+        $folder = $folder->fresh();
+        $this->broadcastDesignChange($request, $dossier, 'folder.updated', 'folder', $folder->id, payload: $folder->toArray());
         return response()->json($folder);
     }
 
@@ -115,8 +114,9 @@ class ProjectDesignController extends Controller
     {
         Gate::authorize('deleteFolder', [$folder, $dossier]);
         abort_unless((int) $folder->dossier_id === (int) $dossier->id, 403);
-
+        $folderId = $folder->id;
         $folder->delete();
+        $this->broadcastDesignChange($request, $dossier, 'folder.deleted', 'folder', $folderId, payload: ['id' => $folderId]);
         return response()->json(['message' => 'Folder deleted.']);
     }
 
@@ -154,7 +154,6 @@ class ProjectDesignController extends Controller
     public function store(Request $request, Dossier $dossier): JsonResponse
     {
         Gate::authorize('createFile', [ProjectDesignFile::class, $dossier]);
-
         $data = $request->validate([
             'folder_id' => 'nullable|exists:project_design_folders,id',
             'name' => 'required|string|max:255',
@@ -163,17 +162,14 @@ class ProjectDesignController extends Controller
             'discipline' => 'nullable|string|max:100',
             'category' => 'nullable|string|max:100',
         ]);
-
         if ($data['folder_id'] ?? null) {
             $folder = ProjectDesignFolder::findOrFail($data['folder_id']);
             abort_unless((int) $folder->dossier_id === (int) $dossier->id, 403);
         }
-
         $data['company_id'] = $request->user()->company_id;
         $data['created_by'] = $request->user()->id;
-
         $file = $dossier->designFiles()->create($data);
-
+        $this->broadcastDesignChange($request, $dossier, 'file.created', 'file', $file->id, fileId: $file->id, payload: $file->toArray());
         return response()->json($file, 201);
     }
 
@@ -181,7 +177,6 @@ class ProjectDesignController extends Controller
     {
         Gate::authorize('updateFile', [$file, $dossier]);
         abort_unless((int) $file->dossier_id === (int) $dossier->id, 403);
-
         $data = $request->validate([
             'name' => 'string|max:255',
             'code' => 'nullable|string|max:100',
@@ -190,7 +185,6 @@ class ProjectDesignController extends Controller
             'category' => 'nullable|string|max:100',
             'record_version' => 'required|integer',
         ]);
-
         $affected = $file->where('id', $file->id)->where('record_version', $data['record_version'])->update([
             'name' => $data['name'] ?? $file->name,
             'code' => $data['code'] ?? $file->code,
@@ -199,22 +193,20 @@ class ProjectDesignController extends Controller
             'category' => $data['category'] ?? $file->category,
             'record_version' => $data['record_version'] + 1,
         ]);
-
         if (! $affected) {
-            return response()->json([
-                'message' => 'This record was changed by another user. Reload the latest data before saving.',
-            ], 409);
+            return response()->json(['message' => 'This record was changed by another user. Reload the latest data before saving.'], 409);
         }
-
-        return response()->json($file->fresh());
+        $file = $file->fresh();
+        $this->broadcastDesignChange($request, $dossier, 'file.updated', 'file', $file->id, fileId: $file->id, payload: $file->toArray());
+        return response()->json($file);
     }
 
     public function destroy(Request $request, Dossier $dossier, ProjectDesignFile $file): JsonResponse
     {
         Gate::authorize('delete', [$file, $dossier]);
         abort_unless((int) $file->dossier_id === (int) $dossier->id, 403);
-
         $file->archiveFile();
+        $this->broadcastDesignChange($request, $dossier, 'file.archived', 'file', $file->id, fileId: $file->id, payload: ['id' => $file->id]);
         return response()->json(['message' => 'File archived.']);
     }
 
@@ -222,8 +214,8 @@ class ProjectDesignController extends Controller
     {
         Gate::authorize('restoreFile', [$file, $dossier]);
         abort_unless((int) $file->dossier_id === (int) $dossier->id, 403);
-
         $file->update(['status' => 'active', 'archived_at' => null]);
+        $this->broadcastDesignChange($request, $dossier, 'file.restored', 'file', $file->id, fileId: $file->id, payload: ['id' => $file->id]);
         return response()->json(['message' => 'File restored.']);
     }
 
@@ -347,10 +339,8 @@ class ProjectDesignController extends Controller
     public function storeAnnotation(StoreProjectDesignAnnotationRequest $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
     {
         Gate::authorize('annotate', [$version, $dossier]);
-
         $data = $request->validated();
         $companyId = app(CompanyContext::class)->id($request->user());
-
         $annotation = ProjectDesignAnnotation::create([
             'company_id' => $companyId,
             'dossier_id' => $dossier->id,
@@ -368,9 +358,10 @@ class ProjectDesignController extends Controller
             'source_rotation' => $data['source_rotation'] ?? 0,
             'authored_by' => $request->user()->id,
             'created_by' => $request->user()->id,
-        ]);
-
-        return response()->json(new ProjectDesignAnnotationResource($annotation), 201);
+        ])->load('authoredBy', 'createdBy', 'remarks.createdBy', 'asset');
+        $payload = (new ProjectDesignAnnotationResource($annotation))->resolve($request);
+        $this->broadcastDesignChange($request, $dossier, 'annotation.created', 'annotation', $annotation->id, $version->file_id, $version->id, $annotation->id, $payload);
+        return response()->json($payload, 201);
     }
 
     public function updateAnnotation(UpdateProjectDesignAnnotationRequest $request, Dossier $dossier, ProjectDesignFileVersion $version, ProjectDesignAnnotation $annotation): JsonResponse
@@ -379,10 +370,8 @@ class ProjectDesignController extends Controller
         abort_unless((int) $annotation->version_id === (int) $version->id, 403);
         abort_unless((int) $annotation->dossier_id === (int) $dossier->id, 403);
         abort_unless((int) $annotation->file_id === (int) $version->file_id, 403);
-
         $data = $request->validated();
         $oldVersion = $data['record_version'];
-
         $affected = ProjectDesignAnnotation::where('id', $annotation->id)
             ->where('record_version', $oldVersion)
             ->update([
@@ -390,12 +379,13 @@ class ProjectDesignController extends Controller
                 'style_json' => $data['style'] ?? $annotation->style_json,
                 'record_version' => $oldVersion + 1,
             ]);
-
         if (! $affected) {
             return response()->json(['message' => 'Cette annotation a été modifiée par un autre utilisateur. Rechargez les dernières données avant de sauvegarder.'], 409);
         }
-
-        return response()->json(new ProjectDesignAnnotationResource($annotation->fresh()));
+        $annotation = $annotation->fresh()->load('authoredBy', 'createdBy', 'remarks.createdBy', 'asset');
+        $payload = (new ProjectDesignAnnotationResource($annotation))->resolve($request);
+        $this->broadcastDesignChange($request, $dossier, 'annotation.updated', 'annotation', $annotation->id, $version->file_id, $version->id, $annotation->id, $payload);
+        return response()->json($payload);
     }
 
     public function destroyAnnotation(Request $request, Dossier $dossier, ProjectDesignFileVersion $version, ProjectDesignAnnotation $annotation): JsonResponse
@@ -404,9 +394,9 @@ class ProjectDesignController extends Controller
         abort_unless((int) $annotation->version_id === (int) $version->id, 403);
         abort_unless((int) $annotation->dossier_id === (int) $dossier->id, 403);
         abort_unless((int) $annotation->file_id === (int) $version->file_id, 403);
-
+        $annotationId = $annotation->id;
         $annotation->delete();
-
+        $this->broadcastDesignChange($request, $dossier, 'annotation.deleted', 'annotation', $annotationId, $version->file_id, $version->id, $annotationId, ['id' => $annotationId]);
         return response()->json(['message' => 'Annotation supprimée.']);
     }
 
@@ -620,7 +610,6 @@ class ProjectDesignController extends Controller
     public function storeRemark(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
     {
         Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
-
         $data = $request->validate([
             'annotation_id' => 'required|exists:project_design_annotations,id',
             'severity' => 'required|string|in:critical,major,minor,cosmetic,question',
@@ -629,10 +618,8 @@ class ProjectDesignController extends Controller
             'assigned_to' => 'nullable|exists:users,id',
             'due_date' => 'nullable|date',
         ]);
-
         $annotation = ProjectDesignAnnotation::findOrFail($data['annotation_id']);
         abort_unless((int) $annotation->version_id === (int) $version->id, 422);
-
         $remark = ProjectDesignRemark::create([
             'company_id' => $request->user()->company_id,
             'version_id' => $version->id,
@@ -644,17 +631,16 @@ class ProjectDesignController extends Controller
             'assigned_to' => $data['assigned_to'] ?? null,
             'due_date' => $data['due_date'] ?? null,
             'created_by' => $request->user()->id,
-        ]);
-
-        $remark->load('createdBy');
-        return response()->json(new ProjectDesignRemarkResource($remark), 201);
+        ])->load('createdBy', 'assignedTo', 'version.file');
+        $payload = (new ProjectDesignRemarkResource($remark))->resolve($request);
+        $this->broadcastDesignChange($request, $dossier, 'remark.created', 'remark', $remark->id, $version->file_id, $version->id, $annotation->id, $payload);
+        return response()->json($payload, 201);
     }
 
     public function updateRemark(Request $request, Dossier $dossier, ProjectDesignRemark $remark): JsonResponse
     {
         Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
         abort_unless((int) $remark->version->file->dossier_id === (int) $dossier->id, 403);
-
         $data = $request->validate([
             'severity' => 'nullable|string|in:critical,major,minor,cosmetic,question',
             'status' => 'nullable|string|in:open,assigned,in_progress,resolved,closed,reopened',
@@ -663,19 +649,24 @@ class ProjectDesignController extends Controller
             'assigned_to' => 'nullable|exists:users,id',
             'due_date' => 'nullable|date',
         ]);
-
         $remark->update($data);
         $remark->load('createdBy', 'assignedTo', 'version.file');
-
-        return response()->json(new ProjectDesignRemarkResource($remark));
+        $payload = (new ProjectDesignRemarkResource($remark))->resolve($request);
+        $this->broadcastDesignChange($request, $dossier, 'remark.updated', 'remark', $remark->id, $remark->version->file_id, $remark->version_id, $remark->annotation_id, $payload);
+        return response()->json($payload);
     }
 
     public function destroyRemark(Request $request, Dossier $dossier, ProjectDesignRemark $remark): JsonResponse
     {
         Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
         abort_unless((int) $remark->version->file->dossier_id === (int) $dossier->id, 403);
-
+        $remark->loadMissing('version.file');
+        $remarkId = $remark->id;
+        $versionId = $remark->version_id;
+        $fileId = $remark->version->file_id;
+        $annotationId = $remark->annotation_id;
         $remark->delete();
+        $this->broadcastDesignChange($request, $dossier, 'remark.deleted', 'remark', $remarkId, $fileId, $versionId, $annotationId, ['id' => $remarkId]);
         return response()->json(['message' => 'Remark deleted.']);
     }
 
@@ -709,4 +700,38 @@ class ProjectDesignController extends Controller
             'meta' => ['total' => $remarks->total(), 'page' => $remarks->currentPage(), 'lastPage' => $remarks->lastPage()],
         ]);
     }
+
+private function broadcastDesignChange(
+        Request $request,
+        Dossier $dossier,
+        string $action,
+        string $entityType,
+        int $entityId,
+        ?int $fileId = null,
+        ?int $versionId = null,
+        ?int $annotationId = null,
+        ?array $payload = null,
+    ): void {
+        try {
+            broadcast(new ProjectDesignChanged(
+                eventId: (string) \Illuminate\Support\Str::uuid(),
+                dossierId: (int) $dossier->id,
+                action: $action,
+                entityType: $entityType,
+                entityId: $entityId,
+                fileId: $fileId,
+                versionId: $versionId,
+                annotationId: $annotationId,
+                payload: $payload,
+                actor: $request->user() ? [
+                    'id' => (int) $request->user()->id,
+                    'name' => (string) $request->user()->name,
+                ] : null,
+                occurredAt: now()->toIso8601String(),
+            ))->toOthers();
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+    }
+
 }
