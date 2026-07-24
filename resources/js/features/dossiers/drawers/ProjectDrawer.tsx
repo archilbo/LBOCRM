@@ -114,7 +114,7 @@ export function ProjectDrawer({
                     : 'Mettez à jour les informations du dossier.'
             }
             size="lg"
-            placement="left"
+            placement="right"
             footer={
                 <div className="flex w-full items-center justify-end gap-2">
                     <AppButton variant="light" onPress={() => onOpenChange(false)}>
