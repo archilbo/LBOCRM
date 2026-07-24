@@ -141,6 +141,7 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
     const [stageSize, setStageSize] = useState({ width: 800, height: 600, offsetX: 0, offsetY: 0 });
     const [drawing, setDrawing] = useState(false);
     const [isMiddlePanning, setIsMiddlePanning] = useState(false);
+    const [isLeftPanning, setIsLeftPanning] = useState(false);
     const [currentShape, setCurrentShape] = useState<AnnotationShape | null>(null);
     const stageRef = useRef<Konva.Stage>(null);
     const frameRef = useRef(viewerFrame);
@@ -212,6 +213,12 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
             panStartRef.current = { x: e.evt.clientX, y: e.evt.clientY };
             return;
         }
+        if (activeTool === 'pan') {
+            e.evt.preventDefault();
+            setIsLeftPanning(true);
+            panStartRef.current = { x: e.evt.clientX, y: e.evt.clientY };
+            return;
+        }
         if (readOnly) {
             if (e.target === e.target.getStage()) onAnnotationSelect(null);
             return;
@@ -227,7 +234,7 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
     }, [activeTool, readOnly, onAnnotationSelect]);
 
     const handleMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-        if (isMiddlePanning) {
+        if (isMiddlePanning || isLeftPanning) {
             const dx = e.evt.clientX - panStartRef.current.x;
             const dy = e.evt.clientY - panStartRef.current.y;
             panStartRef.current = { x: e.evt.clientX, y: e.evt.clientY };
@@ -244,10 +251,11 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
         } else if (activeTool === 'freehand' || activeTool === 'cloud') {
             setCurrentShape((prev) => prev ? { ...prev, points: [...(prev.points ?? []), pos.x, pos.y] } : prev);
         }
-    }, [isMiddlePanning, drawing, currentShape, activeTool, onViewerPan]);
+    }, [isMiddlePanning, isLeftPanning, drawing, currentShape, activeTool, onViewerPan]);
 
     const handleMouseUp = useCallback(() => {
         setIsMiddlePanning(false);
+        setIsLeftPanning(false);
         if (!drawing || !currentShape) return;
         setDrawing(false);
         if (currentShape.type === 'pin' || currentShape.type === 'text') {
@@ -325,7 +333,8 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
     }
 
     function getCursor() {
-        if (isMiddlePanning) return 'grabbing';
+        if (isMiddlePanning || isLeftPanning) return 'grabbing';
+        if (activeTool === 'pan') return 'grab';
         if (activeTool === 'select') return 'default';
         if (activeTool === 'text') return 'text';
         return 'crosshair';

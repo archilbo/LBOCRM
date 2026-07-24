@@ -1,21 +1,21 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { FolderOpen, NotebookTabs, Undo2, Loader2, FileWarning, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Upload, CheckCircle2, User, GitBranch } from 'lucide-react';
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
-import { Chip, Button, Tooltip } from '@heroui/react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { usePage } from '@inertiajs/react';
+import { FolderOpen, NotebookTabs, Undo2, Loader2, FileWarning, PanelLeft, PanelRight } from 'lucide-react';
+import { Chip, Tooltip, Button } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { ProjectDesignFileBrowser } from './ProjectDesignFileBrowser';
-import { ProjectDesignEditorToolbar, type AnnotationTool, type ProjectDesignEditorToolbarState } from './ProjectDesignEditorToolbar';
+import { ProjectDesignEditorToolbar, type AnnotationTool } from './ProjectDesignEditorToolbar';
+import { ProjectDesignEditorLayout } from './ProjectDesignEditorLayout';
+import { ProjectDesignLayoutContext, type ProjectDesignLayoutControls } from './ProjectDesignLayoutContext';
 import { DesignReviewQueue } from '@/features/dossiers/components/DesignReviewQueue';
 import { DesignRemarksTab } from '@/features/dossiers/components/DesignRemarksTab';
 import { ProjectDesignActivityFeed } from './ProjectDesignActivityFeed';
-import { ProjectDesignSummaryBar } from './ProjectDesignSummaryBar';
 import { DesignViewerTabs } from '@/features/dossiers/components/DesignViewerTabs';
 import { DesignInspector } from '@/features/dossiers/components/DesignInspector';
-import { useFileDetail, useSummary, useVersions } from '../hooks/useProjectDesignQueries';
-import { formatProjectDesignStatus } from '../utils/projectDesignFormatters';
-import { useMediaQuery } from '@/lib/useMediaQuery';
-import type { DesignMode, ProjectDesignFile, ProjectDesignAsset, ProjectDesignVersion } from '../types/projectDesign';
-import type { WorkspaceState, InspectorTab, WorkspaceUpdate } from '../hooks/useProjectDesignWorkspace';
+import { useFileDetail, useVersions } from '../hooks/useProjectDesignQueries';
+import { useProjectDesignViewerController } from '../viewer/useProjectDesignViewerController';
+import type { DesignMode, ProjectDesignFile } from '../types/projectDesign';
+import type { WorkspaceState, WorkspaceUpdate } from '../hooks/useProjectDesignWorkspace';
 
 const MODES: { id: DesignMode; label: string }[] = [
     { id: 'files', label: 'Files' },
@@ -23,27 +23,6 @@ const MODES: { id: DesignMode; label: string }[] = [
     { id: 'remarks', label: 'Remarks' },
     { id: 'activity', label: 'Activity' },
 ];
-
-const PANEL_SIZES_KEY = 'pd-panel-sizes-v2';
-
-function loadPanelSizes(): { left: number; right: number } | null {
-    try {
-        const raw = localStorage.getItem(PANEL_SIZES_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (typeof parsed.left === 'number' && typeof parsed.right === 'number'
-            && parsed.left >= 22 && parsed.left <= 38
-            && parsed.right >= 26 && parsed.right <= 45) {
-            return parsed;
-        }
-        localStorage.removeItem(PANEL_SIZES_KEY);
-        return null;
-    } catch { return null; }
-}
-
-function savePanelSizes(left: number, right: number) {
-    try { localStorage.setItem(PANEL_SIZES_KEY, JSON.stringify({ left, right })); } catch {}
-}
 
 export function ProjectDesignTabContent({ dossierId, workspaceState, onModeChange, onFileSelect, onNavigate }: {
     dossierId: number;
@@ -53,13 +32,12 @@ export function ProjectDesignTabContent({ dossierId, workspaceState, onModeChang
     onNavigate?: (updates: WorkspaceUpdate) => void;
 }) {
     const { mode } = workspaceState;
-    const { data: summary } = useSummary(dossierId);
     const { data: selectedFile, isLoading: loadingFile } = useFileDetail(dossierId, workspaceState.fileId);
 
     const nav = useCallback((updates: WorkspaceUpdate) => onNavigate?.(updates), [onNavigate]);
 
     return (
-        <div className="flex h-full flex-col overflow-hidden">
+        <div className="flex h-full flex-col overflow-hidden project-design-editor-active">
             {workspaceState.fileId && mode === 'files' ? (
                 loadingFile ? (
                     <div className="flex flex-1 items-center justify-center">
@@ -95,7 +73,7 @@ export function ProjectDesignTabContent({ dossierId, workspaceState, onModeChang
                             </button>
                         ))}
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4">
+                    <div className="flex-1 overflow-y-auto p-4 project-design-editor-scroll-root">
                         {mode === 'files' && (
                             <ProjectDesignFileBrowser
                                 dossierId={dossierId}
@@ -119,33 +97,28 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
     workspaceState: WorkspaceState;
     onNavigate?: (updates: WorkspaceUpdate) => void;
 }) {
-    const isLg = useMediaQuery('(min-width: 1024px)');
-    const isXl = useMediaQuery('(min-width: 1280px)');
-    const [showBrowser, setShowBrowser] = useState(isLg);
-    const [showInspector, setShowInspector] = useState(isXl);
-    const savedSizes = useMemo(() => loadPanelSizes(), []);
-
-    const [activeTool, setActiveTool] = useState<AnnotationTool>('select');
-    const [editorZoom, setEditorZoom] = useState(1);
-    const [editorRotation, setEditorRotation] = useState(0);
+    const ctrl = useProjectDesignViewerController();
     const [editorFullscreen, setEditorFullscreen] = useState(false);
-    const [totalPages, setTotalPages] = useState(1);
-    const viewerControlsRef = useRef<{ fitWidth: () => void; fitPage: () => void }>({ fitWidth: () => {}, fitPage: () => {} });
+    const [layoutControls, setLayoutControls] = useState<ProjectDesignLayoutControls>({
+        toggleBrowser: () => {}, toggleInspector: () => {},
+        openBrowser: () => {}, openInspector: () => {},
+        closeBrowser: () => {}, closeInspector: () => {},
+        browserAvailable: false, inspectorAvailable: false,
+    });
 
     const handleControlsReady = useCallback((controls: { fitWidth: () => void; fitPage: () => void }) => {
-        viewerControlsRef.current = controls;
-    }, []);
+        ctrl.viewerAPIRef.current = controls;
+    }, [ctrl]);
 
     useEffect(() => {
-        function handleTotalPages(e: Event) {
-            setTotalPages((e as CustomEvent).detail.totalPages);
-        }
-        window.addEventListener('pd-editor-total-pages', handleTotalPages);
-        return () => window.removeEventListener('pd-editor-total-pages', handleTotalPages);
-    }, []);
-
-    useEffect(() => { setShowBrowser(isLg); }, [isLg]);
-    useEffect(() => { setShowInspector(isXl); }, [isXl]);
+        const root = document.documentElement;
+        root.classList.add('pd-editor-workspace-open');
+        if (editorFullscreen) root.classList.add('pd-editor-fullscreen');
+        return () => {
+            root.classList.remove('pd-editor-workspace-open');
+            root.classList.remove('pd-editor-fullscreen');
+        };
+    }, [editorFullscreen]);
 
     const { data: versionsData } = useVersions(dossierId, selectedFile.id);
     const versions = versionsData?.data ?? [];
@@ -156,6 +129,10 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
     const activeAssetId = workspaceState.assetId;
 
     const nav = useCallback((updates: WorkspaceUpdate) => onNavigate?.(updates), [onNavigate]);
+
+    const authUser = ((usePage().props as Record<string, unknown>).auth as { user?: { id: number; companyId?: number } } | undefined)?.user;
+    const userId = authUser?.id;
+    const companyId = authUser?.companyId ?? null;
 
     if (!assets.length) {
         const msg = !version
@@ -175,75 +152,116 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
     }
 
     const viewerAsset = assets.find(a => a.id === activeAssetId) ?? assets[0];
-    const toolbarState: ProjectDesignEditorToolbarState = {
-        activeTool,
-        onToolChange: setActiveTool,
-        zoom: editorZoom,
-        onZoomChange: setEditorZoom,
-        rotation: editorRotation,
-        onRotate: () => setEditorRotation((r) => (r + 90) % 360),
-        fullscreen: editorFullscreen,
-        onFullscreenToggle: () => setEditorFullscreen((f) => !f),
-        onFitWidth: () => viewerControlsRef.current.fitWidth(),
-        onFitPage: () => viewerControlsRef.current.fitPage(),
-        pageNumber: workspaceState.pageNumber ?? 1,
-        totalPages,
-        onPageChange: (page) => nav({ page: String(page) }),
+
+    const handlePageChange = useCallback((p: number) => {
+        ctrl.setPageNumber(p);
+        nav({ page: String(p) });
+    }, [ctrl, nav]);
+
+    const handleFullscreenToggle = useCallback(() => {
+        ctrl.toggleFullscreen();
+        setEditorFullscreen((f) => !f);
+    }, [ctrl]);
+
+    const toolbarState = {
+        activeTool: ctrl.state.activeTool,
+        onToolChange: ctrl.setActiveTool,
+        zoom: ctrl.state.zoom,
+        onZoomChange: ctrl.setZoom,
+        rotation: ctrl.state.rotation,
+        onRotate: ctrl.rotate,
+        fullscreen: ctrl.state.fullscreen,
+        onFullscreenToggle: handleFullscreenToggle,
+        onFitWidth: () => ctrl.viewerAPIRef.current.fitWidth(),
+        onFitPage: () => ctrl.viewerAPIRef.current.fitPage(),
+        pageNumber: ctrl.state.pageNumber,
+        totalPages: ctrl.state.totalPages,
+        onPageChange: handlePageChange,
         downloadUrl: viewerAsset?.downloadUrl ?? undefined,
         suppressAnnotations: false,
+        continuous: ctrl.state.continuous,
+        onContinuousToggle: ctrl.toggleContinuous,
     };
 
+    const handleTotalPages = useCallback((n: number) => {
+        ctrl.setTotalPages(n);
+        if (ctrl.state.pageNumber > n) {
+            ctrl.setPageNumber(n);
+            nav({ page: String(n) });
+        }
+    }, [ctrl, nav]);
+
     return (
-        <div className="flex h-full flex-col overflow-hidden">
-            {/* Editor header */}
-            <div className="flex items-center border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 shrink-0 gap-2">
-                <div className="flex items-center gap-1.5 min-w-0 shrink-0">
-                    <Tooltip content={showBrowser ? 'Hide file browser' : 'Show file browser'}>
-                        <Button isIconOnly size="sm" variant="light" className="h-7 w-7 min-w-0" onPress={() => setShowBrowser(!showBrowser)}>
-                            {showBrowser ? <PanelLeftClose size={14} /> : <PanelLeft size={14} />}
-                        </Button>
-                    </Tooltip>
-                    <FolderOpen size={13} className="shrink-0 text-[var(--text-muted)]" />
-                    <span className="truncate text-[12px] font-medium text-[var(--foreground)] max-w-[120px]">{selectedFile.name}</span>
-                    {version && (
-                        <Chip size="sm" variant="flat" className="h-5 text-[9px] shrink-0">{version.label}</Chip>
+        <ProjectDesignLayoutContext.Provider value={layoutControls}>
+            <div className="flex h-full flex-col overflow-hidden project-design-editor-scroll-root">
+                <div className="flex items-center border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 shrink-0 gap-2">
+                    {layoutControls.browserAvailable ? (
+                        <Tooltip>
+                            <Button isIconOnly size="sm" variant="ghost" className="h-7 w-7 min-w-0"
+                                aria-label="Toggle file browser"
+                                onPress={layoutControls.toggleBrowser}>
+                                <PanelLeft size={14} />
+                            </Button>
+                            <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Toggle file browser</Tooltip.Content>
+                        </Tooltip>
+                    ) : (
+                        <Tooltip>
+                            <Button isIconOnly size="sm" variant="ghost" className="h-7 w-7 min-w-0"
+                                aria-label="Open file browser"
+                                onPress={layoutControls.openBrowser}>
+                                <PanelLeft size={14} />
+                            </Button>
+                            <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Open file browser</Tooltip.Content>
+                        </Tooltip>
                     )}
+                    <div className="flex items-center gap-1.5 min-w-0 shrink-0">
+                        <FolderOpen size={13} className="shrink-0 text-[var(--text-muted)]" />
+                        <span className="truncate text-[12px] font-medium text-[var(--foreground)] max-w-[120px]">{selectedFile.name}</span>
+                        {version && (
+                            <Chip size="sm" variant="soft" className="h-5 text-[9px] shrink-0">{version.label}</Chip>
+                        )}
+                    </div>
+                    <div className="flex items-center flex-1 justify-center min-w-0 overflow-x-auto">
+                        <ProjectDesignEditorToolbar {...toolbarState} />
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                        {layoutControls.inspectorAvailable ? (
+                            <Tooltip>
+                                <Button isIconOnly size="sm" variant="ghost" className="h-7 w-7 min-w-0"
+                                    aria-label="Toggle inspector"
+                                    onPress={layoutControls.toggleInspector}>
+                                    <PanelRight size={14} />
+                                </Button>
+                                <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Toggle inspector</Tooltip.Content>
+                            </Tooltip>
+                        ) : (
+                            <Tooltip>
+                                <Button isIconOnly size="sm" variant="ghost" className="h-7 w-7 min-w-0"
+                                    aria-label="Open inspector"
+                                    onPress={layoutControls.openInspector}>
+                                    <PanelRight size={14} />
+                                </Button>
+                                <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Open inspector</Tooltip.Content>
+                            </Tooltip>
+                        )}
+                    </div>
                 </div>
-                <div className="hidden lg:flex items-center flex-1 justify-center min-w-0">
-                    <ProjectDesignEditorToolbar {...toolbarState} />
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                    <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => {}}>
-                        <Upload size={12} /> Upload
-                    </AppButton>
-                    <Tooltip content={showInspector ? 'Hide inspector' : 'Show inspector'}>
-                        <Button isIconOnly size="sm" variant="light" className="h-7 w-7 min-w-0" onPress={() => setShowInspector(!showInspector)}>
-                            {showInspector ? <PanelRightClose size={14} /> : <PanelRight size={14} />}
-                        </Button>
-                    </Tooltip>
-                </div>
-            </div>
 
-            {/* Three-panel resizable body */}
-            <div className="flex flex-1 min-h-0">
-                <PanelGroup direction="horizontal" className="h-full w-full">
-                    {showBrowser && (
-                        <>
-                            <Panel defaultSize={savedSizes?.left ?? 26} minSize={22} maxSize={38}>
-                                <div className="h-full overflow-hidden">
-                                    <ProjectDesignFileBrowser
-                                        dossierId={dossierId}
-                                        onFileSelect={(f) => nav({ file: String(f.id), version: '', asset: '', page: '', remark: '' })}
-                                        selectedFileId={selectedFile.id}
-                                    />
-                                </div>
-                            </Panel>
-                            <PanelResizeHandle className="w-[3px] bg-[var(--border)] transition hover:w-[3px] hover:bg-[var(--accent)]/50 data-[resize-handle-active]:bg-[var(--accent)]/50" />
-                        </>
-                    )}
-
-                    <Panel minSize={30}>
-                        <div className="h-full overflow-hidden">
+                <div className="relative flex-1 min-h-0 h-full">
+                    <ProjectDesignEditorLayout
+                        fullscreen={editorFullscreen}
+                        onFullscreenToggle={() => setEditorFullscreen((f) => !f)}
+                        userId={userId}
+                        companyId={companyId}
+                        onControlsChange={setLayoutControls}
+                        browser={
+                            <ProjectDesignFileBrowser
+                                dossierId={dossierId}
+                                onFileSelect={(f) => nav({ file: String(f.id), version: '', asset: '', page: '', remark: '' })}
+                                selectedFileId={selectedFile.id}
+                            />
+                        }
+                        viewer={
                             <DesignViewerTabs
                                 assets={assets}
                                 dossierId={dossierId}
@@ -251,71 +269,55 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
                                 fileMeta={selectedFile}
                                 activeAssetId={activeAssetId}
                                 onAssetChange={(id) => nav({ asset: String(id) })}
-                                onUploadDerivative={() => {}}
                                 onOpenReviewAsset={(asset) => nav({ asset: String(asset.id) })}
-                                pageNumber={workspaceState.pageNumber ?? undefined}
-                                onPageNumberChange={(page) => nav({ page: String(page) })}
+                                pageNumber={ctrl.state.pageNumber}
+                                onPageNumberChange={handlePageChange}
                                 viewerToolbar={toolbarState}
                                 onControlsReady={handleControlsReady}
+                                onTotalPages={handleTotalPages}
                             />
-                        </div>
-                    </Panel>
-
-                    {showInspector && (
-                        <>
-                            <PanelResizeHandle className="w-[3px] bg-[var(--border)] transition hover:w-[3px] hover:bg-[var(--accent)]/50 data-[resize-handle-active]:bg-[var(--accent)]/50" />
-                            <Panel defaultSize={savedSizes?.right ?? 30} minSize={26} maxSize={45}>
-                                <div className="h-full overflow-hidden">
-                                    <DesignInspector
-                                        file={selectedFile}
-                                        versions={versions}
-                                        assets={assets}
-                                        activeAsset={assets.find(a => a.id === activeAssetId) ?? assets[0]}
-                                        dossierId={dossierId}
-                                        versionId={version?.id}
-                                        defaultTab={workspaceState.inspectorTab}
-                                        onOpenReviewAsset={(asset) => nav({ asset: String(asset.id) })}
-                                        onSwitchVersion={(versionId) => nav({ version: String(versionId), asset: '', page: '' })}
-                                        onTabChange={(tab) => nav({ inspector: tab })}
-                                    />
-                                </div>
-                            </Panel>
-                        </>
-                    )}
-                </PanelGroup>
-            </div>
-
-            {/* Status bar */}
-            <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] shrink-0">
-                <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-[var(--text-muted)] truncate">{selectedFile.name}</span>
-                    {version?.uploadedBy && (
-                        <span className="text-[var(--text-muted)] hidden sm:inline">
-                            <User size={10} className="inline mr-1" />
-                            {version.uploadedBy.name}
-                        </span>
-                    )}
+                        }
+                        inspector={
+                            <DesignInspector
+                                file={selectedFile}
+                                versions={versions}
+                                assets={assets}
+                                activeAsset={assets.find(a => a.id === activeAssetId) ?? assets[0]}
+                                dossierId={dossierId}
+                                versionId={version?.id}
+                                defaultTab={workspaceState.inspectorTab}
+                                onOpenReviewAsset={(asset) => nav({ asset: String(asset.id) })}
+                                onSwitchVersion={(versionId) => nav({ version: String(versionId), asset: '', page: '' })}
+                                onTabChange={(tab) => nav({ inspector: tab })}
+                            />
+                        }
+                    />
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                    {version && (
-                        <span className="flex items-center gap-1.5 text-[var(--text-muted)]">
-                            <GitBranch size={10} />
-                            {version.label}
-                            <span className={`inline-block size-1.5 rounded-full ${
-                                version.status === 'approved' ? 'bg-emerald-500' :
-                                version.status === 'rejected' ? 'bg-red-500' :
-                                'bg-amber-500'
-                            }`} />
-                            {version.status}
-                        </span>
-                    )}
-                    <span className="flex items-center gap-1 text-emerald-500">
-                        <CheckCircle2 size={11} />
-                        Saved
-                    </span>
+
+                <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] shrink-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-[var(--text-muted)] truncate">{selectedFile.name}</span>
+                        {version?.uploadedBy && (
+                            <span className="text-[var(--text-muted)] hidden sm:inline">
+                                <span className="inline mr-1">{version.uploadedBy.name}</span>
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                        {version && (
+                            <span className="flex items-center gap-1.5 text-[var(--text-muted)]">
+                                <span className="mr-1">{version.label}</span>
+                                <span className={`inline-block size-1.5 rounded-full ${
+                                    version.status === 'approved' ? 'bg-emerald-500' :
+                                    version.status === 'rejected' ? 'bg-red-500' :
+                                    'bg-amber-500'
+                                }`} />
+                                {version.status}
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
-
-        </div>
+        </ProjectDesignLayoutContext.Provider>
     );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { MessageSquareText, Info, GitBranch, Activity, FileText, HardDrive, User, Clock, Shield, Package, ExternalLink, Download, Loader2 } from 'lucide-react';
-import { Chip, Button } from '@heroui/react';
+import { MessageSquareText, Info, GitBranch, Activity, FileText, HardDrive, User, Clock, Shield, Package, ExternalLink, Download, Loader2, X } from 'lucide-react';
+import { Chip, Button, Modal, ModalCloseTrigger } from '@heroui/react';
 import { formatFileSize, formatDate } from '@/lib/formatters';
 import { useRemarks, useActivity } from '@/features/project-design/hooks/useProjectDesignQueries';
 import type { ProjectDesignFile, ProjectDesignVersion, ProjectDesignAsset } from '@/features/project-design/types/projectDesign';
@@ -166,11 +166,14 @@ function DetailsContent({ file, version, assets, activeAsset, onOpenReviewAsset 
     );
 }
 
+type RemarkData = NonNullable<ReturnType<typeof useRemarks>['data']>['data'][number];
+
 function RemarksContent({ dossierId, versionId }: { dossierId?: number; versionId?: number }) {
     const params: Record<string, string | undefined> = {};
     if (versionId) params.version_id = String(versionId);
     const { data, isLoading } = useRemarks(dossierId ?? 0, params);
     const remarks = data?.data ?? [];
+    const [selectedRemark, setSelectedRemark] = useState<RemarkData | null>(null);
 
     if (!dossierId) {
         return (
@@ -196,28 +199,80 @@ function RemarksContent({ dossierId, versionId }: { dossierId?: number; versionI
     }
 
     return (
-        <div className="space-y-1.5">
-            {remarks.map((r) => (
-                <div key={r.id} className="rounded-lg border border-[var(--border)] px-2.5 py-2">
-                    <div className="flex items-start justify-between gap-1.5">
-                        <div className="min-w-0">
-                            <p className="text-[11px] font-medium text-[var(--foreground)] truncate">{r.title}</p>
-                            {r.description && <p className="mt-0.5 text-[10px] text-[var(--text-muted)] line-clamp-2">{r.description}</p>}
+        <>
+            <div className="space-y-1.5">
+                {remarks.map((r) => (
+                    <div key={r.id} className="cursor-pointer rounded-lg border border-[var(--border)] px-2.5 py-2 transition hover:border-[var(--accent)]/40"
+                        onClick={() => setSelectedRemark(r)}>
+                        <div className="flex items-start justify-between gap-1.5">
+                            <div className="min-w-0">
+                                <p className="text-[11px] font-medium text-[var(--foreground)] truncate">{r.title}</p>
+                                {r.description && <p className="mt-0.5 text-[10px] text-[var(--text-muted)] line-clamp-2">{r.description}</p>}
+                            </div>
+                            <Chip size="sm" variant="flat" className="h-4 shrink-0 text-[9px]" color={r.severity === 'critical' ? 'danger' : r.severity === 'major' ? 'warning' : 'default'}>
+                                {r.severity}
+                            </Chip>
                         </div>
-                        <Chip size="sm" variant="flat" className="h-4 shrink-0 text-[9px]" color={r.severity === 'critical' ? 'danger' : r.severity === 'major' ? 'warning' : 'default'}>
-                            {r.severity}
-                        </Chip>
+                        <div className="mt-1 flex items-center gap-1.5 text-[9px] text-[var(--text-muted)] flex-wrap">
+                            {r.createdBy && <span>{r.createdBy.name}</span>}
+                            {r.createdAt && <span>· {formatDate(r.createdAt)}</span>}
+                            <Chip size="sm" variant="flat" className="h-3.5 text-[8px]" color={r.status === 'open' ? 'warning' : r.status === 'resolved' ? 'success' : 'default'}>
+                                {r.status}
+                            </Chip>
+                        </div>
                     </div>
-                    <div className="mt-1 flex items-center gap-1.5 text-[9px] text-[var(--text-muted)] flex-wrap">
-                        {r.createdBy && <span>{r.createdBy.name}</span>}
-                        {r.createdAt && <span>· {formatDate(r.createdAt)}</span>}
-                        <Chip size="sm" variant="flat" className="h-3.5 text-[8px]" color={r.status === 'open' ? 'warning' : r.status === 'resolved' ? 'success' : 'default'}>
-                            {r.status}
-                        </Chip>
-                    </div>
-                </div>
-            ))}
-        </div>
+                ))}
+            </div>
+
+            {selectedRemark && (
+                <RemarkDetailModal remark={selectedRemark} onClose={() => setSelectedRemark(null)} />
+            )}
+        </>
+    );
+}
+
+function RemarkDetailModal({ remark, onClose }: { remark: RemarkData; onClose: () => void }) {
+    return (
+        <Modal.Backdrop isOpen={true} onOpenChange={(o) => { if (!o) onClose(); }} isDismissable>
+            <Modal.Container size="sm">
+                <Modal.Dialog>
+                    <Modal.Header>
+                        <Modal.Heading>{remark.title}</Modal.Heading>
+                        <ModalCloseTrigger />
+                    </Modal.Header>
+                    <Modal.Body>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <Chip size="sm" variant="flat" color={remark.severity === 'critical' ? 'danger' : remark.severity === 'major' ? 'warning' : 'default'} className="h-5 text-[10px]">
+                                    {remark.severity}
+                                </Chip>
+                                <Chip size="sm" variant="flat" color={remark.status === 'open' ? 'warning' : remark.status === 'resolved' ? 'success' : 'default'} className="h-5 text-[10px]">
+                                    {remark.status.replace('_', ' ')}
+                                </Chip>
+                            </div>
+                            {remark.description && (
+                                <div>
+                                    <p className="text-[11px] font-medium text-[var(--text-muted)] mb-1">Description</p>
+                                    <p className="text-[12px] text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">{remark.description}</p>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] pt-2 border-t border-[var(--border)]">
+                                {remark.createdBy && (
+                                    <span className="flex items-center gap-1">
+                                        <User size={10} /> {remark.createdBy.name}
+                                    </span>
+                                )}
+                                {remark.createdAt && (
+                                    <span className="flex items-center gap-1">
+                                        <Clock size={10} /> {formatDate(remark.createdAt)}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </Modal.Body>
+                </Modal.Dialog>
+            </Modal.Container>
+        </Modal.Backdrop>
     );
 }
 

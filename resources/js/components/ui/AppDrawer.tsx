@@ -1,6 +1,5 @@
-﻿import { ReactNode, useState } from 'react';
-import { Button, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
-import { UNSAFE_PortalProvider } from 'react-aria/PortalProvider';
+﻿import type { ReactNode } from 'react';
+import { Drawer, DrawerCloseTrigger } from '@heroui/react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -16,6 +15,7 @@ type AppDrawerProps = {
     headerIcon?: ReactNode;
     contentClassName?: string;
     hideHeader?: boolean;
+    placement?: 'left' | 'right';
 };
 
 export function AppDrawer({
@@ -30,71 +30,54 @@ export function AppDrawer({
     headerIcon,
     contentClassName,
     hideHeader = false,
+    placement = 'right',
 }: AppDrawerProps) {
-    const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null);
-
     return (
-        <ModalOverlay
+        <Drawer.Backdrop
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            className="app-modal-overlay app-drawer-overlay"
             isDismissable={dismissable}
         >
-            <Modal className={cn('app-drawer-panel', panelClassName)}>
-                <Dialog className="flex h-full flex-col outline-none">
-                    {({ close }) => (
-                        <>
-                            {!hideHeader ? (
-                                <header className="flex items-start gap-4 border-b px-5 py-4">
-                                    {headerIcon ? (
-                                        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                                            {headerIcon}
-                                        </span>
-                                    ) : null}
-
-                                    <div className="min-w-0 flex-1">
-                                        {title ? (
-                                            <Heading slot="title" className="text-base font-semibold">
-                                                {title}
-                                            </Heading>
-                                        ) : null}
-
-                                        {description ? (
-                                            <p className="mt-1 text-sm text-[var(--text-muted)]">
-                                                {description}
-                                            </p>
-                                        ) : null}
-                                    </div>
-
-                                    <Button
-                                        aria-label="Close"
-                                        onPress={close}
-                                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-700 outline-none transition hover:bg-red-100 data-[focus-visible]:ring-2 data-[focus-visible]:ring-red-400 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300"
-                                    >
-                                        <X size={17} />
-                                    </Button>
-                                </header>
+            <Drawer.Content
+                placement={placement}
+                className={cn(
+                    placement === 'left' ? 'app-drawer-panel-left' : 'app-drawer-panel',
+                    panelClassName
+                )}
+            >
+                {!hideHeader && (
+                    <Drawer.Header className="flex items-start gap-4 border-b px-5 py-4">
+                        {headerIcon ? (
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                                {headerIcon}
+                            </span>
+                        ) : null}
+                        <div className="min-w-0 flex-1">
+                            {title ? (
+                                <Drawer.Heading className="text-base font-semibold">
+                                    {title}
+                                </Drawer.Heading>
                             ) : null}
-
-                            <div className={cn('app-scrollbar flex-1 overflow-y-auto px-5 py-5', contentClassName)}>
-                                <div ref={setPortalContainer} className="relative min-h-0">
-                                    {portalContainer ? (
-                                        <UNSAFE_PortalProvider getContainer={() => portalContainer}>
-                                            {children}
-                                        </UNSAFE_PortalProvider>
-                                    ) : null}
-                                </div>
-                            </div>
-
-                            {footer ? (
-                                <footer className="flex items-center justify-end gap-2 border-t px-5 py-4">
-                                    {footer}
-                                </footer>
+                            {description ? (
+                                <p className="mt-1 text-sm text-[var(--text-muted)]">
+                                    {description}
+                                </p>
                             ) : null}
-                        </>
-                    )}
-                </Dialog>
-            </Modal>
-        </ModalOverlay>
+                        </div>
+                        <DrawerCloseTrigger>
+                            <X size={17} />
+                        </DrawerCloseTrigger>
+                    </Drawer.Header>
+                )}
+                <Drawer.Body className={cn('app-scrollbar', contentClassName)}>
+                    {children}
+                </Drawer.Body>
+                {footer ? (
+                    <Drawer.Footer className="flex items-center justify-end gap-2 border-t px-5 py-4">
+                        {footer}
+                    </Drawer.Footer>
+                ) : null}
+            </Drawer.Content>
+        </Drawer.Backdrop>
     );
 }

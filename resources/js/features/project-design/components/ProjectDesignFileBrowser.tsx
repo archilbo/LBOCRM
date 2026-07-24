@@ -186,7 +186,7 @@ export function ProjectDesignFileBrowser({ dossierId, onFileSelect, selectedFile
 
             {/* Body: folder tree + file list */}
             <div className="flex flex-1 min-h-0">
-                <div className="hidden w-44 shrink-0 overflow-y-auto border-r border-[var(--border)] sm:block">
+                <div className="hidden w-44 shrink-0 overflow-y-auto overflow-x-hidden border-r border-[var(--border)] sm:block">
                     <ProjectDesignFolderTree folders={folders} selectedFolderId={selectedFolderId} onSelect={handleFolderSelect} />
                 </div>
                 <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
@@ -198,7 +198,7 @@ export function ProjectDesignFileBrowser({ dossierId, onFileSelect, selectedFile
                                 description={search || disciplineFilter || statusFilter ? 'Try changing your filters.' : 'Upload design files to get started.'} />
                         </div>
                     ) : (
-                        <div className="flex-1 overflow-y-auto px-2 py-2">
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-2">
                             <div className="space-y-2">
                                 {grouped ? (
                                     <>

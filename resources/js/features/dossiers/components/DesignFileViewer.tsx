@@ -6,7 +6,7 @@ import type { ProjectDesignEditorToolbarState } from '@/features/project-design/
 import { DesignRemarkComposer } from './DesignRemarkComposer';
 import { toast } from 'sonner';
 import { projectDesignApi } from '@/features/project-design/api/projectDesignApi';
-import { fitWidth, fitPage } from '../utils/viewport';
+import { fitWidth, fitPage, zoomToPoint } from '../utils/viewport';
 import type { ViewerFrame } from './DesignAnnotationLayer';
 
 const DesignAnnotationLayer = lazy(() => import('./DesignAnnotationLayer'));
@@ -135,33 +135,63 @@ function UnsupportedViewer({ filename }: { filename: string }) {
     );
 }
 
-export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, assetId, isOpen, onClose, versionId, dossierId, containerRef: externalContainerRef, suppressAnnotations, pageNumber: controlledPageNumber, onPageNumberChange, viewerToolbar, onControlsReady }: {
-    previewUrl: string; downloadUrl: string; mimeType: string; filename: string; assetId?: number; isOpen: boolean; onClose: () => void; versionId?: number; dossierId?: number; containerRef?: React.RefObject<HTMLDivElement | null>; suppressAnnotations?: boolean; pageNumber?: number; onPageNumberChange?: (page: number) => void; viewerToolbar?: ProjectDesignEditorToolbarState; onControlsReady?: (controls: { fitWidth: () => void; fitPage: () => void }) => void;
+export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, assetId, isOpen, onClose, versionId, dossierId, containerRef: externalContainerRef, suppressAnnotations, pageNumber: controlledPageNumber, onPageNumberChange, viewerToolbar, onControlsReady, onTotalPages }: {
+    previewUrl: string; downloadUrl: string; mimeType: string; filename: string; assetId?: number; isOpen: boolean; onClose: () => void; versionId?: number; dossierId?: number; containerRef?: React.RefObject<HTMLDivElement | null>; suppressAnnotations?: boolean; pageNumber?: number; onPageNumberChange?: (page: number) => void; viewerToolbar?: ProjectDesignEditorToolbarState; onControlsReady?: (controls: { fitWidth: () => void; fitPage: () => void }) => void; onTotalPages?: (n: number) => void;
 }) {
-    const [activeTool, setActiveTool] = useState<AnnotationTool>('select');
     const [annotations, setAnnotations] = useState<AnnotationShape[]>([]);
     const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
     const [showComposer, setShowComposer] = useState(false);
     const [saving, setSaving] = useState(false);
     const [viewerFrame, setViewerFrame] = useState<ViewerFrame>(defaultFrame);
-    const [viewerZoom, setViewerZoom] = useState(1);
-    const [viewerPan, setViewerPan] = useState({ x: 0, y: 0 });
-    const [viewerRotation, setViewerRotation] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [fullscreen, setFullscreen] = useState(false);
     const [pageShellEl, setPageShellEl] = useState<HTMLDivElement | null>(null);
 
-    const isExternalToolbar = !!viewerToolbar;
+    // Standalone mode state (used only when viewerToolbar is NOT provided)
+    const [localZoom, setLocalZoom] = useState(1);
+    const [localPanX, setLocalPanX] = useState(0);
+    const [localPanY, setLocalPanY] = useState(0);
+    const [localRotation, setLocalRotation] = useState(0);
+    const [localActiveTool, setLocalActiveTool] = useState<AnnotationTool>('select');
+    const [localFullscreen, setLocalFullscreen] = useState(false);
+    const [localCurrentPage, setLocalCurrentPage] = useState(1);
 
-    // Resolve state: use external values when toolbar is provided
-    const resolvedActiveTool = viewerToolbar?.activeTool ?? activeTool;
-    const resolvedZoom = viewerToolbar?.zoom ?? viewerZoom;
-    const resolvedRotation = viewerToolbar?.rotation ?? viewerRotation;
-    const resolvedFullscreen = viewerToolbar?.fullscreen ?? fullscreen;
+    const isExt = !!viewerToolbar;
 
-    const controlsRef = useRef({ fitWidth: () => {}, fitPage: () => {} });
-    const toolbarRef = useRef(viewerToolbar);
-    toolbarRef.current = viewerToolbar;
+    // Resolve state
+    // Pan is always local (toolbar doesn't manage pan)
+    const resolvedZoom = isExt ? viewerToolbar!.zoom : localZoom;
+    const resolvedPanX = localPanX;
+    const resolvedPanY = localPanY;
+    const resolvedRotation = isExt ? viewerToolbar!.rotation : localRotation;
+    const resolvedActiveTool = isExt ? viewerToolbar!.activeTool : localActiveTool;
+    const resolvedFullscreen = isExt ? viewerToolbar!.fullscreen : localFullscreen;
+    const resolvedPageNumber = controlledPageNumber ?? localCurrentPage;
+
+    // Apply functions
+    const applyZoom = useCallback((z: number) => {
+        if (isExt) { viewerToolbar!.onZoomChange(z); }
+        else { setLocalZoom(z); }
+    }, [isExt, viewerToolbar]);
+
+    const applyRotation = useCallback((r: number) => {
+        if (isExt) { viewerToolbar!.onRotate(); }
+        else { setLocalRotation(r); }
+    }, [isExt, viewerToolbar]);
+
+    const applyPanBy = useCallback((dx: number, dy: number) => {
+        setLocalPanX((p) => p + dx);
+        setLocalPanY((p) => p + dy);
+    }, []);
+
+    const applyActiveTool = useCallback((t: AnnotationTool) => {
+        if (isExt) { viewerToolbar!.onToolChange(t); }
+        else { setLocalActiveTool(t); }
+    }, [isExt, viewerToolbar]);
+
+    const applyFullscreenToggle = useCallback(() => {
+        if (isExt) { viewerToolbar!.onFullscreenToggle(); }
+        else { setLocalFullscreen((f) => !f); }
+    }, [isExt, viewerToolbar]);
+
     const internalContainerRef = useRef<HTMLDivElement>(null);
     const containerRef = externalContainerRef ?? internalContainerRef;
     const viewerAreaRef = useRef<HTMLDivElement>(null);
@@ -171,17 +201,20 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
 
     useEffect(() => {
         if (!isOpen) {
-            setActiveTool('select');
             setAnnotations([]);
             setSelectedAnnotationId(null);
             setShowComposer(false);
             pendingShapeRef.current = null;
             setViewerFrame(defaultFrame);
-            setViewerZoom(1);
-            setViewerPan({ x: 0, y: 0 });
-            setViewerRotation(0);
+            if (!isExt) {
+                setLocalZoom(1);
+                setLocalPanX(0);
+                setLocalPanY(0);
+                setLocalRotation(0);
+                setLocalActiveTool('select');
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, isExt]);
 
     useEffect(() => {
         if (versionId && isOpen) {
@@ -232,79 +265,85 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
                 };
             });
             setAnnotations(mapped);
-        } catch {}
+        } catch { if (import.meta.env.DEV) console.warn('Failed to map annotations'); }
     }
 
     const toggleFullscreen = useCallback(async () => {
         const el = workspaceRef.current;
         if (!el) return;
-        if (!resolvedFullscreen) {
-            if (el.requestFullscreen) {
-                await el.requestFullscreen();
-            }
+        if (!document.fullscreenElement) {
+            await el.requestFullscreen();
         } else {
-            if (document.fullscreenElement) {
-                await document.exitFullscreen();
-            }
+            await document.exitFullscreen();
         }
-    }, [resolvedFullscreen]);
+    }, []);
 
     useEffect(() => {
         function onFsChange() {
-            setFullscreen(!!document.fullscreenElement);
-            toolbarRef.current?.onFullscreenToggle();
+            if (isExt) { viewerToolbar!.onFullscreenToggle(); }
+            else { setLocalFullscreen(!!document.fullscreenElement); }
         }
         document.addEventListener('fullscreenchange', onFsChange);
         return () => document.removeEventListener('fullscreenchange', onFsChange);
-    }, []);
+    }, [isExt, viewerToolbar]);
 
     const handleFitWidth = useCallback(() => {
         const viewer = viewerAreaRef.current;
         if (!viewer || !viewerFrame.pageWidth) return;
         const vr = viewer.getBoundingClientRect();
         const vp = fitWidth(vr.width, vr.height, viewerFrame.pageWidth, viewerFrame.pageHeight);
-        toolbarRef.current?.onZoomChange(vp.zoom);
-        setViewerZoom(vp.zoom);
-        setViewerPan({ x: vp.panX, y: vp.panY });
-    }, [viewerFrame]);
+        if (isExt) {
+            viewerToolbar!.onZoomChange(vp.zoom);
+        } else {
+            setLocalZoom(vp.zoom);
+        }
+        setLocalPanX(vp.panX);
+        setLocalPanY(vp.panY);
+    }, [viewerFrame, isExt, viewerToolbar]);
 
     const handleFitPage = useCallback(() => {
         const viewer = viewerAreaRef.current;
         if (!viewer || !viewerFrame.pageWidth) return;
         const vr = viewer.getBoundingClientRect();
         const vp = fitPage(vr.width, vr.height, viewerFrame.pageWidth, viewerFrame.pageHeight);
-        toolbarRef.current?.onZoomChange(vp.zoom);
-        setViewerZoom(vp.zoom);
-        setViewerPan({ x: vp.panX, y: vp.panY });
-    }, [viewerFrame]);
+        if (isExt) {
+            viewerToolbar!.onZoomChange(vp.zoom);
+        } else {
+            setLocalZoom(vp.zoom);
+        }
+        setLocalPanX(vp.panX);
+        setLocalPanY(vp.panY);
+    }, [viewerFrame, isExt, viewerToolbar]);
 
-    useEffect(() => {
-        controlsRef.current = { fitWidth: handleFitWidth, fitPage: handleFitPage };
-    }, [handleFitWidth, handleFitPage]);
+    const handlePageChange = useCallback((p: number) => {
+        if (!isExt) setLocalCurrentPage(p);
+        onPageNumberChange?.(p);
+    }, [isExt, onPageNumberChange]);
+
+    // Expose controls
+    const controlsRef = useRef({ fitWidth: handleFitWidth, fitPage: handleFitPage });
+    controlsRef.current = { fitWidth: handleFitWidth, fitPage: handleFitPage };
     useEffect(() => {
         if (onControlsReady) {
             onControlsReady({ fitWidth: () => controlsRef.current.fitWidth(), fitPage: () => controlsRef.current.fitPage() });
         }
     }, [onControlsReady]);
 
-    const handleViewerZoom = useCallback((delta: number, cx: number, cy: number) => {
+    const handleZoomAroundPoint = useCallback((delta: number, cx: number, cy: number) => {
         const factor = delta > 0 ? 1.1 : 0.9;
-        const newZoom = Math.max(0.1, Math.min(10, resolvedZoom * factor));
-        toolbarRef.current?.onZoomChange(newZoom);
-        setViewerZoom(newZoom);
-        setViewerPan((prev) => {
-            const el = viewerAreaRef.current;
-            const vw = el?.clientWidth ?? 800;
-            const xCorr = isPdf(mimeType) ? vw * (factor - 1) / 2 : 0;
-            return {
-                x: prev.x * factor + cx * (1 - factor) + xCorr,
-                y: prev.y * factor + cy * (1 - factor),
-            };
-        });
-    }, [mimeType, resolvedZoom]);
+        const vp = zoomToPoint(resolvedZoom, factor, cx, cy, resolvedPanX, resolvedPanY);
+        if (isExt) {
+            viewerToolbar!.onZoomChange(vp.zoom);
+        } else {
+            setLocalZoom(vp.zoom);
+        }
+        setLocalPanX(vp.panX);
+        setLocalPanY(vp.panY);
+    }, [resolvedZoom, resolvedPanX, resolvedPanY, isExt, viewerToolbar]);
 
-    const handleViewerPan = useCallback((dx: number, dy: number) => {
-        setViewerPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+    const handlePanBy = useCallback((dx: number, dy: number) => {
+        setLocalPanX((p) => p + dx);
+        setLocalPanY((p) => p + dy);
     }, []);
 
     async function handleAnnotationCreated(shape: AnnotationShape) {
@@ -313,8 +352,7 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
         setShowComposer(true);
         composerAnnotationId.current = shape.id;
         pendingShapeRef.current = shape;
-        toolbarRef.current?.onToolChange('select');
-        setActiveTool('select');
+        applyActiveTool('select');
     }
 
     async function handleAnnotationSave(data: { severity: string; title: string; description: string }) {
@@ -346,7 +384,7 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
                     annotation_type: shape.type,
                     coordinate_space: 'page-normalized-v1',
                     asset_id: shape.assetId ?? assetId ?? 1,
-                    page_number: shape.pageNumber ?? controlledPageNumber ?? currentPage,
+                    page_number: shape.pageNumber ?? controlledPageNumber ?? resolvedPageNumber,
                     geometry: buildGeometry(shape, pw, ph),
                     style: shape.style ?? null,
                     viewport: shape.viewport ?? null,
@@ -366,8 +404,7 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
 
             toast.success('Remark saved.');
             setShowComposer(false);
-            toolbarRef.current?.onToolChange('select');
-            setActiveTool('select');
+            applyActiveTool('select');
             composerAnnotationId.current = null;
             pendingShapeRef.current = null;
         } catch (err) {
@@ -393,7 +430,7 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
                         annotation_type: shape.type,
                         coordinate_space: 'page-normalized-v1',
                         asset_id: shape.assetId ?? assetId ?? 1,
-                        page_number: shape.pageNumber ?? controlledPageNumber ?? currentPage,
+                        page_number: shape.pageNumber ?? controlledPageNumber ?? resolvedPageNumber,
                         geometry: buildGeometry(shape, pw, ph),
                         style: null,
                         reference_width: Math.round(pw),
@@ -411,23 +448,21 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
         }
     }
 
+    // Keyboard handler
     useEffect(() => {
         function handleKey(e: KeyboardEvent) {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
             if (e.key === '+' || e.key === '=') {
-                const next = Math.min(5, resolvedZoom + 0.1);
-                toolbarRef.current?.onZoomChange(next);
-                setViewerZoom(next);
+                if (isExt) { viewerToolbar!.onZoomChange(Math.min(5, resolvedZoom + 0.1)); }
+                else { setLocalZoom((z) => Math.min(5, z + 0.1)); }
             }
             if (e.key === '-') {
-                const next = Math.max(0.1, resolvedZoom - 0.1);
-                toolbarRef.current?.onZoomChange(next);
-                setViewerZoom(next);
+                if (isExt) { viewerToolbar!.onZoomChange(Math.max(0.1, resolvedZoom - 0.1)); }
+                else { setLocalZoom((z) => Math.max(0.1, z - 0.1)); }
             }
             if (e.key === 'r') {
-                const next = (resolvedRotation + 90) % 360;
-                toolbarRef.current?.onRotate();
-                setViewerRotation(next);
+                if (isExt) { viewerToolbar!.onRotate(); }
+                else { setLocalRotation((r) => (r + 90) % 360); }
             }
             if (e.key === 'f') {
                 toggleFullscreen();
@@ -438,49 +473,7 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
         }
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [resolvedFullscreen, toggleFullscreen, resolvedZoom, resolvedRotation]);
-
-    // Listen for custom events from PdfDesignViewer (pan, zoom, auto-fit)
-    useEffect(() => {
-        function handleAutoFit(e: Event) {
-            const { zoom: z, panX: px, panY: py } = (e as CustomEvent).detail;
-            toolbarRef.current?.onZoomChange(z);
-            setViewerZoom(z);
-            setViewerPan({ x: px ?? 0, y: py ?? 0 });
-        }
-        function handlePan(e: Event) {
-            const { x, y } = (e as CustomEvent).detail;
-            setViewerPan({ x, y });
-        }
-        function handleWheelZoom(e: Event) {
-            const { delta, cx, cy } = (e as CustomEvent).detail;
-            const factor = delta > 0 ? 1.1 : 0.9;
-            const newZoom = Math.max(0.1, Math.min(10, resolvedZoom * factor));
-            toolbarRef.current?.onZoomChange(newZoom);
-            setViewerZoom(newZoom);
-            setViewerPan((prev) => {
-                const el = viewerAreaRef.current;
-                const vw = el?.clientWidth ?? 800;
-                const xCorr = isPdf(mimeType) ? vw * (factor - 1) / 2 : 0;
-                return { x: prev.x * factor + cx * (1 - factor) + xCorr, y: prev.y * factor + cy * (1 - factor) };
-            });
-        }
-        function handleTotalPages(e: Event) {
-            const { totalPages } = (e as CustomEvent).detail;
-            // Update the external toolbar's totalPages via custom event to parent
-            window.dispatchEvent(new CustomEvent('pd-editor-total-pages', { detail: { totalPages } }));
-        }
-        window.addEventListener('pd-auto-fit', handleAutoFit);
-        window.addEventListener('pd-pan', handlePan);
-        window.addEventListener('pd-wheel-zoom', handleWheelZoom);
-        window.addEventListener('pd-total-pages', handleTotalPages);
-        return () => {
-            window.removeEventListener('pd-auto-fit', handleAutoFit);
-            window.removeEventListener('pd-pan', handlePan);
-            window.removeEventListener('pd-wheel-zoom', handleWheelZoom);
-            window.removeEventListener('pd-total-pages', handleTotalPages);
-        };
-    }, [resolvedZoom, mimeType]);
+    }, [isExt, viewerToolbar, resolvedFullscreen, toggleFullscreen, resolvedZoom]);
 
     async function handleAnnotationDelete(annotationId: string) {
         const shape = annotations.find((a) => a.id === annotationId);
@@ -488,7 +481,7 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
         if (shape.serverId && dossierId && versionId) {
             try {
                 await projectDesignApi.destroyAnnotation(dossierId, versionId, shape.serverId);
-            } catch {}
+            } catch { if (import.meta.env.DEV) console.warn('Failed to destroy annotation', shape.serverId); }
         }
         setAnnotations((prev) => prev.filter((a) => a.id !== annotationId));
         if (selectedAnnotationId === annotationId) {
@@ -501,29 +494,37 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
         return <UnsupportedViewer filename={filename} />;
     }
 
-    const readOnly = activeTool === 'select';
+    const readOnly = resolvedActiveTool === 'select';
 
     const viewContent = isImage(mimeType)
         ? <ImageViewer src={previewUrl} filename={filename} containerRef={containerRef}
             stageParentRef={viewerAreaRef} onFrameChange={setViewerFrame}
-            zoom={viewerZoom} panX={viewerPan.x} panY={viewerPan.y} rotation={viewerRotation} />
+            zoom={resolvedZoom} panX={resolvedPanX} panY={resolvedPanY} rotation={resolvedRotation} />
         : (
             <Suspense fallback={<ViewerLoading />}>
                 <PdfDesignViewer previewUrl={previewUrl} downloadUrl={downloadUrl} filename={filename}
                     containerRef={containerRef} stageParentRef={viewerAreaRef} onFrameChange={setViewerFrame}
-                    onPageChange={(p) => { setCurrentPage(p); onPageNumberChange?.(p); }}
+                    onPageChange={handlePageChange}
                     onPageShellRef={setPageShellEl}
                     pageNumber={controlledPageNumber}
-                    zoom={viewerZoom} panX={viewerPan.x} panY={viewerPan.y} rotation={viewerRotation}
-                    hideToolbar={isExternalToolbar}
-                    activeTool={resolvedActiveTool} />
+                    zoom={resolvedZoom} panX={resolvedPanX} panY={resolvedPanY} rotation={resolvedRotation}
+                    hideToolbar={isExt}
+                    activeTool={resolvedActiveTool}
+                    continuous={viewerToolbar?.continuous}
+                    onZoomChange={handleZoomAroundPoint}
+                    onPanChange={handlePanBy}
+                    onTotalPages={(n) => {
+                        if (isExt) {
+                            onTotalPages?.(n);
+                        }
+                    }} />
             </Suspense>
         );
 
     return (
         <div ref={workspaceRef} className="flex h-full w-full flex-col">
             <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
-                {isExternalToolbar ? (
+                {isExt ? (
                     <>
                         {suppressAnnotations ? (
                             <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
@@ -534,17 +535,17 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
                             <div className="flex items-center gap-1.5">
                                 {saving && <span className="text-[11px] text-[var(--text-muted)]">Saving...</span>}
                                 {annotations.some((a) => !a.serverId) && (
-                                    <Button size="sm" variant="light" isDisabled={saving}
+                                    <Button size="sm" variant="ghost" isDisabled={saving}
                                         onPress={handleAnnotationToolbarSave}
                                         className="h-7 min-w-0 px-2 text-[11px] text-emerald-400">
                                         Save
                                     </Button>
                                 )}
                                 {selectedAnnotationId && (
-                                    <Button size="sm" variant="light" isDisabled={saving}
+                                    <Button size="sm" variant="ghost" isDisabled={saving}
                                         onPress={() => setShowComposer(!showComposer)}
-                                        className="h-7 min-w-0 px-2 text-[11px]"
-                                        startContent={<MessageSquare size={12} />}>
+                                        className="h-7 min-w-0 px-2 text-[11px]">
+                                        <MessageSquare size={12} />
                                         Remark
                                     </Button>
                                 )}
@@ -559,31 +560,33 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
                                 <span>Source file — annotations disabled</span>
                             </div>
                         ) : (
-                            <DesignAnnotationToolbar activeTool={activeTool} onToolChange={setActiveTool}
+                            <DesignAnnotationToolbar activeTool={localActiveTool} onToolChange={setLocalActiveTool}
                                 onSave={handleAnnotationToolbarSave} saving={saving} hasUnsaved={annotations.some((a) => !a.serverId)} />
                         )}
                         <div className="flex items-center gap-1">
-                            <Button isIconOnly size="sm" variant="light" onPress={handleFitWidth} aria-label="Fit width"><AlignStartVertical size={13} /></Button>
-                            <Button isIconOnly size="sm" variant="light" onPress={handleFitPage} aria-label="Fit page"><AlignCenter size={13} /></Button>
+                            <Button isIconOnly size="sm" variant="ghost" onPress={handleFitWidth} aria-label="Fit width"><AlignStartVertical size={13} /></Button>
+                            <Button isIconOnly size="sm" variant="ghost" onPress={handleFitPage} aria-label="Fit page"><AlignCenter size={13} /></Button>
                             <div className="mx-1 h-4 w-px bg-[var(--border)]" />
-                            <Button isIconOnly size="sm" variant="light" onPress={() => { const next = Math.max(0.1, resolvedZoom - 0.1); toolbarRef.current?.onZoomChange(next); setViewerZoom(next); }} aria-label="Zoom out"><ZoomOut size={13} /></Button>
-                            <span className="min-w-[3ch] text-center text-[11px] text-[var(--text-muted)]">{Math.round(resolvedZoom * 100)}%</span>
-                            <Button isIconOnly size="sm" variant="light" onPress={() => { const next = Math.min(5, resolvedZoom + 0.1); toolbarRef.current?.onZoomChange(next); setViewerZoom(next); }} aria-label="Zoom in"><ZoomIn size={13} /></Button>
-                            <Button isIconOnly size="sm" variant="light" onPress={() => { toolbarRef.current?.onRotate(); setViewerRotation((r) => (r + 90) % 360); }} aria-label="Rotate"><RotateCw size={13} /></Button>
+                            <Button isIconOnly size="sm" variant="ghost" onPress={() => setLocalZoom((z) => Math.max(0.1, z - 0.1))} aria-label="Zoom out"><ZoomOut size={13} /></Button>
+                            <span className="min-w-[3ch] text-center text-[11px] text-[var(--text-muted)]">{Math.round(localZoom * 100)}%</span>
+                            <Button isIconOnly size="sm" variant="ghost" onPress={() => setLocalZoom((z) => Math.min(5, z + 0.1))} aria-label="Zoom in"><ZoomIn size={13} /></Button>
+                            <Button isIconOnly size="sm" variant="ghost" onPress={() => setLocalRotation((r) => (r + 90) % 360)} aria-label="Rotate"><RotateCw size={13} /></Button>
                             <div className="mx-1 h-4 w-px bg-[var(--border)]" />
-                            <Button isIconOnly size="sm" variant="light" onPress={toggleFullscreen} aria-label={resolvedFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+                            <Button isIconOnly size="sm" variant="ghost" onPress={toggleFullscreen} aria-label={resolvedFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
                                 {resolvedFullscreen ? <Minimize size={13} /> : <Maximize size={13} />}
                             </Button>
                             <div className="mx-1 h-4 w-px bg-[var(--border)]" />
                             {selectedAnnotationId && !suppressAnnotations && (
-                                <Button size="sm" variant="light" onPress={() => setShowComposer(!showComposer)}
-                                    startContent={<MessageSquare size={13} />}>
+                                <Button size="sm" variant="ghost" onPress={() => setShowComposer(!showComposer)}>
+                                    <MessageSquare size={13} />
                                     Remark
                                 </Button>
                             )}
-                            <Button isIconOnly size="sm" variant="light" as="a" href={downloadUrl} target="_blank" rel="noopener noreferrer" aria-label="Download">
+                            <a href={downloadUrl} target="_blank" rel="noopener noreferrer"
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--accent)]/10"
+                                aria-label="Download">
                                 <Download size={13} />
-                            </Button>
+                            </a>
                         </div>
                     </>
                 )}
@@ -593,15 +596,15 @@ export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, 
                 {isSupported(mimeType) && (
                     <Suspense fallback={null}>
                         <DesignAnnotationLayer containerRef={containerRef}
-                            annotations={annotations} activeTool={activeTool}
+                            annotations={annotations} activeTool={resolvedActiveTool}
                             onAnnotationCreated={handleAnnotationCreated}
                             onAnnotationSelect={setSelectedAnnotationId}
                             onAnnotationDelete={handleAnnotationDelete}
                             selectedId={selectedAnnotationId}
                             readOnly={readOnly}
                             viewerFrame={viewerFrame}
-                            onViewerZoom={handleViewerZoom}
-                            onViewerPan={handleViewerPan}
+                            onViewerZoom={handleZoomAroundPoint}
+                            onViewerPan={handlePanBy}
                             pageShellRef={pageShellEl ? { current: pageShellEl } : undefined} />
                     </Suspense>
                 )}

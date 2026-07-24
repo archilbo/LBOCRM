@@ -11,7 +11,7 @@ import type { ProjectDesignAsset, ProjectDesignFile } from '@/features/project-d
 
 export type { ResolvedViewer, ViewerType } from '../utils/viewerResolver';
 
-export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUploadDerivative, onOpenReviewAsset, activeAssetId: externalAssetId, onAssetChange, pageNumber, onPageNumberChange, viewerToolbar, onControlsReady }: {
+export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUploadDerivative, onOpenReviewAsset, activeAssetId: externalAssetId, onAssetChange, pageNumber, onPageNumberChange, viewerToolbar, onControlsReady, onTotalPages }: {
     assets: ProjectDesignAsset[];
     dossierId: number;
     versionId: number;
@@ -24,6 +24,7 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
     onPageNumberChange?: (page: number) => void;
     viewerToolbar?: ProjectDesignEditorToolbarState;
     onControlsReady?: (controls: { fitWidth: () => void; fitPage: () => void }) => void;
+    onTotalPages?: (n: number) => void;
 }) {
     const [internalAssetId, setInternalAssetId] = useState<number | null>(null);
     const activeAssetId = externalAssetId ?? internalAssetId;
@@ -68,6 +69,7 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
                         onPageNumberChange={onPageNumberChange}
                         viewerToolbar={viewerToolbar}
                         onControlsReady={onControlsReady}
+                        onTotalPages={onTotalPages}
                     />
                 );
             case 'converting':

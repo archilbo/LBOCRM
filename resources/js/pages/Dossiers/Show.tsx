@@ -182,39 +182,14 @@ export default function DossierShow({
 
     useEffect(() => {
         const root = document.documentElement;
-        if (activeTab === 'project-design') {
-            root.classList.add('pd-editor-active');
+        const isEditorOpen = activeTab === 'project-design' && pdState.mode === 'files' && pdState.file !== '';
+        if (isEditorOpen) {
+            root.classList.add('pd-editor-workspace-open');
         } else {
-            root.classList.remove('pd-editor-active');
+            root.classList.remove('pd-editor-workspace-open');
         }
-        return () => root.classList.remove('pd-editor-active');
-    }, [activeTab]);
-
-    useEffect(() => {
-        if (activeTab !== 'project-design') return;
-        const style = document.createElement('style');
-        style.id = 'pd-editor-styles';
-        style.textContent = `
-            html.pd-editor-active,
-            html.pd-editor-active body,
-            html.pd-editor-active body > div:first-child {
-                overflow: hidden;
-                height: 100%;
-            }
-            html.pd-editor-active main {
-                overflow: hidden !important;
-            }
-            html.pd-editor-active main > div:first-child {
-                display: flex;
-                flex-direction: column;
-                flex: 1;
-                min-height: 0;
-                padding-bottom: 0 !important;
-            }
-        `;
-        document.head.appendChild(style);
-        return () => { const s = document.getElementById('pd-editor-styles'); if (s) s.remove(); };
-    }, [activeTab]);
+        return () => root.classList.remove('pd-editor-workspace-open');
+    }, [activeTab, pdState.mode, pdState.file]);
 
     function pushQuery(overrides: Record<string, string>) {
         const p = new URLSearchParams(window.location.search);
@@ -389,89 +364,92 @@ export default function DossierShow({
             <Head title={dossier.dossierNumber} />
 
             <AppShell>
-                {/* ── Page header ── */}
-                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <button type="button" onClick={() => router.visit('/dossiers')}
-                            className="mb-2 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--foreground)]">
-                            <ArrowLeft size={13} />
-                            Back to Projects
-                        </button>
-                        <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">
-                            {dossier.projectObject || dossier.dossierNumber}
-                        </h1>
-                        <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-                            {dossier.dossierNumber} / {dossier.clientName}
-                        </p>
+                <div className="app-shell-content dossier-show-root h-full min-h-0 flex flex-col">
+                <div className="pd-page-chrome">
+                    {/* ── Page header ── */}
+                    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <button type="button" onClick={() => router.visit('/dossiers')}
+                                className="mb-2 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--foreground)]">
+                                <ArrowLeft size={13} />
+                                Back to Projects
+                            </button>
+                            <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">
+                                {dossier.projectObject || dossier.dossierNumber}
+                            </h1>
+                            <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+                                {dossier.dossierNumber} / {dossier.clientName}
+                            </p>
+                        </div>
+
                     </div>
 
-                </div>
-
-                {/* ── Hero summary card ── */}
-                <div className="mb-5 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-                    <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="flex min-w-0 items-start gap-3.5">
-                            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]">
-                                <FolderKanban size={20} />
-                            </div>
-                            <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                    <StatusPill label={dossier.status} color={dossierStatusColor(dossier.status)} size="sm" />
-                                    <StatusPill label={workflowLabel(selectedStep?.key ?? dossier.workflowStep)} color="primary" size="sm" />
+                    {/* ── Hero summary card ── */}
+                    <div className="mb-5 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex min-w-0 items-start gap-3.5">
+                                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]">
+                                    <FolderKanban size={20} />
                                 </div>
-                                <p className="mt-1.5 text-[13px] text-[var(--foreground)]">
-                                    {dossier.clientName} · {dossier.dossierNumber}
-                                </p>
+                                <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <StatusPill label={dossier.status} color={dossierStatusColor(dossier.status)} size="sm" />
+                                        <StatusPill label={workflowLabel(selectedStep?.key ?? dossier.workflowStep)} color="primary" size="sm" />
+                                    </div>
+                                    <p className="mt-1.5 text-[13px] text-[var(--foreground)]">
+                                        {dossier.clientName} · {dossier.dossierNumber}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="grid gap-x-6 gap-y-1 text-[12px] text-[var(--text-muted)] sm:grid-cols-2 sm:text-right">
+                                <span>{dossier.clientNumber} / {dossier.clientCin}</span>
+                                <span>{[dossier.province, dossier.commune].filter(Boolean).join(', ') || '-'}</span>
+                                <span>Opened: {dossier.openedAt || '-'}</span>
+                                <span>Updated: {dossier.updatedAt || '-'}</span>
                             </div>
                         </div>
-                        <div className="grid gap-x-6 gap-y-1 text-[12px] text-[var(--text-muted)] sm:grid-cols-2 sm:text-right">
-                            <span>{dossier.clientNumber} / {dossier.clientCin}</span>
-                            <span>{[dossier.province, dossier.commune].filter(Boolean).join(', ') || '-'}</span>
-                            <span>Opened: {dossier.openedAt || '-'}</span>
-                            <span>Updated: {dossier.updatedAt || '-'}</span>
+                        <div className="flex flex-wrap gap-1.5 border-t border-[var(--border)] px-4 py-2.5">
+                            <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => router.visit(`/clients/${dossier.clientId}`)}>
+                                <UserRound size={13} /> Open client
+                            </AppButton>
+                            <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => setEditDrawerOpen(true)}>
+                                <Pencil size={13} /> Edit
+                            </AppButton>
+                            <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => { setEditContract(null); setContractDrawerOpen(true); }}>
+                                <FileText size={13} /> Contract
+                            </AppButton>
+                            <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => setDocumentDrawerOpen(true)}>
+                                <FileCheck2 size={13} /> Documents
+                            </AppButton>
                         </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 border-t border-[var(--border)] px-4 py-2.5">
-                        <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => router.visit(`/clients/${dossier.clientId}`)}>
-                            <UserRound size={13} /> Open client
-                        </AppButton>
-                        <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => setEditDrawerOpen(true)}>
-                            <Pencil size={13} /> Edit
-                        </AppButton>
-                        <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => { setEditContract(null); setContractDrawerOpen(true); }}>
-                            <FileText size={13} /> Contract
-                        </AppButton>
-                        <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => setDocumentDrawerOpen(true)}>
-                            <FileCheck2 size={13} /> Documents
-                        </AppButton>
-                    </div>
-                </div>
 
-                {/* ── Workflow stepper ── */}
-                <div className="mb-5 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-                    <div className="px-4 sm:px-5">
-                        <ProjectWorkflowStepper
-                            steps={workflow.steps}
-                            currentStep={workflow.currentStep}
-                            completed={workflow.completed}
-                            total={workflow.total}
-                            onStepClick={(key) => { setSelectedStepKey(key); handleTabChange('workflow'); }}
-                        />
+                    {/* ── Workflow stepper ── */}
+                    <div className="mb-5 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                        <div className="px-4 sm:px-5">
+                            <ProjectWorkflowStepper
+                                steps={workflow.steps}
+                                currentStep={workflow.currentStep}
+                                completed={workflow.completed}
+                                total={workflow.total}
+                                onStepClick={(key) => { setSelectedStepKey(key); handleTabChange('workflow'); }}
+                            />
+                        </div>
                     </div>
-                </div>
 
-                {/* ── Metrics row ── */}
-                <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                    <MetricCard label="Documents" value={documents.length} hint="Linked files" icon={FileCheck2} />
-                    <MetricCard label="Finance total" value={money(totalFinance)} hint="All records" icon={BadgeDollarSign} color="text-[var(--foreground)]" />
-                    <MetricCard label="Paid" value={money(paidFinance)} hint="Collected" icon={ReceiptText} color="text-emerald-500" />
-                    <MetricCard label="Remaining" value={money(remainingFinance)} hint="Still due" icon={Landmark} color="text-amber-500" />
-                    <MetricCard label="Contract" value={contract ? contractStatusLabels[resolvedContractStatus] || contract.status : 'Aucun'} hint={contract ? `${money(contract.ttc)}` : '-'} icon={FileText} color={contract ? (contractStatusColors[resolvedContractStatus] || '') : ''} />
-                    <MetricCard label="Authorization" value={authorization ? authorization.status : 'None'} hint={authorization?.authorityName || '-'} icon={ShieldCheck} />
+                    {/* ── Metrics row ── */}
+                    <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+                        <MetricCard label="Documents" value={documents.length} hint="Linked files" icon={FileCheck2} />
+                        <MetricCard label="Finance total" value={money(totalFinance)} hint="All records" icon={BadgeDollarSign} color="text-[var(--foreground)]" />
+                        <MetricCard label="Paid" value={money(paidFinance)} hint="Collected" icon={ReceiptText} color="text-emerald-500" />
+                        <MetricCard label="Remaining" value={money(remainingFinance)} hint="Still due" icon={Landmark} color="text-amber-500" />
+                        <MetricCard label="Contract" value={contract ? contractStatusLabels[resolvedContractStatus] || contract.status : 'Aucun'} hint={contract ? `${money(contract.ttc)}` : '-'} icon={FileText} color={contract ? (contractStatusColors[resolvedContractStatus] || '') : ''} />
+                        <MetricCard label="Authorization" value={authorization ? authorization.status : 'None'} hint={authorization?.authorityName || '-'} icon={ShieldCheck} />
+                    </div>
                 </div>
 
                 {/* ── Tabs ── */}
-                <div className={`overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm ${activeTab === 'project-design' ? 'flex flex-1 flex-col min-h-0' : ''}`}>
+                <div className={`pd-tabs-container overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm ${activeTab === 'project-design' ? 'flex flex-1 flex-col min-h-0' : ''}`}>
                     <div ref={tabsRef} className="flex overflow-x-auto border-b border-[var(--border)] shrink-0">
                         {TABS.map((tab) => (
                             <button key={tab.id} type="button" onClick={() => handleTabChange(tab.id)}
@@ -568,6 +546,7 @@ export default function DossierShow({
                     onOpenChange={setArchiveDrawerOpen}
                     onSubmit={handleArchiveSubmit}
                 />
+                </div>
             </AppShell>
         </>
     );

@@ -645,6 +645,76 @@ body.login-no-scroll #app {
     overflow: hidden !important;
 }
 
+/* =============================================
+   Project Design Editor — shell and scroll
+   ============================================= */
+
+/* Editor workspace open — prevent page scroll, let editor own viewport */
+html.pd-editor-workspace-open,
+html.pd-editor-workspace-open body,
+html.pd-editor-workspace-open .app-shell-content {
+    overflow: hidden;
+    height: 100%;
+}
+
+html.pd-editor-workspace-open .dossier-show-root {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    max-height: 100%;
+    padding-bottom: 0 !important;
+}
+
+html.pd-editor-workspace-open .dossier-show-root .pd-tabs-container {
+    flex: 1;
+    min-height: 0;
+}
+
+/* Editor fullscreen — hide page chrome */
+html.pd-editor-fullscreen .pd-page-chrome {
+    display: none !important;
+}
+
+html.pd-editor-fullscreen .dossier-show-root {
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+html.pd-editor-fullscreen .pd-tabs-container {
+    margin-top: 0 !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+}
+
+/* Left file browser — no horizontal scrollbar */
+.pd-browser-panel {
+    overflow-x: hidden;
+}
+
+/* Left-side AppDrawer panel */
+.app-drawer-panel-left {
+    width: min(100vw, 520px);
+    height: 100%;
+    background: var(--surface);
+    color: var(--foreground);
+    border-right: 1px solid var(--border);
+    box-shadow: 24px 0 60px rgb(15 23 42 / 0.18);
+    outline: none;
+}
+
+.app-drawer-panel {
+    width: min(100vw, 520px);
+    height: 100%;
+    background: var(--surface);
+    color: var(--foreground);
+    border-left: 1px solid var(--border);
+    box-shadow: -24px 0 60px rgb(15 23 42 / 0.18);
+    outline: none;
+}
+
 /* Finance tables share one dense, readable operational pattern. */
 .finance-table-shell {
     min-width: 0;
