@@ -1,4 +1,5 @@
-﻿import { useId, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+
 import { Drawer } from '@heroui/react';
 import { X } from 'lucide-react';
 
@@ -37,8 +38,8 @@ type AppDrawerProps = {
     hideCloseButton?: boolean;
 
     /**
-     * Temporary compatibility adapter for existing AppDrawer callers.
-     * These classes are mapped to HeroUI v3 compound elements.
+     * Compatibility bridge for existing callers that still pass the
+     * previous shared AppDrawer classNames object.
      */
     classNames?: AppDrawerClassNames;
 };
@@ -71,8 +72,7 @@ export function AppDrawer({
     hideCloseButton = false,
     classNames,
 }: AppDrawerProps) {
-    const headingId = useId();
-    const hasHeader = !hideHeader && Boolean(title || description || headerIcon);
+    const showHeader = !hideHeader && Boolean(title || description || headerIcon);
 
     return (
         <Drawer>
@@ -95,12 +95,10 @@ export function AppDrawer({
                     )}
                 >
                     <Drawer.Dialog
-                        aria-labelledby={hasHeader && title ? headingId : undefined}
-                        aria-label={!hasHeader || !title ? title ?? 'Drawer' : undefined}
+                        aria-label={title ?? 'Drawer'}
                         className={cn(
                             'relative flex h-dvh max-h-dvh min-h-0 max-w-full flex-col',
-                            'overflow-hidden rounded-none',
-                            'bg-[var(--surface)] text-[var(--foreground)]',
+                            'overflow-hidden rounded-none bg-[var(--surface)] text-[var(--foreground)]',
                             placement === 'left'
                                 ? 'border-r border-[var(--border)] shadow-[24px_0_60px_rgb(0_0_0_/_0.28)]'
                                 : 'border-l border-[var(--border)] shadow-[-24px_0_60px_rgb(0_0_0_/_0.28)]',
@@ -125,7 +123,7 @@ export function AppDrawer({
                             </Drawer.CloseTrigger>
                         ) : null}
 
-                        {hasHeader ? (
+                        {showHeader ? (
                             <Drawer.Header
                                 className={cn(
                                     'shrink-0 border-b border-[var(--border)] px-5 py-4 pr-14',
@@ -135,22 +133,14 @@ export function AppDrawer({
                             >
                                 <div className="flex min-w-0 items-start gap-3">
                                     {headerIcon ? (
-                                        <span
-                                            className={cn(
-                                                'flex size-9 shrink-0 items-center justify-center',
-                                                'rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]',
-                                            )}
-                                        >
+                                        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
                                             {headerIcon}
                                         </span>
                                     ) : null}
 
                                     <div className="min-w-0 flex-1">
                                         {title ? (
-                                            <Drawer.Heading
-                                                id={headingId}
-                                                className="truncate text-base font-semibold text-[var(--foreground)]"
-                                            >
+                                            <Drawer.Heading className="truncate text-base font-semibold text-[var(--foreground)]">
                                                 {title}
                                             </Drawer.Heading>
                                         ) : null}
@@ -167,9 +157,7 @@ export function AppDrawer({
 
                         <Drawer.Body
                             className={cn(
-                                'app-scrollbar min-h-0 flex-1',
-                                'overflow-x-hidden overflow-y-auto',
-                                'px-5 py-4',
+                                'app-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-4',
                                 classNames?.body,
                                 contentClassName,
                             )}
@@ -182,8 +170,7 @@ export function AppDrawer({
                         {footer ? (
                             <Drawer.Footer
                                 className={cn(
-                                    'shrink-0 border-t border-[var(--border)]',
-                                    'bg-[var(--surface)] px-5 py-3',
+                                    'shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-3',
                                     classNames?.footer,
                                     footerClassName,
                                 )}
