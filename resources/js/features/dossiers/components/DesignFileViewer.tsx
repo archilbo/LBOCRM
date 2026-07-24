@@ -22,6 +22,7 @@ import {
     ZoomOut,
 } from 'lucide-react';
 import { Button } from '@heroui/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { DesignAnnotationToolbar } from './DesignAnnotationToolbar';
 import type {
@@ -29,8 +30,10 @@ import type {
     ProjectDesignAnnotationToolbarState,
     ProjectDesignEditorToolbarState,
 } from '@/features/project-design/components/ProjectDesignEditorToolbar';
-import { DesignRemarkComposer } from './DesignRemarkComposer';
+import type { DesignRemarkDraft } from './DesignRemarkComposer';
 import { projectDesignApi } from '@/features/project-design/api/projectDesignApi';
+import { projectDesignKeys } from '@/features/project-design/api/projectDesignKeys';
+import type { ProjectDesignRemark } from '@/features/project-design/types/projectDesign';
 import { fitPage, fitWidth, zoomToPoint } from '../utils/viewport';
 import type { ViewerFrame } from './DesignAnnotationLayer';
 
@@ -158,6 +161,18 @@ function buildGeometry(
     return geometry;
 }
 
+function mapProjectDesignRemark(remark: ProjectDesignRemark): NonNullable<AnnotationShape['remark']> {
+    return {
+        id: remark.id,
+        severity: remark.severity,
+        status: remark.status,
+        title: remark.title,
+        description: remark.description,
+        createdBy: remark.createdBy,
+        createdAt: remark.createdAt,
+    };
+}
+
 function ViewerLoading() {
     return (
         <div className="flex h-full flex-col items-center justify-center gap-2 bg-[#101214]">
@@ -283,6 +298,7 @@ export function DesignFileViewer({
     onTotalPages,
     onToolbarStateChange,
 }: DesignFileViewerProps) {
+    const queryClient = useQueryClient();
     const [annotations, setAnnotations] = useState<AnnotationShape[]>([]);
     const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
     const [showComposer, setShowComposer] = useState(false);
@@ -407,6 +423,9 @@ export function DesignFileViewer({
     ), [resolvedActiveTool, spaceHeld]);
 
     const handleViewerPointerDownCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        const target = event.target as HTMLElement;
+        if (target.closest('[data-project-design-annotation-popup]')) return;
+
         workspaceRef.current?.focus({ preventScroll: true });
         if (!shouldStartPan(event)) return;
 
@@ -453,6 +472,9 @@ export function DesignFileViewer({
         if (!viewer) return;
 
         const handleWheel = (event: WheelEvent) => {
+            const target = event.target as HTMLElement;
+            if (target.closest('[data-project-design-annotation-popup]')) return;
+
             event.preventDefault();
 
             if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
@@ -719,11 +741,7 @@ export function DesignFileViewer({
         viewerFrame.pageWidth,
     ]);
 
-    const handleAnnotationSave = useCallback(async (data: {
-        severity: string;
-        title: string;
-        description: string;
-    }) => {
+    const handleAnnotationSave = useCallback(async (data: DesignRemarkDraft) => {
         const shapeId = composerAnnotationId.current;
         const shape = pendingShapeRef.current
             ?? annotations.find((annotation) => annotation.id === shapeId);
@@ -737,25 +755,46 @@ export function DesignFileViewer({
         try {
             const context = requireExactContext();
             const annotationId = await saveSingleAnnotation(shape);
-            await projectDesignApi.createRemark(
-                context.dossierId,
-                context.versionId,
-                annotationId,
-                data,
-            );
+            const savedRemark = shape.remark?.id
+                ? await projectDesignApi.updateRemark(
+                    context.dossierId,
+                    shape.remark.id,
+                    data,
+                )
+                : await projectDesignApi.createRemark(
+                    context.dossierId,
+                    context.versionId,
+                    annotationId,
+                    data,
+                );
+            const localRemark = mapProjectDesignRemark(savedRemark);
 
-            toast.success('Annotation and remark saved.');
+            setAnnotations((current) => current.map((annotation) => (
+                annotation.id === shape.id
+                    ? {
+                        ...annotation,
+                        serverId: annotation.serverId ?? annotationId,
+                        remark: localRemark,
+                    }
+                    : annotation
+            )));
+
+            toast.success(shape.remark?.id ? 'Remark updated.' : 'Annotation and remark saved.');
             setShowComposer(false);
-            setSelectedAnnotationId(null);
+            setSelectedAnnotationId(shape.id);
             composerAnnotationId.current = null;
             pendingShapeRef.current = null;
             applyTool('select');
+
+            void queryClient.invalidateQueries({
+                queryKey: projectDesignKeys.all(context.dossierId),
+            });
         } catch (error) {
             toast.error((error as Error)?.message ?? 'Failed to save remark.');
         } finally {
             setSaving(false);
         }
-    }, [annotations, applyTool, requireExactContext, saveSingleAnnotation]);
+    }, [annotations, applyTool, queryClient, requireExactContext, saveSingleAnnotation]);
 
     const handleAnnotationDelete = useCallback(async (annotationId: string) => {
         const shape = annotations.find((annotation) => annotation.id === annotationId);
@@ -784,6 +823,19 @@ export function DesignFileViewer({
         pendingShapeRef.current = annotations.find((annotation) => annotation.id === selectedAnnotationId) ?? null;
         setShowComposer(true);
     }, [annotations, selectedAnnotationId]);
+
+    const closeRemarkComposer = useCallback(() => {
+        setShowComposer(false);
+        composerAnnotationId.current = null;
+        pendingShapeRef.current = null;
+    }, []);
+
+    const handleAnnotationSelect = useCallback((annotationId: string | null) => {
+        setSelectedAnnotationId(annotationId);
+        setShowComposer(false);
+        composerAnnotationId.current = null;
+        pendingShapeRef.current = null;
+    }, []);
 
     const saveFromToolbar = useCallback(() => {
         void handleAnnotationToolbarSave();
@@ -1094,13 +1146,19 @@ export function DesignFileViewer({
                             annotations={annotationsForCurrentPage}
                             activeTool={resolvedActiveTool}
                             onAnnotationCreated={handleAnnotationCreated}
-                            onAnnotationSelect={setSelectedAnnotationId}
+                            onAnnotationSelect={handleAnnotationSelect}
                             onAnnotationDelete={handleAnnotationDelete}
                             selectedId={selectedAnnotationId}
                             readOnly={resolvedActiveTool === 'select'}
                             viewerFrame={viewerFrame}
                             isPanning={isPanning}
                             spaceHeld={spaceHeld}
+                            remarkEditorOpen={showComposer}
+                            remarkSaving={saving}
+                            onRemarkCreate={openRemarkComposer}
+                            onRemarkEdit={openRemarkComposer}
+                            onRemarkSave={handleAnnotationSave}
+                            onRemarkCancel={closeRemarkComposer}
                         />
                     </Suspense>
                 ) : null}
@@ -1111,18 +1169,6 @@ export function DesignFileViewer({
                     </div>
                 ) : null}
 
-                {showComposer ? (
-                    <div className="absolute bottom-3 right-3 z-30 w-[min(360px,calc(100%-24px))]">
-                        <DesignRemarkComposer
-                            onSave={handleAnnotationSave}
-                            onCancel={() => {
-                                setShowComposer(false);
-                                composerAnnotationId.current = null;
-                                pendingShapeRef.current = null;
-                            }}
-                        />
-                    </div>
-                ) : null}
             </div>
         </div>
     );

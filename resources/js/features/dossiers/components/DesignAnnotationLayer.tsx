@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Arrow, Circle, Ellipse, Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import type Konva from 'konva';
-import { AlertTriangle, Clock, User, X } from 'lucide-react';
+import { AlertTriangle, Clock, MessageSquarePlus, Pencil, User, X } from 'lucide-react';
 import type { AnnotationTool } from '@/features/project-design/components/ProjectDesignEditorToolbar';
+import { DesignRemarkComposer } from './DesignRemarkComposer';
+import type { DesignRemarkDraft } from './DesignRemarkComposer';
 
 interface AnnotationShape {
     id: string;
@@ -144,6 +146,62 @@ function pageBounds(frame: ViewerFrame) {
     };
 }
 
+const POPUP_WIDTH = 304;
+const POPUP_MARGIN = 8;
+const POPUP_GAP = 10;
+
+function annotationAnchor(shape: AnnotationShape, frame: ViewerFrame): { x: number; y: number } {
+    if (shape.type === 'rectangle' || shape.type === 'highlight' || shape.type === 'ellipse') {
+        const bounds = rectangleBounds(shape, frame);
+        return {
+            x: bounds.x + bounds.width,
+            y: bounds.y + Math.min(Math.max(bounds.height / 2, 12), 28),
+        };
+    }
+
+    if (shape.points && shape.points.length >= 2) {
+        const screenPoints: { x: number; y: number }[] = [];
+        for (let index = 0; index < shape.points.length - 1; index += 2) {
+            screenPoints.push(docToScreen(shape.points[index], shape.points[index + 1], frame));
+        }
+        if (screenPoints.length) {
+            return {
+                x: Math.max(...screenPoints.map((point) => point.x)),
+                y: Math.min(...screenPoints.map((point) => point.y)),
+            };
+        }
+    }
+
+    return docToScreen(shape.x, shape.y, frame);
+}
+
+function popupPosition(
+    annotation: AnnotationShape,
+    frame: ViewerFrame,
+    stageSize: { width: number; height: number },
+    editorOpen: boolean,
+): { left: number; top: number; width: number; maxHeight: number } {
+    const anchor = annotationAnchor(annotation, frame);
+    const width = Math.min(POPUP_WIDTH, Math.max(1, stageSize.width - POPUP_MARGIN * 2));
+    const estimatedHeight = editorOpen ? 330 : annotation.remark ? 240 : 155;
+    const rightSide = anchor.x + POPUP_GAP + width <= stageSize.width - POPUP_MARGIN;
+    const left = rightSide
+        ? anchor.x + POPUP_GAP
+        : anchor.x - width - POPUP_GAP;
+    const availableBottom = stageSize.height - POPUP_MARGIN;
+    const top = Math.min(
+        Math.max(POPUP_MARGIN, anchor.y - 20),
+        Math.max(POPUP_MARGIN, availableBottom - estimatedHeight),
+    );
+
+    return {
+        left: Math.min(Math.max(POPUP_MARGIN, left), Math.max(POPUP_MARGIN, stageSize.width - width - POPUP_MARGIN)),
+        top,
+        width,
+        maxHeight: Math.max(1, stageSize.height - POPUP_MARGIN * 2),
+    };
+}
+
 function formatDate(iso: string | null | undefined): string {
     if (!iso) return '';
     try {
@@ -159,60 +217,123 @@ function formatDate(iso: string | null | undefined): string {
     }
 }
 
-function AnnotationInfoPopup({ annotation, onClose }: { annotation: AnnotationShape; onClose: () => void }) {
+function AnnotationInfoPopup({
+    annotation,
+    position,
+    editorOpen,
+    saving,
+    onClose,
+    onCreate,
+    onEdit,
+    onSave,
+    onCancel,
+}: {
+    annotation: AnnotationShape;
+    position: { left: number; top: number; width: number; maxHeight: number };
+    editorOpen: boolean;
+    saving: boolean;
+    onClose: () => void;
+    onCreate: () => void;
+    onEdit: () => void;
+    onSave: (draft: DesignRemarkDraft) => void;
+    onCancel: () => void;
+}) {
     const remark = annotation.remark;
 
     return (
-        <div className="pointer-events-auto absolute left-3 top-3 z-20 w-72 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]/98 shadow-2xl backdrop-blur">
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                    Annotation
-                </span>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
-                    aria-label="Close annotation details"
-                >
-                    <X size={12} />
-                </button>
-            </div>
-            <div className="space-y-2.5 px-3 py-3">
-                <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                    <User size={11} />
-                    <span>{annotation.authoredBy?.name ?? annotation.createdBy?.name ?? 'Unknown'}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                    <Clock size={11} />
-                    <span>{formatDate(annotation.createdAt)}</span>
-                </div>
-                {remark ? (
-                    <>
-                        <div className="flex items-center gap-1.5 pt-1">
-                            <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase ${SEVERITY_STYLES[remark.severity] ?? 'border-slate-500/30 bg-slate-500/20 text-slate-400'}`}>
-                                {remark.severity}
-                            </span>
-                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${STATUS_STYLES[remark.status] ?? 'bg-slate-500/20 text-slate-400'}`}>
-                                {remark.status.replace('_', ' ')}
-                            </span>
-                        </div>
-                        <div>
-                            <p className="text-[12px] font-medium text-[var(--foreground)]">{remark.title}</p>
-                            {remark.description ? (
-                                <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">{remark.description}</p>
-                            ) : null}
-                        </div>
-                        {remark.createdBy ? (
-                            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-subtle)]">
-                                <AlertTriangle size={10} />
-                                <span>by {remark.createdBy.name}</span>
+        <div
+            data-project-design-annotation-popup
+            className="pointer-events-auto absolute z-30 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]/98 p-3 shadow-2xl backdrop-blur-xl"
+            style={position}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+        >
+            {editorOpen ? (
+                <DesignRemarkComposer
+                    mode={remark ? 'edit' : 'create'}
+                    initialValue={remark ? {
+                        title: remark.title,
+                        description: remark.description ?? '',
+                        severity: remark.severity,
+                    } : undefined}
+                    saving={saving}
+                    onSave={onSave}
+                    onCancel={onCancel}
+                />
+            ) : (
+                <div className="space-y-2.5">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                                    Annotation
+                                </span>
+                                {remark ? (
+                                    <>
+                                        <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase ${SEVERITY_STYLES[remark.severity] ?? 'border-slate-500/30 bg-slate-500/20 text-slate-400'}`}>
+                                            {remark.severity}
+                                        </span>
+                                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium capitalize ${STATUS_STYLES[remark.status] ?? 'bg-slate-500/20 text-slate-400'}`}>
+                                            {remark.status.replace('_', ' ')}
+                                        </span>
+                                    </>
+                                ) : null}
                             </div>
+                            {remark ? (
+                                <p className="mt-1.5 break-words text-[12px] font-semibold leading-snug text-[var(--foreground)]">
+                                    {remark.title}
+                                </p>
+                            ) : (
+                                <p className="mt-1.5 text-[12px] font-semibold text-[var(--foreground)]">No remark yet</p>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="shrink-0 rounded-md p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+                            aria-label="Close annotation popup"
+                        >
+                            <X size={12} />
+                        </button>
+                    </div>
+
+                    {remark?.description ? (
+                        <p className="max-h-24 overflow-y-auto whitespace-pre-wrap break-words text-[10px] leading-relaxed text-[var(--text-muted)]">
+                            {remark.description}
+                        </p>
+                    ) : null}
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border)] pt-2 text-[9px] text-[var(--text-subtle)]">
+                        <span className="flex items-center gap-1">
+                            <User size={9} />
+                            {remark?.createdBy?.name ?? annotation.authoredBy?.name ?? annotation.createdBy?.name ?? 'Unknown'}
+                        </span>
+                        {remark?.createdAt ?? annotation.createdAt ? (
+                            <span className="flex items-center gap-1">
+                                <Clock size={9} />
+                                {formatDate(remark?.createdAt ?? annotation.createdAt)}
+                            </span>
                         ) : null}
-                    </>
-                ) : (
-                    <p className="text-[11px] italic text-[var(--text-subtle)]">No remark linked.</p>
-                )}
-            </div>
+                        {remark?.createdBy ? (
+                            <span className="flex items-center gap-1">
+                                <AlertTriangle size={9} />
+                                linked remark
+                            </span>
+                        ) : null}
+                    </div>
+
+                    <div className="flex justify-end">
+                        <button
+                            type="button"
+                            onClick={remark ? onEdit : onCreate}
+                            className="inline-flex h-7 items-center gap-1.5 rounded-md bg-[var(--accent)]/12 px-2.5 text-[10px] font-semibold text-[var(--accent)] transition hover:bg-[var(--accent)]/18"
+                        >
+                            {remark ? <Pencil size={11} /> : <MessageSquarePlus size={11} />}
+                            {remark ? 'Edit' : 'Add remark'}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -228,6 +349,12 @@ export function DesignAnnotationLayer({
     viewerFrame,
     isPanning,
     spaceHeld,
+    remarkEditorOpen,
+    remarkSaving,
+    onRemarkCreate,
+    onRemarkEdit,
+    onRemarkSave,
+    onRemarkCancel,
 }: {
     containerRef: React.RefObject<HTMLDivElement | null>;
     annotations: AnnotationShape[];
@@ -240,6 +367,12 @@ export function DesignAnnotationLayer({
     viewerFrame: ViewerFrame;
     isPanning?: boolean;
     spaceHeld?: boolean;
+    remarkEditorOpen?: boolean;
+    remarkSaving?: boolean;
+    onRemarkCreate?: () => void;
+    onRemarkEdit?: () => void;
+    onRemarkSave?: (draft: DesignRemarkDraft) => void;
+    onRemarkCancel?: () => void;
     pageShellRef?: React.RefObject<HTMLDivElement | null>;
 }) {
     const [stageSize, setStageSize] = useState({ width: 1, height: 1 });
@@ -250,6 +383,12 @@ export function DesignAnnotationLayer({
     const selectedAnnotation = selectedId
         ? annotations.find((annotation) => annotation.id === selectedId) ?? null
         : null;
+
+    const selectedPopupPosition = useMemo(() => (
+        selectedAnnotation
+            ? popupPosition(selectedAnnotation, viewerFrame, stageSize, Boolean(remarkEditorOpen))
+            : null
+    ), [remarkEditorOpen, selectedAnnotation, stageSize, viewerFrame]);
 
     const updateSize = useCallback(() => {
         const element = containerRef.current;
@@ -460,10 +599,20 @@ export function DesignAnnotationLayer({
                     {currentShape ? renderShape(currentShape) : null}
                 </Layer>
             </Stage>
-            {selectedAnnotation ? (
+            {selectedAnnotation && selectedPopupPosition ? (
                 <AnnotationInfoPopup
                     annotation={selectedAnnotation}
-                    onClose={() => onAnnotationSelect(null)}
+                    position={selectedPopupPosition}
+                    editorOpen={Boolean(remarkEditorOpen)}
+                    saving={Boolean(remarkSaving)}
+                    onClose={() => {
+                        onRemarkCancel?.();
+                        onAnnotationSelect(null);
+                    }}
+                    onCreate={() => onRemarkCreate?.()}
+                    onEdit={() => onRemarkEdit?.()}
+                    onSave={(draft) => onRemarkSave?.(draft)}
+                    onCancel={() => onRemarkCancel?.()}
                 />
             ) : null}
         </div>
