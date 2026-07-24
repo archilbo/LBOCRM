@@ -459,50 +459,6 @@ samp {
     background-clip: content-box;
 }
 
-/* Step 5 - Drawer and modal helpers */
-
-.app-modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    display: flex;
-    background: rgb(15 23 42 / 0.38);
-    backdrop-filter: blur(8px);
-}
-
-.app-drawer-overlay {
-    align-items: stretch;
-    justify-content: flex-end;
-}
-
-.app-dialog-overlay {
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-}
-
-.app-drawer-panel {
-    width: min(100vw, 520px);
-    height: 100%;
-    background: var(--surface);
-    color: var(--foreground);
-    border-left: 1px solid var(--border);
-    box-shadow: -24px 0 60px rgb(15 23 42 / 0.18);
-    outline: none;
-}
-
-.app-dialog-panel {
-    width: min(100vw - 2rem, 440px);
-    background: var(--surface);
-    color: var(--foreground);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-xl);
-    box-shadow:
-        0 20px 25px -5px rgb(15 23 42 / 0.18),
-        0 8px 10px -6px rgb(15 23 42 / 0.16);
-    outline: none;
-}
-
 /* =============================================
    Global shell sizing
    Body does NOT scroll — shell handles all
@@ -692,27 +648,6 @@ html.pd-editor-fullscreen .pd-tabs-container {
 /* Left file browser — no horizontal scrollbar */
 .pd-browser-panel {
     overflow-x: hidden;
-}
-
-/* Left-side AppDrawer panel */
-.app-drawer-panel-left {
-    width: min(100vw, 520px);
-    height: 100%;
-    background: var(--surface);
-    color: var(--foreground);
-    border-right: 1px solid var(--border);
-    box-shadow: 24px 0 60px rgb(15 23 42 / 0.18);
-    outline: none;
-}
-
-.app-drawer-panel {
-    width: min(100vw, 520px);
-    height: 100%;
-    background: var(--surface);
-    color: var(--foreground);
-    border-left: 1px solid var(--border);
-    box-shadow: -24px 0 60px rgb(15 23 42 / 0.18);
-    outline: none;
 }
 
 /* Finance tables share one dense, readable operational pattern. */

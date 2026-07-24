@@ -107,6 +107,8 @@ export function ProjectDrawer({
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
+            size="lg"
+            placement="left"
             title={mode === 'create' ? 'Nouveau projet' : 'Modifier le projet'}
             description={mode === 'create' ? 'Renseignez les informations du nouveau dossier.' : 'Mettez à jour les informations du dossier.'}
             footer={
@@ -140,7 +142,7 @@ export function ProjectDrawer({
                                 placeholder="Sélectionner une ville"
                             />
                         </DrawerField>
-                        <div className="grid gap-2 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             <DrawerField label="Statut" error={firstError(errors, 'status')}>
                                 <DrawerSelect
                                     value={form.status}
@@ -180,7 +182,7 @@ export function ProjectDrawer({
                             <Input type="text" value={form.projectAddress} onChange={(e) => updateField('projectAddress', e.target.value)}
                                 placeholder="Adresse du projet" className={drawerStyles.input} />
                         </DrawerField>
-                        <div className="grid gap-2 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             <DrawerField label="Province" error={firstError(errors, 'province')}>
                                 <Input type="text" value={form.province} onChange={(e) => updateField('province', e.target.value)}
                                     placeholder="Province" className={drawerStyles.input} />
@@ -194,7 +196,7 @@ export function ProjectDrawer({
                 </DrawerSection>
 
                 <DrawerSection icon={<Ruler size={12} />} title="Terrain & superficie">
-                    <div className="grid gap-2 md:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <DrawerField label="N° titre foncier" error={firstError(errors, 'land_title_number')}>
                             <Input type="text" value={form.landTitleNumber} onChange={(e) => updateField('landTitleNumber', e.target.value)}
                                 placeholder="N° titre foncier" className={drawerStyles.input} />

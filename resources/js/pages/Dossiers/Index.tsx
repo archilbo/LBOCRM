@@ -470,7 +470,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                             isOpen={!!previewDossier}
                             onOpenChange={(open) => { if (!open) setPreviewDossier(null); }}
                             title={previewDossier?.projectObject || ''}
-                            classNames={{ base: 'max-w-[480px]' }}
+                            size="md"
                         >
                             {previewDossier ? (
                                 <PreviewContent dossier={previewDossier} onEdit={openEditDrawer}
