@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Stage, Layer, Rect, Circle, Arrow, Text, Group, Line, Ellipse } from 'react-konva';
 import type Konva from 'konva';
 import { X, User, Clock, AlertTriangle } from 'lucide-react';
-import { type AnnotationTool } from './DesignAnnotationToolbar';
+import type { AnnotationTool } from './DesignAnnotationToolbar';
 
 interface AnnotationShape {
     id: string;
@@ -27,15 +27,6 @@ interface AnnotationShape {
     remark?: { id: number; severity: string; status: string; title: string; description: string | null; createdBy: { id: number; name: string } | null; createdAt: string | null } | null;
 }
 
-export interface ViewerFrame {
-    scale: number;
-    rotation: number;
-    pageX: number;
-    pageY: number;
-    pageWidth: number;
-    pageHeight: number;
-}
-
 const SEVERITY_STYLES: Record<string, string> = {
     critical: 'bg-red-500/20 text-red-400 border-red-500/30',
     major: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
@@ -52,24 +43,6 @@ const STATUS_STYLES: Record<string, string> = {
     closed: 'bg-zinc-500/20 text-zinc-400',
     reopened: 'bg-rose-500/20 text-rose-400',
 };
-
-function docToScreen(docX: number, docY: number, f: ViewerFrame): { x: number; y: number } {
-    let x = docX * f.scale;
-    let y = docY * f.scale;
-    if (f.rotation === 90) { const t = x; x = y; y = -t; }
-    else if (f.rotation === 180) { x = -x; y = -y; }
-    else if (f.rotation === 270) { const t = x; x = -y; y = t; }
-    return { x: x + f.pageX, y: y + f.pageY };
-}
-
-function screenToDoc(screenX: number, screenY: number, f: ViewerFrame): { x: number; y: number } {
-    let x = screenX - f.pageX;
-    let y = screenY - f.pageY;
-    if (f.rotation === 90) { const t = x; x = -y; y = t; }
-    else if (f.rotation === 180) { x = -x; y = -y; }
-    else if (f.rotation === 270) { const t = x; x = y; y = -t; }
-    return { x: x / f.scale, y: y / f.scale };
-}
 
 function formatDate(iso: string | null | undefined): string {
     if (!iso) return '';
@@ -124,8 +97,27 @@ function AnnotationInfoPopup({ annotation, onClose }: { annotation: AnnotationSh
     );
 }
 
-export function DesignAnnotationLayer({ containerRef, annotations, activeTool, onAnnotationCreated, onAnnotationSelect, onAnnotationDelete, selectedId, readOnly, viewerFrame, onViewerZoom, onViewerPan, pageShellRef }: {
-    containerRef: React.RefObject<HTMLDivElement | null>;
+function applyRotation(x: number, y: number, rotation: number, rw: number, rh: number): { x: number; y: number } {
+    const m = new DOMMatrix(`rotate(${rotation}deg)`);
+    const cx = rw / 2;
+    const cy = rh / 2;
+    const tx = x - cx;
+    const ty = y - cy;
+    const p = m.transformPoint({ x: tx, y: ty });
+    return { x: p.x + cx, y: p.y + cy };
+}
+
+function unapplyRotation(x: number, y: number, rotation: number, rw: number, rh: number): { x: number; y: number } {
+    const m = new DOMMatrix(`rotate(${-rotation}deg)`);
+    const cx = rw / 2;
+    const cy = rh / 2;
+    const tx = x - cx;
+    const ty = y - cy;
+    const p = m.transformPoint({ x: tx, y: ty });
+    return { x: p.x + cx, y: p.y + cy };
+}
+
+export function DesignAnnotationLayer({ annotations, activeTool, onAnnotationCreated, onAnnotationSelect, onAnnotationDelete, selectedId, readOnly, renderedWidth, renderedHeight, rotation, zoom, pageShellRef, panPointerEventsDisabled }: {
     annotations: AnnotationShape[];
     activeTool: AnnotationTool;
     onAnnotationCreated: (shape: AnnotationShape) => void;
@@ -133,50 +125,44 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
     onAnnotationDelete?: (id: string) => void;
     selectedId: string | null;
     readOnly?: boolean;
-    viewerFrame: ViewerFrame;
-    onViewerZoom?: (delta: number, cx: number, cy: number) => void;
-    onViewerPan?: (dx: number, dy: number) => void;
+    renderedWidth: number;
+    renderedHeight: number;
+    rotation: number;
+    zoom: number;
     pageShellRef?: React.RefObject<HTMLDivElement | null>;
+    panPointerEventsDisabled: boolean;
 }) {
-    const [stageSize, setStageSize] = useState({ width: 800, height: 600, offsetX: 0, offsetY: 0 });
+    const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
     const [drawing, setDrawing] = useState(false);
-    const [isMiddlePanning, setIsMiddlePanning] = useState(false);
-    const [isLeftPanning, setIsLeftPanning] = useState(false);
     const [currentShape, setCurrentShape] = useState<AnnotationShape | null>(null);
     const stageRef = useRef<Konva.Stage>(null);
-    const frameRef = useRef(viewerFrame);
-    const panStartRef = useRef({ x: 0, y: 0 });
-    frameRef.current = viewerFrame;
     const selectedAnnotation = selectedId ? annotations.find((a) => a.id === selectedId) ?? null : null;
+
+    const rotRef = useRef(rotation);
+    const zoomRef = useRef(zoom);
+    const rwRef = useRef(renderedWidth);
+    const rhRef = useRef(renderedHeight);
+    useEffect(() => { rotRef.current = rotation; }, [rotation]);
+    useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+    useEffect(() => { rwRef.current = renderedWidth; }, [renderedWidth]);
+    useEffect(() => { rhRef.current = renderedHeight; }, [renderedHeight]);
 
     const updateSize = useCallback(() => {
         const shell = pageShellRef?.current;
-        const container = containerRef.current;
-        if (shell && container) {
-            const cr = container.getBoundingClientRect();
-            const sr = shell.getBoundingClientRect();
-            setStageSize({
-                width: Math.round(sr.width),
-                height: Math.round(sr.height),
-                offsetX: Math.round(sr.left - cr.left),
-                offsetY: Math.round(sr.top - cr.top),
-            });
-        } else {
-            const el = containerRef.current;
-            if (!el) return;
-            const rect = el.getBoundingClientRect();
-            setStageSize({ width: rect.width, height: rect.height, offsetX: 0, offsetY: 0 });
+        if (shell) {
+            const rect = shell.getBoundingClientRect();
+            setStageSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
         }
-    }, [containerRef, pageShellRef]);
+    }, [pageShellRef]);
 
     useEffect(() => {
-        const el = pageShellRef?.current ?? containerRef.current;
+        const el = pageShellRef?.current;
         if (!el) return;
         const obs = new ResizeObserver(() => { updateSize(); });
         obs.observe(el);
         updateSize();
         return () => obs.disconnect();
-    }, [containerRef, pageShellRef, updateSize]);
+    }, [pageShellRef, updateSize]);
 
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
@@ -190,35 +176,34 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selectedId, onAnnotationDelete]);
 
-    const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
-        e.evt.preventDefault();
-        const stage = stageRef.current;
-        if (!stage) return;
-        const rect = stage.container().getBoundingClientRect();
-        onViewerZoom?.(e.evt.deltaY > 0 ? -1 : 1, e.evt.clientX - rect.left, e.evt.clientY - rect.top);
-    }, [onViewerZoom]);
-
-    function toDoc(clientX: number, clientY: number): { x: number; y: number } {
-        const stage = stageRef.current;
-        if (!stage) return { x: 0, y: 0 };
-        const pos = stage.getPointerPosition();
-        if (!pos) return { x: 0, y: 0 };
-        return screenToDoc(pos.x, pos.y, frameRef.current);
+    function fromNormalized(nx: number, ny: number, z: number, r: number): { x: number; y: number } {
+        let x = nx * z;
+        let y = ny * z;
+        if (r !== 0) {
+            const rot = applyRotation(x, y, r, renderedWidth, renderedHeight);
+            x = rot.x;
+            y = rot.y;
+        }
+        return { x, y };
     }
 
+    const toNormalized = useCallback(function toNormalized(stageX: number, stageY: number, z: number, r: number, rw: number, rh: number): { x: number; y: number } {
+        let x = stageX / z;
+        let y = stageY / z;
+        if (r !== 0) {
+            const unrot = unapplyRotation(x * z, y * z, r, rw, rh);
+            x = unrot.x / z;
+            y = unrot.y / z;
+        }
+        if (rw > 0 && rh > 0) {
+            return { x: x / rw * rw, y: y / rh * rh };
+        }
+        return { x, y };
+    }, []);
+
     const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-        if (e.evt.button === 1) {
-            e.evt.preventDefault();
-            setIsMiddlePanning(true);
-            panStartRef.current = { x: e.evt.clientX, y: e.evt.clientY };
-            return;
-        }
-        if (activeTool === 'pan') {
-            e.evt.preventDefault();
-            setIsLeftPanning(true);
-            panStartRef.current = { x: e.evt.clientX, y: e.evt.clientY };
-            return;
-        }
+        if (e.evt.button === 1) return;
+        if (activeTool === 'pan' || panPointerEventsDisabled) return;
         if (readOnly) {
             if (e.target === e.target.getStage()) onAnnotationSelect(null);
             return;
@@ -228,34 +213,33 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
             if (clickedOnEmpty) onAnnotationSelect(null);
             return;
         }
-        const pos = toDoc(e.evt.clientX, e.evt.clientY);
+        const stage = stageRef.current;
+        if (!stage) return;
+        const pos = stage.getPointerPosition();
+        if (!pos) return;
+        const np = toNormalized(pos.x, pos.y, zoomRef.current, rotRef.current, rwRef.current, rhRef.current);
         setDrawing(true);
-        setCurrentShape({ id: 'drawing', type: activeTool, x: pos.x, y: pos.y, color: '#eab308' });
-    }, [activeTool, readOnly, onAnnotationSelect]);
+        setCurrentShape({ id: 'drawing', type: activeTool, x: np.x, y: np.y, color: '#eab308' });
+    }, [activeTool, readOnly, onAnnotationSelect, panPointerEventsDisabled, toNormalized]);
 
-    const handleMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-        if (isMiddlePanning || isLeftPanning) {
-            const dx = e.evt.clientX - panStartRef.current.x;
-            const dy = e.evt.clientY - panStartRef.current.y;
-            panStartRef.current = { x: e.evt.clientX, y: e.evt.clientY };
-            onViewerPan?.(dx, dy);
-            return;
-        }
+    const handleMouseMove = useCallback((_e: Konva.KonvaEventObject<MouseEvent>) => {
         if (!drawing || !currentShape) return;
-        const pos = toDoc(e.evt.clientX, e.evt.clientY);
+        const stage = stageRef.current;
+        if (!stage) return;
+        const pos = stage.getPointerPosition();
+        if (!pos) return;
+        const np = toNormalized(pos.x, pos.y, zoomRef.current, rotRef.current, rwRef.current, rhRef.current);
         if (activeTool === 'pin' || activeTool === 'text') return;
         if (activeTool === 'rectangle' || activeTool === 'highlight' || activeTool === 'ellipse') {
-            setCurrentShape((prev) => prev ? { ...prev, width: pos.x - prev.x, height: pos.y - prev.y } : prev);
+            setCurrentShape((prev) => prev ? { ...prev, width: np.x - prev.x, height: np.y - prev.y } : prev);
         } else if (activeTool === 'arrow' || activeTool === 'line') {
-            setCurrentShape((prev) => prev ? { ...prev, points: [prev.x, prev.y, pos.x, pos.y] } : prev);
+            setCurrentShape((prev) => prev ? { ...prev, points: [prev.x, prev.y, np.x, np.y] } : prev);
         } else if (activeTool === 'freehand' || activeTool === 'cloud') {
-            setCurrentShape((prev) => prev ? { ...prev, points: [...(prev.points ?? []), pos.x, pos.y] } : prev);
+            setCurrentShape((prev) => prev ? { ...prev, points: [...(prev.points ?? []), np.x, np.y] } : prev);
         }
-    }, [isMiddlePanning, isLeftPanning, drawing, currentShape, activeTool, onViewerPan]);
+    }, [drawing, currentShape, activeTool, toNormalized]);
 
     const handleMouseUp = useCallback(() => {
-        setIsMiddlePanning(false);
-        setIsLeftPanning(false);
         if (!drawing || !currentShape) return;
         setDrawing(false);
         if (currentShape.type === 'pin' || currentShape.type === 'text') {
@@ -266,41 +250,48 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
         setCurrentShape(null);
     }, [drawing, currentShape, onAnnotationCreated]);
 
-    function renderShape(s: AnnotationShape, i: number) {
+    function renderShape(s: AnnotationShape, _i: number, z: number, r: number) {
         const isSelected = s.id === selectedId;
         const stroke = isSelected ? '#eab308' : (s.color || '#3b82f6');
         const strokeWidth = isSelected ? 2 : 1.5;
         const key = s.id;
-        const f = frameRef.current;
-        const sp = (dx: number, dy: number) => docToScreen(dx, dy, f);
 
-        if (f.pageWidth === 0 || f.pageHeight === 0) return null;
+        const stagePt = (dx: number, dy: number) => {
+            const p = fromNormalized(dx, dy, z, r);
+            return { x: p.x, y: p.y };
+        };
+
+        if (renderedWidth === 0 || renderedHeight === 0) return null;
 
         switch (s.type) {
             case 'pin': {
-                const p = sp(s.x, s.y);
+                const p = stagePt(s.x, s.y);
                 return <Circle key={key} x={p.x} y={p.y} radius={6} fill={stroke} stroke="#fff" strokeWidth={1.5} />;
             }
             case 'rectangle':
             case 'highlight': {
-                const p = sp(s.x, s.y);
-                return <Rect key={key} x={p.x} y={p.y} width={(s.width ?? 0) * f.scale} height={(s.height ?? 0) * f.scale} stroke={stroke} strokeWidth={strokeWidth} fill={s.type === 'highlight' ? `${stroke}20` : undefined} />;
+                const p = stagePt(s.x, s.y);
+                const w = (s.width ?? 0) * z;
+                const h = (s.height ?? 0) * z;
+                const { x: rx, y: ry } = r !== 0 ? applyRotation(p.x, p.y, r, renderedWidth, renderedHeight) : p;
+                return <Rect key={key} x={rx} y={ry} width={w} height={h} stroke={stroke} strokeWidth={strokeWidth} fill={s.type === 'highlight' ? `${stroke}20` : undefined} />;
             }
             case 'ellipse': {
-                const cx = sp(s.x, s.y).x + ((s.width ?? 0) * f.scale) / 2;
-                const cy = sp(s.x, s.y).y + ((s.height ?? 0) * f.scale) / 2;
-                return <Ellipse key={key} x={cx} y={cy} radiusX={Math.abs((s.width ?? 0) * f.scale) / 2} radiusY={Math.abs((s.height ?? 0) * f.scale) / 2} stroke={stroke} strokeWidth={strokeWidth} />;
+                const cx = fromNormalized(s.x + (s.width ?? 0) / 2, s.y + (s.height ?? 0) / 2, z, r);
+                const rx = Math.abs((s.width ?? 0) * z) / 2;
+                const ry = Math.abs((s.height ?? 0) * z) / 2;
+                return <Ellipse key={key} x={cx.x} y={cx.y} radiusX={rx} radiusY={ry} stroke={stroke} strokeWidth={strokeWidth} />;
             }
             case 'line': {
                 if (!s.points || s.points.length < 4) return null;
-                const a = sp(s.points[0], s.points[1]);
-                const b = sp(s.points[2], s.points[3]);
+                const a = fromNormalized(s.points[0], s.points[1], z, r);
+                const b = fromNormalized(s.points[2], s.points[3], z, r);
                 return <Line key={key} points={[a.x, a.y, b.x, b.y]} stroke={stroke} strokeWidth={strokeWidth} lineCap="round" />;
             }
             case 'arrow': {
                 if (!s.points || s.points.length < 4) return null;
-                const a = sp(s.points[0], s.points[1]);
-                const b = sp(s.points[2], s.points[3]);
+                const a = fromNormalized(s.points[0], s.points[1], z, r);
+                const b = fromNormalized(s.points[2], s.points[3], z, r);
                 return <Arrow key={key} points={[a.x, a.y, b.x, b.y]} stroke={stroke} strokeWidth={strokeWidth} fill={stroke} pointerLength={6} pointerWidth={6} />;
             }
             case 'freehand':
@@ -308,7 +299,7 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
                 if (!s.points || s.points.length < 4) return null;
                 const pts: number[] = [];
                 for (let j = 0; j < s.points.length - 1; j += 2) {
-                    const p = sp(s.points[j], s.points[j + 1]);
+                    const p = fromNormalized(s.points[j], s.points[j + 1], z, r);
                     pts.push(p.x, p.y);
                 }
                 if (s.type === 'cloud') {
@@ -324,7 +315,7 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
                 return <Line key={key} points={pts} stroke={stroke} strokeWidth={2} tension={0.5} lineCap="round" lineJoin="round" />;
             }
             case 'text': {
-                const p = sp(s.x, s.y);
+                const p = fromNormalized(s.x, s.y, z, r);
                 return <Text key={key} x={p.x} y={p.y} text="Text" fontSize={14} fill={stroke} />;
             }
             default:
@@ -333,34 +324,35 @@ export function DesignAnnotationLayer({ containerRef, annotations, activeTool, o
     }
 
     function getCursor() {
-        if (isMiddlePanning || isLeftPanning) return 'grabbing';
-        if (activeTool === 'pan') return 'grab';
+        if (activeTool === 'pan' || panPointerEventsDisabled) return 'grab';
         if (activeTool === 'select') return 'default';
         if (activeTool === 'text') return 'text';
         return 'crosshair';
     }
 
-    const stageStyle: React.CSSProperties = pageShellRef?.current
-        ? { position: 'absolute', left: stageSize.offsetX, top: stageSize.offsetY, cursor: getCursor() }
-        : { position: 'absolute', top: 0, left: 0, cursor: getCursor() };
+    const stageStyle: React.CSSProperties = {
+        position: 'absolute',
+        inset: '0px',
+        pointerEvents: panPointerEventsDisabled ? 'none' as const : 'auto' as const,
+        cursor: getCursor(),
+    };
 
     return (
-        <div className="absolute inset-0 overflow-hidden">
+        <>
             <Stage ref={stageRef} width={stageSize.width} height={stageSize.height}
                 onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}
-                onWheel={handleWheel}
                 style={stageStyle}>
                 <Layer>
                     {annotations.map((s, i) => (
                         <Group key={s.id} onClick={() => onAnnotationSelect(s.id)} onTap={() => onAnnotationSelect(s.id)}>
-                            {renderShape(s, i)}
+                            {renderShape(s, i, zoom, rotation)}
                         </Group>
                     ))}
-                    {currentShape && renderShape(currentShape, -1)}
+                    {currentShape && renderShape(currentShape, -1, zoom, rotation)}
                 </Layer>
             </Stage>
             {selectedAnnotation && <AnnotationInfoPopup annotation={selectedAnnotation} onClose={() => onAnnotationSelect(null)} />}
-        </div>
+        </>
     );
 }
 

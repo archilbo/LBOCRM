@@ -1,10 +1,10 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
 import { FolderOpen, NotebookTabs, Undo2, Loader2, FileWarning, PanelLeft, PanelRight } from 'lucide-react';
 import { Chip, Tooltip, Button } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { ProjectDesignFileBrowser } from './ProjectDesignFileBrowser';
-import { ProjectDesignEditorToolbar, type AnnotationTool } from './ProjectDesignEditorToolbar';
+import { ProjectDesignEditorToolbar } from './ProjectDesignEditorToolbar';
 import { ProjectDesignEditorLayout } from './ProjectDesignEditorLayout';
 import { ProjectDesignLayoutContext, type ProjectDesignLayoutControls } from './ProjectDesignLayoutContext';
 import { DesignReviewQueue } from '@/features/dossiers/components/DesignReviewQueue';
@@ -14,7 +14,7 @@ import { DesignViewerTabs } from '@/features/dossiers/components/DesignViewerTab
 import { DesignInspector } from '@/features/dossiers/components/DesignInspector';
 import { useFileDetail, useVersions } from '../hooks/useProjectDesignQueries';
 import { useProjectDesignViewerController } from '../viewer/useProjectDesignViewerController';
-import type { DesignMode, ProjectDesignFile } from '../types/projectDesign';
+import type { DesignMode, ProjectDesignFile, ProjectDesignAsset } from '../types/projectDesign';
 import type { WorkspaceState, WorkspaceUpdate } from '../hooks/useProjectDesignWorkspace';
 
 const MODES: { id: DesignMode; label: string }[] = [
@@ -106,10 +106,6 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
         browserAvailable: false, inspectorAvailable: false,
     });
 
-    const handleControlsReady = useCallback((controls: { fitWidth: () => void; fitPage: () => void }) => {
-        ctrl.viewerAPIRef.current = controls;
-    }, [ctrl]);
-
     useEffect(() => {
         const root = document.documentElement;
         root.classList.add('pd-editor-workspace-open');
@@ -151,7 +147,44 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
         );
     }
 
+    return <EditorWorkspaceContent
+        dossierId={dossierId}
+        selectedFile={selectedFile}
+        version={version}
+        versions={versions}
+        assets={assets}
+        activeAssetId={activeAssetId}
+        workspaceState={workspaceState}
+        onNavigate={nav}
+        ctrl={ctrl}
+        editorFullscreen={editorFullscreen}
+        setEditorFullscreen={setEditorFullscreen}
+        setLayoutControls={setLayoutControls}
+        layoutControls={layoutControls}
+        userId={userId}
+        companyId={companyId}
+    />;
+}
+
+function EditorWorkspaceContent({ dossierId, selectedFile, version, versions, assets, activeAssetId, workspaceState, onNavigate, ctrl, editorFullscreen, setEditorFullscreen, setLayoutControls, layoutControls, userId, companyId }: {
+    dossierId: number;
+    selectedFile: ProjectDesignFile;
+    version: NonNullable<ReturnType<typeof useVersions>['data']>['data'][number] | null;
+    versions: NonNullable<ReturnType<typeof useVersions>['data']>['data'];
+    assets: ProjectDesignAsset[];
+    activeAssetId?: number | null;
+    workspaceState: WorkspaceState;
+    onNavigate?: (updates: WorkspaceUpdate) => void;
+    ctrl: ReturnType<typeof useProjectDesignViewerController>;
+    editorFullscreen: boolean;
+    setEditorFullscreen: React.Dispatch<React.SetStateAction<boolean>>;
+    setLayoutControls: React.Dispatch<React.SetStateAction<ProjectDesignLayoutControls>>;
+    layoutControls: ProjectDesignLayoutControls;
+    userId: number | undefined;
+    companyId: number | null;
+}) {
     const viewerAsset = assets.find(a => a.id === activeAssetId) ?? assets[0];
+    const nav = useCallback((updates: WorkspaceUpdate) => onNavigate?.(updates), [onNavigate]);
 
     const handlePageChange = useCallback((p: number) => {
         ctrl.setPageNumber(p);
@@ -161,6 +194,16 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
     const handleFullscreenToggle = useCallback(() => {
         ctrl.toggleFullscreen();
         setEditorFullscreen((f) => !f);
+    }, [ctrl, setEditorFullscreen]);
+
+    const handleSave = useCallback(async () => {
+        ctrl.setSaving(true);
+        try {
+            ctrl.setSaving(false);
+            ctrl.setHasUnsaved(false);
+        } catch {
+            ctrl.setSaving(false);
+        }
     }, [ctrl]);
 
     const toolbarState = {
@@ -172,22 +215,25 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
         onRotate: ctrl.rotate,
         fullscreen: ctrl.state.fullscreen,
         onFullscreenToggle: handleFullscreenToggle,
-        onFitWidth: () => ctrl.viewerAPIRef.current.fitWidth(),
-        onFitPage: () => ctrl.viewerAPIRef.current.fitPage(),
+        onFitWidth: ctrl.fitWidth,
+        onFitPage: ctrl.fitPage,
         pageNumber: ctrl.state.pageNumber,
         totalPages: ctrl.state.totalPages,
         onPageChange: handlePageChange,
         downloadUrl: viewerAsset?.downloadUrl ?? undefined,
         suppressAnnotations: false,
-        continuous: ctrl.state.continuous,
-        onContinuousToggle: ctrl.toggleContinuous,
+        continuous: false,
+        onContinuousToggle: undefined,
+        onSave: handleSave,
+        saving: ctrl.state.saving,
+        hasUnsaved: ctrl.state.hasUnsaved,
     };
 
     const handleTotalPages = useCallback((n: number) => {
         ctrl.setTotalPages(n);
         if (ctrl.state.pageNumber > n) {
             ctrl.setPageNumber(n);
-            nav({ page: String(n) });
+            nav?.({ page: String(n) });
         }
     }, [ctrl, nav]);
 
@@ -273,8 +319,11 @@ function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }
                                 pageNumber={ctrl.state.pageNumber}
                                 onPageNumberChange={handlePageChange}
                                 viewerToolbar={toolbarState}
-                                onControlsReady={handleControlsReady}
                                 onTotalPages={handleTotalPages}
+                                state={ctrl.state}
+                                dispatch={ctrl.dispatch}
+                                interactionHandlers={ctrl.interactionHandlers}
+                                spaceHeldRef={ctrl.spaceHeldRef}
                             />
                         }
                         inspector={

@@ -206,7 +206,7 @@ export function ProjectDesignEditorLayout({
     };
 
     return (
-        <div className="relative h-full project-design-editor-host">
+        <div className="relative h-full project-design-editor-host" data-editor-host>
             {renderPanels()}
 
             <div className="absolute top-1 right-1 z-20">

@@ -1,34 +1,35 @@
-import type { ViewerFrame } from '../components/DesignAnnotationLayer';
-
 export function screenPointToNormalizedPagePoint(
     screenX: number, screenY: number,
     containerRect: DOMRect,
-    frame: ViewerFrame,
+    pageWidth: number, pageHeight: number,
+    rotation: number, scale: number,
 ): { nx: number; ny: number } {
-    const doc = screenToDoc(screenX, screenY, containerRect, frame);
+    const doc = screenToDoc(screenX, screenY, containerRect, pageWidth, pageHeight, rotation, scale);
     return {
-        nx: frame.pageWidth > 0 ? doc.x / frame.pageWidth : 0,
-        ny: frame.pageHeight > 0 ? doc.y / frame.pageHeight : 0,
+        nx: pageWidth > 0 ? doc.x / pageWidth : 0,
+        ny: pageHeight > 0 ? doc.y / pageHeight : 0,
     };
 }
 
 export function normalizedPagePointToScreenPoint(
     nx: number, ny: number,
     containerRect: DOMRect,
-    frame: ViewerFrame,
+    pageWidth: number, pageHeight: number,
+    rotation: number, scale: number,
 ): { x: number; y: number } {
-    const docX = nx * frame.pageWidth;
-    const docY = ny * frame.pageHeight;
-    return docToScreen(docX, docY, containerRect, frame);
+    const docX = nx * pageWidth;
+    const docY = ny * pageHeight;
+    return docToScreen(docX, docY, containerRect, pageWidth, pageHeight, rotation, scale);
 }
 
 export function screenRectToNormalizedPageRect(
     screenX: number, screenY: number, screenW: number, screenH: number,
     containerRect: DOMRect,
-    frame: ViewerFrame,
+    pageWidth: number, pageHeight: number,
+    rotation: number, scale: number,
 ): { nx: number; ny: number; nw: number; nh: number } {
-    const topLeft = screenPointToNormalizedPagePoint(screenX, screenY, containerRect, frame);
-    const bottomRight = screenPointToNormalizedPagePoint(screenX + screenW, screenY + screenH, containerRect, frame);
+    const topLeft = screenPointToNormalizedPagePoint(screenX, screenY, containerRect, pageWidth, pageHeight, rotation, scale);
+    const bottomRight = screenPointToNormalizedPagePoint(screenX + screenW, screenY + screenH, containerRect, pageWidth, pageHeight, rotation, scale);
     return {
         nx: topLeft.nx,
         ny: topLeft.ny,
@@ -40,10 +41,11 @@ export function screenRectToNormalizedPageRect(
 export function normalizedPageRectToScreenRect(
     nx: number, ny: number, nw: number, nh: number,
     containerRect: DOMRect,
-    frame: ViewerFrame,
+    pageWidth: number, pageHeight: number,
+    rotation: number, scale: number,
 ): { x: number; y: number; width: number; height: number } {
-    const topLeft = normalizedPagePointToScreenPoint(nx, ny, containerRect, frame);
-    const bottomRight = normalizedPagePointToScreenPoint(nx + nw, ny + nh, containerRect, frame);
+    const topLeft = normalizedPagePointToScreenPoint(nx, ny, containerRect, pageWidth, pageHeight, rotation, scale);
+    const bottomRight = normalizedPagePointToScreenPoint(nx + nw, ny + nh, containerRect, pageWidth, pageHeight, rotation, scale);
     return {
         x: topLeft.x,
         y: topLeft.y,
@@ -55,25 +57,27 @@ export function normalizedPageRectToScreenRect(
 export function screenToDoc(
     screenX: number, screenY: number,
     containerRect: DOMRect,
-    f: ViewerFrame,
+    pageWidth: number, pageHeight: number,
+    rotation: number, scale: number,
 ): { x: number; y: number } {
-    let x = screenX - containerRect.left - f.pageX;
-    let y = screenY - containerRect.top - f.pageY;
-    if (f.rotation === 90) { const t = x; x = -y; y = t; }
-    else if (f.rotation === 180) { x = -x; y = -y; }
-    else if (f.rotation === 270) { const t = x; x = y; y = -t; }
-    return { x: x / f.scale, y: y / f.scale };
+    let x = screenX - containerRect.left;
+    let y = screenY - containerRect.top;
+    if (rotation === 90) { const t = x; x = -y; y = t; }
+    else if (rotation === 180) { x = -x; y = -y; }
+    else if (rotation === 270) { const t = x; x = y; y = -t; }
+    return { x: x / scale, y: y / scale };
 }
 
 export function docToScreen(
     docX: number, docY: number,
     containerRect: DOMRect,
-    f: ViewerFrame,
+    pageWidth: number, pageHeight: number,
+    rotation: number, scale: number,
 ): { x: number; y: number } {
-    let x = docX * f.scale;
-    let y = docY * f.scale;
-    if (f.rotation === 90) { const t = x; x = y; y = -t; }
-    else if (f.rotation === 180) { x = -x; y = -y; }
-    else if (f.rotation === 270) { const t = x; x = -y; y = t; }
-    return { x: x + f.pageX + containerRect.left, y: y + f.pageY + containerRect.top };
+    let x = docX * scale;
+    let y = docY * scale;
+    if (rotation === 90) { const t = x; x = y; y = -t; }
+    else if (rotation === 180) { x = -x; y = -y; }
+    else if (rotation === 270) { const t = x; x = -y; y = t; }
+    return { x: x + containerRect.left, y: y + containerRect.top };
 }

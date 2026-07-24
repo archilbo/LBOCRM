@@ -46,3 +46,7 @@ export function zoomToPoint(
 export function extractRotation(a: number, b: number): number {
     return Math.atan2(b, a) * (180 / Math.PI);
 }
+
+export function effectiveDimensions(rotation: number, w: number, h: number): { w: number; h: number } {
+    return rotation % 180 === 0 ? { w, h } : { w: h, h: w };
+}

@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { FileText, FileImage, Box, HardDrive, Loader2, XCircle } from 'lucide-react';
-import { Chip } from '@heroui/react';
+import { FileText, Box, HardDrive, Loader2, XCircle } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { DesignFileViewer } from './DesignFileViewer';
 import type { ProjectDesignEditorToolbarState } from '@/features/project-design/components/ProjectDesignEditorToolbar';
+import type { ViewerState, ViewerAction } from '@/features/project-design/viewer/useProjectDesignViewerController';
 import { DesignSourceInfo } from './DesignSourceInfo';
 import { DesignConversionStatus } from './DesignConversionStatus';
 import { resolveProjectDesignViewer, getReviewAssets } from '../utils/viewerResolver';
@@ -11,7 +11,7 @@ import type { ProjectDesignAsset, ProjectDesignFile } from '@/features/project-d
 
 export type { ResolvedViewer, ViewerType } from '../utils/viewerResolver';
 
-export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUploadDerivative, onOpenReviewAsset, activeAssetId: externalAssetId, onAssetChange, pageNumber, onPageNumberChange, viewerToolbar, onControlsReady, onTotalPages }: {
+export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUploadDerivative, onOpenReviewAsset, activeAssetId: externalAssetId, onAssetChange, pageNumber, onPageNumberChange, viewerToolbar, onTotalPages, state, dispatch, interactionHandlers, spaceHeldRef }: {
     assets: ProjectDesignAsset[];
     dossierId: number;
     versionId: number;
@@ -23,8 +23,11 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
     pageNumber?: number;
     onPageNumberChange?: (page: number) => void;
     viewerToolbar?: ProjectDesignEditorToolbarState;
-    onControlsReady?: (controls: { fitWidth: () => void; fitPage: () => void }) => void;
     onTotalPages?: (n: number) => void;
+    state?: ViewerState;
+    dispatch?: React.Dispatch<ViewerAction>;
+    interactionHandlers?: { onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void; onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void; onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void; onPointerCancel: (e: React.PointerEvent<HTMLDivElement>) => void; onWheel: (e: React.WheelEvent<HTMLDivElement>) => void };
+    spaceHeldRef?: React.MutableRefObject<boolean>;
 }) {
     const [internalAssetId, setInternalAssetId] = useState<number | null>(null);
     const activeAssetId = externalAssetId ?? internalAssetId;
@@ -47,7 +50,6 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
     }, [categorized]);
 
     const isSourceAsset = viewer.type === 'source-fallback';
-    const isDirectView = viewer.type === 'pdf' || viewer.type === 'image';
 
     function renderContent() {
         switch (viewer.type) {
@@ -61,15 +63,17 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
                         filename={viewer.asset.originalFilename}
                         assetId={viewer.asset.id}
                         isOpen={true}
-                        onClose={() => {}}
                         versionId={versionId}
                         dossierId={dossierId}
                         suppressAnnotations={isSourceAsset}
                         pageNumber={pageNumber}
                         onPageNumberChange={onPageNumberChange}
                         viewerToolbar={viewerToolbar}
-                        onControlsReady={onControlsReady}
                         onTotalPages={onTotalPages}
+                        state={state}
+                        dispatch={dispatch}
+                        interactionHandlers={interactionHandlers}
+                        spaceHeldRef={spaceHeldRef}
                     />
                 );
             case 'converting':
@@ -106,7 +110,7 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
     }
 
     return (
-        <div className="flex h-full w-full flex-col">
+        <div className="flex h-full w-full flex-col" data-editor-host>
             {/* Asset tabs */}
             {allTabs.length > 1 && (
                 <div className="flex items-center gap-0.5 border-b border-[var(--border)] bg-[var(--surface)] px-2 py-1 overflow-x-auto">
