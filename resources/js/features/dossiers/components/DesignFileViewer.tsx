@@ -78,6 +78,7 @@ export interface AnnotationShape {
 }
 
 type Viewport = { zoom: number; panX: number; panY: number };
+type PointerPan = { active: boolean; pointerId: number; x: number; y: number };
 type StandaloneAnnotationTool = Exclude<AnnotationTool, 'pan'>;
 
 type DesignFileViewerProps = {
@@ -295,6 +296,8 @@ export function DesignFileViewer({
     const [localActiveTool, setLocalActiveTool] = useState<StandaloneAnnotationTool>('select');
     const [localFullscreen, setLocalFullscreen] = useState(false);
     const [localCurrentPage, setLocalCurrentPage] = useState(1);
+    const [spaceHeld, setSpaceHeld] = useState(false);
+    const [isPanning, setIsPanning] = useState(false);
 
     const internalContainerRef = useRef<HTMLDivElement>(null);
     const containerRef = externalContainerRef ?? internalContainerRef;
@@ -302,6 +305,7 @@ export function DesignFileViewer({
     const workspaceRef = useRef<HTMLDivElement>(null);
     const composerAnnotationId = useRef<string | null>(null);
     const pendingShapeRef = useRef<AnnotationShape | null>(null);
+    const pointerPanRef = useRef<PointerPan>({ active: false, pointerId: -1, x: 0, y: 0 });
 
     const isExternal = viewerToolbar != null;
     const resolvedZoom = isExternal ? viewerToolbar.zoom : localZoom;
@@ -311,6 +315,19 @@ export function DesignFileViewer({
     const resolvedActiveTool = isExternal ? viewerToolbar.activeTool : localActiveTool;
     const resolvedFullscreen = isExternal ? viewerToolbar.fullscreen : localFullscreen;
     const resolvedPageNumber = controlledPageNumber ?? localCurrentPage;
+    const viewportRef = useRef<Viewport>({
+        zoom: resolvedZoom,
+        panX: resolvedPanX,
+        panY: resolvedPanY,
+    });
+
+    useLayoutEffect(() => {
+        viewportRef.current = {
+            zoom: resolvedZoom,
+            panX: resolvedPanX,
+            panY: resolvedPanY,
+        };
+    }, [resolvedPanX, resolvedPanY, resolvedZoom]);
 
     const exactAnnotationContext = Boolean(
         dossierId
@@ -343,6 +360,8 @@ export function DesignFileViewer({
     }, [viewerToolbar]);
 
     const applyViewport = useCallback((viewport: Viewport) => {
+        viewportRef.current = viewport;
+
         if (viewerToolbar?.onViewportChange) {
             viewerToolbar.onViewportChange(viewport);
             return;
@@ -360,24 +379,110 @@ export function DesignFileViewer({
     }, [viewerToolbar]);
 
     const handlePanBy = useCallback((dx: number, dy: number) => {
+        const current = viewportRef.current;
         applyViewport({
-            zoom: resolvedZoom,
-            panX: resolvedPanX + dx,
-            panY: resolvedPanY + dy,
+            zoom: current.zoom,
+            panX: current.panX + dx,
+            panY: current.panY + dy,
         });
-    }, [applyViewport, resolvedPanX, resolvedPanY, resolvedZoom]);
+    }, [applyViewport]);
 
     const handleZoomAroundPoint = useCallback((delta: number, cx: number, cy: number) => {
+        const current = viewportRef.current;
         const factor = delta > 0 ? 1.1 : 0.9;
         applyViewport(zoomToPoint(
-            resolvedZoom,
+            current.zoom,
             factor,
             cx,
             cy,
-            resolvedPanX,
-            resolvedPanY,
+            current.panX,
+            current.panY,
         ));
-    }, [applyViewport, resolvedPanX, resolvedPanY, resolvedZoom]);
+    }, [applyViewport]);
+
+
+    const shouldStartPan = useCallback((event: React.PointerEvent<HTMLDivElement>) => (
+        event.button === 1
+        || (event.button === 0 && (spaceHeld || resolvedActiveTool === 'pan'))
+    ), [resolvedActiveTool, spaceHeld]);
+
+    const handleViewerPointerDownCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        workspaceRef.current?.focus({ preventScroll: true });
+        if (!shouldStartPan(event)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        pointerPanRef.current = {
+            active: true,
+            pointerId: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+        };
+        setIsPanning(true);
+    }, [shouldStartPan]);
+
+    const handleViewerPointerMoveCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        const pan = pointerPanRef.current;
+        if (!pan.active || pan.pointerId !== event.pointerId) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const dx = event.clientX - pan.x;
+        const dy = event.clientY - pan.y;
+        pointerPanRef.current = { ...pan, x: event.clientX, y: event.clientY };
+        handlePanBy(dx, dy);
+    }, [handlePanBy]);
+
+    const stopViewerPointerPan = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        const pan = pointerPanRef.current;
+        if (!pan.active || pan.pointerId !== event.pointerId) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        pointerPanRef.current = { active: false, pointerId: -1, x: 0, y: 0 };
+        setIsPanning(false);
+    }, []);
+
+    useEffect(() => {
+        const viewer = viewerAreaRef.current;
+        if (!viewer) return;
+
+        const handleWheel = (event: WheelEvent) => {
+            event.preventDefault();
+
+            if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
+                const horizontalDelta = event.deltaX !== 0 ? event.deltaX : event.deltaY;
+                handlePanBy(-horizontalDelta, 0);
+                return;
+            }
+
+            const rect = viewer.getBoundingClientRect();
+            handleZoomAroundPoint(
+                event.deltaY > 0 ? -1 : 1,
+                event.clientX - rect.left,
+                event.clientY - rect.top,
+            );
+        };
+
+        viewer.addEventListener('wheel', handleWheel, { passive: false });
+        return () => viewer.removeEventListener('wheel', handleWheel);
+    }, [handlePanBy, handleZoomAroundPoint]);
+
+    useEffect(() => {
+        const resetInteractionState = () => {
+            pointerPanRef.current = { active: false, pointerId: -1, x: 0, y: 0 };
+            setIsPanning(false);
+            setSpaceHeld(false);
+        };
+
+        window.addEventListener('blur', resetInteractionState);
+        return () => window.removeEventListener('blur', resetInteractionState);
+    }, []);
 
     const handleFitWidth = useCallback(() => {
         const viewer = viewerAreaRef.current;
@@ -737,6 +842,46 @@ export function DesignFileViewer({
         const target = event.target as HTMLElement | null;
         if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
 
+        if (event.key === ' ') {
+            event.preventDefault();
+            setSpaceHeld(true);
+            return;
+        }
+
+        if (event.key === 'PageDown') {
+            event.preventDefault();
+            handlePageChange(resolvedPageNumber + 1);
+            return;
+        }
+
+        if (event.key === 'PageUp') {
+            event.preventDefault();
+            handlePageChange(Math.max(1, resolvedPageNumber - 1));
+            return;
+        }
+
+        const panStep = event.shiftKey ? 96 : 32;
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            handlePanBy(panStep, 0);
+            return;
+        }
+        if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            handlePanBy(-panStep, 0);
+            return;
+        }
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            handlePanBy(0, panStep);
+            return;
+        }
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            handlePanBy(0, -panStep);
+            return;
+        }
+
         if ((event.key === 'Delete' || event.key === 'Backspace') && selectedAnnotationId) {
             event.preventDefault();
             void handleAnnotationDelete(selectedAnnotationId);
@@ -778,6 +923,9 @@ export function DesignFileViewer({
     }, [
         applyViewport,
         handleAnnotationDelete,
+        handlePageChange,
+        handlePanBy,
+        resolvedPageNumber,
         resolvedPanX,
         resolvedPanY,
         resolvedZoom,
@@ -785,6 +933,10 @@ export function DesignFileViewer({
         toggleStandaloneFullscreen,
         viewerToolbar,
     ]);
+
+    const handleWorkspaceKeyUp = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === ' ') setSpaceHeld(false);
+    }, []);
 
     if (!isSupported(mimeType)) return <UnsupportedViewer filename={filename} />;
 
@@ -817,9 +969,9 @@ export function DesignFileViewer({
                 rotation={resolvedRotation}
                 hideToolbar={isExternal}
                 activeTool={resolvedActiveTool}
+                isPanning={isPanning}
+                spaceHeld={spaceHeld}
                 continuous={false}
-                onZoomChange={handleZoomAroundPoint}
-                onPanChange={handlePanBy}
                 onTotalPages={onTotalPages}
             />
         </Suspense>
@@ -832,6 +984,7 @@ export function DesignFileViewer({
             tabIndex={-1}
             onPointerDown={() => workspaceRef.current?.focus({ preventScroll: true })}
             onKeyDown={handleWorkspaceKeyDown}
+            onKeyUp={handleWorkspaceKeyUp}
         >
             {!isExternal ? (
                 <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
@@ -915,7 +1068,16 @@ export function DesignFileViewer({
                 </div>
             ) : null}
 
-            <div className="relative min-h-0 flex-1 overflow-hidden" ref={viewerAreaRef}>
+            <div
+                ref={viewerAreaRef}
+                className="relative min-h-0 flex-1 overflow-hidden"
+                data-project-design-interaction-surface
+                onPointerDownCapture={handleViewerPointerDownCapture}
+                onPointerMoveCapture={handleViewerPointerMoveCapture}
+                onPointerUpCapture={stopViewerPointerPan}
+                onPointerCancelCapture={stopViewerPointerPan}
+                style={{ touchAction: 'none' }}
+            >
                 {viewContent}
 
                 {suppressAnnotations ? (
@@ -937,6 +1099,8 @@ export function DesignFileViewer({
                             selectedId={selectedAnnotationId}
                             readOnly={resolvedActiveTool === 'select'}
                             viewerFrame={viewerFrame}
+                            isPanning={isPanning}
+                            spaceHeld={spaceHeld}
                         />
                     </Suspense>
                 ) : null}

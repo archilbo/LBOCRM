@@ -19,7 +19,6 @@ const FRAME_EPSILON = 0.25;
 const RENDER_SCALE_SETTLE_MS = 140;
 
 type PageMetrics = { width: number; height: number };
-type PointerPan = { active: boolean; pointerId: number; x: number; y: number };
 
 function nearlyEqual(a: number, b: number): boolean {
     return Math.abs(a - b) <= FRAME_EPSILON;
@@ -78,8 +77,8 @@ export default function PdfDesignViewer({
     pageNumber: controlledPageNumber,
     hideToolbar,
     activeTool,
-    onZoomChange,
-    onPanChange,
+    isPanning,
+    spaceHeld,
     onTotalPages,
 }: {
     previewUrl: string;
@@ -97,10 +96,10 @@ export default function PdfDesignViewer({
     pageNumber?: number;
     hideToolbar?: boolean;
     activeTool?: string;
+    isPanning?: boolean;
+    spaceHeld?: boolean;
     /** Retained for caller compatibility. Continuous mode is intentionally not rendered. */
     continuous?: boolean;
-    onZoomChange?: (delta: number, cx: number, cy: number) => void;
-    onPanChange?: (dx: number, dy: number) => void;
     onTotalPages?: (total: number) => void;
 }) {
     const [numPages, setNumPages] = useState(0);
@@ -109,10 +108,7 @@ export default function PdfDesignViewer({
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [renderScale, setRenderScale] = useState(zoom);
     const [committedRenderScale, setCommittedRenderScale] = useState(zoom);
-    const [spaceHeld, setSpaceHeld] = useState(false);
-    const [isPanning, setIsPanning] = useState(false);
 
-    const viewerRef = useRef<HTMLDivElement>(null);
     const pageWrapperRef = useRef<HTMLDivElement>(null);
     const pageShellRef = useRef<HTMLDivElement>(null);
     const pageMetricsRef = useRef<PageMetrics>({ width: 0, height: 0 });
@@ -124,7 +120,6 @@ export default function PdfDesignViewer({
     });
     const lastFrameRef = useRef<ViewerFrame | null>(null);
     const frameRafRef = useRef<number | null>(null);
-    const pointerPanRef = useRef<PointerPan>({ active: false, pointerId: -1, x: 0, y: 0 });
 
     const pageNumber = controlledPageNumber ?? internalPageNumber;
     const normalizedRotation = ((rotation % 360) + 360) % 360;
@@ -238,119 +233,6 @@ export default function PdfDesignViewer({
         setPageInput('');
     }, [requestPageChange]);
 
-    useEffect(() => {
-        const element = viewerRef.current;
-        if (!element) return;
-
-        const handleWheel = (event: WheelEvent) => {
-            if (event.ctrlKey || event.metaKey) {
-                event.preventDefault();
-                const rect = element.getBoundingClientRect();
-                onZoomChange?.(
-                    event.deltaY > 0 ? -1 : 1,
-                    event.clientX - rect.left,
-                    event.clientY - rect.top,
-                );
-                return;
-            }
-
-            event.preventDefault();
-            if (event.shiftKey) {
-                const horizontal = event.deltaX !== 0 ? event.deltaX : event.deltaY;
-                onPanChange?.(-horizontal, 0);
-            } else {
-                onPanChange?.(-event.deltaX, -event.deltaY);
-            }
-        };
-
-        element.addEventListener('wheel', handleWheel, { passive: false });
-        return () => element.removeEventListener('wheel', handleWheel);
-    }, [onPanChange, onZoomChange]);
-
-    const shouldStartPan = useCallback((event: React.PointerEvent<HTMLDivElement>) => (
-        event.button === 1
-        || (event.button === 0 && (spaceHeld || activeTool === 'pan'))
-    ), [activeTool, spaceHeld]);
-
-    const handlePointerDownCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        viewerRef.current?.focus({ preventScroll: true });
-        if (!shouldStartPan(event)) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-        event.currentTarget.setPointerCapture(event.pointerId);
-        pointerPanRef.current = {
-            active: true,
-            pointerId: event.pointerId,
-            x: event.clientX,
-            y: event.clientY,
-        };
-        setIsPanning(true);
-    }, [shouldStartPan]);
-
-    const handlePointerMoveCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        const pan = pointerPanRef.current;
-        if (!pan.active || pan.pointerId !== event.pointerId) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        const dx = event.clientX - pan.x;
-        const dy = event.clientY - pan.y;
-        pointerPanRef.current = { ...pan, x: event.clientX, y: event.clientY };
-        onPanChange?.(dx, dy);
-    }, [onPanChange]);
-
-    const stopPointerPan = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        const pan = pointerPanRef.current;
-        if (!pan.active || pan.pointerId !== event.pointerId) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-        }
-        pointerPanRef.current = { active: false, pointerId: -1, x: 0, y: 0 };
-        setIsPanning(false);
-    }, []);
-
-    const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-        const target = event.target as HTMLElement | null;
-        if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
-
-        if (event.key === ' ') {
-            event.preventDefault();
-            setSpaceHeld(true);
-            return;
-        }
-
-        if (event.key === 'PageDown') {
-            event.preventDefault();
-            requestPageChange(pageNumber + 1);
-            return;
-        }
-
-        if (event.key === 'PageUp') {
-            event.preventDefault();
-            requestPageChange(pageNumber - 1);
-            return;
-        }
-
-        const panStep = event.shiftKey ? 96 : 32;
-        if (event.key === 'ArrowLeft') onPanChange?.(panStep, 0);
-        else if (event.key === 'ArrowRight') onPanChange?.(-panStep, 0);
-        else if (event.key === 'ArrowUp') onPanChange?.(0, panStep);
-        else if (event.key === 'ArrowDown') onPanChange?.(0, -panStep);
-        else return;
-
-        event.preventDefault();
-    }, [onPanChange, pageNumber, requestPageChange]);
-
-    const handleKeyUp = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-        if (event.key !== ' ') return;
-        setSpaceHeld(false);
-    }, []);
-
     const cursor = isPanning
         ? 'grabbing'
         : spaceHeld || activeTool === 'pan'
@@ -360,17 +242,7 @@ export default function PdfDesignViewer({
                 : 'crosshair';
 
     return (
-        <div
-            ref={viewerRef}
-            className="relative flex h-full w-full flex-col outline-none"
-            tabIndex={0}
-            onPointerDownCapture={handlePointerDownCapture}
-            onPointerMoveCapture={handlePointerMoveCapture}
-            onPointerUpCapture={stopPointerPan}
-            onPointerCancelCapture={stopPointerPan}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-        >
+        <div className="relative flex h-full w-full flex-col outline-none">
             {!hideToolbar ? (
                 <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
                     <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{filename}</p>

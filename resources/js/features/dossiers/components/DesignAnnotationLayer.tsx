@@ -226,6 +226,8 @@ export function DesignAnnotationLayer({
     selectedId,
     readOnly,
     viewerFrame,
+    isPanning,
+    spaceHeld,
 }: {
     containerRef: React.RefObject<HTMLDivElement | null>;
     annotations: AnnotationShape[];
@@ -236,6 +238,8 @@ export function DesignAnnotationLayer({
     selectedId: string | null;
     readOnly?: boolean;
     viewerFrame: ViewerFrame;
+    isPanning?: boolean;
+    spaceHeld?: boolean;
     pageShellRef?: React.RefObject<HTMLDivElement | null>;
 }) {
     const [stageSize, setStageSize] = useState({ width: 1, height: 1 });
@@ -422,13 +426,15 @@ export function DesignAnnotationLayer({
     }, [selectedId, viewerFrame]);
 
     const clip = useMemo(() => pageBounds(viewerFrame), [viewerFrame]);
-    const cursor = activeTool === 'pan'
-        ? 'grab'
-        : activeTool === 'select'
-            ? 'default'
-            : activeTool === 'text'
-                ? 'text'
-                : 'crosshair';
+    const cursor = isPanning
+        ? 'grabbing'
+        : spaceHeld || activeTool === 'pan'
+            ? 'grab'
+            : activeTool === 'select'
+                ? 'default'
+                : activeTool === 'text'
+                    ? 'text'
+                    : 'crosshair';
 
     return (
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
