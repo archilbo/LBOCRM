@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Group, Panel, Separator, useGroupRef, usePanelCallbackRef } from 'react-resizable-panels';
-import { Maximize2, Minimize2, Monitor, Settings2 } from 'lucide-react';
-import { Dropdown } from '@heroui/react';
-import { AppDrawer } from '@/components/ui/AppDrawer';
+import { Maximize2, Minimize2, Monitor, Settings2, X } from 'lucide-react';
+import { Drawer, Dropdown } from '@heroui/react';
+import { cn } from '@/lib/cn';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import type { ProjectDesignLayoutControls } from './ProjectDesignLayoutContext';
 
@@ -104,6 +104,61 @@ function ResizeHandle() {
     );
 }
 
+function ResponsiveDrawer({
+    isOpen,
+    onOpenChange,
+    title,
+    description,
+    children,
+    portalContainer,
+    maxWidth,
+}: {
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    title: string;
+    description: string;
+    children: ReactNode;
+    portalContainer?: HTMLElement | null;
+    maxWidth: string;
+}) {
+    return (
+        <Drawer>
+            <Drawer.Backdrop
+                isOpen={isOpen}
+                onOpenChange={onOpenChange}
+                variant="blur"
+                isDismissable
+                UNSTABLE_portalContainer={portalContainer ?? undefined}
+                className="z-[170] bg-black/65"
+            >
+                <Drawer.Content placement="right" className="z-[171] p-0">
+                    <Drawer.Dialog
+                        aria-label={title}
+                        className={cn(
+                            'flex h-dvh w-screen flex-col overflow-hidden rounded-none border-l border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-[-24px_0_70px_rgb(0_0_0_/_0.38)]',
+                            maxWidth,
+                        )}
+                    >
+                        <Drawer.Header className="relative shrink-0 border-b border-[var(--border)] px-4 py-3 pr-12">
+                            <Drawer.Heading className="text-sm font-semibold text-[var(--foreground)]">{title}</Drawer.Heading>
+                            <p className="mt-0.5 text-[10px] leading-4 text-[var(--text-muted)]">{description}</p>
+                            <Drawer.CloseTrigger
+                                aria-label={`Close ${title}`}
+                                className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-lg text-[var(--text-muted)] outline-none transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            >
+                                <X size={15} />
+                            </Drawer.CloseTrigger>
+                        </Drawer.Header>
+                        <Drawer.Body className="min-h-0 flex-1 overflow-hidden p-0">
+                            {children}
+                        </Drawer.Body>
+                    </Drawer.Dialog>
+                </Drawer.Content>
+            </Drawer.Backdrop>
+        </Drawer>
+    );
+}
+
 export function ProjectDesignEditorLayout({
     browser,
     viewer,
@@ -113,6 +168,7 @@ export function ProjectDesignEditorLayout({
     userId,
     companyId,
     onControlsChange,
+    portalContainer,
 }: {
     browser: ReactNode;
     viewer: ReactNode;
@@ -122,6 +178,7 @@ export function ProjectDesignEditorLayout({
     userId?: number | null;
     companyId?: number | null;
     onControlsChange?: (controls: ProjectDesignLayoutControls) => void;
+    portalContainer?: HTMLElement | null;
 }) {
     const breakpoint = useBreakpoint();
     const isXl = breakpoint === 'xl';
@@ -380,33 +437,29 @@ export function ProjectDesignEditorLayout({
             </div>
 
             {!isXl && !isLg ? (
-                <AppDrawer
+                <ResponsiveDrawer
                     isOpen={browserDrawerOpen}
                     onOpenChange={setBrowserDrawerOpen}
                     title="Project Design files"
-                    description="Browse folders, versions and design assets."
-                    size="lg"
-                    panelClassName="sm:max-w-[420px]"
-                    isDismissable
-                    placement="right"
+                    description="Browse folders, revisions and design assets."
+                    portalContainer={portalContainer}
+                    maxWidth="max-w-[420px]"
                 >
                     {browser}
-                </AppDrawer>
+                </ResponsiveDrawer>
             ) : null}
 
             {!isXl ? (
-                <AppDrawer
+                <ResponsiveDrawer
                     isOpen={inspectorDrawerOpen}
                     onOpenChange={setInspectorDrawerOpen}
                     title="Design inspector"
-                    description="File details, versions, remarks and activity."
-                    size="lg"
-                    panelClassName="sm:max-w-[440px]"
-                    isDismissable
-                    placement="right"
+                    description="Details, remarks, versions and activity."
+                    portalContainer={portalContainer}
+                    maxWidth="max-w-[440px]"
                 >
                     {inspector}
-                </AppDrawer>
+                </ResponsiveDrawer>
             ) : null}
         </div>
     );

@@ -1,33 +1,195 @@
-import { useState, useRef } from 'react';
-import { Upload, File, X, CheckCircle2, AlertCircle, Loader2, ChevronLeft, ChevronRight, Send, Save, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/cn';
-import { AppDrawer } from '@/components/ui/AppDrawer';
-import { AppButton } from '@/components/ui/AppButton';
+import { useRef, useState, type ChangeEvent } from 'react';
+import {
+    Button,
+    Card,
+    Chip,
+    Drawer,
+    Input,
+    ListBox,
+    Select,
+    TextArea,
+    Tooltip,
+} from '@heroui/react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+    AlertCircle,
+    Check,
+    ChevronLeft,
+    ChevronRight,
+    FileText,
+    Loader2,
+    RefreshCw,
+    Save,
+    Send,
+    Upload,
+    X,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/cn';
+import { projectDesignKeys } from '@/features/project-design/api/projectDesignKeys';
 
-const STEPS = ['Details', 'Files', 'Review', 'Confirm'];
-
-const DISCIPLINES = ['architecture', 'structure', 'mep', 'interior', 'landscape'];
-
+const STEPS = ['Details', 'Files', 'Review', 'Confirm'] as const;
+const DISCIPLINES = ['architecture', 'structure', 'mep', 'interior', 'landscape'] as const;
 const EXT_TO_ASSET_TYPE: Record<string, string> = {
-    dwg: 'source', dxf: 'source', pln: 'source', pla: 'source', rvt: 'source', skp: 'source', rfa: 'source',
+    dwg: 'source',
+    dxf: 'source',
+    pln: 'source',
+    pla: 'source',
+    rvt: 'source',
+    skp: 'source',
+    rfa: 'source',
     ifc: 'ifc',
     pdf: 'review_pdf',
-    png: 'image', jpg: 'image', jpeg: 'image', webp: 'image', tiff: 'image', tif: 'image',
+    png: 'image',
+    jpg: 'image',
+    jpeg: 'image',
+    webp: 'image',
+    tiff: 'image',
+    tif: 'image',
 };
+
+type SubmitAction = 'draft' | 'submit';
+type QueueStatus = 'pending' | 'uploading' | 'done' | 'error';
 
 interface QueueFile {
     id: string;
     file: File;
     assetType: string;
     progress: number;
-    status: 'pending' | 'uploading' | 'done' | 'error';
+    status: QueueStatus;
     error?: string;
 }
 
-export function DesignUploadDrawer({ dossierId, folders, isOpen, onOpenChange, onComplete }: {
-    dossierId: number; folders: { id: number; name: string }[]; isOpen: boolean; onOpenChange: (o: boolean) => void; onComplete: () => void;
+function assetTone(assetType: string): string {
+    if (assetType === 'source') return 'bg-blue-500/10 text-blue-300';
+    if (assetType === 'ifc') return 'bg-orange-500/10 text-orange-300';
+    if (assetType === 'review_pdf') return 'bg-emerald-500/10 text-emerald-300';
+    if (assetType === 'image') return 'bg-violet-500/10 text-violet-300';
+    return 'bg-amber-500/10 text-amber-300';
+}
+
+function IconAction({
+    label,
+    children,
+    onPress,
+    tone = 'default',
+}: {
+    label: string;
+    children: React.ReactNode;
+    onPress: () => void;
+    tone?: 'default' | 'danger';
 }) {
+    return (
+        <Tooltip delay={350}>
+            <Tooltip.Trigger>
+                <Button
+                    isIconOnly
+                    size="sm"
+                    variant="ghost"
+                    onPress={onPress}
+                    aria-label={label}
+                    className={cn(
+                        'h-7 w-7 min-w-0 rounded-lg',
+                        tone === 'danger'
+                            ? 'text-[var(--text-muted)] hover:bg-red-500/10 hover:text-red-300'
+                            : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                    )}
+                >
+                    {children}
+                </Button>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{label}</Tooltip.Content>
+        </Tooltip>
+    );
+}
+
+function QueueRow({
+    item,
+    onRemove,
+    onRetry,
+}: {
+    item: QueueFile;
+    onRemove: () => void;
+    onRetry: () => void;
+}) {
+    return (
+        <Card variant="secondary" className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/35">
+            <Card.Content className="p-2.5">
+                <div className="flex items-start gap-2">
+                    <span className={cn(
+                        'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
+                        item.status === 'done'
+                            ? 'bg-emerald-500/10 text-emerald-300'
+                            : item.status === 'error'
+                                ? 'bg-red-500/10 text-red-300'
+                                : 'bg-[var(--surface-2)] text-[var(--text-muted)]',
+                    )}>
+                        {item.status === 'uploading' ? <Loader2 size={14} className="animate-spin" /> : null}
+                        {item.status === 'done' ? <Check size={14} /> : null}
+                        {item.status === 'error' ? <AlertCircle size={14} /> : null}
+                        {item.status === 'pending' ? <FileText size={14} /> : null}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-start gap-2">
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-[11px] font-medium text-[var(--foreground)]">{item.file.name}</p>
+                                <div className="mt-1 flex items-center gap-1.5">
+                                    <Chip size="sm" variant="soft" className={cn('h-4 px-1 text-[8px] capitalize', assetTone(item.assetType))}>
+                                        {item.assetType.replace(/_/g, ' ')}
+                                    </Chip>
+                                    <span className="text-[8px] text-[var(--text-subtle)]">
+                                        {(item.file.size / 1024).toFixed(0)} KB
+                                    </span>
+                                </div>
+                            </div>
+
+                            {item.status === 'error' ? (
+                                <IconAction label="Retry upload" onPress={onRetry}>
+                                    <RefreshCw size={12} />
+                                </IconAction>
+                            ) : null}
+                            {item.status !== 'uploading' && item.status !== 'done' ? (
+                                <IconAction label="Remove file" onPress={onRemove} tone="danger">
+                                    <X size={12} />
+                                </IconAction>
+                            ) : null}
+                        </div>
+
+                        {item.status === 'uploading' ? (
+                            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--surface-3)]">
+                                <div
+                                    className="h-full rounded-full bg-[var(--accent)] transition-[width]"
+                                    style={{ width: `${item.progress}%` }}
+                                />
+                            </div>
+                        ) : null}
+                        {item.status === 'error' && item.error ? (
+                            <p className="mt-1.5 text-[9px] leading-4 text-red-300">{item.error}</p>
+                        ) : null}
+                    </div>
+                </div>
+            </Card.Content>
+        </Card>
+    );
+}
+
+export function DesignUploadDrawer({
+    dossierId,
+    folders,
+    isOpen,
+    onOpenChange,
+    onComplete,
+    portalContainer,
+}: {
+    dossierId: number;
+    folders: { id: number; name: string }[];
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    onComplete: () => void;
+    portalContainer?: HTMLElement | null;
+}) {
+    const queryClient = useQueryClient();
     const [step, setStep] = useState(0);
     const [name, setName] = useState('');
     const [discipline, setDiscipline] = useState('');
@@ -37,26 +199,33 @@ export function DesignUploadDrawer({ dossierId, folders, isOpen, onOpenChange, o
     const [changeSummary, setChangeSummary] = useState('');
     const [revisionCode, setRevisionCode] = useState('');
     const [note, setNote] = useState('');
-    const [submitAction, setSubmitAction] = useState<'draft' | 'submit'>('submit');
+    const [submitAction, setSubmitAction] = useState<SubmitAction>('submit');
     const [queue, setQueue] = useState<QueueFile[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     function reset() {
         setStep(0);
-        setName(''); setDiscipline(''); setFolderId(null); setCode(''); setDescription('');
-        setChangeSummary(''); setRevisionCode(''); setNote(''); setSubmitAction('submit');
-        setQueue([]); setSubmitting(false);
+        setName('');
+        setDiscipline('');
+        setFolderId(null);
+        setCode('');
+        setDescription('');
+        setChangeSummary('');
+        setRevisionCode('');
+        setNote('');
+        setSubmitAction('submit');
+        setQueue([]);
+        setSubmitting(false);
     }
 
-    function handleClose(o: boolean) {
-        if (!o) {
-            if (queue.some((f) => f.status === 'pending' || f.status === 'uploading')) {
-                if (!confirm('You have files queued. Close anyway?')) return;
-            }
+    function handleOpenChange(open: boolean) {
+        if (!open) {
+            const hasActiveQueue = queue.some((item) => item.status === 'pending' || item.status === 'uploading');
+            if (hasActiveQueue && !window.confirm('You have files queued. Close anyway?')) return;
             reset();
         }
-        onOpenChange(o);
+        onOpenChange(open);
     }
 
     function canNext(): boolean {
@@ -66,44 +235,59 @@ export function DesignUploadDrawer({ dossierId, folders, isOpen, onOpenChange, o
         return false;
     }
 
-    function classifyAssetType(ext: string): string {
-        return EXT_TO_ASSET_TYPE[ext] ?? 'supporting';
+    function classifyAssetType(extension: string): string {
+        return EXT_TO_ASSET_TYPE[extension] ?? 'supporting';
     }
 
-    function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-        const fileList = e.target.files;
+    function handleFiles(event: ChangeEvent<HTMLInputElement>) {
+        const fileList = event.target.files;
         if (!fileList) return;
-        const newFiles: QueueFile[] = [];
+
+        const additions: QueueFile[] = [];
         for (const file of Array.from(fileList)) {
-            const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-            if (!queue.some((f) => f.file.name === file.name && f.file.size === file.size)) {
-                newFiles.push({ id: crypto.randomUUID(), file, assetType: classifyAssetType(ext), progress: 0, status: 'pending' });
+            const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+            const duplicate = queue.some((item) => item.file.name === file.name && item.file.size === file.size);
+            if (!duplicate) {
+                additions.push({
+                    id: crypto.randomUUID(),
+                    file,
+                    assetType: classifyAssetType(extension),
+                    progress: 0,
+                    status: 'pending',
+                });
             }
         }
-        setQueue((prev) => [...prev, ...newFiles]);
-        e.target.value = '';
+
+        setQueue((current) => [...current, ...additions]);
+        event.target.value = '';
     }
 
     function removeFile(id: string) {
-        setQueue((prev) => prev.filter((f) => f.id !== id));
+        setQueue((current) => current.filter((item) => item.id !== id));
     }
 
     function retryFile(id: string) {
-        setQueue((prev) => prev.map((f) => f.id === id ? { ...f, status: 'pending', progress: 0, error: undefined } : f));
+        setQueue((current) => current.map((item) => (
+            item.id === id
+                ? { ...item, status: 'pending', progress: 0, error: undefined }
+                : item
+        )));
     }
 
-    const hasPending = queue.some((f) => f.status === 'pending');
-    const hasErrors = queue.some((f) => f.status === 'error');
-
     async function handleSubmit() {
+        if (submitting) return;
         setSubmitting(true);
+
         try {
             const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
             const baseUrl = `/dossiers/${dossierId}/project-design`;
-
-            const fileRes = await fetch(`${baseUrl}/files`, {
+            const fileResponse = await fetch(`${baseUrl}/files`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    Accept: 'application/json',
+                },
                 body: JSON.stringify({
                     folder_id: folderId ?? undefined,
                     name: name.trim(),
@@ -113,283 +297,331 @@ export function DesignUploadDrawer({ dossierId, folders, isOpen, onOpenChange, o
                 }),
             });
 
-            if (!fileRes.ok) {
-                let msg = 'Failed to create file';
-                try { const b = await fileRes.json(); msg = b.message ?? msg; } catch {}
-                throw new Error(msg);
+            if (!fileResponse.ok) {
+                let message = 'Failed to create file';
+                try {
+                    const body = await fileResponse.json() as { message?: string };
+                    message = body.message ?? message;
+                } catch {
+                    // Keep the fallback message.
+                }
+                throw new Error(message);
             }
 
-            const fileData = await fileRes.json();
-            const fileId = fileData.id;
+            const fileData = await fileResponse.json() as { id?: number; data?: { id?: number } };
+            const fileId = fileData.id ?? fileData.data?.id;
+            if (!fileId) throw new Error('The server did not return the created file identifier.');
 
             const formData = new FormData();
             formData.append('intent', submitAction);
-
             if (changeSummary) formData.append('change_summary', changeSummary);
             if (revisionCode) formData.append('revision_code', revisionCode);
             if (note) formData.append('note', note);
 
-            for (let i = 0; i < queue.length; i++) {
-                const item = queue[i];
+            queue.forEach((item, index) => {
                 formData.append('files[]', item.file);
-                formData.append(`asset_types[${i}]`, item.assetType);
-            }
+                formData.append(`asset_types[${index}]`, item.assetType);
+            });
 
-            setQueue((prev) => prev.map((f) => f.status === 'pending' ? { ...f, status: 'uploading' } : f));
+            setQueue((current) => current.map((item) => (
+                item.status === 'pending' ? { ...item, status: 'uploading' } : item
+            )));
 
             await new Promise<void>((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', `${baseUrl}/files/${fileId}/versions`);
-
                 xhr.setRequestHeader('X-CSRF-TOKEN', token);
                 xhr.setRequestHeader('Accept', 'application/json');
-
-                xhr.upload.addEventListener('progress', (e) => {
-                    if (e.lengthComputable) {
-                        const pct = Math.round((e.loaded / e.total) * 100);
-                        setQueue((prev) => prev.map((f) => f.status === 'uploading' ? { ...f, progress: pct } : f));
-                    }
+                xhr.upload.addEventListener('progress', (event) => {
+                    if (!event.lengthComputable) return;
+                    const progress = Math.round((event.loaded / event.total) * 100);
+                    setQueue((current) => current.map((item) => (
+                        item.status === 'uploading' ? { ...item, progress } : item
+                    )));
                 });
-
                 xhr.addEventListener('load', () => {
                     if (xhr.status >= 200 && xhr.status < 300) {
-                        setQueue((prev) => prev.map((f) => ({ ...f, status: 'done' as const, progress: 100 })));
+                        setQueue((current) => current.map((item) => ({ ...item, status: 'done', progress: 100 })));
                         resolve();
-                    } else {
-                        let msg = 'Upload failed';
-                        try { const b = JSON.parse(xhr.responseText); msg = b.message ?? msg; } catch {}
-                        reject(new Error(msg));
+                        return;
                     }
+
+                    let message = 'Upload failed';
+                    try {
+                        const body = JSON.parse(xhr.responseText) as { message?: string };
+                        message = body.message ?? message;
+                    } catch {
+                        // Keep the fallback message.
+                    }
+                    reject(new Error(message));
                 });
-
                 xhr.addEventListener('error', () => reject(new Error('Network error')));
-
                 xhr.send(formData);
             });
 
-            toast.success('File uploaded successfully.');
+            await queryClient.invalidateQueries({ queryKey: projectDesignKeys.all(dossierId) });
+            toast.success('Design file uploaded successfully.');
             reset();
             onOpenChange(false);
             onComplete();
-        } catch (err) {
-            setQueue((prev) => prev.map((f) => f.status === 'uploading' ? { ...f, status: 'error', error: (err as Error)?.message ?? 'Upload failed' } : f));
-            toast.error((err as Error)?.message ?? 'Upload failed.');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Upload failed.';
+            setQueue((current) => current.map((item) => (
+                item.status === 'uploading'
+                    ? { ...item, status: 'error', error: message }
+                    : item
+            )));
+            toast.error(message);
         } finally {
             setSubmitting(false);
         }
     }
 
+    const hasErrors = queue.some((item) => item.status === 'error');
+
     return (
-        <AppDrawer isOpen={isOpen} onOpenChange={handleClose} title="Upload design" description="Create a new design file or version">
-            <div className="space-y-5">
-                <div className="flex gap-1">
-                    {STEPS.map((s, i) => (
-                        <div key={s} className={cn('flex-1 h-1 rounded-full transition', i <= step ? 'bg-[var(--accent)]' : 'bg-[var(--border)]')} />
-                    ))}
-                </div>
+        <Drawer>
+            <Drawer.Backdrop
+                isOpen={isOpen}
+                onOpenChange={handleOpenChange}
+                variant="blur"
+                isDismissable={!submitting}
+                UNSTABLE_portalContainer={portalContainer ?? undefined}
+                className="z-[180] bg-black/65"
+            >
+                <Drawer.Content placement="right" className="z-[181] p-0">
+                    <Drawer.Dialog
+                        aria-label="Upload design file"
+                        className="flex h-dvh w-screen max-w-[620px] flex-col overflow-hidden rounded-none border-l border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-[-24px_0_70px_rgb(0_0_0_/_0.4)]"
+                    >
+                        <Drawer.Header className="relative shrink-0 border-b border-[var(--border)] px-5 py-4 pr-14">
+                            <div className="flex items-center gap-3">
+                                <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--accent)]/12 text-[var(--accent)]">
+                                    <Upload size={17} />
+                                </span>
+                                <div className="min-w-0">
+                                    <Drawer.Heading className="text-sm font-semibold text-[var(--foreground)]">Upload design file</Drawer.Heading>
+                                    <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Create the file record and upload its first revision.</p>
+                                </div>
+                            </div>
+                            <Drawer.CloseTrigger
+                                aria-label="Close upload drawer"
+                                className="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg text-[var(--text-muted)] outline-none transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            >
+                                <X size={15} />
+                            </Drawer.CloseTrigger>
+                        </Drawer.Header>
 
-                <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-                    <span>Step {step + 1} of {STEPS.length}</span>
-                    <span className="font-medium text-[var(--foreground)]">{STEPS[step]}</span>
-                </div>
-
-                {step === 0 && (
-                    <div className="space-y-3">
-                        <div>
-                            <label className="text-[11px] font-medium text-[var(--text-muted)]">File name *</label>
-                            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ground floor plan"
-                                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)]" aria-label="File name" />
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <div>
-                                <label className="text-[11px] font-medium text-[var(--text-muted)]">Discipline *</label>
-                                <select value={discipline} onChange={(e) => setDiscipline(e.target.value)}
-                                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)]" aria-label="Discipline">
-                                    <option value="">Select...</option>
-                                    {DISCIPLINES.map((d) => <option key={d} value={d} className="capitalize">{d}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[11px] font-medium text-[var(--text-muted)]">Folder</label>
-                                <select value={folderId ?? ''} onChange={(e) => setFolderId(e.target.value ? Number(e.target.value) : null)}
-                                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)]" aria-label="Folder">
-                                    <option value="">None</option>
-                                    {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <div>
-                                <label className="text-[11px] font-medium text-[var(--text-muted)]">Code</label>
-                                <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. A-101"
-                                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)]" aria-label="Code" />
-                            </div>
-                            <div>
-                                <label className="text-[11px] font-medium text-[var(--text-muted)]">Description</label>
-                                <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional description"
-                                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)]" aria-label="Description" />
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {step === 1 && (
-                    <div className="space-y-3">
-                        <button type="button" onClick={() => inputRef.current?.click()}
-                            className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-[var(--border)] p-6 text-center transition hover:border-[var(--accent)]/50 hover:bg-[var(--surface-2)]">
-                            <Upload size={24} className="text-[var(--text-muted)]" />
-                            <div>
-                                <p className="text-[13px] font-medium text-[var(--foreground)]">Click to select files</p>
-                                <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">DWG, PDF, PNG, JPG, DXF, RVT, IFC, DOCX, XLSX, ZIP</p>
-                            </div>
-                        </button>
-                        <input ref={inputRef} type="file" multiple className="hidden" onChange={handleFiles}
-                            accept=".dwg,.dxf,.pdf,.png,.jpg,.jpeg,.webp,.tiff,.tif,.pln,.pla,.rvt,.skp,.ifc,.rfa,.doc,.docx,.xls,.xlsx,.csv,.zip" />
-
-                        {queue.length > 0 && (
-                            <div className="max-h-48 space-y-1 overflow-y-auto">
-                                {queue.map((item) => (
-                                    <div key={item.id} className="flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
-                                        <div className="flex size-6 shrink-0 items-center justify-center rounded bg-[var(--surface-2)]">
-                                            {item.status === 'done' ? <CheckCircle2 size={12} className="text-emerald-400" /> :
-                                             item.status === 'error' ? <AlertCircle size={12} className="text-red-400" /> :
-                                             item.status === 'uploading' ? <Loader2 size={12} className="animate-spin text-[var(--accent)]" /> :
-                                             <File size={12} className="text-[var(--text-muted)]" />}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-1.5">
-                                                <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{item.file.name}</p>
-                                                <span className={cn('shrink-0 rounded px-1 py-0.5 text-[9px] font-medium leading-none',
-                                                    item.assetType === 'source' ? 'bg-blue-400/10 text-blue-400' :
-                                                    item.assetType === 'ifc' ? 'bg-orange-400/10 text-orange-400' :
-                                                    item.assetType === 'review_pdf' ? 'bg-emerald-400/10 text-emerald-400' :
-                                                    item.assetType === 'image' ? 'bg-purple-400/10 text-purple-400' :
-                                                    'bg-amber-400/10 text-amber-400')}>
-                                                    {item.assetType.replace('_', ' ')}
-                                                </span>
-                                            </div>
-                                            {(item.status === 'uploading') && (
-                                                <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-[var(--surface-3)]">
-                                                    <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${item.progress}%` }} />
-                                                </div>
-                                            )}
-                                            {item.status === 'error' && item.error && (
-                                                <p className="text-[10px] text-red-400">{item.error}</p>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            {item.status === 'error' && (
-                                                <button type="button" onClick={() => retryFile(item.id)}
-                                                    className="flex size-6 items-center justify-center rounded-md text-[var(--text-muted)] hover:text-[var(--accent)]" title="Retry" aria-label="Retry upload">
-                                                    <RefreshCw size={11} />
-                                                </button>
-                                            )}
-                                            {item.status !== 'uploading' && item.status !== 'done' && (
-                                                <button type="button" onClick={() => removeFile(item.id)}
-                                                    className="flex size-6 items-center justify-center rounded-md text-[var(--text-muted)] hover:text-red-400" title="Remove" aria-label="Remove file">
-                                                    <X size={11} />
-                                                </button>
-                                            )}
-                                        </div>
+                        <div className="shrink-0 border-b border-[var(--border)] px-5 py-3">
+                            <div className="grid grid-cols-4 gap-1.5">
+                                {STEPS.map((label, index) => (
+                                    <div key={label} className="min-w-0">
+                                        <div className={cn(
+                                            'h-1 rounded-full transition-colors',
+                                            index <= step ? 'bg-[var(--accent)]' : 'bg-[var(--surface-3)]',
+                                        )} />
+                                        <p className={cn(
+                                            'mt-1 truncate text-[8px] font-medium',
+                                            index === step ? 'text-[var(--foreground)]' : 'text-[var(--text-subtle)]',
+                                        )}>
+                                            {label}
+                                        </p>
                                     </div>
                                 ))}
                             </div>
-                        )}
-                    </div>
-                )}
-
-                {step === 2 && (
-                    <div className="space-y-3">
-                        <div>
-                            <label className="text-[11px] font-medium text-[var(--text-muted)]">Change summary</label>
-                            <textarea value={changeSummary} onChange={(e) => setChangeSummary(e.target.value)} rows={2} placeholder="What changed in this revision?"
-                                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)] resize-none" aria-label="Change summary" />
                         </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <div>
-                                <label className="text-[11px] font-medium text-[var(--text-muted)]">Revision code</label>
-                                <input value={revisionCode} onChange={(e) => setRevisionCode(e.target.value)} placeholder="e.g. A"
-                                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)]" aria-label="Revision code" />
-                            </div>
-                            <div>
-                                <label className="text-[11px] font-medium text-[var(--text-muted)]">Internal note</label>
-                                <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note for internal use"
-                                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[13px] outline-none focus:border-[var(--accent)]" aria-label="Note" />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-[11px] font-medium text-[var(--text-muted)]">After upload</label>
-                            <div className="mt-1 flex gap-2">
-                                <button type="button" onClick={() => setSubmitAction('draft')}
-                                    className={cn('flex-1 rounded-lg border px-3 py-2 text-[12px] font-medium transition',
-                                        submitAction === 'draft' ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]/50')}>
-                                    <Save size={13} className="inline mr-1" /> Save draft
-                                </button>
-                                <button type="button" onClick={() => setSubmitAction('submit')}
-                                    className={cn('flex-1 rounded-lg border px-3 py-2 text-[12px] font-medium transition',
-                                        submitAction === 'submit' ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]/50')}>
-                                    <Send size={13} className="inline mr-1" /> Submit for review
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
-                {step === 3 && (
-                    <div className="space-y-3">
-                        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3 space-y-2">
-                            <div className="grid grid-cols-2 gap-2 text-[12px]">
-                                <div><span className="text-[var(--text-muted)]">Name:</span> <span className="font-medium text-[var(--foreground)]">{name}</span></div>
-                                <div><span className="text-[var(--text-muted)]">Discipline:</span> <span className="font-medium text-[var(--foreground)] capitalize">{discipline}</span></div>
-                                <div><span className="text-[var(--text-muted)]">Folder:</span> <span className="font-medium text-[var(--foreground)]">{folders.find((f) => f.id === folderId)?.name ?? '-'}</span></div>
-                                <div><span className="text-[var(--text-muted)]">Code:</span> <span className="font-medium text-[var(--foreground)]">{code || '-'}</span></div>
-                            </div>
-                            <div className="border-t border-[var(--border)] pt-2">
-                                <p className="text-[11px] text-[var(--text-muted)]">Files ({queue.length})</p>
-                                <ul className="mt-1 space-y-0.5">
-                                    {queue.map((f) => (
-                                        <li key={f.id} className="flex items-center gap-1.5 text-[11px]">
-                                            <span className="text-[var(--foreground)]">{f.file.name}</span>
-                                            <span className={cn('rounded px-1 text-[9px] font-medium',
-                                                f.assetType === 'source' ? 'bg-blue-400/10 text-blue-400' :
-                                                f.assetType === 'ifc' ? 'bg-orange-400/10 text-orange-400' :
-                                                f.assetType === 'review_pdf' ? 'bg-emerald-400/10 text-emerald-400' :
-                                                f.assetType === 'image' ? 'bg-purple-400/10 text-purple-400' :
-                                                'bg-amber-400/10 text-amber-400')}>
-                                                {f.assetType.replace('_', ' ')}
-                                            </span>
-                                            <span className="text-[var(--text-subtle)]">({(f.file.size / 1024).toFixed(0)} KB)</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                            <div className="border-t border-[var(--border)] pt-2">
-                                <p className="text-[11px] text-[var(--text-muted)]">Action: <span className="font-medium text-[var(--foreground)]">{submitAction === 'draft' ? 'Save as draft' : 'Submit for review'}</span></p>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                        <Drawer.Body className="app-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                            {step === 0 ? (
+                                <div className="space-y-3">
+                                    <Input
+                                        label="File name"
+                                        isRequired
+                                        value={name}
+                                        onChange={(event) => setName(event.target.value)}
+                                        placeholder="Ground floor plan"
+                                        variant="secondary"
+                                        fullWidth
+                                    />
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <Select
+                                            aria-label="Discipline"
+                                            placeholder="Discipline"
+                                            value={discipline || null}
+                                            onChange={(key) => setDiscipline(key ? String(key) : '')}
+                                            fullWidth
+                                            variant="secondary"
+                                        >
+                                            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                                            <Select.Popover className="z-[190] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
+                                                <ListBox>
+                                                    {DISCIPLINES.map((item) => (
+                                                        <ListBox.Item key={item} id={item} textValue={item} className="rounded-lg px-2 py-1.5 text-[11px] capitalize">
+                                                            {item}
+                                                        </ListBox.Item>
+                                                    ))}
+                                                </ListBox>
+                                            </Select.Popover>
+                                        </Select>
+                                        <Select
+                                            aria-label="Folder"
+                                            placeholder="Folder"
+                                            value={folderId == null ? '__none__' : String(folderId)}
+                                            onChange={(key) => setFolderId(!key || key === '__none__' ? null : Number(key))}
+                                            fullWidth
+                                            variant="secondary"
+                                        >
+                                            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                                            <Select.Popover className="z-[190] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
+                                                <ListBox>
+                                                    <ListBox.Item id="__none__" textValue="No folder" className="rounded-lg px-2 py-1.5 text-[11px]">No folder</ListBox.Item>
+                                                    {folders.map((folder) => (
+                                                        <ListBox.Item key={folder.id} id={String(folder.id)} textValue={folder.name} className="rounded-lg px-2 py-1.5 text-[11px]">
+                                                            {folder.name}
+                                                        </ListBox.Item>
+                                                    ))}
+                                                </ListBox>
+                                            </Select.Popover>
+                                        </Select>
+                                    </div>
+                                    <Input label="Code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="A-101" variant="secondary" fullWidth />
+                                    <TextArea label="Description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Optional description" variant="secondary" fullWidth rows={3} />
+                                </div>
+                            ) : null}
 
-                <div className="flex items-center justify-between pt-1">
-                    <div className="flex gap-2">
-                        <AppButton variant="bordered" size="sm" className="h-8 text-[11px]" isDisabled={step === 0 || submitting}
-                            onPress={() => setStep((s) => s - 1)}>
-                            <ChevronLeft size={13} /> Back
-                        </AppButton>
-                    </div>
+                            {step === 1 ? (
+                                <div className="space-y-3">
+                                    <input
+                                        ref={inputRef}
+                                        type="file"
+                                        multiple
+                                        className="hidden"
+                                        onChange={handleFiles}
+                                        aria-hidden="true"
+                                        tabIndex={-1}
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        fullWidth
+                                        onPress={() => inputRef.current?.click()}
+                                        className="h-auto min-h-32 flex-col gap-2 rounded-2xl border-2 border-dashed border-[var(--border)] py-6 hover:border-[var(--accent)]/50 hover:bg-[var(--surface-2)]/45"
+                                    >
+                                        <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]"><Upload size={18} /></span>
+                                        <span className="text-[11px] font-medium text-[var(--foreground)]">Select design files</span>
+                                        <span className="max-w-80 text-center text-[9px] leading-4 text-[var(--text-muted)]">DWG, PDF, PNG, JPG, DXF, RVT, IFC and supporting files</span>
+                                    </Button>
+                                    {queue.length ? (
+                                        <div className="space-y-1.5">
+                                            {queue.map((item) => (
+                                                <QueueRow
+                                                    key={item.id}
+                                                    item={item}
+                                                    onRemove={() => removeFile(item.id)}
+                                                    onRetry={() => retryFile(item.id)}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : null}
 
-                    {step < STEPS.length - 1 ? (
-                        <AppButton size="sm" className="h-8 text-[11px]" isDisabled={!canNext()} onPress={() => setStep((s) => s + 1)}>
-                            Next <ChevronRight size={13} />
-                        </AppButton>
-                    ) : (
-                        <AppButton size="sm" className="h-8 text-[11px]" isDisabled={submitting || hasErrors} onPress={handleSubmit}>
-                            {submitting ? <Loader2 size={13} className="animate-spin" /> : submitAction === 'draft' ? <Save size={13} /> : <Send size={13} />}
-                            {' '}{submitting ? 'Uploading...' : submitAction === 'draft' ? 'Save draft' : 'Upload & submit'}
-                        </AppButton>
-                    )}
-                </div>
-            </div>
-        </AppDrawer>
+                            {step === 2 ? (
+                                <div className="space-y-3">
+                                    <TextArea label="Change summary" value={changeSummary} onChange={(event) => setChangeSummary(event.target.value)} placeholder="What changed in this revision?" variant="secondary" fullWidth rows={3} />
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <Input label="Revision code" value={revisionCode} onChange={(event) => setRevisionCode(event.target.value)} placeholder="A" variant="secondary" fullWidth />
+                                        <Input label="Internal note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note" variant="secondary" fullWidth />
+                                    </div>
+                                    <div>
+                                        <p className="mb-2 text-[10px] font-medium text-[var(--text-muted)]">After upload</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Button
+                                                variant={submitAction === 'draft' ? 'secondary' : 'outline'}
+                                                onPress={() => setSubmitAction('draft')}
+                                                className={cn('h-10 text-[11px]', submitAction === 'draft' && 'border-[var(--accent)]/35 text-[var(--accent)]')}
+                                            >
+                                                <Save size={13} />
+                                                Save draft
+                                            </Button>
+                                            <Button
+                                                variant={submitAction === 'submit' ? 'secondary' : 'outline'}
+                                                onPress={() => setSubmitAction('submit')}
+                                                className={cn('h-10 text-[11px]', submitAction === 'submit' && 'border-[var(--accent)]/35 text-[var(--accent)]')}
+                                            >
+                                                <Send size={13} />
+                                                Submit for review
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {step === 3 ? (
+                                <Card variant="secondary" className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]/30">
+                                    <Card.Content className="space-y-3 p-4">
+                                        <div className="grid gap-3 text-[10px] sm:grid-cols-2">
+                                            <div><span className="text-[var(--text-muted)]">Name</span><p className="mt-0.5 font-medium text-[var(--foreground)]">{name}</p></div>
+                                            <div><span className="text-[var(--text-muted)]">Discipline</span><p className="mt-0.5 font-medium capitalize text-[var(--foreground)]">{discipline}</p></div>
+                                            <div><span className="text-[var(--text-muted)]">Folder</span><p className="mt-0.5 font-medium text-[var(--foreground)]">{folders.find((folder) => folder.id === folderId)?.name ?? 'No folder'}</p></div>
+                                            <div><span className="text-[var(--text-muted)]">Code</span><p className="mt-0.5 font-medium text-[var(--foreground)]">{code || '—'}</p></div>
+                                        </div>
+                                        <div className="border-t border-[var(--border)] pt-3">
+                                            <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Files · {queue.length}</p>
+                                            <div className="space-y-1.5">
+                                                {queue.map((item) => (
+                                                    <div key={item.id} className="flex items-center gap-2 rounded-lg bg-[var(--surface)]/55 px-2.5 py-2">
+                                                        <FileText size={12} className="shrink-0 text-[var(--text-muted)]" />
+                                                        <span className="min-w-0 flex-1 truncate text-[10px] text-[var(--foreground)]">{item.file.name}</span>
+                                                        <Chip size="sm" variant="soft" className={cn('h-4 px-1 text-[8px] capitalize', assetTone(item.assetType))}>{item.assetType.replace(/_/g, ' ')}</Chip>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </Card.Content>
+                                </Card>
+                            ) : null}
+                        </Drawer.Body>
+
+                        <Drawer.Footer className="flex shrink-0 items-center justify-between border-t border-[var(--border)] px-5 py-3">
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onPress={() => setStep((current) => Math.max(0, current - 1))}
+                                isDisabled={step === 0 || submitting}
+                                className="h-8 text-[11px]"
+                            >
+                                <ChevronLeft size={13} />
+                                Back
+                            </Button>
+
+                            {step < STEPS.length - 1 ? (
+                                <Button
+                                    size="sm"
+                                    variant="primary"
+                                    onPress={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))}
+                                    isDisabled={!canNext()}
+                                    className="h-8 text-[11px]"
+                                >
+                                    Next
+                                    <ChevronRight size={13} />
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    variant="primary"
+                                    onPress={() => void handleSubmit()}
+                                    isDisabled={submitting || hasErrors}
+                                    isPending={submitting}
+                                    className="h-8 text-[11px]"
+                                >
+                                    {!submitting ? (submitAction === 'draft' ? <Save size={13} /> : <Send size={13} />) : null}
+                                    {submitAction === 'draft' ? 'Save draft' : 'Upload & submit'}
+                                </Button>
+                            )}
+                        </Drawer.Footer>
+                    </Drawer.Dialog>
+                </Drawer.Content>
+            </Drawer.Backdrop>
+        </Drawer>
     );
 }

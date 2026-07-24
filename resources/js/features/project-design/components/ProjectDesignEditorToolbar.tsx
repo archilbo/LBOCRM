@@ -4,6 +4,7 @@ import {
     ChevronRight,
     Circle,
     Cloud,
+    Columns3,
     Download,
     Hand,
     Highlighter,
@@ -15,12 +16,10 @@ import {
     Pin,
     RotateCw,
     Save,
+    Scan,
     Square,
-    Type,
     ZoomIn,
     ZoomOut,
-    Scan,
-    Columns3,
 } from 'lucide-react';
 import { Button, Tooltip } from '@heroui/react';
 import { cn } from '@/lib/cn';
@@ -90,9 +89,19 @@ const MARKUP_TOOLS: { id: AnnotationTool; icon: typeof Pin; label: string; hint?
     { id: 'line', icon: Minus, label: 'Line' },
     { id: 'cloud', icon: Cloud, label: 'Revision cloud' },
     { id: 'freehand', icon: Pencil, label: 'Freehand' },
-    { id: 'text', icon: Type, label: 'Text note' },
     { id: 'highlight', icon: Highlighter, label: 'Highlight' },
 ];
+
+type ToolButtonProps = {
+    active?: boolean;
+    icon: typeof Pin;
+    label: string;
+    hint?: string;
+    onPress: () => void;
+    isDisabled?: boolean;
+    isPending?: boolean;
+    statusDot?: boolean;
+};
 
 function ToolButton({
     active,
@@ -100,31 +109,33 @@ function ToolButton({
     label,
     hint,
     onPress,
-}: {
-    active?: boolean;
-    icon: typeof Pin;
-    label: string;
-    hint?: string;
-    onPress: () => void;
-}) {
+    isDisabled,
+    isPending,
+    statusDot,
+}: ToolButtonProps) {
     return (
-        <Tooltip>
-            <Button
-                isIconOnly
-                size="sm"
-                variant="ghost"
-                onPress={onPress}
-                aria-label={label}
-                aria-pressed={active}
-                className={cn(
-                    'h-7 w-7 min-w-0 rounded-md border border-transparent transition-colors',
-                    active
-                        ? 'border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[var(--accent)]/12 text-[var(--accent)]'
-                        : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
-                )}
-            >
-                <Icon size={13} />
-            </Button>
+        <Tooltip delay={350}>
+            <Tooltip.Trigger>
+                <Button
+                    isIconOnly
+                    size="sm"
+                    variant="ghost"
+                    onPress={onPress}
+                    isDisabled={isDisabled}
+                    isPending={isPending}
+                    aria-label={label}
+                    aria-pressed={active}
+                    className={cn(
+                        'relative h-7 w-7 min-w-0 rounded-md border border-transparent transition-colors',
+                        active
+                            ? 'border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[var(--accent)]/12 text-[var(--accent)]'
+                            : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                    )}
+                >
+                    {!isPending ? <Icon size={13} /> : null}
+                    {statusDot ? <span className="absolute right-1 top-1 size-1.5 rounded-full bg-amber-400 ring-1 ring-[var(--surface)]" /> : null}
+                </Button>
+            </Tooltip.Trigger>
             <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-xl">
                 <span>{label}</span>
                 {hint ? <span className="ml-2 text-[10px] text-[var(--text-muted)]">{hint}</span> : null}
@@ -201,36 +212,21 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                     </ToolbarGroup>
 
                     <ToolbarGroup>
-                        <Tooltip>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                isDisabled={!hasUnsaved || saving || !onSave}
-                                onPress={onSave}
-                                className={cn(
-                                    'h-7 min-w-0 gap-1.5 px-2 text-[11px] font-medium',
-                                    hasUnsaved ? 'text-emerald-400' : 'text-[var(--text-subtle)]',
-                                )}
-                            >
-                                {saving ? <Scan size={13} className="animate-pulse" /> : <Save size={13} />}
-                                <span>{saving ? 'Saving' : 'Save'}</span>
-                                {hasUnsaved ? <span className="size-1.5 rounded-full bg-amber-400" /> : null}
-                            </Button>
-                            <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]">
-                                Save unsaved annotations
-                            </Tooltip.Content>
-                        </Tooltip>
-
-                        <Button
-                            size="sm"
-                            variant="ghost"
+                        <ToolButton
+                            icon={Save}
+                            label={saving ? 'Saving annotations' : 'Save annotations'}
+                            hint="Ctrl+S"
+                            onPress={() => onSave?.()}
+                            isDisabled={!hasUnsaved || saving || !onSave}
+                            isPending={saving}
+                            statusDot={Boolean(hasUnsaved && !saving)}
+                        />
+                        <ToolButton
+                            icon={Columns3}
+                            label="Add or edit remark"
+                            onPress={() => onRemark?.()}
                             isDisabled={!canRemark || !onRemark}
-                            onPress={onRemark}
-                            className="h-7 min-w-0 gap-1.5 px-2 text-[11px] text-[var(--text-muted)]"
-                        >
-                            <Columns3 size={13} />
-                            Remark
-                        </Button>
+                        />
                     </ToolbarGroup>
                 </>
             ) : null}
@@ -242,6 +238,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                         label="Previous page"
                         hint="Page Up"
                         onPress={() => onPageChange(Math.max(1, safePage - 1))}
+                        isDisabled={safePage <= 1}
                     />
                     <span className="min-w-[54px] px-1 text-center text-[11px] tabular-nums text-[var(--text-muted)]">
                         <strong className="font-semibold text-[var(--foreground)]">{safePage}</strong>
@@ -253,6 +250,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                         label="Next page"
                         hint="Page Down"
                         onPress={() => onPageChange(Math.min(safeTotal, safePage + 1))}
+                        isDisabled={safePage >= safeTotal}
                     />
                 </ToolbarGroup>
 
@@ -285,20 +283,11 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                         onPress={onFullscreenToggle}
                     />
                     {downloadUrl ? (
-                        <Tooltip>
-                            <a
-                                href={downloadUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
-                                aria-label="Download current asset"
-                            >
-                                <Download size={13} />
-                            </a>
-                            <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]">
-                                Download current asset
-                            </Tooltip.Content>
-                        </Tooltip>
+                        <ToolButton
+                            icon={Download}
+                            label="Download current asset"
+                            onPress={() => window.open(downloadUrl, '_blank', 'noopener,noreferrer')}
+                        />
                     ) : null}
                 </ToolbarGroup>
             </div>

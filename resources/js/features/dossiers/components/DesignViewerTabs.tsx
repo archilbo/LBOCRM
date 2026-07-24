@@ -1,16 +1,20 @@
-import { useState, useMemo } from 'react';
-import { FileText, Box, HardDrive, Loader2, XCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Button, Chip, Tooltip } from '@heroui/react';
+import { Box, FileText, HardDrive, Loader2, XCircle } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { DesignFileViewer } from './DesignFileViewer';
-import type { ProjectDesignAnnotationToolbarState, ProjectDesignEditorToolbarState } from '@/features/project-design/components/ProjectDesignEditorToolbar';
+import type {
+    ProjectDesignAnnotationToolbarState,
+    ProjectDesignEditorToolbarState,
+} from '@/features/project-design/components/ProjectDesignEditorToolbar';
 import { DesignSourceInfo } from './DesignSourceInfo';
 import { DesignConversionStatus } from './DesignConversionStatus';
-import { resolveProjectDesignViewer, getReviewAssets } from '../utils/viewerResolver';
+import { getReviewAssets, resolveProjectDesignViewer } from '../utils/viewerResolver';
 import type { ProjectDesignAsset, ProjectDesignFile } from '@/features/project-design/types/projectDesign';
 
 export type { ResolvedViewer, ViewerType } from '../utils/viewerResolver';
 
-export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUploadDerivative, onOpenReviewAsset, activeAssetId: externalAssetId, onAssetChange, pageNumber, onPageNumberChange, viewerToolbar, onControlsReady, onTotalPages, onToolbarStateChange }: {
+type DesignViewerTabsProps = {
     assets: ProjectDesignAsset[];
     dossierId: number;
     versionId: number;
@@ -25,15 +29,38 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
     onControlsReady?: (controls: { fitWidth: () => void; fitPage: () => void }) => void;
     onTotalPages?: (n: number) => void;
     onToolbarStateChange?: (state: ProjectDesignAnnotationToolbarState) => void;
-}) {
+    focusAnnotationId?: number | null;
+    focusRequestKey?: number;
+};
+
+export function DesignViewerTabs({
+    assets,
+    dossierId,
+    versionId,
+    fileMeta,
+    onUploadDerivative,
+    onOpenReviewAsset,
+    activeAssetId: externalAssetId,
+    onAssetChange,
+    pageNumber,
+    onPageNumberChange,
+    viewerToolbar,
+    onControlsReady,
+    onTotalPages,
+    onToolbarStateChange,
+    focusAnnotationId,
+    focusRequestKey,
+}: DesignViewerTabsProps) {
     const [internalAssetId, setInternalAssetId] = useState<number | null>(null);
     const activeAssetId = externalAssetId ?? internalAssetId;
+
     const setActiveAssetId = (id: number) => {
         setInternalAssetId(id);
         onAssetChange?.(id);
     };
 
-    const selectedAssetMissing = externalAssetId != null && !assets.some((asset) => asset.id === externalAssetId);
+    const selectedAssetMissing = externalAssetId != null
+        && !assets.some((asset) => asset.id === externalAssetId);
     const viewer = useMemo(
         () => assets.length > 0
             ? resolveProjectDesignViewer(assets, selectedAssetMissing ? null : activeAssetId)
@@ -43,15 +70,14 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
     const categorized = useMemo(() => getReviewAssets(assets), [assets]);
 
     const allTabs = useMemo(() => {
-        const tabs: { id: string; label: string; asset: ProjectDesignAsset; group: string }[] = [];
-        for (const a of categorized.source) tabs.push({ id: `src-${a.id}`, label: a.originalFilename, asset: a, group: 'Source' });
-        for (const a of categorized.review) tabs.push({ id: `rev-${a.id}`, label: a.originalFilename, asset: a, group: 'Review' });
-        for (const a of categorized.ifc) tabs.push({ id: `ifc-${a.id}`, label: a.originalFilename, asset: a, group: '3D' });
-        for (const a of categorized.converting) tabs.push({ id: `conv-${a.id}`, label: a.originalFilename, asset: a, group: 'Processing' });
-        for (const a of categorized.failed) tabs.push({ id: `fail-${a.id}`, label: a.originalFilename, asset: a, group: 'Failed' });
+        const tabs: { id: string; asset: ProjectDesignAsset; group: string }[] = [];
+        for (const asset of categorized.source) tabs.push({ id: `src-${asset.id}`, asset, group: 'Source' });
+        for (const asset of categorized.review) tabs.push({ id: `rev-${asset.id}`, asset, group: 'Review' });
+        for (const asset of categorized.ifc) tabs.push({ id: `ifc-${asset.id}`, asset, group: '3D' });
+        for (const asset of categorized.converting) tabs.push({ id: `conv-${asset.id}`, asset, group: 'Processing' });
+        for (const asset of categorized.failed) tabs.push({ id: `fail-${asset.id}`, asset, group: 'Failed' });
         return tabs;
     }, [categorized]);
-
 
     if (!viewer) {
         return (
@@ -68,7 +94,7 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
     const resolvedViewer = viewer;
     const isSourceAsset = resolvedViewer.type === 'source-fallback';
 
-    function renderContent() {
+    const renderContent = () => {
         switch (resolvedViewer.type) {
             case 'pdf':
             case 'image':
@@ -80,7 +106,7 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
                         mimeType={resolvedViewer.asset.mimeType}
                         filename={resolvedViewer.asset.originalFilename}
                         assetId={resolvedViewer.asset.id}
-                        isOpen={true}
+                        isOpen
                         onClose={() => undefined}
                         versionId={versionId}
                         dossierId={dossierId}
@@ -91,6 +117,8 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
                         onControlsReady={onControlsReady}
                         onTotalPages={onTotalPages}
                         onToolbarStateChange={onToolbarStateChange}
+                        focusAnnotationId={focusAnnotationId}
+                        focusRequestKey={focusRequestKey}
                     />
                 );
             case 'converting':
@@ -124,7 +152,7 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
                     />
                 );
         }
-    }
+    };
 
     if (selectedAssetMissing) {
         return (
@@ -134,57 +162,66 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
                     <p className="text-sm font-medium text-[var(--foreground)]">Selected asset is no longer available</p>
                     <p className="mt-1 text-[12px] text-[var(--text-muted)]">Open an available asset to repair the editor link.</p>
                 </div>
-                <button
-                    type="button"
-                    onClick={() => setActiveAssetId(assets[0].id)}
-                    className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[11px] font-semibold text-black"
+                <Button
+                    size="sm"
+                    variant="primary"
+                    onPress={() => setActiveAssetId(assets[0].id)}
+                    className="h-8 text-[11px]"
                 >
                     Open first available asset
-                </button>
+                </Button>
             </div>
         );
     }
 
     return (
         <div className="flex h-full w-full flex-col overflow-hidden bg-[#101214]">
-            {/* Asset tabs */}
-            {allTabs.length > 1 && (
+            {allTabs.length > 1 ? (
                 <div className="app-scrollbar flex shrink-0 items-center gap-1 overflow-x-auto border-b border-[var(--border)] bg-[var(--surface)]/95 px-2 py-1.5 backdrop-blur">
                     {['Source', 'Review', '3D', 'Processing', 'Failed'].map((group) => {
-                        const groupTabs = allTabs.filter((t) => t.group === group);
+                        const groupTabs = allTabs.filter((tab) => tab.group === group);
                         if (!groupTabs.length) return null;
+
                         return (
-                            <div key={group} className="flex items-center gap-0.5 mr-2">
-                                {groupTabs.length > 1 && (
-                                    <span className="mr-0.5 px-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                            <div key={group} className="mr-2 flex items-center gap-0.5">
+                                {groupTabs.length > 1 ? (
+                                    <Chip size="sm" variant="soft" className="mr-0.5 h-5 px-1.5 text-[8px] font-semibold uppercase tracking-wider">
                                         {group}
-                                    </span>
-                                )}
-                                {groupTabs.map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        type="button"
-                                        onClick={() => setActiveAssetId(tab.asset.id)}
-                                        className={cn(
-                                            'flex items-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-medium transition whitespace-nowrap',
-                                            resolvedViewer.asset.id === tab.asset.id
-                                                ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
-                                                : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
-                                        )}
-                                    >
-                                        <TabIcon group={group} />
-                                        <span className="truncate max-w-[16ch]">{tab.asset.originalFilename}</span>
-                                        {tab.group === 'Processing' && <Loader2 size={10} className="animate-spin text-amber-400" />}
-                                        {tab.group === 'Failed' && <XCircle size={10} className="text-red-400" />}
-                                    </button>
-                                ))}
+                                    </Chip>
+                                ) : null}
+                                {groupTabs.map((tab) => {
+                                    const selected = resolvedViewer.asset.id === tab.asset.id;
+                                    return (
+                                        <Tooltip key={tab.id} delay={450}>
+                                            <Tooltip.Trigger>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onPress={() => setActiveAssetId(tab.asset.id)}
+                                                    aria-pressed={selected}
+                                                    className={cn(
+                                                        'h-8 min-w-0 max-w-[190px] gap-1 rounded-lg border px-2 text-[10px] font-medium',
+                                                        selected
+                                                            ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
+                                                            : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                                                    )}
+                                                >
+                                                    <TabIcon group={group} />
+                                                    <span className="truncate">{tab.asset.originalFilename}</span>
+                                                    {tab.group === 'Processing' ? <Loader2 size={10} className="animate-spin text-amber-400" /> : null}
+                                                    {tab.group === 'Failed' ? <XCircle size={10} className="text-red-400" /> : null}
+                                                </Button>
+                                            </Tooltip.Trigger>
+                                            <Tooltip.Content>{tab.asset.originalFilename}</Tooltip.Content>
+                                        </Tooltip>
+                                    );
+                                })}
                             </div>
                         );
                     })}
                 </div>
-            )}
+            ) : null}
 
-            {/* Viewer */}
             <div className="relative min-h-0 flex-1 overflow-hidden bg-[#101214]">
                 {renderContent()}
             </div>

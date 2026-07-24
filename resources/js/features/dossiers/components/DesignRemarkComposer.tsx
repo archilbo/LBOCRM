@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Loader2, MessageSquarePlus, Pencil, X } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Input, TextArea, Tooltip } from '@heroui/react';
+import { Check, MessageSquarePlus, Pencil, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 export type DesignRemarkDraft = {
@@ -32,12 +32,9 @@ export function DesignRemarkComposer({
     onSave,
     onCancel,
 }: DesignRemarkComposerProps) {
-    const initialTitle = initialValue?.title ?? '';
-    const initialDescription = initialValue?.description ?? '';
-    const initialSeverity = initialValue?.severity ?? 'minor';
-    const [title, setTitle] = useState(initialTitle);
-    const [description, setDescription] = useState(initialDescription);
-    const [severity, setSeverity] = useState(initialSeverity);
+    const [title, setTitle] = useState(initialValue?.title ?? '');
+    const [description, setDescription] = useState(initialValue?.description ?? '');
+    const [severity, setSeverity] = useState(initialValue?.severity ?? 'minor');
     const titleRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -66,21 +63,28 @@ export function DesignRemarkComposer({
                         <p className="truncate text-[11px] font-semibold text-[var(--foreground)]">
                             {mode === 'edit' ? 'Edit remark' : 'Add remark'}
                         </p>
-                        <p className="text-[9px] text-[var(--text-subtle)]">Saved directly on this annotation</p>
+                        <p className="text-[9px] text-[var(--text-subtle)]">Saved on this annotation</p>
                     </div>
                 </div>
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    disabled={saving}
-                    className="rounded-md p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] disabled:opacity-50"
-                    aria-label="Close remark editor"
-                >
-                    <X size={12} />
-                </button>
+                <Tooltip delay={350}>
+                    <Tooltip.Trigger>
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="ghost"
+                            onPress={onCancel}
+                            isDisabled={saving}
+                            className="h-7 w-7 min-w-0 text-[var(--text-muted)]"
+                            aria-label="Close remark editor"
+                        >
+                            <X size={12} />
+                        </Button>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content>Close</Tooltip.Content>
+                </Tooltip>
             </div>
 
-            <input
+            <Input
                 ref={titleRef}
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
@@ -91,37 +95,45 @@ export function DesignRemarkComposer({
                     }
                 }}
                 placeholder="Remark title"
+                aria-label="Remark title"
                 maxLength={160}
-                disabled={saving}
-                className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 text-[11px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-subtle)] focus:border-[var(--accent)]/60 focus:ring-2 focus:ring-[var(--accent)]/10 disabled:opacity-60"
+                isDisabled={saving}
+                variant="secondary"
+                fullWidth
+                className="h-8 text-[11px]"
             />
 
-            <textarea
+            <TextArea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder="Short description (optional)"
+                aria-label="Remark description"
                 rows={3}
                 maxLength={2000}
-                disabled={saving}
-                className="w-full resize-none rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[11px] leading-relaxed text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-subtle)] focus:border-[var(--accent)]/60 focus:ring-2 focus:ring-[var(--accent)]/10 disabled:opacity-60"
+                isDisabled={saving}
+                variant="secondary"
+                fullWidth
+                className="min-h-20 resize-none text-[11px] leading-relaxed"
             />
 
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1" role="group" aria-label="Remark severity">
                 {SEVERITIES.map((item) => (
-                    <button
+                    <Button
                         key={item.id}
-                        type="button"
-                        onClick={() => setSeverity(item.id)}
-                        disabled={saving}
+                        size="sm"
+                        variant="ghost"
+                        onPress={() => setSeverity(item.id)}
+                        isDisabled={saving}
+                        aria-pressed={severity === item.id}
                         className={cn(
-                            'h-6 rounded-md border px-2 text-[9px] font-semibold transition disabled:opacity-50',
+                            'h-6 min-w-0 rounded-md border px-2 text-[9px] font-semibold',
                             severity === item.id
                                 ? item.active
                                 : 'border-transparent bg-[var(--surface-2)] text-[var(--text-muted)] hover:border-[var(--border)] hover:text-[var(--foreground)]',
                         )}
                     >
                         {item.label}
-                    </button>
+                    </Button>
                 ))}
             </div>
 
@@ -137,13 +149,14 @@ export function DesignRemarkComposer({
                 </Button>
                 <Button
                     size="sm"
-                    color="primary"
+                    variant="primary"
                     onPress={submit}
                     isDisabled={!title.trim() || saving}
+                    isPending={saving}
                     className="h-7 min-w-0 gap-1.5 px-2.5 text-[10px]"
                 >
-                    {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-                    {saving ? 'Saving…' : mode === 'edit' ? 'Save changes' : 'Add remark'}
+                    {!saving ? <Check size={11} /> : null}
+                    {mode === 'edit' ? 'Save changes' : 'Add remark'}
                 </Button>
             </div>
         </div>

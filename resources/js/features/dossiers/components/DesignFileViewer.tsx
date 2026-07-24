@@ -21,7 +21,7 @@ import {
     ZoomIn,
     ZoomOut,
 } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Tooltip } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { DesignAnnotationToolbar } from './DesignAnnotationToolbar';
@@ -82,7 +82,7 @@ export interface AnnotationShape {
 
 type Viewport = { zoom: number; panX: number; panY: number };
 type PointerPan = { active: boolean; pointerId: number; x: number; y: number };
-type StandaloneAnnotationTool = Exclude<AnnotationTool, 'pan'>;
+type StandaloneAnnotationTool = AnnotationTool;
 
 type DesignFileViewerProps = {
     previewUrl: string;
@@ -102,6 +102,8 @@ type DesignFileViewerProps = {
     onControlsReady?: (controls: { fitWidth: () => void; fitPage: () => void }) => void;
     onTotalPages?: (total: number) => void;
     onToolbarStateChange?: (state: ProjectDesignAnnotationToolbarState) => void;
+    focusAnnotationId?: number | null;
+    focusRequestKey?: number;
 };
 
 const defaultFrame: ViewerFrame = {
@@ -112,6 +114,55 @@ const defaultFrame: ViewerFrame = {
     pageWidth: 0,
     pageHeight: 0,
 };
+
+function normalizedRotation(rotation: number): number {
+    return ((rotation % 360) + 360) % 360;
+}
+
+function annotationDocumentCenter(shape: AnnotationShape): { x: number; y: number } {
+    if (shape.points && shape.points.length >= 2) {
+        const xs: number[] = [];
+        const ys: number[] = [];
+        for (let index = 0; index < shape.points.length - 1; index += 2) {
+            xs.push(shape.points[index]);
+            ys.push(shape.points[index + 1]);
+        }
+        if (xs.length && ys.length) {
+            return {
+                x: (Math.min(...xs) + Math.max(...xs)) / 2,
+                y: (Math.min(...ys) + Math.max(...ys)) / 2,
+            };
+        }
+    }
+
+    return {
+        x: shape.x + (shape.width ?? 0) / 2,
+        y: shape.y + (shape.height ?? 0) / 2,
+    };
+}
+
+function annotationScreenPoint(shape: AnnotationShape, frame: ViewerFrame): { x: number; y: number } {
+    const point = annotationDocumentCenter(shape);
+    const rotation = normalizedRotation(frame.rotation);
+    let x = point.x;
+    let y = point.y;
+
+    if (rotation === 90) {
+        x = frame.pageHeight - point.y;
+        y = point.x;
+    } else if (rotation === 180) {
+        x = frame.pageWidth - point.x;
+        y = frame.pageHeight - point.y;
+    } else if (rotation === 270) {
+        x = point.y;
+        y = frame.pageWidth - point.x;
+    }
+
+    return {
+        x: frame.pageX + x * frame.scale,
+        y: frame.pageY + y * frame.scale,
+    };
+}
 
 function isPdf(mimeType: string): boolean {
     return mimeType === 'application/pdf';
@@ -297,6 +348,8 @@ export function DesignFileViewer({
     onControlsReady,
     onTotalPages,
     onToolbarStateChange,
+    focusAnnotationId,
+    focusRequestKey = 0,
 }: DesignFileViewerProps) {
     const queryClient = useQueryClient();
     const [annotations, setAnnotations] = useState<AnnotationShape[]>([]);
@@ -322,6 +375,7 @@ export function DesignFileViewer({
     const composerAnnotationId = useRef<string | null>(null);
     const pendingShapeRef = useRef<AnnotationShape | null>(null);
     const pointerPanRef = useRef<PointerPan>({ active: false, pointerId: -1, x: 0, y: 0 });
+    const handledFocusRequestRef = useRef<string | null>(null);
 
     const isExternal = viewerToolbar != null;
     const resolvedZoom = isExternal ? viewerToolbar.zoom : localZoom;
@@ -612,8 +666,54 @@ export function DesignFileViewer({
         if (!isExternal) setLocalCurrentPage(page);
         setSelectedAnnotationId(null);
         setShowComposer(false);
+        setViewerFrame(defaultFrame);
         onPageNumberChange?.(page);
     }, [isExternal, onPageNumberChange]);
+
+
+    useEffect(() => {
+        if (!focusAnnotationId) return;
+
+        const requestId = `${focusAnnotationId}:${focusRequestKey}`;
+        if (handledFocusRequestRef.current === requestId) return;
+
+        const annotation = annotations.find((item) => item.serverId === focusAnnotationId);
+        if (!annotation || annotation.assetId !== assetId) return;
+
+        const targetPage = annotation.pageNumber ?? 1;
+        if (targetPage !== resolvedPageNumber) {
+            handlePageChange(targetPage);
+            return;
+        }
+
+        const viewer = viewerAreaRef.current;
+        if (!viewer || viewerFrame.pageWidth <= 0 || viewerFrame.pageHeight <= 0) return;
+
+        setSelectedAnnotationId(annotation.id);
+        setShowComposer(false);
+        composerAnnotationId.current = null;
+        pendingShapeRef.current = null;
+        applyTool('select');
+
+        const screenPoint = annotationScreenPoint(annotation, viewerFrame);
+        const rect = viewer.getBoundingClientRect();
+        handlePanBy(
+            rect.width / 2 - screenPoint.x,
+            rect.height / 2 - screenPoint.y,
+        );
+
+        handledFocusRequestRef.current = requestId;
+    }, [
+        annotations,
+        applyTool,
+        assetId,
+        focusAnnotationId,
+        focusRequestKey,
+        handlePageChange,
+        handlePanBy,
+        resolvedPageNumber,
+        viewerFrame,
+    ]);
 
     const requireExactContext = useCallback(() => {
         if (!dossierId || !versionId || !assetId) {
@@ -1102,20 +1202,37 @@ export function DesignFileViewer({
                             {resolvedFullscreen ? <Minimize size={13} /> : <Maximize size={13} />}
                         </Button>
                         {canRemark ? (
-                            <Button size="sm" variant="ghost" onPress={openRemarkComposer} className="h-7 gap-1.5 px-2 text-[11px]">
-                                <MessageSquare size={13} />
-                                Remark
-                            </Button>
+                            <Tooltip delay={350}>
+                                <Tooltip.Trigger>
+                                    <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="ghost"
+                                        onPress={openRemarkComposer}
+                                        className="h-7 w-7 min-w-0"
+                                        aria-label="Add or edit remark"
+                                    >
+                                        <MessageSquare size={13} />
+                                    </Button>
+                                </Tooltip.Trigger>
+                                <Tooltip.Content>Add or edit remark</Tooltip.Content>
+                            </Tooltip>
                         ) : null}
-                        <a
-                            href={downloadUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
-                            aria-label="Download"
-                        >
-                            <Download size={13} />
-                        </a>
+                        <Tooltip delay={350}>
+                            <Tooltip.Trigger>
+                                <Button
+                                    isIconOnly
+                                    size="sm"
+                                    variant="ghost"
+                                    onPress={() => window.open(downloadUrl, '_blank', 'noopener,noreferrer')}
+                                    className="h-7 w-7 min-w-0"
+                                    aria-label="Download current asset"
+                                >
+                                    <Download size={13} />
+                                </Button>
+                            </Tooltip.Trigger>
+                            <Tooltip.Content>Download current asset</Tooltip.Content>
+                        </Tooltip>
                     </div>
                 </div>
             ) : null}

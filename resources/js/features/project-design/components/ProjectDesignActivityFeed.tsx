@@ -1,5 +1,5 @@
-import { Activity, Clock, Loader2 } from 'lucide-react';
-import { AppEmptyState } from '@/components/ui/AppEmptyState';
+import { Card, Spinner } from '@heroui/react';
+import { Activity, Clock } from 'lucide-react';
 import { useActivity } from '../hooks/useProjectDesignQueries';
 import { formatProjectDesignDate } from '../utils/projectDesignFormatters';
 
@@ -25,31 +25,43 @@ export function ProjectDesignActivityFeed({ dossierId }: { dossierId: number }) 
     const items = data?.data ?? [];
 
     if (isLoading) {
-        return <div className="flex items-center justify-center py-12"><Loader2 size={16} className="animate-spin text-[var(--text-muted)]" /></div>;
+        return <div className="flex items-center justify-center py-12"><Spinner size="sm" /></div>;
     }
 
     if (items.length === 0) {
-        return <AppEmptyState icon={<Activity size={15} />} title="No recent activity" description="Design file changes, annotations, and review actions will appear here." />;
+        return (
+            <Card variant="secondary" className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)]/25">
+                <Card.Content className="flex min-h-52 flex-col items-center justify-center p-6 text-center">
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
+                        <Activity size={17} />
+                    </span>
+                    <p className="mt-2 text-[12px] font-medium text-[var(--foreground)]">No recent activity</p>
+                    <p className="mt-1 max-w-72 text-[10px] leading-4 text-[var(--text-muted)]">
+                        Design file changes, annotations and review actions will appear here.
+                    </p>
+                </Card.Content>
+            </Card>
+        );
     }
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
             {items.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)]">
-                        <Clock size={13} className="text-[var(--text-muted)]" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="text-[12px] font-medium text-[var(--foreground)]">
-                            <span className="font-semibold">{item.user?.name ?? 'System'}</span>
-                            {' '}{describeAction(item.action)}
-                            {item.description && <span> — {item.description}</span>}
-                        </p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                        <p className="text-[10px] text-[var(--text-subtle)]">{formatProjectDesignDate(item.createdAt)}</p>
-                    </div>
-                </div>
+                <Card key={item.id} variant="secondary" className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                    <Card.Content className="flex items-start gap-3 px-3 py-2.5">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]">
+                            <Clock size={13} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-medium leading-4 text-[var(--foreground)]">
+                                <span className="font-semibold">{item.user?.name ?? 'System'}</span>
+                                {' '}{describeAction(item.action)}
+                                {item.description ? <span className="text-[var(--text-muted)]"> — {item.description}</span> : null}
+                            </p>
+                        </div>
+                        <span className="shrink-0 text-[9px] text-[var(--text-subtle)]">{formatProjectDesignDate(item.createdAt)}</span>
+                    </Card.Content>
+                </Card>
             ))}
         </div>
     );

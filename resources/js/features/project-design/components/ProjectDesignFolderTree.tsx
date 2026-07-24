@@ -1,26 +1,38 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronRight, Folder, HardDrive } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Button, Chip, Tooltip } from '@heroui/react';
+import { ChevronDown, ChevronRight, Folder, FolderOpen, HardDrive } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import type { ProjectDesignFolder } from '../types/projectDesign';
 
-export function ProjectDesignFolderTree({ folders, selectedFolderId, onSelect }: {
-    folders: ProjectDesignFolder[]; selectedFolderId: number | null; onSelect: (id: number | null) => void;
+export function ProjectDesignFolderTree({
+    folders,
+    selectedFolderId,
+    onSelect,
+}: {
+    folders: ProjectDesignFolder[];
+    selectedFolderId: number | null;
+    onSelect: (id: number | null) => void;
 }) {
-    const rootFolders = folders.filter((f) => !f.parentId);
-    const childMap = new Map<number, ProjectDesignFolder[]>();
-    for (const f of folders) {
-        if (f.parentId) {
-            const children = childMap.get(f.parentId) ?? [];
-            children.push(f);
-            childMap.set(f.parentId, children);
+    const rootFolders = useMemo(() => folders.filter((folder) => !folder.parentId), [folders]);
+    const childMap = useMemo(() => {
+        const map = new Map<number, ProjectDesignFolder[]>();
+        for (const folder of folders) {
+            if (!folder.parentId) continue;
+            const children = map.get(folder.parentId) ?? [];
+            children.push(folder);
+            map.set(folder.parentId, children);
         }
-    }
-    const [expanded, setExpanded] = useState<Set<number>>(() => new Set(rootFolders.map((f) => f.id)));
+        return map;
+    }, [folders]);
+    const [expanded, setExpanded] = useState<Set<number>>(
+        () => new Set(rootFolders.map((folder) => folder.id)),
+    );
 
     function toggleExpand(id: number) {
-        setExpanded((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id); else next.add(id);
+        setExpanded((current) => {
+            const next = new Set(current);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
             return next;
         });
     }
@@ -28,63 +40,79 @@ export function ProjectDesignFolderTree({ folders, selectedFolderId, onSelect }:
     function renderFolder(folder: ProjectDesignFolder, depth: number) {
         const children = childMap.get(folder.id) ?? [];
         const isExpanded = expanded.has(folder.id);
-        const hasChildren = children.length > 0;
+        const isSelected = selectedFolderId === folder.id;
+        const FolderIcon = isExpanded && children.length ? FolderOpen : Folder;
+
         return (
-            <div key={folder.id}>
-                <div
-                    className={cn(
-                        'flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] transition',
-                        selectedFolderId === folder.id
-                            ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-                            : 'text-[var(--foreground)]',
+            <div key={folder.id} className="space-y-0.5">
+                <div className="flex items-center gap-0.5" style={{ paddingLeft: `${depth * 12}px` }}>
+                    {children.length ? (
+                        <Tooltip delay={450}>
+                            <Tooltip.Trigger>
+                                <Button
+                                    isIconOnly
+                                    size="sm"
+                                    variant="ghost"
+                                    aria-label={isExpanded ? `Collapse ${folder.name}` : `Expand ${folder.name}`}
+                                    onPress={() => toggleExpand(folder.id)}
+                                    className="h-7 w-7 min-w-0 shrink-0 rounded-lg text-[var(--text-muted)]"
+                                >
+                                    {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                </Button>
+                            </Tooltip.Trigger>
+                            <Tooltip.Content>{isExpanded ? 'Collapse folder' : 'Expand folder'}</Tooltip.Content>
+                        </Tooltip>
+                    ) : (
+                        <span className="block size-7 shrink-0" aria-hidden="true" />
                     )}
-                    style={{ paddingLeft: `${8 + depth * 16}px` }}
-                >
-                    <button
-                        type="button"
-                        aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
-                        onClick={() => toggleExpand(folder.id)}
-                        className="flex size-5 shrink-0 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-3)]"
-                    >
-                        {hasChildren ? (isExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />) : <span className="size-3.5" />}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => onSelect(folder.id)}
-                        aria-label={`Select folder ${folder.name}`}
+
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onPress={() => onSelect(folder.id)}
+                        aria-pressed={isSelected}
                         className={cn(
-                            'flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition',
-                            selectedFolderId === folder.id
-                                ? 'text-[var(--accent)]'
-                                : 'hover:bg-[var(--surface-2)]',
+                            'h-7 min-w-0 flex-1 justify-start gap-2 rounded-lg px-2 text-left text-[11px]',
+                            isSelected
+                                ? 'bg-[var(--accent)]/12 text-[var(--accent)]'
+                                : 'text-[var(--foreground)] hover:bg-[var(--surface-2)]',
                         )}
                     >
-                    <Folder size={12} className="shrink-0 text-[var(--text-muted)]" />
-                    <span className="truncate">{folder.name}</span>
-                    <span className="ml-auto text-[10px] text-[var(--text-subtle)]">{folder.filesCount}</span>
-                    </button>
+                        <FolderIcon size={12} className="shrink-0" />
+                        <span className="min-w-0 flex-1 truncate">{folder.name}</span>
+                        <Chip size="sm" variant="soft" className="h-4 min-w-5 px-1 text-[8px]">
+                            {folder.filesCount}
+                        </Chip>
+                    </Button>
                 </div>
-                {isExpanded && children.map((child) => renderFolder(child, depth + 1))}
+                {isExpanded ? children.map((child) => renderFolder(child, depth + 1)) : null}
             </div>
         );
     }
 
+    const total = folders.reduce((sum, folder) => sum + folder.filesCount, 0);
+
     return (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1.5">
-            <button type="button" onClick={() => onSelect(null)} aria-label="Show all files"
+        <div className="space-y-0.5">
+            <Button
+                size="sm"
+                variant="ghost"
+                onPress={() => onSelect(null)}
+                aria-pressed={selectedFolderId === null}
                 className={cn(
-                    'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[12px] font-medium transition',
+                    'h-8 w-full justify-start gap-2 rounded-lg px-2.5 text-[11px] font-medium',
                     selectedFolderId === null
-                        ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-                        : 'hover:bg-[var(--surface-2)] text-[var(--foreground)]',
-                )}>
+                        ? 'bg-[var(--accent)]/12 text-[var(--accent)]'
+                        : 'text-[var(--foreground)] hover:bg-[var(--surface-2)]',
+                )}
+            >
                 <HardDrive size={13} />
-                All files
-                <span className="ml-auto text-[10px] text-[var(--text-subtle)]">{folders.reduce((s, f) => s + f.filesCount, 0)}</span>
-            </button>
-            <div className="mt-0.5 space-y-0.5">
-                {rootFolders.map((f) => renderFolder(f, 0))}
-            </div>
+                <span className="min-w-0 flex-1 text-left">All files</span>
+                <Chip size="sm" variant="soft" className="h-4 min-w-5 px-1 text-[8px]">
+                    {total}
+                </Chip>
+            </Button>
+            {rootFolders.map((folder) => renderFolder(folder, 0))}
         </div>
     );
 }

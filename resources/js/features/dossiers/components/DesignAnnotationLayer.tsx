@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Arrow, Circle, Ellipse, Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import type Konva from 'konva';
 import { AlertTriangle, Clock, MessageSquarePlus, Pencil, User, X } from 'lucide-react';
+import { Button, Card, Chip, Tooltip } from '@heroui/react';
 import type { AnnotationTool } from '@/features/project-design/components/ProjectDesignEditorToolbar';
 import { DesignRemarkComposer } from './DesignRemarkComposer';
 import type { DesignRemarkDraft } from './DesignRemarkComposer';
@@ -241,100 +242,119 @@ function AnnotationInfoPopup({
     const remark = annotation.remark;
 
     return (
-        <div
+        <Card
             data-project-design-annotation-popup
-            className="pointer-events-auto absolute z-30 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]/98 p-3 shadow-2xl backdrop-blur-xl"
+            variant="secondary"
+            className="pointer-events-auto absolute z-30 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]/98 shadow-2xl backdrop-blur-xl"
             style={position}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
         >
-            {editorOpen ? (
-                <DesignRemarkComposer
-                    mode={remark ? 'edit' : 'create'}
-                    initialValue={remark ? {
-                        title: remark.title,
-                        description: remark.description ?? '',
-                        severity: remark.severity,
-                    } : undefined}
-                    saving={saving}
-                    onSave={onSave}
-                    onCancel={onCancel}
-                />
-            ) : (
-                <div className="space-y-2.5">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-                                    Annotation
-                                </span>
+            <Card.Content className="p-3">
+                {editorOpen ? (
+                    <DesignRemarkComposer
+                        mode={remark ? 'edit' : 'create'}
+                        initialValue={remark ? {
+                            title: remark.title,
+                            description: remark.description ?? '',
+                            severity: remark.severity,
+                        } : undefined}
+                        saving={saving}
+                        onSave={onSave}
+                        onCancel={onCancel}
+                    />
+                ) : (
+                    <div className="space-y-2.5">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                                        Annotation
+                                    </span>
+                                    {remark ? (
+                                        <>
+                                            <Chip
+                                                size="sm"
+                                                variant="soft"
+                                                className={`h-5 border px-1.5 text-[8px] font-semibold uppercase ${SEVERITY_STYLES[remark.severity] ?? 'border-slate-500/30 bg-slate-500/20 text-slate-400'}`}
+                                            >
+                                                {remark.severity}
+                                            </Chip>
+                                            <Chip
+                                                size="sm"
+                                                variant="soft"
+                                                className={`h-5 px-1.5 text-[8px] font-medium capitalize ${STATUS_STYLES[remark.status] ?? 'bg-slate-500/20 text-slate-400'}`}
+                                            >
+                                                {remark.status.replace('_', ' ')}
+                                            </Chip>
+                                        </>
+                                    ) : null}
+                                </div>
                                 {remark ? (
-                                    <>
-                                        <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase ${SEVERITY_STYLES[remark.severity] ?? 'border-slate-500/30 bg-slate-500/20 text-slate-400'}`}>
-                                            {remark.severity}
-                                        </span>
-                                        <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium capitalize ${STATUS_STYLES[remark.status] ?? 'bg-slate-500/20 text-slate-400'}`}>
-                                            {remark.status.replace('_', ' ')}
-                                        </span>
-                                    </>
-                                ) : null}
+                                    <p className="mt-1.5 break-words text-[12px] font-semibold leading-snug text-[var(--foreground)]">
+                                        {remark.title}
+                                    </p>
+                                ) : (
+                                    <p className="mt-1.5 text-[12px] font-semibold text-[var(--foreground)]">No remark yet</p>
+                                )}
                             </div>
-                            {remark ? (
-                                <p className="mt-1.5 break-words text-[12px] font-semibold leading-snug text-[var(--foreground)]">
-                                    {remark.title}
-                                </p>
-                            ) : (
-                                <p className="mt-1.5 text-[12px] font-semibold text-[var(--foreground)]">No remark yet</p>
-                            )}
+                            <Tooltip delay={350}>
+                                <Tooltip.Trigger>
+                                    <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="ghost"
+                                        onPress={onClose}
+                                        className="h-7 w-7 min-w-0 shrink-0 text-[var(--text-muted)]"
+                                        aria-label="Close annotation popup"
+                                    >
+                                        <X size={12} />
+                                    </Button>
+                                </Tooltip.Trigger>
+                                <Tooltip.Content>Close</Tooltip.Content>
+                            </Tooltip>
                         </div>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="shrink-0 rounded-md p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
-                            aria-label="Close annotation popup"
-                        >
-                            <X size={12} />
-                        </button>
-                    </div>
 
-                    {remark?.description ? (
-                        <p className="max-h-24 overflow-y-auto whitespace-pre-wrap break-words text-[10px] leading-relaxed text-[var(--text-muted)]">
-                            {remark.description}
-                        </p>
-                    ) : null}
-
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border)] pt-2 text-[9px] text-[var(--text-subtle)]">
-                        <span className="flex items-center gap-1">
-                            <User size={9} />
-                            {remark?.createdBy?.name ?? annotation.authoredBy?.name ?? annotation.createdBy?.name ?? 'Unknown'}
-                        </span>
-                        {remark?.createdAt ?? annotation.createdAt ? (
-                            <span className="flex items-center gap-1">
-                                <Clock size={9} />
-                                {formatDate(remark?.createdAt ?? annotation.createdAt)}
-                            </span>
+                        {remark?.description ? (
+                            <p className="max-h-24 overflow-y-auto whitespace-pre-wrap break-words text-[10px] leading-relaxed text-[var(--text-muted)]">
+                                {remark.description}
+                            </p>
                         ) : null}
-                        {remark?.createdBy ? (
-                            <span className="flex items-center gap-1">
-                                <AlertTriangle size={9} />
-                                linked remark
-                            </span>
-                        ) : null}
-                    </div>
 
-                    <div className="flex justify-end">
-                        <button
-                            type="button"
-                            onClick={remark ? onEdit : onCreate}
-                            className="inline-flex h-7 items-center gap-1.5 rounded-md bg-[var(--accent)]/12 px-2.5 text-[10px] font-semibold text-[var(--accent)] transition hover:bg-[var(--accent)]/18"
-                        >
-                            {remark ? <Pencil size={11} /> : <MessageSquarePlus size={11} />}
-                            {remark ? 'Edit' : 'Add remark'}
-                        </button>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border)] pt-2 text-[9px] text-[var(--text-subtle)]">
+                            <span className="flex items-center gap-1">
+                                <User size={9} />
+                                {remark?.createdBy?.name ?? annotation.authoredBy?.name ?? annotation.createdBy?.name ?? 'Unknown'}
+                            </span>
+                            {remark?.createdAt ?? annotation.createdAt ? (
+                                <span className="flex items-center gap-1">
+                                    <Clock size={9} />
+                                    {formatDate(remark?.createdAt ?? annotation.createdAt)}
+                                </span>
+                            ) : null}
+                            {remark?.createdBy ? (
+                                <span className="flex items-center gap-1">
+                                    <AlertTriangle size={9} />
+                                    linked remark
+                                </span>
+                            ) : null}
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onPress={remark ? onEdit : onCreate}
+                                className="h-7 min-w-0 gap-1.5 bg-[var(--accent)]/12 px-2.5 text-[10px] font-semibold text-[var(--accent)]"
+                            >
+                                {remark ? <Pencil size={11} /> : <MessageSquarePlus size={11} />}
+                                {remark ? 'Edit' : 'Add remark'}
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </Card.Content>
+        </Card>
     );
 }
 

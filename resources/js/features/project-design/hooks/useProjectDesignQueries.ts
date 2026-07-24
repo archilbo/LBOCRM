@@ -3,7 +3,7 @@ import { projectDesignApi } from '../api/projectDesignApi';
 import { projectDesignKeys } from '../api/projectDesignKeys';
 import type {
     ProjectDesignSummary, ProjectDesignFolder, ProjectDesignFile,
-    ProjectDesignReview, ProjectDesignRemark, ProjectDesignActivity, ProjectDesignVersion,
+    ProjectDesignReview, ProjectDesignRemark, ProjectDesignActivity, ProjectDesignVersion, ProjectDesignAnnotation,
 } from '../types/projectDesign';
 
 export function useSummary(dossierId: number) {
@@ -37,6 +37,15 @@ export function useFileDetail(dossierId: number, fileId: number | null) {
         queryFn: ({ signal }) => projectDesignApi.getFile(dossierId, fileId!, signal),
         enabled: !!fileId,
         staleTime: 30_000,
+    });
+}
+
+export function useAnnotations(dossierId: number, versionId: number | null) {
+    return useQuery<{ data: ProjectDesignAnnotation[] }>({
+        queryKey: projectDesignKeys.annotations(dossierId, versionId ?? 0),
+        queryFn: ({ signal }) => projectDesignApi.getAnnotations(dossierId, versionId!, signal),
+        enabled: !!versionId,
+        staleTime: 15_000,
     });
 }
 

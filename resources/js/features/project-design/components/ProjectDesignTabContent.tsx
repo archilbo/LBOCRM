@@ -10,7 +10,6 @@ import {
     Undo2,
 } from 'lucide-react';
 import { Button, Chip, Tooltip } from '@heroui/react';
-import { AppButton } from '@/components/ui/AppButton';
 import { ProjectDesignFileBrowser } from './ProjectDesignFileBrowser';
 import {
     ProjectDesignEditorToolbar,
@@ -28,9 +27,9 @@ import { ProjectDesignActivityFeed } from './ProjectDesignActivityFeed';
 import { DesignViewerTabs } from '@/features/dossiers/components/DesignViewerTabs';
 import { DesignInspector } from '@/features/dossiers/components/DesignInspector';
 import { resolveProjectDesignViewer } from '@/features/dossiers/utils/viewerResolver';
-import { useActivity, useFileDetail, useRemarks, useVersions } from '../hooks/useProjectDesignQueries';
+import { useActivity, useAnnotations, useFileDetail, useRemarks, useVersions } from '../hooks/useProjectDesignQueries';
 import { useProjectDesignViewerController } from '../viewer/useProjectDesignViewerController';
-import type { DesignMode, ProjectDesignFile } from '../types/projectDesign';
+import type { DesignMode, ProjectDesignFile, ProjectDesignRemark } from '../types/projectDesign';
 import type { WorkspaceState, WorkspaceUpdate } from '../hooks/useProjectDesignWorkspace';
 
 const MODES: { id: DesignMode; label: string }[] = [
@@ -67,17 +66,19 @@ function IconControl({
     children: React.ReactNode;
 }) {
     return (
-        <Tooltip>
-            <Button
-                isIconOnly
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 min-w-0 rounded-lg border border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
-                aria-label={label}
-                onPress={onPress}
-            >
-                {children}
-            </Button>
+        <Tooltip delay={350}>
+            <Tooltip.Trigger>
+                <Button
+                    isIconOnly
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 min-w-0 rounded-lg border border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+                    aria-label={label}
+                    onPress={onPress}
+                >
+                    {children}
+                </Button>
+            </Tooltip.Trigger>
             <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-xl">
                 {label}
             </Tooltip.Content>
@@ -128,13 +129,14 @@ export function ProjectDesignTabContent({
                         <div>
                             <FileWarning size={30} className="mx-auto text-amber-400" />
                             <p className="mt-3 text-sm font-medium text-[var(--foreground)]">Design file not found</p>
-                            <AppButton
+                            <Button
                                 size="sm"
+                                variant="secondary"
                                 className="mt-4"
                                 onPress={() => navigate({ file: '', version: '', asset: '', page: '', remark: '' })}
                             >
                                 Back to files
-                            </AppButton>
+                            </Button>
                         </div>
                     </div>
                 )
@@ -156,21 +158,22 @@ export function ProjectDesignTabContent({
 
                     <div className="app-scrollbar flex shrink-0 items-center gap-1 overflow-x-auto border-b border-[var(--border)] bg-[var(--surface-2)]/30 px-2 py-1.5">
                         {MODES.map((item) => (
-                            <button
+                            <Button
                                 key={item.id}
-                                type="button"
+                                size="sm"
+                                variant="ghost"
                                 role="tab"
                                 aria-selected={mode === item.id}
-                                onClick={() => onModeChange(item.id)}
+                                onPress={() => onModeChange(item.id)}
                                 className={[
-                                    'rounded-lg border px-3 py-1.5 text-[12px] font-medium outline-none transition whitespace-nowrap',
+                                    'h-8 min-w-0 rounded-lg border px-3 text-[12px] font-medium whitespace-nowrap',
                                     mode === item.id
                                         ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
                                         : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]',
                                 ].join(' ')}
                             >
                                 {item.label}
-                            </button>
+                            </Button>
                         ))}
                     </div>
 
@@ -234,6 +237,9 @@ function EditorWorkspace({
     } = viewerState;
     const [layoutControls, setLayoutControls] = useState<ProjectDesignLayoutControls>(EMPTY_LAYOUT_CONTROLS);
     const [annotationCommands, setAnnotationCommands] = useState<ProjectDesignAnnotationToolbarState>(EMPTY_ANNOTATION_COMMANDS);
+    const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+    const [focusedAnnotationId, setFocusedAnnotationId] = useState<number | null>(null);
+    const [focusRequestKey, setFocusRequestKey] = useState(0);
     const { data: versionsData, isLoading: loadingVersions } = useVersions(dossierId, selectedFile.id);
     const { data: remarksData } = useRemarks(dossierId, {});
     const { data: activityData } = useActivity(dossierId);
@@ -248,6 +254,7 @@ function EditorWorkspace({
         ? versions.find((version) => version.id === workspaceState.versionId) ?? null
         : null;
     const version = workspaceState.versionId ? requestedVersion : selectedFile.latestVersion;
+    const { data: annotationsData } = useAnnotations(dossierId, version?.id ?? null);
     const requestedVersionMissing = Boolean(
         workspaceState.versionId
         && !loadingVersions
@@ -267,6 +274,30 @@ function EditorWorkspace({
     } | undefined)?.user;
     const userId = authUser?.id;
     const companyId = authUser?.companyId ?? null;
+
+    const editorRootRef = useCallback((node: HTMLDivElement | null) => {
+        setPortalContainer(node);
+    }, []);
+
+    const handleRemarkFocus = useCallback((remark: ProjectDesignRemark) => {
+        if (!remark.annotationId) return;
+
+        const annotation = (annotationsData?.data ?? []).find((item) => item.id === remark.annotationId);
+        if (!annotation) return;
+
+        const targetAssetId = annotation.assetId ?? activeAsset?.id ?? null;
+        const targetPage = annotation.pageNumber ?? 1;
+
+        setFocusedAnnotationId(annotation.id);
+        setFocusRequestKey((current) => current + 1);
+        layoutControls.openInspector();
+        navigate({
+            inspector: 'remarks',
+            remark: String(remark.id),
+            asset: targetAssetId ? String(targetAssetId) : '',
+            page: String(targetPage),
+        });
+    }, [activeAsset?.id, annotationsData?.data, layoutControls, navigate]);
 
     useEffect(() => {
         const requestedPage = workspaceState.pageNumber ?? 1;
@@ -298,7 +329,9 @@ function EditorWorkspace({
         };
     }, [fullscreen]);
 
-    const handleControlsReady = registerViewerAPI;
+    const handleControlsReady = useCallback((controls: { fitWidth: () => void; fitPage: () => void }) => {
+        registerViewerAPI(controls);
+    }, [registerViewerAPI]);
 
     const handlePageChange = useCallback((page: number) => {
         setPageNumber(page);
@@ -405,14 +438,15 @@ function EditorWorkspace({
                 <FileWarning size={34} className="text-amber-400" />
                 <p className="mt-3 text-sm font-medium text-[var(--foreground)]">No assets available</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">{description}</p>
-                <AppButton
+                <Button
                     size="sm"
+                    variant="secondary"
                     className="mt-4 h-8 text-[11px]"
                     onPress={() => navigate({ file: '', version: '', asset: '', page: '', remark: '', mode: 'files' })}
                 >
                     <Undo2 size={13} />
                     Back to files
-                </AppButton>
+                </Button>
             </div>
         );
     }
@@ -433,7 +467,7 @@ function EditorWorkspace({
 
     return (
         <ProjectDesignLayoutContext.Provider value={layoutControls}>
-            <div className={editorClassName}>
+            <div ref={editorRootRef} className={editorClassName}>
                 <div className="flex shrink-0 items-center gap-2 rounded-t-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_96%,transparent)] px-2 py-1.5 shadow-sm backdrop-blur">
                     <IconControl
                         label={layoutControls.browserAvailable ? 'Toggle file browser' : 'Open file browser'}
@@ -474,6 +508,7 @@ function EditorWorkspace({
                         userId={userId}
                         companyId={companyId}
                         onControlsChange={setLayoutControls}
+                        portalContainer={portalContainer}
                         browser={(
                             <ProjectDesignFileBrowser
                                 dossierId={dossierId}
@@ -485,6 +520,7 @@ function EditorWorkspace({
                                     remark: '',
                                 })}
                                 selectedFileId={selectedFile.id}
+                                portalContainer={portalContainer}
                             />
                         )}
                         viewer={(
@@ -502,6 +538,8 @@ function EditorWorkspace({
                                 onControlsReady={handleControlsReady}
                                 onTotalPages={handleTotalPages}
                                 onToolbarStateChange={handleAnnotationCommands}
+                                focusAnnotationId={focusedAnnotationId}
+                                focusRequestKey={focusRequestKey}
                             />
                         )}
                         inspector={(
@@ -516,6 +554,8 @@ function EditorWorkspace({
                                 onTabChange={(tab) => navigate({ inspector: tab })}
                                 onOpenReviewAsset={(asset) => navigate({ asset: String(asset.id), page: '', remark: '' })}
                                 onSwitchVersion={(versionId) => navigate({ version: String(versionId), asset: '', page: '', remark: '' })}
+                                activeRemarkId={workspaceState.remarkId}
+                                onRemarkFocus={handleRemarkFocus}
                             />
                         )}
                     />
@@ -565,9 +605,9 @@ function StaleEditorContext({
             <FileWarning size={34} className="text-amber-400" />
             <p className="mt-3 text-sm font-medium text-[var(--foreground)]">{title}</p>
             <p className="mt-1 max-w-md text-xs text-[var(--text-muted)]">{description}</p>
-            <AppButton size="sm" className="mt-4" onPress={onReset}>
+            <Button size="sm" variant="secondary" className="mt-4" onPress={onReset}>
                 Repair editor context
-            </AppButton>
+            </Button>
         </div>
     );
 }
