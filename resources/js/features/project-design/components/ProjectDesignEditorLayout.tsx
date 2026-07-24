@@ -238,7 +238,7 @@ export function ProjectDesignEditorLayout({
                     title="File Browser"
                     panelClassName="!w-[85vw] sm:!w-[360px]"
                     isDismissable
-                    placement="left"
+                    placement="right"
                 >
                     {browser}
                 </AppDrawer>
