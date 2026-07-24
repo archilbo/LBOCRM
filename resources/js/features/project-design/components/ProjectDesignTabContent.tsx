@@ -1,20 +1,36 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePage } from '@inertiajs/react';
-import { FolderOpen, NotebookTabs, Undo2, Loader2, FileWarning, PanelLeft, PanelRight } from 'lucide-react';
-import { Chip, Tooltip, Button } from '@heroui/react';
+import {
+    FileWarning,
+    FolderOpen,
+    Loader2,
+    NotebookTabs,
+    PanelLeft,
+    PanelRight,
+    Undo2,
+} from 'lucide-react';
+import { Button, Chip, Tooltip } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { ProjectDesignFileBrowser } from './ProjectDesignFileBrowser';
-import { ProjectDesignEditorToolbar } from './ProjectDesignEditorToolbar';
+import {
+    ProjectDesignEditorToolbar,
+    type ProjectDesignAnnotationToolbarState,
+    type ProjectDesignEditorToolbarState,
+} from './ProjectDesignEditorToolbar';
 import { ProjectDesignEditorLayout } from './ProjectDesignEditorLayout';
-import { ProjectDesignLayoutContext, type ProjectDesignLayoutControls } from './ProjectDesignLayoutContext';
+import {
+    ProjectDesignLayoutContext,
+    type ProjectDesignLayoutControls,
+} from './ProjectDesignLayoutContext';
 import { DesignReviewQueue } from '@/features/dossiers/components/DesignReviewQueue';
 import { DesignRemarksTab } from '@/features/dossiers/components/DesignRemarksTab';
 import { ProjectDesignActivityFeed } from './ProjectDesignActivityFeed';
 import { DesignViewerTabs } from '@/features/dossiers/components/DesignViewerTabs';
 import { DesignInspector } from '@/features/dossiers/components/DesignInspector';
-import { useFileDetail, useVersions } from '../hooks/useProjectDesignQueries';
+import { resolveProjectDesignViewer } from '@/features/dossiers/utils/viewerResolver';
+import { useActivity, useFileDetail, useRemarks, useVersions } from '../hooks/useProjectDesignQueries';
 import { useProjectDesignViewerController } from '../viewer/useProjectDesignViewerController';
-import type { DesignMode, ProjectDesignFile, ProjectDesignAsset } from '../types/projectDesign';
+import type { DesignMode, ProjectDesignFile } from '../types/projectDesign';
 import type { WorkspaceState, WorkspaceUpdate } from '../hooks/useProjectDesignWorkspace';
 
 const MODES: { id: DesignMode; label: string }[] = [
@@ -24,66 +40,151 @@ const MODES: { id: DesignMode; label: string }[] = [
     { id: 'activity', label: 'Activity' },
 ];
 
-export function ProjectDesignTabContent({ dossierId, workspaceState, onModeChange, onFileSelect, onNavigate }: {
+const EMPTY_ANNOTATION_COMMANDS: ProjectDesignAnnotationToolbarState = {
+    saving: false,
+    hasUnsaved: false,
+    canRemark: false,
+};
+
+const EMPTY_LAYOUT_CONTROLS: ProjectDesignLayoutControls = {
+    toggleBrowser: () => undefined,
+    toggleInspector: () => undefined,
+    openBrowser: () => undefined,
+    openInspector: () => undefined,
+    closeBrowser: () => undefined,
+    closeInspector: () => undefined,
+    browserAvailable: false,
+    inspectorAvailable: false,
+};
+
+function IconControl({
+    label,
+    onPress,
+    children,
+}: {
+    label: string;
+    onPress: () => void;
+    children: React.ReactNode;
+}) {
+    return (
+        <Tooltip>
+            <Button
+                isIconOnly
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 min-w-0 rounded-lg border border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+                aria-label={label}
+                onPress={onPress}
+            >
+                {children}
+            </Button>
+            <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-xl">
+                {label}
+            </Tooltip.Content>
+        </Tooltip>
+    );
+}
+
+export function ProjectDesignTabContent({
+    dossierId,
+    workspaceState,
+    onModeChange,
+    onFileSelect,
+    onNavigate,
+}: {
     dossierId: number;
     workspaceState: WorkspaceState;
-    onModeChange: (m: DesignMode) => void;
-    onFileSelect: (f: ProjectDesignFile) => void;
+    onModeChange: (mode: DesignMode) => void;
+    onFileSelect: (file: ProjectDesignFile) => void;
     onNavigate?: (updates: WorkspaceUpdate) => void;
 }) {
     const { mode } = workspaceState;
-    const { data: selectedFile, isLoading: loadingFile } = useFileDetail(dossierId, workspaceState.fileId);
-
-    const nav = useCallback((updates: WorkspaceUpdate) => onNavigate?.(updates), [onNavigate]);
+    const { data: selectedFile, isLoading: loadingFile } = useFileDetail(
+        dossierId,
+        workspaceState.fileId,
+    );
+    const navigate = useCallback(
+        (updates: WorkspaceUpdate) => onNavigate?.(updates),
+        [onNavigate],
+    );
 
     return (
-        <div className="flex h-full flex-col overflow-hidden project-design-editor-active">
+        <div className="project-design-editor-active flex h-full min-h-0 flex-col overflow-hidden">
             {workspaceState.fileId && mode === 'files' ? (
                 loadingFile ? (
-                    <div className="flex flex-1 items-center justify-center">
-                        <Loader2 size={20} className="animate-spin text-[var(--text-muted)]" />
+                    <div className="flex flex-1 items-center justify-center bg-[var(--surface-2)]/30">
+                        <Loader2 size={20} className="animate-spin text-[var(--accent)]" />
                     </div>
                 ) : selectedFile ? (
                     <EditorWorkspace
-                        key={`${selectedFile.id}-${workspaceState.versionId}`}
+                        key={`${selectedFile.id}-${workspaceState.versionId ?? 'latest'}`}
                         dossierId={dossierId}
                         selectedFile={selectedFile}
                         workspaceState={workspaceState}
-                        onNavigate={nav}
+                        onNavigate={navigate}
                     />
-                ) : null
-            ) : (
-                <div className="flex flex-1 flex-col overflow-hidden">
-                    <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2">
-                        <span className="text-sm font-semibold text-[var(--foreground)]">
-                            <NotebookTabs size={16} className="inline mr-1.5 text-[var(--accent)]" />
-                            Project Design
-                        </span>
+                ) : (
+                    <div className="flex flex-1 items-center justify-center p-8 text-center">
+                        <div>
+                            <FileWarning size={30} className="mx-auto text-amber-400" />
+                            <p className="mt-3 text-sm font-medium text-[var(--foreground)]">Design file not found</p>
+                            <AppButton
+                                size="sm"
+                                className="mt-4"
+                                onPress={() => navigate({ file: '', version: '', asset: '', page: '', remark: '' })}
+                            >
+                                Back to files
+                            </AppButton>
+                        </div>
                     </div>
-                    <div className="flex border-b border-[var(--border)] shrink-0">
-                        {MODES.map((m) => (
-                            <button key={m.id} type="button" role="tab" aria-selected={mode === m.id}
-                                onClick={() => onModeChange(m.id)}
-                                className={`relative px-4 py-2 text-[13px] font-medium outline-none transition whitespace-nowrap ${
-                                    mode === m.id
-                                        ? 'text-[var(--accent)] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-[var(--accent)]'
-                                        : 'text-[var(--text-muted)] hover:text-[var(--foreground)]'
-                                }`}>
-                                {m.label}
+                )
+            ) : (
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                    <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3">
+                        <div className="min-w-0">
+                            <span className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+                                <span className="flex size-8 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
+                                    <NotebookTabs size={15} />
+                                </span>
+                                Project Design
+                            </span>
+                            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                                Design files, revisions, review decisions and remarks.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="app-scrollbar flex shrink-0 items-center gap-1 overflow-x-auto border-b border-[var(--border)] bg-[var(--surface-2)]/30 px-2 py-1.5">
+                        {MODES.map((item) => (
+                            <button
+                                key={item.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={mode === item.id}
+                                onClick={() => onModeChange(item.id)}
+                                className={[
+                                    'rounded-lg border px-3 py-1.5 text-[12px] font-medium outline-none transition whitespace-nowrap',
+                                    mode === item.id
+                                        ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
+                                        : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]',
+                                ].join(' ')}
+                            >
+                                {item.label}
                             </button>
                         ))}
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 project-design-editor-scroll-root">
-                        {mode === 'files' && (
+
+                    <div className="project-design-editor-scroll-root min-h-0 flex-1 overflow-y-auto p-4">
+                        {mode === 'files' ? (
                             <ProjectDesignFileBrowser
                                 dossierId={dossierId}
-                                onFileSelect={(f) => { onFileSelect(f); }}
+                                onFileSelect={onFileSelect}
                                 selectedFileId={workspaceState.fileId}
                             />
-                        )}
-                        {mode === 'reviews' && <DesignReviewQueue dossierId={dossierId} />}
-                        {mode === 'remarks' && <DesignRemarksTab dossierId={dossierId} />}
-                        {mode === 'activity' && <ProjectDesignActivityFeed dossierId={dossierId} />}
+                        ) : null}
+                        {mode === 'reviews' ? <DesignReviewQueue dossierId={dossierId} /> : null}
+                        {mode === 'remarks' ? <DesignRemarksTab dossierId={dossierId} /> : null}
+                        {mode === 'activity' ? <ProjectDesignActivityFeed dossierId={dossierId} /> : null}
                     </div>
                 </div>
             )}
@@ -91,282 +192,382 @@ export function ProjectDesignTabContent({ dossierId, workspaceState, onModeChang
     );
 }
 
-function EditorWorkspace({ dossierId, selectedFile, workspaceState, onNavigate }: {
+function EditorWorkspace({
+    dossierId,
+    selectedFile,
+    workspaceState,
+    onNavigate,
+}: {
     dossierId: number;
     selectedFile: ProjectDesignFile;
     workspaceState: WorkspaceState;
     onNavigate?: (updates: WorkspaceUpdate) => void;
 }) {
-    const ctrl = useProjectDesignViewerController();
-    const [editorFullscreen, setEditorFullscreen] = useState(false);
-    const [layoutControls, setLayoutControls] = useState<ProjectDesignLayoutControls>({
-        toggleBrowser: () => {}, toggleInspector: () => {},
-        openBrowser: () => {}, openInspector: () => {},
-        closeBrowser: () => {}, closeInspector: () => {},
-        browserAvailable: false, inspectorAvailable: false,
+    const controller = useProjectDesignViewerController({
+        pageNumber: workspaceState.pageNumber ?? 1,
     });
+    const {
+        state: viewerState,
+        setZoom,
+        setViewport,
+        panTo,
+        resetViewport,
+        rotate,
+        setActiveTool,
+        setPageNumber,
+        setTotalPages,
+        setFullscreen,
+        toggleFullscreen,
+        registerViewerAPI,
+        fitWidth,
+        fitPage,
+    } = controller;
+    const {
+        activeTool,
+        zoom,
+        panX,
+        panY,
+        rotation,
+        fullscreen,
+        pageNumber,
+        totalPages,
+    } = viewerState;
+    const [layoutControls, setLayoutControls] = useState<ProjectDesignLayoutControls>(EMPTY_LAYOUT_CONTROLS);
+    const [annotationCommands, setAnnotationCommands] = useState<ProjectDesignAnnotationToolbarState>(EMPTY_ANNOTATION_COMMANDS);
+    const { data: versionsData, isLoading: loadingVersions } = useVersions(dossierId, selectedFile.id);
+    const { data: remarksData } = useRemarks(dossierId, {});
+    const { data: activityData } = useActivity(dossierId);
+    const versions = versionsData?.data ?? [];
+
+    const navigate = useCallback(
+        (updates: WorkspaceUpdate) => onNavigate?.(updates),
+        [onNavigate],
+    );
+
+    const requestedVersion = workspaceState.versionId
+        ? versions.find((version) => version.id === workspaceState.versionId) ?? null
+        : null;
+    const version = workspaceState.versionId ? requestedVersion : selectedFile.latestVersion;
+    const requestedVersionMissing = Boolean(
+        workspaceState.versionId
+        && !loadingVersions
+        && versions.length > 0
+        && !requestedVersion,
+    );
+    const assets = version?.assets ?? [];
+    const defaultAsset = assets.length > 0 ? resolveProjectDesignViewer(assets).asset : null;
+    const requestedAsset = workspaceState.assetId
+        ? assets.find((asset) => asset.id === workspaceState.assetId) ?? null
+        : null;
+    const activeAsset = requestedAsset ?? (workspaceState.assetId == null ? defaultAsset : null);
+    const requestedAssetMissing = Boolean(workspaceState.assetId && !requestedAsset);
+
+    const authUser = ((usePage().props as Record<string, unknown>).auth as {
+        user?: { id: number; companyId?: number };
+    } | undefined)?.user;
+    const userId = authUser?.id;
+    const companyId = authUser?.companyId ?? null;
+
+    useEffect(() => {
+        const requestedPage = workspaceState.pageNumber ?? 1;
+        if (requestedPage !== pageNumber) {
+            setPageNumber(requestedPage);
+        }
+    }, [pageNumber, setPageNumber, workspaceState.pageNumber]);
+
+    const previousAssetIdRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        const previousAssetId = previousAssetIdRef.current;
+        if (activeAsset && previousAssetId !== activeAsset.id) {
+            if (previousAssetId != null) resetViewport();
+            setTotalPages(1);
+            setPageNumber(1);
+            previousAssetIdRef.current = activeAsset.id;
+        }
+    }, [activeAsset, resetViewport, setPageNumber, setTotalPages]);
 
     useEffect(() => {
         const root = document.documentElement;
         root.classList.add('pd-editor-workspace-open');
-        if (editorFullscreen) root.classList.add('pd-editor-fullscreen');
+        root.classList.toggle('pd-editor-fullscreen', fullscreen);
+
         return () => {
             root.classList.remove('pd-editor-workspace-open');
             root.classList.remove('pd-editor-fullscreen');
         };
-    }, [editorFullscreen]);
+    }, [fullscreen]);
 
-    const { data: versionsData } = useVersions(dossierId, selectedFile.id);
-    const versions = versionsData?.data ?? [];
-    const version = workspaceState.versionId
-        ? versions.find((v) => v.id === workspaceState.versionId) ?? selectedFile.latestVersion
-        : selectedFile.latestVersion;
-    const assets = version?.assets ?? [];
-    const activeAssetId = workspaceState.assetId;
+    const handleControlsReady = registerViewerAPI;
 
-    const nav = useCallback((updates: WorkspaceUpdate) => onNavigate?.(updates), [onNavigate]);
+    const handlePageChange = useCallback((page: number) => {
+        setPageNumber(page);
+        navigate({ page: String(page) });
+    }, [navigate, setPageNumber]);
 
-    const authUser = ((usePage().props as Record<string, unknown>).auth as { user?: { id: number; companyId?: number } } | undefined)?.user;
-    const userId = authUser?.id;
-    const companyId = authUser?.companyId ?? null;
+    const handleTotalPages = useCallback((total: number) => {
+        setTotalPages(total);
+        if (pageNumber > total) {
+            const page = Math.max(1, total);
+            setPageNumber(page);
+            navigate({ page: String(page) });
+        }
+    }, [navigate, pageNumber, setPageNumber, setTotalPages]);
 
-    if (!assets.length) {
-        const msg = !version
-            ? 'This file has no uploaded versions yet.'
-            : 'The latest version has no assets.';
+    const handleAnnotationCommands = useCallback((next: ProjectDesignAnnotationToolbarState) => {
+        setAnnotationCommands((current) => (
+            current.onSave === next.onSave
+            && current.onRemark === next.onRemark
+            && current.saving === next.saving
+            && current.hasUnsaved === next.hasUnsaved
+            && current.canRemark === next.canRemark
+                ? current
+                : next
+        ));
+    }, []);
+
+    const toolbarState = useMemo<ProjectDesignEditorToolbarState>(() => ({
+        activeTool: activeTool,
+        onToolChange: setActiveTool,
+        zoom: zoom,
+        panX: panX,
+        panY: panY,
+        onZoomChange: setZoom,
+        onPanChange: panTo,
+        onViewportChange: setViewport,
+        rotation: rotation,
+        onRotate: rotate,
+        fullscreen: fullscreen,
+        onFullscreenToggle: toggleFullscreen,
+        onFullscreenChange: setFullscreen,
+        onFitWidth: fitWidth,
+        onFitPage: fitPage,
+        pageNumber: pageNumber,
+        totalPages: totalPages,
+        onPageChange: handlePageChange,
+        downloadUrl: activeAsset?.downloadUrl ?? undefined,
+        suppressAnnotations: activeAsset?.assetType === 'source',
+        onSave: annotationCommands.onSave,
+        onRemark: annotationCommands.onRemark,
+        saving: annotationCommands.saving,
+        hasUnsaved: annotationCommands.hasUnsaved,
+        canRemark: annotationCommands.canRemark,
+        continuous: false,
+    }), [
+        activeAsset?.assetType,
+        activeAsset?.downloadUrl,
+        activeTool,
+        annotationCommands,
+        fitPage,
+        fitWidth,
+        fullscreen,
+        handlePageChange,
+        pageNumber,
+        panTo,
+        panX,
+        panY,
+        rotate,
+        rotation,
+        setActiveTool,
+        setFullscreen,
+        setViewport,
+        setZoom,
+        toggleFullscreen,
+        totalPages,
+        zoom,
+    ]);
+
+    if (workspaceState.versionId && loadingVersions && !requestedVersion) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-                <FileWarning size={32} className="text-amber-400" />
+            <div className="flex flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                <Loader2 size={20} className="animate-spin text-[var(--accent)]" />
+            </div>
+        );
+    }
+
+    if (requestedVersionMissing) {
+        return (
+            <StaleEditorContext
+                title="Selected version is no longer available"
+                description="Return to the latest version and update the editor link."
+                onReset={() => navigate({ version: '', asset: '', page: '', remark: '' })}
+            />
+        );
+    }
+
+    if (!version || !assets.length) {
+        const description = !version
+            ? 'This file has no uploaded versions yet.'
+            : 'The selected version has no assets.';
+
+        return (
+            <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center">
+                <FileWarning size={34} className="text-amber-400" />
                 <p className="mt-3 text-sm font-medium text-[var(--foreground)]">No assets available</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">{msg}</p>
-                <AppButton size="sm" className="mt-4 h-8 text-[11px]"
-                    onPress={() => nav({ file: '', version: '', asset: '', page: '', remark: '', mode: 'files' })}>
-                    <Undo2 size={13} /> Back to Files
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{description}</p>
+                <AppButton
+                    size="sm"
+                    className="mt-4 h-8 text-[11px]"
+                    onPress={() => navigate({ file: '', version: '', asset: '', page: '', remark: '', mode: 'files' })}
+                >
+                    <Undo2 size={13} />
+                    Back to files
                 </AppButton>
             </div>
         );
     }
 
-    return <EditorWorkspaceContent
-        dossierId={dossierId}
-        selectedFile={selectedFile}
-        version={version}
-        versions={versions}
-        assets={assets}
-        activeAssetId={activeAssetId}
-        workspaceState={workspaceState}
-        onNavigate={nav}
-        ctrl={ctrl}
-        editorFullscreen={editorFullscreen}
-        setEditorFullscreen={setEditorFullscreen}
-        setLayoutControls={setLayoutControls}
-        layoutControls={layoutControls}
-        userId={userId}
-        companyId={companyId}
-    />;
-}
+    if (requestedAssetMissing || !activeAsset) {
+        return (
+            <StaleEditorContext
+                title="Selected asset is no longer available"
+                description="Open an available source or review asset to repair the editor link."
+                onReset={() => navigate({ asset: '', page: '', remark: '' })}
+            />
+        );
+    }
 
-function EditorWorkspaceContent({ dossierId, selectedFile, version, versions, assets, activeAssetId, workspaceState, onNavigate, ctrl, editorFullscreen, setEditorFullscreen, setLayoutControls, layoutControls, userId, companyId }: {
-    dossierId: number;
-    selectedFile: ProjectDesignFile;
-    version: NonNullable<ReturnType<typeof useVersions>['data']>['data'][number] | null;
-    versions: NonNullable<ReturnType<typeof useVersions>['data']>['data'];
-    assets: ProjectDesignAsset[];
-    activeAssetId?: number | null;
-    workspaceState: WorkspaceState;
-    onNavigate?: (updates: WorkspaceUpdate) => void;
-    ctrl: ReturnType<typeof useProjectDesignViewerController>;
-    editorFullscreen: boolean;
-    setEditorFullscreen: React.Dispatch<React.SetStateAction<boolean>>;
-    setLayoutControls: React.Dispatch<React.SetStateAction<ProjectDesignLayoutControls>>;
-    layoutControls: ProjectDesignLayoutControls;
-    userId: number | undefined;
-    companyId: number | null;
-}) {
-    const viewerAsset = assets.find(a => a.id === activeAssetId) ?? assets[0];
-    const nav = useCallback((updates: WorkspaceUpdate) => onNavigate?.(updates), [onNavigate]);
-
-    const handlePageChange = useCallback((p: number) => {
-        ctrl.setPageNumber(p);
-        nav({ page: String(p) });
-    }, [ctrl, nav]);
-
-    const handleFullscreenToggle = useCallback(() => {
-        ctrl.toggleFullscreen();
-        setEditorFullscreen((f) => !f);
-    }, [ctrl, setEditorFullscreen]);
-
-    const handleSave = useCallback(async () => {
-        ctrl.setSaving(true);
-        try {
-            ctrl.setSaving(false);
-            ctrl.setHasUnsaved(false);
-        } catch {
-            ctrl.setSaving(false);
-        }
-    }, [ctrl]);
-
-    const toolbarState = {
-        activeTool: ctrl.state.activeTool,
-        onToolChange: ctrl.setActiveTool,
-        zoom: ctrl.state.zoom,
-        onZoomChange: ctrl.setZoom,
-        rotation: ctrl.state.rotation,
-        onRotate: ctrl.rotate,
-        fullscreen: ctrl.state.fullscreen,
-        onFullscreenToggle: handleFullscreenToggle,
-        onFitWidth: ctrl.fitWidth,
-        onFitPage: ctrl.fitPage,
-        pageNumber: ctrl.state.pageNumber,
-        totalPages: ctrl.state.totalPages,
-        onPageChange: handlePageChange,
-        downloadUrl: viewerAsset?.downloadUrl ?? undefined,
-        suppressAnnotations: false,
-        continuous: false,
-        onContinuousToggle: undefined,
-        onSave: handleSave,
-        saving: ctrl.state.saving,
-        hasUnsaved: ctrl.state.hasUnsaved,
-    };
-
-    const handleTotalPages = useCallback((n: number) => {
-        ctrl.setTotalPages(n);
-        if (ctrl.state.pageNumber > n) {
-            ctrl.setPageNumber(n);
-            nav?.({ page: String(n) });
-        }
-    }, [ctrl, nav]);
+    const editorClassName = fullscreen
+        ? 'fixed inset-0 z-[120] flex h-dvh w-screen flex-col overflow-hidden bg-[#0d0f11] p-2 sm:p-3'
+        : 'project-design-editor-scroll-root flex h-full min-h-0 flex-col overflow-hidden';
 
     return (
         <ProjectDesignLayoutContext.Provider value={layoutControls}>
-            <div className="flex h-full flex-col overflow-hidden project-design-editor-scroll-root">
-                <div className="flex items-center border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 shrink-0 gap-2">
-                    {layoutControls.browserAvailable ? (
-                        <Tooltip>
-                            <Button isIconOnly size="sm" variant="ghost" className="h-7 w-7 min-w-0"
-                                aria-label="Toggle file browser"
-                                onPress={layoutControls.toggleBrowser}>
-                                <PanelLeft size={14} />
-                            </Button>
-                            <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Toggle file browser</Tooltip.Content>
-                        </Tooltip>
-                    ) : (
-                        <Tooltip>
-                            <Button isIconOnly size="sm" variant="ghost" className="h-7 w-7 min-w-0"
-                                aria-label="Open file browser"
-                                onPress={layoutControls.openBrowser}>
-                                <PanelLeft size={14} />
-                            </Button>
-                            <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Open file browser</Tooltip.Content>
-                        </Tooltip>
-                    )}
-                    <div className="flex items-center gap-1.5 min-w-0 shrink-0">
-                        <FolderOpen size={13} className="shrink-0 text-[var(--text-muted)]" />
-                        <span className="truncate text-[12px] font-medium text-[var(--foreground)] max-w-[120px]">{selectedFile.name}</span>
-                        {version && (
-                            <Chip size="sm" variant="soft" className="h-5 text-[9px] shrink-0">{version.label}</Chip>
-                        )}
+            <div className={editorClassName}>
+                <div className="flex shrink-0 items-center gap-2 rounded-t-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_96%,transparent)] px-2 py-1.5 shadow-sm backdrop-blur">
+                    <IconControl
+                        label={layoutControls.browserAvailable ? 'Toggle file browser' : 'Open file browser'}
+                        onPress={layoutControls.browserAvailable ? layoutControls.toggleBrowser : layoutControls.openBrowser}
+                    >
+                        <PanelLeft size={15} />
+                    </IconControl>
+
+                    <div className="hidden min-w-0 max-w-[220px] shrink-0 items-center gap-2 border-r border-[var(--border)] pr-2 md:flex">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
+                            <FolderOpen size={13} />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="truncate text-[11px] font-semibold text-[var(--foreground)]">{selectedFile.name}</p>
+                            <div className="mt-0.5 flex items-center gap-1.5">
+                                <Chip size="sm" variant="soft" className="h-4 px-1 text-[8px]">{version.label}</Chip>
+                                <span className="truncate text-[9px] text-[var(--text-muted)]">{activeAsset.originalFilename}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex items-center flex-1 justify-center min-w-0 overflow-x-auto">
+
+                    <div className="min-w-0 flex-1">
                         <ProjectDesignEditorToolbar {...toolbarState} />
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                        {layoutControls.inspectorAvailable ? (
-                            <Tooltip>
-                                <Button isIconOnly size="sm" variant="ghost" className="h-7 w-7 min-w-0"
-                                    aria-label="Toggle inspector"
-                                    onPress={layoutControls.toggleInspector}>
-                                    <PanelRight size={14} />
-                                </Button>
-                                <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Toggle inspector</Tooltip.Content>
-                            </Tooltip>
-                        ) : (
-                            <Tooltip>
-                                <Button isIconOnly size="sm" variant="ghost" className="h-7 w-7 min-w-0"
-                                    aria-label="Open inspector"
-                                    onPress={layoutControls.openInspector}>
-                                    <PanelRight size={14} />
-                                </Button>
-                                <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">Open inspector</Tooltip.Content>
-                            </Tooltip>
-                        )}
-                    </div>
+
+                    <IconControl
+                        label={layoutControls.inspectorAvailable ? 'Toggle inspector' : 'Open inspector'}
+                        onPress={layoutControls.inspectorAvailable ? layoutControls.toggleInspector : layoutControls.openInspector}
+                    >
+                        <PanelRight size={15} />
+                    </IconControl>
                 </div>
 
-                <div className="relative flex-1 min-h-0 h-full">
+                <div className="relative min-h-0 flex-1">
                     <ProjectDesignEditorLayout
-                        fullscreen={editorFullscreen}
-                        onFullscreenToggle={() => setEditorFullscreen((f) => !f)}
+                        fullscreen={fullscreen}
+                        onFullscreenToggle={toggleFullscreen}
                         userId={userId}
                         companyId={companyId}
                         onControlsChange={setLayoutControls}
-                        browser={
+                        browser={(
                             <ProjectDesignFileBrowser
                                 dossierId={dossierId}
-                                onFileSelect={(f) => nav({ file: String(f.id), version: '', asset: '', page: '', remark: '' })}
+                                onFileSelect={(file) => navigate({
+                                    file: String(file.id),
+                                    version: '',
+                                    asset: '',
+                                    page: '',
+                                    remark: '',
+                                })}
                                 selectedFileId={selectedFile.id}
                             />
-                        }
-                        viewer={
+                        )}
+                        viewer={(
                             <DesignViewerTabs
                                 assets={assets}
                                 dossierId={dossierId}
-                                versionId={version!.id}
+                                versionId={version.id}
                                 fileMeta={selectedFile}
-                                activeAssetId={activeAssetId}
-                                onAssetChange={(id) => nav({ asset: String(id) })}
-                                onOpenReviewAsset={(asset) => nav({ asset: String(asset.id) })}
-                                pageNumber={ctrl.state.pageNumber}
+                                activeAssetId={activeAsset.id}
+                                onAssetChange={(id) => navigate({ asset: String(id), page: '', remark: '' })}
+                                onOpenReviewAsset={(asset) => navigate({ asset: String(asset.id), page: '', remark: '' })}
+                                pageNumber={pageNumber}
                                 onPageNumberChange={handlePageChange}
                                 viewerToolbar={toolbarState}
+                                onControlsReady={handleControlsReady}
                                 onTotalPages={handleTotalPages}
-                                state={ctrl.state}
-                                dispatch={ctrl.dispatch}
-                                interactionHandlers={ctrl.interactionHandlers}
-                                spaceHeldRef={ctrl.spaceHeldRef}
+                                onToolbarStateChange={handleAnnotationCommands}
                             />
-                        }
-                        inspector={
+                        )}
+                        inspector={(
                             <DesignInspector
                                 file={selectedFile}
                                 versions={versions}
                                 assets={assets}
-                                activeAsset={assets.find(a => a.id === activeAssetId) ?? assets[0]}
-                                dossierId={dossierId}
-                                versionId={version?.id}
-                                defaultTab={workspaceState.inspectorTab}
-                                onOpenReviewAsset={(asset) => nav({ asset: String(asset.id) })}
-                                onSwitchVersion={(versionId) => nav({ version: String(versionId), asset: '', page: '' })}
-                                onTabChange={(tab) => nav({ inspector: tab })}
+                                activeAsset={activeAsset}
+                                remarks={(remarksData?.data ?? []).filter((remark) => remark.versionId === version.id)}
+                                activities={activityData?.data ?? null}
+                                activeTab={workspaceState.inspectorTab}
+                                onTabChange={(tab) => navigate({ inspector: tab })}
+                                onOpenReviewAsset={(asset) => navigate({ asset: String(asset.id), page: '', remark: '' })}
+                                onSwitchVersion={(versionId) => navigate({ version: String(versionId), asset: '', page: '', remark: '' })}
                             />
-                        }
+                        )}
                     />
                 </div>
 
-                <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] shrink-0">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-[var(--text-muted)] truncate">{selectedFile.name}</span>
-                        {version?.uploadedBy && (
-                            <span className="text-[var(--text-muted)] hidden sm:inline">
-                                <span className="inline mr-1">{version.uploadedBy.name}</span>
+                <div className="flex h-7 shrink-0 items-center justify-between rounded-b-xl border-x border-b border-[var(--border)] bg-[var(--surface)] px-3 text-[10px] text-[var(--text-muted)]">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate">{selectedFile.name}</span>
+                        <span className="text-[var(--text-subtle)]">·</span>
+                        <span className="truncate">{activeAsset.originalFilename}</span>
+                        {annotationCommands.hasUnsaved ? (
+                            <span className="flex items-center gap-1 text-amber-300">
+                                <span className="size-1.5 rounded-full bg-amber-400" />
+                                Unsaved markup
                             </span>
-                        )}
+                        ) : null}
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                        {version && (
-                            <span className="flex items-center gap-1.5 text-[var(--text-muted)]">
-                                <span className="mr-1">{version.label}</span>
-                                <span className={`inline-block size-1.5 rounded-full ${
-                                    version.status === 'approved' ? 'bg-emerald-500' :
-                                    version.status === 'rejected' ? 'bg-red-500' :
-                                    'bg-amber-500'
-                                }`} />
-                                {version.status}
-                            </span>
-                        )}
+                    <div className="flex shrink-0 items-center gap-2">
+                        <span>{version.label}</span>
+                        <span className={[
+                            'size-1.5 rounded-full',
+                            version.status === 'approved'
+                                ? 'bg-emerald-500'
+                                : version.status === 'rejected'
+                                    ? 'bg-red-500'
+                                    : 'bg-amber-500',
+                        ].join(' ')} />
+                        <span className="capitalize">{version.status.replace('_', ' ')}</span>
                     </div>
                 </div>
             </div>
         </ProjectDesignLayoutContext.Provider>
+    );
+}
+
+function StaleEditorContext({
+    title,
+    description,
+    onReset,
+}: {
+    title: string;
+    description: string;
+    onReset: () => void;
+}) {
+    return (
+        <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center">
+            <FileWarning size={34} className="text-amber-400" />
+            <p className="mt-3 text-sm font-medium text-[var(--foreground)]">{title}</p>
+            <p className="mt-1 max-w-md text-xs text-[var(--text-muted)]">{description}</p>
+            <AppButton size="sm" className="mt-4" onPress={onReset}>
+                Repair editor context
+            </AppButton>
+        </div>
     );
 }

@@ -1,183 +1,486 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import {
+    memo,
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { ChevronLeft, ChevronRight, Download, FileWarning, Loader2, GripHorizontal } from 'lucide-react';
-import type { ViewerState, ViewerAction, ViewerInteractionHandlers } from '@/features/project-design/viewer/useProjectDesignViewerController';
+import type { PDFPageProxy } from 'pdfjs-dist';
+import { ChevronLeft, ChevronRight, Download, FileWarning, Loader2 } from 'lucide-react';
+import type { ViewerFrame } from './DesignAnnotationLayer';
 
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-export default function PdfDesignViewer({ previewUrl, downloadUrl, filename, state, dispatch, interactionHandlers, onPageChange, onTotalPages, hideToolbar, pageNumber: controlledPageNumber, onPageShellRef, children }: {
-    previewUrl: string; downloadUrl: string; filename: string;
-    state: ViewerState;
-    dispatch: React.Dispatch<ViewerAction>;
-    interactionHandlers: ViewerInteractionHandlers;
+const FRAME_EPSILON = 0.25;
+const RENDER_SCALE_SETTLE_MS = 140;
+
+type PageMetrics = { width: number; height: number };
+type PointerPan = { active: boolean; pointerId: number; x: number; y: number };
+
+function nearlyEqual(a: number, b: number): boolean {
+    return Math.abs(a - b) <= FRAME_EPSILON;
+}
+
+function framesEqual(a: ViewerFrame | null, b: ViewerFrame): boolean {
+    if (!a) return false;
+
+    return (
+        nearlyEqual(a.scale, b.scale)
+        && a.rotation === b.rotation
+        && nearlyEqual(a.pageX, b.pageX)
+        && nearlyEqual(a.pageY, b.pageY)
+        && nearlyEqual(a.pageWidth, b.pageWidth)
+        && nearlyEqual(a.pageHeight, b.pageHeight)
+    );
+}
+
+const PdfPageCanvas = memo(function PdfPageCanvas({
+    pageNumber,
+    renderScale,
+    rotation,
+    onRenderSuccess,
+}: {
+    pageNumber: number;
+    renderScale: number;
+    rotation: number;
+    onRenderSuccess: (page: PDFPageProxy) => void;
+}) {
+    return (
+        <Page
+            pageNumber={pageNumber}
+            scale={renderScale}
+            rotate={rotation}
+            renderTextLayer={false}
+            renderAnnotationLayer={false}
+            onRenderSuccess={onRenderSuccess}
+            className="overflow-hidden rounded-[2px] bg-white shadow-[0_24px_70px_rgb(0_0_0_/_0.35)]"
+        />
+    );
+});
+
+export default function PdfDesignViewer({
+    previewUrl,
+    downloadUrl,
+    filename,
+    containerRef,
+    stageParentRef,
+    onFrameChange,
+    onPageChange,
+    onPageShellRef,
+    zoom,
+    panX,
+    panY,
+    rotation,
+    pageNumber: controlledPageNumber,
+    hideToolbar,
+    activeTool,
+    onZoomChange,
+    onPanChange,
+    onTotalPages,
+}: {
+    previewUrl: string;
+    downloadUrl: string;
+    filename: string;
+    containerRef?: React.RefObject<HTMLDivElement | null>;
+    stageParentRef?: React.RefObject<HTMLDivElement | null>;
+    onFrameChange?: (frame: ViewerFrame) => void;
     onPageChange?: (page: number) => void;
-    onTotalPages?: (n: number) => void;
-    hideToolbar?: boolean;
+    onPageShellRef?: (element: HTMLDivElement | null) => void;
+    zoom: number;
+    panX: number;
+    panY: number;
+    rotation: number;
     pageNumber?: number;
-    onPageShellRef?: (el: HTMLDivElement | null) => void;
-    children?: React.ReactNode;
+    hideToolbar?: boolean;
+    activeTool?: string;
+    /** Retained for caller compatibility. Continuous mode is intentionally not rendered. */
+    continuous?: boolean;
+    onZoomChange?: (delta: number, cx: number, cy: number) => void;
+    onPanChange?: (dx: number, dy: number) => void;
+    onTotalPages?: (total: number) => void;
 }) {
     const [numPages, setNumPages] = useState(0);
     const [internalPageNumber, setInternalPageNumber] = useState(1);
-    const pageNumber = controlledPageNumber ?? internalPageNumber;
     const [pageInput, setPageInput] = useState('');
     const [loadingProgress, setLoadingProgress] = useState(0);
-    const pageShellRef = useRef<HTMLDivElement>(null);
-    const viewerRef = useRef<HTMLDivElement>(null);
-    const [hovering, setHovering] = useState(false);
+    const [renderScale, setRenderScale] = useState(zoom);
+    const [committedRenderScale, setCommittedRenderScale] = useState(zoom);
+    const [spaceHeld, setSpaceHeld] = useState(false);
+    const [isPanning, setIsPanning] = useState(false);
 
-    const stableFile = useMemo(() => previewUrl, [previewUrl]);
+    const viewerRef = useRef<HTMLDivElement>(null);
+    const pageWrapperRef = useRef<HTMLDivElement>(null);
+    const pageShellRef = useRef<HTMLDivElement>(null);
+    const pageMetricsRef = useRef<PageMetrics>({ width: 0, height: 0 });
+    const latestFrameInputsRef = useRef({
+        zoom,
+        rotation: ((rotation % 360) + 360) % 360,
+        onFrameChange,
+        stageParentRef,
+    });
+    const lastFrameRef = useRef<ViewerFrame | null>(null);
+    const frameRafRef = useRef<number | null>(null);
+    const pointerPanRef = useRef<PointerPan>({ active: false, pointerId: -1, x: 0, y: 0 });
+
+    const pageNumber = controlledPageNumber ?? internalPageNumber;
+    const normalizedRotation = ((rotation % 360) + 360) % 360;
+    const displayScale = committedRenderScale > 0 ? zoom / committedRenderScale : 1;
+
+
+    useEffect(() => {
+        if (nearlyEqual(renderScale, zoom)) return;
+
+        const timer = window.setTimeout(() => {
+            setRenderScale(zoom);
+        }, RENDER_SCALE_SETTLE_MS);
+
+        return () => window.clearTimeout(timer);
+    }, [renderScale, zoom]);
 
     const requestPageChange = useCallback((nextPage: number) => {
         const clamped = Math.max(1, Math.min(nextPage, numPages || 1));
+
         if (controlledPageNumber != null) {
-            onPageChange?.(clamped);
-        } else {
-            setInternalPageNumber(clamped);
+            if (clamped !== controlledPageNumber) onPageChange?.(clamped);
+            return;
         }
-    }, [numPages, controlledPageNumber, onPageChange]);
 
-    function onDocumentLoadSuccess({ numPages: total }: { numPages: number }) {
-        setNumPages(total);
-        onTotalPages?.(total);
-    }
+        setInternalPageNumber(clamped);
+    }, [controlledPageNumber, numPages, onPageChange]);
 
-    const onPageLoadSuccessRef = useRef((page: { getViewport: (opts: { scale: number; rotation: number }) => { width: number; height: number } }) => {
-        const vp = page.getViewport({ scale: 1, rotation: 0 });
-        dispatch({ type: 'DOCUMENT_READY', totalPages: numPages || 1, sourceWidth: vp.width, sourceHeight: vp.height });
-    });
+    useLayoutEffect(() => {
+        latestFrameInputsRef.current = {
+            zoom,
+            rotation: normalizedRotation,
+            onFrameChange,
+            stageParentRef,
+        };
+    }, [normalizedRotation, onFrameChange, stageParentRef, zoom]);
 
-    const onPageRenderSuccessRef = useRef(() => {
-        const shell = pageShellRef.current;
-        if (shell) {
-            const rect = shell.getBoundingClientRect();
-            dispatch({ type: 'RENDERED_DIMENSIONS', width: rect.width, height: rect.height });
-        }
-    });
+    const reportFrame = useCallback(() => {
+        const wrapper = pageWrapperRef.current;
+        const inputs = latestFrameInputsRef.current;
+        const parent = inputs.stageParentRef?.current;
+        const metrics = pageMetricsRef.current;
+        if (!wrapper || !parent || metrics.width <= 0 || metrics.height <= 0) return;
 
-    function onLoadProgress(progress: { loaded: number; total: number }) {
-        if (progress.total > 0) {
-            setLoadingProgress(Math.round((progress.loaded / progress.total) * 100));
-        }
-    }
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const parentRect = parent.getBoundingClientRect();
+        const frame: ViewerFrame = {
+            scale: inputs.zoom,
+            rotation: inputs.rotation,
+            pageX: wrapperRect.left - parentRect.left,
+            pageY: wrapperRect.top - parentRect.top,
+            pageWidth: metrics.width,
+            pageHeight: metrics.height,
+        };
 
-    function goToPage(input: string) {
-        const p = parseInt(input, 10);
-        if (p >= 1 && p <= numPages) {
-            requestPageChange(p);
-            setPageInput('');
-        }
-    }
-
-    function handlePageInputKey(e: React.KeyboardEvent) {
-        if (e.key === 'Enter') goToPage(pageInput);
-    }
-
-    useEffect(() => {
-        function handleKeyDown(e: KeyboardEvent) {
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
-                || e.target instanceof HTMLSelectElement || e.target instanceof HTMLButtonElement) return;
-            const isViewer = viewerRef.current?.contains(e.target as Node);
-            if (!isViewer) return;
-            if (e.key === 'ArrowRight' || e.key === 'PageDown') {
-                requestPageChange(pageNumber + 1);
-            }
-            if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-                requestPageChange(pageNumber - 1);
-            }
-        }
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [pageNumber, numPages, requestPageChange]);
-
-    useEffect(() => {
-        onPageShellRef?.(pageShellRef.current);
-    }, [onPageShellRef]);
-
-    const setViewerRef = useCallback((el: HTMLDivElement | null) => {
-        viewerRef.current = el;
+        if (framesEqual(lastFrameRef.current, frame)) return;
+        lastFrameRef.current = frame;
+        inputs.onFrameChange?.(frame);
     }, []);
 
-    function handlePointerEnter() { setHovering(true); }
-    function handlePointerLeave() { setHovering(false); }
+    const scheduleFrameReport = useCallback(() => {
+        if (frameRafRef.current != null) window.cancelAnimationFrame(frameRafRef.current);
+        frameRafRef.current = window.requestAnimationFrame(() => {
+            frameRafRef.current = null;
+            reportFrame();
+        });
+    }, [reportFrame]);
 
-    const showGrabCursor = state.activeTool === 'pan' || state.activeTool === 'select';
-    const cursorStyle = state.isPanning ? 'grabbing' : showGrabCursor ? 'grab' : 'default';
+    useLayoutEffect(() => {
+        scheduleFrameReport();
+    }, [panX, panY, zoom, normalizedRotation, pageNumber, scheduleFrameReport]);
+
+    useLayoutEffect(() => {
+        onPageShellRef?.(pageShellRef.current);
+        return () => onPageShellRef?.(null);
+    }, [onPageShellRef]);
+
+    useEffect(() => () => {
+        if (frameRafRef.current != null) window.cancelAnimationFrame(frameRafRef.current);
+    }, []);
+
+    const handleDocumentLoadSuccess = useCallback(({ numPages: total }: { numPages: number }) => {
+        setNumPages(total);
+        onTotalPages?.(total);
+
+        if (controlledPageNumber != null) {
+            const clamped = Math.max(1, Math.min(controlledPageNumber, total));
+            if (clamped !== controlledPageNumber) onPageChange?.(clamped);
+        } else {
+            setInternalPageNumber(1);
+        }
+    }, [controlledPageNumber, onPageChange, onTotalPages]);
+
+    const handlePageRenderSuccess = useCallback((page: PDFPageProxy) => {
+        const viewport = page.getViewport({ scale: 1, rotation: 0 });
+        const metrics = { width: viewport.width, height: viewport.height };
+        pageMetricsRef.current = metrics;
+        setCommittedRenderScale(renderScale);
+        scheduleFrameReport();
+    }, [renderScale, scheduleFrameReport]);
+
+    const handleLoadProgress = useCallback((progress: { loaded: number; total: number }) => {
+        if (progress.total <= 0) return;
+        setLoadingProgress(Math.round((progress.loaded / progress.total) * 100));
+    }, []);
+
+    const goToPage = useCallback((input: string) => {
+        const parsed = Number.parseInt(input, 10);
+        if (!Number.isFinite(parsed)) return;
+
+        requestPageChange(parsed);
+        setPageInput('');
+    }, [requestPageChange]);
+
+    useEffect(() => {
+        const element = viewerRef.current;
+        if (!element) return;
+
+        const handleWheel = (event: WheelEvent) => {
+            if (event.ctrlKey || event.metaKey) {
+                event.preventDefault();
+                const rect = element.getBoundingClientRect();
+                onZoomChange?.(
+                    event.deltaY > 0 ? -1 : 1,
+                    event.clientX - rect.left,
+                    event.clientY - rect.top,
+                );
+                return;
+            }
+
+            event.preventDefault();
+            if (event.shiftKey) {
+                const horizontal = event.deltaX !== 0 ? event.deltaX : event.deltaY;
+                onPanChange?.(-horizontal, 0);
+            } else {
+                onPanChange?.(-event.deltaX, -event.deltaY);
+            }
+        };
+
+        element.addEventListener('wheel', handleWheel, { passive: false });
+        return () => element.removeEventListener('wheel', handleWheel);
+    }, [onPanChange, onZoomChange]);
+
+    const shouldStartPan = useCallback((event: React.PointerEvent<HTMLDivElement>) => (
+        event.button === 1
+        || (event.button === 0 && (spaceHeld || activeTool === 'pan'))
+    ), [activeTool, spaceHeld]);
+
+    const handlePointerDownCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        viewerRef.current?.focus({ preventScroll: true });
+        if (!shouldStartPan(event)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        pointerPanRef.current = {
+            active: true,
+            pointerId: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+        };
+        setIsPanning(true);
+    }, [shouldStartPan]);
+
+    const handlePointerMoveCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        const pan = pointerPanRef.current;
+        if (!pan.active || pan.pointerId !== event.pointerId) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const dx = event.clientX - pan.x;
+        const dy = event.clientY - pan.y;
+        pointerPanRef.current = { ...pan, x: event.clientX, y: event.clientY };
+        onPanChange?.(dx, dy);
+    }, [onPanChange]);
+
+    const stopPointerPan = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        const pan = pointerPanRef.current;
+        if (!pan.active || pan.pointerId !== event.pointerId) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        pointerPanRef.current = { active: false, pointerId: -1, x: 0, y: 0 };
+        setIsPanning(false);
+    }, []);
+
+    const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+        const target = event.target as HTMLElement | null;
+        if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
+
+        if (event.key === ' ') {
+            event.preventDefault();
+            setSpaceHeld(true);
+            return;
+        }
+
+        if (event.key === 'PageDown') {
+            event.preventDefault();
+            requestPageChange(pageNumber + 1);
+            return;
+        }
+
+        if (event.key === 'PageUp') {
+            event.preventDefault();
+            requestPageChange(pageNumber - 1);
+            return;
+        }
+
+        const panStep = event.shiftKey ? 96 : 32;
+        if (event.key === 'ArrowLeft') onPanChange?.(panStep, 0);
+        else if (event.key === 'ArrowRight') onPanChange?.(-panStep, 0);
+        else if (event.key === 'ArrowUp') onPanChange?.(0, panStep);
+        else if (event.key === 'ArrowDown') onPanChange?.(0, -panStep);
+        else return;
+
+        event.preventDefault();
+    }, [onPanChange, pageNumber, requestPageChange]);
+
+    const handleKeyUp = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== ' ') return;
+        setSpaceHeld(false);
+    }, []);
+
+    const cursor = isPanning
+        ? 'grabbing'
+        : spaceHeld || activeTool === 'pan'
+            ? 'grab'
+            : activeTool === 'select'
+                ? 'default'
+                : 'crosshair';
 
     return (
-        <div ref={setViewerRef} className="relative flex h-full w-full flex-col" data-viewer-viewport>
-            {!hideToolbar && (
-                <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 shrink-0">
+        <div
+            ref={viewerRef}
+            className="relative flex h-full w-full flex-col outline-none"
+            tabIndex={0}
+            onPointerDownCapture={handlePointerDownCapture}
+            onPointerMoveCapture={handlePointerMoveCapture}
+            onPointerUpCapture={stopPointerPan}
+            onPointerCancelCapture={stopPointerPan}
+            onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
+        >
+            {!hideToolbar ? (
+                <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
                     <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{filename}</p>
                     <div className="flex items-center gap-1">
-                        <span className="min-w-[3ch] text-center text-[11px] text-[var(--text-muted)]">{Math.round(state.zoom * 100)}%</span>
-                        <div className="mx-1 h-4 w-px bg-[var(--border)]" />
-                        <button type="button" onClick={() => requestPageChange(pageNumber - 1)} disabled={pageNumber <= 1} className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)] disabled:opacity-30" aria-label="Previous page"><ChevronLeft size={13} /></button>
-                        <span className="text-[11px] text-[var(--text-muted)] whitespace-nowrap">
-                            {numPages > 0 ? (
-                                <span className="flex items-center gap-1">
-                                    <input type="text" value={pageInput} onChange={(e) => setPageInput(e.target.value)} onKeyDown={handlePageInputKey}
-                                        onBlur={() => { if (pageInput) goToPage(pageInput); }}
-                                        className="w-7 rounded border border-[var(--border)] bg-[var(--surface-2)] px-1 py-0.5 text-center text-[11px] outline-none focus:border-[var(--accent)]"
-                                        aria-label="Page number" /> / {numPages}
-                                </span>
-                            ) : '-'}
+                        <span className="min-w-[42px] text-center text-[11px] tabular-nums text-[var(--text-muted)]">
+                            {Math.round(zoom * 100)}%
                         </span>
-                        <button type="button" onClick={() => requestPageChange(pageNumber + 1)} disabled={pageNumber >= numPages} className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)] disabled:opacity-30" aria-label="Next page"><ChevronRight size={13} /></button>
-                        <div className="mx-1 h-4 w-px bg-[var(--border)]" />
-                        <a href={downloadUrl} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-[var(--accent)] hover:bg-[var(--accent)]/10">
-                            <Download size={13} /> Download
+                        <button
+                            type="button"
+                            onClick={() => requestPageChange(pageNumber - 1)}
+                            disabled={pageNumber <= 1}
+                            className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)] disabled:opacity-30"
+                            aria-label="Previous page"
+                        >
+                            <ChevronLeft size={13} />
+                        </button>
+                        <span className="flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                value={pageInput}
+                                onChange={(event) => setPageInput(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') goToPage(pageInput);
+                                }}
+                                onBlur={() => {
+                                    if (pageInput) goToPage(pageInput);
+                                }}
+                                placeholder={String(pageNumber)}
+                                className="w-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-1 py-0.5 text-center text-[11px] outline-none focus:border-[var(--accent)]"
+                                aria-label="Page number"
+                            />
+                            <span>/ {Math.max(1, numPages)}</span>
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => requestPageChange(pageNumber + 1)}
+                            disabled={pageNumber >= numPages}
+                            className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)] disabled:opacity-30"
+                            aria-label="Next page"
+                        >
+                            <ChevronRight size={13} />
+                        </button>
+                        <a
+                            href={downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-1 flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+                            aria-label="Download PDF"
+                        >
+                            <Download size={13} />
                         </a>
                     </div>
                 </div>
-            )}
+            ) : null}
+
             <div
-                className="relative flex-1 overflow-hidden bg-[var(--surface-2)]/50"
-                style={{ cursor: cursorStyle, touchAction: 'none' }}
-                {...interactionHandlers}
-                onPointerEnter={handlePointerEnter}
-                onPointerLeave={handlePointerLeave}
+                ref={containerRef}
+                className="relative flex-1 overflow-hidden bg-[#101214]"
+                style={{
+                    cursor,
+                    backgroundImage:
+                        'linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px)',
+                    backgroundSize: '24px 24px',
+                }}
             >
-                {hovering && (
-                    <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded bg-[var(--surface)] px-2 py-1 text-[10px] text-[var(--text-muted)] shadow-sm border border-[var(--border)] flex items-center gap-1 pointer-events-none">
-                        <GripHorizontal size={10} /> Drag to pan
-                    </div>
-                )}
                 <Document
-                    file={stableFile}
-                    onLoadSuccess={onDocumentLoadSuccess}
-                    onProgress={onLoadProgress}
-                    loading={
+                    file={previewUrl}
+                    onLoadSuccess={handleDocumentLoadSuccess}
+                    onProgress={handleLoadProgress}
+                    loading={(
                         <div className="flex h-full flex-col items-center justify-center gap-2 py-20">
                             <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
-                            <p className="text-[12px] text-[var(--text-muted)]">Loading PDF... {loadingProgress > 0 && `${loadingProgress}%`}</p>
+                            <p className="text-[12px] text-[var(--text-muted)]">
+                                Loading PDF{loadingProgress > 0 ? ` · ${loadingProgress}%` : '…'}
+                            </p>
                         </div>
-                    }
-                    error={
+                    )}
+                    error={(
                         <div className="flex h-full flex-col items-center justify-center gap-2 py-20">
                             <FileWarning size={24} className="text-amber-400" />
-                            <p className="text-[13px] text-[var(--text-muted)]">Could not load PDF.</p>
-                            <a href={downloadUrl} target="_blank" rel="noopener noreferrer" className="text-[12px] text-[var(--accent)] underline">Open in new tab</a>
+                            <p className="text-[13px] text-[var(--text-muted)]">Could not load this PDF.</p>
+                            <a
+                                href={downloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[12px] text-[var(--accent)] underline"
+                            >
+                                Open source file
+                            </a>
                         </div>
-                    }
+                    )}
                 >
-                    <div className="flex justify-center min-h-full">
+                    <div className="flex min-h-full items-start justify-center p-6 sm:p-8">
                         <div ref={pageShellRef} className="pdf-page-shell relative inline-flex">
-                            <div style={{ transform: `translate(${state.panX}px, ${state.panY}px)` }}>
-                                <Page
+                            <div
+                                ref={pageWrapperRef}
+                                className="will-change-transform"
+                                style={{
+                                    transform: `translate3d(${panX}px, ${panY}px, 0) scale(${displayScale})`,
+                                    transformOrigin: 'top left',
+                                }}
+                            >
+                                <PdfPageCanvas
                                     pageNumber={pageNumber}
-                                    scale={state.zoom}
-                                    rotate={state.rotation}
-                                    renderTextLayer={false}
-                                    renderAnnotationLayer={false}
-                                    onLoadSuccess={(page) => onPageLoadSuccessRef.current(page)}
-                                    onRenderSuccess={() => onPageRenderSuccessRef.current()}
-                                    className="shadow-lg"
+                                    renderScale={renderScale}
+                                    rotation={normalizedRotation}
+                                    onRenderSuccess={handlePageRenderSuccess}
                                 />
                             </div>
-                            {children}
                         </div>
                     </div>
                 </Document>

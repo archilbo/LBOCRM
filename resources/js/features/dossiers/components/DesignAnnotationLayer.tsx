@@ -1,8 +1,8 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Stage, Layer, Rect, Circle, Arrow, Text, Group, Line, Ellipse } from 'react-konva';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Arrow, Circle, Ellipse, Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import type Konva from 'konva';
-import { X, User, Clock, AlertTriangle } from 'lucide-react';
-import type { AnnotationTool } from './DesignAnnotationToolbar';
+import { AlertTriangle, Clock, User, X } from 'lucide-react';
+import type { AnnotationTool } from '@/features/project-design/components/ProjectDesignEditorToolbar';
 
 interface AnnotationShape {
     id: string;
@@ -24,7 +24,26 @@ interface AnnotationShape {
     createdBy?: { id: number; name: string } | null;
     createdAt?: string | null;
     recordVersion?: number;
-    remark?: { id: number; severity: string; status: string; title: string; description: string | null; createdBy: { id: number; name: string } | null; createdAt: string | null } | null;
+    remark?: {
+        id: number;
+        severity: string;
+        status: string;
+        title: string;
+        description: string | null;
+        createdBy: { id: number; name: string } | null;
+        createdAt: string | null;
+    } | null;
+}
+
+export interface ViewerFrame {
+    scale: number;
+    rotation: number;
+    /** Rendered page top-left relative to the viewer/annotation container. */
+    pageX: number;
+    pageY: number;
+    /** Original unrotated page dimensions. */
+    pageWidth: number;
+    pageHeight: number;
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
@@ -44,80 +63,171 @@ const STATUS_STYLES: Record<string, string> = {
     reopened: 'bg-rose-500/20 text-rose-400',
 };
 
+function normalizeRotation(rotation: number): number {
+    return ((rotation % 360) + 360) % 360;
+}
+
+function docToScreen(docX: number, docY: number, frame: ViewerFrame): { x: number; y: number } {
+    const rotation = normalizeRotation(frame.rotation);
+    let x = docX;
+    let y = docY;
+
+    if (rotation === 90) {
+        x = frame.pageHeight - docY;
+        y = docX;
+    } else if (rotation === 180) {
+        x = frame.pageWidth - docX;
+        y = frame.pageHeight - docY;
+    } else if (rotation === 270) {
+        x = docY;
+        y = frame.pageWidth - docX;
+    }
+
+    return {
+        x: frame.pageX + x * frame.scale,
+        y: frame.pageY + y * frame.scale,
+    };
+}
+
+function screenToDoc(screenX: number, screenY: number, frame: ViewerFrame): { x: number; y: number } {
+    const rotation = normalizeRotation(frame.rotation);
+    const x = (screenX - frame.pageX) / frame.scale;
+    const y = (screenY - frame.pageY) / frame.scale;
+
+    if (rotation === 90) return { x: y, y: frame.pageHeight - x };
+    if (rotation === 180) return { x: frame.pageWidth - x, y: frame.pageHeight - y };
+    if (rotation === 270) return { x: frame.pageWidth - y, y: x };
+    return { x, y };
+}
+
+function rectangleBounds(shape: AnnotationShape, frame: ViewerFrame) {
+    const x1 = shape.x;
+    const y1 = shape.y;
+    const x2 = shape.x + (shape.width ?? 0);
+    const y2 = shape.y + (shape.height ?? 0);
+    const points = [
+        docToScreen(x1, y1, frame),
+        docToScreen(x2, y1, frame),
+        docToScreen(x2, y2, frame),
+        docToScreen(x1, y2, frame),
+    ];
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    const left = Math.min(...xs);
+    const top = Math.min(...ys);
+
+    return {
+        x: left,
+        y: top,
+        width: Math.max(...xs) - left,
+        height: Math.max(...ys) - top,
+    };
+}
+
+function pageBounds(frame: ViewerFrame) {
+    const points = [
+        docToScreen(0, 0, frame),
+        docToScreen(frame.pageWidth, 0, frame),
+        docToScreen(frame.pageWidth, frame.pageHeight, frame),
+        docToScreen(0, frame.pageHeight, frame),
+    ];
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+
+    return {
+        x,
+        y,
+        width: Math.max(...xs) - x,
+        height: Math.max(...ys) - y,
+    };
+}
+
 function formatDate(iso: string | null | undefined): string {
     if (!iso) return '';
-    try { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
-    catch { return iso; }
+    try {
+        return new Date(iso).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    } catch {
+        return iso;
+    }
 }
 
 function AnnotationInfoPopup({ annotation, onClose }: { annotation: AnnotationShape; onClose: () => void }) {
-    const r = annotation.remark;
+    const remark = annotation.remark;
+
     return (
-        <div className="absolute left-3 top-3 z-20 w-72 rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-lg">
+        <div className="pointer-events-auto absolute left-3 top-3 z-20 w-72 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]/98 shadow-2xl backdrop-blur">
             <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Annotation Info</span>
-                <button onClick={onClose} className="rounded p-0.5 text-[var(--text-muted)] hover:bg-[var(--accent)]/10 hover:text-[var(--foreground)]"><X size={12} /></button>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                    Annotation
+                </span>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+                    aria-label="Close annotation details"
+                >
+                    <X size={12} />
+                </button>
             </div>
-            <div className="space-y-2 px-3 py-2">
+            <div className="space-y-2.5 px-3 py-3">
                 <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
                     <User size={11} />
-                    <span>{annotation.authoredBy?.name ?? 'Unknown'}</span>
+                    <span>{annotation.authoredBy?.name ?? annotation.createdBy?.name ?? 'Unknown'}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
                     <Clock size={11} />
                     <span>{formatDate(annotation.createdAt)}</span>
                 </div>
-                {r && (
+                {remark ? (
                     <>
                         <div className="flex items-center gap-1.5 pt-1">
-                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase ${SEVERITY_STYLES[r.severity] ?? 'bg-slate-500/20 text-slate-400'}`}>
-                                {r.severity}
+                            <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase ${SEVERITY_STYLES[remark.severity] ?? 'border-slate-500/30 bg-slate-500/20 text-slate-400'}`}>
+                                {remark.severity}
                             </span>
-                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${STATUS_STYLES[r.status] ?? 'bg-slate-500/20 text-slate-400'}`}>
-                                {r.status.replace('_', ' ')}
+                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${STATUS_STYLES[remark.status] ?? 'bg-slate-500/20 text-slate-400'}`}>
+                                {remark.status.replace('_', ' ')}
                             </span>
                         </div>
                         <div>
-                            <p className="text-[12px] font-medium text-[var(--foreground)]">{r.title}</p>
-                            {r.description && <p className="mt-0.5 text-[11px] text-[var(--text-muted)] leading-relaxed">{r.description}</p>}
+                            <p className="text-[12px] font-medium text-[var(--foreground)]">{remark.title}</p>
+                            {remark.description ? (
+                                <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">{remark.description}</p>
+                            ) : null}
                         </div>
-                        {r.createdBy && (
+                        {remark.createdBy ? (
                             <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-subtle)]">
                                 <AlertTriangle size={10} />
-                                <span>by {r.createdBy.name}</span>
+                                <span>by {remark.createdBy.name}</span>
                             </div>
-                        )}
+                        ) : null}
                     </>
-                )}
-                {!r && (
-                    <p className="text-[11px] italic text-[var(--text-subtle)]">No remark yet.</p>
+                ) : (
+                    <p className="text-[11px] italic text-[var(--text-subtle)]">No remark linked.</p>
                 )}
             </div>
         </div>
     );
 }
 
-function applyRotation(x: number, y: number, rotation: number, rw: number, rh: number): { x: number; y: number } {
-    const m = new DOMMatrix(`rotate(${rotation}deg)`);
-    const cx = rw / 2;
-    const cy = rh / 2;
-    const tx = x - cx;
-    const ty = y - cy;
-    const p = m.transformPoint({ x: tx, y: ty });
-    return { x: p.x + cx, y: p.y + cy };
-}
-
-function unapplyRotation(x: number, y: number, rotation: number, rw: number, rh: number): { x: number; y: number } {
-    const m = new DOMMatrix(`rotate(${-rotation}deg)`);
-    const cx = rw / 2;
-    const cy = rh / 2;
-    const tx = x - cx;
-    const ty = y - cy;
-    const p = m.transformPoint({ x: tx, y: ty });
-    return { x: p.x + cx, y: p.y + cy };
-}
-
-export function DesignAnnotationLayer({ annotations, activeTool, onAnnotationCreated, onAnnotationSelect, onAnnotationDelete, selectedId, readOnly, renderedWidth, renderedHeight, rotation, zoom, pageShellRef, panPointerEventsDisabled }: {
+export function DesignAnnotationLayer({
+    containerRef,
+    annotations,
+    activeTool,
+    onAnnotationCreated,
+    onAnnotationSelect,
+    selectedId,
+    readOnly,
+    viewerFrame,
+}: {
+    containerRef: React.RefObject<HTMLDivElement | null>;
     annotations: AnnotationShape[];
     activeTool: AnnotationTool;
     onAnnotationCreated: (shape: AnnotationShape) => void;
@@ -125,234 +235,232 @@ export function DesignAnnotationLayer({ annotations, activeTool, onAnnotationCre
     onAnnotationDelete?: (id: string) => void;
     selectedId: string | null;
     readOnly?: boolean;
-    renderedWidth: number;
-    renderedHeight: number;
-    rotation: number;
-    zoom: number;
+    viewerFrame: ViewerFrame;
     pageShellRef?: React.RefObject<HTMLDivElement | null>;
-    panPointerEventsDisabled: boolean;
 }) {
-    const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
+    const [stageSize, setStageSize] = useState({ width: 1, height: 1 });
     const [drawing, setDrawing] = useState(false);
     const [currentShape, setCurrentShape] = useState<AnnotationShape | null>(null);
     const stageRef = useRef<Konva.Stage>(null);
-    const selectedAnnotation = selectedId ? annotations.find((a) => a.id === selectedId) ?? null : null;
 
-    const rotRef = useRef(rotation);
-    const zoomRef = useRef(zoom);
-    const rwRef = useRef(renderedWidth);
-    const rhRef = useRef(renderedHeight);
-    useEffect(() => { rotRef.current = rotation; }, [rotation]);
-    useEffect(() => { zoomRef.current = zoom; }, [zoom]);
-    useEffect(() => { rwRef.current = renderedWidth; }, [renderedWidth]);
-    useEffect(() => { rhRef.current = renderedHeight; }, [renderedHeight]);
+    const selectedAnnotation = selectedId
+        ? annotations.find((annotation) => annotation.id === selectedId) ?? null
+        : null;
 
     const updateSize = useCallback(() => {
-        const shell = pageShellRef?.current;
-        if (shell) {
-            const rect = shell.getBoundingClientRect();
-            setStageSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
-        }
-    }, [pageShellRef]);
+        const element = containerRef.current;
+        if (!element) return;
+
+        const rect = element.getBoundingClientRect();
+        const width = Math.max(1, Math.round(rect.width));
+        const height = Math.max(1, Math.round(rect.height));
+        setStageSize((current) => (
+            current.width === width && current.height === height
+                ? current
+                : { width, height }
+        ));
+    }, [containerRef]);
 
     useEffect(() => {
-        const el = pageShellRef?.current;
-        if (!el) return;
-        const obs = new ResizeObserver(() => { updateSize(); });
-        obs.observe(el);
+        const element = containerRef.current;
+        if (!element) return;
+
+        const observer = new ResizeObserver(updateSize);
+        observer.observe(element);
         updateSize();
-        return () => obs.disconnect();
-    }, [pageShellRef, updateSize]);
+        return () => observer.disconnect();
+    }, [containerRef, updateSize]);
 
-    useEffect(() => {
-        function handleKeyDown(e: KeyboardEvent) {
-            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && onAnnotationDelete) {
-                const tag = (e.target as HTMLElement)?.tagName;
-                if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-                onAnnotationDelete(selectedId);
-            }
-        }
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedId, onAnnotationDelete]);
+    const toDoc = useCallback(() => {
+        const position = stageRef.current?.getPointerPosition();
+        if (!position) return { x: 0, y: 0 };
+        return screenToDoc(position.x, position.y, viewerFrame);
+    }, [viewerFrame]);
 
-    function fromNormalized(nx: number, ny: number, z: number, r: number): { x: number; y: number } {
-        let x = nx * z;
-        let y = ny * z;
-        if (r !== 0) {
-            const rot = applyRotation(x, y, r, renderedWidth, renderedHeight);
-            x = rot.x;
-            y = rot.y;
-        }
-        return { x, y };
-    }
+    const handleMouseDown = useCallback((event: Konva.KonvaEventObject<MouseEvent>) => {
+        if (event.evt.button !== 0) return;
 
-    const toNormalized = useCallback(function toNormalized(stageX: number, stageY: number, z: number, r: number, rw: number, rh: number): { x: number; y: number } {
-        let x = stageX / z;
-        let y = stageY / z;
-        if (r !== 0) {
-            const unrot = unapplyRotation(x * z, y * z, r, rw, rh);
-            x = unrot.x / z;
-            y = unrot.y / z;
-        }
-        if (rw > 0 && rh > 0) {
-            return { x: x / rw * rw, y: y / rh * rh };
-        }
-        return { x, y };
-    }, []);
+        if (activeTool === 'pan') return;
 
-    const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-        if (e.evt.button === 1) return;
-        if (activeTool === 'pan' || panPointerEventsDisabled) return;
-        if (readOnly) {
-            if (e.target === e.target.getStage()) onAnnotationSelect(null);
+        if (readOnly || activeTool === 'select') {
+            if (event.target === event.target.getStage()) onAnnotationSelect(null);
             return;
         }
-        if (activeTool === 'select') {
-            const clickedOnEmpty = e.target === e.target.getStage();
-            if (clickedOnEmpty) onAnnotationSelect(null);
-            return;
-        }
-        const stage = stageRef.current;
-        if (!stage) return;
-        const pos = stage.getPointerPosition();
-        if (!pos) return;
-        const np = toNormalized(pos.x, pos.y, zoomRef.current, rotRef.current, rwRef.current, rhRef.current);
+
+        const position = toDoc();
         setDrawing(true);
-        setCurrentShape({ id: 'drawing', type: activeTool, x: np.x, y: np.y, color: '#eab308' });
-    }, [activeTool, readOnly, onAnnotationSelect, panPointerEventsDisabled, toNormalized]);
+        setCurrentShape({
+            id: 'drawing',
+            type: activeTool,
+            x: position.x,
+            y: position.y,
+            color: '#eab308',
+        });
+    }, [activeTool, onAnnotationSelect, readOnly, toDoc]);
 
-    const handleMouseMove = useCallback((_e: Konva.KonvaEventObject<MouseEvent>) => {
+    const handleMouseMove = useCallback(() => {
         if (!drawing || !currentShape) return;
-        const stage = stageRef.current;
-        if (!stage) return;
-        const pos = stage.getPointerPosition();
-        if (!pos) return;
-        const np = toNormalized(pos.x, pos.y, zoomRef.current, rotRef.current, rwRef.current, rhRef.current);
+
+        const position = toDoc();
         if (activeTool === 'pin' || activeTool === 'text') return;
+
         if (activeTool === 'rectangle' || activeTool === 'highlight' || activeTool === 'ellipse') {
-            setCurrentShape((prev) => prev ? { ...prev, width: np.x - prev.x, height: np.y - prev.y } : prev);
+            setCurrentShape((current) => current ? {
+                ...current,
+                width: position.x - current.x,
+                height: position.y - current.y,
+            } : current);
         } else if (activeTool === 'arrow' || activeTool === 'line') {
-            setCurrentShape((prev) => prev ? { ...prev, points: [prev.x, prev.y, np.x, np.y] } : prev);
+            setCurrentShape((current) => current ? {
+                ...current,
+                points: [current.x, current.y, position.x, position.y],
+            } : current);
         } else if (activeTool === 'freehand' || activeTool === 'cloud') {
-            setCurrentShape((prev) => prev ? { ...prev, points: [...(prev.points ?? []), np.x, np.y] } : prev);
+            setCurrentShape((current) => current ? {
+                ...current,
+                points: [...(current.points ?? [current.x, current.y]), position.x, position.y],
+            } : current);
         }
-    }, [drawing, currentShape, activeTool, toNormalized]);
+    }, [activeTool, currentShape, drawing, toDoc]);
 
     const handleMouseUp = useCallback(() => {
         if (!drawing || !currentShape) return;
+
         setDrawing(false);
-        if (currentShape.type === 'pin' || currentShape.type === 'text') {
-            onAnnotationCreated({ ...currentShape, id: crypto.randomUUID() });
-        } else if (currentShape.width || (currentShape.points && currentShape.points.length > 2)) {
+        const hasArea = Math.abs(currentShape.width ?? 0) >= 2 && Math.abs(currentShape.height ?? 0) >= 2;
+        const hasLine = (currentShape.points?.length ?? 0) >= 4;
+        const isPoint = currentShape.type === 'pin' || currentShape.type === 'text';
+
+        if (isPoint || hasArea || hasLine) {
             onAnnotationCreated({ ...currentShape, id: crypto.randomUUID() });
         }
+
         setCurrentShape(null);
-    }, [drawing, currentShape, onAnnotationCreated]);
+    }, [currentShape, drawing, onAnnotationCreated]);
 
-    function renderShape(s: AnnotationShape, _i: number, z: number, r: number) {
-        const isSelected = s.id === selectedId;
-        const stroke = isSelected ? '#eab308' : (s.color || '#3b82f6');
-        const strokeWidth = isSelected ? 2 : 1.5;
-        const key = s.id;
+    const renderShape = useCallback((shape: AnnotationShape) => {
+        const frame = viewerFrame;
+        if (frame.pageWidth <= 0 || frame.pageHeight <= 0) return null;
 
-        const stagePt = (dx: number, dy: number) => {
-            const p = fromNormalized(dx, dy, z, r);
-            return { x: p.x, y: p.y };
-        };
+        const selected = shape.id === selectedId;
+        const stroke = selected ? '#facc15' : shape.color || '#3b82f6';
+        const strokeWidth = selected ? 2.25 : 1.5;
 
-        if (renderedWidth === 0 || renderedHeight === 0) return null;
-
-        switch (s.type) {
-            case 'pin': {
-                const p = stagePt(s.x, s.y);
-                return <Circle key={key} x={p.x} y={p.y} radius={6} fill={stroke} stroke="#fff" strokeWidth={1.5} />;
-            }
-            case 'rectangle':
-            case 'highlight': {
-                const p = stagePt(s.x, s.y);
-                const w = (s.width ?? 0) * z;
-                const h = (s.height ?? 0) * z;
-                const { x: rx, y: ry } = r !== 0 ? applyRotation(p.x, p.y, r, renderedWidth, renderedHeight) : p;
-                return <Rect key={key} x={rx} y={ry} width={w} height={h} stroke={stroke} strokeWidth={strokeWidth} fill={s.type === 'highlight' ? `${stroke}20` : undefined} />;
-            }
-            case 'ellipse': {
-                const cx = fromNormalized(s.x + (s.width ?? 0) / 2, s.y + (s.height ?? 0) / 2, z, r);
-                const rx = Math.abs((s.width ?? 0) * z) / 2;
-                const ry = Math.abs((s.height ?? 0) * z) / 2;
-                return <Ellipse key={key} x={cx.x} y={cx.y} radiusX={rx} radiusY={ry} stroke={stroke} strokeWidth={strokeWidth} />;
-            }
-            case 'line': {
-                if (!s.points || s.points.length < 4) return null;
-                const a = fromNormalized(s.points[0], s.points[1], z, r);
-                const b = fromNormalized(s.points[2], s.points[3], z, r);
-                return <Line key={key} points={[a.x, a.y, b.x, b.y]} stroke={stroke} strokeWidth={strokeWidth} lineCap="round" />;
-            }
-            case 'arrow': {
-                if (!s.points || s.points.length < 4) return null;
-                const a = fromNormalized(s.points[0], s.points[1], z, r);
-                const b = fromNormalized(s.points[2], s.points[3], z, r);
-                return <Arrow key={key} points={[a.x, a.y, b.x, b.y]} stroke={stroke} strokeWidth={strokeWidth} fill={stroke} pointerLength={6} pointerWidth={6} />;
-            }
-            case 'freehand':
-            case 'cloud': {
-                if (!s.points || s.points.length < 4) return null;
-                const pts: number[] = [];
-                for (let j = 0; j < s.points.length - 1; j += 2) {
-                    const p = fromNormalized(s.points[j], s.points[j + 1], z, r);
-                    pts.push(p.x, p.y);
-                }
-                if (s.type === 'cloud') {
-                    return (
-                        <Group key={key}>
-                            <Line points={pts} stroke={stroke} strokeWidth={strokeWidth} tension={0.4} lineCap="round" lineJoin="round" closed />
-                            {pts.length >= 6 && pts.slice(0, 6).map((_, j) => (
-                                <Ellipse key={j} x={pts[j * 2] + (j % 2 === 0 ? 4 : -4)} y={pts[j * 2 + 1] + (j % 2 === 0 ? -4 : 4)} radiusX={8} radiusY={6} fill={stroke} opacity={0.3} />
-                            ))}
-                        </Group>
-                    );
-                }
-                return <Line key={key} points={pts} stroke={stroke} strokeWidth={2} tension={0.5} lineCap="round" lineJoin="round" />;
-            }
-            case 'text': {
-                const p = fromNormalized(s.x, s.y, z, r);
-                return <Text key={key} x={p.x} y={p.y} text="Text" fontSize={14} fill={stroke} />;
-            }
-            default:
-                return null;
+        if (shape.type === 'pin') {
+            const point = docToScreen(shape.x, shape.y, frame);
+            return <Circle x={point.x} y={point.y} radius={7} fill={stroke} stroke="#fff" strokeWidth={1.5} shadowBlur={8} shadowOpacity={0.3} />;
         }
-    }
 
-    function getCursor() {
-        if (activeTool === 'pan' || panPointerEventsDisabled) return 'grab';
-        if (activeTool === 'select') return 'default';
-        if (activeTool === 'text') return 'text';
-        return 'crosshair';
-    }
+        if (shape.type === 'rectangle' || shape.type === 'highlight') {
+            const bounds = rectangleBounds(shape, frame);
+            return (
+                <Rect
+                    x={bounds.x}
+                    y={bounds.y}
+                    width={bounds.width}
+                    height={bounds.height}
+                    stroke={stroke}
+                    strokeWidth={strokeWidth}
+                    fill={shape.type === 'highlight' ? stroke : undefined}
+                    opacity={shape.type === 'highlight' ? 0.22 : 1}
+                />
+            );
+        }
 
-    const stageStyle: React.CSSProperties = {
-        position: 'absolute',
-        inset: '0px',
-        pointerEvents: panPointerEventsDisabled ? 'none' as const : 'auto' as const,
-        cursor: getCursor(),
-    };
+        if (shape.type === 'ellipse') {
+            const bounds = rectangleBounds(shape, frame);
+            return (
+                <Ellipse
+                    x={bounds.x + bounds.width / 2}
+                    y={bounds.y + bounds.height / 2}
+                    radiusX={bounds.width / 2}
+                    radiusY={bounds.height / 2}
+                    stroke={stroke}
+                    strokeWidth={strokeWidth}
+                />
+            );
+        }
+
+        if (shape.type === 'line' || shape.type === 'arrow') {
+            if (!shape.points || shape.points.length < 4) return null;
+            const start = docToScreen(shape.points[0], shape.points[1], frame);
+            const end = docToScreen(shape.points[2], shape.points[3], frame);
+            const points = [start.x, start.y, end.x, end.y];
+
+            return shape.type === 'arrow'
+                ? <Arrow points={points} stroke={stroke} fill={stroke} strokeWidth={strokeWidth} pointerLength={7} pointerWidth={7} />
+                : <Line points={points} stroke={stroke} strokeWidth={strokeWidth} lineCap="round" />;
+        }
+
+        if (shape.type === 'freehand' || shape.type === 'cloud') {
+            if (!shape.points || shape.points.length < 4) return null;
+            const points: number[] = [];
+            for (let index = 0; index < shape.points.length - 1; index += 2) {
+                const point = docToScreen(shape.points[index], shape.points[index + 1], frame);
+                points.push(point.x, point.y);
+            }
+
+            return (
+                <Line
+                    points={points}
+                    stroke={stroke}
+                    strokeWidth={shape.type === 'freehand' ? 2 : strokeWidth}
+                    tension={shape.type === 'cloud' ? 0.35 : 0.45}
+                    lineCap="round"
+                    lineJoin="round"
+                    closed={shape.type === 'cloud'}
+                />
+            );
+        }
+
+        if (shape.type === 'text') {
+            const point = docToScreen(shape.x, shape.y, frame);
+            return <Text x={point.x} y={point.y} text="Text" fontSize={14} fill={stroke} rotation={normalizeRotation(frame.rotation)} />;
+        }
+
+        return null;
+    }, [selectedId, viewerFrame]);
+
+    const clip = useMemo(() => pageBounds(viewerFrame), [viewerFrame]);
+    const cursor = activeTool === 'pan'
+        ? 'grab'
+        : activeTool === 'select'
+            ? 'default'
+            : activeTool === 'text'
+                ? 'text'
+                : 'crosshair';
 
     return (
-        <>
-            <Stage ref={stageRef} width={stageSize.width} height={stageSize.height}
-                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}
-                style={stageStyle}>
-                <Layer>
-                    {annotations.map((s, i) => (
-                        <Group key={s.id} onClick={() => onAnnotationSelect(s.id)} onTap={() => onAnnotationSelect(s.id)}>
-                            {renderShape(s, i, zoom, rotation)}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <Stage
+                ref={stageRef}
+                width={stageSize.width}
+                height={stageSize.height}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                style={{ position: 'absolute', inset: 0, cursor, pointerEvents: 'auto' }}
+            >
+                <Layer clipX={clip.x} clipY={clip.y} clipWidth={clip.width} clipHeight={clip.height}>
+                    {annotations.map((shape) => (
+                        <Group
+                            key={shape.id}
+                            onClick={() => onAnnotationSelect(shape.id)}
+                            onTap={() => onAnnotationSelect(shape.id)}
+                        >
+                            {renderShape(shape)}
                         </Group>
                     ))}
-                    {currentShape && renderShape(currentShape, -1, zoom, rotation)}
+                    {currentShape ? renderShape(currentShape) : null}
                 </Layer>
             </Stage>
-            {selectedAnnotation && <AnnotationInfoPopup annotation={selectedAnnotation} onClose={() => onAnnotationSelect(null)} />}
-        </>
+            {selectedAnnotation ? (
+                <AnnotationInfoPopup
+                    annotation={selectedAnnotation}
+                    onClose={() => onAnnotationSelect(null)}
+                />
+            ) : null}
+        </div>
     );
 }
 

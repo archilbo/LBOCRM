@@ -1,18 +1,49 @@
-import { useState, useRef, lazy, Suspense, useEffect, useCallback, useMemo } from 'react';
-import { ZoomIn, ZoomOut, RotateCw, Maximize, Minimize, Download, Loader2, MessageSquare, AlignCenter, AlignStartVertical, FileWarning } from 'lucide-react';
+import {
+    lazy,
+    Suspense,
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
+import {
+    AlignCenter,
+    AlignStartVertical,
+    Download,
+    FileWarning,
+    Loader2,
+    Maximize,
+    MessageSquare,
+    Minimize,
+    RotateCw,
+    ZoomIn,
+    ZoomOut,
+} from 'lucide-react';
 import { Button } from '@heroui/react';
-import { DesignAnnotationToolbar, type AnnotationTool } from './DesignAnnotationToolbar';
-import type { ProjectDesignEditorToolbarState } from '@/features/project-design/components/ProjectDesignEditorToolbar';
-import { DesignRemarkComposer } from './DesignRemarkComposer';
 import { toast } from 'sonner';
+import { DesignAnnotationToolbar } from './DesignAnnotationToolbar';
+import type {
+    AnnotationTool,
+    ProjectDesignAnnotationToolbarState,
+    ProjectDesignEditorToolbarState,
+} from '@/features/project-design/components/ProjectDesignEditorToolbar';
+import { DesignRemarkComposer } from './DesignRemarkComposer';
 import { projectDesignApi } from '@/features/project-design/api/projectDesignApi';
-import { fitWidth, fitPage, zoomToPoint } from '../utils/viewport';
-import type { ViewerState, ViewerAction } from '@/features/project-design/viewer/useProjectDesignViewerController';
+import { fitPage, fitWidth, zoomToPoint } from '../utils/viewport';
+import type { ViewerFrame } from './DesignAnnotationLayer';
 
 const DesignAnnotationLayer = lazy(() => import('./DesignAnnotationLayer'));
 const PdfDesignViewer = lazy(() => import('./PdfDesignViewer'));
 
-const SUPPORTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+const SUPPORTED_IMAGE_TYPES = [
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/gif',
+    'image/webp',
+];
 
 export interface AnnotationShape {
     id: string;
@@ -35,588 +66,899 @@ export interface AnnotationShape {
     createdBy?: { id: number; name: string } | null;
     createdAt?: string | null;
     recordVersion?: number;
-    remark?: { id: number; severity: string; status: string; title: string; description: string | null; createdBy: { id: number; name: string } | null; createdAt: string | null } | null;
+    remark?: {
+        id: number;
+        severity: string;
+        status: string;
+        title: string;
+        description: string | null;
+        createdBy: { id: number; name: string } | null;
+        createdAt: string | null;
+    } | null;
 }
 
-function isPdf(mime: string) { return mime === 'application/pdf'; }
-function isImage(mime: string) { return SUPPORTED_IMAGE_TYPES.includes(mime); }
-function isSupported(mime: string) { return isPdf(mime) || isImage(mime); }
+type Viewport = { zoom: number; panX: number; panY: number };
+type StandaloneAnnotationTool = Exclude<AnnotationTool, 'pan'>;
 
-function normalizePoints(points: number[], pw: number, ph: number): number[] {
-    const out: number[] = [];
-    for (let i = 0; i < points.length - 1; i += 2) {
-        out.push(points[i] / pw, points[i + 1] / ph);
+type DesignFileViewerProps = {
+    previewUrl: string;
+    downloadUrl: string;
+    mimeType: string;
+    filename: string;
+    assetId?: number;
+    isOpen: boolean;
+    onClose: () => void;
+    versionId?: number;
+    dossierId?: number;
+    containerRef?: React.RefObject<HTMLDivElement | null>;
+    suppressAnnotations?: boolean;
+    pageNumber?: number;
+    onPageNumberChange?: (page: number) => void;
+    viewerToolbar?: ProjectDesignEditorToolbarState;
+    onControlsReady?: (controls: { fitWidth: () => void; fitPage: () => void }) => void;
+    onTotalPages?: (total: number) => void;
+    onToolbarStateChange?: (state: ProjectDesignAnnotationToolbarState) => void;
+};
+
+const defaultFrame: ViewerFrame = {
+    scale: 1,
+    rotation: 0,
+    pageX: 0,
+    pageY: 0,
+    pageWidth: 0,
+    pageHeight: 0,
+};
+
+function isPdf(mimeType: string): boolean {
+    return mimeType === 'application/pdf';
+}
+
+function isImage(mimeType: string): boolean {
+    return SUPPORTED_IMAGE_TYPES.includes(mimeType);
+}
+
+function isSupported(mimeType: string): boolean {
+    return isPdf(mimeType) || isImage(mimeType);
+}
+
+function normalizePoints(points: number[], pageWidth: number, pageHeight: number): number[] {
+    const normalized: number[] = [];
+    for (let index = 0; index < points.length - 1; index += 2) {
+        normalized.push(points[index] / pageWidth, points[index + 1] / pageHeight);
     }
-    return out;
+    return normalized;
 }
 
-function denormalizePoints(points: number[], rw: number, rh: number): number[] {
-    const out: number[] = [];
-    for (let i = 0; i < points.length - 1; i += 2) {
-        out.push(points[i] * rw, points[i + 1] * rh);
+function denormalizePoints(points: number[], referenceWidth: number, referenceHeight: number): number[] {
+    const denormalized: number[] = [];
+    for (let index = 0; index < points.length - 1; index += 2) {
+        denormalized.push(
+            points[index] * referenceWidth,
+            points[index + 1] * referenceHeight,
+        );
     }
-    return out;
+    return denormalized;
 }
 
-function buildGeometry(shape: AnnotationShape, pw: number, ph: number): Record<string, unknown> {
-    const geom: Record<string, unknown> = {
-        x: shape.x / pw,
-        y: shape.y / ph,
+function buildGeometry(
+    shape: AnnotationShape,
+    pageWidth: number,
+    pageHeight: number,
+): Record<string, unknown> {
+    const geometry: Record<string, unknown> = {
+        x: shape.x / pageWidth,
+        y: shape.y / pageHeight,
         color: shape.color,
     };
-    if (shape.width != null) geom.width = shape.width / pw;
-    if (shape.height != null) geom.height = shape.height / ph;
-    if (shape.points?.length) geom.points = normalizePoints(shape.points, pw, ph);
-    return geom;
-}
 
-// Standalone adapter - used only when controller is not provided
-function useStandaloneViewerState() {
-    const [zoom, setZoom] = useState(1);
-    const [panX, setPanX] = useState(0);
-    const [panY, setPanY] = useState(0);
-    const [rotation, setRotation] = useState(0);
-    const [activeTool, setActiveTool] = useState<AnnotationTool>('select');
-    const [currentPage, setCurrentPage] = useState(1);
-    const [fullscreen, setFullscreen] = useState(false);
-    const zoomIn = useCallback(() => setZoom((z) => Math.min(5, z + 0.1)), []);
-    const zoomOut = useCallback(() => setZoom((z) => Math.max(0.1, z - 0.1)), []);
-    return {
-        zoom, setZoom, panX, setPanX, panY, setPanY, rotation, setRotation,
-        activeTool, setActiveTool, currentPage, setCurrentPage,
-        fullscreen, setFullscreen,
-        zoomIn, zoomOut,
-    };
-}
-
-function ImageViewer({ src, filename, zoom, panX, panY, rotation }: {
-    src: string; filename: string;
-    zoom: number; panX: number; panY: number; rotation: number;
-}) {
-    return (
-        <div className="relative flex h-full w-full flex-col">
-            <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
-                <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{filename}</p>
-            </div>
-            <div className="relative flex-1 overflow-hidden bg-[var(--surface-2)]/50">
-                <div className="h-full w-full transition-transform"
-                    style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom}) rotate(${rotation}deg)`, transformOrigin: '0 0' }}>
-                    <img src={src} alt={filename} className="max-h-full max-w-full object-contain" draggable={false} />
-                </div>
-            </div>
-        </div>
-    );
+    if (shape.width != null) geometry.width = shape.width / pageWidth;
+    if (shape.height != null) geometry.height = shape.height / pageHeight;
+    if (shape.points?.length) geometry.points = normalizePoints(shape.points, pageWidth, pageHeight);
+    return geometry;
 }
 
 function ViewerLoading() {
     return (
-        <div className="flex h-full flex-col items-center justify-center gap-2 bg-[var(--surface-2)]/50">
+        <div className="flex h-full flex-col items-center justify-center gap-2 bg-[#101214]">
             <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
-            <p className="text-[12px] text-[var(--text-muted)]">Loading viewer...</p>
+            <p className="text-[12px] text-[var(--text-muted)]">Loading design viewer…</p>
         </div>
     );
 }
 
 function UnsupportedViewer({ filename }: { filename: string }) {
     return (
-        <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-            <FileWarning size={32} className="text-amber-400" />
+        <div className="flex h-full flex-col items-center justify-center gap-3 bg-[var(--surface-2)]/35 p-8 text-center">
+            <FileWarning size={34} className="text-amber-400" />
             <div>
                 <p className="text-sm font-medium text-[var(--foreground)]">Preview not available</p>
-                <p className="mt-1 text-[12px] text-[var(--text-muted)]">"{filename}" cannot be previewed in the browser.</p>
+                <p className="mt-1 max-w-md text-[12px] text-[var(--text-muted)]">
+                    “{filename}” cannot be previewed directly in the browser.
+                </p>
             </div>
         </div>
     );
 }
 
-export function DesignFileViewer({ previewUrl, downloadUrl, mimeType, filename, assetId, isOpen, versionId, dossierId, suppressAnnotations, pageNumber: controlledPageNumber, onPageNumberChange, viewerToolbar, onControlsReady, onTotalPages, state, dispatch, interactionHandlers, spaceHeldRef }: {
-    previewUrl: string; downloadUrl: string; mimeType: string; filename: string; assetId?: number; isOpen: boolean; versionId?: number; dossierId?: number; suppressAnnotations?: boolean; pageNumber?: number; onPageNumberChange?: (page: number) => void; viewerToolbar?: ProjectDesignEditorToolbarState; onControlsReady?: (controls: { fitWidth: () => void; fitPage: () => void }) => void; onTotalPages?: (n: number) => void;
-    state?: ViewerState;
-    dispatch?: React.Dispatch<ViewerAction>;
-    interactionHandlers?: { onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void; onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void; onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void; onPointerCancel: (e: React.PointerEvent<HTMLDivElement>) => void; onWheel: (e: React.WheelEvent<HTMLDivElement>) => void };
-    spaceHeldRef?: React.MutableRefObject<boolean>;
+function ImageViewer({
+    src,
+    filename,
+    containerRef,
+    stageParentRef,
+    onFrameChange,
+    zoom,
+    panX,
+    panY,
+    rotation,
+}: {
+    src: string;
+    filename: string;
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    stageParentRef: React.RefObject<HTMLDivElement | null>;
+    onFrameChange?: (frame: ViewerFrame) => void;
+    zoom: number;
+    panX: number;
+    panY: number;
+    rotation: number;
 }) {
+    const imageRef = useRef<HTMLImageElement>(null);
+    const imageWrapperRef = useRef<HTMLDivElement>(null);
+    const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+
+    const reportFrame = useCallback(() => {
+        const wrapper = imageWrapperRef.current;
+        const parent = stageParentRef.current;
+        if (!wrapper || !parent || naturalSize.width <= 0 || naturalSize.height <= 0) return;
+
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const parentRect = parent.getBoundingClientRect();
+        onFrameChange?.({
+            scale: zoom,
+            rotation,
+            pageX: wrapperRect.left - parentRect.left,
+            pageY: wrapperRect.top - parentRect.top,
+            pageWidth: naturalSize.width,
+            pageHeight: naturalSize.height,
+        });
+    }, [naturalSize.height, naturalSize.width, onFrameChange, rotation, stageParentRef, zoom]);
+
+    useLayoutEffect(() => {
+        const frame = window.requestAnimationFrame(reportFrame);
+        return () => window.cancelAnimationFrame(frame);
+    }, [panX, panY, reportFrame, rotation, zoom]);
+
+    return (
+        <div
+            ref={containerRef}
+            className="relative flex h-full w-full items-start justify-center overflow-hidden bg-[#101214] p-6 sm:p-8"
+            style={{
+                backgroundImage:
+                    'linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px)',
+                backgroundSize: '24px 24px',
+            }}
+        >
+            <div
+                ref={imageWrapperRef}
+                className="inline-flex origin-top-left will-change-transform"
+                style={{
+                    transform: `translate3d(${panX}px, ${panY}px, 0) scale(${zoom}) rotate(${rotation}deg)`,
+                }}
+            >
+                <img
+                    ref={imageRef}
+                    src={src}
+                    alt={filename}
+                    draggable={false}
+                    className="block max-h-[calc(100dvh-180px)] max-w-[calc(100vw-96px)] select-none rounded-[2px] bg-white object-contain shadow-[0_24px_70px_rgb(0_0_0_/_0.35)]"
+                    onLoad={(event) => {
+                        const image = event.currentTarget;
+                        setNaturalSize({
+                            width: image.naturalWidth || image.clientWidth,
+                            height: image.naturalHeight || image.clientHeight,
+                        });
+                    }}
+                />
+            </div>
+        </div>
+    );
+}
+
+export function DesignFileViewer({
+    previewUrl,
+    downloadUrl,
+    mimeType,
+    filename,
+    assetId,
+    isOpen,
+    onClose: _onClose,
+    versionId,
+    dossierId,
+    containerRef: externalContainerRef,
+    suppressAnnotations,
+    pageNumber: controlledPageNumber,
+    onPageNumberChange,
+    viewerToolbar,
+    onControlsReady,
+    onTotalPages,
+    onToolbarStateChange,
+}: DesignFileViewerProps) {
     const [annotations, setAnnotations] = useState<AnnotationShape[]>([]);
     const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
     const [showComposer, setShowComposer] = useState(false);
-    const [pageShellEl, setPageShellEl] = useState<HTMLDivElement | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [viewerFrame, setViewerFrame] = useState<ViewerFrame>(defaultFrame);
 
-    const isControllerMode = !!state && !!dispatch;
+    const [localZoom, setLocalZoom] = useState(1);
+    const [localPanX, setLocalPanX] = useState(0);
+    const [localPanY, setLocalPanY] = useState(0);
+    const [localRotation, setLocalRotation] = useState(0);
+    const [localActiveTool, setLocalActiveTool] = useState<StandaloneAnnotationTool>('select');
+    const [localFullscreen, setLocalFullscreen] = useState(false);
+    const [localCurrentPage, setLocalCurrentPage] = useState(1);
 
-    // Standalone mode state
-    const local = useStandaloneViewerState();
-
-    const resolvedZoom = isControllerMode ? state!.zoom : local.zoom;
-    const resolvedPanX = isControllerMode ? state!.panX : local.panX;
-    const resolvedPanY = isControllerMode ? state!.panY : local.panY;
-    const resolvedRotation = isControllerMode ? state!.rotation : local.rotation;
-    const resolvedActiveTool = isControllerMode ? state!.activeTool : local.activeTool;
-    const resolvedFullscreen = isControllerMode ? state!.fullscreen : local.fullscreen;
-    const resolvedPageNumber = controlledPageNumber ?? local.currentPage;
-    const resolvedHasUnsaved = isControllerMode ? state!.hasUnsaved : annotations.some((a) => !a.serverId);
-
+    const internalContainerRef = useRef<HTMLDivElement>(null);
+    const containerRef = externalContainerRef ?? internalContainerRef;
     const viewerAreaRef = useRef<HTMLDivElement>(null);
     const workspaceRef = useRef<HTMLDivElement>(null);
     const composerAnnotationId = useRef<string | null>(null);
     const pendingShapeRef = useRef<AnnotationShape | null>(null);
 
-    const isExt = !!viewerToolbar;
+    const isExternal = viewerToolbar != null;
+    const resolvedZoom = isExternal ? viewerToolbar.zoom : localZoom;
+    const resolvedPanX = isExternal ? viewerToolbar.panX ?? 0 : localPanX;
+    const resolvedPanY = isExternal ? viewerToolbar.panY ?? 0 : localPanY;
+    const resolvedRotation = isExternal ? viewerToolbar.rotation : localRotation;
+    const resolvedActiveTool = isExternal ? viewerToolbar.activeTool : localActiveTool;
+    const resolvedFullscreen = isExternal ? viewerToolbar.fullscreen : localFullscreen;
+    const resolvedPageNumber = controlledPageNumber ?? localCurrentPage;
 
-    const [panPointerEventsDisabled, setPanPointerEventsDisabled] = useState(() => isControllerMode
-        ? state!.activeTool === 'pan'
-        : false);
-    useEffect(() => {
-        if (isControllerMode && state) {
-            setPanPointerEventsDisabled(state.activeTool === 'pan' || !!spaceHeldRef?.current);
-        }
-    }, [isControllerMode, state, spaceHeldRef]);
+    const exactAnnotationContext = Boolean(
+        dossierId
+        && versionId
+        && assetId
+        && viewerFrame.pageWidth > 0
+        && viewerFrame.pageHeight > 0,
+    );
 
-    useEffect(() => {
-        if (!isOpen) {
-            setAnnotations([]);
-            setSelectedAnnotationId(null);
-            setShowComposer(false);
-            pendingShapeRef.current = null;
-            if (!isControllerMode) {
-                local.setZoom(1);
-                local.setPanX(0);
-                local.setPanY(0);
-                local.setRotation(0);
-                local.setActiveTool('select');
-            }
-        }
-    }, [isOpen, isControllerMode]);
+    const annotationsForCurrentPage = useMemo(() => annotations.filter((annotation) => (
+        annotation.assetId === assetId
+        && (annotation.pageNumber ?? 1) === resolvedPageNumber
+    )), [annotations, assetId, resolvedPageNumber]);
 
-    async function loadAnnotations() {
-        if (!versionId || !dossierId) return;
-        try {
-            const res = await projectDesignApi.getAnnotations(dossierId, versionId);
-            const mapped: AnnotationShape[] = res.data.map((a) => {
-                const rw = a.referenceWidth ?? 1;
-                const rh = a.referenceHeight ?? 1;
-                const geom = a.geometry as Record<string, unknown>;
-                return {
-                    id: `server-${a.id}`,
-                    serverId: a.id,
-                    type: a.annotationType,
-                    x: ((geom.x as number) ?? 0) * rw,
-                    y: ((geom.y as number) ?? 0) * rh,
-                    width: (geom.width as number) != null ? (geom.width as number) * rw : undefined,
-                    height: (geom.height as number) != null ? (geom.height as number) * rh : undefined,
-                    points: (geom.points as number[])?.length
-                        ? denormalizePoints(geom.points as number[], rw, rh)
-                        : undefined,
-                    color: geom.color as string | undefined,
-                    style: a.style,
-                    viewport: a.viewport,
-                    referenceWidth: a.referenceWidth,
-                    referenceHeight: a.referenceHeight,
-                    sourceRotation: a.sourceRotation,
-                    assetId: a.assetId ?? undefined,
-                    pageNumber: a.pageNumber,
-                    authoredBy: a.authoredBy,
-                    createdBy: a.createdBy,
-                    createdAt: a.createdAt,
-                    recordVersion: a.recordVersion,
-                    remark: a.remark ? {
-                        id: a.remark.id,
-                        severity: a.remark.severity,
-                        status: a.remark.status,
-                        title: a.remark.title,
-                        description: a.remark.description,
-                        createdBy: a.remark.createdBy,
-                        createdAt: a.remark.createdAt,
-                    } : null,
-                };
-            });
-            setAnnotations(mapped);
-        } catch { if (import.meta.env.DEV) console.warn('Failed to map annotations'); }
-    }
+    const unsavedForCurrentContext = useMemo(() => annotations.filter((annotation) => (
+        !annotation.serverId
+        && annotation.assetId === assetId
+        && (annotation.pageNumber ?? 1) === resolvedPageNumber
+    )), [annotations, assetId, resolvedPageNumber]);
+    const hasUnsaved = unsavedForCurrentContext.length > 0;
+    const canRemark = Boolean(selectedAnnotationId && !suppressAnnotations && exactAnnotationContext);
 
-    useEffect(() => {
-        if (versionId && isOpen) {
-            loadAnnotations();
-        }
-    }, [versionId, isOpen, loadAnnotations]);
-
-    const filteredAnnotations = useMemo(() => {
-        if (!versionId) return [];
-        return annotations.filter((a) => {
-            if (a.assetId != null && a.assetId !== assetId) return false;
-            if (a.pageNumber != null && a.pageNumber !== resolvedPageNumber) return false;
-            return true;
-        });
-    }, [annotations, versionId, assetId, resolvedPageNumber]);
-
-    const toggleFullscreen = useCallback(async () => {
-        if (isControllerMode) {
-            if (document.fullscreenElement) {
-                await document.exitFullscreen();
-            } else {
-                const el = workspaceRef.current?.closest('[data-editor-host]') as HTMLElement | null;
-                if (el) await el.requestFullscreen();
-            }
+    const applyTool = useCallback((tool: AnnotationTool) => {
+        if (viewerToolbar) {
+            viewerToolbar.onToolChange(tool);
             return;
         }
-        const el = workspaceRef.current;
-        if (!el) return;
-        if (!document.fullscreenElement) {
-            await el.requestFullscreen();
-        } else {
-            await document.exitFullscreen();
-        }
-    }, [isControllerMode]);
 
-    useEffect(() => {
-        function onFsChange() {
-            if (isControllerMode) {
-                dispatch?.({ type: 'FULLSCREEN_CHANGED', fullscreen: !!document.fullscreenElement });
-            } else {
-                local.fullscreen = !!document.fullscreenElement;
-            }
+        if (tool !== 'pan') setLocalActiveTool(tool);
+    }, [viewerToolbar]);
+
+    const applyViewport = useCallback((viewport: Viewport) => {
+        if (viewerToolbar?.onViewportChange) {
+            viewerToolbar.onViewportChange(viewport);
+            return;
         }
-        document.addEventListener('fullscreenchange', onFsChange);
-        return () => document.removeEventListener('fullscreenchange', onFsChange);
-    }, [isControllerMode]);
+
+        if (viewerToolbar) {
+            viewerToolbar.onZoomChange(viewport.zoom);
+            viewerToolbar.onPanChange?.(viewport.panX, viewport.panY);
+            return;
+        }
+
+        setLocalZoom(viewport.zoom);
+        setLocalPanX(viewport.panX);
+        setLocalPanY(viewport.panY);
+    }, [viewerToolbar]);
+
+    const handlePanBy = useCallback((dx: number, dy: number) => {
+        applyViewport({
+            zoom: resolvedZoom,
+            panX: resolvedPanX + dx,
+            panY: resolvedPanY + dy,
+        });
+    }, [applyViewport, resolvedPanX, resolvedPanY, resolvedZoom]);
+
+    const handleZoomAroundPoint = useCallback((delta: number, cx: number, cy: number) => {
+        const factor = delta > 0 ? 1.1 : 0.9;
+        applyViewport(zoomToPoint(
+            resolvedZoom,
+            factor,
+            cx,
+            cy,
+            resolvedPanX,
+            resolvedPanY,
+        ));
+    }, [applyViewport, resolvedPanX, resolvedPanY, resolvedZoom]);
 
     const handleFitWidth = useCallback(() => {
-        if (isControllerMode) {
-            dispatch!({ type: 'FIT_WIDTH' });
-            return;
-        }
         const viewer = viewerAreaRef.current;
-        if (!viewer) return;
-        const vr = viewer.getBoundingClientRect();
-        const vp = fitWidth(vr.width, vr.height, 1, 1);
-        local.setZoom(vp.zoom);
-        local.setPanX(vp.panX);
-        local.setPanY(vp.panY);
-    }, [isControllerMode]);
+        if (!viewer || viewerFrame.pageWidth <= 0 || viewerFrame.pageHeight <= 0) return;
+
+        const rect = viewer.getBoundingClientRect();
+        const padding = 48;
+        applyViewport(fitWidth(
+            Math.max(1, rect.width - padding),
+            Math.max(1, rect.height - padding),
+            viewerFrame.pageWidth,
+            viewerFrame.pageHeight,
+        ));
+    }, [applyViewport, viewerFrame.pageHeight, viewerFrame.pageWidth]);
 
     const handleFitPage = useCallback(() => {
-        if (isControllerMode) {
-            dispatch!({ type: 'FIT_PAGE' });
-            return;
-        }
         const viewer = viewerAreaRef.current;
-        if (!viewer) return;
-        const vr = viewer.getBoundingClientRect();
-        const vp = fitPage(vr.width, vr.height, 1, 1);
-        local.setZoom(vp.zoom);
-        local.setPanX(vp.panX);
-        local.setPanY(vp.panY);
-    }, [isControllerMode]);
+        if (!viewer || viewerFrame.pageWidth <= 0 || viewerFrame.pageHeight <= 0) return;
 
-    const handlePageChange = useCallback((p: number) => {
-        if (isControllerMode) {
-            dispatch!({ type: 'PAGE_CHANGED', pageNumber: p });
-        } else {
-            local.setCurrentPage(p);
-        }
-        onPageNumberChange?.(p);
-    }, [isControllerMode, onPageNumberChange]);
+        const rect = viewer.getBoundingClientRect();
+        const padding = 48;
+        applyViewport(fitPage(
+            Math.max(1, rect.width - padding),
+            Math.max(1, rect.height - padding),
+            viewerFrame.pageWidth,
+            viewerFrame.pageHeight,
+        ));
+    }, [applyViewport, viewerFrame.pageHeight, viewerFrame.pageWidth]);
 
-    const controlsRef = useRef({ fitWidth: handleFitWidth, fitPage: handleFitPage });
     useEffect(() => {
-        controlsRef.current = { fitWidth: handleFitWidth, fitPage: handleFitPage };
-    }, [handleFitWidth, handleFitPage]);
+        onControlsReady?.({
+            fitWidth: handleFitWidth,
+            fitPage: handleFitPage,
+        });
+    }, [handleFitPage, handleFitWidth, onControlsReady]);
+
     useEffect(() => {
-        if (onControlsReady) {
-            onControlsReady({ fitWidth: () => controlsRef.current.fitWidth(), fitPage: () => controlsRef.current.fitPage() });
-        }
-    }, [onControlsReady]);
+        if (!isPdf(mimeType)) onTotalPages?.(1);
+    }, [mimeType, onTotalPages]);
 
-    const _handleZoomAroundPoint = useCallback((delta: number, cx: number, cy: number) => {
-        if (isControllerMode) {
-            dispatch!({ type: 'ZOOM_AROUND_POINTER', delta, pointerX: cx, pointerY: cy });
-            return;
-        }
-        const vp = zoomToPoint(resolvedZoom, delta > 0 ? 1.1 : 0.9, cx, cy, resolvedPanX, resolvedPanY);
-        local.setZoom(vp.zoom);
-        local.setPanX(vp.panX);
-        local.setPanY(vp.panY);
-    }, [isControllerMode, resolvedZoom, resolvedPanX, resolvedPanY]);
+    useEffect(() => {
+        if (!isOpen || !versionId || !dossierId || !assetId) return;
 
-    async function handleAnnotationCreated(shape: AnnotationShape) {
-        const enriched = {
-            ...shape,
-            assetId: shape.assetId ?? assetId,
-            pageNumber: shape.pageNumber ?? resolvedPageNumber,
-        };
-        setAnnotations((prev) => [...prev, enriched]);
-        setSelectedAnnotationId(enriched.id);
-        setShowComposer(true);
-        composerAnnotationId.current = enriched.id;
-        pendingShapeRef.current = enriched;
-        if (isControllerMode) {
-            dispatch!({ type: 'UNSAVED_CHANGED', hasUnsaved: true });
-            dispatch!({ type: 'TOOL_CHANGED', activeTool: 'select' });
-        } else {
-            local.setActiveTool('select');
-        }
-    }
+        const controller = new AbortController();
+        projectDesignApi.getAnnotations(dossierId, versionId, controller.signal)
+            .then((response) => {
+                const mapped: AnnotationShape[] = response.data
+                    .filter((annotation) => annotation.assetId === assetId)
+                    .map((annotation) => {
+                        const referenceWidth = annotation.referenceWidth ?? 1;
+                        const referenceHeight = annotation.referenceHeight ?? 1;
+                        const geometry = annotation.geometry as Record<string, unknown>;
 
-    async function handleAnnotationSave(data: { severity: string; title: string; description: string }) {
-        if (!versionId || !dossierId) return;
-        const shape = pendingShapeRef.current ?? annotations.find((a) => a.id === composerAnnotationId.current);
-        if (!shape) {
-            const found = annotations.find((a) => a.id === composerAnnotationId.current);
-            if (found) {
-                await saveAnnotationAndRemark(found, data);
-            } else {
-                toast.error('No annotation selected.');
-            }
-            return;
-        }
-        await saveAnnotationAndRemark(shape, data);
-    }
+                        return {
+                            id: `server-${annotation.id}`,
+                            serverId: annotation.id,
+                            type: annotation.annotationType,
+                            x: ((geometry.x as number) ?? 0) * referenceWidth,
+                            y: ((geometry.y as number) ?? 0) * referenceHeight,
+                            width: geometry.width != null
+                                ? (geometry.width as number) * referenceWidth
+                                : undefined,
+                            height: geometry.height != null
+                                ? (geometry.height as number) * referenceHeight
+                                : undefined,
+                            points: Array.isArray(geometry.points)
+                                ? denormalizePoints(geometry.points as number[], referenceWidth, referenceHeight)
+                                : undefined,
+                            color: geometry.color as string | undefined,
+                            style: annotation.style,
+                            viewport: annotation.viewport,
+                            referenceWidth: annotation.referenceWidth,
+                            referenceHeight: annotation.referenceHeight,
+                            sourceRotation: annotation.sourceRotation,
+                            assetId: annotation.assetId ?? undefined,
+                            pageNumber: annotation.pageNumber,
+                            authoredBy: annotation.authoredBy,
+                            createdBy: annotation.createdBy,
+                            createdAt: annotation.createdAt,
+                            recordVersion: annotation.recordVersion,
+                            remark: annotation.remark ? {
+                                id: annotation.remark.id,
+                                severity: annotation.remark.severity,
+                                status: annotation.remark.status,
+                                title: annotation.remark.title,
+                                description: annotation.remark.description,
+                                createdBy: annotation.remark.createdBy,
+                                createdAt: annotation.remark.createdAt,
+                            } : null,
+                        };
+                    });
 
-    async function saveAnnotationAndRemark(shape: AnnotationShape, data: { severity: string; title: string; description: string }) {
-        try {
-            let annotationId = shape.serverId;
-
-            if (!annotationId) {
-                if (isControllerMode) dispatch!({ type: 'SAVING_STATE_CHANGED', saving: true });
-                const created = await projectDesignApi.storeAnnotation(dossierId!, versionId!, {
-                    annotation_type: shape.type,
-                    coordinate_space: 'page-normalized-v1',
-                    asset_id: shape.assetId ?? assetId ?? 1,
-                    page_number: shape.pageNumber ?? controlledPageNumber ?? resolvedPageNumber,
-                    geometry: buildGeometry(shape, 1, 1),
-                    style: shape.style ?? null,
-                    viewport: shape.viewport ?? null,
-                    reference_width: 1,
-                    reference_height: 1,
-                    source_rotation: shape.sourceRotation ?? 0,
-                });
-                annotationId = created.id;
-                setAnnotations((prev) => prev.map((a) => a.id === shape.id ? { ...a, serverId: annotationId, recordVersion: created.recordVersion } : a));
-            }
-
-            await projectDesignApi.createRemark(dossierId!, versionId!, annotationId, {
-                severity: data.severity,
-                title: data.title,
-                description: data.description,
+                setAnnotations(mapped);
+            })
+            .catch((error: unknown) => {
+                if (controller.signal.aborted) return;
+                if (import.meta.env.DEV) console.warn('Failed to load design annotations', error);
+                toast.error('Could not load annotations for this asset.');
             });
 
-            toast.success('Remark saved.');
+        return () => controller.abort();
+    }, [assetId, dossierId, isOpen, versionId]);
+
+    const handlePageChange = useCallback((page: number) => {
+        if (!isExternal) setLocalCurrentPage(page);
+        setSelectedAnnotationId(null);
+        setShowComposer(false);
+        onPageNumberChange?.(page);
+    }, [isExternal, onPageNumberChange]);
+
+    const requireExactContext = useCallback(() => {
+        if (!dossierId || !versionId || !assetId) {
+            throw new Error('Select an exact design asset before saving annotations.');
+        }
+        if (viewerFrame.pageWidth <= 0 || viewerFrame.pageHeight <= 0) {
+            throw new Error('Wait until the current page has finished rendering.');
+        }
+
+        return {
+            dossierId,
+            versionId,
+            assetId,
+            pageWidth: viewerFrame.pageWidth,
+            pageHeight: viewerFrame.pageHeight,
+        };
+    }, [assetId, dossierId, versionId, viewerFrame.pageHeight, viewerFrame.pageWidth]);
+
+    const saveSingleAnnotation = useCallback(async (shape: AnnotationShape) => {
+        const context = requireExactContext();
+        const pageNumber = shape.pageNumber ?? resolvedPageNumber;
+        const referenceWidth = shape.referenceWidth && shape.referenceWidth > 0
+            ? shape.referenceWidth
+            : context.pageWidth;
+        const referenceHeight = shape.referenceHeight && shape.referenceHeight > 0
+            ? shape.referenceHeight
+            : context.pageHeight;
+
+        if (shape.assetId != null && shape.assetId !== context.assetId) {
+            throw new Error('The annotation belongs to a different design asset.');
+        }
+
+        if (shape.serverId) {
+            const updated = await projectDesignApi.updateAnnotation(
+                context.dossierId,
+                context.versionId,
+                shape.serverId,
+                {
+                    geometry: buildGeometry(shape, referenceWidth, referenceHeight),
+                    style: shape.style ?? null,
+                    record_version: shape.recordVersion ?? 1,
+                },
+            );
+            setAnnotations((current) => current.map((annotation) => (
+                annotation.id === shape.id
+                    ? { ...annotation, recordVersion: updated.recordVersion }
+                    : annotation
+            )));
+            return updated.id;
+        }
+
+        const created = await projectDesignApi.storeAnnotation(
+            context.dossierId,
+            context.versionId,
+            {
+                annotation_type: shape.type,
+                coordinate_space: 'page-normalized-v1',
+                asset_id: context.assetId,
+                page_number: pageNumber,
+                geometry: buildGeometry(shape, referenceWidth, referenceHeight),
+                style: shape.style ?? null,
+                viewport: shape.viewport ?? null,
+                reference_width: Math.round(referenceWidth),
+                reference_height: Math.round(referenceHeight),
+                source_rotation: shape.sourceRotation ?? 0,
+            },
+        );
+
+        setAnnotations((current) => current.map((annotation) => (
+            annotation.id === shape.id
+                ? {
+                    ...annotation,
+                    serverId: created.id,
+                    recordVersion: created.recordVersion,
+                    assetId: context.assetId,
+                    pageNumber,
+                }
+                : annotation
+        )));
+
+        return created.id;
+    }, [requireExactContext, resolvedPageNumber]);
+
+    const handleAnnotationToolbarSave = useCallback(async () => {
+        if (!unsavedForCurrentContext.length) return;
+
+        setSaving(true);
+        try {
+            for (const shape of unsavedForCurrentContext) await saveSingleAnnotation(shape);
+            toast.success(`${unsavedForCurrentContext.length} annotation${unsavedForCurrentContext.length === 1 ? '' : 's'} saved.`);
+        } catch (error) {
+            toast.error((error as Error)?.message ?? 'Failed to save annotations.');
+        } finally {
+            setSaving(false);
+        }
+    }, [saveSingleAnnotation, unsavedForCurrentContext]);
+
+    const handleAnnotationCreated = useCallback((shape: AnnotationShape) => {
+        if (!assetId || !exactAnnotationContext) {
+            toast.error('The current asset is not ready for annotation.');
+            return;
+        }
+
+        const scopedShape: AnnotationShape = {
+            ...shape,
+            assetId,
+            pageNumber: resolvedPageNumber,
+            referenceWidth: viewerFrame.pageWidth,
+            referenceHeight: viewerFrame.pageHeight,
+            sourceRotation: 0,
+        };
+
+        setAnnotations((current) => [...current, scopedShape]);
+        setSelectedAnnotationId(scopedShape.id);
+        setShowComposer(true);
+        composerAnnotationId.current = scopedShape.id;
+        pendingShapeRef.current = scopedShape;
+        applyTool('select');
+    }, [
+        applyTool,
+        assetId,
+        exactAnnotationContext,
+        resolvedPageNumber,
+        viewerFrame.pageHeight,
+        viewerFrame.pageWidth,
+    ]);
+
+    const handleAnnotationSave = useCallback(async (data: {
+        severity: string;
+        title: string;
+        description: string;
+    }) => {
+        const shapeId = composerAnnotationId.current;
+        const shape = pendingShapeRef.current
+            ?? annotations.find((annotation) => annotation.id === shapeId);
+
+        if (!shape) {
+            toast.error('No annotation selected.');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const context = requireExactContext();
+            const annotationId = await saveSingleAnnotation(shape);
+            await projectDesignApi.createRemark(
+                context.dossierId,
+                context.versionId,
+                annotationId,
+                data,
+            );
+
+            toast.success('Annotation and remark saved.');
             setShowComposer(false);
-            if (isControllerMode) {
-                dispatch!({ type: 'SAVING_STATE_CHANGED', saving: false });
-                dispatch!({ type: 'UNSAVED_CHANGED', hasUnsaved: false });
-                dispatch!({ type: 'TOOL_CHANGED', activeTool: 'select' });
-            }
+            setSelectedAnnotationId(null);
             composerAnnotationId.current = null;
             pendingShapeRef.current = null;
-        } catch (err) {
-            if (isControllerMode) dispatch!({ type: 'SAVING_STATE_CHANGED', saving: false });
-            toast.error((err as Error)?.message ?? 'Failed to save remark.');
-        }
-    }
-
-    async function handleAnnotationToolbarSave() {
-        if (annotations.length === 0 || !versionId || !dossierId) return;
-        if (isControllerMode) dispatch!({ type: 'SAVING_STATE_CHANGED', saving: true });
-        try {
-            for (const shape of annotations) {
-                if (shape.serverId) {
-                    await projectDesignApi.updateAnnotation(dossierId, versionId, shape.serverId, {
-                        geometry: buildGeometry(shape, 1, 1),
-                        record_version: shape.recordVersion ?? 1,
-                    });
-                } else {
-                    const created = await projectDesignApi.storeAnnotation(dossierId, versionId, {
-                        annotation_type: shape.type,
-                        coordinate_space: 'page-normalized-v1',
-                        asset_id: shape.assetId ?? assetId ?? 1,
-                        page_number: shape.pageNumber ?? controlledPageNumber ?? resolvedPageNumber,
-                        geometry: buildGeometry(shape, 1, 1),
-                        style: null,
-                        reference_width: 0,
-                        reference_height: 0,
-                        source_rotation: 0,
-                    });
-                    setAnnotations((prev) => prev.map((a) => a.id === shape.id ? { ...a, serverId: created.id, recordVersion: created.recordVersion } : a));
-                }
-            }
-            toast.success(`${annotations.length} annotation(s) saved.`);
-            if (isControllerMode) {
-                dispatch!({ type: 'UNSAVED_CHANGED', hasUnsaved: false });
-            }
-        } catch (err) {
-            toast.error((err as Error)?.message ?? 'Failed to save annotations.');
+            applyTool('select');
+        } catch (error) {
+            toast.error((error as Error)?.message ?? 'Failed to save remark.');
         } finally {
-            if (isControllerMode) dispatch!({ type: 'SAVING_STATE_CHANGED', saving: false });
+            setSaving(false);
         }
-    }
+    }, [annotations, applyTool, requireExactContext, saveSingleAnnotation]);
 
-    useEffect(() => {
-        function handleKey(e: KeyboardEvent) {
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
-                || e.target instanceof HTMLSelectElement || e.target instanceof HTMLButtonElement) return;
-            if (isControllerMode) return;
-            if (e.key === '+' || e.key === '=') {
-                local.setZoom((z: number) => Math.min(5, z + 0.1));
-            }
-            if (e.key === '-') {
-                local.setZoom((z: number) => Math.max(0.1, z - 0.1));
-            }
-            if (e.key === 'r') {
-                local.setRotation((r: number) => (r + 90) % 360);
-            }
-            if (e.key === 'f') {
-                toggleFullscreen();
-            }
-            if (e.key === 'Escape' && resolvedFullscreen) {
-                document.exitFullscreen();
-            }
-        }
-        window.addEventListener('keydown', handleKey);
-        return () => window.removeEventListener('keydown', handleKey);
-    }, [isControllerMode, resolvedFullscreen, toggleFullscreen]);
-
-    async function handleAnnotationDelete(annotationId: string) {
-        const shape = annotations.find((a) => a.id === annotationId);
+    const handleAnnotationDelete = useCallback(async (annotationId: string) => {
+        const shape = annotations.find((annotation) => annotation.id === annotationId);
         if (!shape) return;
+
         if (shape.serverId && dossierId && versionId) {
             try {
                 await projectDesignApi.destroyAnnotation(dossierId, versionId, shape.serverId);
-            } catch { if (import.meta.env.DEV) console.warn('Failed to destroy annotation', shape.serverId); }
+            } catch (error) {
+                if (import.meta.env.DEV) console.warn('Failed to delete annotation', error);
+                toast.error('Could not delete this annotation.');
+                return;
+            }
         }
-        setAnnotations((prev) => prev.filter((a) => a.id !== annotationId));
+
+        setAnnotations((current) => current.filter((annotation) => annotation.id !== annotationId));
         if (selectedAnnotationId === annotationId) {
             setSelectedAnnotationId(null);
             setShowComposer(false);
         }
-    }
+    }, [annotations, dossierId, selectedAnnotationId, versionId]);
 
-    if (!isSupported(mimeType)) {
-        return <UnsupportedViewer filename={filename} />;
-    }
+    const openRemarkComposer = useCallback(() => {
+        if (!selectedAnnotationId) return;
+        composerAnnotationId.current = selectedAnnotationId;
+        pendingShapeRef.current = annotations.find((annotation) => annotation.id === selectedAnnotationId) ?? null;
+        setShowComposer(true);
+    }, [annotations, selectedAnnotationId]);
 
-    const readOnly = resolvedActiveTool === 'select';
+    const saveFromToolbar = useCallback(() => {
+        void handleAnnotationToolbarSave();
+    }, [handleAnnotationToolbarSave]);
 
-    // Annotation layer component
-    const annotationLayer = isSupported(mimeType) && !suppressAnnotations && (
-        <Suspense fallback={null}>
-            <DesignAnnotationLayer
-                annotations={filteredAnnotations}
+    const remarkFromToolbar = useCallback(() => {
+        openRemarkComposer();
+    }, [openRemarkComposer]);
+
+    useEffect(() => {
+        onToolbarStateChange?.({
+            onSave: saveFromToolbar,
+            onRemark: remarkFromToolbar,
+            saving,
+            hasUnsaved,
+            canRemark,
+        });
+    }, [
+        canRemark,
+        hasUnsaved,
+        onToolbarStateChange,
+        remarkFromToolbar,
+        saveFromToolbar,
+        saving,
+    ]);
+
+    useEffect(() => () => {
+        onToolbarStateChange?.({
+            onSave: undefined,
+            onRemark: undefined,
+            saving: false,
+            hasUnsaved: false,
+            canRemark: false,
+        });
+    }, [onToolbarStateChange]);
+
+    const toggleStandaloneFullscreen = useCallback(async () => {
+        const element = workspaceRef.current;
+        if (!element) return;
+
+        if (!document.fullscreenElement) await element.requestFullscreen();
+        else await document.exitFullscreen();
+    }, []);
+
+    useEffect(() => {
+        if (isExternal) return;
+
+        const handleFullscreenChange = () => {
+            setLocalFullscreen(document.fullscreenElement === workspaceRef.current);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, [isExternal]);
+
+    const handleWorkspaceKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+        const target = event.target as HTMLElement | null;
+        if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
+
+        if ((event.key === 'Delete' || event.key === 'Backspace') && selectedAnnotationId) {
+            event.preventDefault();
+            void handleAnnotationDelete(selectedAnnotationId);
+            return;
+        }
+
+        if (event.key === '+' || event.key === '=') {
+            event.preventDefault();
+            applyViewport({
+                zoom: Math.min(10, resolvedZoom + 0.1),
+                panX: resolvedPanX,
+                panY: resolvedPanY,
+            });
+            return;
+        }
+
+        if (event.key === '-') {
+            event.preventDefault();
+            applyViewport({
+                zoom: Math.max(0.1, resolvedZoom - 0.1),
+                panX: resolvedPanX,
+                panY: resolvedPanY,
+            });
+            return;
+        }
+
+        if (event.key.toLowerCase() === 'r') {
+            event.preventDefault();
+            if (viewerToolbar) viewerToolbar.onRotate();
+            else setLocalRotation((current) => (current + 90) % 360);
+            return;
+        }
+
+        if (event.key.toLowerCase() === 'f') {
+            event.preventDefault();
+            if (viewerToolbar) viewerToolbar.onFullscreenToggle();
+            else void toggleStandaloneFullscreen();
+        }
+    }, [
+        applyViewport,
+        handleAnnotationDelete,
+        resolvedPanX,
+        resolvedPanY,
+        resolvedZoom,
+        selectedAnnotationId,
+        toggleStandaloneFullscreen,
+        viewerToolbar,
+    ]);
+
+    if (!isSupported(mimeType)) return <UnsupportedViewer filename={filename} />;
+
+    const viewContent = isImage(mimeType) ? (
+        <ImageViewer
+            src={previewUrl}
+            filename={filename}
+            containerRef={containerRef}
+            stageParentRef={viewerAreaRef}
+            onFrameChange={setViewerFrame}
+            zoom={resolvedZoom}
+            panX={resolvedPanX}
+            panY={resolvedPanY}
+            rotation={resolvedRotation}
+        />
+    ) : (
+        <Suspense fallback={<ViewerLoading />}>
+            <PdfDesignViewer
+                previewUrl={previewUrl}
+                downloadUrl={downloadUrl}
+                filename={filename}
+                containerRef={containerRef}
+                stageParentRef={viewerAreaRef}
+                onFrameChange={setViewerFrame}
+                onPageChange={handlePageChange}
+                pageNumber={resolvedPageNumber}
+                zoom={resolvedZoom}
+                panX={resolvedPanX}
+                panY={resolvedPanY}
+                rotation={resolvedRotation}
+                hideToolbar={isExternal}
                 activeTool={resolvedActiveTool}
-                onAnnotationCreated={handleAnnotationCreated}
-                onAnnotationSelect={setSelectedAnnotationId}
-                onAnnotationDelete={handleAnnotationDelete}
-                selectedId={selectedAnnotationId}
-                readOnly={readOnly}
-                renderedWidth={isControllerMode ? state?.renderedWidth ?? 0 : 0}
-                renderedHeight={isControllerMode ? state?.renderedHeight ?? 0 : 0}
-                rotation={isControllerMode ? state?.rotation ?? 0 : 0}
-                zoom={isControllerMode ? state?.zoom ?? 1 : 1}
-                pageShellRef={pageShellEl ? { current: pageShellEl } : undefined}
-                panPointerEventsDisabled={panPointerEventsDisabled} />
+                continuous={false}
+                onZoomChange={handleZoomAroundPoint}
+                onPanChange={handlePanBy}
+                onTotalPages={onTotalPages}
+            />
         </Suspense>
     );
 
-    const viewContent = isImage(mimeType)
-        ? <ImageViewer src={previewUrl} filename={filename}
-            zoom={resolvedZoom} panX={resolvedPanX} panY={resolvedPanY} rotation={resolvedRotation} />
-        : (
-            <Suspense fallback={<ViewerLoading />}>
-                <PdfDesignViewer previewUrl={previewUrl} downloadUrl={downloadUrl} filename={filename}
-                    state={isControllerMode ? state! : ({} as ViewerState)}
-                    dispatch={isControllerMode ? dispatch! : (() => {}) as unknown as React.Dispatch<ViewerAction>}
-                    interactionHandlers={interactionHandlers ?? {
-                        onPointerDown: () => {}, onPointerMove: () => {}, onPointerUp: () => {},
-                        onPointerCancel: () => {}, onWheel: () => {},
-                    }}
-
-                    onPageChange={handlePageChange}
-                    pageNumber={controlledPageNumber}
-                    hideToolbar={isExt}
-                    onTotalPages={(n) => {
-                        if (isControllerMode) dispatch!({ type: 'TOTAL_PAGES_CHANGED', totalPages: n });
-                        onTotalPages?.(n);
-                    }}
-                    onPageShellRef={setPageShellEl}>
-                    {annotationLayer}
-                </PdfDesignViewer>
-            </Suspense>
-        );
-
     return (
-        <div ref={workspaceRef} className="flex h-full w-full flex-col">
-            <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
-                {isExt ? (
-                    <>
-                        {suppressAnnotations ? (
-                            <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                                <FileWarning size={12} className="text-amber-400" />
-                                <span>Source file — annotations disabled</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-1.5">
-                                {selectedAnnotationId && (
-                                    <Button size="sm" variant="ghost"
-                                        onPress={() => setShowComposer(!showComposer)}
-                                        className="h-7 min-w-0 px-2 text-[11px]">
-                                        <MessageSquare size={12} />
-                                        Remark
-                                    </Button>
-                                )}
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <>
-                        {suppressAnnotations ? (
-                            <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
-                                <FileWarning size={12} className="text-amber-400" />
-                                <span>Source file — annotations disabled</span>
-                            </div>
-                        ) : (
-                            <DesignAnnotationToolbar activeTool={local.activeTool} onToolChange={local.setActiveTool}
-                                onSave={handleAnnotationToolbarSave} saving={false} hasUnsaved={resolvedHasUnsaved} />
-                        )}
-                        <div className="flex items-center gap-1">
-                            <Button isIconOnly size="sm" variant="ghost" onPress={handleFitWidth} aria-label="Fit width"><AlignStartVertical size={13} /></Button>
-                            <Button isIconOnly size="sm" variant="ghost" onPress={handleFitPage} aria-label="Fit page"><AlignCenter size={13} /></Button>
-                            <div className="mx-1 h-4 w-px bg-[var(--border)]" />
-                            <Button isIconOnly size="sm" variant="ghost" onPress={local.zoomOut} aria-label="Zoom out"><ZoomOut size={13} /></Button>
-                            <span className="min-w-[3ch] text-center text-[11px] text-[var(--text-muted)]">{Math.round(local.zoom * 100)}%</span>
-                            <Button isIconOnly size="sm" variant="ghost" onPress={local.zoomIn} aria-label="Zoom in"><ZoomIn size={13} /></Button>
-                            <Button isIconOnly size="sm" variant="ghost" onPress={() => local.setRotation((r: number) => (r + 90) % 360)} aria-label="Rotate"><RotateCw size={13} /></Button>
-                            <div className="mx-1 h-4 w-px bg-[var(--border)]" />
-                            <Button isIconOnly size="sm" variant="ghost" onPress={toggleFullscreen} aria-label={resolvedFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
-                                {resolvedFullscreen ? <Minimize size={13} /> : <Maximize size={13} />}
-                            </Button>
-                            <div className="mx-1 h-4 w-px bg-[var(--border)]" />
-                            {selectedAnnotationId && !suppressAnnotations && (
-                                <Button size="sm" variant="ghost" onPress={() => setShowComposer(!showComposer)}>
-                                    <MessageSquare size={13} />
-                                    Remark
-                                </Button>
-                            )}
-                            <a href={downloadUrl} target="_blank" rel="noopener noreferrer"
-                                className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--accent)]/10"
-                                aria-label="Download">
-                                <Download size={13} />
-                            </a>
+        <div
+            ref={workspaceRef}
+            className="flex h-full w-full flex-col overflow-hidden outline-none"
+            tabIndex={-1}
+            onPointerDown={() => workspaceRef.current?.focus({ preventScroll: true })}
+            onKeyDown={handleWorkspaceKeyDown}
+        >
+            {!isExternal ? (
+                <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
+                    {suppressAnnotations ? (
+                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                            <FileWarning size={12} className="text-amber-400" />
+                            <span>Source file · annotations disabled</span>
                         </div>
-                    </>
-                )}
-            </div>
-            <div className="relative flex-1 overflow-hidden" ref={viewerAreaRef}>
+                    ) : (
+                        <DesignAnnotationToolbar
+                            activeTool={localActiveTool}
+                            onToolChange={setLocalActiveTool}
+                            onSave={handleAnnotationToolbarSave}
+                            saving={saving}
+                            hasUnsaved={hasUnsaved}
+                        />
+                    )}
+
+                    <div className="flex items-center gap-1">
+                        <Button isIconOnly size="sm" variant="ghost" onPress={handleFitWidth} aria-label="Fit width">
+                            <AlignStartVertical size={13} />
+                        </Button>
+                        <Button isIconOnly size="sm" variant="ghost" onPress={handleFitPage} aria-label="Fit page">
+                            <AlignCenter size={13} />
+                        </Button>
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="ghost"
+                            onPress={() => applyViewport({ zoom: Math.max(0.1, localZoom - 0.1), panX: localPanX, panY: localPanY })}
+                            aria-label="Zoom out"
+                        >
+                            <ZoomOut size={13} />
+                        </Button>
+                        <span className="min-w-[42px] text-center text-[11px] tabular-nums text-[var(--text-muted)]">
+                            {Math.round(localZoom * 100)}%
+                        </span>
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="ghost"
+                            onPress={() => applyViewport({ zoom: Math.min(10, localZoom + 0.1), panX: localPanX, panY: localPanY })}
+                            aria-label="Zoom in"
+                        >
+                            <ZoomIn size={13} />
+                        </Button>
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="ghost"
+                            onPress={() => setLocalRotation((current) => (current + 90) % 360)}
+                            aria-label="Rotate"
+                        >
+                            <RotateCw size={13} />
+                        </Button>
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="ghost"
+                            onPress={() => void toggleStandaloneFullscreen()}
+                            aria-label={resolvedFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                        >
+                            {resolvedFullscreen ? <Minimize size={13} /> : <Maximize size={13} />}
+                        </Button>
+                        {canRemark ? (
+                            <Button size="sm" variant="ghost" onPress={openRemarkComposer} className="h-7 gap-1.5 px-2 text-[11px]">
+                                <MessageSquare size={13} />
+                                Remark
+                            </Button>
+                        ) : null}
+                        <a
+                            href={downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
+                            aria-label="Download"
+                        >
+                            <Download size={13} />
+                        </a>
+                    </div>
+                </div>
+            ) : null}
+
+            <div className="relative min-h-0 flex-1 overflow-hidden" ref={viewerAreaRef}>
                 {viewContent}
-                {/* Non-controller mode: annotation rendered as overlay */}
-                {!isControllerMode && !isImage(mimeType) && annotationLayer}
-                {/* Image annotation overlay */}
-                {isImage(mimeType) && annotationLayer}
-                {showComposer && (
-                    <div className="absolute bottom-3 right-3 z-10">
+
+                {suppressAnnotations ? (
+                    <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-lg border border-amber-400/20 bg-[var(--surface)]/92 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] shadow-lg backdrop-blur">
+                        <FileWarning size={11} className="text-amber-400" />
+                        Source asset · open a review derivative to annotate
+                    </div>
+                ) : null}
+
+                {!suppressAnnotations && exactAnnotationContext ? (
+                    <Suspense fallback={null}>
+                        <DesignAnnotationLayer
+                            containerRef={containerRef}
+                            annotations={annotationsForCurrentPage}
+                            activeTool={resolvedActiveTool}
+                            onAnnotationCreated={handleAnnotationCreated}
+                            onAnnotationSelect={setSelectedAnnotationId}
+                            onAnnotationDelete={handleAnnotationDelete}
+                            selectedId={selectedAnnotationId}
+                            readOnly={resolvedActiveTool === 'select'}
+                            viewerFrame={viewerFrame}
+                        />
+                    </Suspense>
+                ) : null}
+
+                {!suppressAnnotations && !exactAnnotationContext ? (
+                    <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-lg border border-amber-400/20 bg-[var(--surface)]/94 px-3 py-1.5 text-[10px] text-amber-300 shadow-lg backdrop-blur">
+                        Annotation tools will activate when the exact page and asset are ready.
+                    </div>
+                ) : null}
+
+                {showComposer ? (
+                    <div className="absolute bottom-3 right-3 z-30 w-[min(360px,calc(100%-24px))]">
                         <DesignRemarkComposer
                             onSave={handleAnnotationSave}
-                            onCancel={() => { setShowComposer(false); composerAnnotationId.current = null; }} />
+                            onCancel={() => {
+                                setShowComposer(false);
+                                composerAnnotationId.current = null;
+                                pendingShapeRef.current = null;
+                            }}
+                        />
                     </div>
-                )}
+                ) : null}
             </div>
         </div>
     );

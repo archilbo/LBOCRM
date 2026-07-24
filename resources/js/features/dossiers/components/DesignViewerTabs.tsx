@@ -2,8 +2,7 @@ import { useState, useMemo } from 'react';
 import { FileText, Box, HardDrive, Loader2, XCircle } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { DesignFileViewer } from './DesignFileViewer';
-import type { ProjectDesignEditorToolbarState } from '@/features/project-design/components/ProjectDesignEditorToolbar';
-import type { ViewerState, ViewerAction } from '@/features/project-design/viewer/useProjectDesignViewerController';
+import type { ProjectDesignAnnotationToolbarState, ProjectDesignEditorToolbarState } from '@/features/project-design/components/ProjectDesignEditorToolbar';
 import { DesignSourceInfo } from './DesignSourceInfo';
 import { DesignConversionStatus } from './DesignConversionStatus';
 import { resolveProjectDesignViewer, getReviewAssets } from '../utils/viewerResolver';
@@ -11,7 +10,7 @@ import type { ProjectDesignAsset, ProjectDesignFile } from '@/features/project-d
 
 export type { ResolvedViewer, ViewerType } from '../utils/viewerResolver';
 
-export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUploadDerivative, onOpenReviewAsset, activeAssetId: externalAssetId, onAssetChange, pageNumber, onPageNumberChange, viewerToolbar, onTotalPages, state, dispatch, interactionHandlers, spaceHeldRef }: {
+export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUploadDerivative, onOpenReviewAsset, activeAssetId: externalAssetId, onAssetChange, pageNumber, onPageNumberChange, viewerToolbar, onControlsReady, onTotalPages, onToolbarStateChange }: {
     assets: ProjectDesignAsset[];
     dossierId: number;
     versionId: number;
@@ -23,11 +22,9 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
     pageNumber?: number;
     onPageNumberChange?: (page: number) => void;
     viewerToolbar?: ProjectDesignEditorToolbarState;
+    onControlsReady?: (controls: { fitWidth: () => void; fitPage: () => void }) => void;
     onTotalPages?: (n: number) => void;
-    state?: ViewerState;
-    dispatch?: React.Dispatch<ViewerAction>;
-    interactionHandlers?: { onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void; onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void; onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void; onPointerCancel: (e: React.PointerEvent<HTMLDivElement>) => void; onWheel: (e: React.WheelEvent<HTMLDivElement>) => void };
-    spaceHeldRef?: React.MutableRefObject<boolean>;
+    onToolbarStateChange?: (state: ProjectDesignAnnotationToolbarState) => void;
 }) {
     const [internalAssetId, setInternalAssetId] = useState<number | null>(null);
     const activeAssetId = externalAssetId ?? internalAssetId;
@@ -36,7 +33,13 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
         onAssetChange?.(id);
     };
 
-    const viewer = useMemo(() => resolveProjectDesignViewer(assets, activeAssetId), [assets, activeAssetId]);
+    const selectedAssetMissing = externalAssetId != null && !assets.some((asset) => asset.id === externalAssetId);
+    const viewer = useMemo(
+        () => assets.length > 0
+            ? resolveProjectDesignViewer(assets, selectedAssetMissing ? null : activeAssetId)
+            : null,
+        [activeAssetId, assets, selectedAssetMissing],
+    );
     const categorized = useMemo(() => getReviewAssets(assets), [assets]);
 
     const allTabs = useMemo(() => {
@@ -49,38 +52,52 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
         return tabs;
     }, [categorized]);
 
-    const isSourceAsset = viewer.type === 'source-fallback';
+
+    if (!viewer) {
+        return (
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-[#101214] p-8 text-center">
+                <HardDrive size={34} className="text-[var(--text-muted)]" />
+                <div>
+                    <p className="text-sm font-medium text-[var(--foreground)]">No design assets</p>
+                    <p className="mt-1 text-[12px] text-[var(--text-muted)]">Upload a source file or review derivative to open the editor.</p>
+                </div>
+            </div>
+        );
+    }
+
+    const resolvedViewer = viewer;
+    const isSourceAsset = resolvedViewer.type === 'source-fallback';
 
     function renderContent() {
-        switch (viewer.type) {
+        switch (resolvedViewer.type) {
             case 'pdf':
             case 'image':
                 return (
                     <DesignFileViewer
-                        previewUrl={viewer.asset.previewUrl ?? ''}
-                        downloadUrl={viewer.asset.downloadUrl ?? ''}
-                        mimeType={viewer.asset.mimeType}
-                        filename={viewer.asset.originalFilename}
-                        assetId={viewer.asset.id}
+                        key={`${versionId}-${resolvedViewer.asset.id}`}
+                        previewUrl={resolvedViewer.asset.previewUrl ?? ''}
+                        downloadUrl={resolvedViewer.asset.downloadUrl ?? ''}
+                        mimeType={resolvedViewer.asset.mimeType}
+                        filename={resolvedViewer.asset.originalFilename}
+                        assetId={resolvedViewer.asset.id}
                         isOpen={true}
+                        onClose={() => undefined}
                         versionId={versionId}
                         dossierId={dossierId}
                         suppressAnnotations={isSourceAsset}
                         pageNumber={pageNumber}
                         onPageNumberChange={onPageNumberChange}
                         viewerToolbar={viewerToolbar}
+                        onControlsReady={onControlsReady}
                         onTotalPages={onTotalPages}
-                        state={state}
-                        dispatch={dispatch}
-                        interactionHandlers={interactionHandlers}
-                        spaceHeldRef={spaceHeldRef}
+                        onToolbarStateChange={onToolbarStateChange}
                     />
                 );
             case 'converting':
                 return (
                     <DesignConversionStatus
-                        conversionStatus={viewer.asset.conversionStatus!}
-                        filename={viewer.asset.originalFilename}
+                        conversionStatus={resolvedViewer.asset.conversionStatus!}
+                        filename={resolvedViewer.asset.originalFilename}
                         onRetry={undefined}
                     />
                 );
@@ -89,14 +106,14 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
                     <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
                         <XCircle size={40} className="text-red-400" />
                         <p className="text-sm font-medium text-[var(--foreground)]">Conversion failed</p>
-                        <p className="text-[12px] text-[var(--text-muted)]">{viewer.asset.originalFilename}</p>
+                        <p className="text-[12px] text-[var(--text-muted)]">{resolvedViewer.asset.originalFilename}</p>
                     </div>
                 );
             case 'source-fallback':
             default:
                 return (
                     <DesignSourceInfo
-                        asset={viewer.asset}
+                        asset={resolvedViewer.asset}
                         fileMeta={fileMeta}
                         reviewAssets={[...categorized.review, ...categorized.ifc]}
                         onUploadDerivative={onUploadDerivative}
@@ -109,11 +126,30 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
         }
     }
 
+    if (selectedAssetMissing) {
+        return (
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-[#101214] p-8 text-center">
+                <XCircle size={34} className="text-amber-400" />
+                <div>
+                    <p className="text-sm font-medium text-[var(--foreground)]">Selected asset is no longer available</p>
+                    <p className="mt-1 text-[12px] text-[var(--text-muted)]">Open an available asset to repair the editor link.</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setActiveAssetId(assets[0].id)}
+                    className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[11px] font-semibold text-black"
+                >
+                    Open first available asset
+                </button>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex h-full w-full flex-col" data-editor-host>
+        <div className="flex h-full w-full flex-col overflow-hidden bg-[#101214]">
             {/* Asset tabs */}
             {allTabs.length > 1 && (
-                <div className="flex items-center gap-0.5 border-b border-[var(--border)] bg-[var(--surface)] px-2 py-1 overflow-x-auto">
+                <div className="app-scrollbar flex shrink-0 items-center gap-1 overflow-x-auto border-b border-[var(--border)] bg-[var(--surface)]/95 px-2 py-1.5 backdrop-blur">
                     {['Source', 'Review', '3D', 'Processing', 'Failed'].map((group) => {
                         const groupTabs = allTabs.filter((t) => t.group === group);
                         if (!groupTabs.length) return null;
@@ -130,10 +166,10 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
                                         type="button"
                                         onClick={() => setActiveAssetId(tab.asset.id)}
                                         className={cn(
-                                            'flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition whitespace-nowrap',
-                                            viewer.asset.id === tab.asset.id
-                                                ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-                                                : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                                            'flex items-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-medium transition whitespace-nowrap',
+                                            resolvedViewer.asset.id === tab.asset.id
+                                                ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
+                                                : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
                                         )}
                                     >
                                         <TabIcon group={group} />
@@ -149,7 +185,7 @@ export function DesignViewerTabs({ assets, dossierId, versionId, fileMeta, onUpl
             )}
 
             {/* Viewer */}
-            <div className="relative flex-1 overflow-hidden bg-[var(--surface-2)]/50">
+            <div className="relative min-h-0 flex-1 overflow-hidden bg-[#101214]">
                 {renderContent()}
             </div>
         </div>
