@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from 'react';
+﻿import { useId, type ReactNode } from 'react';
 import { Drawer } from '@heroui/react';
 import { X } from 'lucide-react';
 
@@ -6,6 +6,16 @@ import { cn } from '@/lib/cn';
 
 export type AppDrawerPlacement = 'left' | 'right';
 export type AppDrawerSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
+
+type AppDrawerClassNames = {
+    backdrop?: string;
+    wrapper?: string;
+    base?: string;
+    header?: string;
+    body?: string;
+    footer?: string;
+    closeButton?: string;
+};
 
 type AppDrawerProps = {
     isOpen: boolean;
@@ -25,14 +35,20 @@ type AppDrawerProps = {
     headerIcon?: ReactNode;
     hideHeader?: boolean;
     hideCloseButton?: boolean;
+
+    /**
+     * Temporary compatibility adapter for existing AppDrawer callers.
+     * These classes are mapped to HeroUI v3 compound elements.
+     */
+    classNames?: AppDrawerClassNames;
 };
 
 const sizeClasses: Record<AppDrawerSize, string> = {
-    sm: 'w-[min(100vw,360px)]',
-    md: 'w-[min(100vw,480px)]',
-    lg: 'w-[min(100vw,560px)]',
-    xl: 'w-[min(100vw,720px)]',
-    full: 'w-screen',
+    sm: 'w-screen max-w-[360px]',
+    md: 'w-screen max-w-[480px]',
+    lg: 'w-screen max-w-[560px]',
+    xl: 'w-screen max-w-[720px]',
+    full: 'w-screen max-w-none',
 };
 
 export function AppDrawer({
@@ -53,8 +69,10 @@ export function AppDrawer({
     headerIcon,
     hideHeader = false,
     hideCloseButton = false,
+    classNames,
 }: AppDrawerProps) {
-    const hasHeaderContent = Boolean(title || description || headerIcon);
+    const headingId = useId();
+    const hasHeader = !hideHeader && Boolean(title || description || headerIcon);
 
     return (
         <Drawer>
@@ -64,21 +82,30 @@ export function AppDrawer({
                 isDismissable={isDismissable}
                 isKeyboardDismissDisabled={isKeyboardDismissDisabled}
                 variant="blur"
-                className="z-[90] bg-black/60"
+                className={cn(
+                    'z-[90] bg-black/60',
+                    classNames?.backdrop,
+                )}
             >
                 <Drawer.Content
                     placement={placement}
-                    className="z-[91] p-0"
+                    className={cn(
+                        'z-[91] p-0',
+                        classNames?.wrapper,
+                    )}
                 >
                     <Drawer.Dialog
-                        aria-label={title ?? 'Drawer'}
+                        aria-labelledby={hasHeader && title ? headingId : undefined}
+                        aria-label={!hasHeader || !title ? title ?? 'Drawer' : undefined}
                         className={cn(
                             'relative flex h-dvh max-h-dvh min-h-0 max-w-full flex-col',
-                            'overflow-hidden rounded-none bg-[var(--surface)] text-[var(--foreground)]',
+                            'overflow-hidden rounded-none',
+                            'bg-[var(--surface)] text-[var(--foreground)]',
                             placement === 'left'
                                 ? 'border-r border-[var(--border)] shadow-[24px_0_60px_rgb(0_0_0_/_0.28)]'
                                 : 'border-l border-[var(--border)] shadow-[-24px_0_60px_rgb(0_0_0_/_0.28)]',
                             sizeClasses[size],
+                            classNames?.base,
                             panelClassName,
                         )}
                     >
@@ -88,19 +115,21 @@ export function AppDrawer({
                                 className={cn(
                                     'absolute right-3 top-3 z-20',
                                     'flex size-8 items-center justify-center rounded-lg',
-                                    'text-[var(--text-muted)] outline-none transition',
+                                    'text-[var(--text-muted)] outline-none transition-colors',
                                     'hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
                                     'focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
+                                    classNames?.closeButton,
                                 )}
                             >
                                 <X size={17} aria-hidden="true" />
                             </Drawer.CloseTrigger>
                         ) : null}
 
-                        {!hideHeader && hasHeaderContent ? (
+                        {hasHeader ? (
                             <Drawer.Header
                                 className={cn(
                                     'shrink-0 border-b border-[var(--border)] px-5 py-4 pr-14',
+                                    classNames?.header,
                                     headerClassName,
                                 )}
                             >
@@ -108,8 +137,8 @@ export function AppDrawer({
                                     {headerIcon ? (
                                         <span
                                             className={cn(
-                                                'flex size-9 shrink-0 items-center justify-center rounded-xl',
-                                                'bg-[var(--accent-soft)] text-[var(--accent)]',
+                                                'flex size-9 shrink-0 items-center justify-center',
+                                                'rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]',
                                             )}
                                         >
                                             {headerIcon}
@@ -118,7 +147,10 @@ export function AppDrawer({
 
                                     <div className="min-w-0 flex-1">
                                         {title ? (
-                                            <Drawer.Heading className="truncate text-base font-semibold text-[var(--foreground)]">
+                                            <Drawer.Heading
+                                                id={headingId}
+                                                className="truncate text-base font-semibold text-[var(--foreground)]"
+                                            >
                                                 {title}
                                             </Drawer.Heading>
                                         ) : null}
@@ -135,8 +167,10 @@ export function AppDrawer({
 
                         <Drawer.Body
                             className={cn(
-                                'app-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto',
+                                'app-scrollbar min-h-0 flex-1',
+                                'overflow-x-hidden overflow-y-auto',
                                 'px-5 py-4',
+                                classNames?.body,
                                 contentClassName,
                             )}
                         >
@@ -148,8 +182,9 @@ export function AppDrawer({
                         {footer ? (
                             <Drawer.Footer
                                 className={cn(
-                                    'shrink-0 border-t border-[var(--border)] bg-[var(--surface)]',
-                                    'px-5 py-3',
+                                    'shrink-0 border-t border-[var(--border)]',
+                                    'bg-[var(--surface)] px-5 py-3',
+                                    classNames?.footer,
                                     footerClassName,
                                 )}
                             >

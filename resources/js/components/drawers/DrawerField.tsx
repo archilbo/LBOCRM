@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/cn';
 
-import { drawerStyles, DrawerError } from './shared';
+import { DrawerError, drawerStyles } from './shared';
 
 type DrawerFieldProps = {
     label: string;

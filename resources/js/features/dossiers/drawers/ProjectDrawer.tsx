@@ -107,10 +107,14 @@ export function ProjectDrawer({
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
+            title={mode === 'create' ? 'Nouveau projet' : 'Modifier le projet'}
+            description={
+                mode === 'create'
+                    ? 'Renseignez les informations du nouveau dossier.'
+                    : 'Mettez à jour les informations du dossier.'
+            }
             size="lg"
             placement="left"
-            title={mode === 'create' ? 'Nouveau projet' : 'Modifier le projet'}
-            description={mode === 'create' ? 'Renseignez les informations du nouveau dossier.' : 'Mettez à jour les informations du dossier.'}
             footer={
                 <div className="flex w-full items-center justify-end gap-2">
                     <AppButton variant="light" onPress={() => onOpenChange(false)}>
@@ -122,7 +126,11 @@ export function ProjectDrawer({
                 </div>
             }
         >
-            <form id="project-form" className="space-y-3" onSubmit={handleSubmit}>
+            <form
+                id="project-form"
+                className="min-w-0 space-y-4"
+                onSubmit={handleSubmit}
+            >
                 <DrawerSection icon={<Users size={12} />} title="Client & workflow">
                     <div className="flex flex-col gap-2">
                         <DrawerField label="Client" error={firstError(errors, 'client_id')}>

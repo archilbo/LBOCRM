@@ -650,6 +650,25 @@ html.pd-editor-fullscreen .pd-tabs-container {
     overflow-x: hidden;
 }
 
+@layer components {
+    .drawer__backdrop {
+        isolation: isolate;
+    }
+
+    .drawer__content {
+        min-width: 0;
+    }
+
+    .drawer__dialog {
+        min-width: 0;
+    }
+
+    .drawer__body {
+        min-height: 0;
+        overscroll-behavior: contain;
+    }
+}
+
 /* Finance tables share one dense, readable operational pattern. */
 .finance-table-shell {
     min-width: 0;
