@@ -19,8 +19,15 @@ Broadcast::channel('company.{companyId}.presence', function ($user, $companyId) 
     return ['id' => $user->id, 'name' => $user->name];
 }, ['guards' => ['web']]);
 Broadcast::channel('project-design.dossier.{dossierId}', function ($user, int $dossierId): bool {
+    if (! $user->can('project-design.view') || ! $user->company_id) {
+        return false;
+    }
+
     return \App\Models\Dossier::query()
         ->whereKey($dossierId)
-        ->where('company_id', $user->company_id)
+        ->where(function ($query) use ($user) {
+            $query->whereHas('designFiles', fn ($files) => $files->where('company_id', $user->company_id))
+                ->orWhereHas('designFolders', fn ($folders) => $folders->where('company_id', $user->company_id));
+        })
         ->exists();
 }, ['guards' => ['web']]);

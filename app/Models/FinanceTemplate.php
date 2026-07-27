@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Schema;
 
 class FinanceTemplate extends Model
 {
@@ -52,5 +54,17 @@ class FinanceTemplate extends Model
     public function scopeType($query, string $type)
     {
         return $query->where('type', $type);
+    }
+
+    /**
+     * Older local databases can predate the optional active flag.
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        if (! Schema::hasColumn($this->getTable(), 'is_active')) {
+            return $query;
+        }
+
+        return $query->where($this->qualifyColumn('is_active'), true);
     }
 }

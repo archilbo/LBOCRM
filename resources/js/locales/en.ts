@@ -98,6 +98,8 @@ export const en = {
         export: 'Export',
         filter: 'Filter',
         download: 'Download',
+        print: 'Print',
+        replace: 'Replace',
         upload: 'Upload',
         documents: 'Documents',
         archive: 'Archive',
@@ -310,6 +312,16 @@ export const en = {
             noActivityDesc: 'Activity timeline will show here as client projects progress.',
             openProject: 'Open project',
             openWorkflow: 'Open workflow',
+            storageLocation: 'Stored in',
+            fileUnavailable: 'No uploaded file is available for this document.',
+            previewUnavailable: 'This document format cannot be previewed in the browser.',
+            replaceDocument: 'Replace document',
+            deleteDocument: 'Delete document',
+            deleteDocumentTitle: 'Delete this document?',
+            deleteDocumentDescription: 'The private file and its document record will be permanently removed.',
+            documentReplaced: 'Document replaced successfully.',
+            documentDeleted: 'Document deleted successfully.',
+            documentActionFailed: 'The document action could not be completed.',
         },
         confirmDelete: {
             title: 'Delete client?',
@@ -1579,9 +1591,6 @@ export const en = {
 } as const;
 
 export type AppLocale = typeof en;
-
-
-
 
 
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDossierDocumentRequest;
+use App\Http\Requests\ReplaceDossierDocumentRequest;
 use App\Http\Requests\UpdateDossierDocumentStatusRequest;
 use App\Http\Resources\DossierDocumentResource;
 use App\Models\Client;
@@ -12,18 +13,20 @@ use App\Models\DossierDocument;
 use App\Models\DossierWorkflowRequirement;
 use App\Notifications\DocumentNotification;
 use App\Services\Documents\DocumentGroupingService;
+use App\Services\Documents\DossierDocumentFileService;
 use App\Services\Dossiers\DossierPathBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DocumentController extends Controller
 {
     public function index(Request $request, DocumentGroupingService $documentGroupingService): Response
     {
+        $this->authorize('viewAny', DossierDocument::class);
         $query = DossierDocument::query()
             ->with(['dossier.client', 'template']);
 
@@ -51,6 +54,7 @@ class DocumentController extends Controller
 
     public function store(StoreDossierDocumentRequest $request): RedirectResponse
     {
+        $this->authorize('create', DossierDocument::class);
         $data = $request->validated();
 
         $dossier = Dossier::query()->with(['city', 'client'])->findOrFail($data['dossier_id']);
@@ -128,6 +132,7 @@ class DocumentController extends Controller
         UpdateDossierDocumentStatusRequest $request,
         DossierDocument $dossierDocument
     ): RedirectResponse {
+        $this->authorize('update', $dossierDocument);
         $data = $request->validated();
 
         $dossierDocument->update([
@@ -145,54 +150,107 @@ class DocumentController extends Controller
 
     public function destroy(DossierDocument $dossierDocument): RedirectResponse
     {
+        $this->authorize('delete', $dossierDocument);
         $this->deleteStoredDocument($dossierDocument);
 
         $dossierDocument->delete();
 
         return redirect()
-            ->route('documents.index')
+            ->back()
             ->with('success', 'Document deleted successfully.');
     }
 
-    public function download(DossierDocument $dossierDocument): StreamedResponse|RedirectResponse
-    {
-        $disk = $this->storedDocumentDisk($dossierDocument);
+    public function replace(
+        ReplaceDossierDocumentRequest $request,
+        DossierDocument $dossierDocument,
+        DossierPathBuilder $pathBuilder,
+    ): RedirectResponse {
+        $this->authorize('update', $dossierDocument);
 
-        if (!$disk) {
-            return redirect()
-                ->route('documents.index')
-                ->with('error', 'Document file not found.');
+        $dossierDocument->loadMissing(['dossier.city', 'dossier.client', 'template']);
+        $dossier = $dossierDocument->dossier;
+        abort_unless($dossier, 404, 'Le dossier du document est introuvable.');
+
+        $file = $request->file('file');
+        $relativePath = $pathBuilder->documentPath($dossier, $dossierDocument->template, $file->getClientOriginalName());
+        $storedPath = $file->storeAs(dirname($relativePath), basename($relativePath), 'local');
+        $previousPath = $dossierDocument->stored_path;
+        $status = $request->string('status')->toString() ?: $dossierDocument->status;
+
+        $dossierDocument->update([
+            'original_filename' => $file->getClientOriginalName(),
+            'stored_path' => $storedPath,
+            'mime_type' => $file->getClientMimeType(),
+            'size_bytes' => $file->getSize(),
+            'status' => $status,
+            'notes' => $request->input('notes', $dossierDocument->notes),
+            'uploaded_at' => now(),
+            'verified_at' => $status === 'verified' ? now() : null,
+        ]);
+
+        if ($previousPath && $previousPath !== $storedPath) {
+            $this->deleteStoredPath($previousPath);
         }
 
-        return Storage::disk($disk)->download(
-            $dossierDocument->stored_path,
-            $dossierDocument->original_filename ?? 'document'
-        );
+        $request->user()?->notify(new DocumentNotification(
+            $dossierDocument->fresh(),
+            'replaced',
+            'Document replaced: '.$dossierDocument->original_filename,
+        ));
+
+        return redirect()
+            ->back()
+            ->with('success', 'Document replaced successfully.');
     }
 
-    private function storedDocumentDisk(DossierDocument $dossierDocument): ?string
+    public function download(DossierDocument $dossierDocument, DossierDocumentFileService $files): BinaryFileResponse
     {
-        if (!$dossierDocument->stored_path) {
-            return null;
-        }
+        $this->authorize('download', $dossierDocument);
 
-        if (Storage::disk('local')->exists($dossierDocument->stored_path)) {
-            return 'local';
-        }
+        return $files->response($dossierDocument);
+    }
 
-        if (Storage::disk('public')->exists($dossierDocument->stored_path)) {
-            return 'public';
-        }
+    public function view(DossierDocument $dossierDocument, DossierDocumentFileService $files): BinaryFileResponse
+    {
+        $this->authorize('view', $dossierDocument);
+        abort_unless($files->canPreview($dossierDocument), 422, 'Ce format ne peut pas etre previsualise.');
 
-        return null;
+        return $files->response($dossierDocument, true);
+    }
+
+    public function print(DossierDocument $dossierDocument, DossierDocumentFileService $files)
+    {
+        $this->authorize('view', $dossierDocument);
+        abort_unless($files->canPreview($dossierDocument), 422, 'Ce format ne peut pas etre imprime depuis le navigateur.');
+
+        $viewUrl = route('documents.view', $dossierDocument);
+        $filename = e($dossierDocument->original_filename ?? 'Document');
+        $isImage = str_starts_with((string) $dossierDocument->mime_type, 'image/');
+        $content = $isImage
+            ? '<img src="'.$viewUrl.'" alt="'.$filename.'">'
+            : '<iframe src="'.$viewUrl.'" title="'.$filename.'"></iframe>';
+
+        return response('<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>'.$filename.'</title><style>html,body,iframe{width:100%;height:100%;margin:0;border:0}img{display:block;max-width:100%;margin:auto}</style></head><body>'.$content.'<script>window.addEventListener("load",()=>window.setTimeout(()=>window.print(),350));</script></body></html>')
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header('Cache-Control', 'private, no-store, max-age=0');
     }
 
     private function deleteStoredDocument(DossierDocument $dossierDocument): void
     {
-        $disk = $this->storedDocumentDisk($dossierDocument);
+        $this->deleteStoredPath($dossierDocument->stored_path);
+    }
 
-        if ($disk) {
-            Storage::disk($disk)->delete($dossierDocument->stored_path);
+    private function deleteStoredPath(?string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+
+        foreach (['local', 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+                return;
+            }
         }
     }
 

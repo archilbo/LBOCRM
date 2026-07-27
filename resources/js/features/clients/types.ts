@@ -90,19 +90,18 @@ export type ClientProjectDocument = {
     status: string;
     documentNumber: string | null;
     originalFilename: string | null;
+    mimeType: string | null;
+    sizeLabel: string;
+    storageLocation: string | null;
     uploadedAt: string | null;
+    hasFile: boolean;
+    canPreview: boolean;
+    viewUrl: string | null;
+    printUrl: string | null;
+    downloadUrl: string | null;
 };
 
-export type ClientProjectFinanceDocument = {
-    id: number;
-    type: 'quote' | 'invoice' | 'receipt' | string;
-    number: string;
-    status: string;
-    issueDate: string | null;
-    totalTtc: number;
-    paidTotal: number;
-    remainingTotal: number;
-};
+export type ClientProjectFinanceDocument = import('@/features/finance/types').FinanceDocument;
 
 export type ClientProjectPayment = {
     id: number;

@@ -15,7 +15,10 @@ type DocumentDrawerProps = DrawerBaseProps & {
   initialClientId?: string;
   initialDossierId?: string;
   initialTemplateId?: string;
+  initialStatus?: string;
   lockProject?: boolean;
+  lockTemplate?: boolean;
+  mode?: 'upload' | 'replace';
   onSubmit: (payload: DocumentUploadPayload) => void;
 };
 
@@ -36,8 +39,8 @@ const statusOptions = [
 
 export function DocumentDrawer({
   isOpen, clients, dossiers, templates,
-  initialClientId = '', initialDossierId = '', initialTemplateId = '',
-  lockProject = false,
+  initialClientId = '', initialDossierId = '', initialTemplateId = '', initialStatus = 'verified',
+  lockProject = false, lockTemplate = false, mode = 'upload',
   onOpenChange, onSubmit, errors = {}, isSubmitting = false,
 }: DocumentDrawerProps) {
   const [form, setForm] = useState<DocumentUploadPayload>(emptyForm);
@@ -51,12 +54,13 @@ export function DocumentDrawer({
         ...emptyForm,
         dossierId: initialDossierId,
         documentTemplateId: initialTemplateId,
+        status: initialStatus,
       });
       setSelectedClientId(initialClientId);
       setFileName('');
       setFileError('');
     }
-  }, [initialClientId, initialDossierId, initialTemplateId, isOpen]);
+  }, [initialClientId, initialDossierId, initialStatus, initialTemplateId, isOpen]);
 
   const filteredDossiers = useMemo(() => {
     if (!selectedClientId) return [];
@@ -104,8 +108,8 @@ export function DocumentDrawer({
     <AppDrawer
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title="Téléverser un document"
-      description="Attachez un document à un projet."
+      title={mode === 'replace' ? 'Remplacer le document' : 'Téléverser un document'}
+      description={mode === 'replace' ? 'Le nouveau fichier remplacera la version actuelle.' : 'Attachez un document à un projet.'}
       footer={
         <div className="flex w-full items-center justify-end gap-2">
           <AppButton variant="light" onPress={() => onOpenChange(false)} isDisabled={isSubmitting}>
@@ -145,6 +149,7 @@ export function DocumentDrawer({
                   onChange={(v) => updateField('documentTemplateId', v)}
                   options={templates}
                   placeholder="Type de document"
+                  isDisabled={lockTemplate}
                 />
               </DrawerField>
             )}

@@ -198,12 +198,12 @@ class DashboardCommandCenterService
             'urgentTaskList' => $urgentTaskList,
             'recentMessageList' => $recentMessageList,
             'quickLinks' => [
-                ['label' => 'New project', 'href' => '/dossiers', 'icon' => 'projects'],
-                ['label' => 'Upload document', 'href' => '/documents', 'icon' => 'upload'],
-                ['label' => 'Create invoice', 'href' => '/finance/documents', 'icon' => 'invoices'],
-                ['label' => 'Clients', 'href' => '/clients', 'icon' => 'clients'],
-                ['label' => 'Tasks', 'href' => '/tasks', 'icon' => 'tasks'],
-                ['label' => 'Inbox', 'href' => '/inbox', 'icon' => 'chat'],
+                ['label' => 'New project', 'href' => '/dossiers?command=create', 'icon' => 'projects'],
+                ['label' => 'Upload document', 'href' => '/documents?command=upload', 'icon' => 'upload'],
+                ['label' => 'Create invoice', 'href' => '/finance/documents?tab=invoices&command=create-invoice', 'icon' => 'invoices'],
+                ['label' => 'New client', 'href' => '/clients?command=create', 'icon' => 'clients'],
+                ['label' => 'New task', 'href' => '/tasks?command=create', 'icon' => 'tasks'],
+                ['label' => 'New conversation', 'href' => '/inbox?command=create', 'icon' => 'chat'],
             ],
             'systemHealth' => [
                 ['label' => 'Clients', 'value' => (string) Client::count(), 'icon' => 'clients', 'tone' => 'blue'],
@@ -416,7 +416,7 @@ class DashboardCommandCenterService
         $stepLabels = collect($config)->pluck('label', 'key')->all();
 
         return Dossier::query()
-            ->with('client')
+            ->with(['client', 'documents'])
             ->whereIn('status', ['opened', 'active'])
             ->where('updated_at', '<', now()->subDays(7))
             ->latest('updated_at')

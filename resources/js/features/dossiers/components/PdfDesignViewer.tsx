@@ -460,6 +460,7 @@ export default function PdfDesignViewer({
             >
                 <Document
                     file={previewUrl}
+                    className="h-full"
                     onLoadSuccess={handleDocumentLoadSuccess}
                     onProgress={handleLoadProgress}
                     loading={(
@@ -485,22 +486,24 @@ export default function PdfDesignViewer({
                         </div>
                     )}
                 >
-                    <div className="flex min-h-full items-start justify-center p-6 sm:p-8">
-                        <div ref={pageShellRef} className="pdf-page-shell relative inline-flex">
-                            <div
-                                ref={pageWrapperRef}
-                                className="will-change-transform"
-                                style={{
-                                    transform: `translate3d(${panX}px, ${panY}px, 0) scale(${displayScale})`,
-                                    transformOrigin: 'top left',
-                                }}
-                            >
-                                <PdfPageCanvas
-                                    pageNumber={pageNumber}
-                                    renderScale={renderScale}
-                                    rotation={normalizedRotation}
-                                    onRenderSuccess={handlePageRenderSuccess}
-                                />
+                    <div className="relative h-full min-h-0 overflow-hidden">
+                        <div className="absolute inset-0 flex items-start justify-center overflow-hidden p-6 sm:p-8">
+                            <div ref={pageShellRef} className="pdf-page-shell relative inline-flex">
+                                <div
+                                    ref={pageWrapperRef}
+                                    className="will-change-transform"
+                                    style={{
+                                        transform: `translate3d(${panX}px, ${panY}px, 0) scale(${displayScale})`,
+                                        transformOrigin: 'top left',
+                                    }}
+                                >
+                                    <PdfPageCanvas
+                                        pageNumber={pageNumber}
+                                        renderScale={renderScale}
+                                        rotation={normalizedRotation}
+                                        onRenderSuccess={handlePageRenderSuccess}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>

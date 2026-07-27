@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Arrow, Circle, Ellipse, Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import type Konva from 'konva';
-import { AlertTriangle, Clock, MessageSquarePlus, Pencil, User, X } from 'lucide-react';
+import { AlertTriangle, Clock, MessageSquarePlus, Pencil, Trash2, User, X } from 'lucide-react';
 import { Button, Card, Chip, Tooltip } from '@heroui/react';
 import type { AnnotationTool } from '@/features/project-design/components/ProjectDesignEditorToolbar';
 import { DesignRemarkComposer } from './DesignRemarkComposer';
@@ -228,6 +228,7 @@ function AnnotationInfoPopup({
     onEdit,
     onSave,
     onCancel,
+    onDelete,
 }: {
     annotation: AnnotationShape;
     position: { left: number; top: number; width: number; maxHeight: number };
@@ -238,8 +239,10 @@ function AnnotationInfoPopup({
     onEdit: () => void;
     onSave: (draft: DesignRemarkDraft) => void;
     onCancel: () => void;
+    onDelete?: () => void;
 }) {
     const remark = annotation.remark;
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     return (
         <Card
@@ -340,12 +343,34 @@ function AnnotationInfoPopup({
                             ) : null}
                         </div>
 
-                        <div className="flex justify-end">
+                        <div className="flex items-center justify-between gap-2">
+                            {confirmingDelete ? (
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-[9px] text-red-300">Remove this markup?</span>
+                                    <Button size="sm" variant="ghost" onPress={() => setConfirmingDelete(false)} className="h-7 px-2 text-[10px]">
+                                        Keep
+                                    </Button>
+                                    <Button size="sm" variant="danger" onPress={onDelete} className="h-7 px-2 text-[10px]">
+                                        Remove
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Button
+                                    isIconOnly
+                                    size="sm"
+                                    variant="ghost"
+                                    aria-label="Remove annotation"
+                                    onPress={() => setConfirmingDelete(true)}
+                                    className="h-7 w-7 min-w-0 text-[var(--text-muted)] hover:bg-red-500/10 hover:text-red-300"
+                                >
+                                    <Trash2 size={12} />
+                                </Button>
+                            )}
                             <Button
                                 size="sm"
                                 variant="ghost"
                                 onPress={remark ? onEdit : onCreate}
-                                className="h-7 min-w-0 gap-1.5 bg-[var(--accent)]/12 px-2.5 text-[10px] font-semibold text-[var(--accent)]"
+                                className="ml-auto h-7 min-w-0 gap-1.5 bg-[var(--accent)]/12 px-2.5 text-[10px] font-semibold text-[var(--accent)]"
                             >
                                 {remark ? <Pencil size={11} /> : <MessageSquarePlus size={11} />}
                                 {remark ? 'Edit' : 'Add remark'}
@@ -364,6 +389,7 @@ export function DesignAnnotationLayer({
     activeTool,
     onAnnotationCreated,
     onAnnotationSelect,
+    onAnnotationDelete,
     selectedId,
     readOnly,
     viewerFrame,
@@ -633,6 +659,7 @@ export function DesignAnnotationLayer({
                     onEdit={() => onRemarkEdit?.()}
                     onSave={(draft) => onRemarkSave?.(draft)}
                     onCancel={() => onRemarkCancel?.()}
+                    onDelete={() => onAnnotationDelete?.(selectedAnnotation.id)}
                 />
             ) : null}
         </div>

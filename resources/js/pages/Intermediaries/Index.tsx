@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { MiniLineChart } from '@/components/charts/MiniLineChart';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusPill } from '@/components/ui/StatusPill';
@@ -234,17 +235,7 @@ export default function IntermediariesIndex({ intermediaries, metrics, monthlyCl
 
                 <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {metricCards.map((card) => (
-                        <div key={card.label}
-                            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-                            <div className="flex items-start justify-between gap-3">
-                                <div />
-                            </div>
-                            <p className="mt-3 text-[12px] font-medium text-[var(--text-muted)]">{card.label}</p>
-                            <p className="mt-0.5 text-2xl font-semibold text-[var(--foreground)]">{card.value}</p>
-                            {card.detail ? (
-                                <p className="mt-1 text-[11px] text-[var(--text-muted)]">{card.detail}</p>
-                            ) : null}
-                        </div>
+                        <AppKpiCard key={card.label} label={card.label} value={card.value} detail={card.detail} />
                     ))}
                 </div>
 

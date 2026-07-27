@@ -133,6 +133,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::put('/documents/{dossierDocument}/status', [DocumentController::class, 'updateStatus'])->name('documents.status');
     Route::delete('/documents/{dossierDocument}', [DocumentController::class, 'destroy'])->name('documents.destroy');
+    Route::post('/documents/{dossierDocument}/replace', [DocumentController::class, 'replace'])->name('documents.replace');
+    Route::get('/documents/{dossierDocument}/view', [DocumentController::class, 'view'])->name('documents.view');
+    Route::get('/documents/{dossierDocument}/print', [DocumentController::class, 'print'])->name('documents.print');
     Route::get('/documents/{dossierDocument}/download', [DocumentController::class, 'download'])->name('documents.download');
 
     Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');

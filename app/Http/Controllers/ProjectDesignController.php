@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ProjectDesign\DeleteProjectDesignAnnotationAction;
+use App\Actions\ProjectDesign\UpdateProjectDesignExplorerItemAction;
+use App\Actions\ProjectDesign\UpdateProjectDesignRemarkAction;
 use App\Events\ProjectDesign\ProjectDesignChanged;
 use App\Models\Dossier;
 use App\Models\ProjectDesign\ProjectDesignAnnotation;
@@ -14,9 +17,13 @@ use App\Models\ProjectDesign\ProjectDesignReview;
 use App\Enums\ProjectDesign\ProjectDesignVersionStatus;
 use App\Http\Requests\ProjectDesign\StoreProjectDesignAnnotationRequest;
 use App\Http\Requests\ProjectDesign\UpdateProjectDesignAnnotationRequest;
+use App\Http\Requests\ProjectDesign\UpdateProjectDesignFileRequest;
+use App\Http\Requests\ProjectDesign\UpdateProjectDesignFolderRequest;
+use App\Http\Requests\ProjectDesign\UpdateProjectDesignRemarkRequest;
 use App\Http\Resources\ProjectDesign\ProjectDesignAnnotationResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignFileResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignFileVersionResource;
+use App\Http\Resources\ProjectDesign\ProjectDesignFolderResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignReviewResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignRemarkResource;
 use App\Services\CompanyContext;
@@ -76,7 +83,12 @@ class ProjectDesignController extends Controller
     public function folders(Request $request, Dossier $dossier): JsonResponse
     {
         $this->dossier($dossier);
-        return response()->json($dossier->designFolders()->orderBy('sort_order')->get());
+        $folders = $dossier->designFolders()
+            ->withCount('files')
+            ->orderBy('sort_order')
+            ->get();
+
+        return response()->json(ProjectDesignFolderResource::collection($folders)->resolve($request));
     }
 
     public function storeFolder(Request $request, Dossier $dossier): JsonResponse
@@ -99,15 +111,19 @@ class ProjectDesignController extends Controller
         return response()->json($folder, 201);
     }
 
-    public function updateFolder(Request $request, Dossier $dossier, ProjectDesignFolder $folder): JsonResponse
+    public function updateFolder(
+        UpdateProjectDesignFolderRequest $request,
+        Dossier $dossier,
+        ProjectDesignFolder $folder,
+        UpdateProjectDesignExplorerItemAction $updateExplorerItem,
+    ): JsonResponse
     {
         Gate::authorize('updateFolder', [$folder, $dossier]);
         abort_unless((int) $folder->dossier_id === (int) $dossier->id, 403);
-        $data = $request->validate(['name' => 'required|string|max:255']);
-        $folder->update($data);
-        $folder = $folder->fresh();
-        $this->broadcastDesignChange($request, $dossier, 'folder.updated', 'folder', $folder->id, payload: $folder->toArray());
-        return response()->json($folder);
+        $folder = $updateExplorerItem->updateFolder($dossier, $folder, $request->validated());
+        $payload = (new ProjectDesignFolderResource($folder))->resolve($request);
+        $this->broadcastDesignChange($request, $dossier, 'folder.updated', 'folder', $folder->id, payload: $payload);
+        return response()->json($payload);
     }
 
     public function destroyFolder(Request $request, Dossier $dossier, ProjectDesignFolder $folder): JsonResponse
@@ -148,7 +164,7 @@ class ProjectDesignController extends Controller
 
         $files = $query->paginate(min(max((int) ($request->get('per_page') ?? 30), 10), 100));
 
-        return response()->json($files);
+        return ProjectDesignFileResource::collection($files)->response();
     }
 
     public function store(Request $request, Dossier $dossier): JsonResponse
@@ -173,32 +189,19 @@ class ProjectDesignController extends Controller
         return response()->json($file, 201);
     }
 
-    public function update(Request $request, Dossier $dossier, ProjectDesignFile $file): JsonResponse
+    public function update(
+        UpdateProjectDesignFileRequest $request,
+        Dossier $dossier,
+        ProjectDesignFile $file,
+        UpdateProjectDesignExplorerItemAction $updateExplorerItem,
+    ): JsonResponse
     {
         Gate::authorize('updateFile', [$file, $dossier]);
         abort_unless((int) $file->dossier_id === (int) $dossier->id, 403);
-        $data = $request->validate([
-            'name' => 'string|max:255',
-            'code' => 'nullable|string|max:100',
-            'description' => 'nullable|string',
-            'discipline' => 'nullable|string|max:100',
-            'category' => 'nullable|string|max:100',
-            'record_version' => 'required|integer',
-        ]);
-        $affected = $file->where('id', $file->id)->where('record_version', $data['record_version'])->update([
-            'name' => $data['name'] ?? $file->name,
-            'code' => $data['code'] ?? $file->code,
-            'description' => $data['description'] ?? $file->description,
-            'discipline' => $data['discipline'] ?? $file->discipline,
-            'category' => $data['category'] ?? $file->category,
-            'record_version' => $data['record_version'] + 1,
-        ]);
-        if (! $affected) {
-            return response()->json(['message' => 'This record was changed by another user. Reload the latest data before saving.'], 409);
-        }
-        $file = $file->fresh();
-        $this->broadcastDesignChange($request, $dossier, 'file.updated', 'file', $file->id, fileId: $file->id, payload: $file->toArray());
-        return response()->json($file);
+        $file = $updateExplorerItem->updateFile($dossier, $file, $request->validated());
+        $payload = (new ProjectDesignFileResource($file))->resolve($request);
+        $this->broadcastDesignChange($request, $dossier, 'file.updated', 'file', $file->id, fileId: $file->id, payload: $payload);
+        return response()->json($payload);
     }
 
     public function destroy(Request $request, Dossier $dossier, ProjectDesignFile $file): JsonResponse
@@ -388,16 +391,27 @@ class ProjectDesignController extends Controller
         return response()->json($payload);
     }
 
-    public function destroyAnnotation(Request $request, Dossier $dossier, ProjectDesignFileVersion $version, ProjectDesignAnnotation $annotation): JsonResponse
+    public function destroyAnnotation(
+        Request $request,
+        Dossier $dossier,
+        ProjectDesignFileVersion $version,
+        ProjectDesignAnnotation $annotation,
+        DeleteProjectDesignAnnotationAction $deleteAnnotation,
+    ): JsonResponse
     {
         Gate::authorize('annotate', [$version, $dossier]);
         abort_unless((int) $annotation->version_id === (int) $version->id, 403);
         abort_unless((int) $annotation->dossier_id === (int) $dossier->id, 403);
         abort_unless((int) $annotation->file_id === (int) $version->file_id, 403);
         $annotationId = $annotation->id;
-        $annotation->delete();
+        $remarkIds = $deleteAnnotation->execute($dossier, $annotation);
+
+        foreach ($remarkIds as $remarkId) {
+            $this->broadcastDesignChange($request, $dossier, 'remark.deleted', 'remark', $remarkId, $version->file_id, $version->id, $annotationId, ['id' => $remarkId]);
+        }
+
         $this->broadcastDesignChange($request, $dossier, 'annotation.deleted', 'annotation', $annotationId, $version->file_id, $version->id, $annotationId, ['id' => $annotationId]);
-        return response()->json(['message' => 'Annotation supprimée.']);
+        return response()->json(['message' => 'Annotation deleted.']);
     }
 
     public function submitForReview(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
@@ -631,26 +645,22 @@ class ProjectDesignController extends Controller
             'assigned_to' => $data['assigned_to'] ?? null,
             'due_date' => $data['due_date'] ?? null,
             'created_by' => $request->user()->id,
-        ])->load('createdBy', 'assignedTo', 'version.file');
+        ])->load('createdBy', 'assignedTo', 'version.file', 'annotation');
+        $remark->loadMissing('annotation');
         $payload = (new ProjectDesignRemarkResource($remark))->resolve($request);
         $this->broadcastDesignChange($request, $dossier, 'remark.created', 'remark', $remark->id, $version->file_id, $version->id, $annotation->id, $payload);
         return response()->json($payload, 201);
     }
 
-    public function updateRemark(Request $request, Dossier $dossier, ProjectDesignRemark $remark): JsonResponse
+    public function updateRemark(
+        UpdateProjectDesignRemarkRequest $request,
+        Dossier $dossier,
+        ProjectDesignRemark $remark,
+        UpdateProjectDesignRemarkAction $updateRemark,
+    ): JsonResponse
     {
         Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
-        abort_unless((int) $remark->version->file->dossier_id === (int) $dossier->id, 403);
-        $data = $request->validate([
-            'severity' => 'nullable|string|in:critical,major,minor,cosmetic,question',
-            'status' => 'nullable|string|in:open,assigned,in_progress,resolved,closed,reopened',
-            'title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'assigned_to' => 'nullable|exists:users,id',
-            'due_date' => 'nullable|date',
-        ]);
-        $remark->update($data);
-        $remark->load('createdBy', 'assignedTo', 'version.file');
+        $remark = $updateRemark->execute($request->user(), $dossier, $remark, $request->validated());
         $payload = (new ProjectDesignRemarkResource($remark))->resolve($request);
         $this->broadcastDesignChange($request, $dossier, 'remark.updated', 'remark', $remark->id, $remark->version->file_id, $remark->version_id, $remark->annotation_id, $payload);
         return response()->json($payload);
@@ -675,7 +685,7 @@ class ProjectDesignController extends Controller
         $this->dossier($dossier);
 
         $query = \App\Models\ProjectDesign\ProjectDesignRemark::whereHas('version.file', fn ($q) => $q->where('dossier_id', $dossier->id))
-            ->with('createdBy', 'assignedTo', 'version.file')
+            ->with('createdBy', 'assignedTo', 'version.file', 'annotation')
             ->orderByDesc('created_at');
 
         if ($status = $request->query('status')) {

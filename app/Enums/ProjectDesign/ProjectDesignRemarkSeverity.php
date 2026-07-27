@@ -9,4 +9,6 @@ enum ProjectDesignRemarkSeverity: string
     case Normal = 'normal';
     case Major = 'major';
     case Critical = 'critical';
+    case Cosmetic = 'cosmetic';
+    case Question = 'question';
 }

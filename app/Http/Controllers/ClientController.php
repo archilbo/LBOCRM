@@ -8,8 +8,11 @@ use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\ClientResource;
 use App\Models\Client;
 use App\Models\DocumentTemplate;
+use App\Models\FinanceTemplate;
 use App\Models\Intermediary;
 use App\Services\Clients\ClientWorkspaceService;
+use App\Services\Finance\FinanceContextService;
+use App\Services\Finance\FinanceSettingsService;
 use App\Services\GeminiOcrService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -40,7 +43,12 @@ class ClientController extends Controller
         ]);
     }
 
-    public function show(Request $request, Client $client, ClientWorkspaceService $workspaceService): Response
+    public function show(
+        Request $request,
+        Client $client,
+        ClientWorkspaceService $workspaceService,
+        FinanceContextService $financeContext,
+    ): Response
     {
         $client->load(['intermediary', 'dossiers'])->loadCount('dossiers');
         $selectedDossierId = $request->integer('dossier_id') ?: null;
@@ -60,6 +68,30 @@ class ClientController extends Controller
                     'type' => $template->document_type,
                 ])
                 ->values(),
+            'financeTemplates' => $financeContext->apply(FinanceTemplate::query(), $request->user())
+                ->active()
+                ->orderBy('type')
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (FinanceTemplate $template) => [
+                    'id' => (string) $template->id,
+                    'label' => $template->name,
+                    'type' => $template->type,
+                    'slug' => $template->slug,
+                    'isDefault' => (bool) $template->is_default,
+                ])
+                ->values(),
+            'financeSettings' => [
+                'defaultTvaRate' => FinanceSettingsService::getTvaRate(),
+                'defaultCurrency' => FinanceSettingsService::getCurrency(),
+                'defaultPaymentTermsDays' => FinanceSettingsService::getDefaultPaymentDays(),
+                'defaultQuoteValidityDays' => FinanceSettingsService::getQuoteValidityDays(),
+                'defaultUnitPriceM2' => FinanceSettingsService::getUnitPriceM2(),
+                'defaultArchitectRate' => FinanceSettingsService::getArchitectRate(),
+                'companyInfo' => (new FinanceSettingsService())->companyInfo(),
+                'bankInfo' => (new FinanceSettingsService())->bankInfo(),
+            ],
             'dossiers' => $client->dossiers()
                 ->latest()
                 ->get()

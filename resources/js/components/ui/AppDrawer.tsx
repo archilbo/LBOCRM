@@ -170,7 +170,7 @@ export function AppDrawer({
                         {footer ? (
                             <Drawer.Footer
                                 className={cn(
-                                    'shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-3',
+                                    'app-scrollbar flex min-w-0 flex-nowrap items-center justify-end gap-2 overflow-x-auto border-t border-[var(--border)] bg-[var(--surface)] px-5 py-3',
                                     classNames?.footer,
                                     footerClassName,
                                 )}

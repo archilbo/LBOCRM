@@ -5300,3 +5300,755 @@ Complete two-user browser QA for group changes, read receipts, typing, attachmen
 - Rebuilt the composer as a floating HeroUI card with a paperclip action, borderless text area, and circular send button.
 - Made message actions pointer- and touch-safe: quick actions appear beside hovered bubbles and the full overflow menu remains available on compact screens.
 - Added icon-led linked-context actions and flattened member rows in the details panel.
+
+## Contract Print Hotfix V1
+
+- Corrected the Contract Print installer assertions so they validate literal JavaScript template expressions without PowerShell interpolation.
+- The installer now opens contract print PDFs in a new tab with `noopener,noreferrer`; the controller serves the generated PDF inline from the protected flow.
+- Kept the focused lint gate active while excluding two existing React Hooks rules unrelated to this print-only patch.
+
+### Files Modified
+
+- `_contract-print-hotfix-v1/install-contract-print-hotfix-v1.ps1`
+- `app/Http/Controllers/ContractController.php`
+- `resources/js/pages/Contracts/Index.tsx`
+
+### Verification
+
+- `npm run build` passed before and after the hotfix.
+- `php -l app/Http/Controllers/ContractController.php` passed.
+- `php artisan route:list --name=contracts.print` found the route.
+- Focused ESLint passed with three pre-existing unused-variable warnings.
+
+## Project Design Zoom Viewport Fix
+
+- Kept the Project Design tab and editor workspace as bounded flex children in normal mode.
+- Moved the zoomed PDF page into an absolutely positioned, clipped viewport so its rerendered canvas cannot increase the parent height or the Konva overlay dimensions.
+- Zoom and pan now remain internal to the viewer in both normal and fullscreen editor modes.
+
+### Files Modified
+
+- `resources/js/features/dossiers/components/DesignTab.tsx`
+- `resources/js/features/dossiers/components/PdfDesignViewer.tsx`
+- `resources/js/features/project-design/components/ProjectDesignTabContent.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+
+### KPI Visual Follow-up
+
+- Simplified the KPI rail into compact horizontal metrics: icon, label, divider, and value. Supporting KPI context remains available to assistive technology without adding visual noise.
+
+### KPI Card Visual Direction
+
+- Replaced the compact KPI rail with equal live-data metric cards inspired by the approved reference: quiet title row, colored module icon, strong value, and real contextual helper text.
+- Cards keep the ARCHI LBO dark surfaces, gold accent, and responsive equal-column layout without introducing decorative or fake chart data.
+
+## Project Design Remarks Inspector UX
+
+- Redesigned the right-sidebar Remarks tab as a compact annotation review queue.
+- Added open/resolved counters, stronger selected-state feedback, severity and workflow status hierarchy, owner initials, due-date and drawing context.
+- Preserved annotation focus and description expansion behavior.
+
+### Files Modified
+
+- `resources/js/features/dossiers/components/DesignInspector.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+
+## Project Design Remarks Inspector Layout Revision
+
+- Replaced the nested-card remarks treatment with a single flat inspector surface and divider-based rows.
+- Kept the dark-gold system language through subtle active rails, compact count indicators, and restrained hover states.
+- Each row now keeps focus, owner, severity, status, file/version, due date, and description actions in one operational scan path.
+
+### Verification
+
+- `npm.cmd run build` passed.
+
+## Project Design Remarks Detail Cards
+
+- Replaced the flat rows with readable modern review-detail cards for the inspector sidebar.
+- Increased title, metadata, and description sizes for practical desk use.
+- Added a structured card header, body, and footer; long descriptions collapse after three lines and can be expanded per remark.
+- Covered selected, resolved, unassigned, missing description, missing file, missing due-date, and long-text states.
+
+### Verification
+
+- `npm.cmd run build` passed.
+
+## Project Design Remarks Compact Inspector List
+
+- Removed the oversized nested detail cards after visual review.
+- Rebuilt remarks as readable, compact issue rows with a small summary header and expandable detail area.
+- Kept titles and metadata at practical sizes while hiding description/file/due detail until the user expands a row.
+
+### Verification
+
+- `npm.cmd run build` passed.
+
+## Project Design Editor Upgrade - Step 1: Review Navigation
+
+- Added a shared frontend remark-workflow configuration for filters and open/closed status handling.
+- Added inspector filters for all, open, assigned, in-progress, and resolved remarks.
+- Added previous/next navigation across open remarks, reusing the existing secure annotation-focus flow.
+- Added a clear empty state when no remark matches the selected filter.
+
+### Files Created
+
+- `resources/js/features/project-design/config/remarkWorkflow.ts`
+
+### Files Modified
+
+- `resources/js/features/dossiers/components/DesignInspector.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+
+### Next Step
+
+- Add direct assignment, due-date, and status workflow actions with backend policy enforcement.
+
+## Project Design Editor Upgrade - Step 2: Direct Remark Workflow
+
+- Added a dedicated update request and action so remark updates no longer rely on view-only access.
+- Enforced company and dossier scope, backend status-transition rules, granular assignment/address/verification/reopen permissions, and activity audit entries.
+- Added compact in-place actions to expanded remarks: assign the current user, set or clear a due date, start work, mark addressed, verify, resolve, and reopen when the user has the matching permission.
+- Kept live Project Design broadcasts and TanStack query invalidation so each update is reflected across the workspace.
+- Extended the existing remark severity enum to cover the current composer’s cosmetic and question values.
+
+### Files Created
+
+- `app/Actions/ProjectDesign/UpdateProjectDesignRemarkAction.php`
+- `app/Http/Requests/ProjectDesign/UpdateProjectDesignRemarkRequest.php`
+
+### Files Modified
+
+- `app/Enums/ProjectDesign/ProjectDesignRemarkSeverity.php`
+- `app/Http/Controllers/ProjectDesignController.php`
+- `app/Policies/ProjectDesignPolicy.php`
+- `resources/js/features/dossiers/components/DesignInspector.tsx`
+- `resources/js/features/project-design/api/projectDesignApi.ts`
+- `resources/js/features/project-design/components/ProjectDesignTabContent.tsx`
+- `resources/js/features/project-design/config/remarkWorkflow.ts`
+- `resources/js/features/project-design/types/projectDesign.ts`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `php -l` passed for the new request/action, controller, and policy.
+- `php artisan test --filter=ProjectDesign` passed: 40 tests, 116 assertions.
+- Repository-wide `npm.cmd run typecheck` still reports pre-existing HeroUI migration/type issues outside this step. The Project Design files changed in this step are clear after the local selector prop correction.
+
+### Next Step
+
+- Add viewer navigation aids: page thumbnails, stronger remark-to-page context, and focused review shortcuts.
+
+## Project Design Editor - Stable Normal Workspace Height
+
+- Kept the Dossier Show page in its standard scrollable application shell.
+- Gave the normal Project Design editor a stable responsive height (`clamp(34rem, 72dvh, 56rem)`) inside the Project Design tab.
+- The editor panes remain internally bounded, while the surrounding dossier header, workflow, metrics, and other content remain reachable through normal page scrolling.
+
+### Files Modified
+
+- `resources/css/app.css`
+- `resources/js/features/dossiers/components/DesignTab.tsx`
+- `resources/js/pages/Dossiers/Show.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `php artisan test --filter=ProjectDesign` passed: 40 tests, 116 assertions.
+
+## Client Finance Template Schema Compatibility
+
+### What Was Fixed
+
+- Added the reusable `FinanceTemplate::active()` query scope.
+- The scope applies the `is_active` filter only when the current database actually has that optional column.
+- Updated the client workspace finance-template query to use the shared scope, so opening a client no longer fails on older local finance-template schemas.
+
+### Files Modified
+
+- `app/Models/FinanceTemplate.php`
+- `app/Http/Controllers/ClientController.php`
+
+### Verification
+
+- Confirmed the active `archi_lbo_os` database does not currently contain `finance_templates.is_active`.
+- `php -l app/Models/FinanceTemplate.php` passed.
+- `php -l app/Http/Controllers/ClientController.php` passed.
+- `php artisan test --filter=Finance --stop-on-failure` passed: 6 tests, 47 assertions.
+
+## Client Finance Document Actions
+
+### What Was Added
+
+- Client project Finance now receives the canonical `FinanceDocumentResource` payload rather than a reduced duplicate document shape.
+- Added one shared finance document action definition used by the Finance list and the Client Finance tab.
+- Devis actions: open, edit, preview, print, PDF/Excel generation and download, accept, reject, convert to invoice, cancel, and delete.
+- Facture actions: open, edit, preview, print, PDF/Excel generation and download, register payment, cancel, and delete.
+- Reçu actions: open, edit, preview, print, PDF/Excel generation and download, cancel, and delete.
+- Edit opens the existing Finance Document drawer. Invoice payment opens the existing Payment drawer. Lifecycle updates reload the Client workspace without leaving the page.
+- Quote conversion now supports a validated local `return_to` path, allowing Client workspace conversion to remain on the current client page while preserving the Finance page's existing default redirect.
+
+### Files Modified
+
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `app/Http/Requests/Finance/ConvertQuoteToInvoiceRequest.php`
+- `app/Http/Resources/FinanceDocumentResource.php`
+- `app/Services/Clients/ClientWorkspaceService.php`
+- `resources/js/features/clients/components/ClientFinanceTab.tsx`
+- `resources/js/features/clients/types.ts`
+- `resources/js/features/finance/components/FinanceDocumentActions.tsx`
+- `resources/js/features/finance/types.ts`
+- `resources/js/pages/Clients/Show.tsx`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+
+### Verification
+
+- Client 9 workspace serialization passed against the active database.
+- `npm.cmd run build` passed.
+- `php artisan test --filter=Finance --stop-on-failure` passed: 6 tests, 47 assertions.
+
+### Follow-up
+
+- The Client Finance `Ouvrir la fiche` action now uses same-tab Inertia navigation to the finance document detail page. File preview, print, and downloads retain their separate file-view behavior.
+- Added a `Paiement` shortcut beside the Client Finance `Facture` and `Nouveau devis` shortcuts.
+- Finance document editing now pre-fills and disables the linked client and dossier fields. The update payload omits these fields and the controller preserves them, preventing accidental reassignment for devis, factures, and reçus.
+- `npm.cmd run build` and `php artisan test --filter=Finance --stop-on-failure` passed again: 6 tests, 47 assertions.
+
+## Shared Clients And Projects Table Pattern
+
+### What Changed
+
+- Added `AppWorkspaceTable`, a typed shared CRM table shell with a compact toolbar slot, configurable columns, row actions, mobile-row support, empty states, and a pagination footer slot.
+- Wrapped the established Projects table in the shared shell without changing its filters, rows, drawer preview, actions, or pagination behavior.
+- Replaced the Clients page's separate legacy HeroUI table markup with `AppWorkspaceTable` and client-specific column definitions.
+- Clients now follow the Projects list pattern: compact search, a status filter with result counts, sortable headers, compact quick actions, responsive rows, and 15-row pagination.
+
+### Files Created
+
+- `resources/js/components/ui/AppWorkspaceTable.tsx`
+
+### Files Modified
+
+- `resources/js/pages/Dossiers/Index.tsx`
+- `resources/js/pages/Clients/Index.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- Existing Vite notices remain: optional `fontaine` font fallbacks and large generated chunks.
+
+### How To Test
+
+- Open `/clients`, search, change the status filter, sort a column, use row actions, and navigate pagination.
+- Confirm a client row still opens its existing workspace and Edit still opens the same client drawer.
+- Open `/dossiers` and confirm its existing list behavior is unchanged.
+
+## Finance Document Creation Hotfix
+
+### What Changed
+
+- Restored `FinanceSettingsService::getDefaultPaymentTerms()`.
+- New finance documents now read their default terms from the existing `finance.payment_terms` company setting instead of failing during creation.
+
+### Files Modified
+
+- `app/Services/Finance/FinanceSettingsService.php`
+
+### Verification
+
+- PHP syntax check passed.
+- Direct application lookup resolved `Paiement à réception` from settings.
+- `php artisan test --filter=Finance --stop-on-failure` passed: 6 tests, 47 assertions.
+
+## Client Finance Workspace
+
+### What Changed
+
+- Replaced the Client workspace Finance tab placeholder with a selected-project finance workspace.
+- The tab now shows real backend totals for devis, invoiced amount, payments received, and outstanding invoice balance.
+- Added real finance document rows with backend type/status labels, view, and generated-file download actions.
+- Added related payment history and quick actions to create a devis/facture or open the full filtered Finance workspace.
+- Client finance creation now receives company-scoped active finance templates and configured finance settings from the backend, instead of hardcoded drawer defaults.
+
+### Files Created
+
+- `resources/js/features/clients/components/ClientFinanceTab.tsx`
+
+### Files Modified
+
+- `app/Enums/FinanceDocumentStatus.php`
+- `app/Http/Controllers/ClientController.php`
+- `app/Services/Clients/ClientWorkspaceService.php`
+- `resources/js/features/clients/types.ts`
+- `resources/js/pages/Clients/Show.tsx`
+
+### Verification
+
+- PHP syntax checks passed for modified backend files.
+- `npm.cmd run build` passed.
+- `php artisan test --filter=Finance --stop-on-failure` passed: 6 tests, 47 assertions.
+
+## Client Document Preview, Storage Location, Download And Print
+
+### What Was Built
+
+- Added secure document preview, download, and print routes for dossier documents.
+- Added a dedicated `DossierDocumentFileService` to resolve the stored private file, return no-store file responses, detect browser-previewable formats, and provide a safe logical folder label.
+- Added `DossierDocumentPolicy` and applied it to all document controller actions using the existing `manage documents` permission.
+- Extended the client workspace payload with file availability, preview/print/download URLs, size, MIME type, and a safe display location such as `DOS-2026-0001 / Documents`.
+- Updated Client > Documents rows with compact View, Print, and Download controls. Preview and print are intentionally disabled for formats that browsers cannot render safely, while download stays available.
+
+### Files Created
+
+- `app/Services/Documents/DossierDocumentFileService.php`
+- `app/Policies/DossierDocumentPolicy.php`
+
+### Files Modified
+
+- `app/Http/Controllers/DocumentController.php`
+- `app/Http/Resources/DossierDocumentResource.php`
+- `app/Providers/AppServiceProvider.php`
+- `app/Services/Clients/ClientWorkspaceService.php`
+- `routes/web.php`
+- `resources/js/pages/Clients/Show.tsx`
+- `resources/js/features/clients/types.ts`
+- `resources/js/locales/en.ts`
+
+### Security And Behavior
+
+- File storage remains private. The client receives routes and a logical folder name only, never an absolute private path.
+- Preview and print accept PDFs, images, and plain text. Other uploads can still be downloaded.
+- File responses include private/no-store cache headers and `X-Content-Type-Options: nosniff`.
+
+### Verification
+
+- PHP syntax checks passed for all changed PHP files.
+- `php artisan route:list --name=documents` confirms `documents.view`, `documents.print`, and `documents.download`.
+- `php artisan test --filter=Document --stop-on-failure` passed: 4 tests, 34 assertions.
+- `npm.cmd run build` passed. Existing Vite warnings remain for optional `fontaine` and large chunks.
+
+### How To Test
+
+- Open a client, select the Documents tab, and choose a project with uploaded documents.
+- Use the eye icon to preview a PDF or image, the printer icon to open the browser print dialog, and the download icon for any stored document.
+- Confirm the visible location is a logical dossier folder label, not a Windows or storage-server path.
+
+### Preview Response Follow-up
+
+- Replaced the storage adapter stream response with Laravel's direct `BinaryFileResponse` for dossier-document view and download routes.
+- This matches the existing message-attachment preview behavior and correctly serves private PNGs with `image/png` and `Content-Disposition: inline`.
+- Verified document `17` is a valid image and the secure response headers are correct; focused document tests still pass.
+
+### Client Document Replacement And Deletion
+
+- Added `documents.replace`, which preserves the dossier-document record while securely replacing its private file, MIME type, size, upload timestamp, and optional status/notes.
+- The previous private file is removed only after the replacement has been stored successfully.
+- Added compact Replace and Delete actions beside View, Print, and Download in Client > Documents.
+- Reused the existing document upload drawer in replacement mode with its client/project context locked.
+- Added a confirmation modal for deletion and changed document deletion redirects to return to the current workspace.
+
+### Files Added Or Updated
+
+- `app/Http/Requests/ReplaceDossierDocumentRequest.php`
+- `app/Http/Controllers/DocumentController.php`
+- `routes/web.php`
+- `resources/js/components/drawers/entities/DocumentDrawer/index.tsx`
+- `resources/js/pages/Clients/Show.tsx`
+- `resources/js/locales/en.ts`
+
+### Verification
+
+- `php -l` passed for the replacement request and document controller.
+- `php artisan route:list --name=documents` confirms `documents.replace`.
+- `npm.cmd run build` passed.
+- `php artisan test --filter=Document --stop-on-failure` passed: 4 tests, 34 assertions.
+
+## Shared KPI Card Consolidation
+
+### What Was Built
+
+- Added `resources/js/components/ui/AppKpiCard.tsx` as the single shared KPI presentation component.
+- It supports real sparkline data, optional trends, icon/value/detail content, semantic colors, and pressable/filter states.
+- Removed the Finance-owned `MetricSparklineCard` duplicate.
+
+### Pages Migrated
+
+- Finance workspace and monthly summary
+- Tasks overview
+- Dashboard and legacy dashboard KPI wrapper
+- Clients, intermediaries, contracts, and planning
+- Authorizations, archives, archive reports, operations reports, and user management
+
+### Important Decisions
+
+- Only Finance and Tasks render sparklines because they provide genuine time-series data.
+- Summary and filter KPI cards use the same component without invented chart history. Archive filter behavior is retained.
+
+### Verification
+
+- `npm.cmd run build` passed after extraction and after the full migration.
+
+## Clients HeroUI Migration
+
+### What Changed
+
+- Audited `resources/js/pages/Clients/Index.tsx` against the shared frontend rules and preserved its existing backend props, client-side filtering/sorting, drawer submissions, row navigation, and delete confirmation.
+- Replaced native interactive controls with HeroUI `Input`, `Select`, `ListBox`, `Dropdown`, and `Table` composites, plus the existing HeroUI-backed `AppButton` wrapper.
+- Replaced the custom click-outside action menu with a keyboard-accessible HeroUI dropdown menu.
+- Kept the page on the shared `AppKpiCard`; no local KPI card was reintroduced.
+
+### Verification
+
+- `npm.cmd run build` passed.
+- A focused source audit confirms no native `button`, `input`, `select`, or table tags remain in the Clients index page.
+
+### KPI Follow-up
+
+- Added status-specific icons and dark-theme colors to all Clients KPIs: sky for total, emerald for active, amber for inactive, and zinc for archived.
+
+## Dashboard KPI Alignment And In-Place Client Command
+
+### What Changed
+
+- Reworked the primary KPI rail into equal, centered metric cells: icon, label, value, and supporting context now align vertically within every KPI.
+- The dashboard quick-action Client command now opens the existing client creation drawer directly over the dashboard and submits through the existing validated `/clients` endpoint.
+- Reused the shared `ClientDrawer`; no dashboard-specific client form was introduced.
+
+### Security Decision
+
+- Client and dossier legacy tables do not yet contain company/branch ownership columns. The dashboard therefore does not preload client or dossier selector lists, preventing a new cross-tenant data exposure path.
+- Project, document, finance, task, and conversation commands continue to use their established pages until the related selector data has an auditable tenant scope.
+
+### Files Created
+
+- `resources/js/features/dashboard/components/DashboardClientActionDrawer.tsx`
+
+### Files Modified
+
+- `resources/js/pages/Dashboard.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+
+### How To Test
+
+- On Dashboard, confirm all five KPI cells have identical width and vertically centered content.
+- In the compact quick-action row, select the Client icon. The New Client drawer should open without leaving Dashboard; submit a valid client and confirm the drawer closes with a success toast.
+
+### Next Recommended Step
+
+- Introduce company/branch ownership and policy-scoped option queries for legacy clients/dossiers, then safely mount the remaining project, document, finance, task, and conversation commands in the dashboard.
+
+## Tasks Operations Workspace Refinement
+
+### What Changed
+
+- Rebuilt the Tasks page hierarchy around the Finance workspace pattern: one compact operations header, grouped commands, one filter/view control bar, then the active task view.
+- Removed the duplicate top-level task view tabs; the existing filter bar remains the single source of truth for Overview, Board, List, Table, Timeline, and Calendar views.
+- Refined the task overview with HeroUI cards using live task metrics, clearer operational widgets, and the same dark/gold visual language as Finance and Dashboard.
+- Added `currentUserId` to the existing task query payload so the “My focus” widget now shows tasks assigned to the signed-in user instead of falling back to global urgent work.
+
+### Files Modified
+
+- `app/Services/Task/TaskQueryService.php`
+- `resources/js/pages/Tasks/Index.tsx`
+- `resources/js/features/tasks/components/TaskOverview.tsx`
+
+### Backend Work
+
+- Preserved the existing thin controller, request validation, mutation service, status route, drag-and-drop updates, checklist updates, comments, and attachments.
+- The authenticated user ID is now returned as a small scalar alongside the already-authorized task payload.
+
+### Verification
+
+- `php -l app/Services/Task/TaskQueryService.php` passed.
+- `npm.cmd run build` passed.
+- `php artisan test --filter=Task` found no focused task tests in the repository.
+- `php artisan test` passed: 77 tests, 249 assertions.
+
+### How To Test
+
+- Open `/tasks`: confirm there is one operations header and one compact filter/view control bar.
+- Change Overview/Board/List/Table/Timeline/Calendar from the filter control; each existing view should still render.
+- In Overview, confirm “My focus” lists tasks assigned to the current user.
+- Create a task, drag a task to another status, update a status, and open a task detail drawer to confirm existing actions remain intact.
+
+### Next Recommended Step
+
+- Add backend pagination and test coverage for task query filters before task volume grows further.
+
+### Tasks KPI Visual Alignment
+
+- Corrected the Task overview KPI source to reuse the active Finance workspace `MetricSparklineCard`, rather than the legacy Finance page card.
+- Task cards now share Finance's compact heading, value, detail, and sparkline structure while deriving every series from real task creation, update, completion, and due dates.
+
+## Dashboard Operations Workspace Refresh
+
+### What Was Built
+
+- Reworked the dashboard into a compact Finance-style operations workspace using HeroUI `Card`, `Chip`, `ProgressBar`, and shared HeroUI-backed `AppButton` controls.
+- Kept only live operational information: KPI links, priority actions, recent projects, finance follow-up, workflow progress, blocked dossiers, urgent tasks, recent messages, and activity.
+- Replaced legacy `crm-*` interactive controls with working HeroUI actions. Every visible action now navigates to its related module or refreshes the live command-center payload.
+- Removed the previous redundant system-health and placeholder search areas from the dashboard.
+
+### Backend Improvements
+
+- Eager-load dossier documents for the blocked-dossier queue to prevent per-row document queries.
+- Dashboard data continues to come exclusively from `DashboardCommandCenterService`; no frontend demo or static business data was added.
+
+### Files Modified
+
+- `app/Services/Dashboard/DashboardCommandCenterService.php`
+- `resources/js/pages/Dashboard.tsx`
+
+### Verification
+
+- Dashboard-only TypeScript check: no errors reported for `Dashboard.tsx` or `DashboardCommandCenterService`.
+- `npm.cmd run build` passed.
+- `php artisan test` passed: 77 tests, 249 assertions.
+- `git diff --check` passed.
+- The full repository `npm.cmd run typecheck` still reports existing HeroUI migration errors in unrelated shared components and drawers; none are from this dashboard phase.
+
+### How To Test
+
+- Open `/` and confirm all KPI cards, priority rows, project rows, finance rows, quick links, task rows, and message rows navigate to their target workspace.
+- Use `Actualiser` and confirm the command-center counts reload without leaving the dashboard.
+- Confirm empty states display cleanly when there are no blocked dossiers, urgent tasks, messages, or projects.
+
+### Compact Operations Refinement
+
+- Replaced the full quick-link panel with a compact, tooltip-backed action rail.
+- Added a backend-driven `Focus maintenant` command strip that promotes the first real priority action and exposes current risk signals beside it.
+- Reduced the KPI rail to the five primary business indicators and moved task, review, message, and blocked-dossier counts into the focus strip.
+- Combined blocked dossiers and urgent tasks into one `Points de vigilance` queue, and combined messages with recent activity into one compact updates panel.
+- Reduced panel padding, row heights, and repetition while retaining every useful backend-driven queue and navigation action.
+
+### Verification
+
+- Dashboard-only TypeScript check: no errors reported for `Dashboard.tsx`.
+- `npm.cmd run build` passed.
+- `git diff --check` passed.
+
+### Dashboard Command Actions And KPI Rail
+
+- Centered the dashboard KPI rail with equal-width metric columns and aligned metric content.
+- Converted dashboard quick actions into real workflow commands rather than list-page navigation:
+  - New project opens the Project drawer.
+  - Upload document opens the Document upload drawer.
+  - Create invoice opens the Finance invoice builder.
+  - New client opens the Client drawer.
+  - New task opens the Task drawer.
+  - New conversation opens the Inbox conversation drawer.
+- Each receiving page consumes the `command` parameter once, opens its existing drawer, then clears the command from the browser URL.
+
+### Files Modified
+
+- `app/Services/Dashboard/DashboardCommandCenterService.php`
+- `resources/js/pages/Dashboard.tsx`
+- `resources/js/pages/Clients/Index.tsx`
+- `resources/js/pages/Dossiers/Index.tsx`
+- `resources/js/pages/Documents/Index.tsx`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+- `resources/js/pages/Tasks/Index.tsx`
+- `resources/js/pages/Inbox/Index.tsx`
+
+### Verification
+
+- Focused TypeScript output: no errors in modified dashboard command pages.
+- `npm.cmd run build` passed.
+- `git diff --check` passed.
+
+### Focus Queue Refinement
+
+- Removed the duplicate top focus action from the priority list.
+- Reduced the top header height and widened the live focus action so it reads as the primary daily decision.
+- Made the vigilance rail self-sizing and replaced the oversized empty state with a compact stable-work confirmation.
+- `npm.cmd run build` passed again.
+
+### Dashboard Operations Cockpit Redesign
+
+- Replaced the separate KPI cards with one continuous, responsive KPI rail.
+- Replaced the former stacked widget layout with a large daily focus command area, compact signal rail, quick-action strip, three operational streams, and one shared lower operations summary.
+- Removed duplicate action presentation: the active focus item is no longer repeated in the work queue.
+- Preserved backend-only data and working navigation for every visible KPI, queue row, project, finance signal, task, message, and quick action.
+
+### Verification
+
+- Dashboard-only TypeScript check: no errors reported for `Dashboard.tsx`.
+- `npm.cmd run build` passed.
+- `git diff --check` passed.
+
+## Project Design Review Safety And Revision Workflow
+
+### What Was Built
+
+- Added an unsaved-markup guard before switching design file, asset, or revision. Users can save and continue, discard local markup, or remain in the current drawing.
+- Added a native browser leave/reload warning while unsaved markup exists.
+- Added global editor shortcuts: `Ctrl/Cmd+S` saves markup and `?` opens a compact shortcut reference. The toolbar now exposes that reference directly.
+- Added an in-place revision comparison card in the Versions inspector. It compares the selected earlier revision with the current one, including status and current change notes, and opens either revision directly.
+- Added compact explorer overflow actions for files and folders: rename, move to the project root, or move to a valid folder. Drag-and-drop remains available for desktop users.
+
+### Files Modified
+
+- `resources/js/features/project-design/components/ProjectDesignEditorToolbar.tsx`
+- `resources/js/features/project-design/components/ProjectDesignFolderTree.tsx`
+- `resources/js/features/project-design/components/ProjectDesignTabContent.tsx`
+- `resources/js/features/dossiers/components/DesignFileViewer.tsx`
+- `resources/js/features/dossiers/components/DesignInspector.tsx`
+
+### How To Test
+
+- Draw an annotation, then select another file, version, or asset. Confirm that Keep editing, Discard changes, and Save and continue behave correctly.
+- With unsaved markup, refresh the browser and confirm the browser warning appears.
+- Press `Ctrl/Cmd+S` to save and `?` to view editor shortcuts.
+- In Inspector > Versions, choose the compare action on an earlier revision, review the comparison card, then open either revision.
+- Use the three-dot menu in Explorer to rename or move a file/folder without dragging.
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `php artisan test --filter=ProjectDesign` passed: 40 tests, 116 assertions.
+
+### Next Recommended Step
+
+- Add visual revision diffing for PDF/image assets when a reliable render-comparison strategy is selected, then add reviewer assignment and due-date filtering to the review queue.
+
+## Drawer Action Row Consistency
+
+- Shared `AppDrawer` footers now keep their direct actions on one non-wrapping, scroll-safe row.
+- The Project Design upload drawer uses the same row behavior.
+- The Dossiers project preview action group now uses a compact four-column grid, keeping View, Edit, Archive, and Delete on one line at drawer width.
+- The unsaved-markup dialog action row was compacted so all three decisions remain side by side.
+
+### Files Modified
+
+- `resources/js/components/ui/AppDrawer.tsx`
+- `resources/js/features/dossiers/components/DesignUploadDrawer.tsx`
+- `resources/js/features/project-design/components/ProjectDesignTabContent.tsx`
+- `resources/js/pages/Dossiers/Index.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+
+### Follow-up
+
+- Removed the old page-scroll lock and full-height shell treatment for normal editor mode. Fullscreen mode remains isolated as before.
+- Removed a competing fixed-height wrapper from the Design tab so its browser, viewer, and inspector siblings receive the remaining flex height and can scroll independently.
+- Re-ran `npm.cmd run build` and `php artisan test --filter=ProjectDesign`; both passed.
+
+## Project Design Editor Upgrade - Step 3: Viewer Navigation
+
+- Added a compact direct page-jump field to the existing editor toolbar, with Enter and blur handling plus bounds validation.
+- Extended the Project Design remark resource and list query with the annotation page number.
+- Expanded remark details now show the exact page alongside the drawing/version context, while the existing focus action continues to navigate and center the annotation.
+
+### Files Modified
+
+- `app/Http/Controllers/ProjectDesignController.php`
+- `app/Http/Resources/ProjectDesign/ProjectDesignRemarkResource.php`
+- `resources/js/features/dossiers/components/DesignInspector.tsx`
+- `resources/js/features/project-design/components/ProjectDesignEditorToolbar.tsx`
+- `resources/js/features/project-design/types/projectDesign.ts`
+
+### Verification
+
+- `php -l` passed for the controller and resource.
+- `npm.cmd run build` passed.
+- `php artisan test --filter=ProjectDesign` passed: 40 tests, 116 assertions.
+- The filtered TypeScript output contains no errors for the files touched in this step; unrelated repository-wide migration errors remain.
+
+### Next Step
+
+- Add viewer safety and review ergonomics: unsaved-change protection, clearer keyboard shortcuts, and focused review tools.
+
+## Project Design Remarks Hook-Order Fix
+
+- Fixed `RemarksPanel` so empty and populated remark states run the same hooks in the same order.
+- Realtime or initial-load transitions from an empty remark list can no longer trigger React's “Rendered more hooks than during the previous render” error.
+
+### Files Modified
+
+- `resources/js/features/dossiers/components/DesignInspector.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `php artisan test --filter=ProjectDesign` passed: 40 tests, 116 assertions.
+
+## Project Design Persistent Annotation Deletion And Explorer Organization
+
+- Canvas markup now exposes a compact remove action with an in-place confirmation state.
+- Deleting a persisted annotation now deletes its linked remarks and remark comments in one transaction, writes an activity entry, and broadcasts both remark and annotation removals to active editors.
+- Added scoped explorer update requests and a focused action for file/folder renames and moves.
+- Explorer folder/file responses now use their existing API resources, preserving the frontend camelCase contract.
+- Added double-click rename for files and folders.
+- Added drag-to-folder and drag-to-root behavior with drop-state feedback, cycle protection for folders, company/dossier scope validation, optimistic file locking, and TanStack query refreshes.
+- Simplified the editor frame so the toolbar, panel host, and status bar form one continuous workspace instead of layered rounded borders.
+
+### Files Created
+
+- `app/Actions/ProjectDesign/DeleteProjectDesignAnnotationAction.php`
+- `app/Actions/ProjectDesign/UpdateProjectDesignExplorerItemAction.php`
+- `app/Http/Requests/ProjectDesign/UpdateProjectDesignFileRequest.php`
+- `app/Http/Requests/ProjectDesign/UpdateProjectDesignFolderRequest.php`
+
+### Files Modified
+
+- `app/Http/Controllers/ProjectDesignController.php`
+- `resources/js/features/dossiers/components/DesignAnnotationLayer.tsx`
+- `resources/js/features/dossiers/components/DesignFileViewer.tsx`
+- `resources/js/features/project-design/api/projectDesignApi.ts`
+- `resources/js/features/project-design/components/ProjectDesignFileBrowser.tsx`
+- `resources/js/features/project-design/components/ProjectDesignFolderTree.tsx`
+
+### Verification
+
+- PHP syntax checks passed for the new actions, requests, and controller.
+- `npm.cmd run build` passed.
+- `php artisan test --filter=ProjectDesign` passed: 40 tests, 116 assertions.
+
+### How To Test
+
+- Select a saved markup in the drawing, choose the trash action, then confirm removal. Refresh the page: the annotation and its linked remark must remain gone.
+- Double-click a file or folder name in Explorer, edit it, then press Enter or click away.
+- Drag a file into a folder, or drag it onto the highlighted Project Design root zone to unfile it.
+- Drag a folder onto another folder. Invalid self/descendant moves are blocked by the backend.
+
+### Follow-up Fixes
+
+- Corrected the Explorer query client scope so rename/move refreshes no longer crash the React tree.
+- Corrected Project Design Reverb channel authorization to scope access through the existing company-owned design files/folders, rather than querying the legacy dossier table for a nonexistent `company_id` column.
+- Re-ran `npm.cmd run build` and `php artisan test --filter=ProjectDesign`: both passed.
+
+### Explorer Interaction Refinement
+
+- Single-click selection and folder toggling are now delayed briefly so a double-click can enter rename mode without opening the file or changing the folder state.
+- Replaced the noisy whole-tree root drop listener with a compact explicit Project Design root target.
+- Folder drop highlighting now remains stable while moving across child controls, and the expand/collapse trigger remains immediate on the disclosure icon.
+- `npm.cmd run build` and `php artisan test --filter=ProjectDesign` passed again: 40 tests, 116 assertions.
+
+### Explorer Collapse And Toolbar Refinement
+
+- Explorer root folders now receive their default expanded state only on first load. A persisted empty set and the Collapse all command are respected, so folders stay collapsed until the user reopens them.
+- Refined the editor toolbar into quieter, labeled control clusters with lightweight dividers. Annotation, navigation, view, and editor actions retain their existing behavior and keyboard hints without the previous layered-border treatment.
+
+### Files Modified
+
+- `resources/js/features/project-design/components/ProjectDesignFolderTree.tsx`
+- `resources/js/features/project-design/components/ProjectDesignEditorToolbar.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `php artisan test --filter=ProjectDesign` passed: 40 tests, 116 assertions.

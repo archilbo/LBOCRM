@@ -1,33 +1,33 @@
 import { Head, router } from '@inertiajs/react';
+import { Card, Chip, ProgressBar, Tooltip } from '@heroui/react';
 import {
     AlertTriangle,
     ArrowRight,
-    Bell,
     CalendarDays,
     CheckCircle2,
     ChevronRight,
     Clock3,
-    Command,
     FileCheck2,
     FolderKanban,
     ListChecks,
     MessageSquare,
     Plus,
     ReceiptText,
-    Search,
+    RefreshCw,
     ShieldCheck,
-    SlidersHorizontal,
     UploadCloud,
     UserRound,
     WalletCards,
 } from 'lucide-react';
-import type { ComponentType } from 'react';
+import { useState, type ComponentType, type ReactNode } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
+import { DashboardClientActionDrawer } from '@/features/dashboard/components/DashboardClientActionDrawer';
 import type { DashboardCommandCenter, DashboardIconKey, DashboardTone } from '@/features/dashboard/types';
 
-type PageProps = {
-    commandCenter: DashboardCommandCenter;
-};
+type PageProps = { commandCenter: DashboardCommandCenter };
+type ChipColor = 'default' | 'accent' | 'success' | 'warning' | 'danger';
 
 const iconMap: Record<DashboardIconKey, ComponentType<{ size?: number; className?: string }>> = {
     projects: FolderKanban,
@@ -43,462 +43,216 @@ const iconMap: Record<DashboardIconKey, ComponentType<{ size?: number; className
     check: CheckCircle2,
 };
 
-const toneClasses: Record<DashboardTone, { soft: string; text: string; dot: string; pill: string }> = {
-    gold: {
-        soft: 'bg-[color-mix(in_srgb,var(--crm-gold)_14%,transparent)]',
-        text: 'text-[var(--crm-gold)]',
-        dot: 'bg-[var(--crm-gold)]',
-        pill: 'crm-status-warning',
-    },
-    green: {
-        soft: 'bg-[var(--crm-success-soft)]',
-        text: 'text-[var(--crm-success)]',
-        dot: 'bg-[var(--crm-success)]',
-        pill: 'crm-status-success',
-    },
-    red: {
-        soft: 'bg-[var(--crm-danger-soft)]',
-        text: 'text-[var(--crm-danger)]',
-        dot: 'bg-[var(--crm-danger)]',
-        pill: 'crm-status-danger',
-    },
-    blue: {
-        soft: 'bg-[var(--crm-info-soft)]',
-        text: 'text-[var(--crm-info)]',
-        dot: 'bg-[var(--crm-info)]',
-        pill: 'crm-status-info',
-    },
-    violet: {
-        soft: 'bg-[var(--crm-violet-soft)]',
-        text: 'text-[var(--crm-violet)]',
-        dot: 'bg-[var(--crm-violet)]',
-        pill: 'crm-status-info',
-    },
-    neutral: {
-        soft: 'bg-[var(--crm-surface-2)]',
-        text: 'text-[var(--crm-text-muted)]',
-        dot: 'bg-[var(--crm-text-soft)]',
-        pill: 'crm-status-info',
-    },
+const tones: Record<DashboardTone, { icon: string; text: string; dot: string; chip: ChipColor }> = {
+    gold: { icon: 'bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]', text: 'text-[var(--accent)]', dot: 'bg-[var(--accent)]', chip: 'warning' },
+    green: { icon: 'bg-[color-mix(in_srgb,var(--success)_15%,transparent)] text-[var(--success)]', text: 'text-[var(--success)]', dot: 'bg-[var(--success)]', chip: 'success' },
+    red: { icon: 'bg-[color-mix(in_srgb,var(--danger)_15%,transparent)] text-[var(--danger)]', text: 'text-[var(--danger)]', dot: 'bg-[var(--danger)]', chip: 'danger' },
+    blue: { icon: 'bg-[color-mix(in_srgb,var(--info)_15%,transparent)] text-[var(--info)]', text: 'text-[var(--info)]', dot: 'bg-[var(--info)]', chip: 'accent' },
+    violet: { icon: 'bg-[color-mix(in_srgb,var(--secondary)_15%,transparent)] text-[var(--secondary)]', text: 'text-[var(--secondary)]', dot: 'bg-[var(--secondary)]', chip: 'accent' },
+    neutral: { icon: 'bg-[var(--surface-2)] text-[var(--text-muted)]', text: 'text-[var(--text-muted)]', dot: 'bg-[var(--text-muted)]', chip: 'default' },
 };
 
-function goTo(href: string) {
+function navigate(href: string) {
     router.visit(href);
 }
 
-function IconTile({ icon, tone }: { icon: DashboardIconKey; tone: DashboardTone }) {
+function DashboardIcon({ icon, tone, size = 16, className = '' }: { icon: DashboardIconKey; tone: DashboardTone; size?: number; className?: string }) {
     const Icon = iconMap[icon] ?? FolderKanban;
 
+    return <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${tones[tone].icon} ${className}`}><Icon size={size} /></span>;
+}
+
+function PanelTitle({ title, detail, action }: { title: string; detail?: string; action?: ReactNode }) {
     return (
-        <span className={`flex size-10 shrink-0 items-center justify-center rounded-[var(--crm-radius-md)] ${toneClasses[tone].soft} ${toneClasses[tone].text}`}>
-            <Icon size={18} />
-        </span>
+        <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
+            <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
+                {detail ? <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">{detail}</p> : null}
+            </div>
+            {action}
+        </div>
     );
 }
 
 export default function Dashboard({ commandCenter }: PageProps) {
-    const { hero, kpis, quickLinks, nextActions, recentProjects, financeAlerts, systemHealth, activityFeed, blockedDossiers, workflowDistribution, urgentTaskList, recentMessageList } = commandCenter;
+    const {
+        hero,
+        kpis,
+        quickLinks,
+        nextActions,
+        recentProjects,
+        financeAlerts,
+        activityFeed,
+        blockedDossiers,
+        workflowDistribution,
+        urgentTaskList,
+        recentMessageList,
+    } = commandCenter;
+    const primaryKpis = kpis.filter((kpi) => ['activeProjects', 'missingDocuments', 'pendingAuthorizations', 'unpaidInvoices', 'todayPayments'].includes(kpi.key));
+    const signalKpis = kpis.filter((kpi) => ['blockedDossiers', 'myTasks', 'pendingReviewTasks', 'unreadMessages'].includes(kpi.key));
+    const focusAction = nextActions[0];
+    const queuedActions = nextActions.length > 1 ? nextActions.slice(1, 5) : nextActions.slice(0, 4);
+    const maxWorkflowCount = Math.max(...workflowDistribution.map((step) => step.count), 1);
+    const [clientDrawerOpen, setClientDrawerOpen] = useState(false);
+
+    function openQuickAction(label: string, href: string) {
+        if (label === 'New client') {
+            setClientDrawerOpen(true);
+            return;
+        }
+
+        navigate(href);
+    }
 
     return (
         <>
             <Head title="Dashboard" />
 
-            <AppShell
-                eyebrowKey="dashboard.eyebrow"
-                titleKey="dashboard.title"
-                subtitleKey="dashboard.subtitle"
-                action={
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button type="button" className="crm-action-button" onClick={() => goTo('/finance/documents?tab=monthly')}>
-                            <CalendarDays size={15} />
-                            Monthly
-                                               </button>
-                        <button type="button" className="crm-action-button-primary crm-action-button" onClick={() => goTo('/dossiers')}>
-                            <Plus size={15} />
-                            New project
-                        </button>
-                    </div>
-                }
-            >
-                <section className="space-y-[var(--crm-page-gap)]">
-                    <div className="crm-panel p-4">
-                        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <AppShell>
+                <section className="space-y-3">
+                    <header className="flex flex-col gap-3 px-1 py-1 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]"><FolderKanban size={18} /></span>
                             <div className="min-w-0">
-                                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                    <div>
-                                        <p className="crm-eyebrow">{hero.eyebrow}</p>
-                                        <h1 className="crm-page-title mt-2">{hero.title}</h1>
-                                        <p className="mt-2 max-w-2xl text-sm text-[var(--crm-text-muted)]">{hero.subtitle}</p>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <button type="button" className="crm-action-button" onClick={() => goTo('/documents')}>
-                                            <Bell size={15} />
-                                            Urgent
-                                        </button>
-                                        <button type="button" className="crm-action-button" onClick={() => goTo('/dossiers')}>
-                                            <SlidersHorizontal size={15} />
-                                            Filters
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="mt-5 crm-kpi-grid">
-                                    {kpis.map((kpi) => (
-                                        <button
-                                            key={kpi.key}
-                                            type="button"
-                                            onClick={() => goTo(kpi.href)}
-                                            className="crm-kpi-card text-left transition hover:border-[var(--crm-border-strong)] hover:bg-[var(--crm-surface-2)]"
-                                        >
-                                            <div className="flex items-start justify-between gap-3">
-                                                <IconTile icon={kpi.icon} tone={kpi.tone} />
-                                                <ArrowRight size={14} className="text-[var(--crm-text-soft)]" />
-                                            </div>
-                                            <p className="crm-kpi-label mt-3">{kpi.label}</p>
-                                            <p className={`crm-kpi-value ${toneClasses[kpi.tone].text}`}>{kpi.value}</p>
-                                            <p className="mt-2 truncate text-xs text-[var(--crm-text-soft)]">{kpi.helper}</p>
-                                        </button>
-                                    ))}
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{hero.eyebrow}</p>
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <h1 className="truncate text-lg font-bold text-[var(--foreground)]">{hero.title}</h1>
+                                    <span className="hidden h-4 w-px bg-[var(--border)] md:block" />
+                                    <p className="hidden truncate text-xs text-[var(--text-muted)] md:block">{hero.subtitle}</p>
                                 </div>
                             </div>
-
-                            <aside className="crm-panel-flat p-4">
-                                <div className="mb-4 flex items-center justify-between gap-3">
-                                    <div>
-                                        <h2 className="text-sm font-semibold">Quick launch</h2>
-                                        <p className="mt-1 text-xs text-[var(--crm-text-muted)]">Fast access to daily work.</p>
-                                    </div>
-                                    <Command size={16} className="text-[var(--crm-gold)]" />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    {quickLinks.map((link) => (
-                                        <button
-                                            key={link.label}
-                                            type="button"
-                                            onClick={() => goTo(link.href)}
-                                            className="flex items-center justify-between gap-3 rounded-[var(--crm-radius-md)] border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-3 text-left transition hover:bg-[var(--crm-surface-2)]"
-                                        >
-                                            <span className="flex min-w-0 items-center gap-3">
-                                                <IconTile icon={link.icon} tone="gold" />
-                                                <span className="truncate text-sm font-semibold">{link.label}</span>
-                                            </span>
-                                            <ChevronRight size={15} className="shrink-0 text-[var(--crm-text-soft)]" />
-                                        </button>
-                                    ))}
-                                </div>
-                            </aside>
                         </div>
+                        <div className="flex items-center gap-1.5">
+                            <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => router.reload({ only: ['commandCenter'] })}><RefreshCw size={14} /> Actualiser</AppButton>
+                            <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => navigate('/finance/documents?tab=monthly')}><CalendarDays size={14} /> Mensuel</AppButton>
+                            <AppButton size="sm" variant="ghost" className="h-8 bg-[var(--accent)] px-2.5 text-black hover:bg-[var(--accent-hover)]" onPress={() => navigate('/dossiers?command=create')}><Plus size={14} /> Projet</AppButton>
+                        </div>
+                    </header>
+
+                    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5">
+                        {primaryKpis.map((kpi) => {
+                            const Icon = iconMap[kpi.icon] ?? FolderKanban;
+
+                            return <AppKpiCard key={kpi.key} label={kpi.label} value={kpi.value} detail={kpi.helper} icon={<Icon size={14} className={tones[kpi.tone].text} />} valueClassName={tones[kpi.tone].text} onPress={() => navigate(kpi.href)} className="min-h-24" />;
+                        })}
                     </div>
 
-                    <div className="grid gap-[var(--crm-page-gap)] xl:grid-cols-[minmax(0,1fr)_360px]">
-                        <main className="min-w-0 space-y-[var(--crm-page-gap)]">
-                            <section className="grid gap-[var(--crm-page-gap)] lg:grid-cols-[360px_minmax(0,1fr)]">
-                                <div className="crm-panel-flat overflow-hidden">
-                                    <div className="flex items-center justify-between gap-3 border-b border-[var(--crm-border)] px-5 py-4">
-                                        <div>
-                                            <h2 className="text-sm font-semibold">Next actions</h2>
-                                            <p className="text-xs text-[var(--crm-text-muted)]">Priority workflow queue.</p>
-                                        </div>
-                                        <button type="button" className="crm-action-button" onClick={() => goTo('/dossiers')}>View all</button>
-                                    </div>
+                    {focusAction ? (
+                        <Card className="gap-0 overflow-hidden border border-[color-mix(in_srgb,var(--accent)_34%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface))] shadow-sm">
+                            <Card.Content className="grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.9fr)]">
+                                <AppButton variant="ghost" className="h-auto min-h-24 justify-start rounded-none px-4 py-3 text-left hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))]" onPress={() => navigate(focusAction.href)}>
+                                    <span className="flex min-w-0 items-center gap-3">
+                                        <DashboardIcon icon={focusAction.icon} tone={focusAction.tone} className="size-10" size={19} />
+                                        <span className="min-w-0 flex-1">
+                                            <span className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">Focus maintenant</span><Chip size="sm" variant="soft" color={tones[focusAction.tone].chip}>{focusAction.due}</Chip></span>
+                                            <span className="mt-1 block truncate text-base font-semibold text-[var(--foreground)]">{focusAction.title}</span>
+                                            <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">{focusAction.subtitle}</span>
+                                        </span>
+                                        <ArrowRight size={17} className="shrink-0 text-[var(--accent)]" />
+                                    </span>
+                                </AppButton>
 
-                                    <div className="divide-y divide-[var(--crm-border)]">
-                                        {nextActions.map((action) => (
-                                            <button
-                                                key={action.id}
-                                                type="button"
-                                                onClick={() => goTo(action.href)}
-                                                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-[var(--crm-surface-2)]"
-                                            >
-                                                <span className="flex min-w-0 items-center gap-3">
-                                                    <IconTile icon={action.icon} tone={action.tone} />
-                                                    <span className="min-w-0">
-                                                        <span className="block truncate text-sm font-semibold">{action.title}</span>
-                                                        <span className="block truncate text-xs text-[var(--crm-text-muted)]">{action.subtitle}</span>
-                                                    </span>
-                                                </span>
-                                                <span className={`crm-status-pill ${toneClasses[action.tone].pill}`}>{action.due}</span>
-                                            </button>
+                                <div className="flex min-w-0 flex-col border-t border-[color-mix(in_srgb,var(--accent)_22%,var(--border))] lg:border-l lg:border-t-0">
+                                    <div className="grid flex-1 grid-cols-4 divide-x divide-[var(--border)]">
+                                        {signalKpis.map((kpi) => (
+                                            <AppButton key={kpi.key} variant="ghost" className="h-auto min-w-0 justify-center rounded-none px-2 py-2 text-center hover:bg-[var(--surface-2)]" onPress={() => navigate(kpi.href)}>
+                                                <span className="min-w-0"><span className={`block text-base font-semibold ${tones[kpi.tone].text}`}>{kpi.value}</span><span className="mt-0.5 block truncate text-[9px] font-medium text-[var(--text-muted)]">{kpi.label}</span></span>
+                                            </AppButton>
                                         ))}
                                     </div>
-                                </div>
+                                    <div className="flex items-center justify-between border-t border-[var(--border)] px-2 py-1.5">
+                                        <span className="px-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Acces rapide</span>
+                                        <div className="flex items-center gap-1">
+                                            {quickLinks.map((link) => {
+                                                const Icon = iconMap[link.icon] ?? FolderKanban;
 
-                                <div className="crm-table-wrap">
-                                    <div className="flex items-center justify-between gap-3 border-b border-[var(--crm-border)] px-5 py-4">
-                                        <div>
-                                            <h2 className="text-sm font-semibold">Recent projects</h2>
-                                            <p className="text-xs text-[var(--crm-text-muted)]">Latest active dossiers and workflow status.</p>
-                                        </div>
-                                        <div className="hidden items-center gap-2 md:flex">
-                                            <div className="crm-command-input flex w-64 items-center gap-2 px-3">
-                                                <Search size={14} className="text-[var(--crm-text-soft)]" />
-                                                <span className="text-xs text-[var(--crm-text-muted)]">Search projects...</span>
-                                            </div>
-                                            <button type="button" className="crm-action-button" onClick={() => goTo('/dossiers')}>Open</button>
-                                        </div>
-                                    </div>
-
-                                    <div className="overflow-x-auto crm-scroll-thin">
-                                        <table className="crm-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Project</th>
-                                                    <th>Client</th>
-                                                    <th>Location</th>
-                                                    <th>Step</th>
-                                                    <th>Missing</th>
-                                                    <th>Remaining</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {recentProjects.map((project) => (
-                                                    <tr key={project.id}>
-                                                        <td>
-                                                            <button type="button" onClick={() => goTo(project.href)} className="text-left">
-                                                                <span className="block font-semibold text-[var(--crm-text)]">{project.project}</span>
-                                                                <span className="block text-xs text-[var(--crm-text-soft)]">{project.dossierNumber}</span>
-                                                            </button>
-                                                        </td>
-                                                        <td>{project.client}</td>
-                                                        <td>{project.location}</td>
-                                                        <td><span className="crm-status-pill crm-status-warning">{project.step}</span></td>
-                                                        <td>
-                                                            <span className={project.missingDocs > 0 ? 'font-semibold text-[var(--crm-danger)]' : 'font-semibold text-[var(--crm-success)]'}>
-                                                                {project.missingDocs}
-                                                            </span>
-                                                        </td>
-                                                        <td>{project.remaining}</td>
-                                                        <td>
-                                                            <button type="button" className="crm-action-button" onClick={() => goTo(project.href)}>Open</button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section className="grid gap-[var(--crm-page-gap)] lg:grid-cols-3">
-                                <div className="crm-panel-flat overflow-hidden">
-                                    <div className="flex items-center justify-between gap-3 border-b border-[var(--crm-border)] px-5 py-4">
-                                        <h2 className="text-sm font-semibold">Finance alerts</h2>
-                                        <button type="button" className="text-xs font-semibold text-[var(--crm-gold)]" onClick={() => goTo('/finance/documents')}>Go to finance</button>
-                                    </div>
-
-                                    <div className="divide-y divide-[var(--crm-border)]">
-                                        {financeAlerts.map((alert) => (
-                                            <button
-                                                key={alert.id}
-                                                type="button"
-                                                onClick={() => goTo(alert.href)}
-                                                className="grid w-full grid-cols-[1fr_auto] gap-3 px-4 py-3 text-left transition hover:bg-[var(--crm-surface-2)]"
-                                            >
-                                                <span className="min-w-0">
-                                                    <span className="flex items-center gap-2 text-sm font-semibold">
-                                                        <span className={`size-2 rounded-full ${toneClasses[alert.tone].dot}`} />
-                                                        {alert.title}
-                                                    </span>
-                                                    <span className="mt-1 block text-xs text-[var(--crm-text-muted)]">{alert.subtitle}</span>
-                                                </span>
-                                                <span className={`text-sm font-semibold ${toneClasses[alert.tone].text}`}>{alert.amount}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="crm-panel-flat overflow-hidden">
-                                    <div className="flex items-center justify-between gap-3 border-b border-[var(--crm-border)] px-5 py-4">
-                                        <h2 className="text-sm font-semibold">Workflow distribution</h2>
-                                    </div>
-
-                                    <div className="p-4">
-                                        {workflowDistribution.length > 0 ? (
-                                            <div className="grid gap-3">
-                                                {workflowDistribution.map((step) => {
-                                                    const maxCount = Math.max(...workflowDistribution.map((s) => s.count), 1);
-                                                    const pct = Math.round((step.count / maxCount) * 100);
-
-                                                    return (
-                                                        <div key={step.key}>
-                                                            <div className="mb-1 flex items-center justify-between text-xs">
-                                                                <span className="font-semibold text-[var(--crm-text)]">{step.label}</span>
-                                                                <span className="text-[var(--crm-muted)]">{step.count}</span>
-                                                            </div>
-                                                            <div className="h-2 overflow-hidden rounded-full bg-black/20">
-                                                                <div
-                                                                    className="h-full rounded-full bg-[var(--crm-accent)]"
-                                                                    style={{ width: `${pct}%` }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        ) : (
-                                            <p className="text-xs text-[var(--crm-text-muted)]">No active projects.</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {blockedDossiers.length > 0 ? (
-                                    <div className="crm-panel-flat overflow-hidden">
-                                        <div className="flex items-center justify-between gap-3 border-b border-[var(--crm-border)] px-5 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <AlertTriangle size={14} className="text-red-400" />
-                                                <h2 className="text-sm font-semibold">Blocked dossiers</h2>
-                                            </div>
-                                            <button type="button" className="text-xs font-semibold text-[var(--crm-gold)]" onClick={() => goTo('/dossiers')}>View all</button>
-                                        </div>
-
-                                        <div className="divide-y divide-[var(--crm-border)]">
-                                            {blockedDossiers.map((dossier) => (
-                                                <button
-                                                    key={dossier.id}
-                                                    type="button"
-                                                    onClick={() => goTo(dossier.href)}
-                                                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-[var(--crm-surface-2)]"
-                                                >
-                                                    <span className="min-w-0">
-                                                        <span className="block truncate text-sm font-semibold">{dossier.project}</span>
-                                                        <span className="block truncate text-xs text-[var(--crm-text-muted)]">{dossier.client}</span>
-                                                        <span className="mt-1 block text-[11px] text-[var(--crm-gold)]">{dossier.step}</span>
-                                                    </span>
-                                                    <span className="shrink-0 rounded-full bg-red-500/10 px-2 py-1 text-[11px] font-bold text-red-300">
-                                                        {dossier.daysStuck}d
-                                                    </span>
-                                                </button>
-                                            ))}
+                                                return (
+                                                    <Tooltip key={link.label} delay={450}>
+                                                        <Tooltip.Trigger><AppButton isIconOnly size="sm" variant="ghost" className="size-7 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--accent)]" onPress={() => openQuickAction(link.label, link.href)} aria-label={link.label}><Icon size={14} /></AppButton></Tooltip.Trigger>
+                                                        <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">{link.label}</Tooltip.Content>
+                                                    </Tooltip>
+                                                );
+                                            })}
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="crm-panel-flat p-4">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-2">
-                                                <CheckCircle2 size={14} className="text-emerald-400" />
-                                                <h2 className="text-sm font-semibold">Blocked dossiers</h2>
-                                            </div>
-                                        </div>
-                                        <p className="mt-2 text-xs text-[var(--crm-text-muted)]">No dossiers stuck for more than 7 days.</p>
-                                    </div>
-                                )}
-
-                                <div className="crm-panel-flat overflow-hidden">
-                                    <div className="flex items-center justify-between gap-3 border-b border-[var(--crm-border)] px-5 py-4">
-                                        <h2 className="text-sm font-semibold">System health</h2>
-                                    </div>
-
-                                    <div className="grid gap-2 p-4 sm:grid-cols-2">
-                                        {systemHealth.map((item) => (
-                                            <div key={item.label} className="flex items-center gap-3 rounded-[var(--crm-radius-md)] border border-[var(--crm-border)] bg-[var(--crm-surface)] p-3">
-                                                <IconTile icon={item.icon} tone={item.tone} />
-                                                <div className="min-w-0">
-                                                    <p className="truncate text-xs text-[var(--crm-text-muted)]">{item.label}</p>
-                                                    <p className="truncate text-sm font-semibold">{item.value}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
                                 </div>
-                            </section>
-                        </main>
+                            </Card.Content>
+                        </Card>
+                    ) : null}
 
-                        <aside className="crm-right-panel min-w-0 space-y-[var(--crm-page-gap)]">
-                            <div className="crm-panel-flat overflow-hidden">
-<div className="flex items-center justify-between gap-3 border-b border-[var(--crm-border)] px-5 py-4">
-                                        <h2 className="text-sm font-semibold">Activity feed</h2>
-                                    <button type="button" className="text-xs font-semibold text-[var(--crm-gold)]">View all</button>
-                                </div>
+                    <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.25fr)_300px]">
+                        <Card className="gap-0 self-start overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                            <PanelTitle title="File d action" detail="Apres le focus actuel" action={<ListChecks size={15} className="text-[var(--accent)]" />} />
+                            <Card.Content className="divide-y divide-[var(--border)] p-0">
+                                {queuedActions.map((action) => (
+                                    <AppButton key={action.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-3 py-3 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(action.href)}>
+                                        <span className="flex min-w-0 flex-1 items-center gap-2.5"><DashboardIcon icon={action.icon} tone={action.tone} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-[var(--foreground)]">{action.title}</span><span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{action.subtitle}</span></span><Chip size="sm" variant="soft" color={tones[action.tone].chip}>{action.due}</Chip></span>
+                                    </AppButton>
+                                ))}
+                            </Card.Content>
+                        </Card>
 
-                                <div className="relative space-y-1 p-4">
-                                    <div className="absolute bottom-4 left-[31px] top-4 w-px bg-[var(--crm-border)]" />
+                        <Card className="gap-0 self-start overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                            <PanelTitle title="Pulse projets" detail="Dossiers recemment mis a jour" action={<AppButton size="sm" variant="ghost" className="h-7 px-2 text-xs text-[var(--accent)]" onPress={() => navigate('/dossiers')}>Tout voir</AppButton>} />
+                            <Card.Content className="divide-y divide-[var(--border)] p-0">
+                                {recentProjects.length > 0 ? recentProjects.slice(0, 5).map((project) => (
+                                    <AppButton key={project.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-3 py-3 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(project.href)}>
+                                        <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-3"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--foreground)]">{project.project}</span><span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{project.dossierNumber} / {project.client}</span><span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{project.location}</span></span><span className="flex shrink-0 items-center gap-2"><Chip size="sm" variant="soft" color={project.missingDocs > 0 ? 'warning' : 'success'}>{project.missingDocs} docs</Chip><ChevronRight size={15} className="text-[var(--text-muted)]" /></span></span>
+                                    </AppButton>
+                                )) : <div className="px-4 py-9 text-center text-sm text-[var(--text-muted)]">Aucun projet recent.</div>}
+                            </Card.Content>
+                        </Card>
 
-                                    {activityFeed.map((activity) => (
-                                        <div key={activity.id} className="relative flex gap-3 rounded-[var(--crm-radius-md)] p-2 transition hover:bg-[var(--crm-surface-2)]">
-                                            <span className={`relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full ${toneClasses[activity.tone].soft} ${toneClasses[activity.tone].text}`}>
-                                                {(() => {
-                                                    const Icon = iconMap[activity.icon] ?? FolderKanban;
-                                                    return <Icon size={15} />;
-                                                })()}
-                                            </span>
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-semibold">{activity.title}</p>
-                                                <p className="mt-1 text-xs leading-5 text-[var(--crm-text-muted)]">{activity.description}</p>
-                                                <p className="mt-1 text-[11px] text-[var(--crm-text-soft)]">{activity.time}</p>
-                                            </div>
-                                        </div>
+                        <Card className="gap-0 self-start overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                            <PanelTitle title="Vigilance" detail="Risques a traiter" action={blockedDossiers.length > 0 || urgentTaskList.length > 0 ? <AlertTriangle size={15} className="text-[var(--danger)]" /> : <CheckCircle2 size={15} className="text-[var(--success)]" />} />
+                            <Card.Content className="divide-y divide-[var(--border)] p-0">
+                                {blockedDossiers.slice(0, 2).map((dossier) => (
+                                    <AppButton key={dossier.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-3 py-3 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(dossier.href)}><span className="flex min-w-0 flex-1 items-center justify-between gap-2"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--foreground)]">{dossier.project}</span><span className="block truncate text-[11px] text-[var(--text-muted)]">{dossier.client}</span></span><Chip size="sm" variant="soft" color="danger">{dossier.daysStuck} j</Chip></span></AppButton>
+                                ))}
+                                {urgentTaskList.slice(0, 2).map((task) => (
+                                    <AppButton key={task.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-3 py-3 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(`/tasks?task=${task.id}`)}><span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-2"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--foreground)]">{task.title}</span><span className="block truncate text-[11px] text-[var(--text-muted)]">{task.taskNumber}</span></span><Chip size="sm" variant="soft" color={task.isOverdue ? 'danger' : 'warning'}>{task.isOverdue ? 'Retard' : 'Urgent'}</Chip></span></AppButton>
+                                ))}
+                                {blockedDossiers.length === 0 && urgentTaskList.length === 0 ? <div className="flex items-center gap-2 px-3 py-7 text-sm text-[var(--text-muted)]"><CheckCircle2 size={17} className="text-[var(--success)]" /> Tout est stable.</div> : null}
+                            </Card.Content>
+                        </Card>
+                    </div>
+
+                    <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                        <Card.Content className="grid min-w-0 divide-y divide-[var(--border)] lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+                            <section className="min-w-0">
+                                <PanelTitle title="Finance" detail="Encaissements et relances" action={<ReceiptText size={15} className="text-[var(--accent)]" />} />
+                                <div className="divide-y divide-[var(--border)]">
+                                    {financeAlerts.map((alert) => (
+                                        <AppButton key={alert.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-4 py-2.5 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(alert.href)}><span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-2"><span className="min-w-0"><span className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]"><span className={`size-1.5 shrink-0 rounded-full ${tones[alert.tone].dot}`} /><span className="truncate">{alert.title}</span></span><span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{alert.subtitle}</span></span><span className={`self-center text-sm font-semibold ${tones[alert.tone].text}`}>{alert.amount}</span></span></AppButton>
                                     ))}
                                 </div>
-                            </div>
+                            </section>
 
-                            <div className="crm-panel-flat overflow-hidden">
-                                <div className="flex items-center justify-between gap-3 border-b border-[var(--crm-border)] px-5 py-4">
-                                    <h2 className="text-sm font-semibold">Urgent tasks</h2>
-                                    <button type="button" className="text-xs font-semibold text-[var(--crm-gold)]" onClick={() => goTo('/tasks')}>View all</button>
+                            <section className="min-w-0">
+                                <PanelTitle title="Avancement" detail="Repartition des dossiers actifs" />
+                                <div className="space-y-2.5 px-4 py-3">
+                                    {workflowDistribution.filter((step) => step.count > 0).length > 0 ? workflowDistribution.filter((step) => step.count > 0).map((step) => {
+                                        const value = Math.round((step.count / maxWorkflowCount) * 100);
+
+                                        return <div key={step.key}><div className="mb-1 flex items-center justify-between gap-3 text-[11px]"><span className="truncate font-medium text-[var(--foreground)]">{step.label}</span><span className="shrink-0 text-[var(--text-muted)]">{step.count}</span></div><ProgressBar value={value} aria-label={step.label} className="w-full"><ProgressBar.Track className="h-1.5 rounded-full bg-[var(--surface-2)]"><ProgressBar.Fill className="rounded-full bg-[var(--accent)]" /></ProgressBar.Track></ProgressBar></div>;
+                                    }) : <p className="py-4 text-center text-sm text-[var(--text-muted)]">Aucun dossier actif.</p>}
                                 </div>
+                            </section>
 
-                                {urgentTaskList.length > 0 ? (
-                                    <div className="divide-y divide-[var(--crm-border)]">
-                                        {urgentTaskList.map((t) => (
-                                            <button key={t.id} type="button" onClick={() => goTo(`/tasks?task=${t.id}`)}
-                                                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-[var(--crm-surface-2)]">
-                                                <span className="min-w-0 flex-1">
-                                                    <span className="flex items-center gap-2">
-                                                        {t.isOverdue ? <span className="size-1.5 shrink-0 rounded-full bg-red-400" /> : null}
-                                                        <span className="truncate text-sm font-semibold">{t.title}</span>
-                                                    </span>
-                                                    <span className="block truncate text-xs text-[var(--crm-text-muted)]">{t.taskNumber}</span>
-                                                </span>
-                                                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.priority === 'urgent' ? 'bg-red-500/10 text-red-300' : 'bg-yellow-500/10 text-yellow-300'}`}>
-                                                    {t.isOverdue ? 'Overdue' : 'Urgent'}
-                                                </span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="p-4">
-                                        <p className="text-xs text-[var(--crm-text-muted)]">No urgent tasks assigned to you.</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="crm-panel-flat overflow-hidden">
-                                <div className="flex items-center justify-between gap-3 border-b border-[var(--crm-border)] px-5 py-4">
-                                    <h2 className="text-sm font-semibold">Recent messages</h2>
-                                    <button type="button" className="text-xs font-semibold text-[var(--crm-gold)]" onClick={() => goTo('/inbox')}>Open inbox</button>
+                            <section className="min-w-0">
+                                <PanelTitle title="Mises a jour" detail="Messages et activite" action={<AppButton size="sm" variant="ghost" className="h-7 px-2 text-xs text-[var(--accent)]" onPress={() => navigate('/inbox')}>Inbox</AppButton>} />
+                                <div className="divide-y divide-[var(--border)]">
+                                    {recentMessageList.slice(0, 2).map((message) => (
+                                        <AppButton key={message.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-4 py-2.5 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(`/inbox?conversation=${message.conversationId}`)}><span className="flex min-w-0 flex-1 items-start gap-2.5"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-bold text-black">{message.sender.charAt(0).toUpperCase()}</span><span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate text-sm font-semibold text-[var(--foreground)]">{message.sender}</span>{message.unread ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent)]" /> : null}</span><span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{message.body}</span></span></span></AppButton>
+                                    ))}
+                                    {activityFeed.slice(0, 2).map((activity) => <div key={activity.id} className="flex min-w-0 gap-2.5 px-4 py-2.5"><DashboardIcon icon={activity.icon} tone={activity.tone} /><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--foreground)]">{activity.title}</p><p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">{activity.description}</p></div></div>)}
+                                    {recentMessageList.length === 0 && activityFeed.length === 0 ? <div className="px-4 py-7 text-center text-sm text-[var(--text-muted)]">Aucune mise a jour recente.</div> : null}
                                 </div>
-
-                                {recentMessageList.length > 0 ? (
-                                    <div className="divide-y divide-[var(--crm-border)]">
-                                        {recentMessageList.map((m) => (
-                                            <button key={m.id} type="button" onClick={() => goTo(`/inbox?conversation=${m.conversationId}`)}
-                                                className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-[var(--crm-surface-2)]">
-                                                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold)] text-[10px] font-bold text-black">
-                                                    {m.sender.charAt(0).toUpperCase()}
-                                                </span>
-                                                <span className="min-w-0 flex-1">
-                                                    <span className="flex items-center gap-2">
-                                                        <span className="truncate text-sm font-semibold">{m.sender}</span>
-                                                        {m.unread ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--crm-gold)]" /> : null}
-                                                    </span>
-                                                    <span className="block truncate text-xs text-[var(--crm-text-muted)]">{m.body}</span>
-                                                    <span className="mt-0.5 block text-[11px] text-[var(--crm-text-soft)]">{m.createdAt}</span>
-                                                </span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="p-4">
-                                        <p className="text-xs text-[var(--crm-text-muted)]">No recent messages.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </aside>
-                    </div>
+                            </section>
+                        </Card.Content>
+                    </Card>
                 </section>
+                <DashboardClientActionDrawer isOpen={clientDrawerOpen} onOpenChange={setClientDrawerOpen} />
             </AppShell>
         </>
     );

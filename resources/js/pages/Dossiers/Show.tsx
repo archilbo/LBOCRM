@@ -358,7 +358,6 @@ export default function DossierShow({
         { label: 'Contract', icon: <FileText size={14} />, action: () => { setEditContract(null); setContractDrawerOpen(true); } },
         { label: 'Finance', icon: <BadgeDollarSign size={14} />, action: () => setFinanceDrawerOpen(true) },
     ];
-
     return (
         <>
             <Head title={dossier.dossierNumber} />

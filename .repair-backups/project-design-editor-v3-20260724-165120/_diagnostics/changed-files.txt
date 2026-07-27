@@ -1,0 +1,9 @@
+﻿resources/js/features/dossiers/components/DesignAnnotationLayer.tsx
+resources/js/features/dossiers/components/DesignFileViewer.tsx
+resources/js/features/dossiers/components/DesignInspector.tsx
+resources/js/features/dossiers/components/DesignViewerTabs.tsx
+resources/js/features/dossiers/components/PdfDesignViewer.tsx
+resources/js/features/project-design/components/ProjectDesignEditorLayout.tsx
+resources/js/features/project-design/components/ProjectDesignEditorToolbar.tsx
+resources/js/features/project-design/components/ProjectDesignTabContent.tsx
+resources/js/features/project-design/viewer/useProjectDesignViewerController.ts

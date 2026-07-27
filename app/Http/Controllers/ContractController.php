@@ -208,16 +208,31 @@ class ContractController extends Controller
     public function print(Contract $contract): BinaryFileResponse|RedirectResponse
     {
         try {
-            if (!$this->ensurePdfExists($contract)) {
+            if (! $this->ensurePdfExists($contract) || ! $contract->pdf_path) {
                 return redirect()
                     ->route('contracts.index')
                     ->with('error', 'Fichier PDF introuvable.');
             }
 
-            return response()->file(Storage::disk('public')->path($contract->pdf_path), [
-                'Content-Disposition' => 'inline; filename="' . $contract->contract_number . '-contract.pdf"',
+            $absolutePath = Storage::disk('local')->path($contract->pdf_path);
+
+            if (! is_file($absolutePath)) {
+                return redirect()
+                    ->route('contracts.index')
+                    ->with('error', 'Fichier PDF introuvable.');
+            }
+
+            return response()->file($absolutePath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => sprintf(
+                    'inline; filename="%s-contrat.pdf"',
+                    $contract->contract_number
+                ),
+                'Cache-Control' => 'private, no-store, max-age=0',
             ]);
         } catch (\Throwable $e) {
+            report($e);
+
             return redirect()
                 ->route('contracts.index')
                 ->with('error', 'Impression impossible: ' . $e->getMessage());
@@ -283,7 +298,7 @@ class ContractController extends Controller
             $contract->refresh();
         }
 
-        if (!$contract->pdf_path || !Storage::disk('public')->exists($contract->pdf_path)) {
+        if (! $contract->pdf_path || ! Storage::disk('local')->exists($contract->pdf_path)) {
             return redirect()
                 ->route('contracts.index')
                 ->with('error', 'Could not export PDF.');

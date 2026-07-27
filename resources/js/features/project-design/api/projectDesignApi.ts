@@ -1,6 +1,6 @@
 import type {
     ProjectDesignSummary, ProjectDesignFolder, ProjectDesignFile, ProjectDesignVersion,
-    ProjectDesignReview, ProjectDesignRemark, ProjectDesignActivity, ProjectDesignAnnotation,
+    ProjectDesignReview, ProjectDesignRemark, ProjectDesignRemarkUpdate, ProjectDesignActivity, ProjectDesignAnnotation,
 } from '../types/projectDesign';
 
 export class ProjectDesignApiError extends Error {
@@ -71,8 +71,9 @@ export const projectDesignApi = {
         return request<ProjectDesignSummary>(pdUrl(dossierId, 'summary'), { signal });
     },
 
-    getFolders(dossierId: number, signal?: AbortSignal): Promise<ProjectDesignFolder[]> {
-        return request<ProjectDesignFolder[]>(pdUrl(dossierId, 'folders'), { signal });
+    async getFolders(dossierId: number, signal?: AbortSignal): Promise<ProjectDesignFolder[]> {
+        const response = await request<ProjectDesignFolder[] | { data: ProjectDesignFolder[] }>(pdUrl(dossierId, 'folders'), { signal });
+        return Array.isArray(response) ? response : response.data;
     },
 
     createFolder(dossierId: number, name: string): Promise<ProjectDesignFolder> {
@@ -82,7 +83,14 @@ export const projectDesignApi = {
         });
     },
 
-    getFiles(dossierId: number, params: Record<string, string | number | undefined>, signal?: AbortSignal): Promise<{
+    updateFolder(dossierId: number, folderId: number, data: { name?: string; parent_id?: number | null }): Promise<ProjectDesignFolder> {
+        return request<ProjectDesignFolder>(pdUrl(dossierId, `folders/${folderId}`), {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    async getFiles(dossierId: number, params: Record<string, string | number | undefined>, signal?: AbortSignal): Promise<{
         data: ProjectDesignFile[];
         current_page: number;
         last_page: number;
@@ -93,11 +101,39 @@ export const projectDesignApi = {
             if (v !== undefined && v !== '' && v !== null) qs.set(k, String(v));
         }
         const url = `${pdUrl(dossierId, 'files')}?${qs.toString()}`;
-        return request(url, { signal });
+        const response = await request<{
+            data: ProjectDesignFile[];
+            current_page?: number;
+            last_page?: number;
+            total?: number;
+            meta?: { current_page: number; last_page: number; total: number };
+        }>(url, { signal });
+
+        return {
+            data: response.data,
+            current_page: response.current_page ?? response.meta?.current_page ?? 1,
+            last_page: response.last_page ?? response.meta?.last_page ?? 1,
+            total: response.total ?? response.meta?.total ?? response.data.length,
+        };
     },
 
     getFile(dossierId: number, fileId: number, signal?: AbortSignal): Promise<ProjectDesignFile> {
         return request<ProjectDesignFile>(pdUrl(dossierId, `files/${fileId}`), { signal });
+    },
+
+    updateFile(dossierId: number, fileId: number, data: {
+        name?: string;
+        code?: string | null;
+        description?: string | null;
+        discipline?: string | null;
+        category?: string | null;
+        folder_id?: number | null;
+        record_version: number;
+    }): Promise<ProjectDesignFile> {
+        return request<ProjectDesignFile>(pdUrl(dossierId, `files/${fileId}`), {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
     },
 
     archiveFile(dossierId: number, fileId: number): Promise<void> {
@@ -205,9 +241,7 @@ export const projectDesignApi = {
         );
     },
 
-    updateRemark(dossierId: number, remarkId: number, data: Partial<{
-        severity: string; status: string; title: string; description: string; assigned_to: number; due_date: string;
-    }>): Promise<ProjectDesignRemark> {
+    updateRemark(dossierId: number, remarkId: number, data: ProjectDesignRemarkUpdate): Promise<ProjectDesignRemark> {
         return request<ProjectDesignRemark>(
             pdUrl(dossierId, `remarks/${remarkId}`),
             { method: 'PUT', body: JSON.stringify(data) },

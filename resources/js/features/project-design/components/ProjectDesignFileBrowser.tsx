@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     Button,
     Input,
@@ -24,6 +25,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useFolders, useFiles } from '../hooks/useProjectDesignQueries';
+import { projectDesignApi } from '../api/projectDesignApi';
+import { projectDesignKeys } from '../api/projectDesignKeys';
 import {
     ProjectDesignFolderTree,
     type ProjectDesignTreeCommand,
@@ -31,6 +34,8 @@ import {
 import { DesignUploadDrawer } from '@/features/dossiers/components/DesignUploadDrawer';
 import { NewFolderModal } from './ProjectDesignNewFolderModal';
 import type { ProjectDesignFile } from '../types/projectDesign';
+import type { ProjectDesignFolder } from '../types/projectDesign';
+import { toast } from 'sonner';
 
 const DISCIPLINE_OPTIONS = [
     { id: 'architecture', label: 'Architecture' },
@@ -135,6 +140,7 @@ export function ProjectDesignFileBrowser({
     selectedFileId: number | null;
     portalContainer?: HTMLElement | null;
 }) {
+    const queryClient = useQueryClient();
     const [uploadOpen, setUploadOpen] = useState(false);
     const [newFolderOpen, setNewFolderOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -167,6 +173,40 @@ export function ProjectDesignFileBrowser({
     }), [filesData]);
     const hasFilters = Boolean(search || discipline || status || sort !== 'name');
     const refreshing = foldersRefreshing || filesRefreshing;
+
+    const refreshExplorer = useCallback(async () => {
+        await queryClient.invalidateQueries({ queryKey: projectDesignKeys.all(dossierId) });
+    }, [dossierId, queryClient]);
+
+    const renameFile = useCallback(async (file: ProjectDesignFile, name: string) => {
+        await projectDesignApi.updateFile(dossierId, file.id, {
+            name,
+            record_version: file.recordVersion,
+        });
+        await refreshExplorer();
+        toast.success('File renamed.');
+    }, [dossierId, refreshExplorer]);
+
+    const renameFolder = useCallback(async (folder: ProjectDesignFolder, name: string) => {
+        await projectDesignApi.updateFolder(dossierId, folder.id, { name });
+        await refreshExplorer();
+        toast.success('Folder renamed.');
+    }, [dossierId, refreshExplorer]);
+
+    const moveFile = useCallback(async (file: ProjectDesignFile, folderId: number | null) => {
+        await projectDesignApi.updateFile(dossierId, file.id, {
+            folder_id: folderId,
+            record_version: file.recordVersion,
+        });
+        await refreshExplorer();
+        toast.success(folderId ? 'File moved.' : 'File moved to the project root.');
+    }, [dossierId, refreshExplorer]);
+
+    const moveFolder = useCallback(async (folder: ProjectDesignFolder, parentId: number | null) => {
+        await projectDesignApi.updateFolder(dossierId, folder.id, { parent_id: parentId });
+        await refreshExplorer();
+        toast.success(parentId ? 'Folder moved.' : 'Folder moved to the project root.');
+    }, [dossierId, refreshExplorer]);
 
     function issueTreeCommand(type: ProjectDesignTreeCommand['type']) {
         setTreeCommand({ type, key: Date.now() });
@@ -279,6 +319,10 @@ export function ProjectDesignFileBrowser({
                         files={files}
                         selectedFileId={selectedFileId}
                         onFileSelect={onFileSelect}
+                        onRenameFile={renameFile}
+                        onRenameFolder={renameFolder}
+                        onMoveFile={moveFile}
+                        onMoveFolder={moveFolder}
                         command={treeCommand}
                     />
                 )}

@@ -1,23 +1,26 @@
 import { Head, router } from '@inertiajs/react';
 import {
-    ArrowLeft, CheckCircle2, FileText, FolderKanban, Mail, MapPin, Phone, Pencil, Plus, Trash2,
+    ArrowLeft, CheckCircle2, Download, Eye, FileText, FolderKanban, FolderOpen, Mail, MapPin, Phone, Pencil, Plus, Printer, Trash2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
+import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
 import { AppModal } from '@/components/ui/AppModal';
+import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
-import type { ClientFormPayload, ClientRow, ClientStatus, ClientWorkspace } from '@/features/clients/types';
+import type { ClientFormPayload, ClientProjectDocument, ClientRow, ClientStatus, ClientWorkspace } from '@/features/clients/types';
 import type { DossierWorkflowRequirement, DossierWorkflowStep } from '@/features/clients/types';
 import type { DossierFormPayload } from '@/features/dossiers/types';
-import type { FinanceDocumentType } from '@/features/finance/types';
+import type { FinanceDocument, FinanceDocumentType, FinanceSettings, TemplateOption } from '@/features/finance/types';
 import { ClientDrawer } from '@/components/drawers';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
-import { FinanceDocumentBuilderDrawer } from '@/components/drawers';
+import { FinanceDocumentBuilderDrawer, PaymentDrawer } from '@/components/drawers';
+import type { FinanceDocumentActionHandlers } from '@/features/finance/components/FinanceDocumentActions';
 import { AppWorkflowStepper, type WorkflowRequirementActionContext } from '@/components/ui/AppWorkflowStepper';
 import { DocumentDrawer } from '@/components/drawers';
 import type { DocumentUploadPayload } from '@/features/documents/types';
@@ -25,6 +28,7 @@ import { ContractDrawer } from '@/components/drawers';
 import type { ContractFormPayload, ContractClientOption, ContractDossierOption } from '@/features/contracts/types';
 import { AuthorizationDrawer } from '@/features/clients/components/AuthorizationDrawer';
 import { ClientArchivesCard } from '@/features/clients/components/ClientArchivesCard';
+import { ClientFinanceTab } from '@/features/clients/components/ClientFinanceTab';
 import { ConfirmActionModal } from '@/features/clients/components/ConfirmActionModal';
 import { getRequirementActionType, getStepActionType, getModuleRoute } from '@/features/clients/components/workflowActionTypes';
 import type { FormErrors } from '@/lib/formErrors';
@@ -58,6 +62,8 @@ type PageProps = {
     workspace: ClientWorkspace;
     intermediaries: { id: string; label: string }[];
     documentTemplates: { id: string; label: string; type?: string | null }[];
+    financeTemplates: TemplateOption[];
+    financeSettings: FinanceSettings;
     tab?: string;
 };
 
@@ -97,7 +103,7 @@ const TABS: { id: TabId; labelKey: string }[] = [
     { id: 'activity', labelKey: 'clients.show.activity' },
 ];
 
-export default function ClientShow({ client, dossiers, workspace,cities, intermediaries, documentTemplates, tab }: PageProps) {
+export default function ClientShow({ client, dossiers, workspace,cities, intermediaries, documentTemplates, financeTemplates, financeSettings, tab }: PageProps) {
     const { t } = useTranslation();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -117,7 +123,15 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
     const [projectFormErrors, setProjectFormErrors] = useState<FormErrors>({});
     const [financeDrawerOpen, setFinanceDrawerOpen] = useState(false);
     const [financeDrawerType, setFinanceDrawerType] = useState<FinanceDocumentType>('quote');
+    const [financeDrawerMode, setFinanceDrawerMode] = useState<'create' | 'edit'>('create');
+    const [financeEditDocument, setFinanceEditDocument] = useState<FinanceDocument | null>(null);
+    const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false);
+    const [paymentInvoice, setPaymentInvoice] = useState<FinanceDocument | null>(null);
+    const [financeDeleteTarget, setFinanceDeleteTarget] = useState<FinanceDocument | null>(null);
     const [standaloneUploadOpen, setStandaloneUploadOpen] = useState(false);
+    const [replaceTarget, setReplaceTarget] = useState<ClientProjectDocument | null>(null);
+    const [documentDeleteTarget, setDocumentDeleteTarget] = useState<ClientProjectDocument | null>(null);
+    const [isDocumentDeleting, setIsDocumentDeleting] = useState(false);
 
     const [confirmActionOpen, setConfirmActionOpen] = useState(false);
     const [confirmActionConfig, setConfirmActionConfig] = useState<{
@@ -153,6 +167,21 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
 
     const activeProjects = projects.filter((p) => p.status === 'opened' || p.status === 'active').length;
     const totalDocuments = selectedProject?.documents?.length ?? dossiers.length;
+
+    function openDocumentWindow(url: string | null, unavailableMessage: string) {
+        if (!url) {
+            toast.error(unavailableMessage);
+            return;
+        }
+
+        const link = window.document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        window.document.body.append(link);
+        link.click();
+        link.remove();
+    }
 
     function openEditDrawer() {
         setDrawerMode('edit');
@@ -308,6 +337,96 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
         router.reload({ only: ['dossiers', 'workspace'], preserveScroll: true });
     }
 
+    function openFinanceCreate(type: FinanceDocumentType) {
+        setFinanceEditDocument(null);
+        setFinanceDrawerMode('create');
+        setFinanceDrawerType(type);
+        setFinanceDrawerOpen(true);
+    }
+
+    function openFinanceEdit(document: FinanceDocument) {
+        setFinanceEditDocument(document);
+        setFinanceDrawerMode('edit');
+        setFinanceDrawerType(document.type);
+        setFinanceDrawerOpen(true);
+    }
+
+    function runFinancePut(document: FinanceDocument, url: string | null | undefined, success: string, error: string) {
+        if (!url) {
+            toast.error('Action indisponible pour ce document.');
+            return;
+        }
+
+        router.put(url, {}, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                toast.success(success);
+                afterCreateReload();
+            },
+            onError: () => toast.error(error),
+        });
+    }
+
+    function runFinanceConvert(document: FinanceDocument) {
+        if (!document.convertToInvoiceUrl) {
+            toast.error('Conversion indisponible pour ce devis.');
+            return;
+        }
+
+        router.post(document.convertToInvoiceUrl, { return_to: `${window.location.pathname}${window.location.search}` }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                toast.success('Facture créée à partir du devis.');
+                afterCreateReload();
+            },
+            onError: () => toast.error('Impossible de convertir le devis.'),
+        });
+    }
+
+    function confirmFinanceDelete() {
+        if (!financeDeleteTarget?.deleteUrl) return;
+
+        router.delete(financeDeleteTarget.deleteUrl, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                toast.success('Document supprimé.');
+                setFinanceDeleteTarget(null);
+                afterCreateReload();
+            },
+            onError: () => toast.error('Impossible de supprimer le document.'),
+        });
+    }
+
+    const financeDocumentActions: FinanceDocumentActionHandlers = {
+        onOpen: (document) => {
+            if (!document.showUrl) {
+                toast.error('Impossible d’ouvrir la fiche du document.');
+                return;
+            }
+
+            router.visit(document.showUrl, { preserveScroll: true });
+        },
+        onEdit: openFinanceEdit,
+        onPreview: (document) => openDocumentWindow(document.viewUrl, 'Impossible d’ouvrir l’aperçu du document.'),
+        onPrint: (document) => openDocumentWindow(document.printUrl, 'Impossible d’imprimer le document.'),
+        onDownloadPdf: (document) => openDocumentWindow(document.pdfDownloadUrl, 'Aucun PDF généré pour ce document.'),
+        onDownloadExcel: (document) => openDocumentWindow(document.excelDownloadUrl || document.downloadUrl, 'Aucun fichier Excel généré pour ce document.'),
+        onGeneratePdf: (document) => runFinancePut(document, document.generatePdfUrl, 'PDF généré.', 'Génération PDF impossible.'),
+        onGenerateExcel: (document) => runFinancePut(document, document.generateExcelUrl, 'Excel généré.', 'Génération Excel impossible.'),
+        onAccept: (document) => runFinancePut(document, document.acceptUrl, 'Devis accepté.', 'Impossible d’accepter le devis.'),
+        onReject: (document) => runFinancePut(document, document.rejectUrl, 'Devis refusé.', 'Impossible de refuser le devis.'),
+        onConvert: runFinanceConvert,
+        onPayment: (document) => {
+            setPaymentInvoice(document);
+            setPaymentDrawerOpen(true);
+        },
+        onCancel: (document) => runFinancePut(document, document.cancelUrl, 'Document annulé.', 'Annulation impossible.'),
+        onDelete: setFinanceDeleteTarget,
+    };
+
     const [isDocUploading, setIsDocUploading] = useState(false);
     const contractClients: ContractClientOption[] = useMemo(() => [{
         id: String(client.id),
@@ -361,19 +480,49 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
     function handleDocumentUpload(payload: DocumentUploadPayload) {
         setIsDocUploading(true);
         const formData = new FormData();
-        formData.append('dossier_id', payload.dossierId);
-        formData.append('document_template_id', payload.documentTemplateId || '');
         formData.append('status', payload.status || 'uploaded');
         formData.append('notes', payload.notes || '');
-        formData.append('return_to', window.location.pathname);
-        if (uploadStepKey) formData.append('workflow_step_key', uploadStepKey);
-        if (uploadRequirementKey) formData.append('workflow_req_key', uploadRequirementKey);
         if (payload.file) formData.append('file', payload.file);
-        router.post('/documents', formData, {
+        const isReplacement = replaceTarget !== null;
+
+        if (!isReplacement) {
+            formData.append('dossier_id', payload.dossierId);
+            formData.append('document_template_id', payload.documentTemplateId || '');
+            formData.append('return_to', window.location.pathname);
+            if (uploadStepKey) formData.append('workflow_step_key', uploadStepKey);
+            if (uploadRequirementKey) formData.append('workflow_req_key', uploadRequirementKey);
+        }
+
+        router.post(isReplacement ? `/documents/${replaceTarget.id}/replace` : '/documents', formData, {
             forceFormData: true,
             preserveScroll: true,
-            onSuccess: () => { setUploadDrawerOpen(false); setStandaloneUploadOpen(false); setIsDocUploading(false); toast.success('Document uploaded.'); },
-            onError: () => { setIsDocUploading(false); toast.error('Please check document form errors.'); },
+            onSuccess: () => {
+                setUploadDrawerOpen(false);
+                setStandaloneUploadOpen(false);
+                setReplaceTarget(null);
+                setIsDocUploading(false);
+                toast.success(isReplacement ? t('clients.show.documentReplaced') : 'Document uploaded.');
+            },
+            onError: () => {
+                setIsDocUploading(false);
+                toast.error(isReplacement ? t('clients.show.documentActionFailed') : 'Please check document form errors.');
+            },
+        });
+    }
+
+    function confirmDocumentDelete() {
+        if (!documentDeleteTarget) return;
+
+        setIsDocumentDeleting(true);
+        router.delete(`/documents/${documentDeleteTarget.id}`, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                setDocumentDeleteTarget(null);
+                toast.success(t('clients.show.documentDeleted'));
+            },
+            onError: () => toast.error(t('clients.show.documentActionFailed')),
+            onFinish: () => setIsDocumentDeleting(false),
         });
     }
 
@@ -503,7 +652,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                                         <Plus size={14} /> New contract
                                     </AppButton>
                                 ) : null}
-                                <AppButton variant="bordered" size="sm" onPress={() => { setFinanceDrawerType('quote'); setFinanceDrawerOpen(true); }}>
+                                <AppButton variant="bordered" size="sm" onPress={() => openFinanceCreate('quote')}>
                                     <Plus size={14} /> New finance
                                 </AppButton>
                                 {projects.length > 0 ? (
@@ -928,7 +1077,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                                     <p className="mb-4 text-[11px] text-[var(--text-muted)]">{t('clients.show.projectDocumentsDesc')}</p>
                                     <div className="space-y-2">
                                         {selectedProject.documents.map((doc) => (
-                                            <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5">
+                                            <div key={doc.id} className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-3 sm:flex-row sm:items-center">
                                                 <span className={cn(
                                                     'flex size-8 shrink-0 items-center justify-center rounded-lg',
                                                     doc.status === 'verified' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-[var(--surface-3)] text-[var(--text-subtle)]',
@@ -937,15 +1086,66 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                                                 </span>
                                                 <div className="min-w-0 flex-1">
                                                     <p className="text-[13px] font-medium text-[var(--foreground)]">{doc.name}</p>
-                                                    {doc.uploadedAt && <p className="text-[11px] text-[var(--text-muted)]">{doc.uploadedAt}</p>}
+                                                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--text-muted)]">
+                                                        {doc.documentNumber && <span>{doc.documentNumber}</span>}
+                                                        {doc.uploadedAt && <span>{doc.uploadedAt}</span>}
+                                                        {doc.sizeLabel && doc.sizeLabel !== '-' && <span>{doc.sizeLabel}</span>}
+                                                        {doc.storageLocation && (
+                                                            <span className="inline-flex items-center gap-1 text-[var(--text-subtle)]" title={doc.storageLocation}>
+                                                                <FolderOpen size={12} /> {t('clients.show.storageLocation')}: {doc.storageLocation}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <span className={cn(
-                                                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium',
-                                                    doc.status === 'verified' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-[var(--surface-3)] text-[var(--text-subtle)]',
-                                                )}>
-                                                    {doc.status}
-                                                </span>
-                                                <span className="shrink-0 rounded-full bg-[var(--surface-3)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-subtle)]">{t('clients.show.projectDocumentLabel')}</span>
+                                                <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                                                    <span className={cn(
+                                                        'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                                                        doc.status === 'verified' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-[var(--surface-3)] text-[var(--text-subtle)]',
+                                                    )}>
+                                                        {doc.status}
+                                                    </span>
+                                                    <span className="rounded-full bg-[var(--surface-3)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-subtle)]">{t('clients.show.projectDocumentLabel')}</span>
+                                                    <div className="flex items-center gap-1 border-l border-[var(--border)] pl-2">
+                                                        <AppTableActionButton
+                                                            label={t('actions.view')}
+                                                            tone="view"
+                                                            isDisabled={!doc.canPreview}
+                                                            onPress={() => openDocumentWindow(doc.viewUrl, t('clients.show.previewUnavailable'))}
+                                                        >
+                                                            <Eye size={14} />
+                                                        </AppTableActionButton>
+                                                        <AppTableActionButton
+                                                            label={t('actions.print')}
+                                                            tone="view"
+                                                            isDisabled={!doc.canPreview}
+                                                            onPress={() => openDocumentWindow(doc.printUrl, t('clients.show.previewUnavailable'))}
+                                                        >
+                                                            <Printer size={14} />
+                                                        </AppTableActionButton>
+                                                        <AppTableActionButton
+                                                            label={t('actions.download')}
+                                                            tone="documents"
+                                                            isDisabled={!doc.hasFile}
+                                                            onPress={() => openDocumentWindow(doc.downloadUrl, t('clients.show.fileUnavailable'))}
+                                                        >
+                                                            <Download size={14} />
+                                                        </AppTableActionButton>
+                                                        <AppTableActionButton
+                                                            label={t('clients.show.replaceDocument')}
+                                                            tone="edit"
+                                                            onPress={() => setReplaceTarget(doc)}
+                                                        >
+                                                            <Pencil size={14} />
+                                                        </AppTableActionButton>
+                                                        <AppTableActionButton
+                                                            label={t('clients.show.deleteDocument')}
+                                                            tone="delete"
+                                                            onPress={() => setDocumentDeleteTarget(doc)}
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </AppTableActionButton>
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -967,17 +1167,19 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                     )}
 
                     {activeTab === 'finance' && (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <p className="text-[13px] font-semibold text-[var(--foreground)]">Finance</p>
-                                <AppButton variant="solid" color="primary" size="sm" onPress={() => { setFinanceDrawerType('quote'); setFinanceDrawerOpen(true); }}>
-                                    <Plus size={14} /> New finance item
-                                </AppButton>
-                            </div>
-                            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
-                                <AppEmptyState title={t('clients.show.noFinance')} description={t('clients.show.noFinanceDesc')} />
-                            </div>
-                        </div>
+                        <ClientFinanceTab
+                            project={selectedProject}
+                            onCreateDocument={openFinanceCreate}
+                            onCreatePayment={() => {
+                                setPaymentInvoice(null);
+                                setPaymentDrawerOpen(true);
+                            }}
+                            documentActions={financeDocumentActions}
+                            onOpenFinance={() => {
+                                if (!selectedProject) return;
+                                router.visit(`/finance/documents?dossier_id=${selectedProject.id}`);
+                            }}
+                        />
                     )}
 
                     {activeTab === 'notes' && (
@@ -1063,24 +1265,30 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                 {/* ── Finance document builder drawer ── */}
                 <FinanceDocumentBuilderDrawer
                     isOpen={financeDrawerOpen}
-                    onOpenChange={setFinanceDrawerOpen}
-                    mode="create"
+                    onOpenChange={(open) => {
+                        setFinanceDrawerOpen(open);
+                        if (!open) setFinanceEditDocument(null);
+                    }}
+                    mode={financeDrawerMode}
                     type={financeDrawerType}
+                    document={financeEditDocument}
                     clients={[{ id: String(client.id), label: client.fullName, cin: client.cin, address: client.address }]}
                     dossiers={dossierOptions}
-                    templates={[]}
-                    settings={{
-                        defaultTvaRate: 20,
-                        defaultCurrency: 'MAD',
-                        defaultPaymentTermsDays: 30,
-                        defaultQuoteValidityDays: 30,
-                        defaultUnitPriceM2: 900,
-                        defaultArchitectRate: 0.5,
-                        companyInfo: {},
-                        bankInfo: {},
-                    }}
+                    templates={financeTemplates}
+                    settings={financeSettings}
                     defaultClientId={String(client.id)}
                     onSaved={afterCreateReload}
+                />
+
+                <PaymentDrawer
+                    isOpen={paymentDrawerOpen}
+                    onOpenChange={(open) => {
+                        setPaymentDrawerOpen(open);
+                        if (!open) setPaymentInvoice(null);
+                    }}
+                    invoices={selectedProject?.financeDocuments.filter((document) => document.type === 'invoice') ?? []}
+                    invoice={paymentInvoice}
+                    clients={[{ id: String(client.id), label: client.fullName, cin: client.cin, address: client.address }]}
                 />
 
                 {/* ── Standalone upload document drawer ── */}
@@ -1092,6 +1300,21 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                     initialClientId={String(client.id)}
                     initialDossierId={selectedProject ? String(selectedProject.id) : dossiers[0] ? String(dossiers[0].id) : ''}
                     onOpenChange={setStandaloneUploadOpen}
+                    onSubmit={handleDocumentUpload}
+                    isSubmitting={isDocUploading}
+                />
+
+                <DocumentDrawer
+                    isOpen={!!replaceTarget}
+                    clients={[{ id: String(client.id), label: client.fullName }]}
+                    dossiers={dossierOptions}
+                    templates={[]}
+                    initialClientId={String(client.id)}
+                    initialDossierId={selectedProject ? String(selectedProject.id) : ''}
+                    initialStatus={replaceTarget?.status ?? 'uploaded'}
+                    lockProject
+                    mode="replace"
+                    onOpenChange={(open) => { if (!open) setReplaceTarget(null); }}
                     onSubmit={handleDocumentUpload}
                     isSubmitting={isDocUploading}
                 />
@@ -1134,6 +1357,35 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                         </AppButton>
                     </div>
                 </AppModal>
+
+                <AppModal
+                    isOpen={!!documentDeleteTarget}
+                    onOpenChange={(open) => { if (!open && !isDocumentDeleting) setDocumentDeleteTarget(null); }}
+                    title={t('clients.show.deleteDocumentTitle')}
+                    size="sm"
+                >
+                    <p className="mb-5 text-sm text-[var(--text-muted)]">
+                        {t('clients.show.deleteDocumentDescription')} <strong>{documentDeleteTarget?.name}</strong>
+                    </p>
+                    <div className="flex justify-end gap-2">
+                        <AppButton variant="bordered" onPress={() => setDocumentDeleteTarget(null)} isDisabled={isDocumentDeleting}>
+                            {t('clients.cancel')}
+                        </AppButton>
+                        <AppButton color="danger" variant="solid" onPress={confirmDocumentDelete} isLoading={isDocumentDeleting}>
+                            {t('actions.delete')}
+                        </AppButton>
+                    </div>
+                </AppModal>
+
+                <AppConfirmDialog
+                    isOpen={Boolean(financeDeleteTarget)}
+                    title="Supprimer le document financier ?"
+                    description={`La suppression de ${financeDeleteTarget?.number || 'ce document'} est définitive.`}
+                    confirmLabel="Supprimer"
+                    onConfirm={confirmFinanceDelete}
+                    onCancel={() => setFinanceDeleteTarget(null)}
+                    variant="danger"
+                />
             </AppShell>
         </>
     );

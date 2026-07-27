@@ -1,0 +1,4 @@
+﻿warning: in the working copy of 'app/Http/Controllers/ContractController.php', CRLF will be replaced by LF the next time Git touches it
+ app/Http/Controllers/ContractController.php | 23 +++++++++++++++++++----
+ resources/js/pages/Contracts/Index.tsx      |  4 ++--
+ 2 files changed, 21 insertions(+), 6 deletions(-)

@@ -4,7 +4,7 @@ import {
     AlertTriangle, CheckCircle2, Download, Eye, FileText, FolderKanban,
     MoreHorizontal, Search, Trash2, UploadCloud, X, XCircle,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, Chip, Dropdown } from '@heroui/react';
 import { AppShell } from '@/components/layout/AppShell';
@@ -66,6 +66,12 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
     const [deleteTarget, setDeleteTarget] = useState<DossierDocumentRow | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+
+    useEffect(() => {
+        if (new URLSearchParams(window.location.search).get('command') !== 'upload') return;
+        setDrawerOpen(true);
+        window.history.replaceState({}, '', window.location.pathname);
+    }, []);
 
     const statusOptions = useMemo(() => {
         const counts: Record<string, number> = {};

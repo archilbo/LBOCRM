@@ -9,6 +9,7 @@ import { Avatar, Button, Card, Chip, Dropdown } from '@heroui/react';
 import type { FormErrors } from '@/lib/formErrors';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
 import { ContractDrawer } from '@/components/drawers';
@@ -144,7 +145,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
         switch (action) {
             case 'preview': setPreviewContract(contract); break;
             case 'edit': openEditDrawer(contract); break;
-            case 'print': window.open(`/contracts/${contract.id}/print`, '_blank'); break;
+            case 'print': window.open(`/contracts/${contract.id}/print`, '_blank', 'noopener,noreferrer'); break;
             case 'mark-signed':
                 router.put(`/contracts/${contract.id}/signed`, {}, {
                     preserveScroll: true,
@@ -197,16 +198,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                 <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
                     {metricCards.map((card) => {
                         const Icon = card.icon;
-                        return (
-                            <Card key={card.label} className="gap-0 border border-[var(--border)] p-4 shadow-sm transition hover:shadow-md">
-                                <div className={cn('mb-2 flex size-9 items-center justify-center rounded-lg bg-[var(--surface-2)]', card.color || 'text-[var(--text-muted)]')}>
-                                    <Icon size={16} />
-                                </div>
-                                <p className="text-[11px] font-medium text-[var(--text-muted)]">{card.label}</p>
-                                <p className={cn('mt-0.5 text-2xl font-semibold text-[var(--foreground)]', card.color)}>{card.value}</p>
-                                <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{card.detail}</p>
-                            </Card>
-                        );
+                        return <AppKpiCard key={card.label} label={card.label} value={card.value} detail={card.detail} icon={<Icon size={16} className={card.color || 'text-[var(--text-muted)]'} />} valueClassName={card.color} />;
                     })}
                 </section>
 
@@ -611,7 +603,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                     </Button>
                                 ) : null}
                                 <span className="h-5 w-px bg-[var(--border)]" />
-                                <Button variant="bordered" size="sm" className="min-w-0 size-8 p-0 hover:bg-[var(--surface-3)]" onPress={() => { window.open(`/contracts/${previewContract.id}/print`, '_blank'); }} title="Imprimer">
+                                <Button variant="bordered" size="sm" className="min-w-0 size-8 p-0 hover:bg-[var(--surface-3)]" onPress={() => { window.open(`/contracts/${previewContract.id}/print`, '_blank', 'noopener,noreferrer'); }} title="Imprimer">
                                     <Printer size={13} />
                                 </Button>
                                 {previewContract.status !== 'signed' && (

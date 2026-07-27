@@ -1,5 +1,7 @@
-import { AlertTriangle, CalendarDays, CheckCircle2, Clock3, Flame, ListTodo, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, Clock3, ListTodo, ShieldAlert } from 'lucide-react';
 import { useMemo } from 'react';
+import { Card } from '@heroui/react';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import type { TaskRow, TaskStatus } from '@/features/tasks/types';
 import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS, STATUS_DOT_COLORS, STATUS_LABELS } from '@/features/tasks/types';
 
@@ -8,29 +10,36 @@ type Props = { tasks: TaskRow[]; onTaskClick: (t: TaskRow) => void; userId?: num
 function isOpen(t: TaskRow) { return t.status !== 'completed' && t.status !== 'cancelled'; }
 function isOverdue(t: TaskRow) { return Boolean(t.dueDate && new Date(t.dueDate) < new Date() && isOpen(t)); }
 
-function KpiCard({ icon: Icon, label, value, sub, accent }: { icon: typeof Flame; label: string; value: string | number; sub: string; accent: string }) {
-    const colors: Record<string, string> = {
-        gold: 'text-[var(--crm-gold)] bg-[var(--crm-gold-soft)]',
-        red: 'text-red-300 bg-red-500/10',
-        green: 'text-emerald-300 bg-emerald-500/10',
-        blue: 'text-blue-300 bg-blue-500/10',
-        amber: 'text-amber-300 bg-amber-500/10',
-        violet: 'text-violet-300 bg-violet-500/10',
-    };
-    return (
-        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3.5 transition hover:border-[var(--crm-gold)]/30">
-            <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--crm-muted)]">{label}</p>
-                    <p className="mt-1 text-2xl font-bold leading-none text-[var(--crm-text)]">{value}</p>
-                    <p className="mt-1 truncate text-[11px] text-[var(--crm-muted)]">{sub}</p>
-                </div>
-                <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${colors[accent]}`}>
-                    <Icon size={17} />
-                </span>
-            </div>
-        </div>
-    );
+function formatLocalDay(date: Date): string {
+    const offset = date.getTimezoneOffset() * 60_000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function taskDay(value: string | null | undefined): string | null {
+    return value?.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? null;
+}
+
+function taskSeries(
+    tasks: TaskRow[],
+    getDate: (task: TaskRow) => string | null | undefined,
+    startOffset: number,
+): number[] {
+    const points = new Map<string, number>();
+
+    for (let index = 0; index < 7; index += 1) {
+        const date = new Date();
+        date.setDate(date.getDate() + startOffset + index);
+        points.set(formatLocalDay(date), 0);
+    }
+
+    for (const task of tasks) {
+        const day = taskDay(getDate(task));
+        if (day && points.has(day)) {
+            points.set(day, (points.get(day) ?? 0) + 1);
+        }
+    }
+
+    return [...points.values()];
 }
 
 export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
@@ -49,7 +58,22 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
         const cancelled = tasks.filter((t) => t.status === 'cancelled');
         const pending = tasks.filter((t) => t.status === 'not_started');
         const dueThisWeek = tasks.filter((t) => t.dueDate && t.dueDate >= todayStr && t.dueDate <= weekEndStr && isOpen(t));
-        return { open, overdueT, urgent, blocked, review, completed, cancelled, pending, dueThisWeek };
+        return {
+            open,
+            overdueT,
+            urgent,
+            blocked,
+            review,
+            completed,
+            cancelled,
+            pending,
+            dueThisWeek,
+            openSeries: taskSeries(open, (task) => task.updatedAt, -6),
+            completedSeries: taskSeries(completed, (task) => task.completedAt, -6),
+            pendingSeries: taskSeries(pending, (task) => task.createdAt, -6),
+            upcomingSeries: taskSeries(dueThisWeek, (task) => task.dueDate, 0),
+            overdueSeries: taskSeries(overdueT, (task) => task.dueDate, -6),
+        };
     }, [tasks]);
 
     const statusCounts = useMemo(() => {
@@ -89,18 +113,19 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
     return (
         <div className="space-y-4">
             {/* KPI Row */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                <KpiCard icon={ListTodo} label="Open" value={metrics.open.length} sub="Active operational work" accent="blue" />
-                <KpiCard icon={CheckCircle2} label="Completed" value={metrics.completed.length} sub="Finished tasks" accent="green" />
-                <KpiCard icon={Clock3} label="Pending" value={metrics.pending.length} sub="Not yet started" accent="gold" />
-                <KpiCard icon={CalendarDays} label="Upcoming" value={metrics.dueThisWeek.length} sub="Due within 7 days" accent="amber" />
-                <KpiCard icon={AlertTriangle} label="Overdue" value={metrics.overdueT.length} sub={metrics.overdueT.length ? 'Past due date' : 'All on track'} accent={metrics.overdueT.length ? 'red' : 'green'} />
+            <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <AppKpiCard icon={<ListTodo size={16} className="text-sky-400" />} label="Open" value={metrics.open.length} detail="Active operational work" sparklineData={metrics.openSeries} accentColor="#38bdf8" showAutoTrend={false} />
+                <AppKpiCard icon={<CheckCircle2 size={16} className="text-emerald-400" />} label="Completed" value={metrics.completed.length} detail="Finished tasks" sparklineData={metrics.completedSeries} accentColor="#34d399" showAutoTrend={false} />
+                <AppKpiCard icon={<Clock3 size={16} className="text-amber-400" />} label="Pending" value={metrics.pending.length} detail="Not yet started" sparklineData={metrics.pendingSeries} accentColor="#fbbf24" showAutoTrend={false} />
+                <AppKpiCard icon={<CalendarDays size={16} className="text-violet-400" />} label="Upcoming" value={metrics.dueThisWeek.length} detail="Due within 7 days" sparklineData={metrics.upcomingSeries} accentColor="#a78bfa" showAutoTrend={false} />
+                <AppKpiCard icon={<AlertTriangle size={16} className={metrics.overdueT.length ? 'text-rose-400' : 'text-emerald-400'} />} label="Overdue" value={metrics.overdueT.length} detail={metrics.overdueT.length ? 'Past due date' : 'All on track'} sparklineData={metrics.overdueSeries} accentColor={metrics.overdueT.length ? '#fb7185' : '#34d399'} showAutoTrend={false} />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
                 {/* Status Overview */}
-                <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
-                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--crm-muted)]">Status overview</p>
+                <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                    <Card.Content className="p-4">
+                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">Workflow status</p>
                     <div className="space-y-2">
                         {sortedStatuses.map((s) => {
                             const c = statusCounts[s]?.count || 0;
@@ -119,11 +144,13 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
                             );
                         })}
                     </div>
-                </div>
+                    </Card.Content>
+                </Card>
 
                 {/* Mini Timeline - 7 Day */}
-                <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
-                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--crm-muted)]">7-day view</p>
+                <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                    <Card.Content className="p-4">
+                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">Next 7 days</p>
                     <div className="flex gap-1">
                         {weekDays.map((day) => (
                             <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
@@ -139,11 +166,13 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
                             </div>
                         ))}
                     </div>
-                </div>
+                    </Card.Content>
+                </Card>
 
                 {/* My Focus */}
-                <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
-                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--crm-muted)]">{userId ? 'My focus' : 'Urgent focus'}</p>
+                <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                    <Card.Content className="p-4">
+                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">{userId ? 'My focus' : 'Urgent focus'}</p>
                     {focusTasks.length === 0 ? <p className="text-xs text-[var(--crm-text-muted)]">Nothing urgent.</p> : (
                         <div className="space-y-1.5">
                             {focusTasks.map((t) => {
@@ -160,7 +189,8 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
                             })}
                         </div>
                     )}
-                </div>
+                    </Card.Content>
+                </Card>
             </div>
 
             {/* Attention panel */}

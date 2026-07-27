@@ -1,14 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Chip, Tooltip } from '@heroui/react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { Button, Chip, Dropdown, Input, Tooltip } from '@heroui/react';
 import {
     ChevronDown,
     ChevronRight,
     FileText,
     Folder,
     FolderOpen,
+    FolderInput,
+    GripVertical,
     MessageSquareText,
+    MoreHorizontal,
+    PencilLine,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { toast } from 'sonner';
 import type { ProjectDesignFile, ProjectDesignFolder } from '../types/projectDesign';
 
 export type ProjectDesignTreeCommand = {
@@ -22,8 +27,16 @@ type Props = {
     files: ProjectDesignFile[];
     selectedFileId: number | null;
     onFileSelect: (file: ProjectDesignFile) => void;
+    onRenameFile: (file: ProjectDesignFile, name: string) => Promise<void>;
+    onRenameFolder: (folder: ProjectDesignFolder, name: string) => Promise<void>;
+    onMoveFile: (file: ProjectDesignFile, folderId: number | null) => Promise<void>;
+    onMoveFolder: (folder: ProjectDesignFolder, parentId: number | null) => Promise<void>;
     command?: ProjectDesignTreeCommand | null;
 };
+
+type DragItem = { kind: 'file' | 'folder'; id: number };
+type RenameTarget = { kind: DragItem['kind']; id: number; value: string } | null;
+const DRAG_TYPE = 'application/x-archilbo-project-design-tree';
 
 function fileExtension(name: string): string {
     const extension = name.split('.').pop();
@@ -44,10 +57,17 @@ export function ProjectDesignFolderTree({
     files,
     selectedFileId,
     onFileSelect,
+    onRenameFile,
+    onRenameFolder,
+    onMoveFile,
+    onMoveFolder,
     command,
 }: Props) {
     const storageKey = `project-design:${dossierId}:expanded-folders`;
     const selectedRowRef = useRef<HTMLDivElement | null>(null);
+    const fileSelectTimerRef = useRef<number | null>(null);
+    const folderToggleTimerRef = useRef<number | null>(null);
+    const expansionInitializedRef = useRef(false);
 
     const folderById = useMemo(
         () => new Map(folders.map((folder) => [folder.id, folder])),
@@ -89,11 +109,25 @@ export function ProjectDesignFolderTree({
             return new Set<number>();
         }
     });
+    const [renameTarget, setRenameTarget] = useState<RenameTarget>(null);
+    const [renameValue, setRenameValue] = useState('');
+    const [savingRename, setSavingRename] = useState(false);
+    const [dropTarget, setDropTarget] = useState<number | 'root' | null>(null);
 
     useEffect(() => {
-        if (expanded.size > 0 || rootFolders.length === 0) return;
-        setExpanded(new Set(rootFolders.map((folder) => folder.id)));
-    }, [expanded.size, rootFolders]);
+        if (expansionInitializedRef.current || rootFolders.length === 0) return;
+
+        expansionInitializedRef.current = true;
+
+        // New explorers open their root folders once. An empty persisted set means
+        // the user intentionally collapsed everything and must be preserved.
+        const hasSavedExpansion = typeof window !== 'undefined'
+            && window.localStorage.getItem(storageKey) !== null;
+
+        if (!hasSavedExpansion) {
+            setExpanded(new Set(rootFolders.map((folder) => folder.id)));
+        }
+    }, [rootFolders, storageKey]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -133,6 +167,11 @@ export function ProjectDesignFolderTree({
         return () => window.clearTimeout(timer);
     }, [expanded, selectedFileId]);
 
+    useEffect(() => () => {
+        if (fileSelectTimerRef.current !== null) window.clearTimeout(fileSelectTimerRef.current);
+        if (folderToggleTimerRef.current !== null) window.clearTimeout(folderToggleTimerRef.current);
+    }, []);
+
     const toggleFolder = useCallback((folderId: number) => {
         setExpanded((current) => {
             const next = new Set(current);
@@ -142,6 +181,168 @@ export function ProjectDesignFolderTree({
         });
     }, []);
 
+    function clearPendingInteractions() {
+        if (fileSelectTimerRef.current !== null) {
+            window.clearTimeout(fileSelectTimerRef.current);
+            fileSelectTimerRef.current = null;
+        }
+        if (folderToggleTimerRef.current !== null) {
+            window.clearTimeout(folderToggleTimerRef.current);
+            folderToggleTimerRef.current = null;
+        }
+    }
+
+    function queueFileSelect(file: ProjectDesignFile) {
+        clearPendingInteractions();
+        fileSelectTimerRef.current = window.setTimeout(() => {
+            onFileSelect(file);
+            fileSelectTimerRef.current = null;
+        }, 180);
+    }
+
+    function queueFolderToggle(folderId: number) {
+        clearPendingInteractions();
+        folderToggleTimerRef.current = window.setTimeout(() => {
+            toggleFolder(folderId);
+            folderToggleTimerRef.current = null;
+        }, 180);
+    }
+
+    function startRename(target: NonNullable<RenameTarget>) {
+        clearPendingInteractions();
+        setRenameTarget(target);
+        setRenameValue(target.value);
+    }
+
+    async function submitRename() {
+        if (!renameTarget || savingRename) return;
+
+        const name = renameValue.trim();
+        if (!name) {
+            toast.error('A name is required.');
+            return;
+        }
+        if (name === renameTarget.value) {
+            setRenameTarget(null);
+            return;
+        }
+
+        setSavingRename(true);
+        try {
+            if (renameTarget.kind === 'file') {
+                const file = files.find((item) => item.id === renameTarget.id);
+                if (file) await onRenameFile(file, name);
+            } else {
+                const folder = folders.find((item) => item.id === renameTarget.id);
+                if (folder) await onRenameFolder(folder, name);
+            }
+            setRenameTarget(null);
+        } catch {
+            toast.error('Could not rename this item.');
+        } finally {
+            setSavingRename(false);
+        }
+    }
+
+    function writeDragItem(event: DragEvent<HTMLElement>, item: DragItem) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData(DRAG_TYPE, JSON.stringify(item));
+    }
+
+    function readDragItem(event: DragEvent<HTMLElement>): DragItem | null {
+        try {
+            const item = JSON.parse(event.dataTransfer.getData(DRAG_TYPE)) as DragItem;
+            return item && (item.kind === 'file' || item.kind === 'folder') && Number.isInteger(item.id) ? item : null;
+        } catch {
+            return null;
+        }
+    }
+
+    async function moveDroppedItem(event: DragEvent<HTMLElement>, targetFolderId: number | null) {
+        event.preventDefault();
+        event.stopPropagation();
+        setDropTarget(null);
+        const item = readDragItem(event);
+        if (!item) return;
+
+        try {
+            if (item.kind === 'file') {
+                const file = files.find((candidate) => candidate.id === item.id);
+                if (file && file.folderId !== targetFolderId) await onMoveFile(file, targetFolderId);
+            } else {
+                const folder = folders.find((candidate) => candidate.id === item.id);
+                if (folder && folder.parentId !== targetFolderId) await onMoveFolder(folder, targetFolderId);
+            }
+        } catch {
+            toast.error('Could not move this item.');
+        }
+    }
+
+    function isDescendantFolder(candidateId: number, ancestorId: number): boolean {
+        let current = folderById.get(candidateId);
+        while (current?.parentId != null) {
+            if (current.parentId === ancestorId) return true;
+            current = folderById.get(current.parentId);
+        }
+        return false;
+    }
+
+    function ExplorerActions({
+        label,
+        currentFolderId,
+        excludeFolderId,
+        onRename,
+        onMove,
+    }: {
+        label: string;
+        currentFolderId: number | null;
+        excludeFolderId?: number;
+        onRename: () => void;
+        onMove: (folderId: number | null) => Promise<void>;
+    }) {
+        const destinations = folders.filter((folder) => (
+            folder.id !== excludeFolderId
+            && (excludeFolderId == null || !isDescendantFolder(folder.id, excludeFolderId))
+        ));
+
+        const runAction = (key: string) => {
+            if (key === 'rename') {
+                onRename();
+                return;
+            }
+
+            const destination = key === 'root' ? null : Number(key.replace('move:', ''));
+            if (key !== 'root' && !Number.isInteger(destination)) return;
+            if (destination === currentFolderId) return;
+
+            void onMove(destination);
+        };
+
+        return (
+            <Dropdown>
+                <Dropdown.Trigger
+                    aria-label={`Actions for ${label}`}
+                    className="flex size-6 items-center justify-center rounded-md text-[var(--text-subtle)] outline-none transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] data-[open]:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]"
+                >
+                    <MoreHorizontal size={13} />
+                </Dropdown.Trigger>
+                <Dropdown.Popover placement="bottom end" className="z-[180] min-w-48 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
+                    <Dropdown.Menu aria-label={`Actions for ${label}`} onAction={(key) => runAction(String(key))} className="outline-none">
+                        <Dropdown.Item key="rename"><PencilLine size={13} /><span>Rename</span></Dropdown.Item>
+                        {currentFolderId !== null ? <Dropdown.Item key="root"><FolderInput size={13} /><span>Move to project root</span></Dropdown.Item> : null}
+                        {destinations
+                            .filter((folder) => folder.id !== currentFolderId)
+                            .map((folder) => (
+                                <Dropdown.Item key={`move:${folder.id}`} id={`move:${folder.id}`}>
+                                    <Folder size={13} /><span className="truncate">Move to {folder.name}</span>
+                                </Dropdown.Item>
+                            ))}
+                    </Dropdown.Menu>
+                </Dropdown.Popover>
+            </Dropdown>
+        );
+    }
+
     function renderFile(file: ProjectDesignFile, depth: number) {
         const selected = selectedFileId === file.id;
         return (
@@ -149,34 +350,61 @@ export function ProjectDesignFolderTree({
                 key={file.id}
                 ref={selected ? selectedRowRef : undefined}
                 data-project-design-file-id={file.id}
-                className="relative"
+                draggable={renameTarget?.kind !== 'file' || renameTarget.id !== file.id}
+                onDragStart={(event) => writeDragItem(event, { kind: 'file', id: file.id })}
+                className="group relative cursor-grab active:cursor-grabbing"
             >
-                <Button
-                    size="sm"
-                    variant="ghost"
-                    fullWidth
-                    onPress={() => onFileSelect(file)}
-                    aria-pressed={selected}
-                    className={cn(
-                        'group h-7 min-h-7 justify-start rounded-none border-0 px-1.5 text-left text-[11px] font-normal',
-                        selected
-                            ? 'bg-[var(--accent)]/18 text-[var(--foreground)]'
-                            : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
-                    )}
-                    style={{ paddingLeft: `${10 + depth * 13}px` }}
-                >
-                    <FileText size={13} className={cn('shrink-0', selected ? 'text-[var(--accent)]' : 'text-sky-400/75')} />
-                    <span className="min-w-0 flex-1 truncate">{file.name}</span>
-                    {file.openRemarksCount > 0 ? (
-                        <span className="flex shrink-0 items-center gap-0.5 text-[9px] text-amber-300">
-                            <MessageSquareText size={10} />
-                            {file.openRemarksCount}
-                        </span>
-                    ) : null}
-                    <span className="hidden shrink-0 text-[8px] uppercase text-[var(--text-subtle)] group-hover:inline">
-                        {fileExtension(file.name)}
-                    </span>
-                </Button>
+                {renameTarget?.kind === 'file' && renameTarget.id === file.id ? (
+                    <Input
+                        autoFocus
+                        value={renameValue}
+                        onChange={(event) => setRenameValue(event.target.value)}
+                        onBlur={() => void submitRename()}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') void submitRename();
+                            if (event.key === 'Escape') setRenameTarget(null);
+                        }}
+                        aria-label="Rename design file"
+                        variant="secondary"
+                        className="m-1 h-7 text-[11px]"
+                        style={{ marginLeft: `${6 + depth * 13}px`, width: `calc(100% - ${12 + depth * 13}px)` }}
+                        isDisabled={savingRename}
+                    />
+                ) : (
+                    <>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            fullWidth
+                            onPress={() => queueFileSelect(file)}
+                            aria-pressed={selected}
+                            className={cn(
+                                'group h-7 min-h-7 justify-start rounded-none border-0 px-1.5 pr-8 text-left text-[11px] font-normal',
+                                selected
+                                    ? 'bg-[var(--accent)]/18 text-[var(--foreground)]'
+                                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
+                            )}
+                            style={{ paddingLeft: `${10 + depth * 13}px` }}
+                        >
+                            <GripVertical size={10} className="shrink-0 text-[var(--text-subtle)] opacity-0 transition group-hover:opacity-70" />
+                            <FileText size={13} className={cn('shrink-0', selected ? 'text-[var(--accent)]' : 'text-sky-400/75')} />
+                            <span className="min-w-0 flex-1 truncate" onDoubleClick={(event) => { event.stopPropagation(); startRename({ kind: 'file', id: file.id, value: file.name }); }}>
+                                {file.name}
+                            </span>
+                            {file.openRemarksCount > 0 ? (
+                                <span className="flex shrink-0 items-center gap-0.5 text-[9px] text-amber-300"><MessageSquareText size={10} />{file.openRemarksCount}</span>
+                            ) : null}
+                        </Button>
+                        <div className="absolute right-1 top-0.5 opacity-100 transition md:opacity-0 md:group-hover:opacity-100" onPointerDown={(event) => event.stopPropagation()}>
+                            <ExplorerActions
+                                label={file.name}
+                                currentFolderId={file.folderId}
+                                onRename={() => startRename({ kind: 'file', id: file.id, value: file.name })}
+                                onMove={(folderId) => onMoveFile(file, folderId)}
+                            />
+                        </div>
+                    </>
+                )}
             </div>
         );
     }
@@ -190,7 +418,21 @@ export function ProjectDesignFolderTree({
 
         return (
             <div key={folder.id}>
-                <div className="group flex h-7 min-w-0 items-center hover:bg-[var(--surface-2)]" style={{ paddingLeft: `${depth * 13}px` }}>
+                <div
+                    draggable={renameTarget?.kind !== 'folder' || renameTarget.id !== folder.id}
+                    onDragStart={(event) => writeDragItem(event, { kind: 'folder', id: folder.id })}
+                    onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); setDropTarget(folder.id); }}
+                    onDragLeave={(event) => {
+                        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+                        setDropTarget((current) => current === folder.id ? null : current);
+                    }}
+                    onDrop={(event) => void moveDroppedItem(event, folder.id)}
+                    className={cn(
+                        'group flex h-7 min-w-0 items-center border-y border-transparent transition-colors hover:bg-[var(--surface-2)]',
+                        dropTarget === folder.id && 'border-[var(--accent)]/55 bg-[var(--accent)]/10',
+                    )}
+                    style={{ paddingLeft: `${depth * 13}px` }}
+                >
                     <Tooltip delay={500}>
                         <Tooltip.Trigger>
                             <Button
@@ -199,7 +441,7 @@ export function ProjectDesignFolderTree({
                                 variant="ghost"
                                 aria-label={isExpanded ? `Collapse ${folder.name}` : `Expand ${folder.name}`}
                                 isDisabled={!hasChildren}
-                                onPress={() => toggleFolder(folder.id)}
+                                onPress={() => { clearPendingInteractions(); toggleFolder(folder.id); }}
                                 className="h-7 w-5 min-w-5 rounded-none text-[var(--text-subtle)] disabled:opacity-30"
                             >
                                 {hasChildren ? (isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />) : <span className="size-3" />}
@@ -207,18 +449,49 @@ export function ProjectDesignFolderTree({
                         </Tooltip.Trigger>
                         <Tooltip.Content>{isExpanded ? 'Collapse' : 'Expand'}</Tooltip.Content>
                     </Tooltip>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        onPress={() => hasChildren && toggleFolder(folder.id)}
-                        className="h-7 min-w-0 flex-1 justify-start gap-1.5 rounded-none px-0.5 text-left text-[11px] font-normal text-[var(--foreground)]"
-                    >
-                        <FolderIcon size={13} className="shrink-0 text-amber-300/85" />
-                        <span className="min-w-0 flex-1 truncate">{folder.name}</span>
-                        <Chip size="sm" variant="soft" className="mr-1 h-4 min-w-5 shrink-0 px-1 text-[8px] text-[var(--text-subtle)]">
-                            {folder.filesCount}
-                        </Chip>
-                    </Button>
+                    {renameTarget?.kind === 'folder' && renameTarget.id === folder.id ? (
+                        <Input
+                            autoFocus
+                            value={renameValue}
+                            onChange={(event) => setRenameValue(event.target.value)}
+                            onBlur={() => void submitRename()}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter') void submitRename();
+                                if (event.key === 'Escape') setRenameTarget(null);
+                            }}
+                            aria-label="Rename design folder"
+                            variant="secondary"
+                            className="mx-1 h-7 flex-1 text-[11px]"
+                            isDisabled={savingRename}
+                        />
+                    ) : (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onPress={() => hasChildren && queueFolderToggle(folder.id)}
+                            className="h-7 min-w-0 flex-1 justify-start gap-1.5 rounded-none px-0.5 text-left text-[11px] font-normal text-[var(--foreground)]"
+                        >
+                            <GripVertical size={10} className="shrink-0 text-[var(--text-subtle)] opacity-0 transition group-hover:opacity-70" />
+                            <FolderIcon size={13} className="shrink-0 text-amber-300/85" />
+                            <span className="min-w-0 flex-1 truncate" onDoubleClick={(event) => { event.stopPropagation(); startRename({ kind: 'folder', id: folder.id, value: folder.name }); }}>
+                                {folder.name}
+                            </span>
+                            <Chip size="sm" variant="soft" className="mr-1 h-4 min-w-5 shrink-0 px-1 text-[8px] text-[var(--text-subtle)]">
+                                {folder.filesCount}
+                            </Chip>
+                        </Button>
+                    )}
+                    {renameTarget?.kind !== 'folder' || renameTarget.id !== folder.id ? (
+                        <div className="mr-1 shrink-0 opacity-100 transition md:opacity-0 md:group-hover:opacity-100" onPointerDown={(event) => event.stopPropagation()}>
+                            <ExplorerActions
+                                label={folder.name}
+                                currentFolderId={folder.parentId}
+                                excludeFolderId={folder.id}
+                                onRename={() => startRename({ kind: 'folder', id: folder.id, value: folder.name })}
+                                onMove={(parentId) => onMoveFolder(folder, parentId)}
+                            />
+                        </div>
+                    ) : null}
                 </div>
                 {isExpanded ? (
                     <div className="relative">
@@ -239,6 +512,20 @@ export function ProjectDesignFolderTree({
 
     return (
         <div className="min-w-0 py-0.5" role="tree" aria-label="Project design files">
+            <div
+                onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); setDropTarget('root'); }}
+                onDragLeave={(event) => {
+                    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+                    setDropTarget((current) => current === 'root' ? null : current);
+                }}
+                onDrop={(event) => void moveDroppedItem(event, null)}
+                className={cn(
+                    'mx-2 mb-1 flex h-6 items-center justify-center rounded-md border border-dashed border-[var(--border)] text-[8px] font-medium uppercase tracking-[0.1em] text-[var(--text-subtle)] transition-colors',
+                    dropTarget === 'root' && 'border-[var(--accent)]/70 bg-[var(--accent)]/10 text-[var(--accent)]',
+                )}
+            >
+                {dropTarget === 'root' ? 'Release to move to root' : 'Project Design root'}
+            </div>
             {rootFolders.map((folder) => renderFolder(folder, 0))}
             {rootFiles.map((file) => renderFile(file, 0))}
             {folders.length === 0 && files.length === 0 ? (

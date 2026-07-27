@@ -1,0 +1,4 @@
+﻿ .../dossiers/components/DesignAnnotationLayer.tsx  | 251 ++++++++++++++++-----
+ .../dossiers/components/DesignFileViewer.tsx       | 102 ++++++---
+ .../dossiers/components/DesignRemarkComposer.tsx   | 179 +++++++++++----
+ 3 files changed, 412 insertions(+), 120 deletions(-)

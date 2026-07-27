@@ -1,14 +1,17 @@
 import { Head, router } from '@inertiajs/react';
 import {
-    ChevronDown, ChevronUp, Eye, MoreHorizontal, Pencil, Plus,
-    RefreshCw, Search, SlidersHorizontal, Trash2, Users, X,
+    Archive, CheckCircle2, ChevronDown, ChevronsUpDown, ChevronUp, Eye, ListFilter,
+    MoreHorizontal, Pencil, Plus, RefreshCw, Search, Trash2, UserCheck, UserRoundX, Users, X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Dropdown, Input } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppModal } from '@/components/ui/AppModal';
+import { AppWorkspaceTable, type AppWorkspaceTableColumn } from '@/components/ui/AppWorkspaceTable';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
@@ -49,6 +52,13 @@ const AVATAR_COLORS = [
     'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400',
 ];
 
+const CLIENT_KPI_TONES = {
+    total: { icon: <Users size={16} className="text-sky-400" />, accentColor: '#38bdf8', valueClassName: 'text-sky-300' },
+    active: { icon: <UserCheck size={16} className="text-emerald-400" />, accentColor: '#34d399', valueClassName: 'text-emerald-300' },
+    inactive: { icon: <UserRoundX size={16} className="text-amber-400" />, accentColor: '#fbbf24', valueClassName: 'text-amber-300' },
+    archived: { icon: <Archive size={16} className="text-zinc-400" />, accentColor: '#a1a1aa', valueClassName: 'text-zinc-300' },
+} as const;
+
 function avatarColor(id: number) {
     return AVATAR_COLORS[id % AVATAR_COLORS.length];
 }
@@ -78,23 +88,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     const [sortField, setSortField] = useState<SortField>('updatedAt');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
     const [deleteTarget, setDeleteTarget] = useState<ClientRow | null>(null);
-    const [showFilters, setShowFilters] = useState(false);
-    const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-    const searchRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (openMenuId === null) return;
-        function handleClick(e: MouseEvent) {
-            const target = e.target as HTMLElement;
-            if (!target.closest('[data-row-menu]')) {
-                setOpenMenuId(null);
-            }
-        }
-        function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpenMenuId(null); }
-        document.addEventListener('mousedown', handleClick);
-        document.addEventListener('keydown', handleKey);
-        return () => { document.removeEventListener('mousedown', handleClick); document.removeEventListener('keydown', handleKey); };
-    }, [openMenuId]);
+    const [page, setPage] = useState(0);
 
     const statusOptions = [
         { id: 'all' as const, label: t('clients.status.all'), count: clients.length },
@@ -126,13 +120,19 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
             });
     }, [clients, query, statusFilter, sortField, sortDir]);
 
-    const hasActiveFilters = statusFilter !== 'all' || query.trim() !== '';
+    const pageSize = 15;
+    const pageCount = Math.max(1, Math.ceil(filteredClients.length / pageSize));
+    const pageClients = filteredClients.slice(page * pageSize, (page + 1) * pageSize);
+
+    useEffect(() => {
+        setPage((currentPage) => Math.min(currentPage, pageCount - 1));
+    }, [pageCount]);
 
     const metricCards = [
-        { label: t('clients.metrics.total'), value: metrics.total, detail: 'Registered client records', icon: <Users size={16} /> },
-        { label: t('clients.metrics.active'), value: metrics.active, detail: 'Can start new projects' },
-        { label: t('clients.metrics.inactive'), value: metrics.inactive, detail: 'Needs review' },
-        { label: t('clients.metrics.archived'), value: metrics.archived, detail: 'Closed relationships' },
+        { label: t('clients.metrics.total'), value: metrics.total, detail: 'Registered client records', ...CLIENT_KPI_TONES.total },
+        { label: t('clients.metrics.active'), value: metrics.active, detail: 'Can start new projects', ...CLIENT_KPI_TONES.active },
+        { label: t('clients.metrics.inactive'), value: metrics.inactive, detail: 'Needs review', ...CLIENT_KPI_TONES.inactive },
+        { label: t('clients.metrics.archived'), value: metrics.archived, detail: 'Closed relationships', ...CLIENT_KPI_TONES.archived },
     ];
 
     function toggleSort(field: SortField) {
@@ -145,10 +145,10 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     }
 
     function SortIcon({ field }: { field: SortField }) {
-        if (sortField !== field) return <ChevronUp size={11} className="ml-1 opacity-30" />;
+        if (sortField !== field) return <ChevronsUpDown size={11} className="text-[var(--text-muted)]" />;
         return sortDir === 'asc'
-            ? <ChevronUp size={11} className="ml-1" />
-            : <ChevronDown size={11} className="ml-1" />;
+            ? <ChevronUp size={11} className="text-[var(--accent)]" />
+            : <ChevronDown size={11} className="text-[var(--accent)]" />;
     }
 
     function openCreateDrawer() {
@@ -157,6 +157,12 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
         setFormErrors({});
         setDrawerOpen(true);
     }
+
+    useEffect(() => {
+        if (new URLSearchParams(window.location.search).get('command') !== 'create') return;
+        openCreateDrawer();
+        window.history.replaceState({}, '', window.location.pathname);
+    }, []);
 
     function openEditDrawer(client: ClientRow) {
         setSelectedClient(client);
@@ -190,40 +196,87 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
         });
     }
 
-    function RowMenu({ client, isOpen, onToggle }: { client: ClientRow; isOpen: boolean; onToggle: () => void }) {
+    function RowMenu({ client }: { client: ClientRow }) {
         const items = [
             { id: 'view', label: t('clients.view'), icon: <Eye size={14} />, action: () => router.visit(`/clients/${client.id}`), danger: false },
-            { id: 'edit', label: t('clients.edit'), icon: <Pencil size={14} />, action: () => openEditDrawer(client), danger: false },
             { id: 'delete', label: t('clients.delete'), icon: <Trash2 size={14} />, action: () => setDeleteTarget(client), danger: true },
         ];
 
         return (
-            <div className="relative inline-flex" data-row-menu>
-                <button type="button" onClick={(e) => { e.stopPropagation(); onToggle(); }}
-                    className="flex size-8 items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
-                    aria-label={t('clients.actions')}>
-                    <MoreHorizontal size={16} />
+            <div className="flex items-center gap-0.5">
+                <button type="button" onClick={() => router.visit(`/clients/${client.id}`)} className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title={t('clients.view')}>
+                    <Eye size={12} />
                 </button>
-                {isOpen ? (
-                    <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl"
-                        onClick={(e) => e.stopPropagation()}>
-                        {items.map((item) => (
-                            <button key={item.id} type="button" onClick={() => { item.action(); setOpenMenuId(null); }}
-                                className={cn(
-                                    'flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] font-medium transition',
-                                    item.danger
-                                        ? 'text-[var(--danger)] hover:bg-[var(--danger)]/10'
-                                        : 'text-[var(--foreground)] hover:bg-[var(--surface-2)]',
-                                )}>
-                                <span className="flex size-[15px] shrink-0 items-center justify-center">{item.icon}</span>
-                                <span>{item.label}</span>
-                            </button>
-                        ))}
-                    </div>
-                ) : null}
+                <button type="button" onClick={() => openEditDrawer(client)} className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title={t('clients.edit')}>
+                    <Pencil size={12} />
+                </button>
+                <Dropdown>
+                    <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]" aria-label={t('clients.actions')}>
+                        <MoreHorizontal size={12} />
+                    </Dropdown.Trigger>
+                    <Dropdown.Popover placement="bottom end" className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                        <Dropdown.Menu aria-label={t('clients.actions')} onAction={(key) => items.find((item) => item.id === key)?.action()} itemClasses={{ base: 'rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]' }}>
+                            {items.map((item) => (
+                                <Dropdown.Item key={item.id} id={item.id} textValue={item.label} className={cn(item.danger ? 'text-[var(--danger)] data-[hover]:bg-[var(--danger)]/10' : '')}>
+                                    <div className="flex items-center gap-2"><span className="flex size-4 shrink-0 items-center justify-center">{item.icon}</span><span>{item.label}</span></div>
+                                </Dropdown.Item>
+                            ))}
+                        </Dropdown.Menu>
+                    </Dropdown.Popover>
+                </Dropdown>
             </div>
         );
     }
+
+    const clientColumns: AppWorkspaceTableColumn<ClientRow>[] = [
+        {
+            id: 'avatar',
+            label: '',
+            headerClassName: 'w-8',
+            render: (client) => <span className={cn('flex size-6 shrink-0 items-center justify-center rounded text-[10px] font-bold', avatarColor(client.id))}>{initials(client)}</span>,
+        },
+        {
+            id: 'client',
+            label: <button type="button" onClick={() => toggleSort('fullName')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">{t('clients.table.client')} <SortIcon field="fullName" /></button>,
+            render: (client) => <div className="min-w-0"><p className="max-w-[180px] truncate font-medium text-[var(--text)]">{client.fullName}</p><p className="max-w-[180px] truncate text-[var(--text-muted)]">{client.clientNumber}</p></div>,
+        },
+        {
+            id: 'cin',
+            label: <button type="button" onClick={() => toggleSort('cin')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">{t('clients.table.cin')} <SortIcon field="cin" /></button>,
+            render: (client) => <span className="text-[var(--text-muted)]">{client.cin || '-'}</span>,
+        },
+        {
+            id: 'contact',
+            label: t('clients.table.contact'),
+            render: (client) => <div className="grid gap-0.5"><span className="text-[var(--text)]">{formatContact(client.phone)}</span><span className="max-w-[160px] truncate text-[11px] text-[var(--text-muted)]">{formatContact(client.email)}</span></div>,
+        },
+        {
+            id: 'intermediary',
+            label: t('clients.table.intermediary'),
+            render: (client) => <span className="max-w-[150px] truncate text-[var(--text-muted)]">{client.intermediaryName && client.intermediaryName !== 'None' ? client.intermediaryName : '-'}</span>,
+        },
+        {
+            id: 'projects',
+            label: <button type="button" onClick={() => toggleSort('projectsCount')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">{t('clients.table.projects')} <SortIcon field="projectsCount" /></button>,
+            render: (client) => <span className="inline-flex min-w-6 items-center justify-center rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--text)]">{client.projectsCount}</span>,
+        },
+        {
+            id: 'status',
+            label: <button type="button" onClick={() => toggleSort('status')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">{t('clients.table.status')} <SortIcon field="status" /></button>,
+            render: (client) => <StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" />,
+        },
+        {
+            id: 'updated',
+            label: <button type="button" onClick={() => toggleSort('updatedAt')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">{t('clients.table.updated')} <SortIcon field="updatedAt" /></button>,
+            render: (client) => <span className="whitespace-nowrap text-[var(--text-muted)]">{client.updatedAt || '-'}</span>,
+        },
+        {
+            id: 'actions',
+            label: '',
+            headerClassName: 'w-10',
+            render: (client) => <div onClick={(event) => event.stopPropagation()}><RowMenu client={client} /></div>,
+        },
+    ];
 
     return (
         <>
@@ -252,270 +305,60 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                 {/* ── Metric cards ── */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {metricCards.map((card) => (
-                        <div key={card.label}
-                            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-                            <div className="flex items-start justify-between gap-3">
-                                {card.icon ? (
-                                    <div className="flex size-9 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]">
-                                        {card.icon}
-                                    </div>
-                                ) : <div />}
-                            </div>
-                            <p className="mt-3 text-[12px] font-medium text-[var(--text-muted)]">{card.label}</p>
-                            <p className="mt-0.5 text-2xl font-semibold text-[var(--foreground)]">{card.value}</p>
-                            {card.detail ? (
-                                <p className="mt-1 text-[11px] text-[var(--text-muted)]">{card.detail}</p>
-                            ) : null}
-                        </div>
+                        <AppKpiCard key={card.label} label={card.label} value={card.value} detail={card.detail} icon={card.icon} accentColor={card.accentColor} valueClassName={card.valueClassName} />
                     ))}
                 </div>
 
                 {/* ── Table card ── */}
-                <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                <div className="contents">
                     {/* Toolbar */}
-                    <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] p-3">
-                        <div className="relative flex-1 min-w-[200px] max-w-sm">
-                            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-                            <input
-                                ref={searchRef}
-                                type="text"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                placeholder={t('clients.searchPlaceholder')}
-                                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-8 text-[13px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
-                            />
-                            {query ? (
-                                <button type="button" onClick={() => setQuery('')}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--foreground)]">
-                                    <X size={13} />
-                                </button>
-                            ) : null}
-                        </div>
-
-                        <button type="button" onClick={() => setShowFilters((v) => !v)}
-                            className={cn(
-                                'inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-medium transition',
-                                showFilters || statusFilter !== 'all'
-                                    ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]'
-                                    : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
-                            )}>
-                            <SlidersHorizontal size={13} />
-                            {t('clients.filter')}
-                        </button>
-
-                        <select
-                            value={`${sortField}:${sortDir}`}
-                            onChange={(e) => {
-                                const [f, d] = e.target.value.split(':') as [SortField, SortDir];
-                                setSortField(f);
-                                setSortDir(d);
-                            }}
-                            className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-[12px] text-[var(--foreground)] outline-none hover:border-[var(--accent)] focus:border-[var(--accent)]"
-                        >
-                            <option value="updatedAt:desc">{t('clients.sort.newest')}</option>
-                            <option value="updatedAt:asc">{t('clients.sort.oldest')}</option>
-                            <option value="fullName:asc">{t('clients.sort.nameAZ')}</option>
-                            <option value="fullName:desc">{t('clients.sort.nameZA')}</option>
-                            <option value="projectsCount:desc">{t('clients.sort.mostProjects')}</option>
-                            <option value="projectsCount:asc">{t('clients.sort.leastProjects')}</option>
-                            <option value="status:asc">{t('clients.sort.statusAZ')}</option>
-                        </select>
-
-                        <button type="button" onClick={() => router.reload({ preserveScroll: true })}
-                            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 text-[12px] font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--foreground)]">
-                            <RefreshCw size={13} />
-                            {t('clients.update')}
-                        </button>
-
-                        <div className="hidden sm:block">
-                            <AppButton variant="solid" color="primary" size="sm" onPress={openCreateDrawer}>
-                                <Plus size={14} />
-                                {t('clients.addClient')}
-                            </AppButton>
-                        </div>
-                    </div>
 
                     {/* Filter chips */}
-                    {showFilters ? (
-                        <div className="border-b border-[var(--border)] px-3 py-3">
-                            <div className="flex flex-wrap gap-2">
-                                {statusOptions.map((option) => (
-                                    <button key={option.id} type="button" onClick={() => setStatusFilter(option.id)}
-                                        className={cn(
-                                            'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition',
-                                            statusFilter === option.id
-                                                ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]'
-                                                : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--foreground)]',
-                                        )}>
-                                        {option.label}
-                                        <span className="rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px]">{option.count}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ) : null}
 
                     {/* Result count */}
-                    {hasActiveFilters ? (
-                        <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-2">
-                            <p className="text-[12px] text-[var(--text-muted)]">
-                                {filteredClients.length} {t('clients.resultCount')}
-                            </p>
-                            <button type="button" onClick={() => { setQuery(''); setStatusFilter('all'); }}
-                                className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
-                                <X size={12} />
-                                {t('clients.resetFilters')}
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="border-b border-[var(--border)] px-3 py-2">
-                            <p className="text-[12px] text-[var(--text-muted)]">
-                                {filteredClients.length} {t('clients.resultCount')}
-                            </p>
-                        </div>
-                    )}
 
                     {/* ── Desktop table ── */}
-                    <div className="hidden md:block overflow-x-auto">
-                        {filteredClients.length > 0 ? (
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-[var(--border)]">
-                                        {[
-                                            { key: 'fullName' as SortField, label: t('clients.table.client') },
-                                            { key: 'cin' as SortField, label: t('clients.table.cin') },
-                                            { key: null, label: t('clients.table.contact') },
-                                            { key: null, label: t('clients.table.intermediary') },
-                                            { key: 'projectsCount' as SortField, label: t('clients.table.projects') },
-                                            { key: 'status' as SortField, label: t('clients.table.status') },
-                                            { key: 'updatedAt' as SortField, label: t('clients.table.updated') },
-                                            { key: null, label: '' },
-                                        ].map((col) => (
-                                            <th key={col.label || 'actions'}
-                                                className={cn(
-                                                    'h-10 px-3 text-[12px] font-semibold text-[var(--text-muted)] text-left whitespace-nowrap',
-                                                    col.key && 'cursor-pointer select-none hover:text-[var(--foreground)]',
-                                                )}
-                                                onClick={col.key ? () => toggleSort(col.key) : undefined}>
-                                                <span className="inline-flex items-center">
-                                                    {col.label}
-                                                    {col.key ? <SortIcon field={col.key} /> : null}
-                                                </span>
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredClients.map((client) => (
-                                        <tr key={client.id}
-                                            className="border-b border-[var(--border)] transition last:border-0 hover:bg-[var(--surface-2)] group cursor-pointer"
-                                            onClick={() => router.visit(`/clients/${client.id}`)}>
-                                            <td className="px-3 py-2.5">
-                                                <div className="flex items-center gap-2.5">
-                                                    <span className={cn(
-                                                        'flex size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold',
-                                                        avatarColor(client.id),
-                                                    )}>
-                                                        {initials(client)}
-                                                    </span>
-                                                    <div className="min-w-0">
-                                                        <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">
-                                                            {client.fullName}
-                                                        </p>
-                                                        <p className="truncate text-[11px] text-[var(--text-muted)]">
-                                                            {client.clientNumber}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-3 py-2.5 text-[13px] text-[var(--text-muted)]">
-                                                {client.cin || '-'}
-                                            </td>
-                                            <td className="px-3 py-2.5">
-                                                <div className="grid gap-0.5">
-                                                    <span className="text-[13px] text-[var(--foreground)]">{formatContact(client.phone)}</span>
-                                                    <span className="truncate text-[11px] text-[var(--text-muted)]">{formatContact(client.email)}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-3 py-2.5 text-[13px] text-[var(--text-muted)]">
-                                                {client.intermediaryName && client.intermediaryName !== 'None' ? client.intermediaryName : '-'}
-                                            </td>
-                                            <td className="px-3 py-2.5">
-                                                <span className="inline-flex items-center justify-center rounded-md bg-[var(--surface-2)] px-2 py-0.5 text-[12px] font-medium text-[var(--foreground)]">
-                                                    {client.projectsCount}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 py-2.5">
-                                                <StatusPill
-                                                    label={t(`clients.status.${client.status}`, client.status)}
-                                                    color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'}
-                                                    size="sm"
-                                                />
-                                            </td>
-                                            <td className="px-3 py-2.5 text-[12px] text-[var(--text-muted)] whitespace-nowrap">
-                                                {client.updatedAt || '-'}
-                                            </td>
-                                            <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                                                <RowMenu client={client} isOpen={openMenuId === client.id}
-                                                    onToggle={() => setOpenMenuId(openMenuId === client.id ? null : client.id)} />
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <div className="p-6">
-                                <AppEmptyState
-                                    title={t('clients.emptyTitle')}
-                                    description={t('clients.emptyDescription')}
-                                />
+                    <AppWorkspaceTable
+                        ariaLabel={t('clients.title')}
+                        columns={clientColumns}
+                        data={pageClients}
+                        rowKey={(client) => client.id}
+                        minTableWidthClassName="min-w-[860px]"
+                        onRowPress={(client) => router.visit(`/clients/${client.id}`)}
+                        emptyContent={<AppEmptyState title={t('clients.emptyTitle')} description={t('clients.emptyDescription')} />}
+                        toolbar={
+                            <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+                                <div className="relative max-w-[220px] flex-1">
+                                    <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                                    <Input type="text" value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} placeholder={t('clients.searchPlaceholder')} className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-7 text-[11px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]" />
+                                    {query ? <button type="button" onClick={() => { setQuery(''); setPage(0); }} className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]" aria-label={t('clients.resetFilters')}><X size={12} /></button> : null}
+                                </div>
+                                <div className="ml-auto flex items-center gap-1">
+                                    <Dropdown>
+                                        <Dropdown.Trigger className={cn('inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition hover:border-[var(--accent)]/30', statusFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
+                                            <span className="contents"><ListFilter size={12} />{statusOptions.find((option) => option.id === statusFilter)?.label}<span className="rounded bg-[var(--surface-2)] px-1 py-px text-[9px] font-semibold text-[var(--text-muted)]">{statusOptions.find((option) => option.id === statusFilter)?.count ?? clients.length}</span></span>
+                                        </Dropdown.Trigger>
+                                        <Dropdown.Popover placement="bottom start" className="min-w-44 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                                            <Dropdown.Menu aria-label={t('clients.filter')} selectionMode="single" disabledKeys={statusOptions.filter((option) => option.count === 0).map((option) => option.id)} onAction={(key) => { setStatusFilter(key as typeof statusFilter); setPage(0); }} itemClasses={{ base: 'rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40' }}>
+                                                {statusOptions.map((option) => <Dropdown.Item key={option.id} id={option.id} textValue={option.label}><div className="flex w-full items-center gap-2"><Dropdown.ItemIndicator><CheckCircle2 size={14} className="text-[var(--accent)]" /></Dropdown.ItemIndicator><span className="flex-1">{option.label}</span><span className="rounded bg-[var(--surface-2)] px-1.5 py-px text-[10px] font-semibold text-[var(--text-muted)]">{option.count}</span></div></Dropdown.Item>)}
+                                            </Dropdown.Menu>
+                                        </Dropdown.Popover>
+                                    </Dropdown>
+                                    <AppButton variant="ghost" isIconOnly size="sm" onPress={() => router.reload({ preserveScroll: true })} className="size-7 text-[var(--text-muted)]" aria-label={t('clients.update')}><RefreshCw size={12} /></AppButton>
+                                </div>
+                            </div>
+                        }
+                        renderMobileRow={(client) => (
+                            <div key={client.id} className="flex items-start gap-2 p-3 transition hover:bg-[var(--surface-2)]">
+                                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold', avatarColor(client.id))}>{initials(client)}</span>
+                                <AppButton variant="ghost" size="sm" onPress={() => router.visit(`/clients/${client.id}`)} className="h-auto min-w-0 flex-1 justify-start p-0 text-left"><span className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-[13px] font-semibold text-[var(--foreground)]">{client.fullName}</p><StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" /></div><p className="mt-0.5 text-[12px] text-[var(--text-muted)]">{client.cin ? `${client.cin} · ` : ''}{client.phone || client.email || '-'}</p><div className="mt-1 flex items-center gap-3 text-[11px] text-[var(--text-muted)]"><span>{client.projectsCount} project(s)</span><span>{client.updatedAt || '-'}</span></div></span></AppButton>
+                                <RowMenu client={client} />
                             </div>
                         )}
-                    </div>
+                        footer={<div className="flex items-center justify-between px-3 py-2"><span className="text-[10px] text-[var(--text-muted)]">{filteredClients.length} {t('clients.resultCount')}</span><div className="flex items-center gap-2"><button type="button" disabled={page === 0} onClick={() => setPage((current) => current - 1)} className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">Precedent</button><span className="text-[10px] text-[var(--text-muted)]">{page + 1} / {pageCount}</span><button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((current) => current + 1)} className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">Suivant</button></div></div>}
+                    />
 
                     {/* ── Mobile cards ── */}
-                    <div className="block md:hidden divide-y divide-[var(--border)]">
-                        {filteredClients.length > 0 ? filteredClients.map((client) => (
-                            <div key={client.id}
-                                className="flex items-start gap-3 p-3 transition hover:bg-[var(--surface-2)]"
-                                onClick={() => router.visit(`/clients/${client.id}`)}>
-                                <span className={cn(
-                                    'flex size-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold',
-                                    avatarColor(client.id),
-                                )}>
-                                    {initials(client)}
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">{client.fullName}</p>
-                                        <StatusPill
-                                            label={t(`clients.status.${client.status}`, client.status)}
-                                            color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'}
-                                            size="sm"
-                                        />
-                                    </div>
-                                    <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
-                                        {client.cin ? `${client.cin} · ` : ''}{client.phone || client.email || '-'}
-                                    </p>
-                                    <div className="mt-1 flex items-center gap-3 text-[11px] text-[var(--text-muted)]">
-                                        <span>{client.projectsCount} project(s)</span>
-                                        <span>{client.updatedAt || '-'}</span>
-                                    </div>
-                                </div>
-                                <div onClick={(e) => e.stopPropagation()}>
-                                    <RowMenu client={client} isOpen={openMenuId === client.id}
-                                        onToggle={() => setOpenMenuId(openMenuId === client.id ? null : client.id)} />
-                                </div>
-                            </div>
-                        )) : (
-                            <div className="p-6">
-                                <AppEmptyState
-                                    title={t('clients.emptyTitle')}
-                                    description={t('clients.emptyDescription')}
-                                />
-                            </div>
-                        )}
-                    </div>
                 </div>
 
                 {/* ── Create/Edit drawer ── */}

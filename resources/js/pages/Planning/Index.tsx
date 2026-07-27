@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppBadge } from '@/components/ui/AppBadge';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppDataTable } from '@/components/ui/AppDataTable';
 import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
@@ -271,22 +272,7 @@ export default function PlanningIndex() {
                 <section className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">
                     {metricCards.map((metric) => {
                         const Icon = metric.icon;
-
-                        return (
-                            <AppCard key={metric.label} className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-sm text-[var(--text-muted)]">
-                                        {metric.label}
-                                    </p>
-
-                                    <div className="flex size-9 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                                        <Icon size={17} />
-                                    </div>
-                                </div>
-
-                                <p className="mt-3 text-2xl font-semibold">{metric.value}</p>
-                            </AppCard>
-                        );
+                        return <AppKpiCard key={metric.label} label={metric.label} value={metric.value} icon={<Icon size={17} className="text-[var(--accent)]" />} />;
                     })}
                 </section>
 

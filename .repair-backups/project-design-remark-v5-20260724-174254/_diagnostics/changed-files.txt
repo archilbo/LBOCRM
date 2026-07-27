@@ -1,0 +1,3 @@
+﻿resources/js/features/dossiers/components/DesignAnnotationLayer.tsx
+resources/js/features/dossiers/components/DesignFileViewer.tsx
+resources/js/features/dossiers/components/DesignRemarkComposer.tsx

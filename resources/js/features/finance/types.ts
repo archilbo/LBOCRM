@@ -58,6 +58,7 @@ export type FinanceDocument = {
     numberLockedAt?: string | null;
     lock?: FinanceDocumentLock | null;
     status: FinanceDocumentStatus;
+    statusLabel?: string;
     client: { id: number | string; name: string; cin?: string | null; address?: string | null } | null;
     dossier: {
         id: number | string;

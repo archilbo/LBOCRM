@@ -606,25 +606,8 @@ body.login-no-scroll #app {
    ============================================= */
 
 /* Editor workspace open — prevent page scroll, let editor own viewport */
-html.pd-editor-workspace-open,
-html.pd-editor-workspace-open body,
-html.pd-editor-workspace-open .app-shell-content {
-    overflow: hidden;
-    height: 100%;
-}
-
-html.pd-editor-workspace-open .dossier-show-root {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    max-height: 100%;
-    padding-bottom: 0 !important;
-}
-
-html.pd-editor-workspace-open .dossier-show-root .pd-tabs-container {
-    flex: 1;
-    min-height: 0;
+.project-design-editor-normal {
+    height: clamp(34rem, 72dvh, 56rem);
 }
 
 /* Editor fullscreen — hide page chrome */

@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { AlertTriangle, CheckCircle2, Clock3, ListTodo, TimerOff } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 
 const PRIORITY_META: Record<string, { label: string; color: string; bar: string }> = {
     urgent: { label: 'Urgent', color: 'text-red-300', bar: 'bg-red-400' },
@@ -48,13 +49,7 @@ export default function OperationsReports({ report }: { report: ReportPayload })
                             { label: 'Blocked', value: report.blockedTasks, icon: AlertTriangle, color: 'text-red-400' },
                             { label: 'Overdue', value: report.overdueTasks, icon: TimerOff, color: 'text-rose-400' },
                         ].map((stat) => (
-                            <div key={stat.label} className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--crm-muted)]">{stat.label}</p>
-                                    <stat.icon size={15} className={stat.color} />
-                                </div>
-                                <p className="mt-2 text-2xl font-black text-[var(--crm-text)]">{stat.value}</p>
-                            </div>
+                            <AppKpiCard key={stat.label} label={stat.label} value={stat.value} icon={<stat.icon size={15} className={stat.color} />} />
                         ))}
                     </section>
 

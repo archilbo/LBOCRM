@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import {
     ArrowUpRight,
     ChevronLeft,
     ChevronRight,
     Circle,
+    CircleHelp,
     Cloud,
     Columns3,
     Download,
@@ -21,7 +23,7 @@ import {
     ZoomIn,
     ZoomOut,
 } from 'lucide-react';
-import { Button, Tooltip } from '@heroui/react';
+import { Button, Input, Tooltip } from '@heroui/react';
 import { cn } from '@/lib/cn';
 import type { ViewerViewport } from '@/features/project-design/viewer/useProjectDesignViewerController';
 
@@ -39,7 +41,8 @@ export type AnnotationTool =
     | 'line';
 
 export interface ProjectDesignAnnotationToolbarState {
-    onSave?: () => void;
+    onSave?: () => Promise<boolean>;
+    onDiscard?: () => void;
     onRemark?: () => void;
     saving: boolean;
     hasUnsaved: boolean;
@@ -65,7 +68,7 @@ export interface ProjectDesignEditorToolbarState {
     pageNumber: number;
     totalPages: number;
     onPageChange: (page: number) => void;
-    onSave?: () => void;
+    onSave?: () => Promise<boolean>;
     onRemark?: () => void;
     saving?: boolean;
     hasUnsaved?: boolean;
@@ -74,6 +77,7 @@ export interface ProjectDesignEditorToolbarState {
     suppressAnnotations?: boolean;
     continuous?: boolean;
     onContinuousToggle?: () => void;
+    onShortcutHelp?: () => void;
 }
 
 const NAVIGATION_TOOLS: { id: AnnotationTool; icon: typeof Pin; label: string; hint: string }[] = [
@@ -144,12 +148,23 @@ function ToolButton({
     );
 }
 
-function ToolbarGroup({ children, className }: { children: React.ReactNode; className?: string }) {
+function ToolbarGroup({
+    children,
+    className,
+    label,
+}: {
+    children: React.ReactNode;
+    className?: string;
+    label: string;
+}) {
     return (
-        <div className={cn(
-            'flex h-8 shrink-0 items-center gap-0.5 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_94%,transparent)] p-0.5 shadow-sm',
-            className,
-        )}>
+        <div
+            aria-label={label}
+            className={cn(
+                'flex h-8 shrink-0 items-center gap-0.5 rounded-md bg-[color-mix(in_srgb,var(--surface-2)_78%,transparent)] p-0.5',
+                className,
+            )}
+        >
             {children}
         </div>
     );
@@ -170,6 +185,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
         fullscreen,
         onFullscreenToggle,
         downloadUrl,
+        onShortcutHelp,
         suppressAnnotations,
         onSave,
         onRemark,
@@ -180,12 +196,27 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
 
     const safeTotal = Math.max(1, totalPages);
     const safePage = Math.max(1, Math.min(pageNumber, safeTotal));
+    const [pageInput, setPageInput] = useState(String(safePage));
+
+    useEffect(() => {
+        setPageInput(String(safePage));
+    }, [safePage]);
+
+    const commitPageInput = () => {
+        const requestedPage = Number.parseInt(pageInput, 10);
+        if (!Number.isFinite(requestedPage)) {
+            setPageInput(String(safePage));
+            return;
+        }
+
+        onPageChange(Math.max(1, Math.min(safeTotal, requestedPage)));
+    };
 
     return (
-        <div className="app-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-1">
+        <div className="app-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1" aria-label="Design editor toolbar">
             {!suppressAnnotations ? (
                 <>
-                    <ToolbarGroup>
+                    <ToolbarGroup label="Navigation tools">
                         {NAVIGATION_TOOLS.map((tool) => (
                             <ToolButton
                                 key={tool.id}
@@ -198,7 +229,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                         ))}
                     </ToolbarGroup>
 
-                    <ToolbarGroup>
+                    <ToolbarGroup label="Annotation tools" className="border-l border-[var(--border)]/75 pl-1.5">
                         {MARKUP_TOOLS.map((tool) => (
                             <ToolButton
                                 key={tool.id}
@@ -211,7 +242,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                         ))}
                     </ToolbarGroup>
 
-                    <ToolbarGroup>
+                    <ToolbarGroup label="Annotation actions" className="border-l border-[var(--border)]/75 pl-1.5">
                         <ToolButton
                             icon={Save}
                             label={saving ? 'Saving annotations' : 'Save annotations'}
@@ -232,7 +263,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
             ) : null}
 
             <div className="ml-auto flex items-center gap-1.5">
-                <ToolbarGroup>
+                <ToolbarGroup label="Page navigation">
                     <ToolButton
                         icon={ChevronLeft}
                         label="Previous page"
@@ -240,10 +271,21 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                         onPress={() => onPageChange(Math.max(1, safePage - 1))}
                         isDisabled={safePage <= 1}
                     />
-                    <span className="min-w-[54px] px-1 text-center text-[11px] tabular-nums text-[var(--text-muted)]">
-                        <strong className="font-semibold text-[var(--foreground)]">{safePage}</strong>
-                        <span className="mx-1 text-[var(--text-subtle)]">/</span>
-                        {safeTotal}
+                    <span className="flex items-center gap-1 text-[11px] tabular-nums text-[var(--text-muted)]">
+                        <Input
+                            inputMode="numeric"
+                            value={pageInput}
+                            onChange={(event) => setPageInput(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter') commitPageInput();
+                            }}
+                            onBlur={commitPageInput}
+                            variant="secondary"
+                            aria-label="Go to page"
+                            className="h-7 w-10 text-center text-[11px]"
+                        />
+                        <span className="text-[var(--text-subtle)]">/</span>
+                        <strong className="font-semibold text-[var(--foreground)]">{safeTotal}</strong>
                     </span>
                     <ToolButton
                         icon={ChevronRight}
@@ -254,7 +296,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                     />
                 </ToolbarGroup>
 
-                <ToolbarGroup>
+                <ToolbarGroup label="View controls" className="border-l border-[var(--border)]/75 pl-1.5">
                     <ToolButton icon={Scan} label="Fit page" hint="0" onPress={onFitPage} />
                     <ToolButton icon={Columns3} label="Fit width" hint="W" onPress={onFitWidth} />
                     <ToolButton
@@ -275,7 +317,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                     <ToolButton icon={RotateCw} label="Rotate clockwise" hint="R" onPress={onRotate} />
                 </ToolbarGroup>
 
-                <ToolbarGroup>
+                <ToolbarGroup label="Editor actions" className="border-l border-[var(--border)]/75 pl-1.5">
                     <ToolButton
                         icon={fullscreen ? Minimize : Maximize}
                         label={fullscreen ? 'Exit fullscreen' : 'Fullscreen editor'}
@@ -287,6 +329,14 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                             icon={Download}
                             label="Download current asset"
                             onPress={() => window.open(downloadUrl, '_blank', 'noopener,noreferrer')}
+                        />
+                    ) : null}
+                    {onShortcutHelp ? (
+                        <ToolButton
+                            icon={CircleHelp}
+                            label="Editor shortcuts"
+                            hint="?"
+                            onPress={onShortcutHelp}
                         />
                     ) : null}
                 </ToolbarGroup>

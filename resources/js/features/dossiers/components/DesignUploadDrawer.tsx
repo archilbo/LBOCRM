@@ -582,7 +582,7 @@ export function DesignUploadDrawer({
                             ) : null}
                         </Drawer.Body>
 
-                        <Drawer.Footer className="flex shrink-0 items-center justify-between border-t border-[var(--border)] px-5 py-3">
+                        <Drawer.Footer className="app-scrollbar flex min-w-0 shrink-0 flex-nowrap items-center justify-between gap-2 overflow-x-auto border-t border-[var(--border)] px-5 py-3">
                             <Button
                                 size="sm"
                                 variant="ghost"

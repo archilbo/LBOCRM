@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppModal } from '@/components/ui/AppModal';
@@ -474,21 +475,7 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                 {metrics.map((m) => {
                                     const Icon = m.icon;
                                     const isActive = activeKpi === m.key;
-                                    return (
-                                        <button key={m.key} type="button" onClick={() => setActiveKpi(activeKpi === m.key ? null : m.key)}
-                                            className={cn(
-                                                'rounded-lg border px-4 py-3 text-left transition text-left',
-                                                isActive
-                                                    ? 'border-amber-500/40 bg-amber-500/[0.04]'
-                                                    : 'border-white/5 bg-white/[0.02] hover:border-white/10',
-                                            )}>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[11px] font-medium text-white/40">{m.label}</span>
-                                                <Icon size={14} className={m.color} />
-                                            </div>
-                                            <span className={cn('text-xl font-bold tabular-nums', m.color)}>{m.value}</span>
-                                        </button>
-                                    );
+                                    return <AppKpiCard key={m.key} label={m.label} value={m.value} icon={<Icon size={14} className={m.color} />} valueClassName={m.color} onPress={() => setActiveKpi(isActive ? null : m.key)} isSelected={isActive} />;
                                 })}
                             </div>
 

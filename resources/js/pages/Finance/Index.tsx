@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { formatCompactMoney } from '@/lib/currency';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppDataTable } from '@/components/ui/AppDataTable';
 import { AppFilterBar } from '@/components/ui/AppFilterBar';
@@ -431,18 +432,7 @@ export default function FinanceIndex({
                 </section>
                 <section className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">
                     {metricCards.map((metric) => (
-                        <AppCard key={metric.label} className="p-4">
-                            <div className="flex items-start justify-between">
-                                <p className="text-sm text-[var(--text-muted)]">{metric.label}</p>
-                                <div
-                                    className="flex size-8 shrink-0 items-center justify-center rounded-xl"
-                                    style={{ backgroundColor: 'color-mix(in srgb, ' + metric.accent + ' 14%, transparent)', color: metric.accent }}
-                                >
-                                    <metric.icon size={15} />
-                                </div>
-                            </div>
-                            <p className="mt-3 truncate text-2xl font-semibold">{metric.value}</p>
-                        </AppCard>
+                        <AppKpiCard key={metric.label} label={metric.label} value={metric.value} icon={<metric.icon size={15} style={{ color: metric.accent }} />} accentColor={metric.accent} />
                     ))}
                 </section>
 

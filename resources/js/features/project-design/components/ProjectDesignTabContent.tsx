@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePage } from '@inertiajs/react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     FileWarning,
     FolderOpen,
@@ -7,9 +8,13 @@ import {
     NotebookTabs,
     PanelLeft,
     PanelRight,
+    CircleHelp,
+    Save,
+    AlertTriangle,
     Undo2,
 } from 'lucide-react';
-import { Button, Chip, Tooltip } from '@heroui/react';
+import { Button, Chip, Modal, Tooltip } from '@heroui/react';
+import { toast } from 'sonner';
 import { ProjectDesignFileBrowser } from './ProjectDesignFileBrowser';
 import {
     ProjectDesignEditorToolbar,
@@ -28,9 +33,11 @@ import { DesignViewerTabs } from '@/features/dossiers/components/DesignViewerTab
 import { DesignInspector } from '@/features/dossiers/components/DesignInspector';
 import { resolveProjectDesignViewer } from '@/features/dossiers/utils/viewerResolver';
 import { useActivity, useAnnotations, useFileDetail, useRemarks, useVersions } from '../hooks/useProjectDesignQueries';
+import { projectDesignApi } from '../api/projectDesignApi';
+import { projectDesignKeys } from '../api/projectDesignKeys';
 import { useProjectDesignViewerController } from '../viewer/useProjectDesignViewerController';
 import { useProjectDesignRealtime } from '../realtime/useProjectDesignRealtime';
-import type { DesignMode, ProjectDesignFile, ProjectDesignRemark } from '../types/projectDesign';
+import type { DesignMode, ProjectDesignFile, ProjectDesignRemark, ProjectDesignRemarkUpdate } from '../types/projectDesign';
 import type { WorkspaceState, WorkspaceUpdate } from '../hooks/useProjectDesignWorkspace';
 
 const MODES: { id: DesignMode; label: string }[] = [
@@ -112,7 +119,7 @@ export function ProjectDesignTabContent({
     );
 
     return (
-        <div className="project-design-editor-active flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="project-design-editor-active flex min-h-0 flex-1 flex-col overflow-hidden">
             {workspaceState.fileId && mode === 'files' ? (
                 loadingFile ? (
                     <div className="flex flex-1 items-center justify-center bg-[var(--surface-2)]/30">
@@ -160,22 +167,21 @@ export function ProjectDesignTabContent({
 
                     <div className="app-scrollbar flex shrink-0 items-center gap-1 overflow-x-auto border-b border-[var(--border)] bg-[var(--surface-2)]/30 px-2 py-1.5">
                         {MODES.map((item) => (
-                            <Button
-                                key={item.id}
-                                size="sm"
-                                variant="ghost"
-                                role="tab"
-                                aria-selected={mode === item.id}
-                                onPress={() => onModeChange(item.id)}
-                                className={[
-                                    'h-8 min-w-0 rounded-lg border px-3 text-[12px] font-medium whitespace-nowrap',
-                                    mode === item.id
-                                        ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
-                                        : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]',
-                                ].join(' ')}
-                            >
-                                {item.label}
-                            </Button>
+                            <div key={item.id} role="tab" aria-selected={mode === item.id}>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onPress={() => onModeChange(item.id)}
+                                    className={[
+                                        'h-8 min-w-0 rounded-lg border px-3 text-[12px] font-medium whitespace-nowrap',
+                                        mode === item.id
+                                            ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
+                                            : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]',
+                                    ].join(' ')}
+                                >
+                                    {item.label}
+                                </Button>
+                            </div>
                         ))}
                     </div>
 
@@ -242,6 +248,9 @@ function EditorWorkspace({
     const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
     const [focusedAnnotationId, setFocusedAnnotationId] = useState<number | null>(null);
     const [focusRequestKey, setFocusRequestKey] = useState(0);
+    const [pendingNavigation, setPendingNavigation] = useState<WorkspaceUpdate | null>(null);
+    const [shortcutsOpen, setShortcutsOpen] = useState(false);
+    const queryClient = useQueryClient();
     const { data: versionsData, isLoading: loadingVersions } = useVersions(dossierId, selectedFile.id);
     const { data: remarksData } = useRemarks(dossierId, {});
     const { data: activityData } = useActivity(dossierId);
@@ -251,6 +260,64 @@ function EditorWorkspace({
         (updates: WorkspaceUpdate) => onNavigate?.(updates),
         [onNavigate],
     );
+
+    const requestContextNavigation = useCallback((updates: WorkspaceUpdate) => {
+        if (!annotationCommands.hasUnsaved) {
+            navigate(updates);
+            return;
+        }
+
+        setPendingNavigation(updates);
+    }, [annotationCommands.hasUnsaved, navigate]);
+
+    const continueWithPendingNavigation = useCallback(async () => {
+        if (!pendingNavigation) return;
+
+        const saved = await annotationCommands.onSave?.();
+        if (saved === false) return;
+
+        navigate(pendingNavigation);
+        setPendingNavigation(null);
+    }, [annotationCommands.onSave, navigate, pendingNavigation]);
+
+    const discardAndContinue = useCallback(() => {
+        annotationCommands.onDiscard?.();
+        if (pendingNavigation) navigate(pendingNavigation);
+        setPendingNavigation(null);
+    }, [annotationCommands.onDiscard, navigate, pendingNavigation]);
+
+    useEffect(() => {
+        if (!annotationCommands.hasUnsaved) return;
+
+        const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+            event.preventDefault();
+            event.returnValue = '';
+        };
+
+        window.addEventListener('beforeunload', warnBeforeUnload);
+        return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+    }, [annotationCommands.hasUnsaved]);
+
+    useEffect(() => {
+        const handleShortcut = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
+
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+                event.preventDefault();
+                void annotationCommands.onSave?.();
+                return;
+            }
+
+            if (event.key === '?' && !event.ctrlKey && !event.metaKey) {
+                event.preventDefault();
+                setShortcutsOpen(true);
+            }
+        };
+
+        window.addEventListener('keydown', handleShortcut);
+        return () => window.removeEventListener('keydown', handleShortcut);
+    }, [annotationCommands.onSave]);
 
     const requestedVersion = workspaceState.versionId
         ? versions.find((version) => version.id === workspaceState.versionId) ?? null
@@ -272,10 +339,17 @@ function EditorWorkspace({
     const requestedAssetMissing = Boolean(workspaceState.assetId && !requestedAsset);
 
     const authUser = ((usePage().props as Record<string, unknown>).auth as {
-        user?: { id: number; companyId?: number };
+        user?: { id: number; companyId?: number; permissions?: string[]; roles?: string[] };
     } | undefined)?.user;
     const userId = authUser?.id;
     const companyId = authUser?.companyId ?? null;
+    const canManageAllRemarks = authUser?.roles?.includes('admin') ?? false;
+    const remarkCapabilities = {
+        assign: canManageAllRemarks || Boolean(authUser?.permissions?.includes('project-design.assign-remark')),
+        address: canManageAllRemarks || Boolean(authUser?.permissions?.includes('project-design.address-remark')),
+        verify: canManageAllRemarks || Boolean(authUser?.permissions?.includes('project-design.verify-remark')),
+        reopen: canManageAllRemarks || Boolean(authUser?.permissions?.includes('project-design.reopen-remark')),
+    };
 
     const editorRootRef = useCallback((node: HTMLDivElement | null) => {
         setPortalContainer(node);
@@ -300,6 +374,17 @@ function EditorWorkspace({
             page: String(targetPage),
         });
     }, [activeAsset?.id, annotationsData?.data, layoutControls, navigate]);
+
+    const handleRemarkUpdate = useCallback(async (remark: ProjectDesignRemark, changes: ProjectDesignRemarkUpdate) => {
+        try {
+            await projectDesignApi.updateRemark(dossierId, remark.id, changes);
+            await queryClient.invalidateQueries({ queryKey: projectDesignKeys.all(dossierId) });
+            toast.success('Remark updated.');
+        } catch (error) {
+            toast.error((error as Error)?.message ?? 'Unable to update this remark.');
+            throw error;
+        }
+    }, [dossierId, queryClient]);
 
     useEffect(() => {
         const requestedPage = workspaceState.pageNumber ?? 1;
@@ -352,6 +437,7 @@ function EditorWorkspace({
     const handleAnnotationCommands = useCallback((next: ProjectDesignAnnotationToolbarState) => {
         setAnnotationCommands((current) => (
             current.onSave === next.onSave
+            && current.onDiscard === next.onDiscard
             && current.onRemark === next.onRemark
             && current.saving === next.saving
             && current.hasUnsaved === next.hasUnsaved
@@ -387,6 +473,7 @@ function EditorWorkspace({
         saving: annotationCommands.saving,
         hasUnsaved: annotationCommands.hasUnsaved,
         canRemark: annotationCommands.canRemark,
+        onShortcutHelp: () => setShortcutsOpen(true),
         continuous: false,
     }), [
         activeAsset?.assetType,
@@ -465,12 +552,12 @@ function EditorWorkspace({
 
     const editorClassName = fullscreen
         ? 'fixed inset-0 z-[120] flex h-dvh w-screen flex-col overflow-hidden bg-[#0d0f11] p-2 sm:p-3'
-        : 'project-design-editor-scroll-root flex h-full min-h-0 flex-col overflow-hidden';
+        : 'project-design-editor-normal flex min-h-0 flex-col overflow-hidden';
 
     return (
         <ProjectDesignLayoutContext.Provider value={layoutControls}>
             <div ref={editorRootRef} className={editorClassName}>
-                <div className="flex shrink-0 items-center gap-2 rounded-t-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_96%,transparent)] px-2 py-1.5 shadow-sm backdrop-blur">
+                <div className="flex shrink-0 items-center gap-2 rounded-t-xl border-x border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_96%,transparent)] px-2 py-1.5 shadow-sm backdrop-blur">
                     <IconControl
                         label={layoutControls.browserAvailable ? 'Toggle file browser' : 'Open file browser'}
                         onPress={layoutControls.browserAvailable ? layoutControls.toggleBrowser : layoutControls.openBrowser}
@@ -514,7 +601,7 @@ function EditorWorkspace({
                         browser={(
                             <ProjectDesignFileBrowser
                                 dossierId={dossierId}
-                                onFileSelect={(file) => navigate({
+                                onFileSelect={(file) => requestContextNavigation({
                                     file: String(file.id),
                                     version: '',
                                     asset: '',
@@ -532,8 +619,8 @@ function EditorWorkspace({
                                 versionId={version.id}
                                 fileMeta={selectedFile}
                                 activeAssetId={activeAsset.id}
-                                onAssetChange={(id) => navigate({ asset: String(id), page: '', remark: '' })}
-                                onOpenReviewAsset={(asset) => navigate({ asset: String(asset.id), page: '', remark: '' })}
+                                onAssetChange={(id) => requestContextNavigation({ asset: String(id), page: '', remark: '' })}
+                                onOpenReviewAsset={(asset) => requestContextNavigation({ asset: String(asset.id), page: '', remark: '' })}
                                 pageNumber={pageNumber}
                                 onPageNumberChange={handlePageChange}
                                 viewerToolbar={toolbarState}
@@ -554,10 +641,13 @@ function EditorWorkspace({
                                 activities={activityData?.data ?? null}
                                 activeTab={workspaceState.inspectorTab}
                                 onTabChange={(tab) => navigate({ inspector: tab })}
-                                onOpenReviewAsset={(asset) => navigate({ asset: String(asset.id), page: '', remark: '' })}
-                                onSwitchVersion={(versionId) => navigate({ version: String(versionId), asset: '', page: '', remark: '' })}
+                                onOpenReviewAsset={(asset) => requestContextNavigation({ asset: String(asset.id), page: '', remark: '' })}
+                                onSwitchVersion={(versionId) => requestContextNavigation({ version: String(versionId), asset: '', page: '', remark: '' })}
                                 activeRemarkId={workspaceState.remarkId}
                                 onRemarkFocus={handleRemarkFocus}
+                                currentUserId={userId}
+                                remarkCapabilities={remarkCapabilities}
+                                onRemarkUpdate={handleRemarkUpdate}
                             />
                         )}
                     />
@@ -589,7 +679,75 @@ function EditorWorkspace({
                     </div>
                 </div>
             </div>
+
+            <Modal>
+                <Modal.Backdrop
+                    isOpen={pendingNavigation !== null}
+                    onOpenChange={(open) => { if (!open) setPendingNavigation(null); }}
+                    isDismissable={!annotationCommands.saving}
+                    className="z-[210] bg-black/65 backdrop-blur-sm"
+                >
+                    <Modal.Container size="sm" placement="center" className="z-[211] p-3">
+                        <Modal.Dialog aria-label="Unsaved markup" className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-2xl">
+                            <Modal.Header className="border-b border-[var(--border)] px-5 py-4 pr-12">
+                                <div className="flex items-center gap-3">
+                                    <span className="flex size-9 items-center justify-center rounded-xl bg-amber-400/12 text-amber-300"><AlertTriangle size={17} /></span>
+                                    <div>
+                                        <Modal.Heading className="text-sm font-semibold">Save your markup?</Modal.Heading>
+                                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Changing the drawing context will discard unsaved annotations.</p>
+                                    </div>
+                                </div>
+                                <Modal.CloseTrigger aria-label="Keep editing" />
+                            </Modal.Header>
+                            <Modal.Footer className="app-scrollbar flex min-w-0 flex-nowrap justify-end gap-1.5 overflow-x-auto px-5 py-3">
+                                <Button size="sm" variant="ghost" onPress={() => setPendingNavigation(null)} isDisabled={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[10px]">Keep</Button>
+                                <Button size="sm" variant="secondary" onPress={discardAndContinue} isDisabled={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[10px]">Discard</Button>
+                                <Button size="sm" variant="primary" onPress={() => void continueWithPendingNavigation()} isPending={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[10px]">
+                                    <Save size={13} /> Save & continue
+                                </Button>
+                            </Modal.Footer>
+                        </Modal.Dialog>
+                    </Modal.Container>
+                </Modal.Backdrop>
+            </Modal>
+
+            <EditorShortcutsDialog isOpen={shortcutsOpen} onOpenChange={setShortcutsOpen} />
         </ProjectDesignLayoutContext.Provider>
+    );
+}
+
+function EditorShortcutsDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (open: boolean) => void }) {
+    const shortcuts = [
+        ['Ctrl / Cmd + S', 'Save unsaved markup'],
+        ['V', 'Select annotation'],
+        ['H or Space', 'Pan the drawing'],
+        ['Page Up / Page Down', 'Previous or next page'],
+        ['Arrow keys', 'Pan the current view'],
+        ['+ / -', 'Zoom in or out'],
+        ['R', 'Rotate clockwise'],
+        ['F', 'Toggle fullscreen'],
+        ['Delete', 'Remove selected annotation'],
+    ];
+
+    return (
+        <Modal>
+            <Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange} isDismissable className="z-[210] bg-black/65 backdrop-blur-sm">
+                <Modal.Container size="sm" placement="center" className="z-[211] p-3">
+                    <Modal.Dialog aria-label="Editor shortcuts" className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-2xl">
+                        <Modal.Header className="border-b border-[var(--border)] px-5 py-4 pr-12">
+                            <div className="flex items-center gap-3">
+                                <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--accent)]/12 text-[var(--accent)]"><CircleHelp size={17} /></span>
+                                <div><Modal.Heading className="text-sm font-semibold">Editor shortcuts</Modal.Heading><p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Use these while the drawing workspace is active.</p></div>
+                            </div>
+                            <Modal.CloseTrigger aria-label="Close shortcuts" />
+                        </Modal.Header>
+                        <Modal.Body className="divide-y divide-[var(--border)]/70 px-5 py-1">
+                            {shortcuts.map(([keys, label]) => <div key={keys} className="flex items-center justify-between gap-4 py-2.5"><span className="text-[11px] text-[var(--text-muted)]">{label}</span><kbd className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--foreground)]">{keys}</kbd></div>)}
+                        </Modal.Body>
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
+        </Modal>
     );
 }
 

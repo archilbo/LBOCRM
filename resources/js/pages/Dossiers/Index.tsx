@@ -4,12 +4,13 @@ import {
     Eye, FolderKanban, ListFilter, MapPin, MoreHorizontal,
     Pencil, Plus, RefreshCw, Search, SlidersHorizontal, Trash2, X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar, Button, Card, Chip, Dropdown } from '@heroui/react';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
+import { AppWorkspaceTable } from '@/components/ui/AppWorkspaceTable';
 import { cn } from '@/lib/cn';
 import type { City, DossierFormPayload, DossierRow } from '@/features/dossiers/types';
 import type { FormErrors } from '@/lib/formErrors';
@@ -122,6 +123,12 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
         setFormErrors({});
         setDrawerOpen(true);
     }
+
+    useEffect(() => {
+        if (new URLSearchParams(window.location.search).get('command') !== 'create') return;
+        openCreateDrawer();
+        window.history.replaceState({}, '', window.location.pathname);
+    }, []);
 
     function openEditDrawer(dossier: DossierRow) {
         setSelectedDossier(dossier);
@@ -299,9 +306,10 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                         </div>
 
                         {/* ── Table card ── */}
-                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-                            {/* Toolbar */}
-                            <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-3 py-2">
+                        <AppWorkspaceTable
+                            ariaLabel="Liste des projets"
+                            toolbar={
+                                <div className="flex flex-wrap items-center gap-2 px-3 py-2">
                                 <div className="relative max-w-[220px] flex-1">
                                     <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                                     <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }}
@@ -358,7 +366,9 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                         <RefreshCw size={12} />
                                     </Button>
                                 </div>
-                            </div>
+                                </div>
+                            }
+                        >
 
                             {/* ── Table ── */}
                             <div className="overflow-x-auto">
@@ -463,7 +473,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                        </AppWorkspaceTable>
 
                         {/* ── Preview drawer ── */}
                         <AppDrawer
@@ -610,20 +620,17 @@ function PreviewContent({ dossier, onEdit, onDelete }: { dossier: DossierRow; on
                 </div>
             </Card>
 
-            <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 shadow-sm">
-                <Button variant="solid" color="primary" size="sm" className="min-w-0 h-8 text-[11px]" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
+            <div className="grid grid-cols-4 gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-sm">
+                <Button variant="solid" color="primary" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
                     <Eye size={13} /> View project
                 </Button>
-                <span className="h-5 w-px bg-[var(--border)]" />
-                <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[11px]" onPress={() => onEdit(dossier)}>
+                <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => onEdit(dossier)}>
                     <Pencil size={13} /> Modifier
                 </Button>
-                <span className="h-5 w-px bg-[var(--border)]" />
-                <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[11px]" onPress={() => router.visit('/archives')}>
+                <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => router.visit('/archives')}>
                     <Trash2 size={13} /> Archiver
                 </Button>
-                <span className="h-5 w-px bg-[var(--border)]" />
-                <Button variant="light" size="sm" className="min-w-0 h-8 px-2 text-[11px] text-red-400" onPress={() => onDelete(dossier)}>
+                <Button variant="light" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap text-red-400" onPress={() => onDelete(dossier)}>
                     <Trash2 size={13} /> Supprimer
                 </Button>
             </div>

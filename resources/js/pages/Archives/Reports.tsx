@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { AlertCircle, ArrowLeft, Calendar, TrendingUp, TriangleAlert } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 
 type OverdueRow = {
     id: number;
@@ -49,30 +50,9 @@ export default function ArchivesReports({ overdue, monthly, lost, kpis }: PagePr
                     </div>
 
                     <div className="grid grid-cols-3 gap-3">
-                        <div className="rounded-xl border border-red-400/20 bg-red-400/5 p-4">
-                            <div className="flex items-center gap-2">
-                                <AlertCircle size={16} className="text-red-400" />
-                                <span className="text-sm font-medium text-white">Overdue</span>
-                            </div>
-                            <p className="mt-1 text-2xl font-semibold text-white">{kpis.totalOverdue}</p>
-                            <p className="text-xs text-white/50">Avg {kpis.avgOverdueDays} days overdue</p>
-                        </div>
-                        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                            <div className="flex items-center gap-2">
-                                <Calendar size={16} className="text-amber-400" />
-                                <span className="text-sm font-medium text-white">Monthly</span>
-                            </div>
-                            <p className="mt-1 text-2xl font-semibold text-white">{monthly.reduce((s, r) => s + r.total, 0)}</p>
-                            <p className="text-xs text-white/50">Archives in last 12 months</p>
-                        </div>
-                        <div className="rounded-xl border border-orange-400/20 bg-orange-400/5 p-4">
-                            <div className="flex items-center gap-2">
-                                <TriangleAlert size={16} className="text-orange-400" />
-                                <span className="text-sm font-medium text-white">Lost</span>
-                            </div>
-                            <p className="mt-1 text-2xl font-semibold text-white">{kpis.totalLost}</p>
-                            <p className="text-xs text-white/50">Missing archives</p>
-                        </div>
+                        <AppKpiCard label="Overdue" value={kpis.totalOverdue} detail={`Avg ${kpis.avgOverdueDays} days overdue`} icon={<AlertCircle size={16} className="text-red-400" />} valueClassName="text-red-300" />
+                        <AppKpiCard label="Monthly" value={monthly.reduce((sum, row) => sum + row.total, 0)} detail="Archives in last 12 months" icon={<Calendar size={16} className="text-amber-400" />} />
+                        <AppKpiCard label="Lost" value={kpis.totalLost} detail="Missing archives" icon={<TriangleAlert size={16} className="text-orange-400" />} valueClassName="text-orange-300" />
                     </div>
 
                     <div className="grid gap-6 lg:grid-cols-2">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\FinanceDocumentStatus;
 use App\Enums\FinanceDocumentType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -19,6 +20,7 @@ class FinanceDocumentResource extends JsonResource
             'numberLockedAt' => $this->number_locked_at ? (string) $this->number_locked_at : null,
             'lock' => app(\App\Services\Finance\FinanceDocumentLockStatePresenter::class)->toArray($this->resource),
             'status' => $this->status,
+            'statusLabel' => FinanceDocumentStatus::tryFrom($this->status)?->label() ?? ucfirst($this->status),
             'client' => $this->client ? [
                 'id' => $this->client->id,
                 'name' => $this->client->full_name,

@@ -128,6 +128,11 @@ class ProjectDesignPolicy
         return $user->can('project-design.verify-remark');
     }
 
+    public function reopenRemark(User $user, ProjectDesignRemark $remark, Dossier $dossier): bool
+    {
+        return $user->can('project-design.reopen-remark');
+    }
+
     public function approveVersion(User $user, ProjectDesignFileVersion $version, Dossier $dossier): bool
     {
         return $user->can('project-design.approve');

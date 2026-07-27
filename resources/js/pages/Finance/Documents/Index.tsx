@@ -46,10 +46,11 @@ import { FinanceSettingsSummary } from '@/features/finance/components/FinanceSet
 import { FinanceWorkspaceHeader } from '@/features/finance/components/FinanceWorkspaceHeader';
 import { FinanceDocumentBuilderDrawer, PaymentDrawer, ExpenseDrawer } from '@/components/drawers';
 import type { ExpenseViewMode } from '@/components/drawers/entities/ExpenseDrawer';
-import { MetricSparklineCard } from '@/features/finance/components/MetricSparklineCard';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { ExpensesWorkspace } from '@/features/finance/components/ExpensesWorkspace';
 import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirection } from '@/features/finance/components/FinanceSortableHeader';
 import { FinanceRowActions, type FinanceRowAction } from '@/features/finance/components/FinanceRowActions';
+import { createFinanceDocumentActions, type FinanceDocumentActionHandlers } from '@/features/finance/components/FinanceDocumentActions';
 import type {
     ClientOption,
     DossierOption,
@@ -116,21 +117,8 @@ function paginationOf<T>(value?: Paginated<T> | T[]) {
     };
 }
 
-type DocumentActionHandlers = {
-    onView: (document: FinanceDocument) => void;
-    onPrint: (document: FinanceDocument) => void;
-    onDownloadPdf: (document: FinanceDocument) => void;
-    onDownloadExcel: (document: FinanceDocument) => void;
-    onEdit: (document: FinanceDocument) => void;
-    onAccept: (document: FinanceDocument) => void;
-    onReject: (document: FinanceDocument) => void;
-    onConvert: (document: FinanceDocument) => void;
-    onPayment: (document: FinanceDocument) => void;
-    onCancel: (document: FinanceDocument) => void;
-    onDelete: (document: FinanceDocument) => void;
+type DocumentActionHandlers = FinanceDocumentActionHandlers & {
     onSelect: (document: FinanceDocument) => void;
-    onGeneratePdf: (document: FinanceDocument) => void;
-    onGenerateExcel: (document: FinanceDocument) => void;
 };
 
 function unwrap<T>(value?: Paginated<T> | T[] | { data?: unknown }): T[] {
@@ -402,20 +390,11 @@ function FinanceDocumentWorkspace({
     }
 
     function rowActionsFor(document: FinanceDocument): FinanceRowAction[] {
-        return [
-            { id: 'open', label: 'Ouvrir la fiche', icon: <Eye size={13} />, onPress: () => router.visit(docShowUrl(document.id)) },
-            { id: 'edit', label: 'Modifier', icon: <Pencil size={13} />, onPress: () => actions.onEdit(document) },
-            { id: 'preview', label: 'Apercu du document', icon: <FileText size={13} />, onPress: () => actions.onView(document), dividerBefore: true },
-            { id: 'print', label: 'Imprimer', icon: <Printer size={13} />, onPress: () => actions.onPrint(document) },
-            document.hasPdf && { id: 'download-pdf', label: 'Telecharger PDF', icon: <Download size={13} />, onPress: () => actions.onDownloadPdf(document) },
-            document.hasExcel && { id: 'download-excel', label: 'Telecharger Excel', icon: <FileSpreadsheet size={13} />, onPress: () => actions.onDownloadExcel(document) },
-            { id: 'generate-pdf', label: document.hasPdf ? 'Regenerer PDF' : 'Generer PDF', icon: <FileText size={13} />, onPress: () => actions.onGeneratePdf(document), tone: 'accent', dividerBefore: true },
-            { id: 'generate-excel', label: document.hasExcel ? 'Regenerer Excel' : 'Generer Excel', icon: <FileSpreadsheet size={13} />, onPress: () => actions.onGenerateExcel(document), tone: 'accent' },
-            document.type === 'invoice' && { id: 'payment', label: 'Enregistrer un paiement', icon: <WalletCards size={13} />, onPress: () => actions.onPayment(document), tone: 'success', dividerBefore: true },
-            document.type === 'quote' && { id: 'reject', label: 'Refuser le devis', icon: <XCircle size={13} />, onPress: () => actions.onReject(document), tone: 'danger', dividerBefore: true },
-            { id: 'cancel', label: 'Annuler le document', icon: <XCircle size={13} />, onPress: () => actions.onCancel(document), tone: 'danger', dividerBefore: document.type !== 'quote' },
-            { id: 'delete', label: 'Supprimer', icon: <Trash2 size={13} />, onPress: () => actions.onDelete(document), tone: 'danger' },
-        ].filter((action): action is FinanceRowAction => Boolean(action));
+        return createFinanceDocumentActions(document, {
+            ...actions,
+            onOpen: () => router.visit(docShowUrl(document.id)),
+            onPreview: actions.onView,
+        });
     }
 
     function toggleRow(documentId: number) {
@@ -923,7 +902,7 @@ function OverviewWorkspace({
     return (
         <section className="space-y-4">
             <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-                <MetricSparklineCard
+                <AppKpiCard
                     icon={<FileText size={16} className="text-sky-400" />}
                     label="Quotes"
                     value={formatCompactMoney(metrics.totalQuotes, currency)}
@@ -933,7 +912,7 @@ function OverviewWorkspace({
                     fullValue={metrics.totalQuotes}
                     currency={currency}
                 />
-                <MetricSparklineCard
+                <AppKpiCard
                     icon={<ReceiptText size={16} className="text-violet-400" />}
                     label="Invoices"
                     value={formatCompactMoney(metrics.totalInvoices, currency)}
@@ -943,7 +922,7 @@ function OverviewWorkspace({
                     fullValue={metrics.totalInvoices}
                     currency={currency}
                 />
-                <MetricSparklineCard
+                <AppKpiCard
                     icon={<CircleDollarSign size={16} className="text-amber-400" />}
                     label="Remaining"
                     value={formatCompactMoney(metrics.remainingTotal, currency)}
@@ -953,7 +932,7 @@ function OverviewWorkspace({
                     fullValue={metrics.remainingTotal}
                     currency={currency}
                 />
-                <MetricSparklineCard
+                <AppKpiCard
                     icon={<Timer size={16} className="text-rose-400" />}
                     label="Overdue"
                     value={formatCompactMoney(metrics.overdueTotal, currency)}
@@ -963,7 +942,7 @@ function OverviewWorkspace({
                     fullValue={metrics.overdueTotal}
                     currency={currency}
                 />
-                <MetricSparklineCard
+                <AppKpiCard
                     icon={<ArrowDownToLine size={16} className="text-emerald-400" />}
                     label="Encaisse"
                     value={formatCompactMoney(metrics.paidTotal, currency)}
@@ -973,7 +952,7 @@ function OverviewWorkspace({
                     fullValue={metrics.paidTotal}
                     currency={currency}
                 />
-                <MetricSparklineCard
+                <AppKpiCard
                     icon={<ShoppingCart size={16} className="text-orange-400" />}
                     label="Dépenses"
                     value={formatCompactMoney(metrics.totalExpenses ?? 0, currency)}
@@ -1192,6 +1171,13 @@ export default function FinanceDocumentsIndex({
         setBuilderOpen(true);
     }
 
+    useEffect(() => {
+        if (new URLSearchParams(window.location.search).get('command') !== 'create-invoice') return;
+        setActiveTab('invoices');
+        openCreate('invoice');
+        window.history.replaceState({}, '', `${window.location.pathname}?tab=invoices`);
+    }, []);
+
     function openEdit(document: FinanceDocument) {
         setSelectedDocument(document);
         setBuilderMode('edit');
@@ -1278,7 +1264,9 @@ export default function FinanceDocumentsIndex({
     }
 
     const commonActions: DocumentActionHandlers = {
+        onOpen: (document) => router.visit(docShowUrl(document.id)),
         onView: (document) => window.open(document.viewUrl || document.showUrl || docShowUrl(document.id), '_blank', 'noopener,noreferrer'),
+        onPreview: (document) => window.open(document.viewUrl || document.showUrl || docShowUrl(document.id), '_blank', 'noopener,noreferrer'),
         onPrint: (document) => window.open(document.printUrl || document.viewUrl || docShowUrl(document.id), '_blank', 'noopener,noreferrer'),
         onDownloadPdf: (document) => document.pdfDownloadUrl && window.open(document.pdfDownloadUrl, '_blank', 'noopener,noreferrer'),
         onDownloadExcel: (document) => document.excelDownloadUrl && window.open(document.excelDownloadUrl, '_blank', 'noopener,noreferrer'),

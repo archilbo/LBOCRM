@@ -221,8 +221,8 @@ class FinanceDocumentController extends Controller
         DB::transaction(function () use ($data, $financeDocument) {
             $financeDocument->update([
                 'type' => $data['type'] ?? $financeDocument->type,
-                'client_id' => $data['client_id'] ?? $financeDocument->client_id,
-                'dossier_id' => $data['dossier_id'] ?? $financeDocument->dossier_id,
+                'client_id' => $financeDocument->client_id,
+                'dossier_id' => $financeDocument->dossier_id,
                 'status' => $data['status'] ?? $financeDocument->status,
                 'issue_date' => $data['issue_date'] ?? $financeDocument->issue_date,
                 'due_date' => $data['due_date'] ?? $financeDocument->due_date,
@@ -672,7 +672,21 @@ class FinanceDocumentController extends Controller
             'source_document_id' => $financeDocument->id,
         ]);
 
-        return redirect()->route('finance.documents.show', $invoice)
-            ->with('success', "Facture {$invoice->number} creee a partir du devis {$financeDocument->number} !");
+        $successMessage = "Facture {$invoice->number} creee a partir du devis {$financeDocument->number} !";
+        $returnTo = $data['return_to'] ?? null;
+
+        if ($this->isSafeLocalReturnPath($returnTo)) {
+            return redirect()->to($returnTo)->with('success', $successMessage);
+        }
+
+        return redirect()->route('finance.documents.show', $invoice)->with('success', $successMessage);
+    }
+
+    private function isSafeLocalReturnPath(mixed $returnTo): bool
+    {
+        return is_string($returnTo)
+            && str_starts_with($returnTo, '/')
+            && ! str_starts_with($returnTo, '//')
+            && parse_url($returnTo, PHP_URL_HOST) === null;
     }
 }

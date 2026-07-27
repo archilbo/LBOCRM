@@ -130,6 +130,13 @@ export default function InboxIndex({ conversations: _conversations, users, curre
     const [conversationPaginator, setConversationPaginator] = useState<Paginator | null>(initialConversationPaginator || null);
     const [loadingConversations, setLoadingConversations] = useState(false);
 
+    useEffect(() => {
+        if (new URLSearchParams(window.location.search).get('command') !== 'create') return;
+        setFormErrors({});
+        setNewConvOpen(true);
+        window.history.replaceState({}, '', window.location.pathname);
+    }, []);
+
     const prevLastMsgIds = useRef<Record<number, number | null>>({});
     const selectedConvRef = useRef<ConversationRow | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);

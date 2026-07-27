@@ -20,6 +20,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppPagination } from '@/components/ui/AppPagination';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AuthorizationDrawer } from '@/features/authorizations/drawers/AuthorizationDrawer';
 import { countByValue, filterByValue } from '@/lib/filters';
 import type {
@@ -132,24 +133,6 @@ function flowItems(authorization: AuthorizationRow) {
             date: authorization.receivedAt,
         },
     ];
-}
-
-function KpiCard({
-    label,
-    value,
-    detail,
-}: {
-    label: string;
-    value: string | number;
-    detail: string;
-}) {
-    return (
-        <div className="crm-kpi-card">
-            <p className="crm-kpi-label">{label}</p>
-            <p className="crm-kpi-value">{value}</p>
-            <p className="mt-2 truncate text-xs text-[var(--crm-text-soft)]">{detail}</p>
-        </div>
-    );
 }
 
 function AuthorizationTimeline({ authorization }: { authorization: AuthorizationRow }) {
@@ -440,11 +423,11 @@ export default function AuthorizationsIndex({
                 }
             >
                 <section className="crm-kpi-grid max-xl:grid-cols-3 max-md:grid-cols-1">
-                    <KpiCard label="Authorizations" value={metrics.total} detail="Total authorization records" />
-                    <KpiCard label="Not started" value={metrics.notStarted} detail="Need submission" />
-                    <KpiCard label="Submitted" value={metrics.submitted} detail="Waiting authority answer" />
-                    <KpiCard label="Observations" value={metrics.observations} detail="Need follow-up" />
-                    <KpiCard label="Received" value={metrics.received} detail="Final files received" />
+                    <AppKpiCard label="Authorizations" value={metrics.total} detail="Total authorization records" />
+                    <AppKpiCard label="Not started" value={metrics.notStarted} detail="Need submission" />
+                    <AppKpiCard label="Submitted" value={metrics.submitted} detail="Waiting authority answer" />
+                    <AppKpiCard label="Observations" value={metrics.observations} detail="Need follow-up" />
+                    <AppKpiCard label="Received" value={metrics.received} detail="Final files received" />
                 </section>
 
                 <section className="crm-panel p-4">

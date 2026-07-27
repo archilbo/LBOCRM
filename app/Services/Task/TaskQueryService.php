@@ -58,6 +58,7 @@ class TaskQueryService
 
         return [
             'tasks' => TaskResource::collection($tasks)->resolve(),
+            'currentUserId' => $user->id,
             'users' => User::query()
                 ->orderBy('name')
                 ->get(['id', 'name', 'email'])

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import type { FinanceMonthDocumentRow, FinanceMonthPaymentRow, FinanceMonthSummary as FinanceMonthSummaryType } from '@/features/finance/types';
 import { formatCompactMoney } from '@/features/finance/utils/calculations';
 import { AppPagination } from '@/components/ui/AppPagination';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirection } from '@/features/finance/components/FinanceSortableHeader';
 
 type Props = {
@@ -307,12 +308,12 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
             {/* Aggregated KPIs */}
             {selectedMonths.length > 0 ? (
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-                    <KPICard label="Devis" value={aggregated.quotesTotal} sub={`${aggregated.quotesCount} doc(s)`} color="text-sky-300" currency={currency} />
-                    <KPICard label="Factures" value={aggregated.invoicesTotal} sub={`${aggregated.invoicesCount} doc(s)`} color="text-violet-300" currency={currency} />
-                    <KPICard label="Encaisse" value={aggregated.paidTotal} sub={`${aggregated.paymentsCount} paiement(s)`} color="text-emerald-300" currency={currency} />
-                    <KPICard label="Depenses" value={aggregated.expensesTotal} sub={`sur ${selectedMonths.length} mois`} color="text-rose-300" currency={currency} />
-                    <KPICard label="Net" value={netTotal} sub={netTotal >= 0 ? 'Recettes - Depenses' : 'Depenses > Recettes'} color={netTotal >= 0 ? 'text-emerald-300' : 'text-rose-300'} currency={currency} />
-                    <KPICard label="En retard" value={aggregated.overdueTotal} sub={`Restant: ${formatCompactMoney(aggregated.remainingTotal, currency)}`} color="text-red-300" currency={currency} />
+                    <AppKpiCard label="Devis" value={formatCompactMoney(aggregated.quotesTotal, currency)} detail={`${aggregated.quotesCount} doc(s)`} valueClassName="text-sky-300" />
+                    <AppKpiCard label="Factures" value={formatCompactMoney(aggregated.invoicesTotal, currency)} detail={`${aggregated.invoicesCount} doc(s)`} valueClassName="text-violet-300" />
+                    <AppKpiCard label="Encaisse" value={formatCompactMoney(aggregated.paidTotal, currency)} detail={`${aggregated.paymentsCount} paiement(s)`} valueClassName="text-emerald-300" />
+                    <AppKpiCard label="Depenses" value={formatCompactMoney(aggregated.expensesTotal, currency)} detail={`sur ${selectedMonths.length} mois`} valueClassName="text-rose-300" />
+                    <AppKpiCard label="Net" value={formatCompactMoney(netTotal, currency)} detail={netTotal >= 0 ? 'Recettes - Depenses' : 'Depenses > Recettes'} valueClassName={netTotal >= 0 ? 'text-emerald-300' : 'text-rose-300'} />
+                    <AppKpiCard label="En retard" value={formatCompactMoney(aggregated.overdueTotal, currency)} detail={`Restant: ${formatCompactMoney(aggregated.remainingTotal, currency)}`} valueClassName="text-red-300" />
                 </div>
             ) : (
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-xs text-[var(--text-muted)]">
@@ -471,15 +472,5 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                 <AppPagination page={page} pageSize={pageSize} total={filteredRows.length} onChange={setPage} variant="reference" />
             </div>
         </section>
-    );
-}
-
-function KPICard({ label, value, sub, color, currency }: { label: string; value: number; sub: string; color: string; currency: string }) {
-    return (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">{label}</p>
-            <p className={`mt-0.5 text-sm font-semibold ${color}`}>{formatCompactMoney(value, currency)}</p>
-            <p className="text-[10px] text-[var(--text-muted)]">{sub}</p>
-        </div>
     );
 }

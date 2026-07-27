@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\Documents\DossierDocumentFileService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,7 +10,9 @@ class DossierDocumentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $hasFile = filled($this->stored_path);
+        $files = app(DossierDocumentFileService::class);
+        $hasFile = $files->exists($this->resource);
+        $canPreview = $files->canPreview($this->resource, $hasFile);
 
         return [
             'id' => $this->id,
@@ -35,6 +38,10 @@ class DossierDocumentResource extends JsonResource
             'notes' => $this->notes,
 
             'hasFile' => $hasFile,
+            'canPreview' => $canPreview,
+            'storageLocation' => $files->locationLabel($this->resource),
+            'viewUrl' => $canPreview ? route('documents.view', $this->id) : null,
+            'printUrl' => $canPreview ? route('documents.print', $this->id) : null,
             'downloadUrl' => $hasFile ? route('documents.download', $this->id) : null,
         ];
     }

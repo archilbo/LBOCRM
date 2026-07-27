@@ -21,6 +21,7 @@ class ProjectDesignRemarkResource extends JsonResource
             'assignedTo' => $this->whenLoaded('assignedTo', fn () => $this->assignedTo ? ['id' => $this->assignedTo->id, 'name' => $this->assignedTo->name] : null),
             'file' => $this->whenLoaded('version.file', fn () => $this->version->file ? ['id' => $this->version->file->id, 'name' => $this->version->file->name, 'discipline' => $this->version->file->discipline] : null),
             'versionNumber' => $this->whenLoaded('version', fn () => $this->version->version_number),
+            'pageNumber' => $this->whenLoaded('annotation', fn () => $this->annotation?->page_number),
             'dueDate' => $this->due_date?->toDateString(),
             'createdAt' => $this->created_at?->toIso8601String(),
         ];

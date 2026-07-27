@@ -219,6 +219,10 @@ export function FinanceDocumentBuilderDrawer({
             notes: form.notes || null, terms: form.terms || null, template_id: form.templateId || null,
             items: form.items.map((item, i) => ({ title: item.title || `Ligne ${i + 1}`, description: item.description || null, quantity: item.quantity || 1, unit: item.unit || null, unit_price: item.unitPrice || 0 })),
         };
+        if (mode === 'edit') {
+            delete payload.client_id;
+            delete payload.dossier_id;
+        }
         if (mode === 'edit' && isLocked) { delete payload.type; delete payload.issue_date; }
         const opts = { preserveScroll: true, preserveState: false, onSuccess: () => { toast.success(mode === 'edit' ? 'Document mis a jour.' : 'Document cree.'); onSaved?.(form.type); onOpenChange(false); }, onError: () => toast.error('Impossible enregistrer le document.') };
         if (mode === 'edit' && document) { router.put(`/finance/documents/${document.id}`, payload, opts); return; }
@@ -298,6 +302,7 @@ export function FinanceDocumentBuilderDrawer({
                                     clientId={form.clientId} dossierId={form.dossierId}
                                     clients={clients} dossiers={userDossiers}
                                     onClientChange={(v) => update('clientId', v)} onDossierChange={(v) => update('dossierId', v)}
+                                    disabled={mode === 'edit'}
                                     restrictedDossierIds={restrictedDossierIds}
                                 />
                                 <div className="grid gap-2 lg:grid-cols-2">

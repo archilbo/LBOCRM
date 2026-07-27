@@ -19,13 +19,15 @@ function DesignTabContent({ dossierId, urlState, onNavigate }: {
     }, [onNavigate]);
 
     return (
-        <ProjectDesignTabContent
-            dossierId={dossierId}
-            workspaceState={workspaceState}
-            onModeChange={handleModeChange}
-            onFileSelect={handleFileSelect}
-            onNavigate={onNavigate}
-        />
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+            <ProjectDesignTabContent
+                dossierId={dossierId}
+                workspaceState={workspaceState}
+                onModeChange={handleModeChange}
+                onFileSelect={handleFileSelect}
+                onNavigate={onNavigate}
+            />
+        </div>
     );
 }
 

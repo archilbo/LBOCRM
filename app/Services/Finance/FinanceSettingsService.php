@@ -230,6 +230,11 @@ class FinanceSettingsService
         return self::getPaymentTermsDays();
     }
 
+    public static function getDefaultPaymentTerms(): string
+    {
+        return (string) CompanySetting::getValue('finance', 'payment_terms', 'Paiement à réception');
+    }
+
     public static function getQuoteValidityDays(): int
     {
         return (int) CompanySetting::getValue('finance', 'default_quote_validity_days', 30);

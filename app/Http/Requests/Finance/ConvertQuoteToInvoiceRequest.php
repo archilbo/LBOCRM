@@ -17,6 +17,7 @@ class ConvertQuoteToInvoiceRequest extends FormRequest
             'issue_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
+            'return_to' => ['nullable', 'string', 'max:2048'],
         ];
     }
 }

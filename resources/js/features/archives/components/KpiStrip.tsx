@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 
 type KpiProps = {
     kpis: {
@@ -33,23 +34,14 @@ export function KpiStrip({ kpis, activeFilter, onFilter, className }: KpiProps) 
                 const isActive = activeFilter === item.key;
 
                 return (
-                    <button
+                    <AppKpiCard
                         key={item.key ?? 'total'}
-                        type="button"
-                        onClick={() => onFilter(isActive ? null : item.key)}
-                        data-active={isActive}
-                        className={cn(
-                            'flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5 text-left transition hover:border-white/10 hover:bg-white/[0.04]',
-                            isActive && 'border-amber-500/40 bg-amber-500/[0.06]',
-                            !item.key && 'cursor-default',
-                        )}
-                    >
-                        <div className="min-w-0">
-                            <div className="text-[11px] uppercase tracking-wide text-white/50">{item.label}</div>
-                            <div className="mt-0.5 text-xl font-semibold tabular-nums text-white">{value}</div>
-                        </div>
-                        {item.dot ? <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', item.dot)} /> : null}
-                    </button>
+                        label={item.label}
+                        value={value}
+                        icon={item.dot ? <span className={cn('size-1.5 rounded-full', item.dot)} /> : undefined}
+                        onPress={item.key ? () => onFilter(isActive ? null : item.key) : undefined}
+                        isSelected={isActive}
+                    />
                 );
             })}
         </div>

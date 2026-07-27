@@ -14,11 +14,12 @@ class UpdateProjectDesignFileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:100'],
-            'description' => ['nullable', 'string', 'max:5000'],
-            'discipline' => ['nullable', 'string', 'max:100'],
-            'category' => ['nullable', 'string', 'max:100'],
+            'name' => ['sometimes', 'string', 'max:255'],
+            'code' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'discipline' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'category' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'folder_id' => ['sometimes', 'nullable', 'integer', 'exists:project_design_folders,id'],
             'record_version' => ['required', 'integer', 'min:1'],
         ];
     }

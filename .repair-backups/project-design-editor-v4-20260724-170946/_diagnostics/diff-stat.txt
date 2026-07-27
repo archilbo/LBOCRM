@@ -1,0 +1,4 @@
+﻿ .../dossiers/components/DesignAnnotationLayer.tsx  |  20 ++-
+ .../dossiers/components/DesignFileViewer.tsx       | 186 +++++++++++++++++++--
+ .../dossiers/components/PdfDesignViewer.tsx        | 138 +--------------
+ 3 files changed, 193 insertions(+), 151 deletions(-)

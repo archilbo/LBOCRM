@@ -1,0 +1,10 @@
+﻿ .../dossiers/components/DesignAnnotationLayer.tsx  |  570 +++++----
+ .../dossiers/components/DesignFileViewer.tsx       | 1328 ++++++++++++--------
+ .../dossiers/components/DesignInspector.tsx        |  576 ++++-----
+ .../dossiers/components/DesignViewerTabs.tsx       |   96 +-
+ .../dossiers/components/PdfDesignViewer.tsx        |  547 ++++++--
+ .../components/ProjectDesignEditorLayout.tsx       |  418 ++++--
+ .../components/ProjectDesignEditorToolbar.tsx      |  380 ++++--
+ .../components/ProjectDesignTabContent.tsx         |  709 +++++++----
+ .../viewer/useProjectDesignViewerController.ts     |  590 ++++-----
+ 9 files changed, 3145 insertions(+), 2069 deletions(-)

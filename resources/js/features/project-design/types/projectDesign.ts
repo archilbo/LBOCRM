@@ -85,8 +85,18 @@ export type ProjectDesignRemark = {
     assignedTo: { id: number; name: string } | null;
     file: { id: number; name: string; discipline: string } | null;
     versionNumber: number | null;
+    pageNumber: number | null;
     dueDate: string | null; createdAt: string | null;
 };
+
+export type ProjectDesignRemarkUpdate = Partial<{
+    severity: string;
+    status: string;
+    title: string;
+    description: string | null;
+    assigned_to: number | null;
+    due_date: string | null;
+}>;
 
 export type ProjectDesignActivity = {
     id: number; action: string; description: string | null;

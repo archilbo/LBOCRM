@@ -1,0 +1,13 @@
+ D GITHUB.ps1
+ M README.md
+ M app/Http/Controllers/ProjectDesignController.php
+ D check_clients.php
+ M resources/js/features/project-design/components/ProjectDesignFileBrowser.tsx
+ M resources/js/features/project-design/components/ProjectDesignFolderTree.tsx
+ M resources/js/features/project-design/components/ProjectDesignTabContent.tsx
+ M routes/channels.php
+?? .repair-backups/
+?? ARCHI_LBO_PROJECT_DESIGN_REALTIME_EXPLORER_V7.zip
+?? _project-design-v7/
+?? app/Events/ProjectDesign/
+?? resources/js/features/project-design/realtime/

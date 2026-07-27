@@ -1,0 +1,20 @@
+﻿ .../dossiers/components/DesignAnnotationLayer.tsx  | 180 ++---
+ .../components/DesignAnnotationToolbar.tsx         | 121 +++-
+ .../dossiers/components/DesignFileViewer.tsx       | 147 +++-
+ .../dossiers/components/DesignInspector.tsx        | 391 ++++++----
+ .../dossiers/components/DesignRemarkComposer.tsx   |  81 ++-
+ .../dossiers/components/DesignRemarksTab.tsx       | 157 ++--
+ .../components/DesignReviewDecisionDialog.tsx      | 125 +++-
+ .../dossiers/components/DesignReviewQueue.tsx      | 187 +++--
+ .../dossiers/components/DesignUploadDrawer.tsx     | 788 +++++++++++++--------
+ .../dossiers/components/DesignViewerTabs.tsx       | 137 ++--
+ .../dossiers/components/PdfDesignViewer.tsx        | 231 ++++--
+ .../components/ProjectDesignActivityFeed.tsx       |  52 +-
+ .../components/ProjectDesignEditorLayout.tsx       |  87 ++-
+ .../components/ProjectDesignEditorToolbar.tsx      | 131 ++--
+ .../components/ProjectDesignFileBrowser.tsx        | 609 ++++++++++------
+ .../components/ProjectDesignFolderTree.tsx         | 146 ++--
+ .../components/ProjectDesignNewFolderModal.tsx     | 114 ++-
+ .../components/ProjectDesignTabContent.tsx         |  94 ++-
+ .../hooks/useProjectDesignQueries.ts               |  11 +-
+ 19 files changed, 2547 insertions(+), 1242 deletions(-)

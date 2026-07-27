@@ -797,15 +797,17 @@ export function DesignFileViewer({
         return created.id;
     }, [requireExactContext, resolvedPageNumber]);
 
-    const handleAnnotationToolbarSave = useCallback(async () => {
-        if (!unsavedForCurrentContext.length) return;
+    const handleAnnotationToolbarSave = useCallback(async (): Promise<boolean> => {
+        if (!unsavedForCurrentContext.length) return true;
 
         setSaving(true);
         try {
             for (const shape of unsavedForCurrentContext) await saveSingleAnnotation(shape);
             toast.success(`${unsavedForCurrentContext.length} annotation${unsavedForCurrentContext.length === 1 ? '' : 's'} saved.`);
+            return true;
         } catch (error) {
             toast.error((error as Error)?.message ?? 'Failed to save annotations.');
+            return false;
         } finally {
             setSaving(false);
         }
@@ -915,7 +917,11 @@ export function DesignFileViewer({
             setSelectedAnnotationId(null);
             setShowComposer(false);
         }
-    }, [annotations, dossierId, selectedAnnotationId, versionId]);
+        toast.success('Annotation removed.');
+        if (dossierId) {
+            void queryClient.invalidateQueries({ queryKey: projectDesignKeys.all(dossierId) });
+        }
+    }, [annotations, dossierId, queryClient, selectedAnnotationId, versionId]);
 
     const openRemarkComposer = useCallback(() => {
         if (!selectedAnnotationId) return;
@@ -938,8 +944,17 @@ export function DesignFileViewer({
     }, []);
 
     const saveFromToolbar = useCallback(() => {
-        void handleAnnotationToolbarSave();
+        return handleAnnotationToolbarSave();
     }, [handleAnnotationToolbarSave]);
+
+    const discardUnsavedAnnotations = useCallback(() => {
+        setAnnotations((current) => current.filter((annotation) => annotation.serverId));
+        setSelectedAnnotationId(null);
+        setShowComposer(false);
+        composerAnnotationId.current = null;
+        pendingShapeRef.current = null;
+        toast.message('Unsaved markup discarded.');
+    }, []);
 
     const remarkFromToolbar = useCallback(() => {
         openRemarkComposer();
@@ -948,6 +963,7 @@ export function DesignFileViewer({
     useEffect(() => {
         onToolbarStateChange?.({
             onSave: saveFromToolbar,
+            onDiscard: discardUnsavedAnnotations,
             onRemark: remarkFromToolbar,
             saving,
             hasUnsaved,
@@ -965,6 +981,7 @@ export function DesignFileViewer({
     useEffect(() => () => {
         onToolbarStateChange?.({
             onSave: undefined,
+            onDiscard: undefined,
             onRemark: undefined,
             saving: false,
             hasUnsaved: false,

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\DocumentTemplate;
+use App\Models\DossierDocument;
 use App\Models\Expense;
 use App\Models\FinanceDocument;
 use App\Models\FinanceTemplate;
@@ -10,6 +11,7 @@ use App\Models\Payment;
 use App\Models\ProjectDesign\ProjectDesignFile;
 use App\Models\ProjectDesign\ProjectDesignFolder;
 use App\Policies\ExpensePolicy;
+use App\Policies\DossierDocumentPolicy;
 use App\Policies\FinanceDocumentPolicy;
 use App\Policies\FinanceTemplatePolicy;
 use App\Policies\NotificationPolicy;
@@ -38,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(DatabaseNotification::class, NotificationPolicy::class);
         Gate::policy(FinanceDocument::class, FinanceDocumentPolicy::class);
+        Gate::policy(DossierDocument::class, DossierDocumentPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(Expense::class, ExpensePolicy::class);
         Gate::policy(FinanceTemplate::class, FinanceTemplatePolicy::class);

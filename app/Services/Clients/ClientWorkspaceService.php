@@ -2,15 +2,18 @@
 
 namespace App\Services\Clients;
 
+use App\Http\Resources\FinanceDocumentResource;
 use App\Models\Client;
 use App\Models\Dossier;
 use App\Services\Dossiers\DossierWorkflowStepperService;
+use App\Services\Documents\DossierDocumentFileService;
 use App\Services\Finance\FinanceSettingsService;
 
 class ClientWorkspaceService
 {
     public function __construct(
         private readonly DossierWorkflowStepperService $workflowStepper,
+        private readonly DossierDocumentFileService $documentFiles,
     ) {
     }
 
@@ -22,7 +25,13 @@ class ClientWorkspaceService
             'dossiers.contract',
             'dossiers.authorization',
             'dossiers.workflowRequirements.checkedBy',
-            'dossiers.financeDocuments',
+            'dossiers.financeDocuments.client',
+            'dossiers.financeDocuments.dossier',
+            'dossiers.financeDocuments.items',
+            'dossiers.financeDocuments.payments.document',
+            'dossiers.financeDocuments.payments.client',
+            'dossiers.financeDocuments.payments.dossier',
+            'dossiers.financeDocuments.payments.receiptDocument',
             'dossiers.payments.document',
             'dossiers.archiveRecord',
         ]);
@@ -115,24 +124,30 @@ class ClientWorkspaceService
                 'submittedAt' => optional($dossier->authorization->submitted_at)->toISOString(),
                 'approvedAt' => optional($dossier->authorization->approved_at)->toISOString(),
             ] : null,
-            'documents' => $dossier->documents->map(fn ($document) => [
-                'id' => $document->id,
-                'name' => $document->template?->name ?? $document->original_filename ?? 'Document',
-                'status' => $document->status,
-                'documentNumber' => $document->document_number,
-                'originalFilename' => $document->original_filename,
-                'uploadedAt' => optional($document->uploaded_at)->toDateString(),
-            ])->values()->all(),
-            'financeDocuments' => $financeDocuments->map(fn ($document) => [
-                'id' => $document->id,
-                'type' => $document->type,
-                'number' => $document->number,
-                'status' => $document->status,
-                'issueDate' => optional($document->issue_date)->toDateString(),
-                'totalTtc' => (float) $document->total_ttc,
-                'paidTotal' => (float) $document->paid_total,
-                'remainingTotal' => (float) $document->remaining_total,
-            ])->all(),
+            'documents' => $dossier->documents->map(function ($document) use ($dossier) {
+                $hasFile = $this->documentFiles->exists($document);
+                $canPreview = $this->documentFiles->canPreview($document, $hasFile);
+
+                return [
+                    'id' => $document->id,
+                    'name' => $document->template?->name ?? $document->original_filename ?? 'Document',
+                    'status' => $document->status,
+                    'documentNumber' => $document->document_number,
+                    'originalFilename' => $document->original_filename,
+                    'mimeType' => $document->mime_type,
+                    'sizeLabel' => $this->formatSize($document->size_bytes),
+                    'storageLocation' => $this->documentFiles->locationLabel($document, $dossier),
+                    'uploadedAt' => optional($document->uploaded_at)->toDateString(),
+                    'hasFile' => $hasFile,
+                    'canPreview' => $canPreview,
+                    'viewUrl' => $canPreview ? route('documents.view', $document) : null,
+                    'printUrl' => $canPreview ? route('documents.print', $document) : null,
+                    'downloadUrl' => $hasFile ? route('documents.download', $document) : null,
+                ];
+            })->values()->all(),
+            'financeDocuments' => $financeDocuments
+                ->map(fn ($document) => (new FinanceDocumentResource($document))->resolve(request()))
+                ->all(),
             'payments' => $payments->map(fn ($payment) => [
                 'id' => $payment->id,
                 'paymentNumber' => $payment->payment_number,
@@ -259,5 +274,22 @@ class ClientWorkspaceService
         usort($events, fn (array $a, array $b) => ($a['date'] ?? '') <=> ($b['date'] ?? ''));
 
         return $events;
+    }
+
+    private function formatSize(?int $size): string
+    {
+        if (! $size) {
+            return '-';
+        }
+
+        if ($size < 1024) {
+            return $size.' B';
+        }
+
+        if ($size < 1024 * 1024) {
+            return round($size / 1024).' KB';
+        }
+
+        return number_format($size / 1024 / 1024, 1).' MB';
     }
 }

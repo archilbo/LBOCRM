@@ -401,7 +401,7 @@ export function ProjectDesignEditorLayout({
     }
 
     return (
-        <div className="project-design-editor-host relative h-full overflow-hidden rounded-b-xl border-x border-b border-[var(--border)] bg-[var(--surface)]">
+        <div className="project-design-editor-host relative h-full overflow-hidden border-x border-[var(--border)] bg-[var(--surface)]">
             {panels}
 
             <div className="absolute right-2 top-2 z-30">

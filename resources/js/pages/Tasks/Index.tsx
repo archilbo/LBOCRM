@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { CalendarDays, Columns3, LayoutDashboard, List, Plus, Table2, Timeline } from 'lucide-react';
+import { ClipboardList, Plus, UsersRound } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
@@ -21,6 +21,7 @@ import { TaskRequestCreateDrawer, type TaskRequestOptions } from '@/features/tas
 type PageProps = {
     tasks: TaskRow[];
     users: UserOption[];
+    currentUserId: number | null;
     activeFilter: string;
     activeCategory: string;
     taskRequestTypes: string[];
@@ -36,7 +37,7 @@ function isOverdue(task: TaskRow) {
     return Boolean(task.dueDate && new Date(task.dueDate) < new Date() && isOpenTask(task));
 }
 
-export default function TasksIndex({ tasks, users, activeFilter, activeCategory, taskRequestTypes, taskRequestTypeLabels, taskRequestOptions }: PageProps) {
+export default function TasksIndex({ tasks, users, currentUserId, activeFilter, activeCategory, taskRequestTypes, taskRequestTypeLabels, taskRequestOptions }: PageProps) {
     const [localTasks, setLocalTasks] = useState<TaskRow[]>(tasks);
     const [query, setQuery] = useState('');
     const [filter, setFilter] = useState(activeFilter);
@@ -59,6 +60,13 @@ export default function TasksIndex({ tasks, users, activeFilter, activeCategory,
         assignee_ids: [] as number[], watcher_ids: [] as number[],
     });
     const [formErrors, setFormErrors] = useState<FormErrors>({});
+
+    useEffect(() => {
+        if (new URLSearchParams(window.location.search).get('command') !== 'create') return;
+        setFormErrors({});
+        setCreateOpen(true);
+        window.history.replaceState({}, '', window.location.pathname);
+    }, []);
 
     const filtered = useMemo(() => {
         let items = localTasks;
@@ -242,49 +250,34 @@ export default function TasksIndex({ tasks, users, activeFilter, activeCategory,
         return avatars;
     }, [localTasks]);
 
-    const TABS: { id: ViewMode; label: string; icon: typeof LayoutDashboard }[] = [
-        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-        { id: 'board', label: 'Board', icon: Columns3 },
-        { id: 'list', label: 'List', icon: List },
-        { id: 'table', label: 'Table', icon: Table2 },
-        { id: 'timeline', label: 'Timeline', icon: Timeline },
-        { id: 'calendar', label: 'Calendar', icon: CalendarDays },
-    ];
-
     return (
         <>
             <Head title="Tasks" />
-            <AppShell eyebrowKey="nav.tasks" titleKey="nav.tasks" subtitleKey="Track and organize all office operations in one place."
-                action={
-                    <div className="flex flex-wrap items-center gap-2">
-                        <div className="hidden sm:flex -space-x-1.5 mr-1">
-                            {teamAvatars.map((a) => (
-                                <span key={a.id} className="flex size-7 items-center justify-center rounded-full border-2 border-[var(--crm-surface)] bg-[var(--crm-gold)] text-[9px] font-bold text-black" title={a.name}>
-                                    {a.name.charAt(0)}
-                                </span>
-                            ))}
+            <AppShell>
+                <div className="crm-page space-y-4">
+                    <section className="flex flex-col gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]"><ClipboardList size={19} /></span>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Operations</p>
+                                <h1 className="mt-0.5 text-lg font-bold text-[var(--foreground)]">Tasks</h1>
+                                <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">Plan, assign, follow up, and close daily office work.</p>
+                            </div>
                         </div>
-                        <AppButton variant="secondary" onPress={() => router.visit('/task-requests')}>Requests</AppButton>
-                        <AppButton variant="secondary" onPress={() => setRequestOpen(true)}><Plus size={15} /> Request</AppButton>
-                        <AppButton variant="secondary" onPress={() => router.visit('/workload')}>Workload</AppButton>
-                        <AppButton variant="primary" onPress={() => { setFormErrors({}); setCreateOpen(true); }}><Plus size={15} /> Create</AppButton>
-                    </div>
-                }
-            >
-                <div className="crm-page">
-                    {/* Tab bar */}
-                    <div className="mb-4 flex gap-1 border-b border-[var(--crm-border)]">
-                        {TABS.map((tab) => {
-                            const Icon = tab.icon;
-                            return (
-                                <button key={tab.id} type="button" onClick={() => setViewMode(tab.id)}
-                                    className={`flex items-center gap-1.5 border-b-2 px-3 pb-2 pt-1 text-xs font-semibold transition ${viewMode === tab.id ? 'border-[var(--crm-gold)] text-[var(--crm-gold)]' : 'border-transparent text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
-                                    <Icon size={14} />
-                                    {tab.label}
-                                </button>
-                            );
-                        })}
-                    </div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <div className="hidden items-center -space-x-1.5 pr-1 sm:flex">
+                                {teamAvatars.map((member) => (
+                                    <span key={member.id} className="flex size-7 items-center justify-center rounded-full border-2 border-[var(--surface)] bg-[var(--accent)] text-[9px] font-bold text-black" title={member.name}>
+                                        {member.name.charAt(0)}
+                                    </span>
+                                ))}
+                            </div>
+                            <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => router.visit('/task-requests')}>Requests</AppButton>
+                            <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => setRequestOpen(true)}><UsersRound size={14} /> Request</AppButton>
+                            <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => router.visit('/workload')}>Workload</AppButton>
+                            <AppButton size="sm" variant="ghost" className="h-8 bg-[var(--accent)] px-2.5 text-black hover:bg-[var(--accent-hover)]" onPress={() => { setFormErrors({}); setCreateOpen(true); }}><Plus size={14} /> New task</AppButton>
+                        </div>
+                    </section>
 
                     <TaskFilters
                         filter={filter}
@@ -301,7 +294,7 @@ export default function TasksIndex({ tasks, users, activeFilter, activeCategory,
 
                     <div className="mt-4">
                         {viewMode === 'overview' ? (
-                            <TaskOverview tasks={filtered} onTaskClick={setSelectedTask} userId={undefined} />
+                            <TaskOverview tasks={filtered} onTaskClick={setSelectedTask} userId={currentUserId} />
                         ) : viewMode === 'board' ? (
                             <TaskBoard columns={columns} onTaskClick={setSelectedTask} onCreateInStatus={handleCreateInStatus} onStatusChange={updateStatus} />
                         ) : viewMode === 'list' ? (
