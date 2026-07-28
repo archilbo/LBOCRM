@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\ArchiveRecord;
-use App\Models\Authorization as ProjectAuthorization;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\Dossier;
@@ -32,7 +31,6 @@ class GlobalSearchController extends Controller
             ->merge($this->dossiers($like))
             ->merge($this->documents($like))
             ->merge($this->contracts($like))
-            ->merge($this->authorizations($like))
             ->merge($this->finance($like))
             ->merge($this->archives($like))
             ->take(18)
@@ -161,36 +159,6 @@ class GlobalSearchController extends Controller
                 'subtitle' => ($contract->dossier?->dossier_number ?? '-') . ' Â· ' . ($contract->dossier?->client?->full_name ?? '-'),
                 'href' => '/contracts',
                 'badge' => $contract->status,
-            ]);
-    }
-
-    private function authorizations(string $like): Collection
-    {
-        return ProjectAuthorization::query()
-            ->with(['dossier.client'])
-            ->where(function ($builder) use ($like) {
-                $builder
-                    ->where('authorization_number', 'like', $like)
-                    ->orWhere('submission_number', 'like', $like)
-                    ->orWhere('authority_name', 'like', $like)
-                    ->orWhere('authority_type', 'like', $like)
-                    ->orWhere('status', 'like', $like)
-                    ->orWhereHas('dossier', function ($dossierQuery) use ($like) {
-                        $dossierQuery
-                            ->where('dossier_number', 'like', $like)
-                            ->orWhere('project_object', 'like', $like);
-                    });
-            })
-            ->latest()
-            ->limit(4)
-            ->get()
-            ->map(fn (ProjectAuthorization $authorization) => [
-                'id' => 'authorization-' . $authorization->id,
-                'type' => 'Authorization',
-                'title' => $authorization->submission_number ?? $authorization->authorization_number ?? 'Authorization',
-                'subtitle' => ($authorization->dossier?->dossier_number ?? '-') . ' Â· ' . ($authorization->authority_name ?? '-'),
-                'href' => '/authorizations',
-                'badge' => $authorization->status,
             ]);
     }
 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\ArchiveRecord;
-use App\Models\Authorization;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\DocumentTemplate;
@@ -27,7 +26,6 @@ class BackendQaController extends Controller
             ['name' => 'document_templates', 'count' => DocumentTemplate::count(), 'expected' => '>= 1'],
             ['name' => 'dossier_documents', 'count' => DossierDocument::count(), 'expected' => '>= 0'],
             ['name' => 'contracts', 'count' => Contract::count(), 'expected' => '>= 0'],
-            ['name' => 'authorizations', 'count' => Authorization::count(), 'expected' => '>= 0'],
             ['name' => 'finance_records', 'count' => FinanceRecord::count(), 'expected' => '>= 0'],
             ['name' => 'archive_records', 'count' => ArchiveRecord::count(), 'expected' => '>= 0'],
         ];
@@ -38,7 +36,6 @@ class BackendQaController extends Controller
             ['label' => 'Dossiers', 'name' => 'dossiers.index', 'href' => '/dossiers'],
             ['label' => 'Documents', 'name' => 'documents.index', 'href' => '/documents'],
             ['label' => 'Contracts', 'name' => 'contracts.index', 'href' => '/contracts'],
-            ['label' => 'Authorizations', 'name' => 'authorizations.index', 'href' => '/authorizations'],
             ['label' => 'Finance', 'name' => 'finance.index', 'href' => '/finance'],
             ['label' => 'Archives', 'name' => 'archives.index', 'href' => '/archives'],
             ['label' => 'Frontend QA', 'name' => 'frontend-qa.index', 'href' => '/frontend-qa'],

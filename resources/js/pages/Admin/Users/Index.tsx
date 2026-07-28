@@ -65,7 +65,7 @@ const TABS: { id: TabId; label: string; icon: React.FC<{ size?: number; classNam
     { id: 'security', label: 'Security & Audit', icon: ShieldCheck },
 ];
 
-const MODULES = ['Projects', 'Finance', 'Contracts', 'Authorizations', 'Clients', 'Documents', 'Tasks', 'Archives'];
+const MODULES = ['Projects', 'Finance', 'Contracts', 'Clients', 'Documents', 'Tasks', 'Archives'];
 const SCOPE_MODULES = new Set(['Projects', 'Finance', 'Contracts', 'Clients', 'Documents', 'Tasks', 'Archives']);
 
 type PermissionLevel = 'none' | 'view' | 'edit' | 'delete';

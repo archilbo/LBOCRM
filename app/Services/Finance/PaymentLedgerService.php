@@ -2,6 +2,8 @@
 
 namespace App\Services\Finance;
 
+use App\Enums\PaymentKind;
+use App\Models\Dossier;
 use App\Models\FinanceDocument;
 use App\Models\FinanceDocumentItem;
 use App\Models\Payment;
@@ -11,6 +13,11 @@ use Throwable;
 
 class PaymentLedgerService
 {
+    public function __construct(
+        private readonly DossierFinanceEligibilityService $eligibility,
+    ) {
+    }
+
     public function recordPayment(FinanceDocument $invoice, array $data): Payment
     {
         return DB::transaction(function () use ($invoice, $data) {
@@ -25,6 +32,7 @@ class PaymentLedgerService
                 'company_id' => $invoice->company_id,
                 'branch_id' => $invoice->branch_id,
                 'finance_document_id' => $invoice->id,
+                'payment_kind' => PaymentKind::Invoice,
                 'client_id' => $invoice->client_id,
                 'dossier_id' => $invoice->dossier_id,
                 'payment_number' => FinanceNumberService::nextPaymentNumber(),
@@ -46,6 +54,115 @@ class PaymentLedgerService
 
             return $payment->fresh(['document', 'receiptDocument']);
         });
+    }
+
+    public function recordAdvancePayment(Dossier $dossier, array $scope, array $data): Payment
+    {
+        return DB::transaction(function () use ($dossier, $scope, $data) {
+            $dossier = $dossier->fresh(['client']);
+            $this->eligibility->assertCanRecordAdvance($scope, $dossier, isset($data['client_id']) ? (int) $data['client_id'] : null);
+
+            $amount = $this->normalizeAmount($data['amount'] ?? 0);
+            if ($amount <= 0) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Le montant du paiement doit etre superieur a zero.',
+                ]);
+            }
+
+            $payment = Payment::create([
+                'company_id' => $scope['company_id'],
+                'branch_id' => $scope['branch_id'] ?? null,
+                'finance_document_id' => null,
+                'payment_kind' => PaymentKind::Advance,
+                'client_id' => $dossier->client_id,
+                'dossier_id' => $dossier->id,
+                'payment_number' => FinanceNumberService::nextPaymentNumber(),
+                'amount' => $amount,
+                'method' => $data['method'] ?? null,
+                'reference' => $data['reference'] ?? null,
+                'paid_at' => $data['paid_at'] ?? now(),
+                'notes' => $data['notes'] ?? null,
+                'created_by' => $data['created_by'] ?? null,
+            ]);
+
+            $receipt = $this->createReceiptForAdvance($dossier, $scope, $payment->fresh());
+            $payment->forceFill(['receipt_document_id' => $receipt->id])->save();
+
+            return $payment->fresh(['document', 'receiptDocument', 'dossier.client']);
+        });
+    }
+
+    public function applyPendingAdvancesToInvoice(FinanceDocument $invoice): int
+    {
+        if (! $invoice->isInvoice() || ! $invoice->dossier_id) {
+            return 0;
+        }
+
+        $advances = Payment::query()
+            ->where('company_id', $invoice->company_id)
+            ->when($invoice->branch_id, fn ($query, $branchId) => $query->where('branch_id', $branchId), fn ($query) => $query->whereNull('branch_id'))
+            ->where('dossier_id', $invoice->dossier_id)
+            ->where('client_id', $invoice->client_id)
+            ->where('payment_kind', PaymentKind::Advance->value)
+            ->whereNull('finance_document_id')
+            ->lockForUpdate()
+            ->orderBy('paid_at')
+            ->orderBy('id')
+            ->get();
+
+        $advanceTotal = (float) $advances->sum('amount');
+        if ($advanceTotal <= 0) {
+            return 0;
+        }
+
+        if ($advanceTotal > (float) $invoice->total_ttc) {
+            throw ValidationException::withMessages([
+                'total_ttc' => 'Le total des avances depasse le montant TTC de la facture. Corrigez la facture avant de la creer.',
+            ]);
+        }
+
+        foreach ($advances as $advance) {
+            $advance->update(['finance_document_id' => $invoice->id]);
+
+            if ($advance->receipt_document_id) {
+                FinanceDocument::query()->whereKey($advance->receipt_document_id)->update([
+                    'source_document_id' => $invoice->id,
+                ]);
+            }
+        }
+
+        $this->recalculateInvoice($invoice->fresh());
+
+        return $advances->count();
+    }
+
+    public function releaseAdvancesFromInvoice(FinanceDocument $invoice): int
+    {
+        if (! $invoice->isInvoice()) {
+            return 0;
+        }
+
+        $advances = Payment::query()
+            ->where('finance_document_id', $invoice->id)
+            ->where('payment_kind', PaymentKind::Advance->value)
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($advances as $advance) {
+            $advance->update(['finance_document_id' => null]);
+
+            if ($advance->receipt_document_id) {
+                FinanceDocument::query()->whereKey($advance->receipt_document_id)->update([
+                    'source_document_id' => null,
+                ]);
+            }
+        }
+
+        if ($advances->isNotEmpty()) {
+            $this->recalculateInvoice($invoice->fresh());
+        }
+
+        return $advances->count();
     }
 
     public function updatePayment(Payment $payment, array $data): Payment
@@ -193,6 +310,49 @@ class PaymentLedgerService
         return $receipt->fresh();
     }
 
+    private function createReceiptForAdvance(Dossier $dossier, array $scope, Payment $payment): FinanceDocument
+    {
+        $receipt = new FinanceDocument();
+        $receipt->forceFill([
+            'company_id' => $scope['company_id'],
+            'branch_id' => $scope['branch_id'] ?? null,
+            'type' => 'receipt',
+            'number' => $this->nextReceiptNumber(),
+            'status' => 'issued',
+            'client_id' => $dossier->client_id,
+            'dossier_id' => $dossier->id,
+            'source_document_id' => null,
+            'issue_date' => $payment->paid_at ?: now(),
+            'currency' => FinanceSettingsService::getCurrency(),
+            'tva_rate' => 0,
+            'subtotal_ht' => $payment->amount,
+            'discount_total' => 0,
+            'tax_total' => 0,
+            'total_ttc' => $payment->amount,
+            'paid_total' => $payment->amount,
+            'remaining_total' => 0,
+            'notes' => implode(PHP_EOL, array_filter([
+                'Recu d avance pour le dossier ' . $dossier->dossier_number . '.',
+                'Montant recu: ' . number_format((float) $payment->amount, 2, '.', ' ') . ' ' . FinanceSettingsService::getCurrency() . '.',
+                $payment->notes,
+            ])),
+            'terms' => $this->receiptTerms($payment),
+            'created_by' => $payment->created_by,
+        ])->save();
+
+        $item = new FinanceDocumentItem([
+            'position' => 1,
+            'title' => 'Avance recue - Dossier ' . $dossier->dossier_number,
+            'quantity' => 1,
+            'unit' => 'payment',
+            'unit_price' => (float) $payment->amount,
+        ]);
+        $item->calculateTotals();
+        $receipt->items()->save($item);
+
+        return $receipt->fresh();
+    }
+
     private function syncReceiptItem(FinanceDocument $receipt, FinanceDocument $invoice, Payment $payment): void
     {
         $receipt->items()->delete();
@@ -237,7 +397,8 @@ class PaymentLedgerService
             return FinanceNumberService::nextDocumentNumber('receipt');
         } catch (Throwable) {
             $year = now()->format('Y');
-            $next = FinanceDocument::where('type', 'receipt')
+            $next = FinanceDocument::withTrashed()
+                ->where('type', 'receipt')
                 ->whereYear('created_at', now()->year)
                 ->count() + 1;
 

@@ -20,6 +20,7 @@ class FinanceDocument extends Model
         'status',
         'client_id',
         'dossier_id',
+        'active_invoice_dossier_key',
         'source_document_id',
         'issue_date',
         'due_date',

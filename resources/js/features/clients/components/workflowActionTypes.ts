@@ -65,7 +65,7 @@ export function getModuleRoute(stepKey: string, dossierId: number): string {
         case 'contract':
             return `/contracts?dossier_id=${dossierId}`;
         case 'rokhas':
-            return `/authorizations?dossier_id=${dossierId}`;
+            return `/dossiers/${dossierId}`;
         case 'archive':
             return `/archives?dossier_id=${dossierId}`;
         default:

@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\ArchiveRecord;
-use App\Models\Authorization;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\DocumentTemplate;
@@ -195,19 +194,6 @@ class ArchiLboDemoSeeder extends Seeder
                 'ttc' => 16800,
                 'generated_at' => now()->subDay(),
                 'notes' => 'Demo contract.',
-            ],
-        );
-
-        Authorization::updateOrCreate(
-            ['submission_number' => 'SUB-2026-0142'],
-            [
-                'dossier_id' => $dossier1->id,
-                'authorization_number' => null,
-                'authority_name' => 'Commune de Marrakech',
-                'authority_type' => 'commune',
-                'status' => 'submitted',
-                'submitted_at' => now()->toDateString(),
-                'receipt_path' => 'demo/authorizations/receipt-dos-2026-0001.pdf',
             ],
         );
 

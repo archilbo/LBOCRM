@@ -29,10 +29,8 @@ const mainItems = [
 const followUpItems: { key: string }[] = [
     { key: 'documents' },
     { key: 'contracts' },
-    { key: 'authorizations' },
     { key: 'tasks' },
     { key: 'calendar' },
-    { key: 'taskRequests' },
     { key: 'workload' },
     { key: 'operationsReports' },
 ];
@@ -55,8 +53,8 @@ const statusDots = [
 
 /* ── Group keys for collapsed rail popovers ── */
 const operationsGroupKeys = [
-    'documents', 'contracts', 'authorizations', 'tasks',
-    'calendar', 'taskRequests', 'workload', 'operationsReports',
+    'documents', 'contracts', 'tasks',
+    'calendar', 'workload', 'operationsReports',
 ] as const;
 
 const financeGroupKeys = [

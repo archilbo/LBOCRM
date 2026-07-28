@@ -12,6 +12,8 @@ class Client extends Model
     use HasFactory;
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'intermediary_id',
         'client_number',
         'civility',
@@ -36,6 +38,16 @@ class Client extends Model
     public function intermediary(): BelongsTo
     {
         return $this->belongsTo(Intermediary::class);
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function dossiers(): HasMany

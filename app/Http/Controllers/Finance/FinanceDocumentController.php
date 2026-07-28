@@ -26,6 +26,8 @@ use App\Services\Finance\FinanceNumberService;
 use App\Services\Finance\FinancePdfGenerator;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\Finance\FinanceMonthlySummaryService;
+use App\Services\Finance\PaymentLedgerService;
+use App\Services\Finance\DossierFinanceEligibilityService;
 use App\Services\Finance\FinanceTemplateRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -135,13 +137,24 @@ class FinanceDocumentController extends Controller
         ]);
     }
 
-    public function store(StoreFinanceDocumentRequest $request): RedirectResponse
+    public function store(
+        StoreFinanceDocumentRequest $request,
+        DossierFinanceEligibilityService $eligibility,
+        PaymentLedgerService $ledger,
+    ): RedirectResponse
     {
         $this->authorize('create', FinanceDocument::class);
         $data = $request->validated();
         $scope = app(FinanceContextService::class)->payload($request->user());
 
-        $document = DB::transaction(function () use ($data, $request, $scope) {
+        $document = DB::transaction(function () use ($data, $request, $scope, $eligibility, $ledger) {
+            $eligibility->assertCanCreateDocument(
+                $scope,
+                $data['type'],
+                $data['dossier_id'] ?? null,
+                null,
+                isset($data['client_id']) ? (int) $data['client_id'] : null,
+            );
             $number = FinanceNumberService::nextDocumentNumber($data['type']);
 
             $document = FinanceDocument::create([
@@ -151,6 +164,7 @@ class FinanceDocumentController extends Controller
                 'status' => 'draft',
                 'client_id' => $data['client_id'] ?? null,
                 'dossier_id' => $data['dossier_id'] ?? null,
+                'active_invoice_dossier_key' => $eligibility->invoiceGuardKey($scope, $data['type'], $data['dossier_id'] ?? null, 'draft'),
                 'issue_date' => $data['issue_date'] ?? now(),
                 'due_date' => $data['due_date'] ?? now()->addDays(FinanceSettingsService::getDefaultPaymentDays()),
                 'valid_until' => $data['valid_until'] ?? now()->addDays(30),
@@ -180,6 +194,10 @@ class FinanceDocumentController extends Controller
 
             $document->recalculateTotals()->save();
 
+            if ($document->isInvoice()) {
+                $ledger->applyPendingAdvancesToInvoice($document->fresh());
+            }
+
             return $document;
         });
 
@@ -191,6 +209,12 @@ class FinanceDocumentController extends Controller
 
         $request->user()->notify(new FinanceDocumentNotification($document, 'created', ucfirst($document->type) . ' created: ' . $document->number));
 
+        $successMessage = "Document {$document->number} cree avec succes.";
+
+        if ($this->isSafeLocalReturnPath($data['return_to'] ?? null)) {
+            return redirect()->to($data['return_to'])->with('success', $successMessage);
+        }
+
         return redirect()->route('finance.documents.index', [
             'tab' => match ($document->type) {
                 'quote' => 'quotes',
@@ -198,7 +222,7 @@ class FinanceDocumentController extends Controller
                 'receipt' => 'overview',
                 default => 'overview',
             },
-        ])->with('success', "Document {$document->number} cree avec succes.");
+        ])->with('success', $successMessage);
     }
 
     public function show(FinanceDocument $financeDocument): Response
@@ -211,19 +235,34 @@ class FinanceDocumentController extends Controller
         ]);
     }
 
-    public function update(UpdateFinanceDocumentRequest $request, FinanceDocument $financeDocument): RedirectResponse
+    public function update(UpdateFinanceDocumentRequest $request, FinanceDocument $financeDocument, DossierFinanceEligibilityService $eligibility): RedirectResponse
     {
         $this->authorize('update', $financeDocument);
         app(FinanceDocumentLockGuard::class)->assertCanEditContent($financeDocument);
         $data = $request->validated();
         $old = $financeDocument->only(['type', 'client_id', 'dossier_id', 'status', 'total_ttc', 'template_id']);
 
-        DB::transaction(function () use ($data, $financeDocument) {
+        DB::transaction(function () use ($data, $financeDocument, $eligibility) {
+            $nextType = $data['type'] ?? $financeDocument->type;
+            $nextStatus = $data['status'] ?? $financeDocument->status;
+            $scope = [
+                'company_id' => $financeDocument->company_id,
+                'branch_id' => $financeDocument->branch_id,
+            ];
+            $eligibility->assertCanCreateDocument(
+                $scope,
+                $nextType,
+                $financeDocument->dossier_id,
+                $financeDocument->id,
+                $financeDocument->client_id,
+            );
+
             $financeDocument->update([
-                'type' => $data['type'] ?? $financeDocument->type,
+                'type' => $nextType,
                 'client_id' => $financeDocument->client_id,
                 'dossier_id' => $financeDocument->dossier_id,
-                'status' => $data['status'] ?? $financeDocument->status,
+                'status' => $nextStatus,
+                'active_invoice_dossier_key' => $eligibility->invoiceGuardKey($scope, $nextType, $financeDocument->dossier_id, $nextStatus),
                 'issue_date' => $data['issue_date'] ?? $financeDocument->issue_date,
                 'due_date' => $data['due_date'] ?? $financeDocument->due_date,
                 'valid_until' => $data['valid_until'] ?? $financeDocument->valid_until,
@@ -259,6 +298,12 @@ class FinanceDocumentController extends Controller
             ...$financeDocument->fresh()->only(['type', 'client_id', 'dossier_id', 'status', 'total_ttc', 'template_id']),
         ]);
 
+        $successMessage = "Document {$financeDocument->number} mis a jour.";
+
+        if ($this->isSafeLocalReturnPath($data['return_to'] ?? null)) {
+            return redirect()->to($data['return_to'])->with('success', $successMessage);
+        }
+
         return redirect()->route('finance.documents.index', [
             'tab' => match ($financeDocument->type) {
                 'quote' => 'quotes',
@@ -266,26 +311,54 @@ class FinanceDocumentController extends Controller
                 'receipt' => 'overview',
                 default => 'overview',
             },
-        ])->with('success', "Document {$financeDocument->number} mis a jour.");
+        ])->with('success', $successMessage);
     }
 
-    public function destroy(FinanceDocument $financeDocument): RedirectResponse
+    public function destroy(Request $request, FinanceDocument $financeDocument, PaymentLedgerService $ledger): RedirectResponse
     {
         $this->authorize('delete', $financeDocument);
         app(FinanceDocumentLockGuard::class)->assertCanEditContent($financeDocument);
         $number = $financeDocument->number;
-        app(FinanceActivityService::class)->log($financeDocument, request()->user(), 'finance.document.deleted', $financeDocument->toArray());
-        $financeDocument->delete();
+        $linkedPayment = $financeDocument->isReceipt()
+            ? Payment::query()->where('receipt_document_id', $financeDocument->id)->first()
+            : null;
+
+        if ($linkedPayment) {
+            $this->authorize('delete', $linkedPayment);
+        }
+
+        DB::transaction(function () use ($financeDocument, $linkedPayment, $ledger, $request) {
+            if ($linkedPayment) {
+                app(FinanceActivityService::class)->log($linkedPayment, $request->user(), 'finance.payment.reversed_by_receipt_deletion', $linkedPayment->toArray());
+                $ledger->deletePayment($linkedPayment);
+            }
+
+            if ($financeDocument->isInvoice()) {
+                $ledger->releaseAdvancesFromInvoice($financeDocument);
+            }
+
+            app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.document.deleted', $financeDocument->toArray());
+            $financeDocument->forceFill(['active_invoice_dossier_key' => null])->save();
+            $financeDocument->delete();
+        });
+
+        $successMessage = $linkedPayment
+            ? "Recu {$number} et paiement lie supprimes."
+            : "Document {$number} supprime.";
+
+        if ($this->isSafeLocalReturnPath($request->input('return_to'))) {
+            return redirect()->to($request->input('return_to'))->with('success', $successMessage);
+        }
 
         return redirect()->route('finance.documents.index')
-            ->with('success', "Document {$number} supprime.");
+            ->with('success', $successMessage);
     }
 
     public function generate(Request $request, FinanceDocument $financeDocument, FinancePdfGenerator $pdfGenerator, FinanceExcelExporter $excelExporter): RedirectResponse
     {
         $this->authorize('issue', $financeDocument);
         if ($financeDocument->items()->count() === 0) {
-            return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant generation.');
+            return $this->redirectToReturnPath($request, 'error', 'Ajoutez au moins une ligne au document avant generation.');
         }
 
         try {
@@ -296,9 +369,9 @@ class FinanceDocumentController extends Controller
 
             $request->user()->notify(new FinanceDocumentNotification($financeDocument, 'generated', ucfirst($financeDocument->type) . ' generated: ' . $financeDocument->number));
 
-            return redirect()->back()->with('success', "Document {$financeDocument->number} genere avec succes.");
+            return $this->redirectToReturnPath($request, 'success', "Document {$financeDocument->number} genere avec succes.");
         } catch (\Throwable $e) {
-            return redirect()->back()->with('error', 'Erreur de generation : ' . $e->getMessage());
+            return $this->redirectToReturnPath($request, 'error', 'Erreur de generation : ' . $e->getMessage());
         }
     }
 
@@ -306,16 +379,16 @@ class FinanceDocumentController extends Controller
     {
         $this->authorize('issue', $financeDocument);
         if ($financeDocument->items()->count() === 0) {
-            return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant generation PDF.');
+            return $this->redirectToReturnPath($request, 'error', 'Ajoutez au moins une ligne au document avant generation PDF.');
         }
 
         try {
             $generator->generate($financeDocument, $request->user());
             app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.document.pdf_generated');
 
-            return redirect()->back()->with('success', "PDF {$financeDocument->number} genere avec succes.");
+            return $this->redirectToReturnPath($request, 'success', "PDF {$financeDocument->number} genere avec succes.");
         } catch (\Throwable $e) {
-            return redirect()->back()->with('error', 'Erreur de generation PDF : ' . $e->getMessage());
+            return $this->redirectToReturnPath($request, 'error', 'Erreur de generation PDF : ' . $e->getMessage());
         }
     }
 
@@ -323,16 +396,16 @@ class FinanceDocumentController extends Controller
     {
         $this->authorize('issue', $financeDocument);
         if ($financeDocument->items()->count() === 0) {
-            return redirect()->back()->with('error', 'Ajoutez au moins une ligne au document avant export Excel.');
+            return $this->redirectToReturnPath($request, 'error', 'Ajoutez au moins une ligne au document avant export Excel.');
         }
 
         try {
             $exporter->generate($financeDocument, $request->user());
             app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.document.excel_generated');
 
-            return redirect()->back()->with('success', "Excel {$financeDocument->number} genere avec succes.");
+            return $this->redirectToReturnPath($request, 'success', "Excel {$financeDocument->number} genere avec succes.");
         } catch (\Throwable $e) {
-            return redirect()->back()->with('error', 'Erreur export Excel : ' . $e->getMessage());
+            return $this->redirectToReturnPath($request, 'error', 'Erreur export Excel : ' . $e->getMessage());
         }
     }
 
@@ -572,7 +645,7 @@ class FinanceDocumentController extends Controller
     {
         $this->authorize('update', $financeDocument);
         if (!$financeDocument->isQuote()) {
-            return redirect()->back()->with('error', 'Seul un devis peut etre accepte.');
+            return $this->redirectToReturnPath($request, 'error', 'Seul un devis peut etre accepte.');
         }
 
         $financeDocument->update([
@@ -583,14 +656,14 @@ class FinanceDocumentController extends Controller
         $request->user()->notify(new FinanceDocumentNotification($financeDocument->fresh(), 'accepted', 'Quote accepted: ' . $financeDocument->number));
         app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.quote.accepted');
 
-        return redirect()->back()->with('success', "Devis {$financeDocument->number} accepte !");
+        return $this->redirectToReturnPath($request, 'success', "Devis {$financeDocument->number} accepte !");
     }
 
     public function reject(Request $request, FinanceDocument $financeDocument): RedirectResponse
     {
         $this->authorize('update', $financeDocument);
         if (!$financeDocument->isQuote()) {
-            return redirect()->back()->with('error', 'Seul un devis peut etre refuse.');
+            return $this->redirectToReturnPath($request, 'error', 'Seul un devis peut etre refuse.');
         }
 
         $financeDocument->update([
@@ -601,23 +674,35 @@ class FinanceDocumentController extends Controller
         $request->user()->notify(new FinanceDocumentNotification($financeDocument->fresh(), 'rejected', 'Quote rejected: ' . $financeDocument->number));
         app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.quote.rejected');
 
-        return redirect()->back()->with('success', "Devis {$financeDocument->number} refuse !");
+        return $this->redirectToReturnPath($request, 'success', "Devis {$financeDocument->number} refuse !");
     }
 
-    public function cancel(Request $request, FinanceDocument $financeDocument): RedirectResponse
+    public function cancel(Request $request, FinanceDocument $financeDocument, PaymentLedgerService $ledger): RedirectResponse
     {
         $this->authorize('cancel', $financeDocument);
-        $financeDocument->update([
-            'status' => 'cancelled',
-        ]);
+        DB::transaction(function () use ($financeDocument, $ledger) {
+            if ($financeDocument->isInvoice()) {
+                $ledger->releaseAdvancesFromInvoice($financeDocument);
+            }
+
+            $financeDocument->update([
+                'status' => 'cancelled',
+                'active_invoice_dossier_key' => null,
+            ]);
+        });
 
         $request->user()->notify(new FinanceDocumentNotification($financeDocument->fresh(), 'cancelled', ucfirst($financeDocument->type) . ' cancelled: ' . $financeDocument->number));
         app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.document.cancelled');
 
-        return redirect()->back()->with('success', "Document {$financeDocument->number} annule !");
+        return $this->redirectToReturnPath($request, 'success', "Document {$financeDocument->number} annule !");
     }
 
-    public function convertToInvoice(ConvertQuoteToInvoiceRequest $request, FinanceDocument $financeDocument): RedirectResponse
+    public function convertToInvoice(
+        ConvertQuoteToInvoiceRequest $request,
+        FinanceDocument $financeDocument,
+        DossierFinanceEligibilityService $eligibility,
+        PaymentLedgerService $ledger,
+    ): RedirectResponse
     {
         $this->authorize('convert', $financeDocument);
         if (!$financeDocument->canConvertToInvoice()) {
@@ -627,7 +712,14 @@ class FinanceDocumentController extends Controller
         $data = $request->validated();
 
         $scope = app(FinanceContextService::class)->payload($request->user());
-        $invoice = DB::transaction(function () use ($financeDocument, $data, $scope) {
+        $invoice = DB::transaction(function () use ($financeDocument, $data, $scope, $eligibility, $ledger) {
+            $eligibility->assertCanCreateDocument(
+                $scope,
+                'invoice',
+                $financeDocument->dossier_id,
+                null,
+                $financeDocument->client_id,
+            );
             $invoiceNumber = FinanceNumberService::nextDocumentNumber('invoice');
 
             $invoice = FinanceDocument::create([
@@ -637,6 +729,7 @@ class FinanceDocumentController extends Controller
                 'status' => 'issued',
                 'client_id' => $financeDocument->client_id,
                 'dossier_id' => $financeDocument->dossier_id,
+                'active_invoice_dossier_key' => $eligibility->invoiceGuardKey($scope, 'invoice', $financeDocument->dossier_id, 'issued'),
                 'source_document_id' => $financeDocument->id,
                 'issue_date' => $data['issue_date'] ?? now(),
                 'due_date' => $data['due_date'] ?? now()->addDays(FinanceSettingsService::getDefaultPaymentDays()),
@@ -664,6 +757,8 @@ class FinanceDocumentController extends Controller
                 'status' => 'converted',
             ]);
 
+            $ledger->applyPendingAdvancesToInvoice($invoice->fresh());
+
             return $invoice;
         });
 
@@ -680,6 +775,17 @@ class FinanceDocumentController extends Controller
         }
 
         return redirect()->route('finance.documents.show', $invoice)->with('success', $successMessage);
+    }
+
+    private function redirectToReturnPath(Request $request, string $level, string $message): RedirectResponse
+    {
+        $returnTo = $request->input('return_to');
+
+        if ($this->isSafeLocalReturnPath($returnTo)) {
+            return redirect()->to($returnTo)->with($level, $message);
+        }
+
+        return redirect()->back()->with($level, $message);
     }
 
     private function isSafeLocalReturnPath(mixed $returnTo): bool

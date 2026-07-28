@@ -4,7 +4,6 @@
     | 'dossier'
     | 'document'
     | 'contract'
-    | 'authorization'
     | 'finance'
     | 'archive';
 
@@ -57,14 +56,6 @@ export const prototypeSearchItems: PrototypeSearchItem[] = [
         subtitle: 'Contract calculation and generation',
         href: '/contracts',
         keywords: ['contract', 'contracts', 'docx', 'pdf', 'calculation'],
-    },
-    {
-        id: 'module-authorizations',
-        type: 'module',
-        title: 'Authorizations',
-        subtitle: 'Administrative authorization tracking',
-        href: '/authorizations',
-        keywords: ['authorization', 'permit', 'commune', 'province', 'observations'],
     },
     {
         id: 'module-finance',
@@ -148,14 +139,6 @@ export const prototypeSearchItems: PrototypeSearchItem[] = [
         subtitle: 'Contract Â· Villa construction study',
         href: '/contracts',
         keywords: ['contract', 'ctr-2026-0001', 'villa'],
-    },
-    {
-        id: 'authorization-1',
-        type: 'authorization',
-        title: 'SUB-2026-0142',
-        subtitle: 'Authorization submission Â· Commune de Gueliz',
-        href: '/authorizations',
-        keywords: ['authorization', 'submission', 'sub-2026-0142', 'gueliz'],
     },
     {
         id: 'finance-1',

@@ -10,7 +10,6 @@ import {
     ReceiptText,
     CalendarDays,
     Settings,
-    ShieldCheck,
     SlidersHorizontal,
     UserRound,
     Users,
@@ -28,7 +27,6 @@ export type AppRouteKey =
     | 'dossiers'
     | 'documents'
     | 'contracts'
-    | 'authorizations'
     | 'finance'
     | 'financeDocuments'
     | 'financePayments'
@@ -41,7 +39,6 @@ export type AppRouteKey =
     | 'users'
     | 'tasks'
     | 'calendar'
-    | 'taskRequests'
     | 'workload'
     | 'operationsReports'
     | 'inbox'
@@ -111,15 +108,6 @@ export const appRoutes: AppRoute[] = [
         labelKey: 'nav.contracts',
         href: '/contracts',
         icon: FileText,
-        enabled: true,
-        searchable: true,
-        group: 'followUp',
-    },
-    {
-        key: 'authorizations',
-        labelKey: 'nav.authorizations',
-        href: '/authorizations',
-        icon: ShieldCheck,
         enabled: true,
         searchable: true,
         group: 'followUp',
@@ -202,15 +190,6 @@ export const appRoutes: AppRoute[] = [
         labelKey: 'nav.calendar',
         href: '/calendar',
         icon: CalendarDays,
-        enabled: true,
-        searchable: true,
-        group: 'followUp',
-    },
-    {
-        key: 'taskRequests',
-        labelKey: 'nav.taskRequests',
-        href: '/task-requests',
-        icon: FilePlus2,
         enabled: true,
         searchable: true,
         group: 'followUp',

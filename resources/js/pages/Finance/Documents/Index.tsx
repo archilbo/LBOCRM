@@ -1415,6 +1415,8 @@ export default function FinanceDocumentsIndex({
                 invoices={invoices}
                 invoice={paymentInvoice}
                 clients={clients}
+                dossiers={dossiers}
+                allowAdvancePayment={true}
             />
 
             <ExpenseDrawer

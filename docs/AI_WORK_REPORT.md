@@ -5521,6 +5521,14 @@ Complete two-user browser QA for group changes, read receipts, typing, attachmen
 - The Client Finance `Ouvrir la fiche` action now uses same-tab Inertia navigation to the finance document detail page. File preview, print, and downloads retain their separate file-view behavior.
 - Added a `Paiement` shortcut beside the Client Finance `Facture` and `Nouveau devis` shortcuts.
 - Finance document editing now pre-fills and disables the linked client and dossier fields. The update payload omits these fields and the controller preserves them, preventing accidental reassignment for devis, factures, and reçus.
+- Creating a finance document from a Client Finance tab now pre-fills both the current client and selected dossier. Editing continues to pre-fill both values from the existing finance document.
+- Corrected the shared Client/Dossier HeroUI selectors to use the single-select controlled API, so prefilled values render in the visible triggers. The Client Finance payment drawer also prefilters to the active client.
+- Corrected the Payment drawer's Client, Facture, and payment-method HeroUI selectors to use the same controlled single-select API. Client context is locked on the Client Finance page; an invoice-row payment also locks its linked invoice, while the header payment action still lets the user choose among the current project's invoices.
+- The header `Paiement` flow keeps the facture selector enabled even when no payable invoice is currently available; only an invoice-row payment locks that invoice.
+- The payment drawer now explains when a client has no selectable invoice because every active invoice is already fully paid, while preserving the backend rule that prevents overpayment.
+- The Client Finance tab now exposes an authorized payment-reversal action for each listed payment. It uses the existing payment ledger deletion route, cancels the linked receipt, recalculates the invoice, and refreshes the same Client workspace.
+- Finance document and payment numbering now reserve numbers held by soft-deleted records, preventing duplicate receipt numbers during later payment creation or QA runs.
+- Finance document drawers now preserve an authorized Client Finance return path after create or edit. Deleting a receipt now reverses and soft-deletes its linked payment through the ledger before removing the receipt, so invoice totals remain accurate.
 - `npm.cmd run build` and `php artisan test --filter=Finance --stop-on-failure` passed again: 6 tests, 47 assertions.
 
 ## Shared Clients And Projects Table Pattern
@@ -5972,6 +5980,34 @@ Complete two-user browser QA for group changes, read receipts, typing, attachmen
 
 - Add viewer safety and review ergonomics: unsaved-change protection, clearer keyboard shortcuts, and focused review tools.
 
+## Client Workspace Action And Redirect Audit
+
+### What Changed
+
+- Audited every action exposed by the client workspace: client edit/delete, project creation, workflow actions, contract creation/update/generation, document upload/replace/delete, authorization updates, finance documents, payments, receipts, archive links, and external workspace links.
+- Added one local client workspace path helper so mutation redirects preserve the active client tab and selected dossier instead of relying on the browser referrer.
+- Project creation, contracts, workflow confirmations, document mutations, finance document mutations, quote conversion, payments, receipt export generation, and payment deletion now return to the intended client workspace context.
+- Document and payment controllers now validate and safely honor local return paths. Existing full-workspace actions remain intentional: project workspace, finance workspace, archive record, document preview/print/download, and finance document details.
+
+### Files Modified
+
+- `resources/js/pages/Clients/Show.tsx`
+- `resources/js/components/drawers/entities/PaymentDrawer/index.tsx`
+- `app/Http/Controllers/DocumentController.php`
+- `app/Http/Controllers/DossierWorkflowRequirementController.php`
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `app/Http/Controllers/Finance/PaymentController.php`
+- `app/Http/Requests/StoreDossierDocumentRequest.php`
+- `app/Http/Requests/ReplaceDossierDocumentRequest.php`
+- `app/Http/Requests/UpdateDossierWorkflowRequirementRequest.php`
+- `app/Http/Requests/Finance/StorePaymentRequest.php`
+- `app/Http/Requests/Finance/UpdatePaymentRequest.php`
+
+### Verification
+
+- PHP syntax checks and finance ledger QA are run with this step.
+- `docs/DOSSIER_WORKFLOW.md` is not present in this checkout; the audit used `PROJECT_RULES.md`, `FINANCE_WORKFLOW.md`, and the existing client workspace implementation.
+
 ## Project Design Remarks Hook-Order Fix
 
 - Fixed `RemarksPanel` so empty and populated remark states run the same hooks in the same order.
@@ -6052,3 +6088,64 @@ Complete two-user browser QA for group changes, read receipts, typing, attachmen
 
 - `npm.cmd run build` passed.
 - `php artisan test --filter=ProjectDesign` passed: 40 tests, 116 assertions.
+
+## Dossier Finance Rules And Tenant Scope
+
+### What Was Built
+
+- Added company and branch ownership to clients and dossiers, with a one-time ARCHI LBO / Marrakech (`RAK`) backfill for existing records.
+- Added a server-side eligibility service for the dossier finance rules: one active facture, multiple devis until acceptance, and direct advances only when no active devis or facture exists.
+- Added `PaymentKind` so the ledger distinguishes invoice payments from dossier advances.
+- Direct advances create a private receipt immediately, attach automatically to the next facture, and are released if that facture is cancelled or deleted.
+- The client workspace now receives finance eligibility data and its payment drawer supports the permitted direct-advance path while keeping invoice payments attached to their facture.
+
+### Files Created
+
+- `app/Console/Commands/FinanceDossierRulesQaCommand.php`
+- `app/Enums/PaymentKind.php`
+- `app/Services/Finance/DossierFinanceEligibilityService.php`
+- `database/migrations/2026_07_27_120000_add_dossier_finance_rules.php`
+- `database/migrations/2026_07_27_121000_add_client_and_dossier_tenant_scope.php`
+
+### Files Modified
+
+- `app/Http/Controllers/ClientController.php`
+- `app/Http/Controllers/DossierController.php`
+- `app/Http/Controllers/Finance/FinanceDocumentController.php`
+- `app/Http/Controllers/Finance/PaymentController.php`
+- `app/Http/Requests/Finance/StorePaymentRequest.php`
+- `app/Http/Resources/PaymentResource.php`
+- `app/Models/Client.php`
+- `app/Models/Dossier.php`
+- `app/Models/FinanceDocument.php`
+- `app/Models/Payment.php`
+- `app/Services/Clients/ClientWorkspaceService.php`
+- `app/Services/Finance/PaymentLedgerService.php`
+- `resources/js/components/drawers/entities/PaymentDrawer/index.tsx`
+- `resources/js/features/clients/components/ClientFinanceTab.tsx`
+- `resources/js/features/clients/types.ts`
+- `resources/js/features/finance/types.ts`
+- `resources/js/pages/Clients/Show.tsx`
+- `resources/js/pages/Finance/Documents/Index.tsx`
+- `docs/FINANCE_WORKFLOW.md`
+
+### Commands Run
+
+- `php artisan migrate --force`
+- `php artisan optimize:clear`
+- `php artisan archilbo:finance-dossier-rules-qa`
+- `php artisan archilbo:finance-payment-ledger-receipt-qa`
+- `php artisan test --stop-on-failure`
+- `npm.cmd run build`
+
+### Verification
+
+- Both migrations completed successfully.
+- New finance-rules QA passed, including direct advance receipts, accepted devis blocking, the single active facture rule, and advance release.
+- Existing finance ledger QA passed.
+- Test suite passed: 77 tests, 249 assertions.
+- Production frontend build passed. Vite still reports the existing optional `fontaine` and large-chunk warnings.
+
+### Next Recommended Step
+
+- Add finance feature tests for the HTTP endpoints and policy denial cases across two companies before enabling multi-company production users.

@@ -43,6 +43,8 @@ type FinanceDocumentBuilderDrawerProps = {
     settings: FinanceSettings;
     onSaved?: (type: FinanceDocumentType) => void;
     defaultClientId?: string;
+    defaultDossierId?: string;
+    returnTo?: string;
     restrictedDossierIds?: string[];
 };
 
@@ -70,7 +72,7 @@ function addDays(date: string, days: number): string {
     return value.toISOString().slice(0, 10);
 }
 
-function createForm(type: FinanceDocumentType, settings: FinanceSettings, document?: FinanceDocument | null, defaultClientId?: string, templates?: TemplateOption[]): BuilderForm {
+function createForm(type: FinanceDocumentType, settings: FinanceSettings, document?: FinanceDocument | null, defaultClientId?: string, defaultDossierId?: string, templates?: TemplateOption[]): BuilderForm {
     const issueDate = document?.issueDate || today();
     if (document) {
         return {
@@ -93,7 +95,7 @@ function createForm(type: FinanceDocumentType, settings: FinanceSettings, docume
     }
     const defaultTemplate = (templates || []).find((t) => t.type === type || t.type === 'finance');
     return {
-        type, clientId: defaultClientId || '', dossierId: '', issueDate,
+        type, clientId: defaultClientId || '', dossierId: defaultDossierId || '', issueDate,
         dueDate: type === 'invoice' ? addDays(issueDate, settings.defaultPaymentTermsDays) : '',
         validUntil: type === 'quote' ? addDays(issueDate, settings.defaultQuoteValidityDays) : '',
         currency: normalizeCurrency(settings.defaultCurrency), tvaRate: settings.defaultTvaRate, discountTotal: 0,
@@ -115,9 +117,9 @@ const steps = [
 ];
 
 export function FinanceDocumentBuilderDrawer({
-    isOpen, onOpenChange, mode, type, document, clients, dossiers, templates, settings, onSaved, defaultClientId, restrictedDossierIds = [],
+    isOpen, onOpenChange, mode, type, document, clients, dossiers, templates, settings, onSaved, defaultClientId, defaultDossierId, returnTo, restrictedDossierIds = [],
 }: FinanceDocumentBuilderDrawerProps) {
-    const [form, setForm] = useState<BuilderForm>(() => createForm(type, settings, isOpen ? null : document, defaultClientId, templates));
+    const [form, setForm] = useState<BuilderForm>(() => createForm(type, settings, isOpen ? null : document, defaultClientId, defaultDossierId, templates));
     const [step, setStep] = useState(0);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewHtml, setPreviewHtml] = useState<string | null>(null);
@@ -128,12 +130,12 @@ export function FinanceDocumentBuilderDrawer({
     const lockMessage = isLocked ? getFinanceDocumentLockMessage(document) : undefined;
     const selectedTemplate = templates.find((t) => String(t.id) === form.templateId);
 
-    const formInitRef = useRef({ type, settings, document, defaultClientId, templates });
-    useEffect(() => { formInitRef.current = { type, settings, document, defaultClientId, templates }; });
+    const formInitRef = useRef({ type, settings, document, defaultClientId, defaultDossierId, templates });
+    useEffect(() => { formInitRef.current = { type, settings, document, defaultClientId, defaultDossierId, templates }; });
     useEffect(() => {
         if (isOpen) {
-            const { type: t, settings: s, document: d, defaultClientId: c, templates: tmpl } = formInitRef.current;
-            setForm(createForm(t, s, d, c, tmpl));
+            const { type: t, settings: s, document: d, defaultClientId: c, defaultDossierId: dossierId, templates: tmpl } = formInitRef.current;
+            setForm(createForm(t, s, d, c, dossierId, tmpl));
             setStep(0);
             setPreviewHtml(null);
         }
@@ -217,6 +219,7 @@ export function FinanceDocumentBuilderDrawer({
             issue_date: form.issueDate || null, due_date: form.dueDate || null, valid_until: form.validUntil || null,
             currency: form.currency, tva_rate: form.tvaRate, discount_total: form.discountTotal,
             notes: form.notes || null, terms: form.terms || null, template_id: form.templateId || null,
+            return_to: returnTo || null,
             items: form.items.map((item, i) => ({ title: item.title || `Ligne ${i + 1}`, description: item.description || null, quantity: item.quantity || 1, unit: item.unit || null, unit_price: item.unitPrice || 0 })),
         };
         if (mode === 'edit') {

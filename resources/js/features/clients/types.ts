@@ -106,10 +106,14 @@ export type ClientProjectFinanceDocument = import('@/features/finance/types').Fi
 export type ClientProjectPayment = {
     id: number;
     paymentNumber: string;
+    paymentKind: 'invoice' | 'advance' | string;
+    financeDocumentId: number | null;
     documentNumber: string | null;
     amount: number;
     method: string | null;
     paidAt: string | null;
+    canDelete: boolean;
+    deleteUrl: string | null;
 };
 
 export type DossierWorkflowRequirement = {
@@ -196,6 +200,14 @@ export type ClientSelectedProjectWorkspace = ClientProjectSummary & {
     documents: ClientProjectDocument[];
     financeDocuments: ClientProjectFinanceDocument[];
     payments: ClientProjectPayment[];
+    financeEligibility: {
+        canCreateInvoice: boolean;
+        canCreateQuote: boolean;
+        canRecordAdvance: boolean;
+        invoiceId: number | null;
+        acceptedQuoteId: number | null;
+        paymentReason: string | null;
+    };
     archiveRecord: ClientProjectArchiveRecord | null;
     workflow: DossierWorkflowProgress | null;
     timeline: DossierTimelineEvent[];

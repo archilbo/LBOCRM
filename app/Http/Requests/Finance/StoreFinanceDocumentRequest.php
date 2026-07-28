@@ -17,8 +17,8 @@ class StoreFinanceDocumentRequest extends FormRequest
     {
         return [
             'type' => ['required', Rule::enum(FinanceDocumentType::class)],
-            'client_id' => ['nullable', 'exists:clients,id'],
-            'dossier_id' => ['nullable', 'exists:dossiers,id'],
+            'client_id' => ['required', 'exists:clients,id'],
+            'dossier_id' => ['required', 'exists:dossiers,id'],
             'source_document_id' => ['nullable', 'exists:finance_documents,id'],
             'issue_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
@@ -29,6 +29,7 @@ class StoreFinanceDocumentRequest extends FormRequest
             'notes' => ['nullable', 'string'],
             'terms' => ['nullable', 'string'],
             'template_id' => ['nullable', 'exists:finance_templates,id'],
+            'return_to' => ['nullable', 'string', 'max:2048'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.title' => ['nullable', 'string', 'max:255'],
             'items.*.description' => ['nullable', 'string'],

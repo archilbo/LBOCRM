@@ -3,7 +3,6 @@
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminUserInvitationController;
-use App\Http\Controllers\AuthorizationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Api\ClientController as ApiClientController;
 use App\Http\Controllers\BackendQaController;
@@ -31,7 +30,6 @@ use App\Http\Controllers\Finance\PaymentController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\IntermediaryController;
 use App\Http\Controllers\OperationsReportController;
-use App\Http\Controllers\TaskRequestController;
 use App\Http\Controllers\WorkloadController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -149,12 +147,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/contracts/{contract}/download/generated', [ContractController::class, 'downloadGenerated'])->name('contracts.download.generated');
     Route::get('/contracts/{contract}/download/pdf', [ContractController::class, 'downloadPdf'])->name('contracts.download.pdf');
     Route::get('/contracts/{contract}/preview/pdf', [ContractController::class, 'previewPdf'])->name('contracts.preview.pdf');
-
-    Route::get('/authorizations', [AuthorizationController::class, 'index'])->name('authorizations.index');
-    Route::post('/authorizations', [AuthorizationController::class, 'store'])->name('authorizations.store');
-    Route::put('/authorizations/{authorization}', [AuthorizationController::class, 'update'])->name('authorizations.update');
-    Route::put('/authorizations/{authorization}/status', [AuthorizationController::class, 'updateStatus'])->name('authorizations.status');
-    Route::delete('/authorizations/{authorization}', [AuthorizationController::class, 'destroy'])->name('authorizations.destroy');
 
     Route::get('/finance', [FinanceDocumentController::class, 'index'])->name('finance.index');
     Route::get('/finance/monthly-summary/export-pdf', [MonthlySummaryExportController::class, 'exportPdf'])->name('finance.monthly-summary.export-pdf');
@@ -275,13 +267,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/tasks/suggestions', [\App\Http\Controllers\TaskSuggestionController::class, 'index'])->name('tasks.suggestions.index');
     Route::post('/tasks/suggestions/{suggestion}/create-task', [\App\Http\Controllers\TaskSuggestionController::class, 'createFromSuggestion'])->name('tasks.suggestions.create-task');
     Route::post('/tasks/suggestions/{suggestion}/dismiss', [\App\Http\Controllers\TaskSuggestionController::class, 'dismiss'])->name('tasks.suggestions.dismiss');
-
-    Route::get('/task-requests', [TaskRequestController::class, 'index'])->name('task-requests.index');
-    Route::post('/task-requests', [TaskRequestController::class, 'store'])->name('task-requests.store');
-    Route::put('/task-requests/{taskRequest}', [TaskRequestController::class, 'update'])->name('task-requests.update');
-    Route::post('/task-requests/{taskRequest}/accept', [TaskRequestController::class, 'accept'])->name('task-requests.accept');
-    Route::post('/task-requests/{taskRequest}/reject', [TaskRequestController::class, 'reject'])->name('task-requests.reject');
-    Route::post('/task-requests/{taskRequest}/convert', [TaskRequestController::class, 'convert'])->name('task-requests.convert');
 
     Route::get('/inbox', [\App\Http\Controllers\ConversationController::class, 'index'])->name('inbox.index');
     Route::post('/inbox', [\App\Http\Controllers\ConversationController::class, 'store'])->name('inbox.store');

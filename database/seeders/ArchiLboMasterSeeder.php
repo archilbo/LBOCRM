@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Enums\DossierWorkflowStepStatus;
 use App\Models\ArchiveRecord;
-use App\Models\Authorization;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\Dossier;
@@ -162,24 +161,6 @@ class ArchiLboMasterSeeder extends Seeder
                     'surface' => $data['surface'],
                     'fee_rate_percent' => $data['rate'],
                     'ttc' => $data['ttc'],
-                ],
-            );
-        }
-
-        $authsData = [
-            ['dossier' => 2, 'status' => 'submitted', 'authority' => 'Commune Agdal'],
-            ['dossier' => 3, 'status' => 'approved', 'authority' => 'Commune Hay Riad', 'authNumber' => 'AUTH-2026-0042'],
-            ['dossier' => 4, 'status' => 'under_review', 'authority' => 'Commune Gueliz'],
-            ['dossier' => 10, 'status' => 'submitted', 'authority' => 'Commune California'],
-        ];
-        foreach ($authsData as $data) {
-            Authorization::query()->updateOrCreate(
-                ['dossier_id' => $dossiers[$data['dossier']]->id],
-                [
-                    'status' => $data['status'],
-                    'authority_name' => $data['authority'],
-                    'authorization_number' => $data['authNumber'] ?? null,
-                    'submission_number' => 'SUB-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
                 ],
             );
         }

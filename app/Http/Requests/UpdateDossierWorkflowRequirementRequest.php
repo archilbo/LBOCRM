@@ -18,6 +18,7 @@ class UpdateDossierWorkflowRequirementRequest extends FormRequest
             'requirement_key' => ['required', 'string', 'max:120'],
             'is_done' => ['required', 'boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'return_to' => ['nullable', 'string', 'max:2048', 'starts_with:/'],
         ];
     }
 }

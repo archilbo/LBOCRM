@@ -16,8 +16,21 @@ class DossierPathBuilder
             $this->sanitize($dossier->city?->name ?? 'inconnu'),
             $this->sanitize($dossier->commune ?? 'inconnu'),
             $this->sanitize($dossier->client?->full_name ?? 'inconnu'),
-            $dossier->dossier_number ?? 'dossier-' . $dossier->id,
+            $this->dossierFolderName($dossier),
         ]));
+    }
+
+    public function financeDocumentDirectory(Dossier $dossier, string $type, string $number): string
+    {
+        $typeFolder = match ($type) {
+            'quote' => 'devis',
+            'invoice' => 'factures',
+            'receipt' => 'recus',
+            default => 'documents',
+        };
+
+        return $this->dossierBasePath($dossier)
+            . '/finance/' . $typeFolder . '/' . $this->sanitize($number);
     }
 
     public function documentPath(Dossier $dossier, ?DocumentTemplate $template, string $originalFilename): string
@@ -55,6 +68,14 @@ class DossierPathBuilder
             . '/Contrat/'
             . $this->sanitize($contract->contract_number ?? 'contrat-' . $contract->id)
             . '-contrat.' . $ext;
+    }
+
+    private function dossierFolderName(Dossier $dossier): string
+    {
+        $number = $this->sanitize($dossier->dossier_number ?? 'dossier-' . $dossier->id);
+        $projectName = $this->sanitize($dossier->project_object ?? null);
+
+        return $projectName === 'inconnu' ? $number : $number . '_' . $projectName;
     }
 
     public function sanitize(?string $value): string

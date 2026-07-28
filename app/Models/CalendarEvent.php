@@ -33,7 +33,6 @@ class CalendarEvent extends Model
         'dossier_document_id',
         'finance_document_id',
         'contract_id',
-        'authorization_id',
         'archive_record_id',
         'metadata',
     ];
@@ -86,11 +85,6 @@ class CalendarEvent extends Model
     public function contract(): BelongsTo
     {
         return $this->belongsTo(Contract::class);
-    }
-
-    public function authorization(): BelongsTo
-    {
-        return $this->belongsTo(Authorization::class);
     }
 
     public function archiveRecord(): BelongsTo

@@ -22,6 +22,7 @@ class UpdatePaymentRequest extends FormRequest
             'reference' => ['nullable', 'string', 'max:255'],
             'paid_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
+            'return_to' => ['nullable', 'string', 'max:2048', 'starts_with:/'],
         ];
     }
 }

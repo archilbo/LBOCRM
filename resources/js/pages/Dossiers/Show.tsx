@@ -28,7 +28,6 @@ import {
     ReceiptText,
     Ruler,
     ScrollText,
-    ShieldCheck,
     Trash2,
     UserRound,
 } from 'lucide-react';
@@ -68,9 +67,6 @@ type ContractSummary = {
     generatedAt: string | null; signedAt: string | null; createdAt: string | null;
     hasGeneratedDoc: boolean; hasPdf: boolean;
 } | null;
-type AuthorizationSummary = {
-    id: number; submissionNumber: string | null; authorizationNumber: string | null; authorityName: string | null; status: string;
-} | null;
 type FinanceSummary = {
     id: number; recordNumber: string; type: string; status: string; totalTtc: number; paid: number; remaining: number;
 };
@@ -89,7 +85,6 @@ type PageProps = {
     workflow: WorkflowData;
     documents: DocSummary[];
     contract: ContractSummary;
-    authorization: AuthorizationSummary;
     financeRecords: FinanceSummary[];
     archiveRecord: ArchiveSummary;
     clients: ClientOption[];
@@ -106,7 +101,7 @@ type PageProps = {
 
 export type ProjectDesignQuery = { tab: string; mode?: string; file?: string; version?: string; asset?: string; page?: string; remark?: string; inspector?: string };
 
-type TabId = 'overview' | 'workflow' | 'project-design' | 'documents' | 'contract' | 'finance' | 'authorizations' | 'notes' | 'activity';
+type TabId = 'overview' | 'workflow' | 'project-design' | 'documents' | 'contract' | 'finance' | 'notes' | 'activity';
 
 const TABS: { id: TabId; label: string }[] = [
     { id: 'overview', label: 'Overview' },
@@ -115,7 +110,6 @@ const TABS: { id: TabId; label: string }[] = [
     { id: 'documents', label: 'Documents' },
     { id: 'contract', label: 'Contract' },
     { id: 'finance', label: 'Finance' },
-    { id: 'authorizations', label: 'Authorizations' },
     { id: 'notes', label: 'Notes' },
     { id: 'activity', label: 'Activity' },
 ];
@@ -157,7 +151,7 @@ function workflowLabel(value: string) {
 }
 
 export default function DossierShow({
-    dossier, workflow, documents, contract, authorization, financeRecords, archiveRecord,
+    dossier, workflow, documents, contract, financeRecords, archiveRecord,
     clients, cities, dossiers: dossiersOptions, templates, contractClients, financeDossiers,
     archiveRooms, archiveShelves, archiveBoxes, canDesign,
 }: PageProps) {
@@ -443,7 +437,6 @@ export default function DossierShow({
                         <MetricCard label="Paid" value={money(paidFinance)} hint="Collected" icon={ReceiptText} color="text-emerald-500" />
                         <MetricCard label="Remaining" value={money(remainingFinance)} hint="Still due" icon={Landmark} color="text-amber-500" />
                         <MetricCard label="Contract" value={contract ? contractStatusLabels[resolvedContractStatus] || contract.status : 'Aucun'} hint={contract ? `${money(contract.ttc)}` : '-'} icon={FileText} color={contract ? (contractStatusColors[resolvedContractStatus] || '') : ''} />
-                        <MetricCard label="Authorization" value={authorization ? authorization.status : 'None'} hint={authorization?.authorityName || '-'} icon={ShieldCheck} />
                     </div>
                 </div>
 
@@ -468,7 +461,7 @@ export default function DossierShow({
                         <div className="p-4 sm:p-5">
                             {activeTab === 'overview' && (
                                 <OverviewTab dossier={dossier} workflow={workflow} contract={contract}
-                                    authorization={authorization} archiveRecord={archiveRecord} />
+                                    archiveRecord={archiveRecord} />
                             )}
                             {activeTab === 'workflow' && (
                                 <WorkflowTab workflow={workflow} selectedStepKey={selectedStepKey} onSelectStep={setSelectedStepKey} dossierId={dossier.id} onOpenUpload={handleOpenUpload} onOpenArchive={() => setArchiveDrawerOpen(true)} />
@@ -476,7 +469,6 @@ export default function DossierShow({
                             {activeTab === 'documents' && <DocumentsTab documents={documents} dossierNumber={dossier.dossierNumber} contract={contract} />}
                             {activeTab === 'contract' && <ContractTab contract={contract} dossierId={dossier.id} contractSigned={contractSigned} onSignedChange={setContractSigned} onEdit={(c) => { setEditContract(c); setContractDrawerOpen(true); }} onShowDocuments={() => handleTabChange('documents')} />}
                             {activeTab === 'finance' && <FinanceTab records={financeRecords} total={totalFinance} paid={paidFinance} remaining={remainingFinance} />}
-                            {activeTab === 'authorizations' && <AuthorizationsTab authorization={authorization} dossierId={dossier.id} dossierNumber={dossier.dossierNumber} />}
                             {activeTab === 'notes' && <NotesTab dossier={dossier} />}
                             {activeTab === 'activity' && <ActivityTab />}
                         </div>
@@ -604,9 +596,9 @@ function CompactEmpty({ icon: Icon, title, description }: { icon: LucideIcon; ti
 }
 
 /* ── Overview tab ── */
-function OverviewTab({ dossier, workflow, contract, authorization, archiveRecord }: {
+function OverviewTab({ dossier, workflow, contract, archiveRecord }: {
     dossier: DossierRow; workflow: WorkflowData; contract: ContractSummary;
-    authorization: AuthorizationSummary; archiveRecord: ArchiveSummary;
+    archiveRecord: ArchiveSummary;
 }) {
     return (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
@@ -635,14 +627,6 @@ function OverviewTab({ dossier, workflow, contract, authorization, archiveRecord
                             <p className="text-[11px] text-[var(--text-muted)]">{contract.status} · {money(contract.ttc)}</p>
                         </div>
                     ) : <p className="text-[12px] text-[var(--text-muted)]">No contract yet.</p>}
-                </SideCard>
-                <SideCard icon={ShieldCheck} title="Authorization" color="text-sky-500">
-                    {authorization ? (
-                        <div>
-                            <p className="text-[13px] font-semibold text-[var(--foreground)]">{authorization.submissionNumber || authorization.authorizationNumber || '-'}</p>
-                            <p className="text-[11px] text-[var(--text-muted)]">{authorization.status}</p>
-                        </div>
-                    ) : <p className="text-[12px] text-[var(--text-muted)]">No authorization yet.</p>}
                 </SideCard>
                 <SideCard icon={Archive} title="Archive" color="text-violet-500">
                     {archiveRecord ? (
@@ -1167,38 +1151,6 @@ function FinanceTab({ records, total, paid, remaining }: {
                 </div>
             ) : (
                 <CompactEmpty icon={BadgeDollarSign} title="No finance records" description="Create finance records to track payments." />
-            )}
-        </div>
-    );
-}
-
-/* ── Authorizations tab ── */
-function AuthorizationsTab({ authorization, dossierId, dossierNumber }: {
-    authorization: AuthorizationSummary; dossierId: number; dossierNumber: string;
-}) {
-    return (
-        <div>
-            <div className="mb-4 flex items-center justify-between">
-                <div>
-                    <h3 className="text-sm font-semibold text-[var(--foreground)]">Authorizations</h3>
-                    <p className="text-xs text-[var(--text-muted)]">Rokhas and authorization tracking</p>
-                </div>
-                <AppButton variant="bordered" size="sm" onPress={() => router.visit(`/authorizations?dossier_id=${dossierId}`)}>
-                    <ShieldCheck size={14} /> Open authorizations
-                </AppButton>
-            </div>
-            {authorization ? (
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-4">
-                    <p className="text-base font-semibold text-[var(--foreground)]">
-                        {authorization.submissionNumber || authorization.authorizationNumber || '-'}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-4 text-[12px] text-[var(--text-muted)]">
-                        <span>Authority: <strong className="text-[var(--foreground)]">{authorization.authorityName || '-'}</strong></span>
-                        <span>Status: <strong className="text-[var(--foreground)]">{authorization.status}</strong></span>
-                    </div>
-                </div>
-            ) : (
-                <CompactEmpty icon={ShieldCheck} title="No authorization" description="Submit authorization files through Rokhas to start tracking." />
             )}
         </div>
     );

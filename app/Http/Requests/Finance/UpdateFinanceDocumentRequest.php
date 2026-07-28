@@ -27,6 +27,7 @@ class UpdateFinanceDocumentRequest extends FormRequest
             'notes' => ['nullable', 'string'],
             'terms' => ['nullable', 'string'],
             'template_id' => ['nullable', 'exists:finance_templates,id'],
+            'return_to' => ['nullable', 'string', 'max:2048'],
             'items' => ['nullable', 'array', 'min:1'],
             'items.*.title' => ['nullable', 'string', 'max:255'],
             'items.*.description' => ['nullable', 'string'],

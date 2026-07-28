@@ -213,6 +213,8 @@ export type PaymentReceipt = {
 export type Payment = {
     id: number;
     paymentNumber: string;
+    paymentKind?: 'invoice' | 'advance' | string;
+    financeDocumentId?: number | null;
     amount: number;
     method: string | null;
     reference: string | null;

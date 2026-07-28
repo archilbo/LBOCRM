@@ -123,9 +123,7 @@ class DocumentController extends Controller
             );
         }
 
-        return redirect()
-            ->back()
-            ->with('success', 'Document saved successfully.');
+        return $this->redirectToReturnPath($request, 'Document saved successfully.');
     }
 
     public function updateStatus(
@@ -148,16 +146,14 @@ class DocumentController extends Controller
             ->with('success', 'Document status updated successfully.');
     }
 
-    public function destroy(DossierDocument $dossierDocument): RedirectResponse
+    public function destroy(Request $request, DossierDocument $dossierDocument): RedirectResponse
     {
         $this->authorize('delete', $dossierDocument);
         $this->deleteStoredDocument($dossierDocument);
 
         $dossierDocument->delete();
 
-        return redirect()
-            ->back()
-            ->with('success', 'Document deleted successfully.');
+        return $this->redirectToReturnPath($request, 'Document deleted successfully.');
     }
 
     public function replace(
@@ -198,9 +194,7 @@ class DocumentController extends Controller
             'Document replaced: '.$dossierDocument->original_filename,
         ));
 
-        return redirect()
-            ->back()
-            ->with('success', 'Document replaced successfully.');
+        return $this->redirectToReturnPath($request, 'Document replaced successfully.');
     }
 
     public function download(DossierDocument $dossierDocument, DossierDocumentFileService $files): BinaryFileResponse
@@ -238,6 +232,25 @@ class DocumentController extends Controller
     private function deleteStoredDocument(DossierDocument $dossierDocument): void
     {
         $this->deleteStoredPath($dossierDocument->stored_path);
+    }
+
+    private function redirectToReturnPath(Request $request, string $message): RedirectResponse
+    {
+        $returnTo = $request->input('return_to');
+
+        if ($this->isSafeLocalReturnPath($returnTo)) {
+            return redirect()->to($returnTo)->with('success', $message);
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    private function isSafeLocalReturnPath(mixed $returnTo): bool
+    {
+        return is_string($returnTo)
+            && str_starts_with($returnTo, '/')
+            && ! str_starts_with($returnTo, '//')
+            && parse_url($returnTo, PHP_URL_HOST) === null;
     }
 
     private function deleteStoredPath(?string $path): void

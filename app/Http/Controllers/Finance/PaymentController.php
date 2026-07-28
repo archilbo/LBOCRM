@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\StorePaymentRequest;
 use App\Http\Requests\Finance\UpdatePaymentRequest;
+use App\Models\Dossier;
 use App\Models\FinanceDocument;
 use App\Models\Payment;
 use App\Notifications\FinanceDocumentNotification;
@@ -28,24 +29,48 @@ class PaymentController extends Controller
     {
         $this->authorize('create', Payment::class);
         $data = $request->validated();
+        $returnTo = $data['return_to'] ?? null;
+        unset($data['return_to']);
         $data['created_by'] = Auth::id();
 
-        $financeDocument = app(FinanceContextService::class)
-            ->apply(FinanceDocument::query(), $request->user())
-            ->findOrFail($data['finance_document_id']);
-        $payment = $ledger->recordPayment($financeDocument, $data);
-        app(FinanceActivityService::class)->log($payment, $request->user(), 'finance.payment.created', [], [
+        $context = app(FinanceContextService::class);
+        $scope = $context->payload($request->user());
+        $financeDocument = null;
+
+        if (! empty($data['finance_document_id'])) {
+            $financeDocument = $context
+                ->apply(FinanceDocument::query(), $request->user())
+                ->findOrFail($data['finance_document_id']);
+            $payment = $ledger->recordPayment($financeDocument, $data);
+        } else {
+            $dossier = $context
+                ->apply(Dossier::query(), $request->user())
+                ->with('client')
+                ->findOrFail($data['dossier_id']);
+            $payment = $ledger->recordAdvancePayment($dossier, $scope, $data);
+        }
+
+        app(FinanceActivityService::class)->log($payment, $request->user(), $financeDocument ? 'finance.payment.created' : 'finance.payment.advance_created', [], [
             'payment_number' => $payment->payment_number,
             'amount' => $payment->amount,
-            'finance_document_id' => $financeDocument->id,
+            'finance_document_id' => $financeDocument?->id,
+            'dossier_id' => $payment->dossier_id,
         ]);
 
-        $request->user()->notify(new FinanceDocumentNotification($financeDocument, 'payment_received', 'Payment received: ' . number_format((float) ($data['amount'] ?? 0), 2) . ' for ' . $financeDocument->number));
+        $notificationDocument = $financeDocument ?? $payment->receiptDocument;
+        if ($notificationDocument) {
+            $request->user()->notify(new FinanceDocumentNotification(
+                $notificationDocument,
+                'payment_received',
+                $financeDocument
+                    ? 'Payment received: ' . number_format((float) ($data['amount'] ?? 0), 2) . ' for ' . $financeDocument->number
+                    : 'Advance payment received: ' . number_format((float) ($data['amount'] ?? 0), 2)
+            ));
+        }
 
         $receiptNumber = $payment->receiptDocument?->number;
 
-        return back()
-            ->with('success', "Paiement {$payment->payment_number} enregistre avec succes. Recu: {$receiptNumber}")
+        return $this->redirectToReturnPath($request, $returnTo, "Paiement {$payment->payment_number} enregistre avec succes. Recu: {$receiptNumber}")
             ->with('receipt', $this->receiptFlashPayload($payment));
     }
 
@@ -53,26 +78,38 @@ class PaymentController extends Controller
     {
         $this->authorize('update', $payment);
         $old = $payment->only(['finance_document_id', 'amount', 'method', 'reference', 'paid_at']);
-        $payment = $ledger->updatePayment($payment, $request->validated());
+        $data = $request->validated();
+        $returnTo = $data['return_to'] ?? null;
+        unset($data['return_to']);
+        $payment = $ledger->updatePayment($payment, $data);
         app(FinanceActivityService::class)->log($payment, $request->user(), 'finance.payment.updated', $old, $payment->only(array_keys($old)));
 
         $receiptNumber = $payment->receiptDocument?->number;
 
-        return back()->with(
-            'success',
-            "Paiement {$payment->payment_number} mis a jour. Recu: {$receiptNumber}"
-        );
+        return $this->redirectToReturnPath($request, $returnTo, "Paiement {$payment->payment_number} mis a jour. Recu: {$receiptNumber}");
     }
 
-    public function destroy(Payment $payment, PaymentLedgerService $ledger): RedirectResponse
+    public function destroy(Request $request, Payment $payment, PaymentLedgerService $ledger): RedirectResponse
     {
         $this->authorize('delete', $payment);
         $number = $payment->payment_number;
-        app(FinanceActivityService::class)->log($payment, request()->user(), 'finance.payment.reversed', $payment->toArray());
+        app(FinanceActivityService::class)->log($payment, $request->user(), 'finance.payment.reversed', $payment->toArray());
 
         $ledger->deletePayment($payment);
 
-        return back()->with('success', "Paiement {$number} supprime. Le recu lie a ete annule.");
+        return $this->redirectToReturnPath($request, $request->input('return_to'), "Paiement {$number} supprime. Le recu lie a ete annule.");
+    }
+
+    private function redirectToReturnPath(Request $request, mixed $returnTo, string $message): RedirectResponse
+    {
+        if (is_string($returnTo)
+            && str_starts_with($returnTo, '/')
+            && ! str_starts_with($returnTo, '//')
+            && parse_url($returnTo, PHP_URL_HOST) === null) {
+            return redirect()->to($returnTo)->with('success', $message);
+        }
+
+        return back()->with('success', $message);
     }
 
     private function receiptFlashPayload(Payment $payment): ?array

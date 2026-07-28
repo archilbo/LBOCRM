@@ -17,7 +17,8 @@ class FinanceNumberService
             default => 'DOC',
         };
 
-        $lastNumber = FinanceDocument::where('type', $type)
+        $lastNumber = FinanceDocument::withTrashed()
+            ->where('type', $type)
             ->whereYear('created_at', $year)
             ->orderBy('id', 'desc')
             ->value('number');
@@ -32,7 +33,7 @@ class FinanceNumberService
 
         $number = sprintf('%s-%04d-%04d', $prefix, $year, $nextSeq);
 
-        while (FinanceDocument::where('number', $number)->exists()) {
+        while (FinanceDocument::withTrashed()->where('number', $number)->exists()) {
             $nextSeq++;
             $number = sprintf('%s-%04d-%04d', $prefix, $year, $nextSeq);
         }
@@ -45,7 +46,8 @@ class FinanceNumberService
         $year = now()->year;
         $prefix = 'PAY';
 
-        $lastNumber = Payment::whereYear('created_at', $year)
+        $lastNumber = Payment::withTrashed()
+            ->whereYear('created_at', $year)
             ->orderBy('id', 'desc')
             ->value('payment_number');
 
@@ -59,7 +61,7 @@ class FinanceNumberService
 
         $number = sprintf('%s-%04d-%04d', $prefix, $year, $nextSeq);
 
-        while (Payment::where('payment_number', $number)->exists()) {
+        while (Payment::withTrashed()->where('payment_number', $number)->exists()) {
             $nextSeq++;
             $number = sprintf('%s-%04d-%04d', $prefix, $year, $nextSeq);
         }

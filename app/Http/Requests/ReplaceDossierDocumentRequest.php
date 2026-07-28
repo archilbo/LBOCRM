@@ -17,6 +17,7 @@ class ReplaceDossierDocumentRequest extends FormRequest
             'file' => ['required', 'file', 'max:20480'],
             'status' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'return_to' => ['nullable', 'string', 'max:2048', 'starts_with:/'],
         ];
     }
 }

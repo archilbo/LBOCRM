@@ -52,7 +52,7 @@ export function FinanceClientDossierFields({
                     <label className={labelCls}>Client</label>
                     <Select
                         placeholder="Selectionner un client"
-                        selectedKeys={[clientId || '']}
+                        selectedKey={clientId || null}
                         isDisabled={disabled}
                         onSelectionChange={(key) => { onClientChange(key != null ? String(key) : ''); }}
                     >
@@ -69,7 +69,7 @@ export function FinanceClientDossierFields({
                     <Select
                         key={clientId || 'empty'}
                         placeholder={hasNoDossiers ? 'Aucun dossier pour ce client' : 'Selectionner un dossier'}
-                        selectedKeys={[dossierId || '']}
+                        selectedKey={dossierId || null}
                         isDisabled={dossierDisabled}
                         onSelectionChange={(key) => { onDossierChange(key != null ? String(key) : ''); }}
                     >

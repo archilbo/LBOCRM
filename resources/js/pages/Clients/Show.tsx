@@ -13,7 +13,7 @@ import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
-import type { ClientFormPayload, ClientProjectDocument, ClientRow, ClientStatus, ClientWorkspace } from '@/features/clients/types';
+import type { ClientFormPayload, ClientProjectDocument, ClientProjectPayment, ClientRow, ClientStatus, ClientWorkspace } from '@/features/clients/types';
 import type { DossierWorkflowRequirement, DossierWorkflowStep } from '@/features/clients/types';
 import type { DossierFormPayload } from '@/features/dossiers/types';
 import type { FinanceDocument, FinanceDocumentType, FinanceSettings, TemplateOption } from '@/features/finance/types';
@@ -26,7 +26,6 @@ import { DocumentDrawer } from '@/components/drawers';
 import type { DocumentUploadPayload } from '@/features/documents/types';
 import { ContractDrawer } from '@/components/drawers';
 import type { ContractFormPayload, ContractClientOption, ContractDossierOption } from '@/features/contracts/types';
-import { AuthorizationDrawer } from '@/features/clients/components/AuthorizationDrawer';
 import { ClientArchivesCard } from '@/features/clients/components/ClientArchivesCard';
 import { ClientFinanceTab } from '@/features/clients/components/ClientFinanceTab';
 import { ConfirmActionModal } from '@/features/clients/components/ConfirmActionModal';
@@ -118,7 +117,6 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
     const [contractDrawerOpen, setContractDrawerOpen] = useState(false);
     const [editContract, setEditContract] = useState<any>(null);
     const [contractFormErrors, setContractFormErrors] = useState<FormErrors>({});
-    const [authDrawerOpen, setAuthDrawerOpen] = useState(false);
     const [projectDrawerOpen, setProjectDrawerOpen] = useState(false);
     const [projectFormErrors, setProjectFormErrors] = useState<FormErrors>({});
     const [financeDrawerOpen, setFinanceDrawerOpen] = useState(false);
@@ -127,6 +125,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
     const [financeEditDocument, setFinanceEditDocument] = useState<FinanceDocument | null>(null);
     const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false);
     const [paymentInvoice, setPaymentInvoice] = useState<FinanceDocument | null>(null);
+    const [paymentDeleteTarget, setPaymentDeleteTarget] = useState<ClientProjectPayment | null>(null);
     const [financeDeleteTarget, setFinanceDeleteTarget] = useState<FinanceDocument | null>(null);
     const [standaloneUploadOpen, setStandaloneUploadOpen] = useState(false);
     const [replaceTarget, setReplaceTarget] = useState<ClientProjectDocument | null>(null);
@@ -144,6 +143,18 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
     } | null>(null);
 
     const selectedProject = workspace?.selectedProject ?? null;
+
+    function clientWorkspacePath(targetTab: TabId = activeTab, dossierId: number | null = selectedProject?.id ?? null) {
+        const parameters = new URLSearchParams({ tab: targetTab });
+
+        if (dossierId) {
+            parameters.set('dossier_id', String(dossierId));
+        }
+
+        return `/clients/${client.id}?${parameters.toString()}`;
+    }
+
+    const financeReturnTo = clientWorkspacePath('finance');
     const projects = workspace?.projects ?? dossiers.map((d) => ({
         id: d.id,
         clientId: client.id,
@@ -233,6 +244,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                     confirmLabel: t('workflow.confirmGenerate'),
                     method: 'put',
                     url: `/contracts/${selectedProject.contract.id}/generate`,
+                    extraPayload: { return_to: clientWorkspacePath('workflow') },
                 });
                 setConfirmActionOpen(true);
                 break;
@@ -247,6 +259,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                     confirmLabel: t('workflow.confirmSigned'),
                     method: 'put',
                     url: `/contracts/${selectedProject.contract.id}/signed`,
+                    extraPayload: { return_to: clientWorkspacePath('workflow') },
                 });
                 setConfirmActionOpen(true);
                 break;
@@ -261,6 +274,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                         step_key: step.key,
                         requirement_key: requirement.key,
                         is_done: true,
+                        return_to: clientWorkspacePath('workflow'),
                     },
                 });
                 setConfirmActionOpen(true);
@@ -317,7 +331,10 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
     }
 
     function handleProjectSubmit(payload: DossierFormPayload) {
-        router.post('/dossiers', toDossierBackendPayload(payload, client.id), {
+        router.post('/dossiers', {
+            ...toDossierBackendPayload(payload, client.id),
+            return_to: clientWorkspacePath(),
+        }, {
             preserveScroll: true,
             onSuccess: () => {
                 setProjectDrawerOpen(false);
@@ -357,7 +374,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
             return;
         }
 
-        router.put(url, {}, {
+        router.put(url, { return_to: financeReturnTo }, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
@@ -374,7 +391,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
             return;
         }
 
-        router.post(document.convertToInvoiceUrl, { return_to: `${window.location.pathname}${window.location.search}` }, {
+        router.post(document.convertToInvoiceUrl, { return_to: financeReturnTo }, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
@@ -389,6 +406,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
         if (!financeDeleteTarget?.deleteUrl) return;
 
         router.delete(financeDeleteTarget.deleteUrl, {
+            data: { return_to: financeReturnTo },
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
@@ -397,6 +415,22 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                 afterCreateReload();
             },
             onError: () => toast.error('Impossible de supprimer le document.'),
+        });
+    }
+
+    function confirmPaymentDelete() {
+        if (!paymentDeleteTarget?.deleteUrl) return;
+
+        router.delete(paymentDeleteTarget.deleteUrl, {
+            data: { return_to: financeReturnTo },
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                toast.success('Paiement supprime et facture recalculee.');
+                setPaymentDeleteTarget(null);
+                afterCreateReload();
+            },
+            onError: () => toast.error('Impossible de supprimer le paiement.'),
         });
     }
 
@@ -459,7 +493,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
     }
 
     function handleContractSubmit(payload: ContractFormPayload) {
-        router.post('/contracts', { ...payload, return_to: window.location.pathname }, {
+        router.post('/contracts', { ...payload, return_to: clientWorkspacePath() }, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => { setContractDrawerOpen(false); setEditContract(null); setContractFormErrors({}); toast.success('Contract created.'); },
@@ -469,7 +503,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
 
     function handleContractUpdate(payload: ContractFormPayload) {
         if (!editContract) return;
-        router.put(`/contracts/${editContract.id}`, { ...payload, return_to: window.location.pathname }, {
+        router.put(`/contracts/${editContract.id}`, { ...payload, return_to: clientWorkspacePath() }, {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => { setContractDrawerOpen(false); setEditContract(null); setContractFormErrors({}); toast.success('Contract updated.'); },
@@ -482,13 +516,13 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
         const formData = new FormData();
         formData.append('status', payload.status || 'uploaded');
         formData.append('notes', payload.notes || '');
+        formData.append('return_to', clientWorkspacePath());
         if (payload.file) formData.append('file', payload.file);
         const isReplacement = replaceTarget !== null;
 
         if (!isReplacement) {
             formData.append('dossier_id', payload.dossierId);
             formData.append('document_template_id', payload.documentTemplateId || '');
-            formData.append('return_to', window.location.pathname);
             if (uploadStepKey) formData.append('workflow_step_key', uploadStepKey);
             if (uploadRequirementKey) formData.append('workflow_req_key', uploadRequirementKey);
         }
@@ -515,6 +549,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
 
         setIsDocumentDeleting(true);
         router.delete(`/documents/${documentDeleteTarget.id}`, {
+            data: { return_to: clientWorkspacePath('documents') },
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
@@ -1175,6 +1210,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                                 setPaymentDrawerOpen(true);
                             }}
                             documentActions={financeDocumentActions}
+                            onDeletePayment={setPaymentDeleteTarget}
                             onOpenFinance={() => {
                                 if (!selectedProject) return;
                                 router.visit(`/finance/documents?dossier_id=${selectedProject.id}`);
@@ -1238,14 +1274,6 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                     errors={contractFormErrors}
                 />
 
-                {/* ── Authorization drawer ── */}
-                <AuthorizationDrawer
-                    isOpen={authDrawerOpen}
-                    onOpenChange={setAuthDrawerOpen}
-                    project={selectedProject}
-                    clientId={client.id}
-                />
-
                 {/* ── Archives card ── */}
                 {selectedProject ? <ClientArchivesCard project={selectedProject} /> : null}
 
@@ -1277,6 +1305,8 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                     templates={financeTemplates}
                     settings={financeSettings}
                     defaultClientId={String(client.id)}
+                    defaultDossierId={selectedProject ? String(selectedProject.id) : undefined}
+                    returnTo={financeReturnTo}
                     onSaved={afterCreateReload}
                 />
 
@@ -1289,6 +1319,13 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                     invoices={selectedProject?.financeDocuments.filter((document) => document.type === 'invoice') ?? []}
                     invoice={paymentInvoice}
                     clients={[{ id: String(client.id), label: client.fullName, cin: client.cin, address: client.address }]}
+                    dossiers={dossierOptions}
+                    defaultClientId={String(client.id)}
+                    defaultDossierId={selectedProject ? String(selectedProject.id) : undefined}
+                    lockClientContext
+                    lockDossierContext
+                    allowAdvancePayment={selectedProject?.financeEligibility.canRecordAdvance ?? false}
+                    returnTo={financeReturnTo}
                 />
 
                 {/* ── Standalone upload document drawer ── */}
@@ -1384,6 +1421,16 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                     confirmLabel="Supprimer"
                     onConfirm={confirmFinanceDelete}
                     onCancel={() => setFinanceDeleteTarget(null)}
+                    variant="danger"
+                />
+
+                <AppConfirmDialog
+                    isOpen={Boolean(paymentDeleteTarget)}
+                    title="Supprimer ce paiement ?"
+                    description={`Le paiement ${paymentDeleteTarget?.paymentNumber || ''} sera annule, le recu lie sera annule et le solde de la facture sera recalcule.`}
+                    confirmLabel="Supprimer le paiement"
+                    onConfirm={confirmPaymentDelete}
+                    onCancel={() => setPaymentDeleteTarget(null)}
                     variant="danger"
                 />
             </AppShell>

@@ -3,6 +3,7 @@
 namespace App\Services\Finance;
 
 use App\Models\FinanceDocument;
+use App\Services\Dossiers\DossierPathBuilder;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -10,6 +11,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FinanceFileStorageService
 {
+    public function __construct(
+        private readonly DossierPathBuilder $dossierPaths,
+    ) {
+    }
+
     public function disk(): Filesystem
     {
         return Storage::disk('local');
@@ -17,18 +23,17 @@ class FinanceFileStorageService
 
     public function directory(FinanceDocument $document): string
     {
-        return implode('/', [
-            'finance',
-            'company-'.$document->company_id,
-            'branch-'.($document->branch_id ?: 'shared'),
-            match ($document->type) {
-                'quote' => 'quotes',
-                'invoice' => 'invoices',
-                'receipt' => 'receipts',
-                default => 'documents',
-            },
+        $document->loadMissing(['dossier.city', 'dossier.client']);
+
+        if (! $document->dossier) {
+            throw new RuntimeException('Un dossier est requis pour stocker les fichiers financiers.');
+        }
+
+        return $this->dossierPaths->financeDocumentDirectory(
+            $document->dossier,
+            $document->type,
             $document->number,
-        ]);
+        );
     }
 
     public function ensurePrivate(?string $path): ?string

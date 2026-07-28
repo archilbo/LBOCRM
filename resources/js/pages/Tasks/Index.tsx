@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { ClipboardList, Plus, UsersRound } from 'lucide-react';
+import { ClipboardList, Plus } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
@@ -16,7 +16,7 @@ import { TaskTimeline } from '@/features/tasks/components/TaskTimeline';
 import { TaskOverview } from '@/features/tasks/components/TaskOverview';
 import { TaskCreateDrawer } from '@/features/tasks/components/TaskCreateDrawer';
 import { TaskDetailDrawer } from '@/features/tasks/components/TaskDetailDrawer';
-import { TaskRequestCreateDrawer, type TaskRequestOptions } from '@/features/tasks/components/TaskRequestCreateDrawer';
+
 
 type PageProps = {
     tasks: TaskRow[];
@@ -24,9 +24,6 @@ type PageProps = {
     currentUserId: number | null;
     activeFilter: string;
     activeCategory: string;
-    taskRequestTypes: string[];
-    taskRequestTypeLabels: Record<string, string>;
-    taskRequestOptions: TaskRequestOptions;
 };
 
 function isOpenTask(task: TaskRow) {
@@ -37,7 +34,7 @@ function isOverdue(task: TaskRow) {
     return Boolean(task.dueDate && new Date(task.dueDate) < new Date() && isOpenTask(task));
 }
 
-export default function TasksIndex({ tasks, users, currentUserId, activeFilter, activeCategory, taskRequestTypes, taskRequestTypeLabels, taskRequestOptions }: PageProps) {
+export default function TasksIndex({ tasks, users, currentUserId, activeFilter, activeCategory }: PageProps) {
     const [localTasks, setLocalTasks] = useState<TaskRow[]>(tasks);
     const [query, setQuery] = useState('');
     const [filter, setFilter] = useState(activeFilter);
@@ -51,7 +48,6 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
     });
     const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
-    const [requestOpen, setRequestOpen] = useState(false);
     const [form, setForm] = useState({
         title: '', description: '', status: 'not_started' as string,
         priority: 'medium' as string, impact: 'normal' as string, type: 'general' as string,
@@ -272,8 +268,6 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
                                     </span>
                                 ))}
                             </div>
-                            <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => router.visit('/task-requests')}>Requests</AppButton>
-                            <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => setRequestOpen(true)}><UsersRound size={14} /> Request</AppButton>
                             <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => router.visit('/workload')}>Workload</AppButton>
                             <AppButton size="sm" variant="ghost" className="h-8 bg-[var(--accent)] px-2.5 text-black hover:bg-[var(--accent-hover)]" onPress={() => { setFormErrors({}); setCreateOpen(true); }}><Plus size={14} /> New task</AppButton>
                         </div>
@@ -368,13 +362,6 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
                         onAttachmentUpload={uploadAttachment}
                     />
 
-                    <TaskRequestCreateDrawer
-                        isOpen={requestOpen}
-                        requestTypes={taskRequestTypes}
-                        requestTypeLabels={taskRequestTypeLabels}
-                        options={taskRequestOptions}
-                        onOpenChange={setRequestOpen}
-                    />
                 </div>
             </AppShell>
         </>

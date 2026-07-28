@@ -8,12 +8,14 @@ use App\Models\Dossier;
 use App\Services\Dossiers\DossierWorkflowStepperService;
 use App\Services\Documents\DossierDocumentFileService;
 use App\Services\Finance\FinanceSettingsService;
+use App\Services\Finance\DossierFinanceEligibilityService;
 
 class ClientWorkspaceService
 {
     public function __construct(
         private readonly DossierWorkflowStepperService $workflowStepper,
         private readonly DossierDocumentFileService $documentFiles,
+        private readonly DossierFinanceEligibilityService $financeEligibility,
     ) {
     }
 
@@ -151,11 +153,16 @@ class ClientWorkspaceService
             'payments' => $payments->map(fn ($payment) => [
                 'id' => $payment->id,
                 'paymentNumber' => $payment->payment_number,
+                'paymentKind' => $payment->payment_kind?->value ?? $payment->payment_kind ?? 'invoice',
+                'financeDocumentId' => $payment->finance_document_id,
                 'documentNumber' => $payment->document?->number,
                 'amount' => (float) $payment->amount,
                 'method' => $payment->method,
                 'paidAt' => optional($payment->paid_at)->toDateString(),
+                'canDelete' => (bool) request()->user()?->can('delete', $payment),
+                'deleteUrl' => route('finance.payments.destroy', $payment),
             ])->all(),
+            'financeEligibility' => $this->financeEligibility->stateForDocuments($financeDocuments),
             'archiveRecord' => $dossier->archiveRecord ? [
                 'id' => $dossier->archiveRecord->id,
                 'archiveNumber' => $dossier->archiveRecord->archive_number,

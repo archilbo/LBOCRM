@@ -15,6 +15,8 @@ class Dossier extends Model
     use HasFactory;
 
     protected $fillable = [
+        'company_id',
+        'branch_id',
         'client_id',
         'city_id',
         'dossier_number',
@@ -47,6 +49,16 @@ class Dossier extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
@@ -60,11 +72,6 @@ class Dossier extends Model
     public function contract(): HasOne
     {
         return $this->hasOne(Contract::class);
-    }
-
-    public function authorization(): HasOne
-    {
-        return $this->hasOne(Authorization::class);
     }
 
     public function financeRecords(): HasMany

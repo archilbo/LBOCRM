@@ -18,7 +18,7 @@ class Task extends Model
         'reviewed_at', 'blocked_reason', 'estimated_minutes', 'actual_minutes', 'recurrence_rule',
         'created_by', 'assigned_by',
         'dossier_id', 'client_id', 'dossier_document_id',
-        'finance_document_id', 'contract_id', 'authorization_id', 'archive_record_id', 'conversation_id',
+        'finance_document_id', 'contract_id', 'archive_record_id', 'conversation_id',
         'metadata',
     ];
 
@@ -46,7 +46,6 @@ class Task extends Model
     public function document(): BelongsTo { return $this->belongsTo(DossierDocument::class, 'dossier_document_id'); }
     public function financeDocument(): BelongsTo { return $this->belongsTo(FinanceDocument::class); }
     public function contract(): BelongsTo { return $this->belongsTo(Contract::class); }
-    public function authorization(): BelongsTo { return $this->belongsTo(Authorization::class); }
     public function archiveRecord(): BelongsTo { return $this->belongsTo(ArchiveRecord::class); }
     public function conversation(): BelongsTo { return $this->belongsTo(Conversation::class); }
 }

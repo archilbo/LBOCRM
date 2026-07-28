@@ -109,10 +109,11 @@ class ClientController extends Controller
         ]);
     }
 
-    public function store(StoreClientRequest $request): RedirectResponse
+    public function store(StoreClientRequest $request, FinanceContextService $financeContext): RedirectResponse
     {
         $data = $this->prepareClientData($request->validated());
         $data['client_number'] = $this->nextClientNumber();
+        $data = [...$financeContext->payload($request->user()), ...$data];
 
         Client::create($data);
 

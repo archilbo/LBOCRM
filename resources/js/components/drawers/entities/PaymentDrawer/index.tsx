@@ -7,12 +7,25 @@ import { toast } from 'sonner';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { DateField } from '@/features/archives/components/DateField';
 import { strToDate, dateToStr } from '@/lib/dateUtils';
-import type { ClientOption, FinanceDocument } from '@/features/finance/types';
+import type { ClientOption, DossierOption, FinanceDocument } from '@/features/finance/types';
 import { formatCompactMoney, normalizeNumber } from '@/features/finance/utils/calculations';
 
-type PaymentDrawerProps = { isOpen: boolean; onOpenChange: (open: boolean) => void; invoices: FinanceDocument[]; invoice?: FinanceDocument | null; clients?: ClientOption[]; };
+type PaymentDrawerProps = {
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    invoices: FinanceDocument[];
+    invoice?: FinanceDocument | null;
+    clients?: ClientOption[];
+    dossiers?: DossierOption[];
+    defaultClientId?: string;
+    defaultDossierId?: string;
+    lockClientContext?: boolean;
+    lockDossierContext?: boolean;
+    allowAdvancePayment?: boolean;
+    returnTo?: string;
+};
 
-type PaymentForm = { financeDocumentId: string; amount: string; method: string; reference: string; paidAt: string; notes: string; };
+type PaymentForm = { financeDocumentId: string; dossierId: string; amount: string; method: string; reference: string; paidAt: string; notes: string; };
 
 type PaymentReceiptFlash = { paymentNumber: string; number: string; showUrl: string | null; generatePdfUrl: string | null; generateExcelUrl: string | null; pdfDownloadUrl: string | null; excelDownloadUrl: string | null; };
 
@@ -30,43 +43,71 @@ const compactItem = 'flex cursor-pointer items-center rounded-lg px-2.5 py-2 tex
 const compactTextarea = 'min-h-20 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)]';
 const compactPopover = 'z-[70] min-w-[var(--trigger-width)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg';
 
-function makeForm(selectedInvoice?: FinanceDocument | null): PaymentForm {
+function makeForm(selectedInvoice?: FinanceDocument | null, defaultDossierId?: string): PaymentForm {
     return {
         financeDocumentId: selectedInvoice ? String(selectedInvoice.id) : '',
+        dossierId: selectedInvoice?.dossier?.id ? String(selectedInvoice.dossier.id) : (defaultDossierId || ''),
         amount: selectedInvoice ? String(selectedInvoice.remainingTotal) : '',
         method: 'cash', reference: '', paidAt: new Date().toISOString().slice(0, 10), notes: '',
     };
 }
 
-export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients = [] }: PaymentDrawerProps) {
-    const [form, setForm] = useState<PaymentForm>(() => makeForm(invoice));
-    const [selectedClientId, setSelectedClientId] = useState('');
+export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients = [], dossiers = [], defaultClientId, defaultDossierId, lockClientContext = false, lockDossierContext = false, allowAdvancePayment = false, returnTo }: PaymentDrawerProps) {
+    const [form, setForm] = useState<PaymentForm>(() => makeForm(invoice, defaultDossierId));
+    const [selectedClientId, setSelectedClientId] = useState(defaultClientId || '');
     const [receiptPrompt, setReceiptPrompt] = useState<PaymentReceiptFlash | null>(null);
     const payableInvoices = useMemo(
         () => invoices.filter((item) => item.type === 'invoice' && item.status !== 'cancelled' && item.remainingTotal > 0),
         [invoices],
     );
-    const filteredInvoices = useMemo(
-        () => (selectedClientId ? payableInvoices.filter((item) => String(item.client?.id) === selectedClientId) : payableInvoices),
-        [payableInvoices, selectedClientId],
+    const activeInvoices = useMemo(
+        () => invoices.filter((item) => item.type === 'invoice' && item.status !== 'cancelled'),
+        [invoices],
     );
-    const activeInvoice = filteredInvoices.find((item) => String(item.id) === form.financeDocumentId) || (selectedClientId ? null : invoice) || null;
+    const filteredInvoices = useMemo(
+        () => payableInvoices.filter((item) => {
+            const matchesClient = !selectedClientId || String(item.client?.id) === selectedClientId;
+            const matchesDossier = !form.dossierId || String(item.dossier?.id) === form.dossierId;
+
+            return matchesClient && matchesDossier;
+        }),
+        [form.dossierId, payableInvoices, selectedClientId],
+    );
+    const filteredDossiers = useMemo(
+        () => dossiers.filter((dossier) => !selectedClientId || dossier.clientId === selectedClientId),
+        [dossiers, selectedClientId],
+    );
+    const settledInvoiceCount = useMemo(
+        () => activeInvoices.filter((item) => (!selectedClientId || String(item.client?.id) === selectedClientId) && item.remainingTotal <= 0).length,
+        [activeInvoices, selectedClientId],
+    );
+    const activeInvoice = filteredInvoices.find((item) => String(item.id) === form.financeDocumentId) || (invoice && String(invoice.id) === form.financeDocumentId ? invoice : null);
+    const selectedDossier = filteredDossiers.find((dossier) => dossier.id === form.dossierId) || null;
+    const canRecordAdvance = allowAdvancePayment && !activeInvoice && Boolean(selectedDossier);
     const amount = normalizeNumber(form.amount);
     const remainingBefore = activeInvoice?.remainingTotal || 0;
     const remainingAfter = Math.max(0, remainingBefore - amount);
     const isOverpayment = amount > remainingBefore && remainingBefore > 0;
     const isFullPayment = activeInvoice ? amount === remainingBefore && amount > 0 : false;
-    const canSubmit = Boolean(form.financeDocumentId) && amount > 0 && !isOverpayment;
+    const canSubmit = (Boolean(activeInvoice) && amount > 0 && !isOverpayment) || (canRecordAdvance && amount > 0);
 
-    useEffect(() => { if (isOpen) setForm(makeForm(invoice)); }, [invoice, isOpen]);
+    useEffect(() => {
+        if (!isOpen) return;
+
+        setForm(makeForm(invoice, defaultDossierId));
+        setSelectedClientId(invoice?.client?.id ? String(invoice.client.id) : (defaultClientId || ''));
+    }, [defaultClientId, defaultDossierId, invoice, isOpen]);
 
     function update<K extends keyof PaymentForm>(key: K, value: PaymentForm[K]) { setForm((p) => ({ ...p, [key]: value })); }
 
     function submit() {
-        if (!canSubmit) { toast.error(isOverpayment ? 'Le montant depasse le reste a payer.' : 'Paiement invalide.'); return; }
+        if (!canSubmit) { toast.error(isOverpayment ? 'Le montant depasse le reste a payer.' : 'Choisissez une facture ou un dossier pour l avance.'); return; }
         router.post('/finance/payments', {
-            finance_document_id: form.financeDocumentId, amount, method: form.method || null,
-            reference: form.reference || null, paid_at: form.paidAt || null, notes: form.notes || null,
+            finance_document_id: activeInvoice ? form.financeDocumentId : null,
+            client_id: activeInvoice ? null : (selectedClientId || null),
+            dossier_id: canRecordAdvance ? form.dossierId : null,
+            amount, method: form.method || null,
+            reference: form.reference || null, paid_at: form.paidAt || null, notes: form.notes || null, return_to: returnTo || null,
         }, {
             preserveScroll: true, preserveState: true,
             onSuccess: (page) => {
@@ -83,7 +124,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
 
     function generateReceiptFile(url: string | null | undefined, label: string) {
         if (!url) { toast.error('Action indisponible.'); return; }
-        router.put(url, {}, { preserveScroll: true, preserveState: true, onStart: () => toast.loading(`${label}...`, { id: label }), onSuccess: () => toast.success(`${label} fait.`, { id: label }), onError: () => toast.error(`${label} impossible.`, { id: label }) });
+        router.put(url, { return_to: returnTo || null }, { preserveScroll: true, preserveState: true, onStart: () => toast.loading(`${label}...`, { id: label }), onSuccess: () => toast.success(`${label} fait.`, { id: label }), onError: () => toast.error(`${label} impossible.`, { id: label }) });
     }
 
     return (
@@ -91,7 +132,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
             <AppDrawer
                 isOpen={isOpen} onOpenChange={onOpenChange}
                 title="Enregistrer un paiement"
-                description="Ajouter un paiement sur une facture."
+                                description="Reglez une facture ou enregistrez une avance avant la creation des documents financiers."
                 footer={
                     <div className="flex items-center gap-2">
                         <Button variant="light" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button>
@@ -107,8 +148,13 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                 <label className={labelCls}>Client</label>
                                 <Select
                                     placeholder="Filtrer par client"
-                                    selectedKeys={[selectedClientId || '']}
-                                    onSelectionChange={(key) => { setSelectedClientId(key != null ? String(key) : ''); }}
+                                    selectedKey={selectedClientId || null}
+                                    isDisabled={lockClientContext}
+                                    onSelectionChange={(key) => {
+                                        const clientId = key != null ? String(key) : '';
+                                        setSelectedClientId(clientId);
+                                        setForm((prev) => ({ ...prev, financeDocumentId: '', dossierId: '' }));
+                                    }}
                                 >
                                     <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" placeholder="Tous les clients" /><Select.Indicator /></Select.Trigger>
                                     <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
@@ -119,12 +165,33 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                 </Select>
                             </div>
                         ) : null}
+                        {dossiers.length > 0 ? (
+                            <div className="flex min-w-0 flex-col gap-1">
+                                <label className={labelCls}>Dossier</label>
+                                <Select
+                                    placeholder="Choisir un dossier"
+                                    selectedKey={form.dossierId || null}
+                                    isDisabled={lockDossierContext}
+                                    onSelectionChange={(key) => {
+                                        const dossierId = key != null ? String(key) : '';
+                                        setForm((prev) => ({ ...prev, dossierId, financeDocumentId: '' }));
+                                    }}
+                                >
+                                    <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" placeholder="Choisir un dossier" /><Select.Indicator /></Select.Trigger>
+                                    <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
+                                        {filteredDossiers.map((dossier) => (
+                                            <ListBox.Item key={dossier.id} id={dossier.id} textValue={dossier.label} className={compactItem}>{dossier.label}</ListBox.Item>
+                                        ))}
+                                    </ListBox></Select.Popover>
+                                </Select>
+                            </div>
+                        ) : null}
                         <div className="flex min-w-0 flex-col gap-1">
                             <label className={labelCls}>Facture</label>
                             <Select
-                                placeholder={selectedClientId && filteredInvoices.length === 0 ? 'Aucune facture pour ce client' : 'Choisir une facture'}
-                                selectedKeys={[form.financeDocumentId || '']}
-                                isDisabled={selectedClientId && filteredInvoices.length === 0}
+                                placeholder={selectedClientId && filteredInvoices.length === 0 ? 'Aucune facture impayee disponible' : 'Choisir une facture'}
+                                selectedKey={form.financeDocumentId || null}
+                                isDisabled={Boolean(invoice && lockClientContext)}
                                 onSelectionChange={(key) => {
                                     const id = key != null ? String(key) : '';
                                     const selected = filteredInvoices.find((item) => String(item.id) === id);
@@ -140,8 +207,23 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                     ))}
                                 </ListBox></Select.Popover>
                             </Select>
+                            {selectedClientId && filteredInvoices.length === 0 && !canRecordAdvance ? (
+                                <p className="flex items-start gap-1.5 text-[11px] leading-4 text-[var(--text-muted)]">
+                                    <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-400" />
+                                    {settledInvoiceCount > 0
+                                        ? "Les factures de ce client sont deja reglees. Creez une nouvelle facture ou corrigez un paiement existant avant d'enregistrer un autre reglement."
+                                        : 'Aucune facture active a regler pour ce client.'}
+                                </p>
+                            ) : null}
                         </div>
                     </Card>
+
+                    {canRecordAdvance ? (
+                        <Card className="border border-[color-mix(in_srgb,var(--accent)_35%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] p-3 text-xs text-[var(--foreground)]">
+                            <p className="font-semibold">Avance dossier</p>
+                            <p className="mt-1 leading-5 text-[var(--text-muted)]">Aucun devis ni facture active ne bloque ce paiement. Un recu sera cree et l avance sera rattachee automatiquement a la prochaine facture.</p>
+                        </Card>
+                    ) : null}
 
                     {activeInvoice ? (
                         <Card className="p-3">
@@ -170,7 +252,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                         <div className="flex min-w-0 flex-col gap-1">
                             <label className={labelCls}>Mode de paiement</label>
                             <Select
-                                selectedKeys={[form.method]}
+                                selectedKey={form.method || null}
                                 onSelectionChange={(key) => { update('method', key != null ? String(key) : ''); }}
                             >
                                 <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>

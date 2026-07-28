@@ -16,12 +16,15 @@ class StorePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'finance_document_id' => ['required', 'exists:finance_documents,id'],
+            'finance_document_id' => ['nullable', 'exists:finance_documents,id'],
+            'client_id' => ['nullable', 'required_without:finance_document_id', 'exists:clients,id'],
+            'dossier_id' => ['nullable', 'required_without:finance_document_id', 'exists:dossiers,id'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'method' => ['nullable', Rule::enum(PaymentMethod::class)],
             'reference' => ['nullable', 'string', 'max:255'],
             'paid_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
+            'return_to' => ['nullable', 'string', 'max:2048', 'starts_with:/'],
         ];
     }
 }

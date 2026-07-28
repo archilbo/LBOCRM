@@ -15,6 +15,7 @@ use App\Models\Shelf;
 use App\Services\Dossiers\DossierLocationGroupingService;
 use App\Services\Dossiers\DossierNumberService;
 use App\Services\Dossiers\DossierWorkflowStepperService;
+use App\Services\Finance\FinanceContextService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -231,8 +232,18 @@ class DossierController extends Controller
         ]);
     }
 
-    public function store(StoreDossierRequest $request, DossierNumberService $numberService): RedirectResponse
+    public function store(
+        StoreDossierRequest $request,
+        DossierNumberService $numberService,
+        FinanceContextService $financeContext,
+    ): RedirectResponse
     {
+        $scope = $financeContext->payload($request->user());
+        $client = Client::query()
+            ->whereKey($request->integer('client_id'))
+            ->where('company_id', $scope['company_id'])
+            ->when($scope['branch_id'] !== null, fn ($query) => $query->where('branch_id', $scope['branch_id']), fn ($query) => $query->whereNull('branch_id'))
+            ->firstOrFail();
         $city = City::findOrFail($request->integer('city_id'));
         $numbering = $numberService->generate($city);
 
@@ -241,6 +252,8 @@ class DossierController extends Controller
         $data['city_id'] = $city->id;
         $data['sequence_number'] = $numbering['sequence'];
         $data['period'] = $numbering['period'];
+        $data['company_id'] = $client->company_id;
+        $data['branch_id'] = $client->branch_id;
 
         Dossier::create($data);
 

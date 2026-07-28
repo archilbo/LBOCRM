@@ -1,3 +1,5 @@
+import { drawerStyles } from '@/components/drawers';
+
 type Props = {
     value: number | null;
     onChange: (v: number | null) => void;
@@ -15,12 +17,11 @@ const OPTIONS = [
 
 export function CalendarReminderForm({ value, onChange }: Props) {
     return (
-        <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-[var(--crm-text-muted)]">Reminder</label>
+        <div className={drawerStyles.sectionGrid}>
             <div className="flex flex-wrap gap-1.5">
                 {OPTIONS.map((opt) => (
                     <button key={String(opt.value)} type="button" onClick={() => onChange(opt.value)}
-                        className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${value === opt.value ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
+                        className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition ${value === opt.value ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
                         {opt.label}
                     </button>
                 ))}
