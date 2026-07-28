@@ -6374,3 +6374,464 @@ The local baseline seeder reads `LOCAL_BASELINE_PASSWORD` from `.env` when prese
 ### Verification
 
 - Pending frontend production build after the layout refinement.
+
+## Geist Typography Foundation And Login Refinement
+
+### What Was Built
+
+- Bound Tailwind's shared sans and mono font tokens to the installed Geist Variable and Geist Mono Variable fonts.
+- Refined login typography with a less heavy heading scale, clearer label/supporting-text hierarchy, and more deliberate spacing for the widened form.
+
+### Files Modified
+
+- `resources/css/app.css`
+- `resources/js/pages/Auth/Login.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `git diff --check` passed.
+- `npm.cmd run typecheck` remains blocked by existing project-wide type errors in unrelated finance, inbox, drawer, and page files; the login/font files report no TypeScript error.
+
+## Login Security Hardening
+
+### What Was Built
+
+- Added configuration-driven login throttling per normalized email and IP address.
+- Removed account-state disclosure from login failures; suspended and unaccepted-invitation accounts now receive the same generic failure response as invalid credentials.
+- Added browser hardening headers, login no-store responses, and production HTTPS-only/encrypted session defaults.
+- Added targeted coverage for security headers, suspended accounts, and repeated invalid login attempts.
+
+### Files Created
+
+- `config/auth_security.php`
+- `app/Http/Middleware/ApplySecurityHeaders.php`
+- `tests/Feature/LoginSecurityTest.php`
+
+### Files Modified
+
+- `app/Http/Requests/Auth/LoginRequest.php`
+- `bootstrap/app.php`
+- `config/session.php`
+- `.env.example`
+
+### Verification
+
+- Focused login coverage passed: 4 tests, 30 assertions.
+- Full backend suite passed: 84 tests, 294 assertions.
+- `npm.cmd run build` and `git diff --check` passed.
+- `php artisan optimize:clear` completed after the new configuration and middleware were added.
+
+## Logout Security Verification
+
+### What Was Built
+
+- Extended no-store response handling to logout redirects so browser history does not retain sensitive authenticated pages from that response path.
+- Added focused tests proving logout is POST-only and authenticated, invalidates the current session, rotates an existing remember token, and returns the standard security headers.
+
+### Files Created
+
+- `tests/Feature/LogoutSecurityTest.php`
+
+### Files Modified
+
+- `app/Http/Middleware/ApplySecurityHeaders.php`
+
+### Verification
+
+- Focused login/logout coverage passed: 6 tests, 42 assertions.
+- Full backend suite passed: 86 tests, 306 assertions.
+- `git diff --check` passed.
+
+## Dashboard Command Center Data And Visuals
+
+### What Was Built
+
+- Scoped dashboard aggregates, action queues, finance alerts, recent projects, and system health data to the signed-in user's company and branch.
+- Added a six-month finance trend widget using actual invoice and payment records.
+- Added a compact workflow distribution widget based on active dossier workflow steps.
+- Kept the existing shared KPI cards and HeroUI dashboard layout intact.
+- Removed dormant dashboard mock-data and mock-only presentation files after confirming they had no imports.
+
+### Files Created
+
+- `resources/js/features/dashboard/components/DashboardFinanceTrend.tsx`
+- `resources/js/features/dashboard/components/DashboardWorkflowDonut.tsx`
+- `tests/Feature/DashboardCommandCenterTest.php`
+
+### Files Modified
+
+- `app/Http/Controllers/DashboardController.php`
+- `app/Services/Dashboard/DashboardCommandCenterService.php`
+- `resources/js/features/dashboard/types.ts`
+- `resources/js/pages/Dashboard.tsx`
+
+### Files Removed
+
+- `resources/js/features/dashboard/data/dashboardCommandCenter.ts`
+- `resources/js/features/dashboard/dashboardDesign.ts`
+- `resources/js/features/dashboard/components/DashboardQuickActions.tsx`
+
+### Verification
+
+- Focused dashboard tenant-scope test passed: 1 test, 4 assertions.
+- Full backend suite passed: 87 tests, 310 assertions.
+- `npm.cmd run build` and `git diff --check` passed.
+- Vite still reports its existing large-client-chunk advisory; the dashboard widgets compile successfully.
+
+### Next Recommended Step
+
+- Add dashboard-level date range filtering once the reporting requirements are defined, then keep the selected range in the URL so shared links reproduce the same view.
+
+## Dashboard Review Data And Layout Refinement
+
+### What Was Built
+
+- Added the opt-in `DashboardDemoSeeder`; it is disabled in production and is intentionally excluded from `DatabaseSeeder`.
+- The temporary seed creates six company/branch-scoped clients and dossiers, six dossier documents, five invoices, three payments, four assigned tasks, and one operational conversation for realistic dashboard review.
+- Reworked the KPI rail to use six shared KPI cards: two columns on small screens, three on laptop, and one aligned six-card row on wide screens.
+- Reduced duplicate dashboard noise by keeping the workflow donut as the single workflow visual and removing the repeated progress-list widget.
+- Simplified the lower dashboard layout into Finance and Updates widgets, while keeping action queues, projects, and vigilance as separate readable zones.
+
+### Files Created
+
+- `database/seeders/DashboardDemoSeeder.php`
+- `tests/Feature/DashboardDemoSeederTest.php`
+
+### Files Modified
+
+- `resources/js/pages/Dashboard.tsx`
+- `docs/AI_WORK_REPORT.md`
+
+### How To Use The Temporary Data
+
+- Run `php artisan db:seed --class=DashboardDemoSeeder` locally after the baseline seed.
+- The seeder is idempotent and uses the `DASH-` prefix for every temporary client, dossier, document, invoice, payment, task, and conversation record.
+- It is not part of the regular baseline seed and must remain out of production data.
+
+### Verification
+
+- Dashboard service and demo seed tests passed: 2 tests, 10 assertions.
+- `npm.cmd run build` and `git diff --check` passed.
+
+### Next Recommended Step
+
+- Review the seeded dashboard at `/dashboard` across desktop, tablet, and mobile widths. Once the visual direction is approved, remove the temporary `DASH-*` data before production launch.
+
+## Shared Actions And French I18n Dashboard Pilot
+
+### What Was Built
+
+- Extended the HeroUI-backed `AppButton` with compact shared variants: `toolbar`, `accent`, and `quiet`.
+- Added a lightweight application i18n provider with French as the default locale, persisted under `archilbo-locale`, and an English fallback for feature areas not yet migrated.
+- Organized the initial French dictionary by responsibility: shared labels in `resources/js/locales/fr/common.ts` and dashboard labels in `resources/js/locales/fr/dashboard.ts`.
+- Localized the dashboard headline, buttons, KPIs, chart states, action queue, finance alerts, and activity labels through translation keys.
+- Refactored dashboard payloads so new UI labels are resolved in the frontend locale rather than embedded as English presentation text in the service.
+
+### Files Created
+
+- `resources/js/locales/fr/common.ts`
+- `resources/js/locales/fr/dashboard.ts`
+- `resources/js/locales/fr/index.ts`
+
+### Files Modified
+
+- `resources/js/components/ui/AppButton.tsx`
+- `resources/js/lib/i18n.ts`
+- `resources/js/providers/AppProviders.tsx`
+- `resources/js/pages/Dashboard.tsx`
+- `resources/js/features/dashboard/types.ts`
+- `resources/js/features/dashboard/components/DashboardFinanceTrend.tsx`
+- `resources/js/features/dashboard/components/DashboardWorkflowDonut.tsx`
+- `app/Services/Dashboard/DashboardCommandCenterService.php`
+
+### Localization Convention
+
+- New feature text belongs in `resources/js/locales/fr/<feature>.ts` and is composed by `resources/js/locales/fr/index.ts`.
+- The current locale is French. English remains only as a safe fallback until each existing feature is migrated.
+- To add another locale later, add its feature files, export the composed dictionary, and append its code to `supportedLocales` in `resources/js/lib/i18n.ts`.
+
+### Verification
+
+- `php artisan test --filter='Dashboard(CommandCenter|DemoSeeder)Test' --stop-on-failure` passed: 2 tests, 10 assertions.
+- `npm.cmd run build` passed.
+- `git diff --check` passed.
+- Vite continues to report only the existing optional `fontaine` and large-chunk advisories.
+
+### Next Recommended Step
+
+- Migrate the finance feature next using `resources/js/locales/fr/finance.ts`, then apply the shared compact button variants to its toolbars and row actions.
+
+## Global Geist Typography Enforcement
+
+### What Was Built
+
+- Confirmed that the application entry point loads the local `@fontsource-variable/geist` and `@fontsource-variable/geist-mono` packages.
+- Aligned the legacy CRM shell font variables with the shared `--font-sans` and `--font-mono` tokens, so both the modern and legacy shell surfaces inherit Geist consistently.
+- Removed the unused Vite/Bunny Instrument Sans integration; production bundles now ship Geist and Geist Mono only for the application UI.
+- Kept the Arial/DejaVu declarations inside finance document templates unchanged because they describe rendered PDF/print documents, not the CRM interface.
+
+### Files Modified
+
+- `resources/css/app.css`
+- `resources/css/archilbo-theme.css`
+- `vite.config.ts`
+
+### Verification
+
+- `npm.cmd run build` passed and its output contains Geist and Geist Mono assets with no Instrument Sans assets.
+- `git diff --check` passed.
+
+### Next Recommended Step
+
+- Continue the French locale migration feature by feature, beginning with Finance, while applying the shared `AppButton` variants to its toolbars and table actions.
+
+## Dashboard Operations Widget Layout
+
+### What Was Built
+
+- Reworked the dashboard operations area into a two-column desktop workspace.
+- Made Recent Projects the primary panel and stacked Action Queue and Vigilance as a focused right-side operational rail.
+- Added a shared dashboard widget-header treatment with compact icon surfaces, stronger title hierarchy, and consistent internal spacing.
+- Preserved all existing real dashboard data, routes, actions, and responsive single-column behavior on smaller screens.
+
+### Files Modified
+
+- `resources/js/pages/Dashboard.tsx`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `git diff --check` passed.
+
+### Next Recommended Step
+
+- Review `/dashboard` at desktop and tablet widths, then refine the KPI visual treatment only after the operations workspace direction is approved.
+
+## Client Module Security And Tenant Boundary Hardening
+
+### What Was Audited And Fixed
+
+- Scoped the client search API and client-project API to the authenticated company and optional branch.
+- Added policy enforcement to both API endpoints, preventing direct requests for a foreign client or its dossiers.
+- Added a `ClientStatus` enum and shared request rules so client status values and intermediary validation are enforced on the server.
+- Added company/branch ownership to intermediaries, including a migration that backfills existing ARCHI LBO intermediary records.
+- Scoped client-side intermediary options and intermediary CRUD/reporting to the signed-in tenant.
+- Scoped document lists, document grouping, document form options, document uploads, and protected file actions through the document dossier owner.
+- Prevented a dossier from being reassigned to a client outside the current tenant.
+- Added missing authorization to dossier workflow requirement updates.
+- Scoped client, dossier, document, contract, and archive results in global search.
+
+### Files Created
+
+- `app/Enums/ClientStatus.php`
+- `app/Http/Requests/Concerns/HasClientPayloadRules.php`
+- `app/Policies/IntermediaryPolicy.php`
+- `database/migrations/2026_07_28_090000_add_intermediary_tenant_scope.php`
+- `tests/Feature/ClientSecurityHardeningTest.php`
+
+### Files Modified
+
+- `app/Http/Controllers/Api/ClientController.php`
+- `app/Http/Controllers/ClientController.php`
+- `app/Http/Controllers/DocumentController.php`
+- `app/Http/Controllers/DossierController.php`
+- `app/Http/Controllers/DossierWorkflowRequirementController.php`
+- `app/Http/Controllers/GlobalSearchController.php`
+- `app/Http/Controllers/IntermediaryController.php`
+- `app/Http/Requests/StoreClientRequest.php`
+- `app/Http/Requests/UpdateClientRequest.php`
+- `app/Models/Intermediary.php`
+- `app/Policies/DossierDocumentPolicy.php`
+- `app/Services/Documents/DocumentGroupingService.php`
+
+### Database Changes
+
+- Applied `2026_07_28_090000_add_intermediary_tenant_scope`.
+- `intermediaries` now carries `company_id` and `branch_id`, with an index for tenant lookups.
+
+### Verification
+
+- `php artisan migrate --force` passed.
+- `php artisan optimize:clear` passed.
+- `php artisan test --filter=ClientSecurityHardeningTest --stop-on-failure` passed: 3 tests, 13 assertions.
+- `php artisan test --stop-on-failure` passed: 91 tests, 329 assertions.
+- `npm.cmd run build` passed.
+- `git diff --check` passed.
+
+### Next Recommended Step
+
+- Audit the remaining dossier-adjacent modules (contracts, archive records, and project design) for the same company/branch boundary pattern, then introduce granular client and dossier permissions without changing the current workflow UI.
+
+## Client Workspace Obsolete Authorization Relation Fix
+
+### What Was Fixed
+
+- Removed the obsolete `Dossier::authorization` eager load, workspace payload, and timeline events from `ClientWorkspaceService`.
+- The authorization module was previously removed, so the stale relation caused every client workspace request to fail before rendering.
+- Added a direct authorized `/clients/{client}` regression assertion to the client security feature test.
+
+### Files Modified
+
+- `app/Services/Clients/ClientWorkspaceService.php`
+- `tests/Feature/ClientSecurityHardeningTest.php`
+
+### Verification
+
+- `php artisan test --filter=ClientSecurityHardeningTest --stop-on-failure` passed: 3 tests, 14 assertions.
+- `npm.cmd run build` passed.
+- `git diff --check` passed.
+
+## Client Workspace Tab Verification
+
+### What Was Fixed
+
+- Connected the Activity tab to the selected dossier timeline already provided by `ClientWorkspaceService`.
+- Removed the obsolete authorization timeline visual configuration.
+- Kept the selected tab in the client workspace URL and synchronized it when the page receives a tab query parameter.
+- Made the Notes tab actionable through the existing client editor.
+- Preserved the current client workspace tab after a client edit, using a validated local return path.
+
+### Files Modified
+
+- `resources/js/pages/Clients/Show.tsx`
+- `resources/js/features/clients/components/DossierTimeline.tsx`
+- `app/Http/Requests/Concerns/HasClientPayloadRules.php`
+- `app/Http/Controllers/ClientController.php`
+- `tests/Feature/ClientSecurityHardeningTest.php`
+
+### Verification
+
+- Every client workspace tab was requested in the feature test: Overview, Projects, Workflow, Documents, Finance, Notes, and Activity.
+- `php artisan test --filter=ClientSecurityHardeningTest` passed: 3 tests, 21 assertions.
+- `npm.cmd run build` passed.
+- `php artisan optimize:clear` passed.
+- `git diff --check` passed (repository line-ending notices only).
+
+## Client Workspace Activity And Compact Actions
+
+### What Was Changed
+
+- Extended the shared HeroUI-backed `AppButton` with an optional accessible tooltip.
+- Changed Client workspace header and tab actions to compact icon buttons with tooltips, keeping action groups aligned to the right.
+- Preserved text buttons for destructive confirmations where a visible label is safer.
+- Added creator information to finance and payment timeline events when that user is recorded in the database.
+- Kept document, contract, and archive timeline events honest: no actor is shown when that legacy record has no stored author.
+
+### Files Modified
+
+- `resources/js/components/ui/AppButton.tsx`
+- `resources/js/pages/Clients/Show.tsx`
+- `resources/js/features/clients/components/ClientFinanceTab.tsx`
+- `resources/js/features/clients/components/ClientArchivesCard.tsx`
+- `resources/js/features/clients/components/DossierTimeline.tsx`
+- `resources/js/features/clients/types.ts`
+- `app/Services/Clients/ClientWorkspaceService.php`
+
+### Verification
+
+- `php artisan test --filter=ClientSecurityHardeningTest` passed: 3 tests, 21 assertions.
+- `npm.cmd run build` passed.
+- `git diff --check` passed (repository line-ending notices only).
+
+## Client French Locale Completion
+
+### What Was Changed
+
+- Added a dedicated French client locale, covering the client index, client drawer, workspace tabs, project finance, archive card, pagination, workflow actions, and activity timeline.
+- Replaced visible hardcoded client finance, archive, drawer, KPI, pagination, and workspace action labels with translation keys.
+- Made activity events language-neutral in `ClientWorkspaceService`; React now resolves their labels from the active locale.
+- Kept English equivalents for all newly introduced client keys so a future locale switch remains complete.
+
+### Files Created
+
+- `resources/js/locales/fr/clients.ts`
+
+### Files Modified
+
+- `resources/js/locales/fr/index.ts`
+- `resources/js/locales/en.ts`
+- `resources/js/pages/Clients/Index.tsx`
+- `resources/js/pages/Clients/Show.tsx`
+- `resources/js/components/drawers/entities/ClientDrawer/index.tsx`
+- `resources/js/features/clients/components/ClientFinanceTab.tsx`
+- `resources/js/features/clients/components/ClientArchivesCard.tsx`
+- `resources/js/features/clients/components/DossierTimeline.tsx`
+- `resources/js/features/clients/types.ts`
+- `app/Services/Clients/ClientWorkspaceService.php`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `php artisan test --filter=ClientSecurityHardeningTest` passed: 3 tests, 21 assertions.
+- `git diff --check` passed (only unrelated line-ending notices were reported).
+
+## Clients Table Refinement
+
+### What Was Changed
+
+- Refined the shared `AppWorkspaceTable` header typography, contrast, and icon support.
+- Added optional persisted drag-and-drop column ordering through `localStorage`, without duplicating the table implementation.
+- Applied the shared capability to Clients: clear column icons, non-reorderable avatar/actions columns, and a saved column layout.
+- Changed Clients pagination to 10 rows per page and compact previous/next icon controls with tooltips.
+- Corrected the shared table hook flow so it remains valid for both table-data and children-based usages.
+
+### Files Modified
+
+- `resources/js/components/ui/AppWorkspaceTable.tsx`
+- `resources/js/pages/Clients/Index.tsx`
+- `resources/js/locales/fr/clients.ts`
+- `resources/js/locales/en.ts`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `git diff --check` passed (only unrelated line-ending notices were reported).
+
+## Shared Clients Table Preferences
+
+### What Was Changed
+
+- Improved the shared `AppWorkspaceTable` header hierarchy for the dark CRM theme.
+- Added resilient persisted column ordering through native drag-and-drop, including recovery from malformed browser storage.
+- Updated the Clients table with icon-led sortable headers while keeping avatar and row-action columns fixed.
+- Set Clients pagination to 10 records per page and replaced text pagination controls with compact shared icon buttons and tooltips.
+
+### Files Modified
+
+- `resources/js/components/ui/AppWorkspaceTable.tsx`
+- `resources/js/pages/Clients/Index.tsx`
+- `resources/js/locales/en.ts`
+- `resources/js/locales/fr/clients.ts`
+- `docs/AI_WORK_REPORT.md`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `git diff --check` passed (only unrelated line-ending notices were reported).
+
+## Intermediaries List Alignment
+
+### What Was Changed
+
+- Replaced the legacy intermediary index table and custom filters with the shared HeroUI-backed workspace table pattern used by Clients.
+- Added compact icon-led KPI cards, sortable icon column headers, local persisted column order, and 10-row pagination with accessible previous/next icon controls.
+- Kept row actions compact: view and edit are direct icon actions, while deletion remains inside a focused overflow menu and confirmation dialog.
+- Added a dedicated French intermediary locale and localized the intermediary create/edit drawer without changing scoped backend queries, policies, or controller behavior.
+
+### Files Created
+
+- `resources/js/locales/fr/intermediaries.ts`
+
+### Files Modified
+
+- `resources/js/pages/Intermediaries/Index.tsx`
+- `resources/js/features/intermediaries/drawers/IntermediaryDrawer.tsx`
+- `resources/js/locales/fr/index.ts`
+- `resources/js/locales/en.ts`
+- `docs/AI_WORK_REPORT.md`
+
+### Verification
+
+- `npm.cmd run build` passed.
+- `git diff --check` passed; only unrelated CRLF notices were reported.

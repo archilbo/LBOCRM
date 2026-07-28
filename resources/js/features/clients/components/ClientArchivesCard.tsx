@@ -2,12 +2,15 @@ import { router } from '@inertiajs/react';
 import { Archive, ExternalLink } from 'lucide-react';
 import { AppButton } from '@/components/ui/AppButton';
 import type { ClientSelectedProjectWorkspace } from '@/features/clients/types';
+import { useTranslation } from '@/lib/i18n';
 
 type Props = {
     project: ClientSelectedProjectWorkspace | null;
 };
 
 export function ClientArchivesCard({ project }: Props) {
+    const { t } = useTranslation();
+
     if (!project) return null;
 
     const archive = project.archiveRecord;
@@ -17,7 +20,7 @@ export function ClientArchivesCard({ project }: Props) {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Archive size={16} className="text-[var(--accent)]" />
-                    <span className="text-sm font-semibold text-[var(--foreground)]">Archive</span>
+                    <span className="text-sm font-semibold text-[var(--foreground)]">{t('clients.archives.title')}</span>
                 </div>
             </div>
 
@@ -26,17 +29,17 @@ export function ClientArchivesCard({ project }: Props) {
                     <p><span className="font-medium text-[var(--foreground)]">{archive.archiveNumber}</span> &middot; {archive.status}</p>
                 </div>
             ) : (
-                <p className="mt-2 text-xs text-[var(--text-muted)]">No archive record yet.</p>
+                <p className="mt-2 text-xs text-[var(--text-muted)]">{t('clients.archives.empty')}</p>
             )}
 
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex justify-end">
                 {archive ? (
-                    <AppButton variant="bordered" size="sm" className="h-7 text-xs" onPress={() => router.visit(`/archives/${archive.id}`)}>
-                        <ExternalLink size={12} /> View in Archives
+                    <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.archives.view')} aria-label={t('clients.archives.view')} onPress={() => router.visit(`/archives/${archive.id}`)}>
+                        <ExternalLink size={14} />
                     </AppButton>
                 ) : (
-                    <AppButton variant="bordered" size="sm" className="h-7 text-xs" onPress={() => router.visit('/archives')}>
-                        <ExternalLink size={12} /> Create in Archives
+                    <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.archives.create')} aria-label={t('clients.archives.create')} onPress={() => router.visit('/archives')}>
+                        <ExternalLink size={14} />
                     </AppButton>
                 )}
             </div>

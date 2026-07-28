@@ -5,6 +5,7 @@ import { router } from '@inertiajs/react';
 import { AppFlashToasts } from '@/components/layout/AppFlashToasts';
 import { AppToastProvider } from '@/providers/AppToastProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
+import { I18nProvider } from '@/lib/i18n';
 import { GlobalUploadProvider } from '@/features/uploads/GlobalUploadProvider';
 import { GlobalUploadDock } from '@/features/uploads/GlobalUploadDock';
 import { GlobalUploadCenterDrawer } from '@/features/uploads/GlobalUploadCenterDrawer';
@@ -32,16 +33,18 @@ export function AppProviders({ children }: AppProvidersProps) {
     return (
         <QueryClientProvider client={queryClient}>
             <RouterProvider navigate={navigate}>
-                <ThemeProvider>
-                    <AppFlashToasts />
-                    <AppToastProvider />
-                    <GlobalUploadProvider onOpenUploadCenter={() => setUploadCenterOpen(true)}>
-                        {children}
-                        <UploadConnectionStatus />
-                        <GlobalUploadDock />
-                        <GlobalUploadCenterDrawer isOpen={uploadCenterOpen} onOpenChange={setUploadCenterOpen} />
-                    </GlobalUploadProvider>
-                </ThemeProvider>
+                <I18nProvider>
+                    <ThemeProvider>
+                        <AppFlashToasts />
+                        <AppToastProvider />
+                        <GlobalUploadProvider onOpenUploadCenter={() => setUploadCenterOpen(true)}>
+                            {children}
+                            <UploadConnectionStatus />
+                            <GlobalUploadDock />
+                            <GlobalUploadCenterDrawer isOpen={uploadCenterOpen} onOpenChange={setUploadCenterOpen} />
+                        </GlobalUploadProvider>
+                    </ThemeProvider>
+                </I18nProvider>
             </RouterProvider>
         </QueryClientProvider>
     );

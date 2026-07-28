@@ -1,8 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import {
-    Archive, CheckCircle2, ChevronDown, ChevronsUpDown, ChevronUp, Eye, ListFilter,
-    MoreHorizontal, Pencil, Plus, RefreshCw, Search, Trash2, UserCheck, UserRoundX, Users, X,
+    Archive, BriefcaseBusiness, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CreditCard,
+    ChevronsUpDown, ChevronUp, Clock3, Eye, ListFilter, MoreHorizontal, Pencil, Phone, Plus,
+    RefreshCw, Search, ShieldCheck, Trash2, UserCheck, UserRound, UserRoundX, Users, X,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Dropdown, Input } from '@heroui/react';
 import { toast } from 'sonner';
@@ -120,7 +122,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
             });
     }, [clients, query, statusFilter, sortField, sortDir]);
 
-    const pageSize = 15;
+    const pageSize = 10;
     const pageCount = Math.max(1, Math.ceil(filteredClients.length / pageSize));
     const pageClients = filteredClients.slice(page * pageSize, (page + 1) * pageSize);
 
@@ -129,10 +131,10 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     }, [pageCount]);
 
     const metricCards = [
-        { label: t('clients.metrics.total'), value: metrics.total, detail: 'Registered client records', ...CLIENT_KPI_TONES.total },
-        { label: t('clients.metrics.active'), value: metrics.active, detail: 'Can start new projects', ...CLIENT_KPI_TONES.active },
-        { label: t('clients.metrics.inactive'), value: metrics.inactive, detail: 'Needs review', ...CLIENT_KPI_TONES.inactive },
-        { label: t('clients.metrics.archived'), value: metrics.archived, detail: 'Closed relationships', ...CLIENT_KPI_TONES.archived },
+        { label: t('clients.metrics.total'), value: metrics.total, detail: t('clients.metrics.totalDetail'), ...CLIENT_KPI_TONES.total },
+        { label: t('clients.metrics.active'), value: metrics.active, detail: t('clients.metrics.activeDetail'), ...CLIENT_KPI_TONES.active },
+        { label: t('clients.metrics.inactive'), value: metrics.inactive, detail: t('clients.metrics.inactiveDetail'), ...CLIENT_KPI_TONES.inactive },
+        { label: t('clients.metrics.archived'), value: metrics.archived, detail: t('clients.metrics.archivedDetail'), ...CLIENT_KPI_TONES.archived },
     ];
 
     function toggleSort(field: SortField) {
@@ -149,6 +151,20 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
         return sortDir === 'asc'
             ? <ChevronUp size={11} className="text-[var(--accent)]" />
             : <ChevronDown size={11} className="text-[var(--accent)]" />;
+    }
+
+    function ColumnHeader({ label, icon: Icon, field }: { label: string; icon: LucideIcon; field?: SortField }) {
+        const content = <><Icon size={13} strokeWidth={1.9} /><span>{label}</span>{field ? <SortIcon field={field} /> : null}</>;
+
+        if (!field) {
+            return <span className="inline-flex items-center gap-1.5">{content}</span>;
+        }
+
+        return (
+            <button type="button" onClick={() => toggleSort(field)} className="inline-flex items-center gap-1.5 text-left transition hover:text-[var(--foreground)]">
+                {content}
+            </button>
+        );
     }
 
     function openCreateDrawer() {
@@ -198,7 +214,6 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
 
     function RowMenu({ client }: { client: ClientRow }) {
         const items = [
-            { id: 'view', label: t('clients.view'), icon: <Eye size={14} />, action: () => router.visit(`/clients/${client.id}`), danger: false },
             { id: 'delete', label: t('clients.delete'), icon: <Trash2 size={14} />, action: () => setDeleteTarget(client), danger: true },
         ];
 
@@ -233,47 +248,49 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
             id: 'avatar',
             label: '',
             headerClassName: 'w-8',
+            reorderable: false,
             render: (client) => <span className={cn('flex size-6 shrink-0 items-center justify-center rounded text-[10px] font-bold', avatarColor(client.id))}>{initials(client)}</span>,
         },
         {
             id: 'client',
-            label: <button type="button" onClick={() => toggleSort('fullName')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">{t('clients.table.client')} <SortIcon field="fullName" /></button>,
+            label: <ColumnHeader label={t('clients.table.client')} icon={UserRound} field="fullName" />,
             render: (client) => <div className="min-w-0"><p className="max-w-[180px] truncate font-medium text-[var(--text)]">{client.fullName}</p><p className="max-w-[180px] truncate text-[var(--text-muted)]">{client.clientNumber}</p></div>,
         },
         {
             id: 'cin',
-            label: <button type="button" onClick={() => toggleSort('cin')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">{t('clients.table.cin')} <SortIcon field="cin" /></button>,
+            label: <ColumnHeader label={t('clients.table.cin')} icon={CreditCard} field="cin" />,
             render: (client) => <span className="text-[var(--text-muted)]">{client.cin || '-'}</span>,
         },
         {
             id: 'contact',
-            label: t('clients.table.contact'),
+            label: <ColumnHeader label={t('clients.table.contact')} icon={Phone} />,
             render: (client) => <div className="grid gap-0.5"><span className="text-[var(--text)]">{formatContact(client.phone)}</span><span className="max-w-[160px] truncate text-[11px] text-[var(--text-muted)]">{formatContact(client.email)}</span></div>,
         },
         {
             id: 'intermediary',
-            label: t('clients.table.intermediary'),
+            label: <ColumnHeader label={t('clients.table.intermediary')} icon={BriefcaseBusiness} />,
             render: (client) => <span className="max-w-[150px] truncate text-[var(--text-muted)]">{client.intermediaryName && client.intermediaryName !== 'None' ? client.intermediaryName : '-'}</span>,
         },
         {
             id: 'projects',
-            label: <button type="button" onClick={() => toggleSort('projectsCount')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">{t('clients.table.projects')} <SortIcon field="projectsCount" /></button>,
+            label: <ColumnHeader label={t('clients.table.projects')} icon={ShieldCheck} field="projectsCount" />,
             render: (client) => <span className="inline-flex min-w-6 items-center justify-center rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--text)]">{client.projectsCount}</span>,
         },
         {
             id: 'status',
-            label: <button type="button" onClick={() => toggleSort('status')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">{t('clients.table.status')} <SortIcon field="status" /></button>,
+            label: <ColumnHeader label={t('clients.table.status')} icon={CheckCircle2} field="status" />,
             render: (client) => <StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" />,
         },
         {
             id: 'updated',
-            label: <button type="button" onClick={() => toggleSort('updatedAt')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">{t('clients.table.updated')} <SortIcon field="updatedAt" /></button>,
+            label: <ColumnHeader label={t('clients.table.updated')} icon={Clock3} field="updatedAt" />,
             render: (client) => <span className="whitespace-nowrap text-[var(--text-muted)]">{client.updatedAt || '-'}</span>,
         },
         {
             id: 'actions',
             label: '',
             headerClassName: 'w-10',
+            reorderable: false,
             render: (client) => <div onClick={(event) => event.stopPropagation()}><RowMenu client={client} /></div>,
         },
     ];
@@ -296,9 +313,8 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                             {t('clients.subtitle')}
                         </p>
                     </div>
-                    <AppButton variant="solid" color="primary" onPress={openCreateDrawer}>
+                    <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.newClient')} aria-label={t('clients.newClient')} onPress={openCreateDrawer}>
                         <Plus size={16} />
-                        {t('clients.newClient')}
                     </AppButton>
                 </div>
 
@@ -321,6 +337,8 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                     <AppWorkspaceTable
                         ariaLabel={t('clients.title')}
                         columns={clientColumns}
+                        columnOrderStorageKey="archilbo.clients.table.columns.v1"
+                        columnOrderHint={t('clients.table.reorderHint')}
                         data={pageClients}
                         rowKey={(client) => client.id}
                         minTableWidthClassName="min-w-[860px]"
@@ -351,11 +369,11 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                         renderMobileRow={(client) => (
                             <div key={client.id} className="flex items-start gap-2 p-3 transition hover:bg-[var(--surface-2)]">
                                 <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold', avatarColor(client.id))}>{initials(client)}</span>
-                                <AppButton variant="ghost" size="sm" onPress={() => router.visit(`/clients/${client.id}`)} className="h-auto min-w-0 flex-1 justify-start p-0 text-left"><span className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-[13px] font-semibold text-[var(--foreground)]">{client.fullName}</p><StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" /></div><p className="mt-0.5 text-[12px] text-[var(--text-muted)]">{client.cin ? `${client.cin} · ` : ''}{client.phone || client.email || '-'}</p><div className="mt-1 flex items-center gap-3 text-[11px] text-[var(--text-muted)]"><span>{client.projectsCount} project(s)</span><span>{client.updatedAt || '-'}</span></div></span></AppButton>
+                                <AppButton variant="ghost" size="sm" onPress={() => router.visit(`/clients/${client.id}`)} className="h-auto min-w-0 flex-1 justify-start p-0 text-left"><span className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-[13px] font-semibold text-[var(--foreground)]">{client.fullName}</p><StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" /></div><p className="mt-0.5 text-[12px] text-[var(--text-muted)]">{client.cin ? `${client.cin} · ` : ''}{client.phone || client.email || '-'}</p><div className="mt-1 flex items-center gap-3 text-[11px] text-[var(--text-muted)]"><span>{t('clients.pagination.projects', { count: client.projectsCount })}</span><span>{client.updatedAt || '-'}</span></div></span></AppButton>
                                 <RowMenu client={client} />
                             </div>
                         )}
-                        footer={<div className="flex items-center justify-between px-3 py-2"><span className="text-[10px] text-[var(--text-muted)]">{filteredClients.length} {t('clients.resultCount')}</span><div className="flex items-center gap-2"><button type="button" disabled={page === 0} onClick={() => setPage((current) => current - 1)} className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">Precedent</button><span className="text-[10px] text-[var(--text-muted)]">{page + 1} / {pageCount}</span><button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((current) => current + 1)} className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">Suivant</button></div></div>}
+                        footer={<div className="flex items-center justify-between px-3 py-2"><span className="text-[10px] text-[var(--text-muted)]">{filteredClients.length} {t('clients.resultCount')}</span><div className="flex items-center gap-1.5"><AppButton isIconOnly compact size="sm" variant="quiet" tooltip={t('clients.pagination.previous')} aria-label={t('clients.pagination.previous')} isDisabled={page === 0} onPress={() => setPage((current) => current - 1)}><ChevronLeft size={14} /></AppButton><span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-[var(--text-muted)]">{page + 1} / {pageCount}</span><AppButton isIconOnly compact size="sm" variant="quiet" tooltip={t('clients.pagination.next')} aria-label={t('clients.pagination.next')} isDisabled={page >= pageCount - 1} onPress={() => setPage((current) => current + 1)}><ChevronRight size={14} /></AppButton></div></div>}
                     />
 
                     {/* ── Mobile cards ── */}

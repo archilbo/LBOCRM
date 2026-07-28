@@ -178,9 +178,10 @@ export type ClientProjectArchiveRecord = {
 export type DossierTimelineEvent = {
     date: string | null;
     type: 'document' | 'contract' | 'finance' | 'payment' | 'archive';
-    label: string;
+    action: 'documentUploaded' | 'contractCreated' | 'contractGenerated' | 'contractSigned' | 'financeDocumentCreated' | 'paymentRecorded' | 'archiveRecordCreated' | 'archiveFileStored';
     description: string;
     status: string;
+    actorName?: string | null;
 };
 
 export type ClientSelectedProjectWorkspace = ClientProjectSummary & {

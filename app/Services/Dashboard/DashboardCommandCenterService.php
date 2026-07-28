@@ -3,64 +3,71 @@
 namespace App\Services\Dashboard;
 
 use App\Models\Client;
-use App\Models\Conversation;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
 use App\Models\FinanceDocument;
 use App\Models\Message;
 use App\Models\Payment;
 use App\Models\Task;
-use Illuminate\Support\Collection;
+use App\Models\User;
+use App\Services\CompanyContext;
+use App\Services\Finance\FinanceContextService;
+use Illuminate\Database\Eloquent\Builder;
 
 class DashboardCommandCenterService
 {
-    public function data(): array
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+        private readonly FinanceContextService $financeContext,
+    ) {}
+
+    public function data(User $user): array
     {
-        $activeProjects = Dossier::query()
+        $activeProjects = $this->dossiers($user)
             ->whereIn('status', ['opened', 'active'])
             ->count();
 
-        $missingDocuments = DossierDocument::query()
+        $missingDocuments = $this->dossierDocuments($user)
             ->where('status', 'missing')
             ->count();
 
-        $unpaidInvoices = FinanceDocument::query()
+        $unpaidInvoices = $this->financeDocuments($user)
             ->where('type', 'invoice')
             ->where('remaining_total', '>', 0)
             ->count();
 
-        $todayPayments = (float) Payment::query()
+        $todayPayments = (float) $this->payments($user)
             ->whereDate('paid_at', today())
             ->sum('amount');
 
-        $monthlyPayments = (float) Payment::query()
+        $monthlyPayments = (float) $this->payments($user)
             ->whereYear('paid_at', now()->year)
             ->whereMonth('paid_at', now()->month)
             ->sum('amount');
 
-        $remainingTotal = (float) FinanceDocument::query()
+        $remainingTotal = (float) $this->financeDocuments($user)
             ->where('type', 'invoice')
             ->sum('remaining_total');
 
-        $overdueTotal = (float) FinanceDocument::query()
+        $overdueTotal = (float) $this->financeDocuments($user)
             ->where('type', 'invoice')
             ->where('status', 'overdue')
             ->sum('remaining_total');
 
-        $myTasks = Task::whereHas('assignees', fn ($q) => $q->where('user_id', auth()->id()))->count();
-        $urgentTasks = Task::where('priority', 'urgent')->whereNotIn('status', ['completed', 'cancelled'])->count();
-        $overdueTasks = Task::whereNotNull('due_date')->where('due_date', '<', now())->whereNotIn('status', ['completed', 'cancelled'])->count();
-        $pendingReviewTasks = Task::where('status', 'in_review')->count();
-        $unreadMessages = Message::whereHas('conversation.participants', fn ($q) => $q->where('user_id', auth()->id()))
-            ->where('user_id', '!=', auth()->id())
-            ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', auth()->id()))
+        $myTasks = $this->assignedTasks($user)->count();
+        $urgentTasks = $this->assignedTasks($user)->where('priority', 'urgent')->whereNotIn('status', ['completed', 'cancelled'])->count();
+        $overdueTasks = $this->assignedTasks($user)->whereNotNull('due_date')->where('due_date', '<', now())->whereNotIn('status', ['completed', 'cancelled'])->count();
+        $pendingReviewTasks = $this->assignedTasks($user)->where('status', 'in_review')->count();
+        $unreadMessages = Message::whereHas('conversation.participants', fn ($q) => $q->where('user_id', $user->id))
+            ->where('user_id', '!=', $user->id)
+            ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
             ->count();
 
-        $blockedDossiers = $this->blockedDossiers();
-        $workflowDistribution = $this->workflowDistribution();
+        $blockedDossiers = $this->blockedDossiers($user);
+        $workflowDistribution = $this->workflowDistribution($user);
 
-        $urgentTaskList = Task::with(['assignees'])
-            ->whereHas('assignees', fn ($q) => $q->where('user_id', auth()->id()))
+        $urgentTaskList = $this->assignedTasks($user)
+            ->with(['assignees'])
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->where(function ($q) {
                 $q->where('priority', 'urgent')
@@ -81,131 +88,123 @@ class DashboardCommandCenterService
             ]);
 
         $recentMessageList = Message::with(['user', 'conversation.participants'])
-            ->whereHas('conversation.participants', fn ($q) => $q->where('user_id', auth()->id()))
-            ->where('user_id', '!=', auth()->id())
+            ->whereHas('conversation.participants', fn ($q) => $q->where('user_id', $user->id))
+            ->where('user_id', '!=', $user->id)
             ->latest()
             ->limit(5)
             ->get()
             ->map(fn ($m) => [
                 'id' => $m->id,
                 'conversationId' => $m->conversation_id,
-                'sender' => $m->user?->name ?? 'Unknown',
+                'sender' => $m->user?->name ?? '-',
                 'body' => mb_strlen($m->body) > 80 ? mb_substr($m->body, 0, 80) . '…' : $m->body,
-                'createdAt' => $m->created_at->diffForHumans(),
-                'unread' => !$m->reads->contains('user_id', auth()->id()),
+                'createdAt' => $m->created_at?->locale('fr')->diffForHumans() ?? '-',
+                'unread' => ! $m->reads->contains('user_id', $user->id),
             ]);
 
         return [
-            'hero' => [
-                'eyebrow' => 'Command center',
-                'title' => 'Daily Operations',
-                'subtitle' => 'One place to see what needs attention across projects, documents, finance, and archive.',
-            ],
             'kpis' => [
                 [
                     'key' => 'activeProjects',
-                    'label' => 'Active projects',
                     'value' => (string) $activeProjects,
-                    'helper' => Dossier::count() . ' total projects',
+                    'helperKey' => 'totalProjects',
+                    'helperValues' => ['count' => $this->dossiers($user)->count()],
                     'tone' => 'blue',
                     'icon' => 'projects',
                     'href' => '/dossiers',
                 ],
                 [
                     'key' => 'missingDocuments',
-                    'label' => 'Missing documents',
                     'value' => (string) $missingDocuments,
-                    'helper' => 'Blocking contracts and documents',
+                    'helperKey' => 'blockingDocuments',
                     'tone' => $missingDocuments > 0 ? 'red' : 'green',
                     'icon' => 'documents',
                     'href' => '/documents',
                 ],
                 [
                     'key' => 'unpaidInvoices',
-                    'label' => 'Unpaid invoices',
                     'value' => (string) $unpaidInvoices,
-                    'helper' => $this->money($remainingTotal) . ' remaining',
+                    'helperKey' => 'remainingAmount',
+                    'helperValues' => ['amount' => $this->money($remainingTotal)],
                     'tone' => $unpaidInvoices > 0 ? 'violet' : 'green',
                     'icon' => 'invoices',
                     'href' => '/finance/documents?tab=invoices',
                 ],
                 [
                     'key' => 'todayPayments',
-                    'label' => 'Today payments',
                     'value' => $this->compactMoney($todayPayments),
-                    'helper' => $this->money($monthlyPayments) . ' this month',
+                    'helperKey' => 'monthlyAmount',
+                    'helperValues' => ['amount' => $this->money($monthlyPayments)],
                     'tone' => 'green',
                     'icon' => 'payments',
                     'href' => '/finance/documents?tab=monthly',
                 ],
                 [
                     'key' => 'blockedDossiers',
-                    'label' => 'Blocked dossiers',
                     'value' => (string) count($blockedDossiers),
-                    'helper' => 'Stuck at same step for 7+ days',
+                    'helperKey' => 'stuckDossiers',
                     'tone' => count($blockedDossiers) > 0 ? 'red' : 'green',
                     'icon' => 'projects',
                     'href' => '/dossiers',
                 ],
                 [
                     'key' => 'myTasks',
-                    'label' => 'My tasks',
                     'value' => (string) $myTasks,
-                    'helper' => $urgentTasks . ' urgent, ' . $overdueTasks . ' overdue',
+                    'helperKey' => 'taskPriority',
+                    'helperValues' => ['urgent' => $urgentTasks, 'overdue' => $overdueTasks],
                     'tone' => $overdueTasks > 0 ? 'red' : ($urgentTasks > 0 ? 'gold' : 'green'),
                     'icon' => 'tasks',
                     'href' => '/tasks?filter=my',
                 ],
                 [
                     'key' => 'pendingReviewTasks',
-                    'label' => 'In review',
                     'value' => (string) $pendingReviewTasks,
-                    'helper' => 'Tasks waiting review',
+                    'helperKey' => 'pendingReview',
                     'tone' => $pendingReviewTasks > 0 ? 'gold' : 'green',
                     'icon' => 'tasks',
                     'href' => '/tasks?filter=all&status=in_review',
                 ],
                 [
                     'key' => 'unreadMessages',
-                    'label' => 'Unread messages',
                     'value' => (string) $unreadMessages,
-                    'helper' => 'Across all conversations',
+                    'helperKey' => 'allConversations',
                     'tone' => $unreadMessages > 0 ? 'violet' : 'green',
                     'icon' => 'chat',
                     'href' => '/inbox',
                 ],
             ],
-            'nextActions' => $this->nextActions(),
+            'nextActions' => $this->nextActions($user),
             'blockedDossiers' => $blockedDossiers,
             'workflowDistribution' => $workflowDistribution,
-            'recentProjects' => $this->recentProjects(),
-            'financeAlerts' => $this->financeAlerts($remainingTotal, $overdueTotal, $monthlyPayments),
-            'activityFeed' => $this->activityFeed(),
+            'financeTrend' => $this->financeTrend($user),
+            'recentProjects' => $this->recentProjects($user),
+            'financeAlerts' => $this->financeAlerts($user, $remainingTotal, $overdueTotal, $monthlyPayments),
+            'activityFeed' => $this->activityFeed($user),
             'urgentTaskList' => $urgentTaskList,
             'recentMessageList' => $recentMessageList,
             'quickLinks' => [
-                ['label' => 'New project', 'href' => '/dossiers?command=create', 'icon' => 'projects'],
-                ['label' => 'Upload document', 'href' => '/documents?command=upload', 'icon' => 'upload'],
-                ['label' => 'Create invoice', 'href' => '/finance/documents?tab=invoices&command=create-invoice', 'icon' => 'invoices'],
-                ['label' => 'New client', 'href' => '/clients?command=create', 'icon' => 'clients'],
-                ['label' => 'New task', 'href' => '/tasks?command=create', 'icon' => 'tasks'],
-                ['label' => 'New conversation', 'href' => '/inbox?command=create', 'icon' => 'chat'],
+                ['key' => 'newProject', 'href' => '/dossiers?command=create', 'icon' => 'projects'],
+                ['key' => 'uploadDocument', 'href' => '/documents?command=upload', 'icon' => 'upload'],
+                ['key' => 'createInvoice', 'href' => '/finance/documents?tab=invoices&command=create-invoice', 'icon' => 'invoices'],
+                ['key' => 'newClient', 'href' => '/clients?command=create', 'icon' => 'clients'],
+                ['key' => 'newTask', 'href' => '/tasks?command=create', 'icon' => 'tasks'],
+                ['key' => 'newConversation', 'href' => '/inbox?command=create', 'icon' => 'chat'],
             ],
             'systemHealth' => [
-                ['label' => 'Clients', 'value' => (string) Client::count(), 'icon' => 'clients', 'tone' => 'blue'],
-                ['label' => 'Projects', 'value' => (string) Dossier::count(), 'icon' => 'projects', 'tone' => 'gold'],
-                ['label' => 'Documents', 'value' => (string) DossierDocument::count(), 'icon' => 'documents', 'tone' => 'green'],
-                ['label' => 'Finance docs', 'value' => (string) FinanceDocument::count(), 'icon' => 'invoices', 'tone' => 'violet'],
+                ['label' => 'Clients', 'value' => (string) $this->clients($user)->count(), 'icon' => 'clients', 'tone' => 'blue'],
+                ['label' => 'Projects', 'value' => (string) $this->dossiers($user)->count(), 'icon' => 'projects', 'tone' => 'gold'],
+                ['label' => 'Documents', 'value' => (string) $this->dossierDocuments($user)->count(), 'icon' => 'documents', 'tone' => 'green'],
+                ['label' => 'Finance docs', 'value' => (string) $this->financeDocuments($user)->count(), 'icon' => 'invoices', 'tone' => 'violet'],
                 ['label' => 'Last refresh', 'value' => now()->format('H:i'), 'icon' => 'clock', 'tone' => 'green'],
             ],
         ];
     }
 
-    private function nextActions(): array
+    private function nextActions(User $user): array
     {
         $actions = collect();
 
-        DossierDocument::query()
+        $this->dossierDocuments($user)
             ->with(['dossier.client'])
             ->where('status', 'missing')
             ->latest()
@@ -214,16 +213,16 @@ class DashboardCommandCenterService
             ->each(function (DossierDocument $document) use ($actions) {
                 $actions->push([
                     'id' => 'document-' . $document->id,
-                    'title' => 'Upload missing document',
-                    'subtitle' => trim(($document->dossier?->dossier_number ?? 'Project') . ' - ' . ($document->dossier?->client?->full_name ?? 'Client')),
-                    'due' => 'Today',
+                    'kind' => 'missingDocument',
+                    'context' => trim(($document->dossier?->dossier_number ?? '-') . ' - ' . ($document->dossier?->client?->full_name ?? '-')),
+                    'dueKey' => 'today',
                     'tone' => 'red',
                     'icon' => 'upload',
                     'href' => '/documents',
                 ]);
             });
 
-        FinanceDocument::query()
+        $this->financeDocuments($user)
             ->with(['client', 'dossier'])
             ->where('type', 'invoice')
             ->where('remaining_total', '>', 0)
@@ -233,9 +232,9 @@ class DashboardCommandCenterService
             ->each(function (FinanceDocument $invoice) use ($actions) {
                 $actions->push([
                     'id' => 'invoice-' . $invoice->id,
-                    'title' => 'Follow unpaid invoice',
-                    'subtitle' => trim(($invoice->number ?? 'Invoice') . ' - ' . ($invoice->client?->full_name ?? 'Client')),
-                    'due' => $invoice->status === 'overdue' ? 'Overdue' : 'Open',
+                    'kind' => 'unpaidInvoice',
+                    'context' => trim(($invoice->number ?? '-') . ' - ' . ($invoice->client?->full_name ?? '-')),
+                    'dueKey' => $invoice->status === 'overdue' ? 'overdue' : 'open',
                     'tone' => $invoice->status === 'overdue' ? 'red' : 'blue',
                     'icon' => 'invoices',
                     'href' => '/finance/documents?tab=invoices',
@@ -245,9 +244,9 @@ class DashboardCommandCenterService
         if ($actions->isEmpty()) {
             $actions->push([
                 'id' => 'all-clear',
-                'title' => 'No urgent blocking action',
-                'subtitle' => 'Workflow looks clean right now.',
-                'due' => 'Good',
+                'kind' => 'allClear',
+                'context' => null,
+                'dueKey' => 'good',
                 'tone' => 'green',
                 'icon' => 'check',
                 'href' => '/dossiers',
@@ -257,9 +256,9 @@ class DashboardCommandCenterService
         return $actions->take(5)->values()->all();
     }
 
-    private function recentProjects(): array
+    private function recentProjects(User $user): array
     {
-        return Dossier::query()
+        return $this->dossiers($user)
             ->with(['client', 'documents', 'financeDocuments'])
             ->latest()
             ->limit(8)
@@ -282,14 +281,14 @@ class DashboardCommandCenterService
             ->all();
     }
 
-    private function financeAlerts(float $remainingTotal, float $overdueTotal, float $monthlyPayments): array
+    private function financeAlerts(User $user, float $remainingTotal, float $overdueTotal, float $monthlyPayments): array
     {
-        $overdueCount = FinanceDocument::query()
+        $overdueCount = $this->financeDocuments($user)
             ->where('type', 'invoice')
             ->where('status', 'overdue')
             ->count();
 
-        $unpaidCount = FinanceDocument::query()
+        $unpaidCount = $this->financeDocuments($user)
             ->where('type', 'invoice')
             ->where('remaining_total', '>', 0)
             ->count();
@@ -297,34 +296,30 @@ class DashboardCommandCenterService
         return [
             [
                 'id' => 'overdue',
-                'title' => 'Overdue invoices',
                 'amount' => $this->money($overdueTotal),
-                'subtitle' => $overdueCount . ' invoice(s) overdue',
+                'count' => $overdueCount,
                 'tone' => $overdueCount > 0 ? 'red' : 'green',
                 'href' => '/finance/documents?tab=invoices',
             ],
             [
                 'id' => 'remaining',
-                'title' => 'Remaining balance',
                 'amount' => $this->money($remainingTotal),
-                'subtitle' => $unpaidCount . ' unpaid invoice(s)',
+                'count' => $unpaidCount,
                 'tone' => $unpaidCount > 0 ? 'gold' : 'green',
                 'href' => '/finance/documents?tab=invoices',
             ],
             [
                 'id' => 'monthly',
-                'title' => 'Monthly collected',
                 'amount' => $this->money($monthlyPayments),
-                'subtitle' => 'Open monthly summary',
                 'tone' => 'blue',
                 'href' => '/finance/documents?tab=monthly',
             ],
         ];
     }
 
-    private function activityFeed(): array
+    private function activityFeed(User $user): array
     {
-        $documents = DossierDocument::query()
+        $documents = $this->dossierDocuments($user)
             ->with('dossier')
             ->latest()
             ->limit(4)
@@ -332,15 +327,15 @@ class DashboardCommandCenterService
             ->toBase()
             ->map(fn (DossierDocument $document) => [
                 'id' => 'doc-' . $document->id,
-                'title' => 'Document ' . ($document->status ?? 'updated'),
-                'description' => trim(($document->original_filename ?? 'Document') . ' - ' . ($document->dossier?->dossier_number ?? 'Project')),
-                'time' => optional($document->updated_at)->diffForHumans() ?? '-',
+                'kind' => 'documentUpdated',
+                'description' => trim(($document->original_filename ?? '-') . ' - ' . ($document->dossier?->dossier_number ?? '-')),
+                'time' => $document->updated_at?->locale('fr')->diffForHumans() ?? '-',
                 'tone' => $document->status === 'verified' ? 'green' : ($document->status === 'missing' ? 'red' : 'gold'),
                 'icon' => 'documents',
                 'sortAt' => $document->updated_at,
             ]);
 
-        $payments = Payment::query()
+        $payments = $this->payments($user)
             ->with('document')
             ->latest()
             ->limit(4)
@@ -348,24 +343,24 @@ class DashboardCommandCenterService
             ->toBase()
             ->map(fn (Payment $payment) => [
                 'id' => 'payment-' . $payment->id,
-                'title' => 'Payment recorded',
-                'description' => trim(($payment->payment_number ?? 'Payment') . ' - ' . ($payment->document?->number ?? 'Invoice')),
-                'time' => optional($payment->created_at)->diffForHumans() ?? '-',
+                'kind' => 'paymentRecorded',
+                'description' => trim(($payment->payment_number ?? '-') . ' - ' . ($payment->document?->number ?? '-')),
+                'time' => $payment->created_at?->locale('fr')->diffForHumans() ?? '-',
                 'tone' => 'blue',
                 'icon' => 'payments',
                 'sortAt' => $payment->created_at,
             ]);
 
-        $projects = Dossier::query()
+        $projects = $this->dossiers($user)
             ->latest()
             ->limit(4)
             ->get()
             ->toBase()
             ->map(fn (Dossier $dossier) => [
                 'id' => 'project-' . $dossier->id,
-                'title' => 'Project updated',
-                'description' => trim(($dossier->dossier_number ?? 'Project') . ' - ' . ($dossier->project_object ?? '')),
-                'time' => optional($dossier->updated_at)->diffForHumans() ?? '-',
+                'kind' => 'projectUpdated',
+                'description' => trim(($dossier->dossier_number ?? '-') . ' - ' . ($dossier->project_object ?? '')),
+                'time' => $dossier->updated_at?->locale('fr')->diffForHumans() ?? '-',
                 'tone' => 'neutral',
                 'icon' => 'projects',
                 'sortAt' => $dossier->updated_at,
@@ -381,12 +376,12 @@ class DashboardCommandCenterService
             ->all();
     }
 
-    private function blockedDossiers(): array
+    private function blockedDossiers(User $user): array
     {
         $config = config('archilbo_workflow.client_project_steps', []);
         $stepLabels = collect($config)->pluck('label', 'key')->all();
 
-        return Dossier::query()
+        return $this->dossiers($user)
             ->with(['client', 'documents'])
             ->whereIn('status', ['opened', 'active'])
             ->where('updated_at', '<', now()->subDays(7))
@@ -408,11 +403,11 @@ class DashboardCommandCenterService
             ->all();
     }
 
-    private function workflowDistribution(): array
+    private function workflowDistribution(User $user): array
     {
         $config = config('archilbo_workflow.client_project_steps', []);
         $steps = collect($config)->pluck('label', 'key')->all();
-        $counts = Dossier::query()
+        $counts = $this->dossiers($user)
             ->selectRaw('workflow_step, count(*) as total')
             ->whereIn('status', ['opened', 'active'])
             ->groupBy('workflow_step')
@@ -429,6 +424,74 @@ class DashboardCommandCenterService
         }
 
         return $results;
+    }
+
+    private function financeTrend(User $user): array
+    {
+        $start = now()->startOfMonth()->subMonths(5);
+
+        $collected = $this->payments($user)
+            ->whereDate('paid_at', '>=', $start)
+            ->get(['paid_at', 'amount'])
+            ->groupBy(fn (Payment $payment) => $payment->paid_at?->format('Y-m'))
+            ->filter(fn ($payments, ?string $month) => $month !== null)
+            ->map(fn ($payments) => (float) $payments->sum('amount'))
+            ->all();
+
+        $invoiced = $this->financeDocuments($user)
+            ->where('type', 'invoice')
+            ->whereDate('issue_date', '>=', $start)
+            ->get(['issue_date', 'total_ttc'])
+            ->groupBy(fn (FinanceDocument $document) => $document->issue_date?->format('Y-m'))
+            ->filter(fn ($documents, ?string $month) => $month !== null)
+            ->map(fn ($documents) => (float) $documents->sum('total_ttc'))
+            ->all();
+
+        return collect(range(0, 5))
+            ->map(function (int $offset) use ($start, $invoiced, $collected) {
+                $date = $start->copy()->addMonths($offset);
+                $key = $date->format('Y-m');
+
+                return [
+                    'key' => $key,
+                    'label' => ucfirst($date->locale('fr')->translatedFormat('M')),
+                    'invoiced' => $invoiced[$key] ?? 0.0,
+                    'collected' => $collected[$key] ?? 0.0,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function clients(User $user): Builder
+    {
+        return $this->companyContext->applyTo(Client::query(), $user);
+    }
+
+    private function dossiers(User $user): Builder
+    {
+        return $this->companyContext->applyTo(Dossier::query(), $user);
+    }
+
+    private function dossierDocuments(User $user): Builder
+    {
+        return DossierDocument::query()
+            ->whereHas('dossier', fn (Builder $query) => $this->companyContext->applyTo($query, $user));
+    }
+
+    private function financeDocuments(User $user): Builder
+    {
+        return $this->financeContext->apply(FinanceDocument::query(), $user);
+    }
+
+    private function payments(User $user): Builder
+    {
+        return $this->financeContext->apply(Payment::query(), $user);
+    }
+
+    private function assignedTasks(User $user): Builder
+    {
+        return Task::query()->whereHas('assignees', fn (Builder $query) => $query->whereKey($user->id));
     }
 
     private function money(float $value): string

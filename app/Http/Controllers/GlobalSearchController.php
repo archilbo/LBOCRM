@@ -8,13 +8,14 @@ use App\Models\Contract;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
 use App\Models\FinanceDocument;
+use App\Services\CompanyContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 class GlobalSearchController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, CompanyContext $companyContext): JsonResponse
     {
         $query = trim((string) $request->query('q', ''));
 
@@ -27,12 +28,12 @@ class GlobalSearchController extends Controller
         $like = '%' . $query . '%';
 
         $results = collect()
-            ->merge($this->clients($like))
-            ->merge($this->dossiers($like))
-            ->merge($this->documents($like))
-            ->merge($this->contracts($like))
+            ->merge($this->clients($like, $request, $companyContext))
+            ->merge($this->dossiers($like, $request, $companyContext))
+            ->merge($this->documents($like, $request, $companyContext))
+            ->merge($this->contracts($like, $request, $companyContext))
             ->merge($this->finance($like))
-            ->merge($this->archives($like))
+            ->merge($this->archives($like, $request, $companyContext))
             ->take(18)
             ->values();
 
@@ -41,9 +42,9 @@ class GlobalSearchController extends Controller
         ]);
     }
 
-    private function clients(string $like): Collection
+    private function clients(string $like, Request $request, CompanyContext $companyContext): Collection
     {
-        return Client::query()
+        return $companyContext->applyTo(Client::query(), $request->user())
             ->where(function ($builder) use ($like) {
                 $builder
                     ->where('client_number', 'like', $like)
@@ -65,9 +66,9 @@ class GlobalSearchController extends Controller
             ]);
     }
 
-    private function dossiers(string $like): Collection
+    private function dossiers(string $like, Request $request, CompanyContext $companyContext): Collection
     {
-        return Dossier::query()
+        return $companyContext->applyTo(Dossier::query(), $request->user())
             ->with('client')
             ->where(function ($builder) use ($like) {
                 $builder
@@ -97,10 +98,11 @@ class GlobalSearchController extends Controller
             ]);
     }
 
-    private function documents(string $like): Collection
+    private function documents(string $like, Request $request, CompanyContext $companyContext): Collection
     {
         return DossierDocument::query()
             ->with(['dossier.client', 'template'])
+            ->whereHas('dossier', fn ($query) => $companyContext->applyTo($query, $request->user()))
             ->where(function ($builder) use ($like) {
                 $builder
                     ->where('document_number', 'like', $like)
@@ -130,10 +132,11 @@ class GlobalSearchController extends Controller
             ]);
     }
 
-    private function contracts(string $like): Collection
+    private function contracts(string $like, Request $request, CompanyContext $companyContext): Collection
     {
         return Contract::query()
             ->with(['dossier.client'])
+            ->whereHas('dossier', fn ($query) => $companyContext->applyTo($query, $request->user()))
             ->where(function ($builder) use ($like) {
                 $builder
                     ->where('contract_number', 'like', $like)
@@ -197,10 +200,11 @@ class GlobalSearchController extends Controller
             ]);
     }
 
-    private function archives(string $like): Collection
+    private function archives(string $like, Request $request, CompanyContext $companyContext): Collection
     {
         return ArchiveRecord::query()
             ->with(['dossier.client'])
+            ->whereHas('dossier', fn ($query) => $companyContext->applyTo($query, $request->user()))
             ->where(function ($builder) use ($like) {
                 $builder
                     ->where('archive_number', 'like', $like)

@@ -1,8 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import {
-    ArrowLeft, CheckCircle2, Download, Eye, FileText, FolderKanban, FolderOpen, Mail, MapPin, Phone, Pencil, Plus, Printer, Trash2,
+    ArrowLeft, CheckCircle2, Download, ExternalLink, Eye, FileText, FolderKanban, FolderOpen, ListChecks, Mail, MapPin, Phone, Pencil, Plus, Printer, ReceiptText, Trash2, Upload,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
@@ -29,6 +29,7 @@ import type { ContractFormPayload, ContractClientOption, ContractDossierOption }
 import { ClientArchivesCard } from '@/features/clients/components/ClientArchivesCard';
 import { ClientFinanceTab } from '@/features/clients/components/ClientFinanceTab';
 import { ConfirmActionModal } from '@/features/clients/components/ConfirmActionModal';
+import { DossierTimeline } from '@/features/clients/components/DossierTimeline';
 import { getRequirementActionType, getStepActionType, getModuleRoute } from '@/features/clients/components/workflowActionTypes';
 import type { FormErrors } from '@/lib/formErrors';
 
@@ -63,6 +64,7 @@ type PageProps = {
     documentTemplates: { id: string; label: string; type?: string | null }[];
     financeTemplates: TemplateOption[];
     financeSettings: FinanceSettings;
+    cities: { id: number; name: string }[];
     tab?: string;
 };
 
@@ -102,14 +104,18 @@ const TABS: { id: TabId; labelKey: string }[] = [
     { id: 'activity', labelKey: 'clients.show.activity' },
 ];
 
-export default function ClientShow({ client, dossiers, workspace,cities, intermediaries, documentTemplates, financeTemplates, financeSettings, tab }: PageProps) {
+function isClientTab(value: string | undefined): value is TabId {
+    return TABS.some((tab) => tab.id === value);
+}
+
+export default function ClientShow({ client, dossiers, workspace, cities, intermediaries, documentTemplates, financeTemplates, financeSettings, tab }: PageProps) {
     const { t } = useTranslation();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('edit');
     const [formErrors, setFormErrors] = useState<FormErrors>({});
     const [deleteTarget, setDeleteTarget] = useState<ClientRow | null>(null);
-    const [activeTab, setActiveTab] = useState<TabId>((tab as TabId) || 'overview');
+    const [activeTab, setActiveTab] = useState<TabId>(isClientTab(tab) ? tab : 'overview');
 
     const [uploadDrawerOpen, setUploadDrawerOpen] = useState(false);
     const [uploadRequirementKey, setUploadRequirementKey] = useState<string | null>(null);
@@ -144,6 +150,10 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
 
     const selectedProject = workspace?.selectedProject ?? null;
 
+    useEffect(() => {
+        setActiveTab(isClientTab(tab) ? tab : 'overview');
+    }, [tab]);
+
     function clientWorkspacePath(targetTab: TabId = activeTab, dossierId: number | null = selectedProject?.id ?? null) {
         const parameters = new URLSearchParams({ tab: targetTab });
 
@@ -152,6 +162,12 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
         }
 
         return `/clients/${client.id}?${parameters.toString()}`;
+    }
+
+    function selectTab(targetTab: TabId) {
+        setActiveTab(targetTab);
+
+        window.history.replaceState(window.history.state, '', clientWorkspacePath(targetTab));
     }
 
     const financeReturnTo = clientWorkspacePath('finance');
@@ -202,7 +218,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
 
     function handleSubmit(payload: ClientFormPayload) {
         if (drawerMode === 'edit' && client) {
-            router.put(`/clients/${client.id}`, toBackendPayload(payload, client.status as ClientStatus), {
+            router.put(`/clients/${client.id}`, { ...toBackendPayload(payload, client.status as ClientStatus), return_to: clientWorkspacePath() }, {
                 preserveScroll: true,
                 onSuccess: () => { setDrawerOpen(false); setFormErrors({}); toast.success(t('clients.updated')); },
                 onError: (errors) => { setFormErrors(errors as FormErrors); toast.error(t('clients.formError')); },
@@ -339,12 +355,12 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
             onSuccess: () => {
                 setProjectDrawerOpen(false);
                 setProjectFormErrors({});
-                toast.success('Project created successfully.');
+                toast.success(t('clients.show.projectCreated'));
                 router.reload({ only: ['dossiers', 'workspace'], preserveScroll: true });
             },
             onError: (errors) => {
                 setProjectFormErrors(errors as FormErrors);
-                toast.error('Please check project form errors.');
+                toast.error(t('clients.show.projectFormError'));
             },
         });
     }
@@ -370,7 +386,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
 
     function runFinancePut(document: FinanceDocument, url: string | null | undefined, success: string, error: string) {
         if (!url) {
-            toast.error('Action indisponible pour ce document.');
+            toast.error(t('clients.finance.actionUnavailable'));
             return;
         }
 
@@ -387,7 +403,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
 
     function runFinanceConvert(document: FinanceDocument) {
         if (!document.convertToInvoiceUrl) {
-            toast.error('Conversion indisponible pour ce devis.');
+            toast.error(t('clients.finance.quoteConversionUnavailable'));
             return;
         }
 
@@ -426,11 +442,11 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
-                toast.success('Paiement supprime et facture recalculee.');
+                toast.success(t('clients.finance.paymentDeleted'));
                 setPaymentDeleteTarget(null);
                 afterCreateReload();
             },
-            onError: () => toast.error('Impossible de supprimer le paiement.'),
+            onError: () => toast.error(t('clients.finance.paymentDeleteError')),
         });
     }
 
@@ -496,8 +512,8 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
         router.post('/contracts', { ...payload, return_to: clientWorkspacePath() }, {
             preserveScroll: true,
             preserveState: true,
-            onSuccess: () => { setContractDrawerOpen(false); setEditContract(null); setContractFormErrors({}); toast.success('Contract created.'); },
-            onError: (err) => { setContractFormErrors(err as FormErrors); toast.error('Could not create contract.'); },
+            onSuccess: () => { setContractDrawerOpen(false); setEditContract(null); setContractFormErrors({}); toast.success(t('clients.finance.contractCreated')); },
+            onError: (err) => { setContractFormErrors(err as FormErrors); toast.error(t('clients.finance.contractCreateError')); },
         });
     }
 
@@ -506,8 +522,8 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
         router.put(`/contracts/${editContract.id}`, { ...payload, return_to: clientWorkspacePath() }, {
             preserveScroll: true,
             preserveState: true,
-            onSuccess: () => { setContractDrawerOpen(false); setEditContract(null); setContractFormErrors({}); toast.success('Contract updated.'); },
-            onError: (err) => { setContractFormErrors(err as FormErrors); toast.error('Could not update contract.'); },
+            onSuccess: () => { setContractDrawerOpen(false); setEditContract(null); setContractFormErrors({}); toast.success(t('clients.finance.contractUpdated')); },
+            onError: (err) => { setContractFormErrors(err as FormErrors); toast.error(t('clients.finance.contractUpdateError')); },
         });
     }
 
@@ -535,11 +551,11 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                 setStandaloneUploadOpen(false);
                 setReplaceTarget(null);
                 setIsDocUploading(false);
-                toast.success(isReplacement ? t('clients.show.documentReplaced') : 'Document uploaded.');
+                toast.success(isReplacement ? t('clients.show.documentReplaced') : t('clients.show.documentUploaded'));
             },
             onError: () => {
                 setIsDocUploading(false);
-                toast.error(isReplacement ? t('clients.show.documentActionFailed') : 'Please check document form errors.');
+                toast.error(isReplacement ? t('clients.show.documentActionFailed') : t('clients.show.documentFormError'));
             },
         });
     }
@@ -569,10 +585,9 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                 {/* ── Top bar ── */}
                 <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                        <button type="button" onClick={() => router.visit('/clients')}
-                            className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
+                <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.backToClients')} aria-label={t('clients.show.backToClients')} onPress={() => router.visit('/clients')}>
                             <ArrowLeft size={15} />
-                        </button>
+                        </AppButton>
                         <div className="min-w-0">
                             <div className="flex items-center gap-2">
                                 <h1 className="truncate text-xl font-bold text-[var(--foreground)]">{client.fullName}</h1>
@@ -585,14 +600,12 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                             <p className="truncate text-[12px] text-[var(--text-muted)]">{client.clientNumber} {client.cin ? `/ ${client.cin}` : ''}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <AppButton variant="bordered" size="sm" onPress={openEditDrawer}>
+                    <div className="flex items-center justify-end gap-1.5">
+                        <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.edit')} aria-label={t('clients.edit')} onPress={openEditDrawer}>
                             <Pencil size={14} />
-                            {t('clients.edit')}
                         </AppButton>
-                        <AppButton color="danger" variant="bordered" size="sm" onPress={() => setDeleteTarget(client)}>
+                        <AppButton isIconOnly compact color="danger" variant="light" tooltip={t('clients.delete')} aria-label={t('clients.delete')} onPress={() => setDeleteTarget(client)}>
                             <Trash2 size={14} />
-                            {t('clients.delete')}
                         </AppButton>
                     </div>
                 </div>
@@ -661,7 +674,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                 <div className="mb-5 overflow-x-auto">
                     <div className="flex items-center gap-1 border-b border-[var(--border)] min-w-max">
                         {TABS.map((tab) => (
-                            <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
+                            <button key={tab.id} type="button" onClick={() => selectTab(tab.id)}
                                 className={cn(
                                     'relative flex items-center justify-center px-4 py-2.5 text-[13px] font-medium outline-none transition whitespace-nowrap',
                                     activeTab === tab.id
@@ -678,21 +691,21 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                 <div className="min-h-[200px]">
                     {activeTab === 'overview' && (
                         <div className="space-y-4">
-                            <div className="flex flex-wrap gap-2">
-                                <AppButton variant="solid" color="primary" size="sm" onPress={() => { setProjectDrawerOpen(true); }}>
-                                    <Plus size={14} /> New project
+                            <div className="flex flex-wrap justify-end gap-1.5">
+                        <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.newProject')} aria-label={t('clients.show.newProject')} onPress={() => { setProjectDrawerOpen(true); }}>
+                                    <FolderKanban size={15} />
                                 </AppButton>
                                 {projects.length > 0 ? (
-                                    <AppButton variant="bordered" size="sm" onPress={() => { openContractDrawer(); }}>
-                                        <Plus size={14} /> New contract
+                        <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.newContract')} aria-label={t('clients.show.newContract')} onPress={() => { openContractDrawer(); }}>
+                                        <FileText size={15} />
                                     </AppButton>
                                 ) : null}
-                                <AppButton variant="bordered" size="sm" onPress={() => openFinanceCreate('quote')}>
-                                    <Plus size={14} /> New finance
+                        <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.newQuote')} aria-label={t('clients.show.newQuote')} onPress={() => openFinanceCreate('quote')}>
+                                    <ReceiptText size={15} />
                                 </AppButton>
                                 {projects.length > 0 ? (
-                                    <AppButton variant="bordered" size="sm" onPress={() => { setStandaloneUploadOpen(true); }}>
-                                        <Plus size={14} /> Upload document
+                        <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.uploadDocument')} aria-label={t('clients.show.uploadDocument')} onPress={() => { setStandaloneUploadOpen(true); }}>
+                                        <Upload size={15} />
                                     </AppButton>
                                 ) : null}
                             </div>
@@ -810,7 +823,7 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                                         <p className="text-[11px] text-[var(--text-muted)]">{projects.length} {t('clients.show.projects').toLowerCase()}</p>
                                     </div>
                                     {projects.length > 5 && (
-                                        <button type="button" onClick={() => setActiveTab('projects')}
+                                        <button type="button" onClick={() => selectTab('projects')}
                                             className="shrink-0 rounded-lg border border-[var(--border)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
                                             {t('actions.view')}
                                         </button>
@@ -960,8 +973,8 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
                                     <AppEmptyState title={t('clients.show.noProjectWorkflow')} description={t('clients.show.noProjectWorkflowDesc')} />
                                     <div className="mt-4 flex justify-center">
-                                        <AppButton variant="solid" color="primary" size="sm" onPress={() => { setProjectDrawerOpen(true); }}>
-                                            <Plus size={14} /> Create a project
+                                <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.createProject')} aria-label={t('clients.show.createProject')} onPress={() => { setProjectDrawerOpen(true); }}>
+                                            <FolderKanban size={15} />
                                         </AppButton>
                                     </div>
                                 </div>
@@ -979,8 +992,8 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                                 <p className="text-[13px] font-semibold text-[var(--foreground)]">
                                     {projects.length} {t('clients.show.projects').toLowerCase()}
                                 </p>
-                                <AppButton variant="solid" color="primary" size="sm" onPress={() => { setProjectDrawerOpen(true); }}>
-                                    <Plus size={14} /> New project
+                            <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.newProject')} aria-label={t('clients.show.newProject')} onPress={() => { setProjectDrawerOpen(true); }}>
+                                    <FolderKanban size={15} />
                                 </AppButton>
                             </div>
                             {projects.length > 0 ? (
@@ -1035,15 +1048,13 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                                                     </span>
                                                 </div>
                                             )}
-                                            <div className="mt-3 flex items-center gap-2">
-                                                <button type="button" onClick={() => router.visit(`/dossiers/${project.id}`)}
-                                                    className="flex-1 rounded-lg border border-[var(--border)] py-1.5 text-[12px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
-                                                    {t('clients.show.openProject')}
-                                                </button>
-                                                <button type="button" onClick={() => openProjectWorkflow(project.id)}
-                                                    className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-[12px] font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/8">
-                                                    {t('clients.show.openWorkflow')}
-                                                </button>
+                                            <div className="mt-3 flex justify-end gap-1.5">
+                                                <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.openProject')} aria-label={t('clients.show.openProject')} onPress={() => router.visit(`/dossiers/${project.id}`)}>
+                                                    <ExternalLink size={14} />
+                                                </AppButton>
+                                                <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.openWorkflow')} aria-label={t('clients.show.openWorkflow')} onPress={() => openProjectWorkflow(project.id)}>
+                                                    <ListChecks size={14} />
+                                                </AppButton>
                                             </div>
                                         </div>
                                     );
@@ -1062,8 +1073,8 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                             <div className="flex items-center justify-between">
                                 <p className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.documents')}</p>
                                 {projects.length > 0 ? (
-                                    <AppButton variant="solid" color="primary" size="sm" onPress={() => { setStandaloneUploadOpen(true); }}>
-                                        <Plus size={14} /> Upload document
+                            <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.uploadDocument')} aria-label={t('clients.show.uploadDocument')} onPress={() => { setStandaloneUploadOpen(true); }}>
+                                        <Upload size={15} />
                                     </AppButton>
                                 ) : null}
                             </div>
@@ -1220,7 +1231,12 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
 
                     {activeTab === 'notes' && (
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-                            <h3 className="mb-3 text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.notes')}</h3>
+                            <div className="mb-3 flex items-center justify-between gap-3">
+                                <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.notes')}</h3>
+                                <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.edit')} aria-label={t('clients.edit')} onPress={openEditDrawer}>
+                                    <Pencil size={14} />
+                                </AppButton>
+                            </div>
                             <p className="text-[13px] leading-6 text-[var(--text-muted)]">
                                 {client.notes || t('clients.show.noNotes')}
                             </p>
@@ -1228,8 +1244,20 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
                     )}
 
                     {activeTab === 'activity' && (
-                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
-                            <AppEmptyState title={t('clients.show.noActivity')} description={t('clients.show.noActivityDesc')} />
+                        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+                            {selectedProject ? (
+                                <>
+                                    <div className="mb-4 border-b border-[var(--border)] pb-3">
+                                        <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.activity')}</h3>
+                                        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                                            {selectedProject.projectObject || selectedProject.dossierNumber}
+                                        </p>
+                                    </div>
+                                    <DossierTimeline events={selectedProject.timeline} />
+                                </>
+                            ) : (
+                                <AppEmptyState title={t('clients.show.noActivity')} description={t('clients.show.noActivityDesc')} />
+                            )}
                         </div>
                     )}
                 </div>
@@ -1416,9 +1444,9 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
 
                 <AppConfirmDialog
                     isOpen={Boolean(financeDeleteTarget)}
-                    title="Supprimer le document financier ?"
-                    description={`La suppression de ${financeDeleteTarget?.number || 'ce document'} est définitive.`}
-                    confirmLabel="Supprimer"
+                    title={t('clients.finance.deleteDocumentTitle')}
+                    description={t('clients.finance.deleteDocumentDescription', { document: financeDeleteTarget?.number || t('common.notAvailable') })}
+                    confirmLabel={t('actions.delete')}
                     onConfirm={confirmFinanceDelete}
                     onCancel={() => setFinanceDeleteTarget(null)}
                     variant="danger"
@@ -1426,9 +1454,9 @@ export default function ClientShow({ client, dossiers, workspace,cities, interme
 
                 <AppConfirmDialog
                     isOpen={Boolean(paymentDeleteTarget)}
-                    title="Supprimer ce paiement ?"
-                    description={`Le paiement ${paymentDeleteTarget?.paymentNumber || ''} sera annule, le recu lie sera annule et le solde de la facture sera recalcule.`}
-                    confirmLabel="Supprimer le paiement"
+                    title={t('clients.finance.deletePaymentTitle')}
+                    description={t('clients.finance.deletePaymentDescription', { payment: paymentDeleteTarget?.paymentNumber || t('common.notAvailable') })}
+                    confirmLabel={t('clients.finance.deletePaymentConfirm')}
                     onConfirm={confirmPaymentDelete}
                     onCancel={() => setPaymentDeleteTarget(null)}
                     variant="danger"

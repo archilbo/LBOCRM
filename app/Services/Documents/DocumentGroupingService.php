@@ -3,14 +3,21 @@
 namespace App\Services\Documents;
 
 use App\Models\DossierDocument;
+use App\Models\User;
+use App\Services\CompanyContext;
 use Illuminate\Support\Collection;
 
 class DocumentGroupingService
 {
-    public function groups(): array
+    public function __construct(private readonly CompanyContext $companyContext)
+    {
+    }
+
+    public function groups(User $user): array
     {
         $documents = DossierDocument::query()
             ->with(['dossier.client', 'template'])
+            ->whereHas('dossier', fn ($query) => $this->companyContext->applyTo($query, $user))
             ->latest()
             ->get();
 

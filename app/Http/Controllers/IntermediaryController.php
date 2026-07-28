@@ -5,7 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreIntermediaryRequest;
 use App\Http\Requests\UpdateIntermediaryRequest;
 use App\Http\Resources\IntermediaryResource;
+use App\Models\Client;
+use App\Models\Dossier;
 use App\Models\Intermediary;
+use App\Services\CompanyContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,14 +17,16 @@ use Inertia\Response;
 
 class IntermediaryController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request, CompanyContext $companyContext): Response
     {
-        $intermediaries = Intermediary::query()
-            ->withCount('clients')
+        $this->authorize('viewAny', Intermediary::class);
+
+        $intermediaries = $companyContext->applyTo(Intermediary::query(), $request->user())
+            ->withCount(['clients' => fn (Builder $query) => $companyContext->applyTo($query, $request->user())])
             ->latest()
             ->get();
 
-        $monthlyClients = \Illuminate\Support\Facades\DB::table('clients')
+        $monthlyClients = $companyContext->applyTo(Client::query(), $request->user())
             ->whereNotNull('intermediary_id')
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, count(*) as count")
             ->groupBy('month')
@@ -28,7 +34,8 @@ class IntermediaryController extends Controller
             ->pluck('count', 'month')
             ->toArray();
 
-        $clientsThisMonth = \App\Models\Client::whereNotNull('intermediary_id')
+        $clientsThisMonth = $companyContext->applyTo(Client::query(), $request->user())
+            ->whereNotNull('intermediary_id')
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
@@ -43,10 +50,10 @@ class IntermediaryController extends Controller
         return Inertia::render('Intermediaries/Index', [
             'intermediaries' => IntermediaryResource::collection($intermediaries)->resolve(),
             'metrics' => [
-                'total' => Intermediary::count(),
-                'active' => Intermediary::where('is_active', true)->count(),
-                'inactive' => Intermediary::where('is_active', false)->count(),
-                'linkedClients' => Intermediary::query()->withCount('clients')->get()->sum('clients_count'),
+                'total' => $intermediaries->count(),
+                'active' => $intermediaries->where('is_active', true)->count(),
+                'inactive' => $intermediaries->where('is_active', false)->count(),
+                'linkedClients' => $intermediaries->sum('clients_count'),
                 'clientsThisMonth' => $clientsThisMonth,
             ],
             'monthlyClients' => collect($monthlyClients)->map(fn ($count, $month) => ['month' => $month, 'count' => $count])->values(),
@@ -54,44 +61,47 @@ class IntermediaryController extends Controller
         ]);
     }
 
-    public function show(Intermediary $intermediary): Response
+    public function show(Request $request, Intermediary $intermediary, CompanyContext $companyContext): Response
     {
-        $intermediary->loadCount('clients');
-        $intermediary->load(['clients']);
+        $this->authorize('view', $intermediary);
 
-        $relatedDossiers = $intermediary->clients()
-            ->with('dossiers')
-            ->get()
-            ->pluck('dossiers')
-            ->flatten();
+        $clientsQuery = $this->clientsQuery($intermediary, $request, $companyContext);
+        $clientsCount = (clone $clientsQuery)->count();
+        $intermediary->setAttribute('clients_count', $clientsCount);
 
-        $monthlyClients = $intermediary->clients()
+        $relatedDossiers = $companyContext->applyTo(Dossier::query(), $request->user())
+            ->whereIn('client_id', (clone $clientsQuery)->select('id'))
+            ->get();
+
+        $monthlyClients = (clone $clientsQuery)
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, count(*) as count")
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('count', 'month')
             ->toArray();
 
-        $monthlyProjects = \App\Models\Dossier::whereIn('client_id', $intermediary->clients()->pluck('id'))
+        $monthlyProjects = $companyContext->applyTo(Dossier::query(), $request->user())
+            ->whereIn('client_id', (clone $clientsQuery)->select('id'))
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, count(*) as count")
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('count', 'month')
             ->toArray();
 
-        $activeClients = $intermediary->clients()->where('status', 'active')->count();
-        $inactiveClients = $intermediary->clients()->where('status', 'inactive')->count();
-        $archivedClients = $intermediary->clients()->where('status', 'archived')->count();
+        $activeClients = (clone $clientsQuery)->where('status', 'active')->count();
+        $inactiveClients = (clone $clientsQuery)->where('status', 'inactive')->count();
+        $archivedClients = (clone $clientsQuery)->where('status', 'archived')->count();
 
-        $projectStatusBreakdown = \App\Models\Dossier::whereIn('client_id', $intermediary->clients()->pluck('id'))
+        $projectStatusBreakdown = $companyContext->applyTo(Dossier::query(), $request->user())
+            ->whereIn('client_id', (clone $clientsQuery)->select('id'))
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status')
             ->toArray();
 
-        $latestClient = $intermediary->clients()->latest()->first();
+        $latestClient = (clone $clientsQuery)->latest()->first();
 
-        $clientsList = $intermediary->clients()
+        $clientsList = (clone $clientsQuery)
             ->withCount('dossiers')
             ->latest()
             ->get()
@@ -108,7 +118,8 @@ class IntermediaryController extends Controller
                 'updatedAt' => optional($client->updated_at)->diffForHumans(),
             ]);
 
-        $projectsList = \App\Models\Dossier::whereIn('client_id', $intermediary->clients()->pluck('id'))
+        $projectsList = $companyContext->applyTo(Dossier::query(), $request->user())
+            ->whereIn('client_id', (clone $clientsQuery)->select('id'))
             ->with('client:id,full_name')
             ->latest()
             ->get()
@@ -150,9 +161,12 @@ class IntermediaryController extends Controller
         ]);
     }
 
-    public function store(StoreIntermediaryRequest $request): RedirectResponse
+    public function store(StoreIntermediaryRequest $request, CompanyContext $companyContext): RedirectResponse
     {
+        $this->authorize('create', Intermediary::class);
+
         $data = $request->validated();
+        $data = [...$companyContext->payload($request->user()), ...$data];
         $data['code'] = $this->nextIntermediaryCode();
         $data['type'] = $data['type'] ?? 'person';
         $data['is_active'] = $data['is_active'] ?? true;
@@ -166,6 +180,8 @@ class IntermediaryController extends Controller
 
     public function update(UpdateIntermediaryRequest $request, Intermediary $intermediary): RedirectResponse
     {
+        $this->authorize('update', $intermediary);
+
         $data = $request->validated();
         $data['type'] = $data['type'] ?? 'person';
         $data['is_active'] = $data['is_active'] ?? false;
@@ -179,6 +195,8 @@ class IntermediaryController extends Controller
 
     public function destroy(Intermediary $intermediary): RedirectResponse
     {
+        $this->authorize('delete', $intermediary);
+
         $intermediary->delete();
 
         return redirect()
@@ -197,5 +215,14 @@ class IntermediaryController extends Controller
         } while (Intermediary::where('code', $code)->exists());
 
         return $code;
+    }
+
+    private function clientsQuery(
+        Intermediary $intermediary,
+        Request $request,
+        CompanyContext $companyContext,
+    ): Builder {
+        return $companyContext->applyTo(Client::query(), $request->user())
+            ->where('intermediary_id', $intermediary->id);
     }
 }

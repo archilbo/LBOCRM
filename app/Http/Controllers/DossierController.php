@@ -274,11 +274,23 @@ class DossierController extends Controller
             ->with('success', 'Project created successfully.');
     }
 
-    public function update(UpdateDossierRequest $request, Dossier $dossier): RedirectResponse
+    public function update(
+        UpdateDossierRequest $request,
+        Dossier $dossier,
+        CompanyContext $companyContext,
+    ): RedirectResponse
     {
         $this->authorize('update', $dossier);
 
-        $dossier->update($this->prepareDossierData($request->validated()));
+        $client = $companyContext->applyTo(Client::query(), $request->user())
+            ->whereKey($request->integer('client_id'))
+            ->firstOrFail();
+
+        $dossier->update([
+            ...$this->prepareDossierData($request->validated()),
+            'company_id' => $client->company_id,
+            'branch_id' => $client->branch_id,
+        ]);
 
         return redirect()
             ->route('dossiers.index')

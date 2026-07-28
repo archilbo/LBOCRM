@@ -10,6 +10,8 @@ use App\Models\Client;
 use App\Models\DocumentTemplate;
 use App\Models\FinanceTemplate;
 use App\Models\Intermediary;
+use App\Models\User;
+use App\Enums\ClientStatus;
 use App\Services\Clients\ClientWorkspaceService;
 use App\Services\CompanyContext;
 use App\Services\Finance\FinanceContextService;
@@ -38,12 +40,12 @@ class ClientController extends Controller
 
         return Inertia::render('Clients/Index', [
             'clients' => ClientResource::collection($clients)->resolve(),
-            'intermediaries' => $this->intermediaryOptions(),
+            'intermediaries' => $this->intermediaryOptions($request->user(), $companyContext),
             'metrics' => [
                 'total' => $clientScope()->count(),
-                'active' => $clientScope()->where('status', 'active')->count(),
-                'inactive' => $clientScope()->where('status', 'inactive')->count(),
-                'archived' => $clientScope()->where('status', 'archived')->count(),
+                'active' => $clientScope()->where('status', ClientStatus::Active->value)->count(),
+                'inactive' => $clientScope()->where('status', ClientStatus::Inactive->value)->count(),
+                'archived' => $clientScope()->where('status', ClientStatus::Archived->value)->count(),
             ],
         ]);
     }
@@ -53,6 +55,7 @@ class ClientController extends Controller
         Client $client,
         ClientWorkspaceService $workspaceService,
         FinanceContextService $financeContext,
+        CompanyContext $companyContext,
     ): Response
     {
         $this->authorize('view', $client);
@@ -112,7 +115,7 @@ class ClientController extends Controller
                     'updatedAt' => optional($dossier->updated_at)->diffForHumans(),
                 ])
                 ->values(),
-            'intermediaries' => $this->intermediaryOptions(),
+            'intermediaries' => $this->intermediaryOptions($request->user(), $companyContext),
         ]);
     }
 
@@ -135,7 +138,17 @@ class ClientController extends Controller
     {
         $this->authorize('update', $client);
 
-        $client->update($this->prepareClientData($request->validated()));
+        $data = $request->validated();
+        $returnTo = $data['return_to'] ?? null;
+        unset($data['return_to']);
+
+        $client->update($this->prepareClientData($data));
+
+        if ($this->isSafeLocalReturnPath($returnTo)) {
+            return redirect()
+                ->to($returnTo)
+                ->with('success', 'Client updated successfully.');
+        }
 
         return redirect()
             ->route('clients.index')
@@ -176,7 +189,7 @@ class ClientController extends Controller
             $data['full_name'] = 'Unnamed client';
         }
 
-        $data['status'] = $data['status'] ?? 'active';
+        $data['status'] = $data['status'] ?? ClientStatus::Active->value;
 
         if (($data['intermediary_id'] ?? null) === '') {
             $data['intermediary_id'] = null;
@@ -198,9 +211,9 @@ class ClientController extends Controller
         return $number;
     }
 
-    private function intermediaryOptions(): array
+    private function intermediaryOptions(User $user, CompanyContext $companyContext): array
     {
-        return Intermediary::query()
+        return $companyContext->applyTo(Intermediary::query(), $user)
             ->where('is_active', true)
             ->orderBy('name')
             ->get()
@@ -210,5 +223,13 @@ class ClientController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function isSafeLocalReturnPath(mixed $returnTo): bool
+    {
+        return is_string($returnTo)
+            && str_starts_with($returnTo, '/')
+            && ! str_starts_with($returnTo, '//')
+            && parse_url($returnTo, PHP_URL_HOST) === null;
     }
 }

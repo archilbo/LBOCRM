@@ -15,6 +15,8 @@ use App\Notifications\DocumentNotification;
 use App\Services\Documents\DocumentGroupingService;
 use App\Services\Documents\DossierDocumentFileService;
 use App\Services\Dossiers\DossierPathBuilder;
+use App\Services\CompanyContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -24,11 +26,14 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DocumentController extends Controller
 {
-    public function index(Request $request, DocumentGroupingService $documentGroupingService): Response
+    public function index(
+        Request $request,
+        DocumentGroupingService $documentGroupingService,
+        CompanyContext $companyContext,
+    ): Response
     {
         $this->authorize('viewAny', DossierDocument::class);
-        $query = DossierDocument::query()
-            ->with(['dossier.client', 'template']);
+        $query = $this->scopedDocumentQuery($request, $companyContext);
 
         if ($dossierId = $request->input('dossier_id')) {
             $query->where('dossier_id', $dossierId);
@@ -38,26 +43,28 @@ class DocumentController extends Controller
 
         return Inertia::render('Documents/Index', [
             'documents' => DossierDocumentResource::collection($documents)->resolve(),
-            'documentGroups' => $documentGroupingService->groups(),
-            'clients' => $this->clientOptions(),
-            'dossiers' => $this->dossierOptions(),
+            'documentGroups' => $documentGroupingService->groups($request->user()),
+            'clients' => $this->clientOptions($request, $companyContext),
+            'dossiers' => $this->dossierOptions($request, $companyContext),
             'templates' => $this->templateOptions(),
             'metrics' => [
-                'total' => DossierDocument::count(),
-                'uploaded' => DossierDocument::whereIn('status', ['uploaded', 'verified'])->count(),
-                'verified' => DossierDocument::where('status', 'verified')->count(),
-                'missing' => DossierDocument::where('status', 'missing')->count(),
+                'total' => (clone $query)->count(),
+                'uploaded' => (clone $query)->whereIn('status', ['uploaded', 'verified'])->count(),
+                'verified' => (clone $query)->where('status', 'verified')->count(),
+                'missing' => (clone $query)->where('status', 'missing')->count(),
                 'templates' => DocumentTemplate::where('is_active', true)->count(),
             ],
         ]);
     }
 
-    public function store(StoreDossierDocumentRequest $request): RedirectResponse
+    public function store(StoreDossierDocumentRequest $request, CompanyContext $companyContext): RedirectResponse
     {
         $this->authorize('create', DossierDocument::class);
         $data = $request->validated();
 
-        $dossier = Dossier::query()->with(['city', 'client'])->findOrFail($data['dossier_id']);
+        $dossier = $companyContext->applyTo(Dossier::query(), $request->user())
+            ->with(['city', 'client'])
+            ->findOrFail($data['dossier_id']);
         $file = $request->file('file');
 
         $payload = [
@@ -267,9 +274,9 @@ class DocumentController extends Controller
         }
     }
 
-    private function dossierOptions(): array
+    private function dossierOptions(Request $request, CompanyContext $companyContext): array
     {
-        return Dossier::query()
+        return $companyContext->applyTo(Dossier::query(), $request->user())
             ->with('client')
             ->orderByDesc('created_at')
             ->get()
@@ -282,9 +289,9 @@ class DocumentController extends Controller
             ->all();
     }
 
-    private function clientOptions(): array
+    private function clientOptions(Request $request, CompanyContext $companyContext): array
     {
-        return Client::query()
+        return $companyContext->applyTo(Client::query(), $request->user())
             ->orderBy('full_name')
             ->get()
             ->map(fn (Client $client) => [
@@ -323,5 +330,12 @@ class DocumentController extends Controller
         } while (DossierDocument::where('document_number', $number)->exists());
 
         return $number;
+    }
+
+    private function scopedDocumentQuery(Request $request, CompanyContext $companyContext): Builder
+    {
+        return DossierDocument::query()
+            ->with(['dossier.client', 'template'])
+            ->whereHas('dossier', fn (Builder $dossierQuery) => $companyContext->applyTo($dossierQuery, $request->user()));
     }
 }

@@ -32,8 +32,9 @@ const emptyForm: ClientFormPayload = {
   intermediaryId: '', notes: '',
 };
 
-function UploadZone({ label, file, preview, onSelect, onClear }: {
+function UploadZone({ label, uploadHint, file, preview, onSelect, onClear }: {
   label: string;
+  uploadHint: string;
   file: File | null;
   preview: string | null;
   onSelect: (f: File) => void;
@@ -77,7 +78,7 @@ function UploadZone({ label, file, preview, onSelect, onClear }: {
             <ImageUp size={20} />
           </div>
           <span className="text-[12px] font-medium text-[var(--text-muted)]">{label}</span>
-          <span className="mt-0.5 text-[10px] text-[var(--text-subtle)]">Click to upload (JPG/PNG)</span>
+          <span className="mt-0.5 text-[10px] text-[var(--text-subtle)]">{uploadHint}</span>
         </>
       )}
     </div>
@@ -185,7 +186,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
       });
       if (!res.ok) {
         const err = await res.json();
-        setScanError(err.message || err.error || 'Failed to analyze CIN. Please try again.');
+        setScanError(err.message || err.error || t('clients.drawer.scanRequestError'));
         return;
       }
       const data: CinScanResult = await res.json();
@@ -193,7 +194,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
       const verso = data.verso ?? {};
 
       if (!recto.cin_number && !recto.first_name && !recto.last_name && !verso.address) {
-        setScanError('AI could not read the CIN card. Please use sharper images with even lighting and try again.');
+        setScanError(t('clients.drawer.scanFailed'));
         setIsScanning(false);
         return;
       }
@@ -232,7 +233,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
       setFrontPreview(null);
       setBackPreview(null);
     } catch {
-      setScanError('Network error. Please check your connection and try again.');
+      setScanError(t('clients.drawer.scanNetworkError'));
     } finally {
       setIsScanning(false);
     }
@@ -269,7 +270,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
                   ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                   : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)]',
               )}>
-              <Upload size={14} /> Manual entry
+              <Upload size={14} /> {t('clients.drawer.manualEntry')}
             </button>
             <button type="button" onClick={() => setInputMode('scan')}
               className={cn(
@@ -278,7 +279,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
                   ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                   : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)]',
               )}>
-              <ScanLine size={14} /> Scan CIN
+              <ScanLine size={14} /> {t('clients.drawer.scanCin')}
             </button>
           </div>
         )}
@@ -286,13 +287,13 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
         {inputMode === 'scan' ? (
           <div className="space-y-4">
             <p className="text-[12px] text-[var(--text-muted)]">
-              Upload the front and back of the client&apos;s CIN card. The system will extract identity information automatically.
+              {t('clients.drawer.scanDescription')}
             </p>
 
             <div className="grid grid-cols-2 gap-3">
-              <UploadZone label="Front of CIN" file={frontFile} preview={frontPreview}
+              <UploadZone label={t('clients.drawer.frontCin')} uploadHint={t('clients.drawer.uploadImage')} file={frontFile} preview={frontPreview}
                 onSelect={handleFrontSelect} onClear={handleFrontClear} />
-              <UploadZone label="Back of CIN" file={backFile} preview={backPreview}
+              <UploadZone label={t('clients.drawer.backCin')} uploadHint={t('clients.drawer.uploadImage')} file={backFile} preview={backPreview}
                 onSelect={handleBackSelect} onClear={handleBackClear} />
             </div>
 
@@ -304,7 +305,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
               isDisabled={!frontFile || !backFile || isScanning}
               isLoading={isScanning}
               onPress={handleScan}>
-              {isScanning ? 'Analyzing CIN...' : 'Analyze CIN'}
+              {isScanning ? t('clients.drawer.analyzingCin') : t('clients.drawer.analyzeCin')}
             </AppButton>
           </div>
         ) : null}
@@ -318,7 +319,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
                     value={form.civility || ''}
                     onChange={(v) => updateField('civility', v || 'Mr')}
                     options={CIVILITY_OPTIONS}
-                    placeholder="Select civility"
+                    placeholder={t('clients.drawer.selectCivility')}
                   />
                 </DrawerField>
                 <div className="grid grid-cols-2 gap-2">
@@ -344,13 +345,13 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
                 <div className="grid grid-cols-2 gap-2">
                   <DrawerField label={t('clients.form.fatherName')} error={errors.father_name}>
                     <Input type="text" value={form.fatherName} onChange={(e) => updateField('fatherName', e.target.value)}
-                      placeholder="Father name"
+                      placeholder={t('clients.drawer.fatherPlaceholder')}
                       aria-invalid={firstError(errors, 'father_name') ? true : undefined}
                       className={drawerStyles.input} />
                   </DrawerField>
                   <DrawerField label={t('clients.form.motherName')} error={errors.mother_name}>
                     <Input type="text" value={form.motherName} onChange={(e) => updateField('motherName', e.target.value)}
-                      placeholder="Mother name"
+                      placeholder={t('clients.drawer.motherPlaceholder')}
                       aria-invalid={firstError(errors, 'mother_name') ? true : undefined}
                       className={drawerStyles.input} />
                   </DrawerField>
@@ -360,7 +361,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
                     label=""
                     value={form.cniExpirationDate ? new Date(form.cniExpirationDate) : null}
                     onChange={(d) => updateField('cniExpirationDate', d ? d.toISOString().split('T')[0] : '')}
-                    placeholder="Date d expiration"
+                    placeholder={t('clients.drawer.expirationPlaceholder')}
                   />
                 </DrawerField>
               </div>

@@ -229,12 +229,22 @@ export const en = {
             status: 'Status',
             updated: 'Updated',
             actions: 'Actions',
+            reorderHint: 'Drag a column to change its order',
         },
         metrics: {
             total: 'Total clients',
             active: 'Active',
             inactive: 'Inactive',
             archived: 'Archived',
+            totalDetail: 'Registered client records',
+            activeDetail: 'Can start new projects',
+            inactiveDetail: 'Needs review',
+            archivedDetail: 'Closed relationships',
+        },
+        pagination: {
+            previous: 'Previous',
+            next: 'Next',
+            projects: '{count} project(s)',
         },
         form: {
             identity: 'Identity',
@@ -265,6 +275,21 @@ export const en = {
             createDescription: 'Add identity, contact, relationship, and notes.',
             editTitle: 'Edit client',
             editDescription: 'Update client information and relationship details.',
+            manualEntry: 'Manual entry',
+            scanCin: 'Scan CIN',
+            scanDescription: 'Upload the front and back of the client CIN card. The system will extract identity information automatically.',
+            frontCin: 'Front of CIN',
+            backCin: 'Back of CIN',
+            uploadImage: 'Click to upload (JPG/PNG)',
+            analyzeCin: 'Analyze CIN',
+            analyzingCin: 'Analyzing CIN...',
+            scanFailed: 'The CIN card could not be read. Use sharper images with even lighting and try again.',
+            scanNetworkError: 'Network error. Check your connection and try again.',
+            scanRequestError: 'Could not analyze the CIN. Please try again.',
+            selectCivility: 'Select civility',
+            fatherPlaceholder: 'Father name',
+            motherPlaceholder: 'Mother name',
+            expirationPlaceholder: 'Expiry date',
         },
         show: {
             overview: 'Overview',
@@ -319,6 +344,25 @@ export const en = {
             documentReplaced: 'Document replaced successfully.',
             documentDeleted: 'Document deleted successfully.',
             documentActionFailed: 'The document action could not be completed.',
+            backToClients: 'Back to clients',
+            newProject: 'New project',
+            newContract: 'New contract',
+            newQuote: 'New quote',
+            uploadDocument: 'Upload document',
+            createProject: 'Create a project',
+            projectCreated: 'Project created successfully.',
+            projectFormError: 'Please check project form errors.',
+            documentUploaded: 'Document uploaded successfully.',
+            documentFormError: 'Please check document form errors.',
+        },
+        finance: {
+            noProjectTitle: 'No project selected', noProjectDescription: 'Select or create a project before managing its finance.', projectEyebrow: 'Project finance', openFinance: 'Open finance', recordPayment: 'Record payment', newInvoice: 'New invoice', newQuote: 'New quote', quotes: 'Quotes', invoiced: 'Invoiced', paid: 'Collected', remaining: 'To collect', documentsCount: '{count} document(s)', invoicesTotal: 'Invoice total incl. tax', paymentsCount: '{count} payment(s)', invoiceBalance: 'Invoice balance', financialDocuments: 'Financial documents', financialDocumentsDescription: 'Quotes, invoices, and receipts linked to this project.', issuedOn: 'Issued on {date}', totalTtc: 'Total incl. tax', paidAmount: 'Paid', remainingAmount: 'Remaining', noFinancialDocuments: 'No financial documents', noFinancialDocumentsDescription: 'Create a quote or invoice for this project.', recentPayments: 'Recent payments', recentPaymentsDescription: 'Recorded collections.', deletePayment: 'Delete payment', unlinkedPayment: 'Unlinked payment', noPayments: 'No payments', noPaymentsDescription: 'Payments linked to invoices will appear here.', actionUnavailable: 'This action is unavailable for this document.', quoteConversionUnavailable: 'This quote cannot be converted.', quoteConverted: 'Invoice created from quote.', quoteConvertError: 'Could not convert quote.', documentDeleted: 'Document deleted.', documentDeleteError: 'Could not delete document.', paymentDeleted: 'Payment deleted and invoice recalculated.', paymentDeleteError: 'Could not delete payment.', openDocumentError: 'Could not open the document details.', previewError: 'Could not open the document preview.', printError: 'Could not print the document.', pdfUnavailable: 'No PDF is available for this document.', excelUnavailable: 'No Excel file is available for this document.', pdfGenerated: 'PDF generated.', pdfGenerationError: 'Could not generate PDF.', excelGenerated: 'Excel generated.', excelGenerationError: 'Could not generate Excel.', quoteAccepted: 'Quote accepted.', quoteAcceptError: 'Could not accept quote.', quoteRejected: 'Quote rejected.', quoteRejectError: 'Could not reject quote.', documentCancelled: 'Document cancelled.', documentCancelError: 'Could not cancel document.', contractCreated: 'Contract created.', contractCreateError: 'Could not create contract.', contractUpdated: 'Contract updated.', contractUpdateError: 'Could not update contract.', deleteDocumentTitle: 'Delete financial document?', deleteDocumentDescription: 'Deleting {document} is permanent.', deletePaymentTitle: 'Delete this payment?', deletePaymentDescription: 'Payment {payment} will be cancelled, the linked receipt will be cancelled, and the invoice balance will be recalculated.', deletePaymentConfirm: 'Delete payment',
+        },
+        archives: { title: 'Archive', empty: 'No archive record yet.', view: 'View in Archives', create: 'Create in Archives' },
+        activity: {
+            emptyTitle: 'No events yet', emptyDescription: 'Timeline events will appear as actions are performed on this project.', createdBy: 'Created by {name}',
+            types: { document: 'Document', contract: 'Contract', finance: 'Finance', payment: 'Payment', archive: 'Archive' },
+            actions: { documentUploaded: 'Document uploaded', contractCreated: 'Contract created', contractGenerated: 'Contract generated', contractSigned: 'Contract signed', financeDocumentCreated: 'Financial document created', paymentRecorded: 'Payment recorded', archiveRecordCreated: 'Archive record created', archiveFileStored: 'File stored in archive' },
         },
         confirmDelete: {
             title: 'Delete client?',
@@ -415,6 +459,35 @@ export const en = {
         allStatuses: 'All statuses',
         months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         topPerformers: 'Top performers',
+        filter: 'Filter',
+        update: 'Refresh',
+        resultCount: 'result(s)',
+        resetFilters: 'Reset filters',
+        cancel: 'Cancel',
+        delete: 'Delete',
+        save: 'Save',
+        metrics: {
+            total: 'Total intermediaries',
+            totalDetail: 'Registered agencies and contacts',
+            active: 'Active',
+            activeDetail: '{percent}% of network active',
+            inactive: 'Inactive',
+            inactiveDetail: 'Relationships to review',
+            linkedClientsDetail: 'Clients linked to the network',
+        },
+        statuses: { all: 'All', active: 'Active', inactive: 'Inactive' },
+        types: { person: 'Person', agency: 'Agency', architect_partner: 'Architect partner', business_referral: 'Business referral', other: 'Other' },
+        table: { intermediary: 'Intermediary', type: 'Type', contact: 'Contact', clients: 'Clients', status: 'Status', updated: 'Updated', reorderHint: 'Drag a column to change its order' },
+        pagination: { previous: 'Previous', next: 'Next', clients: '{count} client(s)' },
+        form: {
+            createTitle: 'New intermediary',
+            editTitle: 'Edit intermediary',
+            description: 'Manage referrers, agencies, and contacts who direct clients.',
+            name: 'Name',
+            phone: 'Phone',
+            email: 'Email',
+            notes: 'Notes',
+        },
     },
 
     dossiers: {
@@ -1484,9 +1557,6 @@ export const en = {
 } as const;
 
 export type AppLocale = typeof en;
-
-
-
 
 
 

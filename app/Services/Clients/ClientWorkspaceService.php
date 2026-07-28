@@ -25,16 +25,18 @@ class ClientWorkspaceService
             'intermediary',
             'dossiers.documents.template',
             'dossiers.contract',
-            'dossiers.authorization',
             'dossiers.workflowRequirements.checkedBy',
             'dossiers.financeDocuments.client',
             'dossiers.financeDocuments.dossier',
             'dossiers.financeDocuments.items',
+            'dossiers.financeDocuments.creator',
             'dossiers.financeDocuments.payments.document',
             'dossiers.financeDocuments.payments.client',
             'dossiers.financeDocuments.payments.dossier',
             'dossiers.financeDocuments.payments.receiptDocument',
+            'dossiers.financeDocuments.payments.creator',
             'dossiers.payments.document',
+            'dossiers.payments.creator',
             'dossiers.archiveRecord',
         ]);
 
@@ -117,15 +119,6 @@ class ClientWorkspaceService
                 'generatedAt' => optional($dossier->contract->generated_at)->toISOString(),
                 'signedAt' => optional($dossier->contract->signed_at)->toISOString(),
             ] : null,
-            'authorization' => $dossier->authorization ? [
-                'id' => $dossier->authorization->id,
-                'status' => $dossier->authorization->status,
-                'submissionNumber' => $dossier->authorization->submission_number,
-                'authorizationNumber' => $dossier->authorization->authorization_number,
-                'authorityName' => $dossier->authorization->authority_name,
-                'submittedAt' => optional($dossier->authorization->submitted_at)->toISOString(),
-                'approvedAt' => optional($dossier->authorization->approved_at)->toISOString(),
-            ] : null,
             'documents' => $dossier->documents->map(function ($document) use ($dossier) {
                 $hasFile = $this->documentFiles->exists($document);
                 $canPreview = $this->documentFiles->canPreview($document, $hasFile);
@@ -184,7 +177,7 @@ class ClientWorkspaceService
             $events[] = [
                 'date' => optional($doc->uploaded_at ?? $doc->created_at)->toISOString(),
                 'type' => 'document',
-                'label' => 'Document uploaded',
+                'action' => 'documentUploaded',
                 'description' => $doc->template?->name ?? $doc->original_filename ?? 'Document',
                 'status' => $doc->status,
             ];
@@ -194,7 +187,7 @@ class ClientWorkspaceService
             $events[] = [
                 'date' => optional($dossier->contract->created_at)->toISOString(),
                 'type' => 'contract',
-                'label' => 'Contract created',
+                'action' => 'contractCreated',
                 'description' => $dossier->contract->contract_number,
                 'status' => $dossier->contract->status,
             ];
@@ -202,7 +195,7 @@ class ClientWorkspaceService
                 $events[] = [
                     'date' => optional($dossier->contract->generated_at)->toISOString(),
                     'type' => 'contract',
-                    'label' => 'Contract generated',
+                    'action' => 'contractGenerated',
                     'description' => $dossier->contract->contract_number,
                     'status' => $dossier->contract->status,
                 ];
@@ -211,7 +204,7 @@ class ClientWorkspaceService
                 $events[] = [
                     'date' => optional($dossier->contract->signed_at)->toISOString(),
                     'type' => 'contract',
-                    'label' => 'Contract signed',
+                    'action' => 'contractSigned',
                     'description' => $dossier->contract->contract_number,
                     'status' => 'signed',
                 ];
@@ -222,9 +215,10 @@ class ClientWorkspaceService
             $events[] = [
                 'date' => optional($fin->issue_date ?? $fin->created_at)->toISOString(),
                 'type' => 'finance',
-                'label' => ucfirst($fin->type) . ' created',
+                'action' => 'financeDocumentCreated',
                 'description' => $fin->number,
                 'status' => $fin->status,
+                'actorName' => $fin->creator?->name,
             ];
         }
 
@@ -232,38 +226,18 @@ class ClientWorkspaceService
             $events[] = [
                 'date' => optional($pay->paid_at ?? $pay->created_at)->toISOString(),
                 'type' => 'payment',
-                'label' => 'Payment recorded',
+                'action' => 'paymentRecorded',
                 'description' => $pay->payment_number . ' - ' . number_format((float) $pay->amount, 2) . ' ' . FinanceSettingsService::getCurrency(),
                 'status' => $pay->method ?? 'payment',
+                'actorName' => $pay->creator?->name,
             ];
-        }
-
-        if ($dossier->authorization) {
-            if ($dossier->authorization->submitted_at) {
-                $events[] = [
-                    'date' => optional($dossier->authorization->submitted_at)->toISOString(),
-                    'type' => 'authorization',
-                    'label' => 'Authorization submitted',
-                    'description' => $dossier->authorization->submission_number ?? 'Rokhas submission',
-                    'status' => 'submitted',
-                ];
-            }
-            if ($dossier->authorization->approved_at) {
-                $events[] = [
-                    'date' => optional($dossier->authorization->approved_at)->toISOString(),
-                    'type' => 'authorization',
-                    'label' => 'Authorization approved',
-                    'description' => $dossier->authorization->authorization_number ?? 'Approved',
-                    'status' => 'approved',
-                ];
-            }
         }
 
         if ($dossier->archiveRecord) {
             $events[] = [
                 'date' => optional($dossier->archiveRecord->created_at)->toISOString(),
                 'type' => 'archive',
-                'label' => 'Archive record created',
+                'action' => 'archiveRecordCreated',
                 'description' => $dossier->archiveRecord->archive_number,
                 'status' => $dossier->archiveRecord->status,
             ];
@@ -271,7 +245,7 @@ class ClientWorkspaceService
                 $events[] = [
                     'date' => optional($dossier->archiveRecord->in_date)->toISOString(),
                     'type' => 'archive',
-                    'label' => 'File stored in archive',
+                    'action' => 'archiveFileStored',
                     'description' => $dossier->archiveRecord->archive_number,
                     'status' => 'stored',
                 ];

@@ -1,12 +1,12 @@
-import { Archive, CheckCircle2, FileText, Handshake, Landmark, ReceiptText, ShieldCheck } from 'lucide-react';
+import { Archive, FileText, Handshake, Landmark, ReceiptText } from 'lucide-react';
 import { type DossierTimelineEvent } from '@/features/clients/types';
+import { useTranslation } from '@/lib/i18n';
 
 const typeConfig: Record<string, { icon: typeof FileText; color: string }> = {
     document: { icon: FileText, color: 'border-blue-500/30 bg-blue-500/10 text-blue-300' },
     contract: { icon: Handshake, color: 'border-violet-500/30 bg-violet-500/10 text-violet-300' },
     finance: { icon: ReceiptText, color: 'border-amber-500/30 bg-amber-500/10 text-amber-300' },
     payment: { icon: Landmark, color: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' },
-    authorization: { icon: ShieldCheck, color: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300' },
     archive: { icon: Archive, color: 'border-rose-500/30 bg-rose-500/10 text-rose-300' },
 };
 
@@ -27,6 +27,7 @@ function EventDot({ type }: { type: string }) {
 }
 
 function EventRow({ event, isLast }: { event: DossierTimelineEvent; isLast: boolean }) {
+    const { t } = useTranslation();
     const cfg = typeConfig[event.type] ?? typeConfig.document;
     const Icon = cfg.icon;
 
@@ -40,24 +41,29 @@ function EventRow({ event, isLast }: { event: DossierTimelineEvent; isLast: bool
             </div>
             <div className="min-w-0 flex-1 pb-6">
                 <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-bold text-[var(--crm-text)]">{event.label}</p>
+                    <p className="text-sm font-bold text-[var(--crm-text)]">{t(`clients.activity.actions.${event.action}`)}</p>
                     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cfg.color}`}>
-                        {event.type}
+                        {t(`clients.activity.types.${event.type}`)}
                     </span>
                 </div>
                 <p className="mt-0.5 text-xs text-[var(--crm-muted)]">{event.description}</p>
-                <p className="mt-0.5 text-[11px] text-[var(--crm-muted)]">{formatDate(event.date)}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--crm-muted)]">
+                    <span>{formatDate(event.date)}</span>
+                    {event.actorName ? <span>{t('clients.activity.createdBy', { name: event.actorName })}</span> : null}
+                </div>
             </div>
         </div>
     );
 }
 
 export function DossierTimeline({ events }: { events: DossierTimelineEvent[] }) {
+    const { t } = useTranslation();
+
     if (events.length === 0) {
         return (
             <div className="rounded-xl border border-dashed border-[var(--crm-border)] bg-black/10 px-4 py-8 text-center">
-                <p className="text-sm font-bold text-[var(--crm-text)]">No events yet</p>
-                <p className="mt-1 text-xs text-[var(--crm-muted)]">Timeline events will appear as actions are performed on this project.</p>
+                <p className="text-sm font-bold text-[var(--crm-text)]">{t('clients.activity.emptyTitle')}</p>
+                <p className="mt-1 text-xs text-[var(--crm-muted)]">{t('clients.activity.emptyDescription')}</p>
             </div>
         );
     }

@@ -12,17 +12,11 @@ export type DashboardIconKey =
     | 'tasks'
     | 'chat';
 
-export type DashboardHero = {
-    eyebrow: string;
-    title: string;
-    subtitle: string;
-};
-
 export type DashboardKpi = {
     key: string;
-    label: string;
     value: string;
-    helper: string;
+    helperKey: string;
+    helperValues?: Record<string, string | number>;
     tone: DashboardTone;
     icon: DashboardIconKey;
     href: string;
@@ -30,9 +24,9 @@ export type DashboardKpi = {
 
 export type DashboardAction = {
     id: string;
-    title: string;
-    subtitle: string;
-    due: string;
+    kind: string;
+    context: string | null;
+    dueKey: string;
     tone: DashboardTone;
     icon: DashboardIconKey;
     href: string;
@@ -53,16 +47,15 @@ export type DashboardProject = {
 
 export type DashboardAlert = {
     id: string;
-    title: string;
     amount: string;
-    subtitle: string;
+    count?: number;
     tone: DashboardTone;
     href: string;
 };
 
 export type DashboardActivity = {
     id: string;
-    title: string;
+    kind: string;
     description: string;
     time: string;
     tone: DashboardTone;
@@ -70,7 +63,7 @@ export type DashboardActivity = {
 };
 
 export type DashboardQuickLink = {
-    label: string;
+    key: string;
     href: string;
     icon: DashboardIconKey;
 };
@@ -100,6 +93,13 @@ export type DashboardWorkflowStepCount = {
     count: number;
 };
 
+export type DashboardFinanceTrendPoint = {
+    key: string;
+    label: string;
+    invoiced: number;
+    collected: number;
+};
+
 export type DashboardUrgentTask = {
     id: number;
     title: string;
@@ -120,11 +120,11 @@ export type DashboardRecentMessage = {
 };
 
 export type DashboardCommandCenter = {
-    hero: DashboardHero;
     kpis: DashboardKpi[];
     nextActions: DashboardAction[];
     blockedDossiers: DashboardBlockedDossier[];
     workflowDistribution: DashboardWorkflowStepCount[];
+    financeTrend: DashboardFinanceTrendPoint[];
     recentProjects: DashboardProject[];
     financeAlerts: DashboardAlert[];
     activityFeed: DashboardActivity[];
