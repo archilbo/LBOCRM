@@ -24,10 +24,6 @@ class TaskSuggestionService
             $suggestions[] = $this->make('contract_ready', 'Contract is ready but not yet generated for ' . ($dossier->project_object ?? 'dossier'), $dossier);
         }
 
-        if ($this->isAuthorizationPendingTooLong($dossier)) {
-            $suggestions[] = $this->make('authorization_pending', 'Authorization has been pending too long — follow up', $dossier);
-        }
-
         $financeSuggestions = $this->checkFinanceOverdue($dossier);
         foreach ($financeSuggestions as $s) {
             $suggestions[] = $s;
@@ -77,13 +73,6 @@ class TaskSuggestionService
         if ($dossier->contract()->where('status', 'generated')->exists()) return false;
         $hasDraft = $dossier->contract()->where('status', 'draft')->exists();
         return $hasDraft;
-    }
-
-    private function isAuthorizationPendingTooLong(Dossier $dossier): bool
-    {
-        $pending = $dossier->authorization()->whereIn('status', ['submitted', 'under_review'])->first();
-        if (! $pending) return false;
-        return $pending->created_at->diffInDays(now()) > 14;
     }
 
     private function checkFinanceOverdue(Dossier $dossier): array

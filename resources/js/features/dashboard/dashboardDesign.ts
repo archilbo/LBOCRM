@@ -5,7 +5,6 @@ export const dashboardDesign = {
     kpiOrder: [
         'activeProjects',
         'missingDocuments',
-        'pendingAuthorizations',
         'unpaidInvoices',
         'todayPayments',
     ],

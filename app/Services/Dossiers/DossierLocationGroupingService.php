@@ -3,13 +3,19 @@
 namespace App\Services\Dossiers;
 
 use App\Models\Dossier;
+use App\Models\User;
+use App\Services\CompanyContext;
 use Illuminate\Support\Collection;
 
 class DossierLocationGroupingService
 {
-    public function groups(): array
+    public function __construct(private readonly CompanyContext $companyContext)
     {
-        $dossiers = Dossier::query()
+    }
+
+    public function groups(User $user): array
+    {
+        $dossiers = $this->companyContext->applyTo(Dossier::query(), $user)
             ->with(['client', 'documents', 'financeDocuments', 'payments'])
             ->latest()
             ->get();

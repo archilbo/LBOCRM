@@ -14,7 +14,7 @@ class StoreCalendarEventRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', 'string', 'in:task,note,reminder,meeting,deadline,client_follow_up,finance_follow_up,authorization_follow_up,contract_follow_up,archive_follow_up'],
+            'type' => ['required', 'string', 'in:task,note,reminder,meeting,deadline,client_follow_up,finance_follow_up,contract_follow_up,archive_follow_up'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'status' => ['nullable', 'string', 'in:scheduled,in_progress,completed,cancelled,overdue'],
@@ -32,7 +32,6 @@ class StoreCalendarEventRequest extends FormRequest
             'dossier_document_id' => ['nullable', 'exists:dossier_documents,id'],
             'finance_document_id' => ['nullable', 'exists:finance_documents,id'],
             'contract_id' => ['nullable', 'exists:contracts,id'],
-            'authorization_id' => ['nullable', 'exists:authorizations,id'],
             'archive_record_id' => ['nullable', 'exists:archive_records,id'],
             'participant_ids' => ['nullable', 'array'],
             'participant_ids.*' => ['integer', 'exists:users,id'],

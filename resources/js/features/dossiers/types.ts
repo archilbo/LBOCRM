@@ -40,7 +40,6 @@ export type DossierRow = {
     documentsCount: number;
     financeRecordsCount: number;
     hasContract: boolean;
-    hasAuthorization: boolean;
     hasArchiveRecord: boolean;
 
     city: City | null;

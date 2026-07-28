@@ -137,7 +137,7 @@ export const en = {
     dashboard: {
         eyebrow: 'Command center',
         title: 'Dashboard',
-        subtitle: 'Live overview of projects, documents, authorizations, finance, and daily actions.',
+        subtitle: 'Live overview of projects, documents, Rokhas follow-up, finance, and daily actions.',
         introTitle: 'Interface foundation is ready',
         introText: 'This screen uses local translations instead of static text. The next step is to build the Projects page using the same shared components.',
         metrics: {
@@ -420,12 +420,12 @@ export const en = {
     dossiers: {
         eyebrow: 'Project workspace',
         title: 'Projects',
-        subtitle: 'Track architecture files from client request to authorization, closure, archive, and finance.',
+        subtitle: 'Track architecture files from client request to Rokhas, closure, archive, and finance.',
         pageTitle: 'Projects',
         newProject: 'New project',
         searchPlaceholder: 'Search by project, client, CIN, commune, or file number...',
         emptyTitle: 'No projects found',
-        emptyDescription: 'Create your first project to start tracking contracts, documents, authorizations, and finance.',
+        emptyDescription: 'Create your first project to start tracking contracts, documents, Rokhas files, and finance.',
         table: {
             project: 'Project',
             client: 'Client',
@@ -481,7 +481,7 @@ export const en = {
     dossierWorkspace: {
         eyebrow: 'Project file',
         titleFallback: 'Project workspace',
-        subtitle: 'Central workspace for client data, property information, required documents, contract, authorization, planning, finance, and notes.',
+        subtitle: 'Central workspace for client data, property information, required documents, contract, Rokhas files, planning, finance, and notes.',
         backToProjects: 'Back to projects',
         openDocuments: 'Open documents',
         editProject: 'Edit project',
@@ -750,7 +750,7 @@ export const en = {
     documentsWorkspace: {
         eyebrow: 'Required documents',
         title: 'Documents',
-        subtitle: 'Manage required client and project documents before contracts, authorization, closure, and archive.',
+        subtitle: 'Manage required client and project documents before contracts, Rokhas, closure, and archive.',
         uploadDocument: 'Upload document',
         exportList: 'Export list',
         searchPlaceholder: 'Search by document, client, project, CIN, or status...',
@@ -926,7 +926,7 @@ export const en = {
     planningWorkspace: {
         eyebrow: 'Planning',
         title: 'Planning',
-        subtitle: 'Organize internal tasks, deadlines, visits, contract preparation, document follow-up, and authorization actions.',
+        subtitle: 'Organize internal tasks, deadlines, visits, contract preparation, document follow-up, and Rokhas actions.',
         newTask: 'New task',
         exportList: 'Export list',
         markDone: 'Mark done',
@@ -1210,7 +1210,7 @@ export const en = {
     dashboardHome: {
         eyebrow: 'Command center',
         title: 'ARCHI LBO operating dashboard',
-        subtitle: 'A compact overview of clients, projects, documents, contracts, authorizations, finance, planning, and archives.',
+        subtitle: 'A compact overview of clients, projects, documents, contracts, Rokhas files, finance, planning, and archives.',
         quickActions: 'Quick actions',
         openModule: 'Open module',
         viewAll: 'View all',
@@ -1484,7 +1484,6 @@ export const en = {
 } as const;
 
 export type AppLocale = typeof en;
-
 
 
 

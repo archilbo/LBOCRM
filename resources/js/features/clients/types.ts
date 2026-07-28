@@ -166,16 +166,6 @@ export type ClientProjectContract = {
     signedAt: string | null;
 };
 
-export type ClientProjectAuthorization = {
-    id: number;
-    status: string;
-    submissionNumber: string | null;
-    authorizationNumber: string | null;
-    authorityName: string | null;
-    submittedAt: string | null;
-    approvedAt: string | null;
-};
-
 export type ClientProjectArchiveRecord = {
     id: number;
     archiveNumber: string;
@@ -187,7 +177,7 @@ export type ClientProjectArchiveRecord = {
 
 export type DossierTimelineEvent = {
     date: string | null;
-    type: 'document' | 'contract' | 'finance' | 'payment' | 'authorization' | 'archive';
+    type: 'document' | 'contract' | 'finance' | 'payment' | 'archive';
     label: string;
     description: string;
     status: string;
@@ -196,7 +186,6 @@ export type DossierTimelineEvent = {
 export type ClientSelectedProjectWorkspace = ClientProjectSummary & {
     currency: string;
     contract: ClientProjectContract | null;
-    authorization: ClientProjectAuthorization | null;
     documents: ClientProjectDocument[];
     financeDocuments: ClientProjectFinanceDocument[];
     payments: ClientProjectPayment[];

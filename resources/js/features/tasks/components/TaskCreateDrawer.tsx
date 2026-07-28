@@ -47,12 +47,12 @@ export function TaskCreateDrawer({ isOpen, users, form, formErrors, onOpenChange
                         <div className="grid grid-cols-2 gap-3">
                             <DrawerField label="Type" error={firstError(formErrors, 'type')}>
                                 <DrawerSelect value={form.type} onChange={(v) => onFormChange({ ...form, type: v })}
-                                    options={(['general', 'missing_document', 'client_follow_up', 'contract', 'authorization', 'finance', 'archive', 'review', 'internal_admin'] as TaskType[]).map((k) => ({ id: k, label: TYPE_LABELS[k] }))}
+                                    options={(['general', 'missing_document', 'client_follow_up', 'contract', 'finance', 'archive', 'review', 'internal_admin'] as TaskType[]).map((k) => ({ id: k, label: TYPE_LABELS[k] }))}
                                     placeholder="Sélectionner" />
                             </DrawerField>
                             <DrawerField label="Catégorie" error={firstError(formErrors, 'category')}>
                                 <DrawerSelect value={form.category} onChange={(v) => onFormChange({ ...form, category: v })}
-                                    options={(['documents', 'client_follow_up', 'contract', 'authorization', 'finance', 'archive', 'general_admin'] as TaskCategory[]).map((k) => ({ id: k, label: CATEGORY_LABELS[k] }))}
+                                    options={(['documents', 'client_follow_up', 'contract', 'finance', 'archive', 'general_admin'] as TaskCategory[]).map((k) => ({ id: k, label: CATEGORY_LABELS[k] }))}
                                     placeholder="Sélectionner" />
                             </DrawerField>
                         </div>

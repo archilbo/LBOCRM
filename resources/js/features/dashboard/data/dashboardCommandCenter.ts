@@ -9,7 +9,6 @@ import {
     FileText,
     FolderKanban,
     ReceiptText,
-    ShieldCheck,
     UploadCloud,
     WalletCards,
 } from 'lucide-react';
@@ -85,15 +84,6 @@ export const dashboardKpis: DashboardKpi[] = [
         href: '/documents',
     },
     {
-        key: 'pendingAuth',
-        label: 'Pending authorizations',
-        value: '16',
-        helper: '3 need follow-up',
-        tone: 'gold',
-        icon: ShieldCheck,
-        href: '/authorizations',
-    },
-    {
         key: 'unpaidInvoices',
         label: 'Unpaid invoices',
         value: '32',
@@ -131,15 +121,6 @@ export const nextActions: DashboardAction[] = [
         tone: 'green',
         icon: FileText,
         href: '/contracts',
-    },
-    {
-        id: 'authorization-followup',
-        title: 'Follow authorization status',
-        subtitle: 'DOS-2026-0002 - Commune Gueliz',
-        due: 'Tomorrow',
-        tone: 'gold',
-        icon: ShieldCheck,
-        href: '/authorizations',
     },
     {
         id: 'create-invoice',
@@ -225,14 +206,6 @@ export const activityFeed: DashboardActivity[] = [
         icon: FileCheck2,
     },
     {
-        id: 'a2',
-        title: 'Authorization updated',
-        description: 'Commune observation marked as pending',
-        time: '09:15',
-        tone: 'gold',
-        icon: ShieldCheck,
-    },
-    {
         id: 'a3',
         title: 'Payment recorded',
         description: 'Receipt REC-2026-0003 generated',
@@ -259,7 +232,7 @@ export const quickLinks = [
 
 export const systemHealth = [
     { label: 'Workflow QA', value: 'Passing', icon: CheckCircle2, tone: 'green' },
-    { label: 'Finance lock', value: 'Protected', icon: ShieldCheck, tone: 'blue' },
+    { label: 'Finance lock', value: 'Protected', icon: ReceiptText, tone: 'blue' },
     { label: 'Storage', value: 'Private', icon: FileCheck2, tone: 'gold' },
     { label: 'Alerts', value: '4 open', icon: AlertTriangle, tone: 'red' },
     { label: 'Last sync', value: 'Just now', icon: Clock3, tone: 'violet' },

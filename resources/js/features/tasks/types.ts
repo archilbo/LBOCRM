@@ -1,8 +1,8 @@
 export type TaskStatus = 'backlog' | 'not_started' | 'in_progress' | 'waiting_client' | 'waiting_admin' | 'blocked' | 'in_review' | 'completed' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TaskImpact = 'low' | 'normal' | 'high' | 'critical';
-export type TaskType = 'general' | 'missing_document' | 'client_follow_up' | 'contract' | 'authorization' | 'finance' | 'archive' | 'review' | 'internal_admin';
-export type TaskCategory = 'documents' | 'client_follow_up' | 'contract' | 'authorization' | 'finance' | 'archive' | 'general_admin';
+export type TaskType = 'general' | 'missing_document' | 'client_follow_up' | 'contract' | 'finance' | 'archive' | 'review' | 'internal_admin';
+export type TaskCategory = 'documents' | 'client_follow_up' | 'contract' | 'finance' | 'archive' | 'general_admin';
 
 export type TaskRow = {
     id: number;
@@ -77,7 +77,6 @@ export const CATEGORY_LABELS: Record<TaskCategory, string> = {
     documents: 'Documents',
     client_follow_up: 'Client follow-up',
     contract: 'Contract',
-    authorization: 'Authorization',
     finance: 'Finance',
     archive: 'Archive',
     general_admin: 'General',
@@ -87,7 +86,6 @@ export const CATEGORY_COLORS: Record<TaskCategory, string> = {
     documents: 'text-blue-400 border-blue-400/20 bg-blue-400/10',
     client_follow_up: 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10',
     contract: 'text-violet-400 border-violet-400/20 bg-violet-400/10',
-    authorization: 'text-amber-400 border-amber-400/20 bg-amber-400/10',
     finance: 'text-rose-400 border-rose-400/20 bg-rose-400/10',
     archive: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/10',
     general_admin: 'text-zinc-400 border-zinc-400/20 bg-zinc-400/10',
@@ -112,7 +110,6 @@ export const TYPE_LABELS: Record<TaskType, string> = {
     missing_document: 'Missing document',
     client_follow_up: 'Client follow-up',
     contract: 'Contract',
-    authorization: 'Authorization',
     finance: 'Finance',
     archive: 'Archive',
     review: 'Review',

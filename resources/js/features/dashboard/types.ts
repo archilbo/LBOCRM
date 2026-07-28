@@ -3,7 +3,6 @@ export type DashboardTone = 'gold' | 'green' | 'red' | 'blue' | 'violet' | 'neut
 export type DashboardIconKey =
     | 'projects'
     | 'documents'
-    | 'authorizations'
     | 'invoices'
     | 'payments'
     | 'upload'

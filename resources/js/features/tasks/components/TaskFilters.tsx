@@ -19,7 +19,6 @@ const CATEGORIES = [
     { id: 'documents', label: 'Documents' },
     { id: 'client_follow_up', label: 'Client' },
     { id: 'contract', label: 'Contracts' },
-    { id: 'authorization', label: 'Authorizations' },
     { id: 'finance', label: 'Finance' },
     { id: 'archive', label: 'Archive' },
     { id: 'general_admin', label: 'General' },

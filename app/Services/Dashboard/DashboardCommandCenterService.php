@@ -2,7 +2,6 @@
 
 namespace App\Services\Dashboard;
 
-use App\Models\Authorization;
 use App\Models\Client;
 use App\Models\Conversation;
 use App\Models\Dossier;
@@ -23,10 +22,6 @@ class DashboardCommandCenterService
 
         $missingDocuments = DossierDocument::query()
             ->where('status', 'missing')
-            ->count();
-
-        $pendingAuthorizations = Authorization::query()
-            ->whereNotIn('status', ['approved', 'received', 'closed', 'cancelled'])
             ->count();
 
         $unpaidInvoices = FinanceDocument::query()
@@ -104,7 +99,7 @@ class DashboardCommandCenterService
             'hero' => [
                 'eyebrow' => 'Command center',
                 'title' => 'Daily Operations',
-                'subtitle' => 'One place to see what needs attention across projects, documents, authorizations, finance, and archive.',
+                'subtitle' => 'One place to see what needs attention across projects, documents, finance, and archive.',
             ],
             'kpis' => [
                 [
@@ -120,19 +115,10 @@ class DashboardCommandCenterService
                     'key' => 'missingDocuments',
                     'label' => 'Missing documents',
                     'value' => (string) $missingDocuments,
-                    'helper' => 'Blocking contracts and authorizations',
+                    'helper' => 'Blocking contracts and documents',
                     'tone' => $missingDocuments > 0 ? 'red' : 'green',
                     'icon' => 'documents',
                     'href' => '/documents',
-                ],
-                [
-                    'key' => 'pendingAuthorizations',
-                    'label' => 'Pending authorizations',
-                    'value' => (string) $pendingAuthorizations,
-                    'helper' => Authorization::count() . ' total authorizations',
-                    'tone' => $pendingAuthorizations > 0 ? 'gold' : 'green',
-                    'icon' => 'authorizations',
-                    'href' => '/authorizations',
                 ],
                 [
                     'key' => 'unpaidInvoices',
@@ -234,24 +220,6 @@ class DashboardCommandCenterService
                     'tone' => 'red',
                     'icon' => 'upload',
                     'href' => '/documents',
-                ]);
-            });
-
-        Authorization::query()
-            ->with('dossier.client')
-            ->whereNotIn('status', ['approved', 'received', 'closed', 'cancelled'])
-            ->latest()
-            ->limit(2)
-            ->get()
-            ->each(function (Authorization $authorization) use ($actions) {
-                $actions->push([
-                    'id' => 'authorization-' . $authorization->id,
-                    'title' => 'Follow authorization status',
-                    'subtitle' => trim(($authorization->dossier?->dossier_number ?? 'Project') . ' - ' . ($authorization->authority_name ?? 'Authority')),
-                    'due' => 'This week',
-                    'tone' => 'gold',
-                    'icon' => 'authorizations',
-                    'href' => '/authorizations',
                 ]);
             });
 
@@ -361,6 +329,7 @@ class DashboardCommandCenterService
             ->latest()
             ->limit(4)
             ->get()
+            ->toBase()
             ->map(fn (DossierDocument $document) => [
                 'id' => 'doc-' . $document->id,
                 'title' => 'Document ' . ($document->status ?? 'updated'),
@@ -376,6 +345,7 @@ class DashboardCommandCenterService
             ->latest()
             ->limit(4)
             ->get()
+            ->toBase()
             ->map(fn (Payment $payment) => [
                 'id' => 'payment-' . $payment->id,
                 'title' => 'Payment recorded',
@@ -390,6 +360,7 @@ class DashboardCommandCenterService
             ->latest()
             ->limit(4)
             ->get()
+            ->toBase()
             ->map(fn (Dossier $dossier) => [
                 'id' => 'project-' . $dossier->id,
                 'title' => 'Project updated',

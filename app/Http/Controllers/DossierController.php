@@ -15,28 +15,41 @@ use App\Models\Shelf;
 use App\Services\Dossiers\DossierLocationGroupingService;
 use App\Services\Dossiers\DossierNumberService;
 use App\Services\Dossiers\DossierWorkflowStepperService;
-use App\Services\Finance\FinanceContextService;
+use App\Services\CompanyContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DossierController extends Controller
 {
-    public function index(DossierLocationGroupingService $locationGroupingService): Response
+    public function index(
+        Request $request,
+        DossierLocationGroupingService $locationGroupingService,
+        CompanyContext $companyContext,
+    ): Response
     {
-        $dossiers = Dossier::query()
+        $this->authorize('viewAny', Dossier::class);
+
+        $dossiers = $companyContext->applyTo(Dossier::query(), $request->user())
             ->with(['client', 'city'])
             ->withCount(['documents', 'financeRecords'])
-            ->withExists(['contract', 'authorization', 'archiveRecord'])
+            ->withExists(['contract', 'archiveRecord'])
             ->latest()
             ->get();
 
-        $monthlyProjects = Dossier::query()
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month")
+        $monthExpression = match (DB::connection()->getDriverName()) {
+            'sqlite' => "strftime('%Y-%m', created_at)",
+            'pgsql' => "TO_CHAR(created_at, 'YYYY-MM')",
+            default => "DATE_FORMAT(created_at, '%Y-%m')",
+        };
+
+        $monthlyProjects = $companyContext->applyTo(Dossier::query(), $request->user())
+            ->selectRaw("{$monthExpression} as month")
             ->selectRaw('COUNT(*) as count')
             ->where('created_at', '>=', now()->subMonths(12))
-            ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
+            ->groupByRaw($monthExpression)
             ->orderBy('month')
             ->get()
             ->map(fn ($item) => ['month' => $item->month, 'count' => (int) $item->count])
@@ -44,15 +57,15 @@ class DossierController extends Controller
 
         return Inertia::render('Dossiers/Index', [
             'dossiers' => DossierResource::collection($dossiers)->resolve(),
-            'locationGroups' => $locationGroupingService->groups(),
-            'clients' => $this->clientOptions(),
+            'locationGroups' => $locationGroupingService->groups($request->user()),
+            'clients' => $this->clientOptions($request->user(), $companyContext),
             'cities' => City::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code', 'color']),
             'monthlyProjects' => $monthlyProjects,
             'metrics' => [
-                'total' => Dossier::count(),
-                'active' => Dossier::where('status', 'active')->count(),
-                'opened' => Dossier::where('status', 'opened')->count(),
-                'closed' => Dossier::where('status', 'closed')->count(),
+                'total' => $companyContext->applyTo(Dossier::query(), $request->user())->count(),
+                'active' => $companyContext->applyTo(Dossier::query(), $request->user())->where('status', 'active')->count(),
+                'opened' => $companyContext->applyTo(Dossier::query(), $request->user())->where('status', 'opened')->count(),
+                'closed' => $companyContext->applyTo(Dossier::query(), $request->user())->where('status', 'closed')->count(),
                 'documentsTotal' => (int) $dossiers->sum('documents_count'),
             ],
         ]);
@@ -60,21 +73,22 @@ class DossierController extends Controller
 
     public function show(Request $request, Dossier $dossier, DossierWorkflowStepperService $workflowStepper): Response
     {
+        $this->authorize('view', $dossier);
+
         $dossier
             ->load([
                 'client.intermediary',
                 'documents.template',
                 'contract',
-                'authorization',
                 'financeRecords',
                 'archiveRecord',
             ])
             ->loadCount(['documents', 'financeRecords'])
-            ->loadExists(['contract', 'authorization', 'archiveRecord']);
+            ->loadExists(['contract', 'archiveRecord']);
 
         $workflow = $workflowStepper->evaluate($dossier);
 
-        $dossiers = Dossier::query()
+        $dossiers = app(CompanyContext::class)->applyTo(Dossier::query(), $request->user())
             ->with('client')
             ->orderByDesc('created_at')
             ->get()
@@ -98,7 +112,7 @@ class DossierController extends Controller
             ])
             ->values();
 
-        $contractClients = Client::query()
+        $contractClients = app(CompanyContext::class)->applyTo(Client::query(), $request->user())
             ->with(['dossiers' => fn ($q) => $q->with('contract')->orderByDesc('created_at')])
             ->orderBy('full_name')
             ->get()
@@ -115,7 +129,7 @@ class DossierController extends Controller
             ])
             ->values();
 
-        $financeDossiers = Dossier::query()
+        $financeDossiers = app(CompanyContext::class)->applyTo(Dossier::query(), $request->user())
             ->with('client')
             ->orderByDesc('created_at')
             ->get()
@@ -159,13 +173,6 @@ class DossierController extends Controller
                 'hasGeneratedDoc' => !is_null($dossier->contract->generated_document_path),
                 'hasPdf' => !is_null($dossier->contract->pdf_path),
             ] : null,
-            'authorization' => $dossier->authorization ? [
-                'id' => $dossier->authorization->id,
-                'submissionNumber' => $dossier->authorization->submission_number,
-                'authorizationNumber' => $dossier->authorization->authorization_number,
-                'authorityName' => $dossier->authorization->authority_name,
-                'status' => $dossier->authorization->status,
-            ] : null,
             'financeRecords' => $dossier->financeRecords
                 ->map(fn ($record) => [
                     'id' => $record->id,
@@ -206,7 +213,7 @@ class DossierController extends Controller
                     $dossier->archiveRecord->folder,
                 ]))),
             ] : null,
-            'clients' => $this->clientOptions(),
+            'clients' => $this->clientOptions($request->user(), app(CompanyContext::class)),
             'cities' => City::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code', 'color']),
             'dossiers' => $dossiers,
             'templates' => $templates,
@@ -235,14 +242,13 @@ class DossierController extends Controller
     public function store(
         StoreDossierRequest $request,
         DossierNumberService $numberService,
-        FinanceContextService $financeContext,
+        CompanyContext $companyContext,
     ): RedirectResponse
     {
-        $scope = $financeContext->payload($request->user());
-        $client = Client::query()
+        $this->authorize('create', Dossier::class);
+
+        $client = $companyContext->applyTo(Client::query(), $request->user())
             ->whereKey($request->integer('client_id'))
-            ->where('company_id', $scope['company_id'])
-            ->when($scope['branch_id'] !== null, fn ($query) => $query->where('branch_id', $scope['branch_id']), fn ($query) => $query->whereNull('branch_id'))
             ->firstOrFail();
         $city = City::findOrFail($request->integer('city_id'));
         $numbering = $numberService->generate($city);
@@ -270,6 +276,8 @@ class DossierController extends Controller
 
     public function update(UpdateDossierRequest $request, Dossier $dossier): RedirectResponse
     {
+        $this->authorize('update', $dossier);
+
         $dossier->update($this->prepareDossierData($request->validated()));
 
         return redirect()
@@ -279,6 +287,8 @@ class DossierController extends Controller
 
     public function destroy(Dossier $dossier): RedirectResponse
     {
+        $this->authorize('delete', $dossier);
+
         $dossier->delete();
 
         return redirect()
@@ -317,9 +327,9 @@ class DossierController extends Controller
         return $number;
     }
 
-    private function clientOptions(): array
+    private function clientOptions(\App\Models\User $user, CompanyContext $companyContext): array
     {
-        return Client::query()
+        return $companyContext->applyTo(Client::query(), $user)
             ->orderBy('full_name')
             ->get()
             ->map(fn (Client $client) => [

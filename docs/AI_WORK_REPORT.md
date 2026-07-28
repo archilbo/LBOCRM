@@ -6149,3 +6149,228 @@ Complete two-user browser QA for group changes, read receipts, typing, attachmen
 ### Next Recommended Step
 
 - Add finance feature tests for the HTTP endpoints and policy denial cases across two companies before enabling multi-company production users.
+
+## Phase 1 - Runtime Stabilization And Dead Module Removal
+
+### What Was Built
+
+- Removed stale authorization workflow and task-request module references from active backend payloads, task/calendar contracts, dashboard data, client workspace data, and permissions seeding.
+- Preserved the operational Rokhas document workflow without relying on the removed authorization model.
+- Added `CoreRuntimeSmokeTest` coverage for Dashboard, Dossiers, Project Design, Tasks, and Contracts.
+- Made dossier monthly grouping database-driver aware for SQLite tests, MySQL, and PostgreSQL.
+- Fixed Dashboard activity-feed collection handling after converting model records into UI payload arrays.
+
+### Files Created
+
+- `tests/Feature/CoreRuntimeSmokeTest.php`
+
+### Files Modified
+
+- `app/Console/Commands/OperationsFoundationQaCommand.php`
+- `app/Http/Controllers/DossierController.php`
+- `app/Http/Requests/Calendar/StoreCalendarEventRequest.php`
+- `app/Http/Requests/Calendar/UpdateCalendarEventRequest.php`
+- `app/Http/Requests/Task/StoreTaskRequest.php`
+- `app/Http/Requests/Task/UpdateTaskRequest.php`
+- `app/Http/Resources/CalendarEventResource.php`
+- `app/Http/Resources/TaskResource.php`
+- `app/Services/Calendar/CalendarTaskSyncService.php`
+- `app/Services/Dashboard/DashboardCommandCenterService.php`
+- `app/Services/Dossiers/DossierWorkflowStepperService.php`
+- `app/Services/Task/TaskQueryService.php`
+- `database/seeders/RolesAndPermissionsSeeder.php`
+- `resources/js/features/clients/components/ClientSelectedProjectWorkspace.tsx`
+- `resources/js/features/dashboard/data/dashboardCommandCenter.ts`
+- `resources/js/features/dashboard/data/mockDashboard.ts`
+- `resources/js/features/dossiers/data/mockDossiers.ts`
+- `resources/js/features/tasks/components/TaskCreateDrawer.tsx`
+- `resources/js/features/tasks/components/TaskFilters.tsx`
+- `resources/js/locales/en.ts`
+
+### Files Removed
+
+- `app/Http/Requests/Task/StoreTaskRequestRequest.php`
+- `app/Http/Requests/Task/UpdateTaskRequestRequest.php`
+- `app/Http/Requests/UpdateAuthorizationStatusRequest.php`
+
+### Commands Run
+
+- `php artisan optimize:clear`
+- `php artisan archilbo:operations-foundation-qa`
+- `php artisan test --filter=CoreRuntimeSmokeTest --stop-on-failure`
+- `php artisan test --stop-on-failure`
+- `npm.cmd run build`
+- `git diff --check`
+
+### Verification
+
+- Core runtime smoke test passed: 1 test, 7 assertions.
+- Full backend suite passed: 78 tests, 256 assertions.
+- Operations foundation QA passed.
+- Production frontend build passed.
+- `git diff --check` passed.
+
+### Known Issues
+
+- `npm run typecheck` still has an existing, broad HeroUI v3 API migration backlog outside this runtime-stabilization scope. No changed Phase 1 file was identified in that failure list.
+- Vite still emits the optional `fontaine` and large-chunk warnings.
+- The mandatory architecture documentation set is incomplete in this repository: `ARCHITECTURE.md`, `ROLES_AND_PERMISSIONS.md`, `DOSSIER_WORKFLOW.md`, `DOCUMENT_TEMPLATE_SYSTEM.md`, `ARCHIVE_MANAGEMENT.md`, `FRONTEND_STRUCTURE.md`, and `DATABASE_STRUCTURE.md` are absent. This should be repaired before broad cross-module work.
+
+### Next Recommended Step
+
+- Begin the security foundation audit: tenant ownership coverage, policies, permission middleware, and protected private-file access. Keep each change small and backed by feature tests.
+
+## Tenant Authorization Foundation
+
+### What Was Built
+
+- Added a reusable company/branch query boundary in `CompanyContext`.
+- Added reusable tenant ownership checks for policies and applied them to Clients and Dossiers.
+- Scoped Client and Dossier lists, dashboard-style dossier location grouping, and dossier workspace option data to the authenticated user's company and optional branch.
+- Added controller authorization for Client and Dossier read, create, update, delete, and CIN scan actions.
+- Replaced the broad global `admin` authorization bypass with the explicit `super_admin` role. Standard admins retain their seeded permissions but are now still constrained to their tenant.
+- Added the `super_admin` role to the permission seeder.
+
+### Files Created
+
+- `app/Policies/ClientPolicy.php`
+- `app/Policies/DossierPolicy.php`
+- `app/Policies/Concerns/HandlesTenantAuthorization.php`
+- `tests/Feature/TenantAuthorizationTest.php`
+
+### Files Modified
+
+- `app/Services/CompanyContext.php`
+- `app/Policies/Concerns/HandlesFinanceAuthorization.php`
+- `app/Providers/AppServiceProvider.php`
+- `app/Http/Controllers/ClientController.php`
+- `app/Http/Controllers/DossierController.php`
+- `app/Services/Dossiers/DossierLocationGroupingService.php`
+- `database/seeders/RolesAndPermissionsSeeder.php`
+- `tests/Feature/CoreRuntimeSmokeTest.php`
+
+### Authorization Contract
+
+- Every tenant-owned query uses `CompanyContext::applyTo()`.
+- Users with a branch are restricted to their own branch.
+- Users without a branch may work across their assigned company's branches.
+- `super_admin` is the only role permitted to bypass policy checks globally.
+- `admin`, `manager`, and `staff` remain permission-driven and tenant-scoped.
+
+### Commands Run
+
+- `php artisan test --filter='(CoreRuntimeSmokeTest|TenantAuthorizationTest)' --stop-on-failure`
+- `php artisan test --stop-on-failure`
+- `npm.cmd run build`
+- `php artisan optimize:clear`
+- `php artisan db:seed --class=RolesAndPermissionsSeeder`
+- `git diff --check`
+
+### Verification
+
+- Focused runtime and tenant tests passed: 3 tests, 15 assertions.
+- Full backend suite passed: 80 tests, 264 assertions.
+- Production frontend build passed.
+- Cache clear and diff validation passed.
+
+### Next Recommended Step
+
+- Define the durable role matrix and replace broad legacy permissions (`manage clients`, `manage dossiers`, etc.) with granular view/create/update/delete permissions. Migrate policies module by module, beginning with Clients and Dossiers, and add denial tests for each role.
+
+## Clean Local Baseline And Mock Data Removal
+
+### What Was Built
+
+- Replaced the default demo-data seed chain with a clean baseline seed chain.
+- A fresh local install now creates only the ARCHI LBO tenant, Marrakech branch, roles, permissions, and five internal role accounts.
+- Removed automatic city, finance settings, finance template, client, dossier, task, inbox, calendar, archive, and sample document data from the baseline seed.
+- Changed the historical document-template data migration to a no-op so future fresh installs remain empty.
+- Removed confirmed-unreferenced frontend mock-data files and their legacy unused preview/dashboard components.
+
+### Baseline Accounts
+
+- `admin@archilbo.local` (`admin`)
+- `superadmin@archilbo.local` (`super_admin`)
+- `manager@archilbo.local` (`manager`)
+- `staff@archilbo.local` (`staff`)
+- `viewer@archilbo.local` (`viewer`)
+
+The local baseline seeder reads `LOCAL_BASELINE_PASSWORD` from `.env` when present and applies it to all baseline accounts. The repository keeps only the empty `LOCAL_BASELINE_PASSWORD=` placeholder in `.env.example`; no account password is committed to documentation or source control.
+
+### Files Created
+
+- `database/seeders/CompanyBaselineSeeder.php`
+
+### Files Modified
+
+- `database/seeders/AdminUserSeeder.php`
+- `database/seeders/DatabaseSeeder.php`
+- `database/migrations/2026_07_20_151950_add_new_document_templates_for_split_workflow.php`
+
+### Files Removed
+
+- Unused frontend mock datasets for clients, contracts, dashboard, documents, dossiers, finance, intermediaries, and planning.
+- Unused dashboard, finance, contract, and document preview components that only consumed those mock datasets.
+
+### Commands Run
+
+- `php artisan migrate:fresh --seed`
+- Database count verification via `php artisan tinker`
+- `npm.cmd run build`
+- `php artisan test --stop-on-failure`
+- `git diff --check`
+
+### Verification
+
+- Users: 5; roles: 5; permissions: 60.
+- Clients, dossiers, finance documents, payments, tasks, conversations, messages, calendar events, archive records, Project Design files, document templates, finance templates, and cities: 0.
+- Full backend suite passed: 80 tests, 264 assertions.
+- Production frontend build passed.
+
+### Next Recommended Step
+
+- Decide the full operational role matrix for Architect, Assistant, Accountant, Archive Manager, and Employee before creating production users for those roles. Then introduce granular module permissions with policy tests.
+
+## Login Visibility And Remember Session
+
+### What Was Built
+
+- Added an accessible password show/hide control to the login field using the HeroUI-backed `AppButton`.
+- Extended `AppTextField` with a reusable optional trailing-content slot.
+- Removed the stale hardcoded password hint from the login screen.
+- Added feature coverage confirming that login with `remember=true` persists Laravel's remember token.
+
+### Files Modified
+
+- `resources/js/components/ui/AppTextField.tsx`
+- `resources/js/pages/Auth/Login.tsx`
+
+### Files Created
+
+- `tests/Feature/RememberSessionTest.php`
+
+### Verification
+
+- `php artisan test --filter=RememberSessionTest --stop-on-failure` passed: 1 test, 6 assertions.
+- `npm.cmd run build` passed.
+- `git diff --check` passed.
+
+## Login Workspace Visual Refinement
+
+### What Was Built
+
+- Widened the desktop sign-in lane so the form has more comfortable reading and input space.
+- Reworked the desktop left panel around a dedicated ARCHI LBO architecture-workspace image, with accessible contrast overlays and a compact module summary.
+- Preserved the focused mobile sign-in layout; the visual panel remains desktop-only.
+
+### Files Created
+
+- `public/images/login-architecture-workspace.png`
+
+### Files Modified
+
+- `resources/js/pages/Auth/Login.tsx`
+
+### Verification
+
+- Pending frontend production build after the layout refinement.

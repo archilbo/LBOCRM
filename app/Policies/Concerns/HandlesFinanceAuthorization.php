@@ -2,19 +2,12 @@
 
 namespace App\Policies\Concerns;
 
-use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
-
 trait HandlesFinanceAuthorization
 {
-    protected function allowed(User $user, string $permission): bool
-    {
-        return $user->hasRole('admin') || $user->can('manage finance') || $user->can($permission);
-    }
+    use HandlesTenantAuthorization { allowed as tenantAllowed; }
 
-    protected function sameScope(User $user, Model $model): bool
+    protected function allowed(\App\Models\User $user, string $permission): bool
     {
-        return (int) $model->getAttribute('company_id') === (int) $user->company_id
-            && (! $user->branch_id || (int) $model->getAttribute('branch_id') === (int) $user->branch_id);
+        return $this->tenantAllowed($user, $permission) || $user->can('manage finance');
     }
 }

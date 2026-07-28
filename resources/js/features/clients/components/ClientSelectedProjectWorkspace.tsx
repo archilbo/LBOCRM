@@ -8,7 +8,6 @@ import {
     Landmark,
     Plus,
     ReceiptText,
-    ShieldCheck,
     UploadCloud,
 } from 'lucide-react';
 import { TabPanel } from 'react-aria-components';
@@ -178,11 +177,6 @@ export function ClientSelectedProjectWorkspace({
             return;
         }
 
-        if (step.key === 'rokhas') {
-            router.visit(`/authorizations?dossier_id=${project.id}`, { preserveScroll: true });
-            return;
-        }
-
         if (step.key === 'archive') {
             onCreateArchive?.();
             return;
@@ -194,11 +188,6 @@ export function ClientSelectedProjectWorkspace({
     function handleWorkflowRequirementAction({ step, requirement }: WorkflowRequirementActionContext) {
         if (step.key === 'contract') {
             onCreateContract?.({ step, requirement });
-            return;
-        }
-
-        if (step.key === 'rokhas' && requirement.key === 'rokhas_upload') {
-            router.visit(`/authorizations?dossier_id=${project.id}`, { preserveScroll: true });
             return;
         }
 
@@ -270,18 +259,6 @@ export function ClientSelectedProjectWorkspace({
                                 {project.contract
                                     ? `${project.contract.number} / ${project.contract.status} / ${money(project.contract.ttc, currency)}`
                                     : 'No contract linked.'}
-                            </p>
-                        </div>
-
-                        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
-                            <div className="flex items-center gap-2">
-                                <ShieldCheck size={15} className="text-[var(--crm-accent)]" />
-                                <h3 className="text-sm font-black">Authorization</h3>
-                            </div>
-                            <p className="mt-3 text-sm text-[var(--crm-muted)]">
-                                {project.authorization
-                                    ? `${project.authorization.status} / ${project.authorization.authorityName || '-'}`
-                                    : 'No authorization linked.'}
                             </p>
                         </div>
 
@@ -372,14 +349,6 @@ export function ClientSelectedProjectWorkspace({
 
                 <TabPanel id="records" className="outline-none">
                     <div className="mb-5 grid gap-5 xl:grid-cols-3">
-                        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
-                            <h3 className="text-sm font-black">Authorization</h3>
-                            <p className="mt-3 text-sm text-[var(--crm-muted)]">
-                                {project.authorization
-                                    ? `${project.authorization.status} / ${project.authorization.submissionNumber || '-'} / ${project.authorization.authorizationNumber || '-'}`
-                                    : 'No authorization linked.'}
-                            </p>
-                        </div>
                         <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
                             <h3 className="text-sm font-black">Archive</h3>
                             <p className="mt-3 text-sm text-[var(--crm-muted)]">

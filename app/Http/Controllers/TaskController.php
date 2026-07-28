@@ -47,7 +47,7 @@ class TaskController extends Controller
             'comments.user',
             'attachments.user',
             'activityLogs.user',
-            'dossier', 'client', 'document', 'financeDocument', 'contract', 'authorization', 'archiveRecord',
+            'dossier', 'client', 'document', 'financeDocument', 'contract', 'archiveRecord',
         ]);
         $task->loadCount(['comments', 'attachments']);
 
@@ -66,7 +66,7 @@ class TaskController extends Controller
             'comments.user',
             'attachments.user',
             'activityLogs.user',
-            'dossier', 'client', 'document', 'financeDocument', 'contract', 'authorization', 'archiveRecord',
+            'dossier', 'client', 'document', 'financeDocument', 'contract', 'archiveRecord',
         ]);
         $task->loadCount(['comments', 'attachments']);
 

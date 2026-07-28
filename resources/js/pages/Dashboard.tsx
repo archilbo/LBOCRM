@@ -14,7 +14,6 @@ import {
     Plus,
     ReceiptText,
     RefreshCw,
-    ShieldCheck,
     UploadCloud,
     UserRound,
     WalletCards,
@@ -32,7 +31,6 @@ type ChipColor = 'default' | 'accent' | 'success' | 'warning' | 'danger';
 const iconMap: Record<DashboardIconKey, ComponentType<{ size?: number; className?: string }>> = {
     projects: FolderKanban,
     documents: FileCheck2,
-    authorizations: ShieldCheck,
     invoices: ReceiptText,
     payments: WalletCards,
     tasks: ListChecks,
@@ -88,7 +86,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
         urgentTaskList,
         recentMessageList,
     } = commandCenter;
-    const primaryKpis = kpis.filter((kpi) => ['activeProjects', 'missingDocuments', 'pendingAuthorizations', 'unpaidInvoices', 'todayPayments'].includes(kpi.key));
+    const primaryKpis = kpis.filter((kpi) => ['activeProjects', 'missingDocuments', 'unpaidInvoices', 'todayPayments'].includes(kpi.key));
     const signalKpis = kpis.filter((kpi) => ['blockedDossiers', 'myTasks', 'pendingReviewTasks', 'unreadMessages'].includes(kpi.key));
     const focusAction = nextActions[0];
     const queuedActions = nextActions.length > 1 ? nextActions.slice(1, 5) : nextActions.slice(0, 4);

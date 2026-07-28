@@ -43,7 +43,6 @@ class TaskResource extends JsonResource
             'dossierDocumentId' => $this->dossier_document_id,
             'financeDocumentId' => $this->finance_document_id,
             'contractId' => $this->contract_id,
-            'authorizationId' => $this->authorization_id,
             'archiveRecordId' => $this->archive_record_id,
             'conversationId' => $this->conversation_id,
             'dossier' => $this->whenLoaded('dossier', fn () => ['id' => $this->dossier->id, 'number' => $this->dossier->dossier_number, 'object' => $this->dossier->project_object]),

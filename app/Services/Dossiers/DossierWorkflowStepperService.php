@@ -11,7 +11,7 @@ class DossierWorkflowStepperService
 {
     public function evaluate(Dossier $dossier): array
     {
-        $dossier->loadMissing(['documents.template', 'contract', 'authorization', 'workflowRequirements.checkedBy']);
+        $dossier->loadMissing(['documents.template', 'contract', 'workflowRequirements.checkedBy']);
 
         $steps = collect(config('archilbo_workflow.client_project_steps', []))
             ->map(fn (array $step, int $index) => $this->evaluateStep($dossier, $step, $index))
@@ -123,9 +123,7 @@ class DossierWorkflowStepperService
             'cahier_chantier.engineer_request' => $this->hasDocument($dossier, ['demande ingenieur', 'centre ingenieur', 'cahier chantier demande']),
             'cahier_chantier.cahier_received' => $this->hasDocument($dossier, ['cahier de chantier', 'cahier chantier']),
 
-            'rokhas.rokhas_upload' => in_array($dossier->authorization?->status, ['submitted', 'under_review', 'approved', 'authorization_received'], true)
-                || filled($dossier->authorization?->submission_number)
-                || filled($dossier->authorization?->submitted_at),
+            'rokhas.rokhas_upload' => $this->hasDocument($dossier, ['rokhas', 'depot dossier', 'recepisse depot']),
             'rokhas.fiche_energetique' => $this->hasDocument($dossier, ['fiche energetique', 'efficacite energetique', 'efficacite energetic']),
 
             'bureau_etude.contract_bureau_etude' => $this->hasDocument($dossier, ['contrat bureau etude', 'contract bureau etude']),
@@ -234,7 +232,7 @@ class DossierWorkflowStepperService
             'documents' => 'Ouvrir les documents',
             'contract' => 'Ouvrir les contrats',
             'cahier_chantier' => 'Ajouter documents cahier',
-            'rokhas' => 'Ouvrir autorisations',
+            'rokhas' => 'Ouvrir les documents Rokhas',
             'bureau_etude' => 'Ajouter documents techniques',
             'permis_habiter' => 'Ajouter documents permis',
             'archive' => 'Creer / ouvrir archive',
@@ -246,7 +244,7 @@ class DossierWorkflowStepperService
     {
         return match ($step) {
             'contract' => route('contracts.index', ['dossier_id' => $dossier->id]),
-            'rokhas' => route('authorizations.index', ['dossier_id' => $dossier->id]),
+            'rokhas' => route('documents.index', ['dossier_id' => $dossier->id]),
             'archive' => route('archives.index', ['dossier_id' => $dossier->id]),
             default => route('documents.index', ['dossier_id' => $dossier->id]),
         };
@@ -258,7 +256,7 @@ class DossierWorkflowStepperService
             'contract.contract_created' => 'Creer contrat',
             'contract.contract_generated' => 'Generer contrat',
             'contract.contract_signed' => 'Marquer signe',
-            'rokhas.rokhas_upload' => 'Suivre Rokhas',
+            'rokhas.rokhas_upload' => 'Televerser le dossier Rokhas',
             'archive.documents_verified' => null,
             'archive.archive_created' => $dossier->archiveRecord ? 'Ouvrir la fiche d archive' : 'Creer la fiche d archive',
             'archive.file_stored' => 'Ouvrir la fiche d archive',
@@ -270,7 +268,7 @@ class DossierWorkflowStepperService
     {
         return match ($step . '.' . $requirement) {
             'contract.contract_created', 'contract.contract_generated', 'contract.contract_signed' => route('contracts.index', ['dossier_id' => $dossier->id]),
-            'rokhas.rokhas_upload' => route('authorizations.index', ['dossier_id' => $dossier->id]),
+            'rokhas.rokhas_upload' => route('documents.index', ['dossier_id' => $dossier->id]),
             'archive.documents_verified' => null,
             'archive.archive_created', 'archive.file_stored' => route('archives.index', ['dossier_id' => $dossier->id]),
             default => route('documents.index', ['dossier_id' => $dossier->id]),

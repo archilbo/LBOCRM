@@ -9,8 +9,6 @@ use Illuminate\Http\Request;
 
 class TaskQueryService
 {
-    public function __construct(protected TaskRequestService $taskRequests) {}
-
     public function indexPayload(Request $request): array
     {
         $user = $request->user();
@@ -76,9 +74,6 @@ class TaskQueryService
                 'priorities' => config('archilbo_operations.task_priorities', []),
                 'impacts' => config('archilbo_operations.task_impacts', []),
             ],
-            'taskRequestTypes' => config('archilbo_operations.task_request_types', []),
-            'taskRequestTypeLabels' => config('archilbo_operations.task_request_type_labels', []),
-            'taskRequestOptions' => $this->taskRequests->formOptions(),
         ];
     }
 }

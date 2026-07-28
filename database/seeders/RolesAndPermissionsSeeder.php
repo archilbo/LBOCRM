@@ -14,13 +14,16 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
+        Permission::query()
+            ->whereIn('name', ['manage authorizations', 'view task requests', 'manage task requests'])
+            ->delete();
+
         $permissions = [
             'view dashboard',
             'manage clients',
             'manage dossiers',
             'manage documents',
             'manage contracts',
-            'manage authorizations',
             'manage finance',
             'finance.view',
             'finance.documents.create',
@@ -44,8 +47,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage archives',
             'view tasks',
             'manage tasks',
-            'view task requests',
-            'manage task requests',
             'view inbox',
             'manage inbox',
             'view notifications',
@@ -89,6 +90,11 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $admin = Role::query()->firstOrCreate([
             'name' => 'admin',
+            'guard_name' => 'web',
+        ]);
+
+        $superAdmin = Role::query()->firstOrCreate([
+            'name' => 'super_admin',
             'guard_name' => 'web',
         ]);
 
@@ -140,6 +146,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ->get();
 
         $admin->syncPermissions(Permission::all());
+        $superAdmin->syncPermissions(Permission::all());
 
         $manager->syncPermissions(
             $permissionModels->whereIn('name', array_merge([
@@ -148,7 +155,6 @@ class RolesAndPermissionsSeeder extends Seeder
                 'manage dossiers',
                 'manage documents',
                 'manage contracts',
-                'manage authorizations',
                 'manage finance',
                 'finance.view',
                 'finance.documents.create',
@@ -172,8 +178,6 @@ class RolesAndPermissionsSeeder extends Seeder
                 'manage archives',
                 'view tasks',
                 'manage tasks',
-                'view task requests',
-                'manage task requests',
                 'view inbox',
                 'manage inbox',
                 'view notifications',
@@ -191,7 +195,6 @@ class RolesAndPermissionsSeeder extends Seeder
                 'manage dossiers',
                 'manage documents',
                 'manage contracts',
-                'manage authorizations',
                 'finance.view',
                 'finance.documents.create',
                 'finance.documents.update',
@@ -204,8 +207,6 @@ class RolesAndPermissionsSeeder extends Seeder
                 'manage archives',
                 'view tasks',
                 'manage tasks',
-                'view task requests',
-                'manage task requests',
                 'view inbox',
                 'manage inbox',
                 'view notifications',

@@ -76,11 +76,11 @@ type PermissionsState = Record<string, ModulePerm>;
 const ROLE_DEFAULTS: Record<string, PermissionsState> = {
     admin: Object.fromEntries(MODULES.map((m) => [m, { access: 'delete' as PermissionLevel, scope: (SCOPE_MODULES.has(m) ? 'all' : 'none') as PermissionScope }])),
     manager: Object.fromEntries(MODULES.map((m) => {
-        if (m === 'Finance' || m === 'Contracts' || m === 'Authorizations' || m === 'Archives') return [m, { access: 'view' as PermissionLevel, scope: (SCOPE_MODULES.has(m) ? 'all' : 'none') as PermissionScope }];
+        if (m === 'Finance' || m === 'Contracts' || m === 'Archives') return [m, { access: 'view' as PermissionLevel, scope: (SCOPE_MODULES.has(m) ? 'all' : 'none') as PermissionScope }];
         return [m, { access: 'edit' as PermissionLevel, scope: (SCOPE_MODULES.has(m) ? 'all' : 'none') as PermissionScope }];
     })),
     staff: Object.fromEntries(MODULES.map((m) => {
-        if (m === 'Finance' || m === 'Contracts' || m === 'Authorizations' || m === 'Archives') return [m, { access: 'view' as PermissionLevel, scope: (SCOPE_MODULES.has(m) ? 'assigned_only' : 'none') as PermissionScope }];
+        if (m === 'Finance' || m === 'Contracts' || m === 'Archives') return [m, { access: 'view' as PermissionLevel, scope: (SCOPE_MODULES.has(m) ? 'assigned_only' : 'none') as PermissionScope }];
         return [m, { access: 'edit' as PermissionLevel, scope: (SCOPE_MODULES.has(m) ? 'assigned_only' : 'none') as PermissionScope }];
     })),
     viewer: Object.fromEntries(MODULES.map((m) => [m, { access: 'view' as PermissionLevel, scope: (SCOPE_MODULES.has(m) ? 'all' : 'none') as PermissionScope }])),

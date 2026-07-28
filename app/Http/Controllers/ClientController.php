@@ -11,6 +11,7 @@ use App\Models\DocumentTemplate;
 use App\Models\FinanceTemplate;
 use App\Models\Intermediary;
 use App\Services\Clients\ClientWorkspaceService;
+use App\Services\CompanyContext;
 use App\Services\Finance\FinanceContextService;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\GeminiOcrService;
@@ -23,22 +24,26 @@ use App\Models\City;
 
 class ClientController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request, CompanyContext $companyContext): Response
     {
-        $clients = Client::query()
+        $this->authorize('viewAny', Client::class);
+
+        $clients = $companyContext->applyTo(Client::query(), $request->user())
             ->with('intermediary')
             ->withCount('dossiers')
             ->latest()
             ->get();
 
+        $clientScope = fn () => $companyContext->applyTo(Client::query(), $request->user());
+
         return Inertia::render('Clients/Index', [
             'clients' => ClientResource::collection($clients)->resolve(),
             'intermediaries' => $this->intermediaryOptions(),
             'metrics' => [
-                'total' => Client::count(),
-                'active' => Client::where('status', 'active')->count(),
-                'inactive' => Client::where('status', 'inactive')->count(),
-                'archived' => Client::where('status', 'archived')->count(),
+                'total' => $clientScope()->count(),
+                'active' => $clientScope()->where('status', 'active')->count(),
+                'inactive' => $clientScope()->where('status', 'inactive')->count(),
+                'archived' => $clientScope()->where('status', 'archived')->count(),
             ],
         ]);
     }
@@ -50,6 +55,8 @@ class ClientController extends Controller
         FinanceContextService $financeContext,
     ): Response
     {
+        $this->authorize('view', $client);
+
         $client->load(['intermediary', 'dossiers'])->loadCount('dossiers');
         $selectedDossierId = $request->integer('dossier_id') ?: null;
 
@@ -111,9 +118,11 @@ class ClientController extends Controller
 
     public function store(StoreClientRequest $request, FinanceContextService $financeContext): RedirectResponse
     {
+        $this->authorize('create', Client::class);
+
         $data = $this->prepareClientData($request->validated());
-        $data['client_number'] = $this->nextClientNumber();
         $data = [...$financeContext->payload($request->user()), ...$data];
+        $data['client_number'] = $this->nextClientNumber($data['company_id']);
 
         Client::create($data);
 
@@ -124,6 +133,8 @@ class ClientController extends Controller
 
     public function update(UpdateClientRequest $request, Client $client): RedirectResponse
     {
+        $this->authorize('update', $client);
+
         $client->update($this->prepareClientData($request->validated()));
 
         return redirect()
@@ -133,6 +144,8 @@ class ClientController extends Controller
 
     public function destroy(Client $client): RedirectResponse
     {
+        $this->authorize('delete', $client);
+
         $client->delete();
 
         return redirect()
@@ -142,6 +155,8 @@ class ClientController extends Controller
 
     public function scanCin(ScanCinRequest $request, GeminiOcrService $ocrService): JsonResponse
     {
+        $this->authorize('create', Client::class);
+
         $result = $ocrService->extractBoth(
             $request->file('front_image')->getRealPath(),
             $request->file('back_image')->getRealPath(),
@@ -170,10 +185,10 @@ class ClientController extends Controller
         return $data;
     }
 
-    private function nextClientNumber(): string
+    private function nextClientNumber(int $companyId): string
     {
         $year = now()->format('Y');
-        $next = Client::count() + 1;
+        $next = Client::query()->where('company_id', $companyId)->count() + 1;
 
         do {
             $number = sprintf('CL-%s-%04d', $year, $next);

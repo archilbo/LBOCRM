@@ -24,7 +24,6 @@ export const dossierWorkflowOptions: SelectOption[] = [
     { id: 'bureau_etude', label: 'Bureau Etude' },
     { id: 'documents', label: 'Documents' },
     { id: 'contract', label: 'Contract' },
-    { id: 'authorization', label: 'Authorization' },
     { id: 'finance', label: 'Finance' },
     { id: 'archive', label: 'Archive' },
 ];
@@ -89,7 +88,6 @@ export function getDossierReadiness(dossier: DossierRow): DossierReadinessItem[]
         { key: 'client', label: 'Client', done: true },
         { key: 'documents', label: 'Docs', done: dossier.documentsCount > 0 },
         { key: 'contract', label: 'Contract', done: dossier.hasContract },
-        { key: 'authorization', label: 'Auth', done: dossier.hasAuthorization },
         { key: 'finance', label: 'Finance', done: dossier.financeRecordsCount > 0 },
         { key: 'archive', label: 'Archive', done: dossier.hasArchiveRecord },
     ];

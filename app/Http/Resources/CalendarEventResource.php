@@ -32,7 +32,6 @@ class CalendarEventResource extends JsonResource
             'dossierDocumentId' => $this->dossier_document_id,
             'financeDocumentId' => $this->finance_document_id,
             'contractId' => $this->contract_id,
-            'authorizationId' => $this->authorization_id,
             'archiveRecordId' => $this->archive_record_id,
             'participants' => CalendarParticipantResource::collection($this->whenLoaded('participants')),
             'reminders' => CalendarReminderResource::collection($this->whenLoaded('reminders')),

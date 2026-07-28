@@ -12,6 +12,7 @@ type AppTextFieldProps = Omit<TextFieldProps, 'children'> & {
     description?: string;
     error?: string;
     icon?: ReactNode;
+    endContent?: ReactNode;
     placeholder?: string;
     size?: 'sm' | 'md';
 };
@@ -21,6 +22,7 @@ export function AppTextField({
     description,
     error,
     icon,
+    endContent,
     placeholder,
     className,
     size = 'md',
@@ -48,6 +50,12 @@ export function AppTextField({
                     </div>
                 ) : null}
 
+                {endContent ? (
+                    <div className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2">
+                        {endContent}
+                    </div>
+                ) : null}
+
                 <Input
                     placeholder={placeholder}
                     className={[
@@ -57,6 +65,7 @@ export function AppTextField({
                         'focus:border-[var(--accent)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)]',
                         'group-data-[invalid]:border-[var(--danger)] group-data-[invalid]:ring-4 group-data-[invalid]:ring-[color-mix(in_srgb,var(--danger)_12%,transparent)]',
                         icon ? 'pl-9' : '',
+                        endContent ? 'pr-10' : '',
                     ].join(' ')}
                 />
             </div>

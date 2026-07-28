@@ -32,7 +32,6 @@ class CalendarTaskSyncService
             'dossier_document_id' => $event->dossier_document_id,
             'finance_document_id' => $event->finance_document_id,
             'contract_id' => $event->contract_id,
-            'authorization_id' => $event->authorization_id,
             'archive_record_id' => $event->archive_record_id,
         ]);
 
@@ -78,7 +77,6 @@ class CalendarTaskSyncService
         return match ($type) {
             'client_follow_up' => 'client_follow_up',
             'finance_follow_up' => 'finance',
-            'authorization_follow_up' => 'authorization',
             'contract_follow_up' => 'contract',
             'archive_follow_up' => 'archive',
             'meeting', 'deadline', 'task' => 'general_admin',
