@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreIntermediaryRequest;
 use App\Http\Requests\UpdateIntermediaryRequest;
 use App\Http\Resources\IntermediaryResource;
+use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Dossier;
 use App\Models\Intermediary;
@@ -163,7 +164,16 @@ class IntermediaryController extends Controller
         $data['type'] = $data['type'] ?? 'person';
         $data['is_active'] = $data['is_active'] ?? true;
 
-        Intermediary::create($data);
+        $intermediary = Intermediary::create($data);
+
+        AuditLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'intermediary.created',
+            'description' => "Created intermediary {$intermediary->name}",
+            'auditable_type' => Intermediary::class,
+            'auditable_id' => $intermediary->id,
+            'created_at' => now(),
+        ]);
 
         return redirect()
             ->route('intermediaries.index')
@@ -179,6 +189,15 @@ class IntermediaryController extends Controller
         $data['is_active'] = $data['is_active'] ?? false;
 
         $intermediary->update($data);
+
+        AuditLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'intermediary.updated',
+            'description' => "Updated intermediary {$intermediary->name}",
+            'auditable_type' => Intermediary::class,
+            'auditable_id' => $intermediary->id,
+            'created_at' => now(),
+        ]);
 
         return redirect()
             ->route('intermediaries.index')
@@ -246,6 +265,7 @@ class IntermediaryController extends Controller
                 subjectCode: $intermediary->code,
                 occurredAt: $intermediary->updated_at,
                 href: null,
+                causerName: $this->causerFor(Intermediary::class, $intermediary->id),
             ));
         }
 
@@ -258,6 +278,7 @@ class IntermediaryController extends Controller
                     subjectCode: $client->client_number,
                     occurredAt: $client->created_at,
                     href: route('clients.show', $client, false),
+                    causerName: $this->causerFor(Client::class, $client->id),
                 ));
             }
 
@@ -269,6 +290,7 @@ class IntermediaryController extends Controller
                     subjectCode: $client->client_number,
                     occurredAt: $client->updated_at,
                     href: route('clients.show', $client, false),
+                    causerName: $this->causerFor(Client::class, $client->id),
                 ));
             }
         }
@@ -284,6 +306,7 @@ class IntermediaryController extends Controller
                     subjectCode: $project->dossier_number,
                     occurredAt: $project->created_at,
                     href: route('dossiers.show', $project, false),
+                    causerName: $this->causerFor(Dossier::class, $project->id),
                 ));
             }
 
@@ -295,6 +318,7 @@ class IntermediaryController extends Controller
                     subjectCode: $project->dossier_number,
                     occurredAt: $project->updated_at,
                     href: route('dossiers.show', $project, false),
+                    causerName: $this->causerFor(Dossier::class, $project->id),
                 ));
             }
         }
@@ -305,6 +329,16 @@ class IntermediaryController extends Controller
             ->values();
     }
 
+    private function causerFor(string $modelClass, int $modelId): ?string
+    {
+        return AuditLog::where('auditable_type', $modelClass)
+            ->where('auditable_id', $modelId)
+            ->whereHas('user')
+            ->latest('created_at')
+            ->first()
+            ?->user?->name;
+    }
+
     private function activityItem(
         string $id,
         string $type,
@@ -312,6 +346,7 @@ class IntermediaryController extends Controller
         ?string $subjectCode,
         $occurredAt,
         ?string $href,
+        ?string $causerName = null,
     ): array {
         return [
             'id' => $id,
@@ -321,6 +356,7 @@ class IntermediaryController extends Controller
             'occurredAt' => $occurredAt->toIso8601String(),
             'occurredAtHuman' => $occurredAt->diffForHumans(),
             'href' => $href,
+            'causerName' => $causerName,
         ];
     }
 

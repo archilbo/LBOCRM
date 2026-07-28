@@ -21,6 +21,7 @@ type Props = {
     actions: Array<FinanceRowAction | false | null | undefined>;
     visibleCount?: number;
     className?: string;
+    buttonClassName?: string;
 };
 
 const buttonTone = {
@@ -30,7 +31,7 @@ const buttonTone = {
     danger: 'delete',
 } as const;
 
-export function FinanceRowActions({ actions, visibleCount = 2, className }: Props) {
+export function FinanceRowActions({ actions, visibleCount = 2, className, buttonClassName }: Props) {
     const available = actions.filter((action): action is FinanceRowAction => Boolean(action));
     const visible = available.slice(0, visibleCount);
     const overflow = available.slice(visibleCount);
@@ -55,6 +56,7 @@ export function FinanceRowActions({ actions, visibleCount = 2, className }: Prop
                         tone={buttonTone[action.tone || 'default']}
                         onPress={action.onPress}
                         isDisabled={action.isDisabled}
+                        className={buttonClassName}
                     >
                         {action.icon}
                     </AppTableActionButton>
@@ -64,7 +66,7 @@ export function FinanceRowActions({ actions, visibleCount = 2, className }: Prop
                     <Dropdown>
                         <Dropdown.Trigger
                             aria-label="Plus d actions"
-                            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] outline-none transition hover:border-[color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:bg-[var(--surface-2)] hover:text-[var(--accent)] data-[open]:border-[var(--accent)] data-[open]:text-[var(--accent)]"
+                            className={cn('inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] outline-none transition hover:border-[color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:bg-[var(--surface-2)] hover:text-[var(--accent)] data-[open]:border-[var(--accent)] data-[open]:text-[var(--accent)]', buttonClassName)}
                         >
                             <MoreHorizontal size={14} />
                         </Dropdown.Trigger>

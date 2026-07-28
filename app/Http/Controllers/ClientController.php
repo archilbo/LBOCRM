@@ -6,6 +6,7 @@ use App\Http\Requests\ScanCinRequest;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\ClientResource;
+use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\DocumentTemplate;
 use App\Models\FinanceTemplate;
@@ -127,7 +128,16 @@ class ClientController extends Controller
         $data = [...$financeContext->payload($request->user()), ...$data];
         $data['client_number'] = $this->nextClientNumber($data['company_id']);
 
-        Client::create($data);
+        $client = Client::create($data);
+
+        AuditLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'client.created',
+            'description' => "Created client {$client->full_name}",
+            'auditable_type' => Client::class,
+            'auditable_id' => $client->id,
+            'created_at' => now(),
+        ]);
 
         return redirect()
             ->route('clients.index')
@@ -143,6 +153,15 @@ class ClientController extends Controller
         unset($data['return_to']);
 
         $client->update($this->prepareClientData($data));
+
+        AuditLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'client.updated',
+            'description' => "Updated client {$client->full_name}",
+            'auditable_type' => Client::class,
+            'auditable_id' => $client->id,
+            'created_at' => now(),
+        ]);
 
         if ($this->isSafeLocalReturnPath($returnTo)) {
             return redirect()

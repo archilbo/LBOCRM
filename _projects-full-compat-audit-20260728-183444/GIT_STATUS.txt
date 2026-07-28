@@ -1,0 +1,26 @@
+﻿ M app/Http/Controllers/ClientController.php
+ M app/Http/Controllers/DossierController.php
+ M app/Http/Controllers/IntermediaryController.php
+ M resources/js/components/ui/AppTableActionButton.tsx
+ M resources/js/features/clients/components/ClientFinanceTab.tsx
+ M resources/js/features/finance/components/FinanceDocumentActions.tsx
+ M resources/js/features/finance/components/FinanceRowActions.tsx
+ M resources/js/features/finance/components/FinanceTabs.tsx
+ M resources/js/features/intermediaries/types.ts
+ M resources/js/pages/Admin/Users/Index.tsx
+ M resources/js/pages/Clients/Show.tsx
+ M resources/js/pages/Intermediaries/Show.tsx
+?? .repair-backups/intermediary-show-workspace-v1-1-20260728-163543/
+?? .repair-backups/intermediary-show-workspace-v1-2-20260728-163910/
+?? .repair-backups/intermediary-show-workspace-v1-20260728-162957/
+?? .repair-backups/intermediary-show-workspace-v1-3-20260728-164240/
+?? .repair-backups/intermediary-show-workspace-v1-4-20260728-164654/
+?? ARCHI_LBO_PROJECTS_WORKSPACE_V1_1_9557060.zip
+?? ARCHI_LBO_PROJECTS_WORKSPACE_V1_4284DBF.zip
+?? _projects-compat-audit-20260728-182637.zip
+?? _projects-compat-audit-20260728-182637/
+?? _projects-full-compat-audit-20260728-183444/
+?? _projects-workspace-v1-1/
+?? _projects-workspace-v1/
+?? collect-projects-full-compat-audit-v2.ps1
+?? resources/js/components/ui/AppWorkspaceTabs.tsx

@@ -1,0 +1,8 @@
+﻿"Path","SHA256"
+"resources/js/components/ui/AppWorkspaceTabs.tsx","3753465b979826934212f51678c487cec93485acd99abf0b0e874109d881cf11"
+"resources/js/features/finance/components/FinanceTabs.tsx","3ebf0b49d24ba36bd9e821334eadbb5d4f8210e59ee05e5d81586008e00c3fc8"
+"resources/js/pages/Intermediaries/Show.tsx","f73cafe6744c13208f89978c5c7265a461ac6ab658514ea27afebf756c5f4197"
+"resources/js/pages/Dossiers/Index.tsx","8d6686e6c30727c016c6ed3afcee324778148365740da428fa0343e9b40a29fb"
+"resources/js/pages/Dossiers/Show.tsx","d1da4f9fdd59479e8dc4f22eba10f595f078f42f110e20288a826c3c92f02157"
+"resources/js/lib/i18n.ts","56ea53aaae0dbde179785da9014682243ed74f177a68b2cad24eefa1bb53a767"
+"resources/js/features/dossiers/types.ts","41700b5f7bcef6131f2ff0fa9bf66ccc2d99523b052d15ecbc8a2138074d129a"

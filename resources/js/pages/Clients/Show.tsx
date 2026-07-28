@@ -1,10 +1,12 @@
 import { Head, router } from '@inertiajs/react';
 import {
-    ArrowLeft, CheckCircle2, Download, ExternalLink, Eye, FileText, FolderKanban, FolderOpen, ListChecks, Mail, MapPin, Phone, Pencil, Plus, Printer, ReceiptText, Trash2, Upload,
+    ArrowLeft, CheckCircle2, Download, ExternalLink, Eye, FileText, FolderKanban, FolderOpen, History, LayoutDashboard, ListChecks, Mail, MapPin, Phone, Pencil, Plus, Printer, ReceiptText, Trash2, Upload,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { TabPanel } from 'react-aria-components';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppWorkspaceTabs } from '@/components/ui/AppWorkspaceTabs';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
@@ -94,18 +96,9 @@ function toBackendPayload(payload: ClientFormPayload, status: ClientStatus = 'ac
 
 type TabId = 'overview' | 'projects' | 'workflow' | 'documents' | 'finance' | 'notes' | 'activity';
 
-const TABS: { id: TabId; labelKey: string }[] = [
-    { id: 'overview', labelKey: 'clients.show.overview' },
-    { id: 'projects', labelKey: 'clients.show.projects' },
-    { id: 'workflow', labelKey: 'clients.show.workflow' },
-    { id: 'documents', labelKey: 'clients.show.documents' },
-    { id: 'finance', labelKey: 'clients.show.finance' },
-    { id: 'notes', labelKey: 'clients.show.notes' },
-    { id: 'activity', labelKey: 'clients.show.activity' },
-];
-
 function isClientTab(value: string | undefined): value is TabId {
-    return TABS.some((tab) => tab.id === value);
+    const validTabs: TabId[] = ['overview', 'projects', 'workflow', 'documents', 'finance', 'notes', 'activity'];
+    return validTabs.includes(value as TabId);
 }
 
 export default function ClientShow({ client, dossiers, workspace, cities, intermediaries, documentTemplates, financeTemplates, financeSettings, tab }: PageProps) {
@@ -150,6 +143,16 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
 
     const selectedProject = workspace?.selectedProject ?? null;
 
+    const tabs = useMemo(() => [
+        { id: 'overview', label: t('clients.show.overview'), icon: LayoutDashboard },
+        { id: 'projects', label: t('clients.show.projects'), icon: FolderKanban },
+        { id: 'workflow', label: t('clients.show.workflow'), icon: ListChecks },
+        { id: 'documents', label: t('clients.show.documents'), icon: FileText },
+        { id: 'finance', label: t('clients.show.finance'), icon: ReceiptText },
+        { id: 'notes', label: t('clients.show.notes'), icon: Pencil },
+        { id: 'activity', label: t('clients.show.activity'), icon: History },
+    ], [t]);
+
     useEffect(() => {
         setActiveTab(isClientTab(tab) ? tab : 'overview');
     }, [tab]);
@@ -164,10 +167,10 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
         return `/clients/${client.id}?${parameters.toString()}`;
     }
 
-    function selectTab(targetTab: TabId) {
-        setActiveTab(targetTab);
-
-        window.history.replaceState(window.history.state, '', clientWorkspacePath(targetTab));
+    function selectTab(targetTab: string) {
+        const safe = targetTab as TabId;
+        setActiveTab(safe);
+        window.history.replaceState(window.history.state, '', clientWorkspacePath(safe));
     }
 
     const financeReturnTo = clientWorkspacePath('finance');
@@ -670,26 +673,15 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     </div>
                 </div>
 
-                {/* ── Tabs ── */}
-                <div className="mb-5 overflow-x-auto">
-                    <div className="flex items-center gap-1 border-b border-[var(--border)] min-w-max">
-                        {TABS.map((tab) => (
-                            <button key={tab.id} type="button" onClick={() => selectTab(tab.id)}
-                                className={cn(
-                                    'relative flex items-center justify-center px-4 py-2.5 text-[13px] font-medium outline-none transition whitespace-nowrap',
-                                    activeTab === tab.id
-                                        ? 'text-[var(--accent)] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-[var(--accent)]'
-                                        : 'text-[var(--text-muted)] hover:text-[var(--foreground)]',
-                                )}>
-                                {t(tab.labelKey)}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* ── Tab content ── */}
-                <div className="min-h-[200px]">
-                    {activeTab === 'overview' && (
+                <AppWorkspaceTabs
+                    tabs={tabs}
+                    selectedKey={activeTab}
+                    onSelectionChange={selectTab}
+                    counts={{
+                        projects: projects.length,
+                    }}
+                >
+                    <TabPanel id="overview" className="outline-none">
                         <div className="space-y-4">
                             <div className="flex flex-wrap justify-end gap-1.5">
                         <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.newProject')} aria-label={t('clients.show.newProject')} onPress={() => { setProjectDrawerOpen(true); }}>
@@ -917,76 +909,9 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                             </div>
                         </div>
                         </div>
-                    )}
+                    </TabPanel>
 
-                    {activeTab === 'workflow' && (
-                        <div className="space-y-5">
-                            {projects.length > 1 && (
-                                <div>
-                                    <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.projectWorkflows')}</h3>
-                                    <p className="text-[11px] text-[var(--text-muted)] mb-3">{t('clients.show.selectProject')}</p>
-                                    <div className="flex gap-2 overflow-x-auto pb-1">
-                                        {projects.map((project) => {
-                                            const isSelected = selectedProject?.id === project.id;
-                                            return (
-                                                <button key={project.id} type="button" onClick={() => {
-                                                    if (selectedProject?.id !== project.id) openProjectWorkflow(project.id);
-                                                }} className={cn(
-                                                    'flex shrink-0 flex-col items-start gap-1 rounded-xl border p-3 min-w-[200px] text-left transition',
-                                                    isSelected ? 'border-[var(--accent)] bg-[var(--accent)]/5 ring-1 ring-[var(--accent)]/20' : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]',
-                                                )}>
-                                                    <div className="flex items-center gap-2 w-full">
-                                                        <p className="truncate text-[12px] font-medium text-[var(--foreground)] flex-1">
-                                                            {project.projectObject || project.dossierNumber}
-                                                        </p>
-                                                        <StatusPill label={project.status} size="sm"
-                                                            color={project.status === 'opened' || project.status === 'active' ? 'success' : 'default'} />
-                                                    </div>
-                                                    <p className="text-[10px] text-[var(--text-muted)]">{project.dossierNumber}</p>
-                                                    {isSelected && selectedProject?.workflow && (
-                                                        <div className="mt-1 w-full">
-                                                            <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)]">
-                                                                <span>{project.workflowStep}</span>
-                                                                <span>{selectedProject.workflow.percent}%</span>
-                                                            </div>
-                                                            <div className="mt-0.5 h-1 rounded-full bg-[var(--surface-3)] overflow-hidden">
-                                                                <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${selectedProject.workflow.percent}%` }} />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {isSelected && <span className="mt-1 text-[10px] font-medium text-[var(--accent)]">{t('common.active')}</span>}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {selectedProject && selectedProject.workflow ? (
-                                <AppWorkflowStepper
-                                    dossierId={selectedProject.id}
-                                    workflow={selectedProject.workflow}
-                                    onRequirementAction={handleWorkflowRequirementAction}
-                                    onStepAction={handleWorkflowStepAction}
-                                />
-                            ) : projects.length === 0 ? (
-                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
-                                    <AppEmptyState title={t('clients.show.noProjectWorkflow')} description={t('clients.show.noProjectWorkflowDesc')} />
-                                    <div className="mt-4 flex justify-center">
-                                <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.createProject')} aria-label={t('clients.show.createProject')} onPress={() => { setProjectDrawerOpen(true); }}>
-                                            <FolderKanban size={15} />
-                                        </AppButton>
-                                    </div>
-                                </div>
-                            ) : selectedProject && !selectedProject.workflow ? (
-                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
-                                    <AppEmptyState title={t('clients.show.noWorkflow')} description={t('clients.show.noWorkflowDesc')} />
-                                </div>
-                            ) : null}
-                        </div>
-                    )}
-
-                    {activeTab === 'projects' && (
+                    <TabPanel id="projects" className="outline-none">
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <p className="text-[13px] font-semibold text-[var(--foreground)]">
@@ -1066,9 +991,76 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                             </div>
                         )}
                         </div>
-                    )}
+                    </TabPanel>
 
-                    {activeTab === 'documents' && (
+                    <TabPanel id="workflow" className="outline-none">
+                        <div className="space-y-5">
+                            {projects.length > 1 && (
+                                <div>
+                                    <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.projectWorkflows')}</h3>
+                                    <p className="text-[11px] text-[var(--text-muted)] mb-3">{t('clients.show.selectProject')}</p>
+                                    <div className="flex gap-2 overflow-x-auto pb-1">
+                                        {projects.map((project) => {
+                                            const isSelected = selectedProject?.id === project.id;
+                                            return (
+                                                <button key={project.id} type="button" onClick={() => {
+                                                    if (selectedProject?.id !== project.id) openProjectWorkflow(project.id);
+                                                }} className={cn(
+                                                    'flex shrink-0 flex-col items-start gap-1 rounded-xl border p-3 min-w-[200px] text-left transition',
+                                                    isSelected ? 'border-[var(--accent)] bg-[var(--accent)]/5 ring-1 ring-[var(--accent)]/20' : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]',
+                                                )}>
+                                                    <div className="flex items-center gap-2 w-full">
+                                                        <p className="truncate text-[12px] font-medium text-[var(--foreground)] flex-1">
+                                                            {project.projectObject || project.dossierNumber}
+                                                        </p>
+                                                        <StatusPill label={project.status} size="sm"
+                                                            color={project.status === 'opened' || project.status === 'active' ? 'success' : 'default'} />
+                                                    </div>
+                                                    <p className="text-[10px] text-[var(--text-muted)]">{project.dossierNumber}</p>
+                                                    {isSelected && selectedProject?.workflow && (
+                                                        <div className="mt-1 w-full">
+                                                            <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)]">
+                                                                <span>{project.workflowStep}</span>
+                                                                <span>{selectedProject.workflow.percent}%</span>
+                                                            </div>
+                                                            <div className="mt-0.5 h-1 rounded-full bg-[var(--surface-3)] overflow-hidden">
+                                                                <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${selectedProject.workflow.percent}%` }} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {isSelected && <span className="mt-1 text-[10px] font-medium text-[var(--accent)]">{t('common.active')}</span>}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedProject && selectedProject.workflow ? (
+                                <AppWorkflowStepper
+                                    dossierId={selectedProject.id}
+                                    workflow={selectedProject.workflow}
+                                    onRequirementAction={handleWorkflowRequirementAction}
+                                    onStepAction={handleWorkflowStepAction}
+                                />
+                            ) : projects.length === 0 ? (
+                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
+                                    <AppEmptyState title={t('clients.show.noProjectWorkflow')} description={t('clients.show.noProjectWorkflowDesc')} />
+                                    <div className="mt-4 flex justify-center">
+                                <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.createProject')} aria-label={t('clients.show.createProject')} onPress={() => { setProjectDrawerOpen(true); }}>
+                                            <FolderKanban size={15} />
+                                        </AppButton>
+                                    </div>
+                                </div>
+                            ) : selectedProject && !selectedProject.workflow ? (
+                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
+                                    <AppEmptyState title={t('clients.show.noWorkflow')} description={t('clients.show.noWorkflowDesc')} />
+                                </div>
+                            ) : null}
+                        </div>
+                    </TabPanel>
+
+                    <TabPanel id="documents" className="outline-none">
                         <div className="space-y-5">
                             <div className="flex items-center justify-between">
                                 <p className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.documents')}</p>
@@ -1210,9 +1202,9 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                 </div>
                             )}
                         </div>
-                    )}
+                    </TabPanel>
 
-                    {activeTab === 'finance' && (
+                    <TabPanel id="finance" className="outline-none">
                         <ClientFinanceTab
                             project={selectedProject}
                             onCreateDocument={openFinanceCreate}
@@ -1227,9 +1219,9 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                 router.visit(`/finance/documents?dossier_id=${selectedProject.id}`);
                             }}
                         />
-                    )}
+                    </TabPanel>
 
-                    {activeTab === 'notes' && (
+                    <TabPanel id="notes" className="outline-none">
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.notes')}</h3>
@@ -1241,9 +1233,9 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                 {client.notes || t('clients.show.noNotes')}
                             </p>
                         </div>
-                    )}
+                    </TabPanel>
 
-                    {activeTab === 'activity' && (
+                    <TabPanel id="activity" className="outline-none">
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
                             {selectedProject ? (
                                 <>
@@ -1259,8 +1251,8 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                 <AppEmptyState title={t('clients.show.noActivity')} description={t('clients.show.noActivityDesc')} />
                             )}
                         </div>
-                    )}
-                </div>
+                    </TabPanel>
+                </AppWorkspaceTabs>
 
                 {/* ── Edit drawer ── */}
                 <ClientDrawer

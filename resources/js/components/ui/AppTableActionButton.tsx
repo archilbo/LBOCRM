@@ -11,6 +11,7 @@ type AppTableActionButtonProps = {
     children: ReactNode;
     onPress: () => void;
     isDisabled?: boolean;
+    className?: string;
 };
 
 const toneClasses: Record<AppTableActionTone, string> = {
@@ -28,6 +29,7 @@ export function AppTableActionButton({
     children,
     onPress,
     isDisabled,
+    className,
 }: AppTableActionButtonProps) {
     return (
         <Tooltip delay={500}>
@@ -40,6 +42,7 @@ export function AppTableActionButton({
                     'data-[focus-visible]:ring-2 data-[focus-visible]:ring-[var(--focus-ring)] data-[focus-visible]:ring-offset-2 data-[focus-visible]:ring-offset-[var(--surface)]',
                     'data-[pressed]:scale-95 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
                     toneClasses[tone],
+                    className,
                 )}
             >
                 {children}

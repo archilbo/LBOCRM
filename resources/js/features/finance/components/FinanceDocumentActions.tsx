@@ -46,8 +46,9 @@ type FinanceDocumentActionsProps = {
     handlers: FinanceDocumentActionHandlers;
     visibleCount?: number;
     className?: string;
+    buttonClassName?: string;
 };
 
-export function FinanceDocumentActions({ document, handlers, visibleCount = 2, className }: FinanceDocumentActionsProps) {
-    return <FinanceRowActions actions={createFinanceDocumentActions(document, handlers)} visibleCount={visibleCount} className={className} />;
+export function FinanceDocumentActions({ document, handlers, visibleCount = 2, className, buttonClassName }: FinanceDocumentActionsProps) {
+    return <FinanceRowActions actions={createFinanceDocumentActions(document, handlers)} visibleCount={visibleCount} className={className} buttonClassName={buttonClassName} />;
 }

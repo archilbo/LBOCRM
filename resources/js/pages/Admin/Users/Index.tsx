@@ -6,6 +6,8 @@ import {
     Briefcase,
     Building2,
     Check,
+    ChevronLeft,
+    ChevronRight,
     Download,
     EllipsisVertical,
     Eye,
@@ -26,15 +28,22 @@ import {
     Users,
     X,
 } from 'lucide-react';
+import { Button, Dropdown, Input, Select, SelectItem } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppModal } from '@/components/ui/AppModal';
+import { AppWorkspaceTable, type AppWorkspaceTableColumn } from '@/components/ui/AppWorkspaceTable';
+import { AppWorkspaceTabs } from '@/components/ui/AppWorkspaceTabs';
+import { TabPanel } from 'react-aria-components';
 import { cn } from '@/lib/cn';
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
+import type { AppWorkspaceTab } from '@/components/ui/AppWorkspaceTabs';
 import type { AdminUserRow, RoleOption } from '@/features/users/types';
 
 type PageProps = {
@@ -53,13 +62,13 @@ type ActivityLogEntry = {
 };
 
 const ROLE_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
-    admin: { bg: 'bg-red-500/10', text: 'text-red-400', dot: 'bg-red-400' },
-    manager: { bg: 'bg-violet-500/10', text: 'text-violet-400', dot: 'bg-violet-400' },
-    staff: { bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-400' },
-    viewer: { bg: 'bg-white/5', text: 'text-white/40', dot: 'bg-white/20' },
+    admin: { bg: 'bg-[var(--crm-danger-soft)]', text: 'text-[var(--crm-danger)]', dot: 'bg-[var(--crm-danger)]' },
+    manager: { bg: 'bg-[var(--crm-violet-soft)]', text: 'text-[var(--crm-violet)]', dot: 'bg-[var(--crm-violet)]' },
+    staff: { bg: 'bg-[var(--crm-info-soft)]', text: 'text-[var(--crm-info)]', dot: 'bg-[var(--crm-info)]' },
+    viewer: { bg: 'bg-[var(--crm-surface-2)]', text: 'text-[var(--crm-text-muted)]', dot: 'bg-[var(--crm-text-muted)]' },
 };
 
-const TABS: { id: TabId; label: string; icon: React.FC<{ size?: number; className?: string }> }[] = [
+const TABS: (AppWorkspaceTab & { id: TabId })[] = [
     { id: 'firm', label: 'Firm Profile', icon: Building2 },
     { id: 'users', label: 'User & Permissions', icon: UserCheck },
     { id: 'security', label: 'Security & Audit', icon: ShieldCheck },
@@ -138,34 +147,34 @@ function PermissionsMatrix({
     role: string;
 }) {
     const levels = [
-        { key: 'none' as PermissionLevel, label: 'None', dot: 'bg-white/15', glow: '' },
-        { key: 'view' as PermissionLevel, label: 'View', dot: 'bg-blue-400', glow: 'shadow-blue-400/40' },
-        { key: 'edit' as PermissionLevel, label: 'Edit', dot: 'bg-emerald-400', glow: 'shadow-emerald-400/40' },
-        { key: 'delete' as PermissionLevel, label: 'Delete', dot: 'bg-red-400', glow: 'shadow-red-400/40' },
+        { key: 'none' as PermissionLevel, label: 'None', dot: 'bg-[var(--crm-text-soft)]', glow: '' },
+        { key: 'view' as PermissionLevel, label: 'View', dot: 'bg-[var(--crm-info)]', glow: 'shadow-[var(--crm-info)]/40' },
+        { key: 'edit' as PermissionLevel, label: 'Edit', dot: 'bg-[var(--crm-success)]', glow: 'shadow-[var(--crm-success)]/40' },
+        { key: 'delete' as PermissionLevel, label: 'Delete', dot: 'bg-[var(--crm-danger)]', glow: 'shadow-[var(--crm-danger)]/40' },
     ];
 
     return (
-        <div className="rounded-lg border border-white/5 overflow-hidden">
+        <div className="rounded-lg border border-[var(--crm-border)] overflow-hidden">
             {/* Grid header */}
-            <div className="grid grid-cols-[1fr_56px_56px_56px_56px_80px] gap-0 bg-white/[0.02] px-4 py-2.5 border-b border-white/5">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/35">Module</span>
+            <div className="grid grid-cols-[1fr_56px_56px_56px_56px_80px] gap-0 bg-[var(--crm-surface-3)]/30 px-4 py-2.5 border-b border-[var(--crm-border)]">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)]">Module</span>
                 {levels.map(l => (
-                    <span key={l.key} className="text-[10px] font-semibold uppercase tracking-widest text-white/35 text-center">{l.label}</span>
+                    <span key={l.key} className="text-[10px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)] text-center">{l.label}</span>
                 ))}
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/35 text-center">Scope</span>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)] text-center">Scope</span>
             </div>
 
             {/* Module rows */}
-            <div className="divide-y divide-white/[0.02]">
+            <div className="divide-y divide-[var(--crm-border)]/40">
                 {MODULES.map((mod) => {
                     const p = perms[mod] ?? { access: 'none', scope: 'none' };
                     const isOverridden = ROLE_DEFAULTS[role] && p.access !== ROLE_DEFAULTS[role][mod]?.access;
                     return (
                         <div key={mod} className={cn(
                             'grid grid-cols-[1fr_56px_56px_56px_56px_80px] gap-0 px-4 py-2.5 items-center transition',
-                            isOverridden ? 'bg-amber-500/[0.04]' : 'hover:bg-white/[0.01]',
+                            isOverridden ? 'bg-[var(--crm-gold-soft)]' : 'hover:bg-[var(--crm-surface-hover)]',
                         )}>
-                            <span className="text-[13px] font-medium text-white/80">{mod}</span>
+                            <span className="text-[13px] font-medium text-[var(--crm-text)]/80">{mod}</span>
                             {levels.map(l => (
                                 <button key={l.key} type="button" onClick={() => onChange(mod, l.key)}
                                     className="flex items-center justify-center py-0.5 group">
@@ -173,20 +182,20 @@ function PermissionsMatrix({
                                         'rounded-full transition-all duration-150',
                                         p.access === l.key
                                             ? `size-3 ${l.dot} shadow-sm ${l.glow}`
-                                            : 'size-1.5 bg-white/15 group-hover:size-2.5 group-hover:bg-white/30',
+                                            : 'size-1.5 bg-[var(--crm-text-soft)] group-hover:size-2.5 group-hover:bg-[var(--crm-text-muted)]',
                                     )} />
                                 </button>
                             ))}
                             <div className="flex items-center justify-center">
                                 {SCOPE_MODULES.has(mod) ? (
-                                    <div className="flex items-center rounded-md text-[10px] font-semibold overflow-hidden border border-white/5 bg-white/[0.02]">
+                                    <div className="flex items-center rounded-md text-[10px] font-semibold overflow-hidden border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30">
                                         <button type="button" onClick={() => onScopeChange(mod, 'all')}
-                                            className={cn('px-2 py-0.5 transition', p.scope === 'all' ? 'bg-white/15 text-white/65' : 'text-white/30 hover:text-white/50')}>All</button>
+                                            className={cn('px-2 py-0.5 transition', p.scope === 'all' ? 'bg-[var(--crm-surface-2)] text-[var(--crm-text-muted)]' : 'text-[var(--crm-text-soft)] hover:text-[var(--crm-text-muted)]')}>All</button>
                                         <button type="button" onClick={() => onScopeChange(mod, 'assigned_only')}
-                                            className={cn('px-2 py-0.5 transition', p.scope === 'assigned_only' ? 'bg-white/15 text-white/65' : 'text-white/30 hover:text-white/50')}>Asgn</button>
+                                            className={cn('px-2 py-0.5 transition', p.scope === 'assigned_only' ? 'bg-[var(--crm-surface-2)] text-[var(--crm-text-muted)]' : 'text-[var(--crm-text-soft)] hover:text-[var(--crm-text-muted)]')}>Asgn</button>
                                     </div>
                                 ) : (
-                                    <span className="text-[10px] text-white/15">—</span>
+                                    <span className="text-[10px] text-[var(--crm-text-soft)]/40">—</span>
                                 )}
                             </div>
                         </div>
@@ -195,14 +204,11 @@ function PermissionsMatrix({
             </div>
 
             {/* Bottom toolbar */}
-            <div className="flex items-center justify-between px-4 py-3 bg-white/[0.01] border-t border-white/5">
-                <button type="button" onClick={onRestore}
-                    className="text-[11px] font-medium text-white/40 hover:text-white/70 transition">Restore Role Defaults</button>
+            <div className="flex items-center justify-between px-4 py-3 bg-[var(--crm-surface-3)]/30 border-t border-[var(--crm-border)]">
+                <AppButton variant="ghost" onPress={onRestore}>Restore Role Defaults</AppButton>
                 <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => onBatch('full')}
-                        className="rounded-md border border-emerald-500/20 px-3 py-1.5 text-[11px] font-semibold text-emerald-400 hover:bg-emerald-500/10 transition">Grant Full Access</button>
-                    <button type="button" onClick={() => onBatch('revoke')}
-                        className="rounded-md border border-red-500/20 px-3 py-1.5 text-[11px] font-semibold text-red-400 hover:bg-red-500/10 transition">Revoke All Access</button>
+                    <AppButton variant="bordered" color="success" compact onPress={() => onBatch('full')}>Grant Full Access</AppButton>
+                    <AppButton variant="bordered" color="danger" compact onPress={() => onBatch('revoke')}>Revoke All Access</AppButton>
                 </div>
             </div>
         </div>
@@ -241,8 +247,6 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
     // Refs for filter dropdown positioning
     const filterRef = useRef<HTMLDivElement>(null);
     const filterBtnRef = useRef<HTMLButtonElement>(null);
-
-    // ── derived data ──
     const filteredUsers = useMemo(() => {
         const q = query.trim().toLowerCase();
         return users.filter((user) => {
@@ -329,10 +333,10 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
 
     // ── KPI metrics ──
     const metrics = useMemo(() => [
-        { key: 'total', label: 'Total Users', value: users.length, icon: Users, color: 'text-amber-400' },
-        { key: 'online', label: 'Active Now', value: users.filter((u) => u.isOnline).length, icon: UserCheck, color: 'text-emerald-400' },
-        { key: 'admin', label: 'Admins', value: users.filter((u) => primaryRole(u) === 'admin').length, icon: ShieldAlert, color: 'text-red-400' },
-        { key: 'manager', label: 'Managers', value: users.filter((u) => primaryRole(u) === 'manager').length, icon: ShieldCheck, color: 'text-violet-400' },
+        { key: 'total', label: 'Total Users', value: users.length, icon: Users, color: 'text-[var(--crm-gold)]' },
+        { key: 'online', label: 'Active Now', value: users.filter((u) => u.isOnline).length, icon: UserCheck, color: 'text-[var(--crm-success)]' },
+        { key: 'admin', label: 'Admins', value: users.filter((u) => primaryRole(u) === 'admin').length, icon: ShieldAlert, color: 'text-[var(--crm-danger)]' },
+        { key: 'manager', label: 'Managers', value: users.filter((u) => primaryRole(u) === 'manager').length, icon: ShieldCheck, color: 'text-[var(--crm-violet)]' },
     ], [users]);
 
     const roleCounts = useMemo(() => ({
@@ -346,6 +350,106 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
     // ── Firm Profile state ──
     const [firmForm, setFirmForm] = useState({ name: 'ARCHI LBO', regNumber: 'NDIS 435678965', phone: '+212 5XX XX XX XX', address: '123 Avenue Mohammed V, Casablanca' });
 
+    // ── User table columns ──
+    const userColumns: AppWorkspaceTableColumn<AdminUserRow>[] = [
+        {
+            id: 'select',
+            label: (
+                <button type="button" onClick={toggleAll} className={cn('flex size-4 items-center justify-center rounded border transition', isAllSelected() ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)] hover:border-[var(--crm-text-muted)]')}>
+                    {isAllSelected() && <Check size={10} strokeWidth={3} className="text-black" />}
+                </button>
+            ),
+            headerClassName: 'w-12',
+            reorderable: false,
+            render: (user) => (
+                <div onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => toggleOne(user.id)} className={cn('flex size-4 items-center justify-center rounded border transition', selectedIds.has(user.id) ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)] hover:border-[var(--crm-text-muted)]')}>
+                        {selectedIds.has(user.id) && <Check size={10} strokeWidth={3} className="text-black" />}
+                    </button>
+                </div>
+            ),
+        },
+        {
+            id: 'name',
+            label: 'User Name',
+            render: (user) => (
+                <div className="flex items-center gap-3">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[11px] font-bold text-[var(--crm-gold)]">{initials(user.name)}</div>
+                    <div className="min-w-0">
+                        <p className="text-[13px] font-medium text-[var(--text)] truncate max-w-[180px]">{user.name}</p>
+                        <p className="text-[11px] text-[var(--text-muted)] truncate max-w-[180px]">{user.email}</p>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            id: 'email',
+            label: 'Email Address',
+            render: (user) => <span className="text-[12px] text-[var(--text-muted)]">{user.email}</span>,
+        },
+        {
+            id: 'role',
+            label: 'User Role',
+            render: (user) => {
+                const role = primaryRole(user);
+                const Icon = roleIcon(role);
+                const rs = ROLE_STYLES[role] || ROLE_STYLES.viewer;
+                return (
+                    <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold capitalize', rs.bg, rs.text)}>
+                        <span className={cn('size-1.5 rounded-full', rs.dot)} /><Icon size={12} />{role}
+                    </span>
+                );
+            },
+        },
+        {
+            id: 'status',
+            label: 'Status',
+            render: (user) => user.isOnline ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-success)]/20 bg-[var(--crm-success-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--crm-success)]">
+                    <span className="size-1.5 rounded-full bg-[var(--crm-success)]" />Online
+                </span>
+            ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">
+                    <span className="size-1.5 rounded-full bg-[var(--text-muted)]" />Offline
+                </span>
+            ),
+        },
+        {
+            id: 'created',
+            label: 'Add Date',
+            render: (user) => <span className="text-[12px] text-[var(--text-muted)] tabular-nums">{formatDate(user.createdAt)}</span>,
+        },
+        {
+            id: 'lastActive',
+            label: 'Last Active',
+            render: (user) => <span className="text-[12px] text-[var(--text-muted)] tabular-nums">{user.lastSeenAt ? formatDate(user.lastSeenAt) : '-'}</span>,
+        },
+        {
+            id: 'actions',
+            label: '',
+            headerClassName: 'w-10',
+            reorderable: false,
+            render: (user) => (
+                <div className="relative" onClick={(e) => e.stopPropagation()}>
+                    <AppButton isIconOnly variant="quiet" compact tooltip="Actions" onPress={() => setOpenActionId(openActionId === user.id ? null : user.id)}>
+                        <EllipsisVertical size={14} />
+                    </AppButton>
+                    {openActionId === user.id && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setOpenActionId(null)} />
+                            <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1.5 shadow-2xl">
+                                <AppButton variant="quiet" fullWidth className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { setOpenActionId(null); setViewProfileUser(user); }}><Eye size={14} />View Profile</AppButton>
+                                <AppButton variant="quiet" fullWidth className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { const role = primaryRole(user); const defaults = cloneDefaults(role); setOpenActionId(null); setEditUser(user); setEditRole(role); setEditPerms(defaults); setInitialPerms(JSON.parse(JSON.stringify(defaults))); setPendingEditAction(null); }}><PenLine size={14} />Edit Details</AppButton>
+                                <div className="mx-2 my-1 h-px bg-[var(--border)]" />
+                                <AppButton variant="quiet" fullWidth color="danger" className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { setOpenActionId(null); setDeleteTarget(user); }}><Trash2 size={14} />Delete User</AppButton>
+                            </div>
+                        </>
+                    )}
+                </div>
+            ),
+        },
+    ];
+
     return (
         <>
             <Head title="User Management" />
@@ -354,15 +458,13 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                     {/* ── Page header ── */}
                     <div className="flex items-start justify-between mb-6">
                         <div>
-                            <h1 className="text-xl font-bold text-white/90">User Management</h1>
-                            <p className="text-[13px] text-white/40 mt-0.5">Manage team access, roles, and permissions.</p>
+                            <h1 className="text-xl font-bold text-[var(--crm-text)]">User Management</h1>
+                            <p className="text-[13px] text-[var(--crm-text-muted)] mt-0.5">Manage team access, roles, and permissions.</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => (document.getElementById('csv-import') as HTMLInputElement)?.click()}
-                                className="flex h-8 items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 text-[11px] font-semibold text-white/60 transition hover:border-white/10 hover:text-white/80">
-                                <Upload size={13} />
-                                Import CSV
-                            </button>
+                            <AppButton isIconOnly compact variant="ghost" tooltip="Import CSV" aria-label="Import CSV" onPress={() => (document.getElementById('csv-import') as HTMLInputElement)?.click()}>
+                                <Upload size={16} />
+                            </AppButton>
                             <input id="csv-import" type="file" accept=".csv" className="hidden"
                                 onChange={(e) => {
                                     const file = e.target.files?.[0];
@@ -396,45 +498,24 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                     reader.readAsText(file);
                                     e.target.value = '';
                                 }} />
-                            <button type="button" onClick={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' }); setIsInviteOpen(true); }}
-                                className="flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-[11px] font-semibold text-black transition hover:bg-white/90">
-                                <Plus size={13} strokeWidth={2.5} />
-                                Add User
-                            </button>
+                            <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Add User" aria-label="Add User" onPress={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' }); setIsInviteOpen(true); }}>
+                                <Plus size={16} />
+                            </AppButton>
                         </div>
                     </div>
 
-                    {/* ── Tabs ── */}
-                    <div className="flex items-center gap-6 mb-6 border-b border-white/5">
-                        {TABS.map((tab) => {
-                            const TabIcon = tab.icon;
-                            const isActive = activeTab === tab.id;
-                            return (
-                                <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
-                                    className={cn(
-                                        'flex items-center gap-2 pb-2.5 text-[12px] font-medium transition border-b-2 -mb-px',
-                                        isActive ? 'border-white/70 text-white/90' : 'border-transparent text-white/40 hover:text-white/60',
-                                    )}>
-                                    <TabIcon size={15} />
-                                    {tab.label}
-                                </button>
-                            );
-                        })}
-                    </div>
+                    <AppWorkspaceTabs tabs={TABS} selectedKey={activeTab} onSelectionChange={(key) => setActiveTab(key as TabId)}>
 
-                    {/* ═══════════════════════════════════════════════
-                       TAB: FIRM PROFILE
-                       ═══════════════════════════════════════════════ */}
-                    {activeTab === 'firm' && (
+                    <TabPanel id="firm" className="outline-none">
                         <div className="max-w-3xl">
                             {/* Logo upload */}
                             <div className="mb-6">
-                                <label className="text-xs font-semibold text-white/50 mb-2 block">Company Logo</label>
-                                <div className="flex items-center gap-5 rounded-lg border-2 border-dashed border-white/10 bg-white/[0.01] px-6 py-8 transition hover:border-white/20">
-                                    <div className="flex size-16 items-center justify-center rounded-xl bg-amber-500/10 text-xl font-bold text-amber-400">AL</div>
+                                <label className="text-xs font-semibold text-[var(--crm-text-muted)] mb-2 block">Company Logo</label>
+                                <div className="flex items-center gap-5 rounded-lg border-2 border-dashed border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 px-6 py-8 transition hover:border-[var(--crm-border-strong)]">
+                                    <div className="flex size-16 items-center justify-center rounded-xl bg-[var(--crm-gold-soft)] text-xl font-bold text-[var(--crm-gold)]">AL</div>
                                     <div>
-                                        <p className="text-sm font-medium text-white/60">Drop your logo here or <span className="text-amber-400 underline underline-offset-2 cursor-pointer">browse</span></p>
-                                        <p className="text-[11px] text-white/30 mt-0.5">PNG, JPG or SVG. Max 2MB.</p>
+                                        <p className="text-sm font-medium text-[var(--crm-text-muted)]">Drop your logo here or <span className="text-[var(--crm-gold)] underline underline-offset-2 cursor-pointer">browse</span></p>
+                                        <p className="text-[11px] text-[var(--crm-text-soft)] mt-0.5">PNG, JPG or SVG. Max 2MB.</p>
                                     </div>
                                 </div>
                             </div>
@@ -456,20 +537,15 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                             </div>
 
                             <div className="flex justify-end">
-                                <button type="button" onClick={() => toast.success('Firm profile saved.')}
-                                    className="flex h-8 items-center gap-1.5 rounded-lg bg-white px-4 text-[12px] font-semibold text-black transition hover:bg-white/90">
+                                <AppButton compact variant="solid" color="primary" onPress={() => toast.success('Firm profile saved.')}>
                                     <Save size={13} />
                                     Save Changes
-                                </button>
+                                </AppButton>
                             </div>
                         </div>
-                    )}
+                    </TabPanel>
 
-                    {/* ═══════════════════════════════════════════════
-                       TAB: USERS & PERMISSIONS
-                       ═══════════════════════════════════════════════ */}
-                    {activeTab === 'users' && (
-                        <>
+                    <TabPanel id="users" className="outline-none">
                             {/* KPI cards */}
                             <div className="grid grid-cols-4 gap-3 mb-5">
                                 {metrics.map((m) => {
@@ -479,328 +555,235 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                 })}
                             </div>
 
-                            {/* Table section */}
-                            <div className="rounded-lg border border-white/5 bg-white/[0.02] overflow-hidden">
-                                {/* Table header / Bulk actions bar */}
-                                {selectedIds.size > 0 ? (
-                                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 bg-amber-500/[0.04]">
-                                        <span className="text-[12px] font-medium text-amber-400/80">{selectedIds.size} user(s) selected</span>
+                            {/* ── Users table ── */}
+                            {(() => {
+                                const userColumns: AppWorkspaceTableColumn<typeof pagedUsers[0]>[] = [
+                                    {
+                                        id: 'select',
+                                        label: (
+                                            <button type="button" onClick={toggleAll} className={cn('flex size-4 items-center justify-center rounded border transition', isAllSelected() ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)] hover:border-[var(--crm-text-muted)]')}>
+                                                {isAllSelected() && <Check size={10} strokeWidth={3} className="text-black" />}
+                                            </button>
+                                        ),
+                                        headerClassName: 'w-12',
+                                        reorderable: false,
+                                        render: (user) => (
+                                            <div onClick={(e) => e.stopPropagation()}>
+                                                <button type="button" onClick={() => toggleOne(user.id)} className={cn('flex size-4 items-center justify-center rounded border transition', selectedIds.has(user.id) ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)] hover:border-[var(--crm-text-muted)]')}>
+                                                    {selectedIds.has(user.id) && <Check size={10} strokeWidth={3} className="text-black" />}
+                                                </button>
+                                            </div>
+                                        ),
+                                    },
+                                    {
+                                        id: 'name',
+                                        label: 'User Name',
+                                        render: (user) => (
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[11px] font-bold text-[var(--crm-gold)]">{initials(user.name)}</div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[13px] font-medium text-[var(--crm-text)]/80 truncate max-w-[180px]">{user.name}</p>
+                                                    <p className="text-[11px] text-[var(--crm-text-soft)] truncate max-w-[180px]">{user.email}</p>
+                                                </div>
+                                            </div>
+                                        ),
+                                    },
+                                    {
+                                        id: 'email',
+                                        label: 'Email Address',
+                                        render: (user) => <span className="text-[12px] text-[var(--crm-text-muted)]">{user.email}</span>,
+                                    },
+                                    {
+                                        id: 'role',
+                                        label: 'User Role',
+                                        render: (user) => {
+                                            const role = primaryRole(user);
+                                            const Icon = roleIcon(role);
+                                            const rs = ROLE_STYLES[role] || ROLE_STYLES.viewer;
+                                            return (
+                                                <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold capitalize', rs.bg, rs.text)}>
+                                                    <span className={cn('size-1.5 rounded-full', rs.dot)} /><Icon size={12} />{role}
+                                                </span>
+                                            );
+                                        },
+                                    },
+                                    {
+                                        id: 'status',
+                                        label: 'Status',
+                                        render: (user) => user.isOnline ? (
+                                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-success)]/20 bg-[var(--crm-success-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--crm-success)]">
+                                                <span className="size-1.5 rounded-full bg-[var(--crm-success)]" />Online
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 px-2.5 py-0.5 text-[11px] font-semibold text-[var(--crm-text-soft)]">
+                                                <span className="size-1.5 rounded-full bg-[var(--crm-text-soft)]" />Offline
+                                            </span>
+                                        ),
+                                    },
+                                    {
+                                        id: 'created',
+                                        label: 'Add Date',
+                                        render: (user) => <span className="text-[12px] text-[var(--crm-text-muted)] tabular-nums">{formatDate(user.createdAt)}</span>,
+                                    },
+                                    {
+                                        id: 'lastActive',
+                                        label: 'Last Active',
+                                        render: (user) => <span className="text-[12px] text-[var(--crm-text-muted)] tabular-nums">{user.lastSeenAt ? formatDate(user.lastSeenAt) : '-'}</span>,
+                                    },
+                                    {
+                                        id: 'actions',
+                                        label: '',
+                                        headerClassName: 'w-10',
+                                        reorderable: false,
+                                        render: (user) => (
+                                            <div className="relative" onClick={(e) => e.stopPropagation()}>
+                                                <AppButton isIconOnly variant="quiet" compact tooltip="Actions" onPress={() => setOpenActionId(openActionId === user.id ? null : user.id)}>
+                                                    <EllipsisVertical size={14} />
+                                                </AppButton>
+                                                {openActionId === user.id && (
+                                                    <>
+                                                        <div className="fixed inset-0 z-40" onClick={() => setOpenActionId(null)} />
+                                                        <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[var(--crm-bg-2)] py-1.5 shadow-2xl shadow-black/50 backdrop-blur-sm">
+                                                            <AppButton variant="quiet" fullWidth className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { setOpenActionId(null); setViewProfileUser(user); }}><Eye size={14} />View Profile</AppButton>
+                                                            <AppButton variant="quiet" fullWidth className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { const role = primaryRole(user); const defaults = cloneDefaults(role); setOpenActionId(null); setEditUser(user); setEditRole(role); setEditPerms(defaults); setInitialPerms(JSON.parse(JSON.stringify(defaults))); setPendingEditAction(null); }}><PenLine size={14} />Edit Details</AppButton>
+                                                            <div className="mx-2 my-1 h-px bg-[var(--crm-border)]" />
+                                                            <AppButton variant="quiet" fullWidth color="danger" className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { setOpenActionId(null); setDeleteTarget(user); }}><Trash2 size={14} />Delete User</AppButton>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ),
+                                    },
+                                ];
+
+                                const bulkToolbar = (
+                                    <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--crm-gold-soft)]">
+                                        <span className="text-[12px] font-medium text-[var(--crm-gold)]/80">{selectedIds.size} user(s) selected</span>
                                         <div className="flex items-center gap-2">
-                                            <select onChange={(e) => {
-                                                const role = e.target.value;
-                                                if (!role) return;
-                                                router.put('/admin/users/bulk/role', { userIds: [...selectedIds], role }, {
-                                                    preserveScroll: true,
-                                                    onSuccess: () => { setSelectedIds(new Set()); toast.success(`Role updated for ${selectedIds.size} user(s).`); },
-                                                    onError: () => toast.error('Could not update roles.'),
-                                                });
-                                                e.target.value = '';
-                                            }}
-                                                className="h-7 rounded-md border border-white/10 bg-white/[0.02] px-2 text-[11px] font-medium text-white/60 outline-none transition focus:border-white/20 cursor-pointer">
+                                            <select onChange={(e) => { const role = e.target.value; if (!role) return; router.put('/admin/users/bulk/role', { userIds: [...selectedIds], role }, { preserveScroll: true, onSuccess: () => { setSelectedIds(new Set()); toast.success(`Role updated for ${selectedIds.size} user(s).`); }, onError: () => toast.error('Could not update roles.') }); e.target.value = ''; }} className="h-7 rounded-md border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 px-2 text-[11px] font-medium text-[var(--crm-text-muted)] outline-none transition focus:border-[var(--crm-border-strong)] cursor-pointer">
                                                 <option value="">Assign Role</option>
                                                 {roles.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
                                             </select>
-                                            <button type="button" onClick={() => setConfirmBulkAction('suspend')}
-                                                className="flex h-7 items-center gap-1.5 rounded-md border border-white/10 px-2 text-[11px] font-medium text-white/50 transition hover:border-white/20 hover:text-white/70">
-                                                <UserMinus size={12} />
-                                                Suspend
-                                            </button>
-                                            <button type="button" onClick={() => setConfirmBulkAction('delete')}
-                                                className="flex h-7 items-center gap-1.5 rounded-md border border-red-500/20 px-2 text-[11px] font-medium text-red-400 transition hover:bg-red-500/10">
-                                                <Trash2 size={12} />
-                                                Delete
-                                            </button>
-                                            <button type="button" onClick={() => setSelectedIds(new Set())}
-                                                className="flex h-7 w-7 items-center justify-center rounded-md text-white/40 transition hover:bg-white/5 hover:text-white/70">
-                                                <X size={13} />
-                                            </button>
+                                            <AppButton variant="bordered" compact onPress={() => setConfirmBulkAction('suspend')}><UserMinus size={12} />Suspend</AppButton>
+                                            <AppButton variant="solid" color="danger" compact onPress={() => setConfirmBulkAction('delete')}><Trash2 size={12} />Delete</AppButton>
+                                            <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Clear selection" aria-label="Clear selection" onPress={() => setSelectedIds(new Set())}><X size={13} /></AppButton>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[12px] font-semibold text-white/70">User Details</span>
-                                            <span className="flex h-4 min-w-[20px] items-center justify-center rounded bg-white/10 px-1.5 text-[9px] font-bold text-white/50">{filteredUsers.length}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="relative">
-                                                <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30" />
-                                                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search goals..."
-                                                    className="h-7 w-[160px] rounded-md border border-white/5 bg-white/[0.02] pl-7 pr-2 text-[11px] text-white/70 placeholder-white/30 outline-none transition focus:border-white/10" />
-                                            </div>
-                                            <div className="relative">
-                                                <button ref={filterBtnRef} type="button" onClick={() => setFilterOpen((o) => !o)}
-                                                    className="flex h-7 items-center gap-1.5 rounded-md border border-white/5 px-2 text-[11px] font-medium text-white/50 transition hover:border-white/10 hover:text-white/70">
-                                                    <SlidersHorizontal size={12} />
-                                                    Filter
-                                                </button>
-                                                {filterOpen && (
-                                                    <div ref={filterRef} className="absolute right-0 top-full z-50 mt-1 w-60 overflow-hidden rounded-xl border border-white/10 bg-[var(--crm-bg-2)] py-2 shadow-2xl shadow-black/50 backdrop-blur-sm">
-                                                        <div className="px-3 pb-1.5">
-                                                            <p className="text-[10px] font-semibold tracking-widest text-white/30 uppercase">By Role</p>
-                                                        </div>
-                                                        <div className="px-1 pb-2 border-b border-white/5">
-                                                            {['admin', 'manager', 'staff', 'viewer'].map((r) => (
-                                                                <button key={r} type="button" onClick={() => { const n = new Set(filterRoles); if (n.has(r)) n.delete(r); else n.add(r); setFilterRoles(n); }}
-                                                                    className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-white/65 transition hover:bg-white/[0.04] hover:text-white/85">
-                                                                    <span className={cn(
-                                                                        'flex size-4 items-center justify-center rounded border transition',
-                                                                        filterRoles.has(r) ? 'border-amber-500 bg-amber-500' : 'border-white/15',
-                                                                    )}>
-                                                                        {filterRoles.has(r) && <Check size={10} strokeWidth={3} className="text-black" />}
-                                                                    </span>
-                                                                    <span className="capitalize">{r}</span>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                        <div className="px-3 pt-2 pb-1">
-                                                            <p className="text-[10px] font-semibold tracking-widest text-white/30 uppercase">By Status</p>
-                                                        </div>
-                                                        <div className="px-1">
-                                                            {(['all', 'online', 'offline'] as const).map((s) => (
-                                                                <button key={s} type="button" onClick={() => setFilterStatus(s)}
-                                                                    className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-white/65 transition hover:bg-white/[0.04] hover:text-white/85">
-                                                                    <span className={cn(
-                                                                        'flex size-4 items-center justify-center rounded-full border transition',
-                                                                        filterStatus === s ? 'border-amber-500 bg-amber-500' : 'border-white/15',
-                                                                    )}>
-                                                                        {filterStatus === s && <Check size={10} strokeWidth={3} className="text-black" />}
-                                                                    </span>
-                                                                    <span className="capitalize">{s}</span>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <button type="button" onClick={exportCsv}
-                                                className="flex h-7 items-center gap-1.5 rounded-md border border-white/5 px-2 text-[11px] font-medium text-white/50 transition hover:border-white/10 hover:text-white/70">
-                                                <Download size={12} />
-                                                Export CSV
-                                            </button>
-                                            <button type="button" onClick={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' }); setIsInviteOpen(true); }}
-                                                className="flex h-7 items-center gap-1.5 rounded-md bg-white px-2 text-[11px] font-semibold text-black transition hover:bg-white/90">
-                                                <Plus size={12} strokeWidth={2.5} />
-                                                Add User
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
+                                );
 
-                                {/* Role filter pills */}
-                                {selectedIds.size === 0 && (
-                                    <div className="flex items-center gap-1 px-4 py-2 border-b border-white/5">
-                                        {(['all', 'admin', 'manager', 'staff', 'viewer'] as const).map((r) => (
-                                            <button key={r} type="button" onClick={() => { setRoleFilter(r); setPage(1); }}
-                                                className={cn(
-                                                    'inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-medium capitalize transition',
-                                                    roleFilter === r ? 'bg-white/10 text-white/80' : 'text-white/40 hover:bg-white/5 hover:text-white/60',
-                                                )}>
-                                                {r}
-                                                <span className="flex h-3 min-w-[14px] items-center justify-center rounded bg-white/10 px-1 text-[7px] font-bold text-white/40">{roleCounts[r]}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Table */}
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-white/5">
-                                                <th className="w-12 px-4 py-3">
-                                                    <button type="button" onClick={toggleAll}
-                                                        className={cn(
-                                                            'flex size-4 items-center justify-center rounded border transition',
-                                                            isAllSelected() ? 'border-amber-500 bg-amber-500' : 'border-white/20 hover:border-white/40',
-                                                        )}>
-                                                        {isAllSelected() && <Check size={10} strokeWidth={3} className="text-black" />}
+                                const normalToolbar = (
+                                    <div>
+                                        <div className="flex items-center justify-between px-4 py-2.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[12px] font-semibold text-[var(--crm-text)]/70">User Details</span>
+                                                <span className="flex h-4 min-w-[20px] items-center justify-center rounded bg-[var(--crm-surface-2)] px-1.5 text-[9px] font-bold text-[var(--crm-text-soft)]">{filteredUsers.length}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="relative">
+                                                    <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
+                                                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search users..." className="h-7 w-[160px] rounded-md border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 pl-7 pr-2 text-[11px] text-[var(--crm-text)]/70 placeholder-[var(--crm-text-soft)] outline-none transition focus:border-[var(--crm-border-strong)]" />
+                                                </div>
+                                                <div className="relative">
+                                                    <button ref={filterBtnRef} type="button" onClick={() => setFilterOpen((o) => !o)} className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--crm-border)] px-2 text-[11px] font-medium text-[var(--crm-text-soft)] transition hover:border-[var(--crm-border-strong)] hover:text-[var(--crm-text-muted)]">
+                                                        <SlidersHorizontal size={12} />Filter
                                                     </button>
-                                                </th>
-                                                <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-white/40">User Name</th>
-                                                <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-white/40">Email Address</th>
-                                                <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-white/40">User Role</th>
-                                                <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-white/40">Status</th>
-                                                <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-white/40">Add Date</th>
-                                                <th className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-white/40">Last Active</th>
-                                                <th className="w-10 px-3 py-2.5" />
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/[0.03]">
-                                            {pagedUsers.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={8} className="px-3 py-12 text-center text-sm text-white/30">No users match the current filters.</td>
-                                                </tr>
-                                            ) : (
-                                                pagedUsers.map((user) => {
-                                                    const role = primaryRole(user);
-                                                    const Icon = roleIcon(role);
-                                                    const rs = ROLE_STYLES[role] || ROLE_STYLES.viewer;
-                                                    return (
-                                                        <tr key={user.id}
-                                                            onClick={() => setViewProfileUser(user)}
-                                                            className="group transition hover:bg-white/[0.025] cursor-pointer">
-                                                            <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                                                                <button type="button" onClick={() => toggleOne(user.id)}
-                                                                    className={cn(
-                                                                        'flex size-4 items-center justify-center rounded border transition',
-                                                                        selectedIds.has(user.id) ? 'border-amber-500 bg-amber-500' : 'border-white/20 hover:border-white/40',
-                                                                    )}>
-                                                                    {selectedIds.has(user.id) && <Check size={10} strokeWidth={3} className="text-black" />}
-                                                                </button>
-                                                            </td>
-                                                            <td className="px-3 py-3">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-[11px] font-bold text-amber-400">
-                                                                        {initials(user.name)}
-                                                                    </div>
-                                                                    <div className="min-w-0">
-                                                                        <p className="text-[13px] font-medium text-white/80 truncate max-w-[180px]">{user.name}</p>
-                                                                        <p className="text-[11px] text-white/35 truncate max-w-[180px]">{user.email}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-3 py-3">
-                                                                <span className="text-[12px] text-white/50">{user.email}</span>
-                                                            </td>
-                                                            <td className="px-3 py-3">
-                                                                <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold capitalize', rs.bg, rs.text)}>
-                                                                    <span className={cn('size-1.5 rounded-full', rs.dot)} />
-                                                                    <Icon size={12} />
-                                                                    {role}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-3 py-3">
-                                                                {user.isOnline ? (
-                                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400">
-                                                                        <span className="size-1.5 rounded-full bg-emerald-400" />
-                                                                        Online
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.02] px-2.5 py-0.5 text-[11px] font-semibold text-white/40">
-                                                                        <span className="size-1.5 rounded-full bg-white/20" />
-                                                                        Offline
-                                                                    </span>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-3 py-3">
-                                                                <span className="text-[12px] text-white/50 tabular-nums">{formatDate(user.createdAt)}</span>
-                                                            </td>
-                                                            <td className="px-3 py-3">
-                                                                <span className="text-[12px] text-white/50 tabular-nums">{user.lastSeenAt ? formatDate(user.lastSeenAt) : '-'}</span>
-                                                            </td>
-                                                            <td className="px-3 py-3 relative" onClick={(e) => e.stopPropagation()}>
-                                                                <button type="button" onClick={() => setOpenActionId(openActionId === user.id ? null : user.id)}
-                                                                    className="flex size-7 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/5 hover:text-white/60">
-                                                                    <EllipsisVertical size={14} />
-                                                                </button>
-                                                                {openActionId === user.id && (
-                                                                    <>
-                                                                        <div className="fixed inset-0 z-40" onClick={() => setOpenActionId(null)} />
-                                                                        <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-white/10 bg-[var(--crm-bg-2)] py-1.5 shadow-2xl shadow-black/50 backdrop-blur-sm">
-                                                                            <button type="button" onClick={() => { setOpenActionId(null); setViewProfileUser(user); }}
-                                                                                className="flex w-full items-center gap-3 px-3 py-2 text-[12px] font-medium text-white/75 transition hover:bg-white/[0.04] hover:text-white">
-                                                                                <Eye size={14} className="text-white/40" />
-                                                                                View Profile
-                                                                            </button>
-                                                                            <button type="button" onClick={() => {
-                                                                                const role = primaryRole(user);
-                                                                                const defaults = cloneDefaults(role);
-                                                                                setOpenActionId(null);
-                                                                                setEditUser(user);
-                                                                                setEditRole(role);
-                                                                                setEditPerms(defaults);
-                                                                                setInitialPerms(JSON.parse(JSON.stringify(defaults)));
-                                                                                setPendingEditAction(null);
-                                                                            }}
-                                                                                className="flex w-full items-center gap-3 px-3 py-2 text-[12px] font-medium text-white/75 transition hover:bg-white/[0.04] hover:text-white">
-                                                                                <PenLine size={14} className="text-white/40" />
-                                                                                Edit Details
-                                                                            </button>
-                                                                            <div className="mx-2 my-1 h-px bg-white/5" />
-                                                                            <button type="button" onClick={() => { setOpenActionId(null); setDeleteTarget(user); }}
-                                                                                className="flex w-full items-center gap-3 px-3 py-2 text-[12px] font-medium text-red-400 transition hover:bg-red-500/10">
-                                                                                <Trash2 size={14} className="text-red-400/60" />
-                                                                                Delete User
-                                                                            </button>
-                                                                        </div>
-                                                                    </>
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Pagination */}
-                                <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
-                                    <span className="text-[11px] text-white/30">
-                                        Showing {filteredUsers.length === 0 ? 0 : (page - 1) * TABLE_PAGE_SIZE + 1}-{Math.min(page * TABLE_PAGE_SIZE, filteredUsers.length)} from {filteredUsers.length}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <button type="button" onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1}
-                                            className={cn(
-                                                'flex h-7 items-center gap-1 rounded-md border px-3 text-[11px] font-medium transition',
-                                                page <= 1 ? 'border-white/5 text-white/20 cursor-not-allowed' : 'border-white/5 text-white/50 hover:border-white/10 hover:text-white/70',
-                                            )}>
-                                            Previous
-                                        </button>
-                                        <button type="button" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages || totalPages === 0}
-                                            className={cn(
-                                                'flex h-7 items-center gap-1 rounded-md px-3 text-[11px] font-semibold transition',
-                                                page >= totalPages || totalPages === 0 ? 'bg-white/20 text-black/50 cursor-not-allowed' : 'bg-white text-black hover:bg-white/90',
-                                            )}>
-                                            Next
-                                        </button>
+                                                    {filterOpen && (
+                                                        <div ref={filterRef} className="absolute right-0 top-full z-50 mt-1 w-60 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[var(--crm-bg-2)] py-2 shadow-2xl shadow-black/50 backdrop-blur-sm">
+                                                            <div className="px-3 pb-1.5"><p className="text-[10px] font-semibold tracking-widest text-[var(--crm-text-soft)] uppercase">By Role</p></div>
+                                                            <div className="px-1 pb-2 border-b border-[var(--crm-border)]">
+                                                                {['admin', 'manager', 'staff', 'viewer'].map((r) => (
+                                                                    <button key={r} type="button" onClick={() => { const n = new Set(filterRoles); if (n.has(r)) n.delete(r); else n.add(r); setFilterRoles(n); }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface-hover)] hover:text-[var(--crm-text)]/85">
+                                                                        <span className={cn('flex size-4 items-center justify-center rounded border transition', filterRoles.has(r) ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)]')}>{filterRoles.has(r) && <Check size={10} strokeWidth={3} className="text-black" />}</span>
+                                                                        <span className="capitalize">{r}</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                            <div className="px-3 pt-2 pb-1"><p className="text-[10px] font-semibold tracking-widest text-[var(--crm-text-soft)] uppercase">By Status</p></div>
+                                                            <div className="px-1">
+                                                                {(['all', 'online', 'offline'] as const).map((s) => (
+                                                                    <button key={s} type="button" onClick={() => setFilterStatus(s)} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface-hover)] hover:text-[var(--crm-text)]/85">
+                                                                        <span className={cn('flex size-4 items-center justify-center rounded-full border transition', filterStatus === s ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)]')}>{filterStatus === s && <Check size={10} strokeWidth={3} className="text-black" />}</span>
+                                                                        <span className="capitalize">{s}</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <AppButton isIconOnly compact variant="ghost" tooltip="Export CSV" aria-label="Export CSV" onPress={exportCsv}><Download size={16} /></AppButton>
+                                                <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Add User" aria-label="Add User" onPress={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' }); setIsInviteOpen(true); }}><Plus size={16} /></AppButton>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 px-4 py-2 border-t border-[var(--border)]">
+                                            {(['all', 'admin', 'manager', 'staff', 'viewer'] as const).map((r) => (
+                                                <button key={r} type="button" onClick={() => { setRoleFilter(r); setPage(1); }} className={cn('inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-medium capitalize transition', roleFilter === r ? 'bg-[var(--surface-2)] text-[var(--foreground)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]')}>
+                                                    {r}
+                                                    <span className="flex h-3 min-w-[14px] items-center justify-center rounded bg-[var(--surface-2)] px-1 text-[7px] font-bold text-[var(--text-muted)]">{roleCounts[r]}</span>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
+                                );
 
-                    {/* ═══════════════════════════════════════════════
-                       TAB: SECURITY & AUDIT
-                       ═══════════════════════════════════════════════ */}
-                    {activeTab === 'security' && (
-                        <>
+                                return (
+                                    <AppWorkspaceTable
+                                        ariaLabel="Users & Permissions"
+                                        columns={userColumns}
+                                        data={pagedUsers}
+                                        rowKey={(user) => user.id}
+                                        minTableWidthClassName="min-w-[860px]"
+                                        onRowPress={(user) => setViewProfileUser(user)}
+                                        emptyContent={<AppEmptyState title="No users found" description="No users match the current filters." />}
+                                        toolbar={selectedIds.size > 0 ? bulkToolbar : normalToolbar}
+                                        footer={
+                                            <div className="flex items-center justify-between px-3 py-2">
+                                                <span className="text-[10px] text-[var(--text-muted)]">Showing {filteredUsers.length === 0 ? 0 : (page - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(page * TABLE_PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}</span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Previous page" aria-label="Previous page" isDisabled={page <= 1} onPress={() => setPage(Math.max(1, page - 1))}><ChevronLeft size={14} /></AppButton>
+                                                    <span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-[var(--text-muted)]">{page} / {totalPages || 1}</span>
+                                                    <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Next page" aria-label="Next page" isDisabled={page >= totalPages || totalPages === 0} onPress={() => setPage(Math.min(totalPages, page + 1))}><ChevronRight size={14} /></AppButton>
+                                                </div>
+                                            </div>
+                                        }
+                                    />
+                                );
+                            })()}
+                    </TabPanel>
+
+                    <TabPanel id="security" className="outline-none">
                             <div className="flex items-center justify-between mb-5">
-                                <p className="text-[13px] text-white/40">Track all security-related events and changes in the system.</p>
-                                <button type="button" onClick={exportCsv}
-                                    className="flex h-8 items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 text-[11px] font-semibold text-white/60 transition hover:border-white/10 hover:text-white/80">
-                                    <Download size={13} />
-                                    Download Audit Log
-                                </button>
+                                <p className="text-[13px] text-[var(--crm-text-soft)]">Track all security-related events and changes in the system.</p>
+                                <AppButton isIconOnly compact variant="ghost" tooltip="Download Audit Log" aria-label="Download Audit Log" onPress={exportCsv}>
+                                    <Download size={16} />
+                                </AppButton>
                             </div>
-                            <div className="rounded-lg border border-white/5 bg-white/[0.02] overflow-hidden">
+                            <div className="rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 overflow-hidden">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b border-white/5">
+                                        <tr className="border-b border-[var(--crm-border)]">
                                             {['Timestamp', 'User', 'Action Taken', 'IP Address'].map((label) => (
-                                                <th key={label} className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-white/40">{label}</th>
+                                                <th key={label} className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--crm-text-soft)]">{label}</th>
                                             ))}
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-white/[0.03]">
+                                    <tbody className="divide-y divide-[var(--crm-border)]/40">
                                         {auditLoading ? (
-                                            <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-white/30">Loading audit logs...</td></tr>
+                                            <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-[var(--crm-text-soft)]">Loading audit logs...</td></tr>
                                         ) : auditEntries.length === 0 ? (
-                                            <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-white/30">No audit logs yet.</td></tr>
+                                            <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-[var(--crm-text-soft)]">No audit logs yet.</td></tr>
                                         ) : auditEntries.map((entry) => (
-                                            <tr key={entry.id} className="text-[13px] text-white/60 hover:bg-white/[0.015] transition">
-                                                <td className="px-3 py-2.5 tabular-nums text-white/40">{entry.timestamp}</td>
-                                                <td className="px-3 py-2.5 font-medium text-white/70">{entry.user}</td>
-                                                <td className="px-3 py-2.5 text-white/60">{entry.action}</td>
-                                                <td className="px-3 py-2.5 font-mono text-[12px] text-white/40">{entry.ip}</td>
+                                            <tr key={entry.id} className="text-[13px] text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-hover)] transition">
+                                                <td className="px-3 py-2.5 tabular-nums text-[var(--crm-text-soft)]">{entry.timestamp}</td>
+                                                <td className="px-3 py-2.5 font-medium text-[var(--crm-text)]/70">{entry.user}</td>
+                                                <td className="px-3 py-2.5 text-[var(--crm-text-muted)]">{entry.action}</td>
+                                                <td className="px-3 py-2.5 font-mono text-[12px] text-[var(--crm-text-soft)]">{entry.ip}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
-                        </>
-                    )}
+                    </TabPanel>
+                </AppWorkspaceTabs>
                 </div>
 
                 {/* ── Modal: Invite New Team Member ── */}
@@ -820,10 +803,8 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                             error={firstError(inviteErrors, 'role')}
                             options={roles.map((r) => ({ id: r.id, label: r.label }))} />
                         <div className="flex items-center justify-end gap-2 pt-2">
-                            <button type="button" onClick={() => setIsInviteOpen(false)}
-                                className="rounded-lg border border-white/10 px-4 py-1.5 text-xs font-medium text-white/60 hover:text-white/80 hover:bg-white/5 transition">Cancel</button>
-                            <button type="submit"
-                                className="rounded-lg bg-white px-4 py-1.5 text-xs font-semibold text-black transition hover:bg-white/90">Send Invite</button>
+                            <AppButton variant="bordered" onPress={() => setIsInviteOpen(false)}>Cancel</AppButton>
+                            <AppButton type="submit" variant="solid" color="primary">Send Invite</AppButton>
                         </div>
                     </form>
                 </AppModal>
@@ -832,43 +813,42 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                 {viewProfileUser && (
                     <>
                         <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setViewProfileUser(null)} />
-                        <div className="fixed right-0 top-0 z-50 h-full w-[420px] border-l border-white/10 bg-[var(--crm-bg-2)] shadow-2xl shadow-black/40 overflow-y-auto">
-                            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-                                <span className="text-sm font-semibold text-white/80">User Profile</span>
-                                <button type="button" onClick={() => setViewProfileUser(null)}
-                                    className="flex size-7 items-center justify-center rounded-md text-white/40 transition hover:bg-white/5 hover:text-white/70">
+                        <div className="fixed right-0 top-0 z-50 h-full w-[420px] border-l border-[var(--crm-border)] bg-[var(--crm-bg-2)] shadow-2xl shadow-black/40 overflow-y-auto">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--crm-border)]">
+                                <span className="text-sm font-semibold text-[var(--crm-text)]/80">User Profile</span>
+                                <AppButton isIconOnly variant="quiet" compact tooltip="Close" onPress={() => setViewProfileUser(null)}>
                                     <X size={14} />
-                                </button>
+                                </AppButton>
                             </div>
                             <div className="p-5 space-y-5">
                                 <div className="flex items-center gap-4">
-                                    <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-xl font-bold text-amber-400">
+                                    <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--crm-gold-soft)] text-xl font-bold text-[var(--crm-gold)]">
                                         {initials(viewProfileUser.name)}
                                     </div>
                                     <div>
-                                        <h2 className="text-base font-semibold text-white/90">{viewProfileUser.name}</h2>
-                                        <p className="text-[13px] text-white/50">{viewProfileUser.email}</p>
-                                        <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-semibold capitalize mt-1', ROLE_STYLES[primaryRole(viewProfileUser)]?.bg || 'bg-white/5', ROLE_STYLES[primaryRole(viewProfileUser)]?.text || 'text-white/40')}>
+                                        <h2 className="text-base font-semibold text-[var(--crm-text)]/90">{viewProfileUser.name}</h2>
+                                        <p className="text-[13px] text-[var(--crm-text-muted)]">{viewProfileUser.email}</p>
+                                        <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-semibold capitalize mt-1', ROLE_STYLES[primaryRole(viewProfileUser)]?.bg || 'bg-[var(--crm-surface-2)]', ROLE_STYLES[primaryRole(viewProfileUser)]?.text || 'text-[var(--crm-text-soft)]')}>
                                             {primaryRole(viewProfileUser)}
                                         </span>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30 mb-2">Assigned Projects</p>
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--crm-text-soft)] mb-2">Assigned Projects</p>
                                     <div className="space-y-2">
                                         {['Parc Central - Phase 2', 'Tour Hassan Expansion', 'Marina Bay Residences'].map((p) => (
-                                            <div key={p} className="flex items-center gap-2.5 rounded-md bg-white/[0.02] px-3 py-2">
-                                                <Briefcase size={12} className="text-white/30" />
-                                                <span className="text-[12px] text-white/60">{p}</span>
+                                            <div key={p} className="flex items-center gap-2.5 rounded-md bg-[var(--crm-surface-3)]/30 px-3 py-2">
+                                                <Briefcase size={12} className="text-[var(--crm-text-soft)]" />
+                                                <span className="text-[12px] text-[var(--crm-text-muted)]">{p}</span>
                                             </div>
                                         ))}
-                                        <p className="text-[11px] text-white/30 italic">+ 2 more projects</p>
+                                        <p className="text-[11px] text-[var(--crm-text-soft)] italic">+ 2 more projects</p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30 mb-2">Recent Activity</p>
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--crm-text-soft)] mb-2">Recent Activity</p>
                                     <div className="space-y-2">
                                         {[
                                             { icon: Upload, text: 'Uploaded Blueprint_v2.pdf', time: '2h ago' },
@@ -878,10 +858,10 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                             const A = a.icon;
                                             return (
                                                 <div key={i} className="flex items-start gap-2.5">
-                                                    <div className="flex size-6 items-center justify-center rounded-md bg-white/5 text-white/30 mt-0.5"><A size={11} /></div>
+                                                    <div className="flex size-6 items-center justify-center rounded-md bg-[var(--crm-surface-hover)] text-[var(--crm-text-soft)] mt-0.5"><A size={11} /></div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-[12px] text-white/60">{a.text}</p>
-                                                        <p className="text-[10px] text-white/30">{a.time}</p>
+                                                        <p className="text-[12px] text-[var(--crm-text-muted)]">{a.text}</p>
+                                                        <p className="text-[10px] text-[var(--crm-text-soft)]">{a.time}</p>
                                                     </div>
                                                 </div>
                                             );
@@ -908,23 +888,23 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                         <div className="px-1">
                             {/* ── User identity ── */}
                             <div className="flex items-center gap-4 mb-7">
-                                <div className="flex size-14 items-center justify-center rounded-2xl bg-amber-500/10 text-xl font-bold text-amber-400">{initials(editUser.name)}</div>
+                                <div className="flex size-14 items-center justify-center rounded-2xl bg-[var(--crm-gold-soft)] text-xl font-bold text-[var(--crm-gold)]">{initials(editUser.name)}</div>
                                 <div>
-                                    <p className="text-lg font-semibold text-white/90">{editUser.name}</p>
-                                    <p className="text-[13px] text-white/50">{editUser.email}</p>
+                                    <p className="text-lg font-semibold text-[var(--crm-text)]/90">{editUser.name}</p>
+                                    <p className="text-[13px] text-[var(--crm-text-muted)]">{editUser.email}</p>
                                 </div>
                             </div>
 
                             {/* ── Role + Restore ── */}
                             <div className="flex items-end gap-4 mb-7">
                                 <div className="flex-1">
-                                    <label className="text-[11px] font-semibold uppercase tracking-widest text-white/35 mb-2 block">Access Role</label>
+                                    <label className="text-[11px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)] mb-2 block">Access Role</label>
                                     <select value={editRole} onChange={(e) => {
                                         const newRole = e.target.value;
                                         setEditRole(newRole);
                                         setEditPerms(cloneDefaults(newRole));
                                     }}
-                                        className="h-10 w-full max-w-xs rounded-lg border border-white/10 bg-white/[0.02] px-3 text-[13px] text-white/70 outline-none transition focus:border-white/20 cursor-pointer appearance-none">
+                                        className="h-10 w-full max-w-xs rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 px-3 text-[13px] text-[var(--crm-text)]/70 outline-none transition focus:border-[var(--crm-border-strong)] cursor-pointer appearance-none">
                                         {roles.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
                                     </select>
                                 </div>
@@ -932,8 +912,8 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                     className={cn(
                                         'flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-medium transition',
                                         JSON.stringify(editPerms) !== JSON.stringify(cloneDefaults(editRole))
-                                            ? 'border border-amber-500/20 text-amber-400 hover:bg-amber-500/10'
-                                            : 'border border-white/10 text-white/40 hover:text-white/60 hover:bg-white/5',
+                                            ? 'border border-[var(--crm-gold)]/20 text-[var(--crm-gold)] hover:bg-[var(--crm-gold-soft)]'
+                                            : 'border border-[var(--crm-border)] text-[var(--crm-text-soft)] hover:text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-hover)]',
                                     )}>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
                                     Restore Defaults
@@ -943,9 +923,9 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                             {/* ── Permissions grid ── */}
                             <div className="mb-2">
                                 <div className="flex items-center justify-between mb-3">
-                                    <label className="text-[11px] font-semibold uppercase tracking-widest text-white/35">Module Permissions</label>
+                                    <label className="text-[11px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)]">Module Permissions</label>
                                     {JSON.stringify(editPerms) !== JSON.stringify(initialPerms) && (
-                                        <span className="text-[10px] text-amber-400/60">Customized from role defaults</span>
+                                        <span className="text-[10px] text-[var(--crm-gold)]/60">Customized from role defaults</span>
                                     )}
                                 </div>
                                 <PermissionsMatrix
@@ -970,17 +950,16 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                             </div>
 
                             {/* ── Footer actions ── */}
-                            <div className="flex items-center justify-end gap-3 pt-5 mt-2 border-t border-white/5">
-                                <button type="button" onClick={() => {
+                            <div className="flex items-center justify-end gap-3 pt-5 mt-2 border-t border-[var(--crm-border)]">
+                                <AppButton variant="bordered" onPress={() => {
                                     if (JSON.stringify(editPerms) !== JSON.stringify(initialPerms)) {
                                         setShowUnsavedWarning(true);
                                         setPendingEditAction(() => () => { setEditUser(null); setShowUnsavedWarning(false); });
                                         return;
                                     }
                                     setEditUser(null);
-                                }}
-                                    className="rounded-lg border border-white/10 px-5 py-2 text-[12px] font-medium text-white/60 hover:text-white/80 hover:bg-white/5 transition">Cancel</button>
-                                <button type="button" onClick={() => {
+                                }}>Cancel</AppButton>
+                                <AppButton variant="solid" color="primary" onPress={() => {
                                     const payload = {
                                         userId: editUser.id,
                                         role: editRole,
@@ -995,8 +974,7 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                         },
                                         onError: () => toast.error('Could not update permissions.'),
                                     });
-                                }}
-                                    className="rounded-lg bg-white px-5 py-2 text-[12px] font-semibold text-black transition hover:bg-white/90">Save Changes</button>
+                                }}>Save Changes</AppButton>
                             </div>
                         </div>
                     )}
@@ -1006,19 +984,17 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                 <AppModal isOpen={showUnsavedWarning} onOpenChange={(o) => { if (!o) { setShowUnsavedWarning(false); setPendingEditAction(null); } }} title="" size="sm">
                     <div className="text-center">
                         <div className="flex justify-center mb-4">
-                            <div className="flex size-12 items-center justify-center rounded-full bg-amber-500/10">
-                                <AlertTriangle size={22} className="text-amber-400" />
+                            <div className="flex size-12 items-center justify-center rounded-full bg-[var(--crm-gold-soft)]">
+                                <AlertTriangle size={22} className="text-[var(--crm-gold)]" />
                             </div>
                         </div>
-                        <h3 className="text-base font-semibold text-white/90 mb-2">Unsaved Changes</h3>
-                        <p className="text-[13px] text-white/50 leading-relaxed">
+                        <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Unsaved Changes</h3>
+                        <p className="text-[13px] text-[var(--crm-text-muted)] leading-relaxed">
                             You have unsaved permission changes. Discard them?
                         </p>
                         <div className="flex items-center justify-center gap-2 mt-6">
-                            <button type="button" onClick={() => { setShowUnsavedWarning(false); setPendingEditAction(null); }}
-                                className="rounded-lg border border-white/10 px-4 py-1.5 text-xs font-medium text-white/60 hover:text-white/80 hover:bg-white/5 transition">Keep Editing</button>
-                            <button type="button" onClick={() => { pendingEditAction?.(); }}
-                                className="rounded-lg bg-red-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-red-600">Discard Changes</button>
+                            <AppButton variant="bordered" onPress={() => { setShowUnsavedWarning(false); setPendingEditAction(null); }}>Keep Editing</AppButton>
+                            <AppButton variant="solid" color="danger" onPress={() => { pendingEditAction?.(); }}>Discard Changes</AppButton>
                         </div>
                     </div>
                 </AppModal>
@@ -1030,45 +1006,42 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                             <div className="flex justify-center mb-4">
                                 <div className={cn(
                                     'flex size-12 items-center justify-center rounded-full',
-                                    confirmBulkAction === 'delete' ? 'bg-red-500/10' : 'bg-amber-500/10',
+                                    confirmBulkAction === 'delete' ? 'bg-[var(--crm-danger-soft)]' : 'bg-[var(--crm-gold-soft)]',
                                 )}>
-                                    <AlertTriangle size={22} className={confirmBulkAction === 'delete' ? 'text-red-400' : 'text-amber-400'} />
+                                    <AlertTriangle size={22} className={confirmBulkAction === 'delete' ? 'text-[var(--crm-danger)]' : 'text-[var(--crm-gold)]'} />
                                 </div>
                             </div>
-                            <h3 className="text-base font-semibold text-white/90 mb-2">
+                            <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">
                                 {confirmBulkAction === 'delete' ? 'Remove Users' : 'Suspend Users'}
                             </h3>
-                            <p className="text-[13px] text-white/50 leading-relaxed">
+                            <p className="text-[13px] text-[var(--crm-text-muted)] leading-relaxed">
                                 {confirmBulkAction === 'delete'
                                     ? `${selectedIds.size} user(s) will lose all access immediately. This cannot be undone.`
                                     : `${selectedIds.size} user(s) will lose access until manually reinstated.`}
                             </p>
                             <div className="flex items-center justify-center gap-2 mt-6">
-                                <button type="button" onClick={() => setConfirmBulkAction(null)}
-                                    className="rounded-lg border border-white/10 px-4 py-1.5 text-xs font-medium text-white/60 hover:text-white/80 hover:bg-white/5 transition">Cancel</button>
-                                <button type="button" onClick={() => {
-                                    const ids = [...selectedIds];
-                                    setConfirmBulkAction(null);
-                                    if (confirmBulkAction === 'delete') {
+                                <AppButton variant="bordered" onPress={() => setConfirmBulkAction(null)}>Cancel</AppButton>
+                                {confirmBulkAction === 'delete' ? (
+                                    <AppButton variant="solid" color="danger" onPress={() => {
+                                        const ids = [...selectedIds];
+                                        setConfirmBulkAction(null);
                                         router.post('/admin/users/bulk/delete', { userIds: ids }, {
                                             preserveScroll: true,
                                             onSuccess: () => { setSelectedIds(new Set()); toast.success('Users removed.'); },
                                             onError: () => toast.error('Could not remove some users.'),
                                         });
-                                    } else {
+                                    }}>Yes, Remove Users</AppButton>
+                                ) : (
+                                    <AppButton variant="solid" color="primary" onPress={() => {
+                                        const ids = [...selectedIds];
+                                        setConfirmBulkAction(null);
                                         router.put('/admin/users/bulk/suspend', { userIds: ids }, {
                                             preserveScroll: true,
                                             onSuccess: () => { setSelectedIds(new Set()); toast.success(`${ids.length} user(s) suspended.`); },
                                             onError: () => toast.error('Could not suspend users.'),
                                         });
-                                    }
-                                }}
-                                    className={cn(
-                                        'rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition',
-                                        confirmBulkAction === 'delete' ? 'bg-red-500 hover:bg-red-600' : 'bg-amber-500 hover:bg-amber-600',
-                                    )}>
-                                    {confirmBulkAction === 'delete' ? 'Yes, Remove Users' : 'Yes, Suspend Users'}
-                                </button>
+                                    }}>Yes, Suspend Users</AppButton>
+                                )}
                             </div>
                         </div>
                     )}
@@ -1079,31 +1052,31 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                 <AppModal isOpen={!!csvModal} onOpenChange={(o) => { if (!o) setCsvModal(null); }} title="Review CSV Import" size="lg">
                     {csvModal && (
                         <div className="space-y-4">
-                            <p className="text-[13px] text-white/50">
+                            <p className="text-[13px] text-[var(--crm-text-muted)]">
                                 {csvModal.users.filter(u => !csvModal.existing.has(u.email)).length} new · {csvModal.existing.size} existing
                             </p>
-                            <div className="max-h-[320px] overflow-y-auto rounded-lg border border-white/5 divide-y divide-white/[0.02]">
+                            <div className="max-h-[320px] overflow-y-auto rounded-lg border border-[var(--crm-border)] divide-y divide-[var(--crm-border)]/40">
                                 {csvModal.users.map((u, i) => {
                                     const isDuplicate = csvModal.existing.has(u.email);
                                     const isOverridden = csvModal.overrides.has(u.email);
                                     return (
                                         <div key={i} className={cn(
                                             'flex items-center justify-between px-4 py-2.5 transition',
-                                            isDuplicate ? (isOverridden ? 'bg-amber-500/[0.04]' : 'bg-white/[0.01]') : '',
+                                            isDuplicate ? (isOverridden ? 'bg-[var(--crm-gold-soft)]' : 'bg-[var(--crm-surface-3)]/30') : '',
                                         )}>
                                             <div className="flex items-center gap-3 min-w-0">
-                                                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-[10px] font-bold text-amber-400">
+                                                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[10px] font-bold text-[var(--crm-gold)]">
                                                     {u.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-[13px] font-medium text-white/80 truncate">{u.name}</p>
-                                                    <p className="text-[11px] text-white/40 truncate">{u.email}</p>
+                                                    <p className="text-[13px] font-medium text-[var(--crm-text)]/80 truncate">{u.name}</p>
+                                                    <p className="text-[11px] text-[var(--crm-text-soft)] truncate">{u.email}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2 shrink-0">
-                                                <span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-semibold capitalize text-white/50">{u.role}</span>
+                                                <span className="rounded-md bg-[var(--crm-surface-hover)] px-2 py-0.5 text-[10px] font-semibold capitalize text-[var(--crm-text-soft)]">{u.role}</span>
                                                 {isDuplicate && (
-                                                    <div className="flex items-center rounded-md border border-white/5 bg-white/[0.02] text-[10px] font-semibold overflow-hidden">
+                                                    <div className="flex items-center rounded-md border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 text-[10px] font-semibold overflow-hidden">
                                                         <button type="button" onClick={() => {
                                                             setCsvModal((p) => {
                                                                 if (!p) return p;
@@ -1112,7 +1085,7 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                                                 return { ...p, overrides: next };
                                                             });
                                                         }}
-                                                            className={cn('px-2 py-0.5 transition', !isOverridden ? 'bg-white/15 text-white/60' : 'text-white/30 hover:text-white/50')}>Skip</button>
+                                                            className={cn('px-2 py-0.5 transition', !isOverridden ? 'bg-[var(--crm-surface-2)] text-[var(--crm-text-muted)]' : 'text-[var(--crm-text-soft)] hover:text-[var(--crm-text-muted)]')}>Skip</button>
                                                         <button type="button" onClick={() => {
                                                             setCsvModal((p) => {
                                                                 if (!p) return p;
@@ -1121,27 +1094,26 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                                                 return { ...p, overrides: next };
                                                             });
                                                         }}
-                                                            className={cn('px-2 py-0.5 transition', isOverridden ? 'bg-amber-500/15 text-amber-400' : 'text-white/30 hover:text-white/50')}>Override</button>
+                                                            className={cn('px-2 py-0.5 transition', isOverridden ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-soft)] hover:text-[var(--crm-text-muted)]')}>Override</button>
                                                     </div>
                                                 )}
                                                 {!isDuplicate && (
-                                                    <span className="text-[10px] font-medium text-emerald-400/60">New</span>
+                                                    <span className="text-[10px] font-medium text-[var(--crm-success)]/60">New</span>
                                                 )}
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
-                            <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                                <span className="text-[11px] text-white/30">
+                            <div className="flex items-center justify-between pt-2 border-t border-[var(--crm-border)]">
+                                <span className="text-[11px] text-[var(--crm-text-soft)]">
                                     {csvModal.existing.size > 0 && (
                                         <>{csvModal.overrides.size} of {csvModal.existing.size} duplicate(s) will be overridden</>
                                     )}
                                 </span>
                                 <div className="flex items-center gap-2">
-                                    <button type="button" onClick={() => setCsvModal(null)}
-                                        className="rounded-lg border border-white/10 px-4 py-1.5 text-xs font-medium text-white/60 hover:text-white/80 hover:bg-white/5 transition">Cancel</button>
-                                    <button type="button" onClick={() => {
+                                    <AppButton variant="bordered" onPress={() => setCsvModal(null)}>Cancel</AppButton>
+                                    <AppButton variant="solid" color="primary" onPress={() => {
                                         const overrides: Record<string, boolean> = {};
                                         csvModal.overrides.forEach((e) => { overrides[e] = true; });
                                         const payload = { users: csvModal.users, overrides };
@@ -1151,10 +1123,9 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                             onSuccess: () => toast.success('CSV import completed.'),
                                             onError: () => toast.error('CSV import failed.'),
                                         });
-                                    }}
-                                        className="rounded-lg bg-white px-4 py-1.5 text-xs font-semibold text-black transition hover:bg-white/90">
+                                    }}>
                                         Import {csvModal.users.length} User{csvModal.users.length > 1 ? 's' : ''}
-                                    </button>
+                                    </AppButton>
                                 </div>
                             </div>
                         </div>
@@ -1166,19 +1137,17 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                     {deleteTarget && (
                         <div className="text-center">
                             <div className="flex justify-center mb-4">
-                                <div className="flex size-12 items-center justify-center rounded-full bg-red-500/10">
-                                    <AlertTriangle size={22} className="text-red-400" />
+                                <div className="flex size-12 items-center justify-center rounded-full bg-[var(--crm-danger-soft)]">
+                                    <AlertTriangle size={22} className="text-[var(--crm-danger)]" />
                                 </div>
                             </div>
-                            <h3 className="text-base font-semibold text-white/90 mb-2">Remove {deleteTarget.name}?</h3>
-                            <p className="text-[13px] text-white/50 leading-relaxed">
-                                They will lose all access to <strong className="text-white/70">ARCHI LBO OS</strong> immediately.
+                            <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Remove {deleteTarget.name}?</h3>
+                            <p className="text-[13px] text-[var(--crm-text-muted)] leading-relaxed">
+                                They will lose all access to <strong className="text-[var(--crm-text)]/70">ARCHI LBO OS</strong> immediately.
                             </p>
                             <div className="flex items-center justify-center gap-2 mt-6">
-                                <button type="button" onClick={() => setDeleteTarget(null)}
-                                    className="rounded-lg border border-white/10 px-4 py-1.5 text-xs font-medium text-white/60 hover:text-white/80 hover:bg-white/5 transition">Cancel</button>
-                                <button type="button" onClick={() => { router.delete(`/admin/users/${deleteTarget.id}`, { preserveScroll: true, onSuccess: () => { setDeleteTarget(null); toast.success(`${deleteTarget.name} has been removed.`); }, onError: () => toast.error('Could not remove user.'), }); }}
-                                    className="rounded-lg bg-red-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-red-600">Yes, Remove User</button>
+                                <AppButton variant="bordered" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
+                                <AppButton variant="solid" color="danger" onPress={() => { router.delete(`/admin/users/${deleteTarget.id}`, { preserveScroll: true, onSuccess: () => { setDeleteTarget(null); toast.success(`${deleteTarget.name} has been removed.`); }, onError: () => toast.error('Could not remove user.'), }); }}>Yes, Remove User</AppButton>
                             </div>
                         </div>
                     )}

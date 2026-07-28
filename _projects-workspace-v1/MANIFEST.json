@@ -1,0 +1,132 @@
+{
+  "package": "ARCHI_LBO_PROJECTS_WORKSPACE_V1_4284DBF",
+  "generated_utc": "2026-07-28T16:42:37.758072+00:00",
+  "target_branch": "finance-template-editor",
+  "target_commit": "4284dbf343e10fda511a81e565ba0d8fac03dfe1",
+  "existing_target_files": [
+    "app/Http/Controllers/DossierController.php",
+    "app/Http/Requests/UpdateDossierRequest.php",
+    "app/Http/Resources/DossierResource.php",
+    "resources/js/features/dossiers/types.ts",
+    "resources/js/lib/i18n.ts",
+    "resources/js/pages/Dossiers/Index.tsx",
+    "resources/js/pages/Dossiers/Show.tsx"
+  ],
+  "new_target_files": [
+    "resources/js/components/ui/AppWorkspaceTabs.tsx",
+    "resources/js/features/dossiers/projectPayload.ts",
+    "resources/js/locales/en/projects.ts",
+    "resources/js/locales/fr/projects.ts",
+    "tests/Feature/ProjectWorkspaceTest.php"
+  ],
+  "validation_design": {
+    "payload_hashes": true,
+    "exact_branch_and_commit": true,
+    "clean_target_guard": true,
+    "full_file_copy_only": true,
+    "baseline_build_required": true,
+    "typescript_regression_comparison": true,
+    "target_typescript_diagnostics_forbidden": true,
+    "focused_eslint_zero_warnings": true,
+    "focused_backend_tests": true,
+    "post_build_required": true,
+    "automatic_rollback": true
+  },
+  "files": [
+    {
+      "path": "MANUAL_QA.md",
+      "bytes": 3036,
+      "sha256": "89bc512cdef1626c15010fc98ce7163196866b73d98062995c6ff6a95038b81a"
+    },
+    {
+      "path": "PAYLOAD_MANIFEST.json",
+      "bytes": 2269,
+      "sha256": "ce02cc1a9e684ac1a082ebe2d4fd9f943d5b4fed7b8051b31299a35a535b71a4"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3909,
+      "sha256": "d507fe0806137f22270d2cbfba4617652d1310c653777b5bf040ea72595fe7e2"
+    },
+    {
+      "path": "SOURCE_AUDIT.md",
+      "bytes": 1970,
+      "sha256": "dfc63ded6cefbf0ccf07933782db54b4d20458d7098aefe46b84badd6324c27d"
+    },
+    {
+      "path": "VALIDATION_NOTES.md",
+      "bytes": 880,
+      "sha256": "0d7234b86e9a87ce03689b073e0a05a25392cc7b831811aeaefc44672000c670"
+    },
+    {
+      "path": "install-projects-workspace-v1.ps1",
+      "bytes": 24193,
+      "sha256": "d4332bdce209465d4daa28c2857bebf3c4f85d59bc6e3a7b43786a77e6f3120b"
+    },
+    {
+      "path": "payload/app/Http/Controllers/DossierController.php",
+      "bytes": 21653,
+      "sha256": "e4d77a60b486ea2c641d89d715fe53d9a69e4c44d1d9d2cd62499039f37ab4d4"
+    },
+    {
+      "path": "payload/app/Http/Requests/UpdateDossierRequest.php",
+      "bytes": 1279,
+      "sha256": "9cbe38ebb9facf23e1d61fe15f7a21b7e45ba2ef00668463cddcf7627dd067e4"
+    },
+    {
+      "path": "payload/app/Http/Resources/DossierResource.php",
+      "bytes": 2431,
+      "sha256": "36c8d945b1f81940872e613a99d65252fbc2afcb5169fc8ffacd4a8147c66e6a"
+    },
+    {
+      "path": "payload/resources/js/components/ui/AppWorkspaceTabs.tsx",
+      "bytes": 3493,
+      "sha256": "04c141e5d0eeb94c1a5422386617c6e80eebdcb1b96271c965270fa8827cf199"
+    },
+    {
+      "path": "payload/resources/js/features/dossiers/projectPayload.ts",
+      "bytes": 1478,
+      "sha256": "084838832ff8f52a9bf2f76994eab19c5d6a97c1543712e06ac91306d3a16f4a"
+    },
+    {
+      "path": "payload/resources/js/features/dossiers/types.ts",
+      "bytes": 4966,
+      "sha256": "ac441b8d6b683598dbd3e109f1c9457a1bf0f146b03487af911fbe76f889e8d3"
+    },
+    {
+      "path": "payload/resources/js/lib/i18n.ts",
+      "bytes": 3026,
+      "sha256": "a6b7264d4406164d7f9d6e4deea446a0ab587d6a5458df89a32c29ef94b394cb"
+    },
+    {
+      "path": "payload/resources/js/locales/en/projects.ts",
+      "bytes": 6119,
+      "sha256": "cf6bab53427d4df56eef93508e78d59d203fba60702a3d78f81c2c1e86376821"
+    },
+    {
+      "path": "payload/resources/js/locales/fr/projects.ts",
+      "bytes": 6422,
+      "sha256": "3f7bb66a20b139a8a351169fe5c150c919741a8bb36b5871fb6bb0da476ca431"
+    },
+    {
+      "path": "payload/resources/js/pages/Dossiers/Index.tsx",
+      "bytes": 41709,
+      "sha256": "120a61bd0273c49a79a35109b69aa3052c943b67759e7591f63ff1e463ccf13e"
+    },
+    {
+      "path": "payload/resources/js/pages/Dossiers/Show.tsx",
+      "bytes": 63364,
+      "sha256": "f3d47acacce9870c5fcba4e3624adb2082f4576d7703d3ca4c50069540bec697"
+    },
+    {
+      "path": "payload/tests/Feature/ProjectWorkspaceTest.php",
+      "bytes": 14597,
+      "sha256": "90712f1ce46da81aec976a312b51abb7dc2b8807b0350da1ffdc3274228595ba"
+    },
+    {
+      "path": "rollback-projects-workspace-v1.ps1",
+      "bytes": 1777,
+      "sha256": "b259499cfab0f134ff4485737d96d1a81be20ca435781bcb0442c6642fe64b57"
+    }
+  ]
+}

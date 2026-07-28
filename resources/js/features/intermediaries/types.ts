@@ -71,6 +71,7 @@ export type IntermediaryActivityItem = {
     occurredAt: string;
     occurredAtHuman: string;
     href: string | null;
+    causerName?: string | null;
 };
 
 export type IntermediaryShowMetrics = {

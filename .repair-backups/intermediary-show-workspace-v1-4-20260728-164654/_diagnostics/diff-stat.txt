@@ -1,0 +1,6 @@
+﻿ app/Http/Controllers/IntermediaryController.php |  263 ++++--
+ resources/js/features/intermediaries/types.ts   |   19 +
+ resources/js/locales/en.ts                      |   51 ++
+ resources/js/locales/fr/intermediaries.ts       |  147 ++--
+ resources/js/pages/Intermediaries/Show.tsx      | 1028 ++++++++++++-----------
+ 5 files changed, 908 insertions(+), 600 deletions(-)
