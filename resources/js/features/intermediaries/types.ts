@@ -56,6 +56,23 @@ export type StatusCount = {
     count: number;
 };
 
+export type IntermediaryActivityType =
+    | 'intermediary_updated'
+    | 'client_created'
+    | 'client_updated'
+    | 'project_created'
+    | 'project_updated';
+
+export type IntermediaryActivityItem = {
+    id: string;
+    type: IntermediaryActivityType;
+    subjectName: string;
+    subjectCode: string | null;
+    occurredAt: string;
+    occurredAtHuman: string;
+    href: string | null;
+};
+
 export type IntermediaryShowMetrics = {
     totalClients: number;
     activeClients: number;
@@ -64,6 +81,7 @@ export type IntermediaryShowMetrics = {
     totalProjects: number;
     activeProjects: number;
     archivedProjects: number;
+    blockedProjects: number;
     latestClientName: string | null;
     latestClientDate: string | null;
 };
@@ -77,4 +95,5 @@ export type IntermediaryShowProps = {
     projectStatusBreakdown: StatusCount[];
     clients: ClientBrief[];
     projects: ProjectBrief[];
+    activity: IntermediaryActivityItem[];
 };

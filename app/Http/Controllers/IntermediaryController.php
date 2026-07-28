@@ -12,6 +12,7 @@ use App\Services\CompanyContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,10 +42,10 @@ class IntermediaryController extends Controller
             ->count();
 
         $topIntermediaries = $intermediaries->sortByDesc('clients_count')->take(5)->values()
-            ->map(fn ($i) => [
-                'id' => $i->id,
-                'name' => $i->name,
-                'clientsCount' => $i->clients_count,
+            ->map(fn ($intermediary) => [
+                'id' => $intermediary->id,
+                'name' => $intermediary->name,
+                'clientsCount' => $intermediary->clients_count,
             ]);
 
         return Inertia::render('Intermediaries/Index', [
@@ -56,7 +57,9 @@ class IntermediaryController extends Controller
                 'linkedClients' => $intermediaries->sum('clients_count'),
                 'clientsThisMonth' => $clientsThisMonth,
             ],
-            'monthlyClients' => collect($monthlyClients)->map(fn ($count, $month) => ['month' => $month, 'count' => $count])->values(),
+            'monthlyClients' => collect($monthlyClients)
+                ->map(fn ($count, $month) => ['month' => $month, 'count' => $count])
+                ->values(),
             'topIntermediaries' => $topIntermediaries,
         ]);
     }
@@ -65,99 +68,88 @@ class IntermediaryController extends Controller
     {
         $this->authorize('view', $intermediary);
 
-        $clientsQuery = $this->clientsQuery($intermediary, $request, $companyContext);
-        $clientsCount = (clone $clientsQuery)->count();
-        $intermediary->setAttribute('clients_count', $clientsCount);
-
-        $relatedDossiers = $companyContext->applyTo(Dossier::query(), $request->user())
-            ->whereIn('client_id', (clone $clientsQuery)->select('id'))
-            ->get();
-
-        $monthlyClients = (clone $clientsQuery)
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, count(*) as count")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('count', 'month')
-            ->toArray();
-
-        $monthlyProjects = $companyContext->applyTo(Dossier::query(), $request->user())
-            ->whereIn('client_id', (clone $clientsQuery)->select('id'))
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, count(*) as count")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('count', 'month')
-            ->toArray();
-
-        $activeClients = (clone $clientsQuery)->where('status', 'active')->count();
-        $inactiveClients = (clone $clientsQuery)->where('status', 'inactive')->count();
-        $archivedClients = (clone $clientsQuery)->where('status', 'archived')->count();
-
-        $projectStatusBreakdown = $companyContext->applyTo(Dossier::query(), $request->user())
-            ->whereIn('client_id', (clone $clientsQuery)->select('id'))
-            ->selectRaw('status, count(*) as count')
-            ->groupBy('status')
-            ->pluck('count', 'status')
-            ->toArray();
-
-        $latestClient = (clone $clientsQuery)->latest()->first();
-
-        $clientsList = (clone $clientsQuery)
+        $clients = $this->clientsQuery($intermediary, $request, $companyContext)
             ->withCount('dossiers')
             ->latest()
-            ->get()
-            ->map(fn ($client) => [
-                'id' => $client->id,
-                'fullName' => $client->full_name,
-                'clientNumber' => $client->client_number,
-                'cin' => $client->cin,
-                'phone' => $client->phone,
-                'email' => $client->email,
-                'status' => $client->status,
-                'projectsCount' => $client->dossiers_count,
-                'createdAt' => optional($client->created_at)->format('Y-m-d'),
-                'updatedAt' => optional($client->updated_at)->diffForHumans(),
-            ]);
+            ->get();
 
-        $projectsList = $companyContext->applyTo(Dossier::query(), $request->user())
-            ->whereIn('client_id', (clone $clientsQuery)->select('id'))
+        $clientIds = $clients->pluck('id');
+        $projects = $companyContext->applyTo(Dossier::query(), $request->user())
+            ->whereIn('client_id', $clientIds)
             ->with('client:id,full_name')
             ->latest()
-            ->get()
-            ->map(fn ($dossier) => [
-                'id' => $dossier->id,
-                'dossierNumber' => $dossier->dossier_number,
-                'projectObject' => $dossier->project_object,
-                'clientName' => $dossier->client?->full_name,
-                'status' => $dossier->status,
-                'workflowStep' => $dossier->workflow_step,
-                'commune' => $dossier->commune,
-                'createdAt' => optional($dossier->created_at)->format('Y-m-d'),
-                'updatedAt' => optional($dossier->updated_at)->diffForHumans(),
-            ]);
+            ->get();
+
+        $activeClients = $clients->where('status', 'active')->count();
+        $inactiveClients = $clients->where('status', 'inactive')->count();
+        $archivedClients = $clients->where('status', 'archived')->count();
+        $activeProjects = $projects->whereNotIn('status', ['archived', 'closed'])->count();
+        $archivedProjects = $projects->where('status', 'archived')->count();
+        $blockedProjects = $projects->where('status', 'blocked')->count();
+        $latestClient = $clients->first();
+
+        $monthlyClients = $this->monthlyCounts($clients);
+        $monthlyProjects = $this->monthlyCounts($projects);
+        $projectStatusBreakdown = $projects
+            ->groupBy(fn (Dossier $dossier) => $dossier->status ?: 'unknown')
+            ->map(fn (Collection $items, string $status) => [
+                'status' => $status,
+                'count' => $items->count(),
+            ])
+            ->values();
+
+        $clientsList = $clients->map(fn (Client $client) => [
+            'id' => $client->id,
+            'fullName' => $client->full_name,
+            'clientNumber' => $client->client_number,
+            'cin' => $client->cin,
+            'phone' => $client->phone,
+            'email' => $client->email,
+            'status' => $client->status,
+            'projectsCount' => $client->dossiers_count,
+            'createdAt' => optional($client->created_at)->format('Y-m-d'),
+            'updatedAt' => optional($client->updated_at)->diffForHumans(),
+        ])->values();
+
+        $projectsList = $projects->map(fn (Dossier $dossier) => [
+            'id' => $dossier->id,
+            'dossierNumber' => $dossier->dossier_number,
+            'projectObject' => $dossier->project_object,
+            'clientName' => $dossier->client?->full_name,
+            'status' => $dossier->status,
+            'workflowStep' => $dossier->workflow_step,
+            'commune' => $dossier->commune,
+            'createdAt' => optional($dossier->created_at)->format('Y-m-d'),
+            'updatedAt' => optional($dossier->updated_at)->diffForHumans(),
+        ])->values();
 
         return Inertia::render('Intermediaries/Show', [
-            'intermediary' => IntermediaryResource::make($intermediary)->resolve(),
+            'intermediary' => IntermediaryResource::make(
+                $intermediary->setAttribute('clients_count', $clients->count()),
+            )->resolve(),
             'metrics' => [
-                'totalClients' => $intermediary->clients_count,
+                'totalClients' => $clients->count(),
                 'activeClients' => $activeClients,
                 'inactiveClients' => $inactiveClients,
                 'archivedClients' => $archivedClients,
-                'totalProjects' => $relatedDossiers->count(),
-                'activeProjects' => $relatedDossiers->where('status', 'active')->count(),
-                'archivedProjects' => $relatedDossiers->where('status', 'archived')->count(),
+                'totalProjects' => $projects->count(),
+                'activeProjects' => $activeProjects,
+                'archivedProjects' => $archivedProjects,
+                'blockedProjects' => $blockedProjects,
                 'latestClientName' => $latestClient?->full_name,
                 'latestClientDate' => optional($latestClient?->created_at)->diffForHumans(),
             ],
-            'monthlyClients' => collect($monthlyClients)->map(fn ($count, $month) => ['month' => $month, 'count' => $count])->values(),
-            'monthlyProjects' => collect($monthlyProjects)->map(fn ($count, $month) => ['month' => $month, 'count' => $count])->values(),
-            'clientStatusBreakdown' => [
+            'monthlyClients' => $monthlyClients,
+            'monthlyProjects' => $monthlyProjects,
+            'clientStatusBreakdown' => collect([
                 ['status' => 'active', 'count' => $activeClients],
                 ['status' => 'inactive', 'count' => $inactiveClients],
                 ['status' => 'archived', 'count' => $archivedClients],
-            ],
-            'projectStatusBreakdown' => collect($projectStatusBreakdown)->map(fn ($count, $status) => ['status' => $status, 'count' => $count])->values(),
+            ]),
+            'projectStatusBreakdown' => $projectStatusBreakdown,
             'clients' => $clientsList,
             'projects' => $projectsList,
+            'activity' => $this->relationshipActivity($intermediary, $clients, $projects),
         ]);
     }
 
@@ -224,5 +216,118 @@ class IntermediaryController extends Controller
     ): Builder {
         return $companyContext->applyTo(Client::query(), $request->user())
             ->where('intermediary_id', $intermediary->id);
+    }
+
+    private function monthlyCounts(Collection $items): Collection
+    {
+        return $items
+            ->filter(fn ($item) => $item->created_at !== null)
+            ->groupBy(fn ($item) => $item->created_at->format('Y-m'))
+            ->map(fn (Collection $monthItems, string $month) => [
+                'month' => $month,
+                'count' => $monthItems->count(),
+            ])
+            ->sortBy('month')
+            ->values();
+    }
+
+    private function relationshipActivity(
+        Intermediary $intermediary,
+        Collection $clients,
+        Collection $projects,
+    ): Collection {
+        $activity = collect();
+
+        if ($intermediary->updated_at) {
+            $activity->push($this->activityItem(
+                id: "intermediary-updated-{$intermediary->id}-{$intermediary->updated_at->timestamp}",
+                type: 'intermediary_updated',
+                subjectName: $intermediary->name,
+                subjectCode: $intermediary->code,
+                occurredAt: $intermediary->updated_at,
+                href: null,
+            ));
+        }
+
+        foreach ($clients as $client) {
+            if ($client->created_at) {
+                $activity->push($this->activityItem(
+                    id: "client-created-{$client->id}-{$client->created_at->timestamp}",
+                    type: 'client_created',
+                    subjectName: $client->full_name,
+                    subjectCode: $client->client_number,
+                    occurredAt: $client->created_at,
+                    href: route('clients.show', $client, false),
+                ));
+            }
+
+            if ($this->hasMeaningfulUpdate($client->created_at, $client->updated_at)) {
+                $activity->push($this->activityItem(
+                    id: "client-updated-{$client->id}-{$client->updated_at->timestamp}",
+                    type: 'client_updated',
+                    subjectName: $client->full_name,
+                    subjectCode: $client->client_number,
+                    occurredAt: $client->updated_at,
+                    href: route('clients.show', $client, false),
+                ));
+            }
+        }
+
+        foreach ($projects as $project) {
+            $projectName = $project->project_object ?: $project->dossier_number;
+
+            if ($project->created_at) {
+                $activity->push($this->activityItem(
+                    id: "project-created-{$project->id}-{$project->created_at->timestamp}",
+                    type: 'project_created',
+                    subjectName: $projectName,
+                    subjectCode: $project->dossier_number,
+                    occurredAt: $project->created_at,
+                    href: route('dossiers.show', $project, false),
+                ));
+            }
+
+            if ($this->hasMeaningfulUpdate($project->created_at, $project->updated_at)) {
+                $activity->push($this->activityItem(
+                    id: "project-updated-{$project->id}-{$project->updated_at->timestamp}",
+                    type: 'project_updated',
+                    subjectName: $projectName,
+                    subjectCode: $project->dossier_number,
+                    occurredAt: $project->updated_at,
+                    href: route('dossiers.show', $project, false),
+                ));
+            }
+        }
+
+        return $activity
+            ->sortByDesc('occurredAt')
+            ->take(40)
+            ->values();
+    }
+
+    private function activityItem(
+        string $id,
+        string $type,
+        string $subjectName,
+        ?string $subjectCode,
+        $occurredAt,
+        ?string $href,
+    ): array {
+        return [
+            'id' => $id,
+            'type' => $type,
+            'subjectName' => $subjectName,
+            'subjectCode' => $subjectCode,
+            'occurredAt' => $occurredAt->toIso8601String(),
+            'occurredAtHuman' => $occurredAt->diffForHumans(),
+            'href' => $href,
+        ];
+    }
+
+    private function hasMeaningfulUpdate($createdAt, $updatedAt): bool
+    {
+        return $createdAt !== null
+            && $updatedAt !== null
+            && $updatedAt->greaterThan($createdAt->copy()->addMinute());
     }
 }
