@@ -28,3 +28,5 @@ Homestead.yaml
 Thumbs.db
 /docs
 tessdata/
+
+/.repair-backups

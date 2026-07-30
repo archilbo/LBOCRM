@@ -11,6 +11,7 @@ use App\Models\Message;
 use App\Models\MessageAttachment;
 use App\Models\User;
 use App\Http\Resources\ConversationResource;
+use App\Services\Dossiers\DossierPathBuilder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -301,6 +302,10 @@ class ChatService
 
     protected function attachmentDirectory(Conversation $conversation, Message $message): string
     {
-        return 'chat/company-'.($conversation->company_id ?: 'legacy').'/conversation-'.$conversation->id.'/message-'.$message->id;
+        $conversation->loadMissing(['company', 'branch']);
+        $company = DossierPathBuilder::folderSafe($conversation->company?->name);
+        $branch = DossierPathBuilder::folderSafe($conversation->branch?->name);
+
+        return "archilbo/{$company}/{$branch}/chat/conversation-{$conversation->id}/message-{$message->id}";
     }
 }

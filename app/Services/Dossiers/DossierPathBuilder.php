@@ -13,9 +13,10 @@ class DossierPathBuilder
     {
         return implode('/', array_filter([
             'archilbo',
-            $this->sanitize($dossier->city?->name ?? 'inconnu'),
-            $this->sanitize($dossier->commune ?? 'inconnu'),
-            $this->sanitize($dossier->client?->full_name ?? 'inconnu'),
+            'DATA',
+            static::folderSafe($dossier->city?->name ?? 'INCONNU'),
+            static::folderSafe($dossier->commune ?? 'INCONNU'),
+            static::folderSafe($dossier->client?->full_name ?? 'INCONNU'),
             $this->dossierFolderName($dossier),
         ]));
     }
@@ -49,7 +50,12 @@ class DossierPathBuilder
             ? $this->sanitize($template->code) . '_' . $this->sanitize($originalFilename ?: 'document')
             : $this->sanitize($originalFilename ?: 'document');
 
-        return $this->dossierBasePath($dossier) . '/' . $typeFolder . '/' . $filename;
+        return $this->dossierBasePath($dossier) . '/documents/' . $typeFolder . '/' . $filename;
+    }
+
+    public function designPath(Dossier $dossier): string
+    {
+        return $this->dossierBasePath($dossier) . '/DESIGNS';
     }
 
     public function contractDocxPath(Contract $contract, Dossier $dossier): string
@@ -64,18 +70,26 @@ class DossierPathBuilder
 
     private function contractPath(Contract $contract, Dossier $dossier, string $ext): string
     {
+        $client = $dossier->client;
+        $civility = $client?->civility ?? 'M';
+        $name = $client?->full_name ?? 'contrat';
+
+        $filename = 'CONTRAT D\'ARCHITECT ' . $civility . ' ' . $name;
+
+        // Remove only truly dangerous filesystem characters, keep uppercase and spaces
+        $safe = preg_replace('/[\/\\\\:*?"<>|]/', '_', $filename);
+
         return $this->dossierBasePath($dossier)
             . '/Contrat/'
-            . $this->sanitize($contract->contract_number ?? 'contrat-' . $contract->id)
-            . '-contrat.' . $ext;
+            . $safe
+            . '.' . $ext;
     }
 
     private function dossierFolderName(Dossier $dossier): string
     {
-        $number = $this->sanitize($dossier->dossier_number ?? 'dossier-' . $dossier->id);
-        $projectName = $this->sanitize($dossier->project_object ?? null);
+        $projectName = $dossier->project_object ?? 'PROJET';
 
-        return $projectName === 'inconnu' ? $number : $number . '_' . $projectName;
+        return static::folderSafe($dossier->project_label . ' ' . $projectName);
     }
 
     public function sanitize(?string $value): string
@@ -92,6 +106,20 @@ class DossierPathBuilder
             ->replace([' ', '/', '\\', ':', '*', '?', '"', '<', '>', '|', '\''], '_')
             ->replaceMatches('/_{2,}/', '_')
             ->trim('_')
+            ->toString();
+    }
+
+    public static function folderSafe(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return 'INCONNU';
+        }
+
+        return Str::of($value)
+            ->ascii()
+            ->upper()
+            ->replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '_')
+            ->squish()
             ->toString();
     }
 }

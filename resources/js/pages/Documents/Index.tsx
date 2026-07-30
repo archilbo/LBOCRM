@@ -1,7 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
-    AlertTriangle, CheckCircle2, Download, Eye, FileText, FolderKanban,
+    AlertTriangle, CheckCircle2, Copy, Download, Eye, FileText, FolderKanban,
     MoreHorizontal, Search, Trash2, UploadCloud, X, XCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -11,6 +11,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDataTable } from '@/components/ui/AppDataTable';
 import { AppDrawer } from '@/components/ui/AppDrawer';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppModal } from '@/components/ui/AppModal';
 import { DocumentDrawer } from '@/components/drawers';
 import { DocumentGroupedExplorer } from '@/features/documents/components/DocumentGroupedExplorer';
@@ -30,6 +31,14 @@ type PageProps = {
     templates: DocumentTemplateOption[];
     metrics: { total: number; uploaded: number; verified: number; missing: number; templates: number };
 };
+
+const DOCUMENT_KPI_TONES = {
+    total: { icon: <FileText size={16} className="text-zinc-400" />, accentColor: '#a1a1aa', valueClassName: 'text-zinc-300' },
+    uploaded: { icon: <UploadCloud size={16} className="text-sky-400" />, accentColor: '#38bdf8', valueClassName: 'text-sky-300' },
+    verified: { icon: <CheckCircle2 size={16} className="text-emerald-400" />, accentColor: '#34d399', valueClassName: 'text-emerald-300' },
+    missing: { icon: <AlertTriangle size={16} className="text-amber-400" />, accentColor: '#fbbf24', valueClassName: 'text-amber-300' },
+    templates: { icon: <Copy size={16} className="text-violet-400" />, accentColor: '#a78bfa', valueClassName: 'text-violet-300' },
+} as const;
 
 type ViewMode = 'workspace' | 'grouped';
 
@@ -354,30 +363,22 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                             {t('documents.subtitle')}
                         </p>
                     </div>
-                    {can('documents.create') ? <AppButton variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={() => setDrawerOpen(true)}>
-                        <UploadCloud size={15} /> Upload document
+                    {can('documents.create') ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('documents.upload')} aria-label={t('documents.upload')} onPress={() => setDrawerOpen(true)}>
+                        <UploadCloud size={16} />
                     </AppButton> : null}
                 </header>
 
-                <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
                     {([
-                        { label: t('documents.metrics.total'), value: metrics.total, icon: <FileText size={13} />, bg: 'bg-[var(--surface-2)]' },
-                        { label: t('documents.metrics.uploaded'), value: metrics.uploaded, icon: <UploadCloud size={13} />, bg: 'bg-sky-500/10 text-sky-400' },
-                        { label: t('documents.metrics.verified'), value: metrics.verified, icon: <CheckCircle2 size={13} />, bg: 'bg-emerald-500/10 text-emerald-400' },
-                        { label: t('documents.metrics.missing'), value: metrics.missing, icon: <AlertTriangle size={13} />, bg: metrics.missing > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-[var(--surface-2)] text-[var(--text-muted)]' },
-                        { label: t('documents.metrics.templates'), value: metrics.templates, icon: <FileText size={13} />, bg: 'bg-[var(--surface-2)]' },
-                    ] as const).map((card) => (
-                        <Card key={card.label} className="flex-row items-center gap-0 border border-[var(--border)] p-2 shadow-sm">
-                            <span className={cn('flex size-7 items-center justify-center rounded-md shrink-0', card.bg)}>
-                                {card.icon}
-                            </span>
-                            <div className="ml-2 min-w-0">
-                                <p className="text-[10px] font-medium text-[var(--text-muted)]">{card.label}</p>
-                                <p className={cn('text-[15px] font-semibold text-[var(--foreground)] leading-4')}>{card.value}</p>
-                            </div>
-                        </Card>
+                        { label: t('documents.metrics.total'), value: metrics.total, key: 'total' as const },
+                        { label: t('documents.metrics.uploaded'), value: metrics.uploaded, key: 'uploaded' as const },
+                        { label: t('documents.metrics.verified'), value: metrics.verified, key: 'verified' as const },
+                        { label: t('documents.metrics.missing'), value: metrics.missing, key: 'missing' as const },
+                        { label: t('documents.metrics.templates'), value: metrics.templates, key: 'templates' as const },
+                    ]).map((card) => (
+                        <AppKpiCard key={card.key} label={card.label} value={card.value} icon={DOCUMENT_KPI_TONES[card.key].icon} accentColor={DOCUMENT_KPI_TONES[card.key].accentColor} valueClassName={DOCUMENT_KPI_TONES[card.key].valueClassName} />
                     ))}
-                </section>
+                </div>
 
                 {metrics.total > 0 && (
                     <div className="grid gap-3 sm:grid-cols-2">

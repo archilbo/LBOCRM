@@ -8,6 +8,7 @@ use App\Models\ProjectDesign\ProjectDesignFile;
 use App\Models\ProjectDesign\ProjectDesignFileVersion;
 use App\Enums\ProjectDesign\ProjectDesignVersionStatus;
 use App\Jobs\ProjectDesign\ProcessProjectDesignPreview;
+use App\Services\Dossiers\DossierPathBuilder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -17,8 +18,9 @@ class ProjectDesignUploadService
 {
     private string $disk;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly DossierPathBuilder $pathBuilder,
+    ) {
         $this->disk = config('project_design.storage.disk', 'project_design');
     }
 
@@ -55,7 +57,7 @@ class ProjectDesignUploadService
 
             foreach ($uploadedFiles as $index => $uploadedFile) {
                 $assetType = $metadata['asset_types'][$index] ?? $this->guessAssetType($uploadedFile);
-                $storedFilename = $this->storeFile($uploadedFile, $file, $version, $userId);
+                $storedFilename = $this->storeFile($uploadedFile, $file, $version, $dossier, $userId);
 
                 $file->assets()->create([
                     'company_id' => $file->company_id,
@@ -90,14 +92,14 @@ class ProjectDesignUploadService
         });
     }
 
-    private function storeFile(UploadedFile $file, ProjectDesignFile $designFile, ProjectDesignFileVersion $version, int $userId): string
+    private function storeFile(UploadedFile $file, ProjectDesignFile $designFile, ProjectDesignFileVersion $version, Dossier $dossier, int $userId): string
     {
         $companyId = $designFile->company_id;
-        $dossierId = $designFile->dossier_id;
         $fileId = $designFile->id;
         $versionId = $version->id;
 
-        $directory = "companies/{$companyId}/dossiers/{$dossierId}/files/{$fileId}/versions/{$versionId}";
+        $baseDir = $this->pathBuilder->designPath($dossier);
+        $directory = "{$baseDir}/companies/{$companyId}/files/{$fileId}/versions/{$versionId}";
 
         $storedFilename = Str::uuid() . '.' . $file->getClientOriginalExtension();
 

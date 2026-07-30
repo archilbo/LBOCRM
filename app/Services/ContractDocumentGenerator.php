@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Contract;
 use App\Services\Dossiers\DossierPathBuilder;
+use App\Support\UnicodeText;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -120,7 +121,7 @@ class ContractDocumentGenerator
             }
 
             foreach ($values as $key => $value) {
-                $template->setValue($key, $this->cleanValue($value));
+                $template->setValue($key, UnicodeText::forDocument($value));
             }
 
             $template->saveAs($docxPath);
@@ -150,7 +151,7 @@ class ContractDocumentGenerator
 
         foreach ($values as $key => $value) {
             $search[$key] = '[' . $key . ']';
-            $replace[$key] = $this->xmlValue($value);
+            $replace[$key] = UnicodeText::forDocument($value);
         }
 
         for ($index = 0; $index < $zip->numFiles; $index++) {
@@ -222,9 +223,9 @@ class ContractDocumentGenerator
                 array_values($directSearch),
                 $fullText
             );
-            $newText = htmlspecialchars($newText, ENT_XML1 | ENT_QUOTES, 'UTF-8');
 
-            $textNodes[0]->nodeValue = $newText;
+            $textNodes[0]->nodeValue = '';
+            $textNodes[0]->appendChild($dom->createTextNode($newText));
 
             for ($i = count($textNodes) - 1; $i >= 1; $i--) {
                 $run = $textNodes[$i]->parentNode;
@@ -259,17 +260,4 @@ class ContractDocumentGenerator
         return number_format($number, 2, '.', ' ');
     }
 
-    private function cleanValue(mixed $value): string
-    {
-        return str_replace(
-            ['&', '<', '>'],
-            ['and', '', ''],
-            (string) ($value ?? '-')
-        );
-    }
-
-    private function xmlValue(mixed $value): string
-    {
-        return htmlspecialchars((string) ($value ?? '-'), ENT_XML1 | ENT_QUOTES, 'UTF-8');
-    }
 }

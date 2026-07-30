@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, FileText, Landmark, LockKeyhole, ReceiptText } from 'lucide-react';
+import { ArrowLeft, CircleDollarSign, FileText, Landmark, LockKeyhole, Percent, ReceiptText } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppModal } from '@/components/ui/AppModal';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppPagination } from '@/components/ui/AppPagination';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { FinanceDocumentLockBadge, FinanceDocumentLockNotice } from '@/features/finance/components/FinanceDocumentLockNotice';
@@ -56,21 +57,12 @@ function typeIcon(type: string | undefined | null): LucideIcon {
     return FileText;
 }
 
-function StatBar({ values }: {
-    values: { label: string; value: string; hint: string; color: string }[];
-}) {
-    return (
-        <div className="grid grid-cols-2 divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)] md:grid-cols-4 md:divide-x md:divide-y-0">
-            {values.map((v) => (
-                <div key={v.label} className="px-4 py-3">
-                    <p className="text-[11px] text-[var(--text-muted)]">{v.label}</p>
-                    <p className={`mt-0.5 text-lg font-bold ${v.color}`}>{v.value}</p>
-                    <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{v.hint}</p>
-                </div>
-            ))}
-        </div>
-    );
-}
+const FINANCE_DOCUMENT_KPI_TONES = {
+    subtotal: { icon: <ReceiptText size={16} className="text-zinc-400" />, accentColor: '#a1a1aa', valueClassName: 'text-zinc-300' },
+    tax: { icon: <Percent size={16} className="text-blue-400" />, accentColor: '#60a5fa', valueClassName: 'text-blue-300' },
+    total: { icon: <CircleDollarSign size={16} className="text-emerald-400" />, accentColor: '#34d399', valueClassName: 'text-emerald-300' },
+    remaining: { icon: <Landmark size={16} className="text-amber-400" />, accentColor: '#fbbf24', valueClassName: 'text-amber-300' },
+} as const;
 
 function EmptyState({ label }: { label: string }) {
     return (
@@ -226,17 +218,19 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                     {locked ? <FinanceDocumentLockNotice document={document} /> : null}
 
                     {/* ── Stat Bar ── */}
-                    <StatBar values={[
-                        { label: 'Subtotal HT', value: money(document.subtotalHt, currency), hint: 'Before TVA', color: 'text-[var(--text)]' },
-                        { label: 'TVA', value: money(document.taxTotal, currency), hint: `${document.tvaRate}% tax rate`, color: 'text-blue-400' },
-                        { label: 'Total TTC', value: money(document.totalTtc, currency), hint: 'Grand total', color: 'text-[var(--accent)]' },
-                        {
-                            label: 'Remaining',
-                            value: money(document.remainingTotal, currency),
-                            hint: document.remainingTotal > 0 ? 'Still to collect' : 'Fully paid',
-                            color: document.remainingTotal > 0 ? 'text-amber-400' : 'text-emerald-400',
-                        },
-                    ]} />
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <AppKpiCard label="Subtotal HT" value={money(document.subtotalHt, currency)} detail="Before TVA" icon={FINANCE_DOCUMENT_KPI_TONES.subtotal.icon} accentColor={FINANCE_DOCUMENT_KPI_TONES.subtotal.accentColor} valueClassName={FINANCE_DOCUMENT_KPI_TONES.subtotal.valueClassName} />
+                        <AppKpiCard label="TVA" value={money(document.taxTotal, currency)} detail={`${document.tvaRate}% tax rate`} icon={FINANCE_DOCUMENT_KPI_TONES.tax.icon} accentColor={FINANCE_DOCUMENT_KPI_TONES.tax.accentColor} valueClassName={FINANCE_DOCUMENT_KPI_TONES.tax.valueClassName} />
+                        <AppKpiCard label="Total TTC" value={money(document.totalTtc, currency)} detail="Grand total" icon={FINANCE_DOCUMENT_KPI_TONES.total.icon} accentColor={FINANCE_DOCUMENT_KPI_TONES.total.accentColor} valueClassName={FINANCE_DOCUMENT_KPI_TONES.total.valueClassName} />
+                        <AppKpiCard
+                            label="Remaining"
+                            value={money(document.remainingTotal, currency)}
+                            detail={document.remainingTotal > 0 ? 'Still to collect' : 'Fully paid'}
+                            icon={FINANCE_DOCUMENT_KPI_TONES.remaining.icon}
+                            accentColor={FINANCE_DOCUMENT_KPI_TONES.remaining.accentColor}
+                            valueClassName={document.remainingTotal > 0 ? 'text-amber-300' : 'text-emerald-300'}
+                        />
+                    </div>
 
                     {/* ── Body: 2-column ── */}
                     <section className="grid min-w-0 items-start gap-5 xl:grid-cols-[1fr_360px]">

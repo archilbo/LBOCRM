@@ -2,11 +2,11 @@ import { Head, router } from '@inertiajs/react';
 import {
     Archive, BriefcaseBusiness, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CreditCard,
     ChevronsUpDown, ChevronUp, Clock3, Eye, ListFilter, MoreHorizontal, Pencil, Phone, Plus,
-    Power, RefreshCw, Search, ShieldCheck, Trash2, UserCheck, UserRound, UserRoundX, Users, X,
+    RefreshCw, Search, ShieldCheck, Trash2, UserCheck, UserRound, UserRoundX, Users, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Dropdown, Input, Switch } from '@heroui/react';
+import { Dropdown, Input } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
@@ -93,8 +93,6 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     const [sortDir, setSortDir] = useState<SortDir>('desc');
     const [deleteTarget, setDeleteTarget] = useState<ClientRow | null>(null);
     const [page, setPage] = useState(0);
-    const [statusUpdatingClientId, setStatusUpdatingClientId] = useState<number | null>(null);
-
     const statusOptions = [
         { id: 'all' as const, label: t('clients.status.all'), count: clients.length },
         { id: 'active' as const, label: t('clients.status.active'), count: metrics.active },
@@ -215,51 +213,6 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
         });
     }
 
-    function updateClientStatus(client: ClientRow, isActive: boolean) {
-        if (client.status === 'archived' || statusUpdatingClientId === client.id) return;
-
-        const nextStatus: Extract<ClientStatus, 'active' | 'inactive'> = isActive ? 'active' : 'inactive';
-
-        setStatusUpdatingClientId(client.id);
-        router.patch(`/clients/${client.id}/status`, { status: nextStatus }, {
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => toast.success(t(nextStatus === 'active' ? 'clients.statusActivated' : 'clients.statusDeactivated')),
-            onError: () => toast.error(t('clients.statusUpdateError')),
-            onFinish: () => setStatusUpdatingClientId(null),
-        });
-    }
-
-    function ClientActivitySwitch({ client }: { client: ClientRow }) {
-        const isArchived = client.status === 'archived';
-        const isUpdating = statusUpdatingClientId === client.id;
-
-        if (!client.capabilities.updateStatus) {
-            return <StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" />;
-        }
-
-        return (
-            <div className="flex items-center" onClick={(event) => event.stopPropagation()}>
-                <Switch
-                    size="sm"
-                    isSelected={client.status === 'active'}
-                    isDisabled={isArchived || isUpdating}
-                    aria-label={t(client.status === 'active' ? 'clients.deactivateClient' : 'clients.activateClient')}
-                    onChange={(isActive) => updateClientStatus(client, isActive)}
-                >
-                    <Switch.Content>
-                        <Switch.Control>
-                            <Switch.Thumb />
-                        </Switch.Control>
-                    </Switch.Content>
-                </Switch>
-                <span className="ml-2 text-[11px] font-medium text-[var(--text-muted)]">
-                    {t(`clients.status.${client.status}`, client.status)}
-                </span>
-            </div>
-        );
-    }
-
     function RowMenu({ client }: { client: ClientRow }) {
         const items = client.capabilities.delete
             ? [{ id: 'delete', label: t('clients.delete'), icon: <Trash2 size={14} />, action: () => setDeleteTarget(client), danger: true }]
@@ -324,11 +277,6 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
             id: 'status',
             label: <ColumnHeader label={t('clients.table.status')} icon={CheckCircle2} field="status" />,
             render: (client) => <StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" />,
-        },
-        {
-            id: 'activity',
-            label: <ColumnHeader label={t('clients.table.active')} icon={Power} />,
-            render: (client) => <ClientActivitySwitch client={client} />,
         },
         {
             id: 'updated',

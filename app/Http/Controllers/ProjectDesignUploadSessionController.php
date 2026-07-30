@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Dossier;
 use App\Models\ProjectDesign\ProjectDesignFile;
 use App\Models\ProjectDesign\ProjectDesignUploadSession;
+use App\Services\Dossiers\DossierPathBuilder;
 use App\Services\Tus\TusServer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class ProjectDesignUploadSessionController extends Controller
 {
     public function __construct(
         private readonly TusServer $tus,
+        private readonly DossierPathBuilder $pathBuilder,
     ) {}
 
     public function create(Request $request, Dossier $dossier): JsonResponse
@@ -134,8 +136,9 @@ class ProjectDesignUploadSessionController extends Controller
 
                 $disk = Storage::disk(config('project_design.storage.disk', 'project_design'));
 
+                $baseDir = $this->pathBuilder->designPath($dossier);
                 $storedPath = $disk->putFileAs(
-                    "companies/{$session->company_id}/dossiers/{$dossier->id}/files/{$session->design_file_id}/versions/{$session->version_id}",
+                    "{$baseDir}/companies/{$session->company_id}/files/{$session->design_file_id}/versions/{$session->version_id}",
                     $filePath,
                     $sessionFile->original_filename,
                 );

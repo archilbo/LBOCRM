@@ -240,8 +240,8 @@ class ContractController extends Controller
             return response()->file($absolutePath, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => sprintf(
-                    'inline; filename="%s-contrat.pdf"',
-                    $contract->contract_number
+                    'inline; filename="%s"',
+                    $this->contractDownloadFilename($contract, 'pdf')
                 ),
                 'Cache-Control' => 'private, no-store, max-age=0',
             ]);
@@ -279,7 +279,7 @@ class ContractController extends Controller
 
         return Storage::disk('local')->download(
             $contract->generated_document_path,
-            $contract->contract_number . '-contrat.docx'
+            $this->contractDownloadFilename($contract, 'docx')
         );
     }
 
@@ -323,7 +323,7 @@ class ContractController extends Controller
 
         return Storage::disk('local')->download(
             $contract->pdf_path,
-            $contract->contract_number . '-contrat.pdf'
+            $this->contractDownloadFilename($contract, 'pdf')
         );
     }
 
@@ -338,7 +338,7 @@ class ContractController extends Controller
         }
 
         return response()->file(Storage::disk('local')->path($contract->pdf_path), [
-            'Content-Disposition' => 'inline; filename="' . $contract->contract_number . '-contrat.pdf"',
+            'Content-Disposition' => 'inline; filename="' . $this->contractDownloadFilename($contract, 'pdf') . '"',
         ]);
     }
 
@@ -491,5 +491,19 @@ class ContractController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function contractDownloadFilename(Contract $contract, string $ext): string
+    {
+        $client = $contract->dossier?->client;
+        $civility = $client?->civility ?? 'M';
+        $name = $client?->full_name ?? 'client';
+
+        return sprintf(
+            'CONTRAT D\'ARCHITECT %s %s.%s',
+            $civility,
+            $name,
+            $ext
+        );
     }
 }

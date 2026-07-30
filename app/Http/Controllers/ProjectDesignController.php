@@ -27,6 +27,7 @@ use App\Http\Resources\ProjectDesign\ProjectDesignFolderResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignReviewResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignRemarkResource;
 use App\Services\CompanyContext;
+use App\Services\Dossiers\DossierPathBuilder;
 use App\Services\ProjectDesign\ProjectDesignUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -525,7 +526,8 @@ class ProjectDesignController extends Controller
 
         $disk = config('project_design.storage.disk', 'project_design');
         $companyId = $version->company_id;
-        $directory = "companies/{$companyId}/dossiers/{$dossier->id}/files/{$version->file_id}/versions/{$version->id}/review";
+        $baseDir = app(DossierPathBuilder::class)->designPath($dossier);
+        $directory = "{$baseDir}/companies/{$companyId}/files/{$version->file_id}/versions/{$version->id}/review";
         $storedFilename = \Illuminate\Support\Str::uuid() . '.' . $uploadedFile->getClientOriginalExtension();
         $path = $uploadedFile->storeAs($directory, $storedFilename, ['disk' => $disk]);
 

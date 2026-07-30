@@ -49,7 +49,7 @@ return [
 
         'project_design' => [
             'driver' => 'local',
-            'root' => storage_path('app/private/project-design'),
+            'root' => storage_path('app/private'),
             'throw' => false,
             'report' => false,
         ],

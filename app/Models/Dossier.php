@@ -44,6 +44,11 @@ class Dossier extends Model
         'closed_at' => 'date',
     ];
 
+    public function getProjectLabelAttribute(): string
+    {
+        return 'P' . $this->id;
+    }
+
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
