@@ -210,7 +210,8 @@ return [
 
     'route_permissions' => [
         'dashboard' => 'dashboard.view',
-        'global-search.index' => 'dashboard.view',
+        // Global search has no single route-level ability. The controller filters
+        // every result category by its module permission and tenant scope.
         'api.clients.search' => 'clients.view',
         'api.clients.projects' => 'clients.view',
         'frontend-qa.index' => 'qa.view',
