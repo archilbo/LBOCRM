@@ -2,11 +2,11 @@ import { Head, router } from '@inertiajs/react';
 import {
     Archive, BriefcaseBusiness, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CreditCard,
     ChevronsUpDown, ChevronUp, Clock3, Eye, ListFilter, MoreHorizontal, Pencil, Phone, Plus,
-    RefreshCw, Search, ShieldCheck, Trash2, UserCheck, UserRound, UserRoundX, Users, X,
+    Power, RefreshCw, Search, ShieldCheck, Trash2, UserCheck, UserRound, UserRoundX, Users, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Dropdown, Input } from '@heroui/react';
+import { Dropdown, Input, Switch } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
@@ -17,6 +17,7 @@ import { AppWorkspaceTable, type AppWorkspaceTableColumn } from '@/components/ui
 import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
+import { usePermissions } from '@/hooks/usePermissions';
 import type { ClientFormPayload, ClientRow, ClientStatus, IntermediaryOption } from '@/features/clients/types';
 import { ClientDrawer } from '@/components/drawers';
 import type { FormErrors } from '@/lib/formErrors';
@@ -80,6 +81,7 @@ type SortDir = 'asc' | 'desc';
 
 export default function ClientsIndex({ clients, intermediaries, metrics }: PageProps) {
     const { t } = useTranslation();
+    const { can } = usePermissions();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('create');
@@ -91,6 +93,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     const [sortDir, setSortDir] = useState<SortDir>('desc');
     const [deleteTarget, setDeleteTarget] = useState<ClientRow | null>(null);
     const [page, setPage] = useState(0);
+    const [statusUpdatingClientId, setStatusUpdatingClientId] = useState<number | null>(null);
 
     const statusOptions = [
         { id: 'all' as const, label: t('clients.status.all'), count: clients.length },
@@ -175,10 +178,10 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     }
 
     useEffect(() => {
-        if (new URLSearchParams(window.location.search).get('command') !== 'create') return;
+        if (!can('clients.create') || new URLSearchParams(window.location.search).get('command') !== 'create') return;
         openCreateDrawer();
         window.history.replaceState({}, '', window.location.pathname);
-    }, []);
+    }, [can]);
 
     function openEditDrawer(client: ClientRow) {
         setSelectedClient(client);
@@ -212,20 +215,61 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
         });
     }
 
+    function updateClientStatus(client: ClientRow, isActive: boolean) {
+        if (client.status === 'archived' || statusUpdatingClientId === client.id) return;
+
+        const nextStatus: Extract<ClientStatus, 'active' | 'inactive'> = isActive ? 'active' : 'inactive';
+
+        setStatusUpdatingClientId(client.id);
+        router.patch(`/clients/${client.id}/status`, { status: nextStatus }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => toast.success(t(nextStatus === 'active' ? 'clients.statusActivated' : 'clients.statusDeactivated')),
+            onError: () => toast.error(t('clients.statusUpdateError')),
+            onFinish: () => setStatusUpdatingClientId(null),
+        });
+    }
+
+    function ClientActivitySwitch({ client }: { client: ClientRow }) {
+        const isArchived = client.status === 'archived';
+        const isUpdating = statusUpdatingClientId === client.id;
+
+        if (!client.capabilities.updateStatus) {
+            return <StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" />;
+        }
+
+        return (
+            <div className="flex items-center" onClick={(event) => event.stopPropagation()}>
+                <Switch
+                    size="sm"
+                    isSelected={client.status === 'active'}
+                    isDisabled={isArchived || isUpdating}
+                    aria-label={t(client.status === 'active' ? 'clients.deactivateClient' : 'clients.activateClient')}
+                    onChange={(isActive) => updateClientStatus(client, isActive)}
+                >
+                    <Switch.Content>
+                        <Switch.Control>
+                            <Switch.Thumb />
+                        </Switch.Control>
+                    </Switch.Content>
+                </Switch>
+                <span className="ml-2 text-[11px] font-medium text-[var(--text-muted)]">
+                    {t(`clients.status.${client.status}`, client.status)}
+                </span>
+            </div>
+        );
+    }
+
     function RowMenu({ client }: { client: ClientRow }) {
-        const items = [
-            { id: 'delete', label: t('clients.delete'), icon: <Trash2 size={14} />, action: () => setDeleteTarget(client), danger: true },
-        ];
+        const items = client.capabilities.delete
+            ? [{ id: 'delete', label: t('clients.delete'), icon: <Trash2 size={14} />, action: () => setDeleteTarget(client), danger: true }]
+            : [];
 
         return (
             <div className="flex items-center gap-0.5">
-                <button type="button" onClick={() => router.visit(`/clients/${client.id}`)} className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title={t('clients.view')}>
-                    <Eye size={12} />
-                </button>
-                <button type="button" onClick={() => openEditDrawer(client)} className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title={t('clients.edit')}>
-                    <Pencil size={12} />
-                </button>
-                <Dropdown>
+                {client.capabilities.view ? <AppButton isIconOnly compact variant="quiet" size="sm" tooltip={t('clients.view')} aria-label={t('clients.view')} onPress={() => router.visit(`/clients/${client.id}`)} className="size-6 text-[var(--text-muted)]"><Eye size={12} /></AppButton> : null}
+                {client.capabilities.update ? <AppButton isIconOnly compact variant="quiet" size="sm" tooltip={t('clients.edit')} aria-label={t('clients.edit')} onPress={() => openEditDrawer(client)} className="size-6 text-[var(--text-muted)]"><Pencil size={12} /></AppButton> : null}
+                {items.length ? <Dropdown>
                     <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]" aria-label={t('clients.actions')}>
                         <MoreHorizontal size={12} />
                     </Dropdown.Trigger>
@@ -238,7 +282,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                             ))}
                         </Dropdown.Menu>
                     </Dropdown.Popover>
-                </Dropdown>
+                </Dropdown> : null}
             </div>
         );
     }
@@ -282,6 +326,11 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
             render: (client) => <StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" />,
         },
         {
+            id: 'activity',
+            label: <ColumnHeader label={t('clients.table.active')} icon={Power} />,
+            render: (client) => <ClientActivitySwitch client={client} />,
+        },
+        {
             id: 'updated',
             label: <ColumnHeader label={t('clients.table.updated')} icon={Clock3} field="updatedAt" />,
             render: (client) => <span className="whitespace-nowrap text-[var(--text-muted)]">{client.updatedAt || '-'}</span>,
@@ -313,9 +362,9 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                             {t('clients.subtitle')}
                         </p>
                     </div>
-                    <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.newClient')} aria-label={t('clients.newClient')} onPress={openCreateDrawer}>
+                    {can('clients.create') ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.newClient')} aria-label={t('clients.newClient')} onPress={openCreateDrawer}>
                         <Plus size={16} />
-                    </AppButton>
+                    </AppButton> : null}
                 </div>
 
                 {/* ── Metric cards ── */}

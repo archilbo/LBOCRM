@@ -14,7 +14,7 @@ class DossierWorkflowRequirementController extends Controller
         Dossier $dossier,
         DossierWorkflowRequirementService $service,
     ): RedirectResponse {
-        $this->authorize('update', $dossier);
+        $this->authorize('updateWorkflow', $dossier);
 
         $service->update($dossier, $request->validated());
 

@@ -11,6 +11,9 @@ type Props = {
     onCreateInvoice: () => void;
     onCreatePayment: () => void;
     onCreateExpense: () => void;
+    canCreateDocument: boolean;
+    canCreatePayment: boolean;
+    canCreateExpense: boolean;
 };
 
 export function FinanceWorkspaceHeader({
@@ -21,6 +24,9 @@ export function FinanceWorkspaceHeader({
     onCreateInvoice,
     onCreatePayment,
     onCreateExpense,
+    canCreateDocument,
+    canCreatePayment,
+    canCreateExpense,
 }: Props) {
     return (
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)]">
@@ -42,22 +48,22 @@ export function FinanceWorkspaceHeader({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap xl:justify-end">
-                    <AppButton size="sm" variant="ghost" className="border border-[var(--border)] bg-[var(--surface-2)]" onPress={onCreatePayment}>
+                    {canCreatePayment ? <AppButton size="sm" variant="ghost" className="border border-[var(--border)] bg-[var(--surface-2)]" onPress={onCreatePayment}>
                         <WalletCards size={15} />
                         Paiement
-                    </AppButton>
-                    <AppButton size="sm" variant="ghost" className="border border-[var(--border)] bg-[var(--surface-2)]" onPress={onCreateExpense}>
+                    </AppButton> : null}
+                    {canCreateExpense ? <AppButton size="sm" variant="ghost" className="border border-[var(--border)] bg-[var(--surface-2)]" onPress={onCreateExpense}>
                         <ShoppingCart size={15} />
                         Depense
-                    </AppButton>
-                    <AppButton size="sm" variant="ghost" className="border border-[var(--border)] bg-[var(--surface-2)]" onPress={onCreateInvoice}>
+                    </AppButton> : null}
+                    {canCreateDocument ? <AppButton size="sm" variant="ghost" className="border border-[var(--border)] bg-[var(--surface-2)]" onPress={onCreateInvoice}>
                         <ReceiptText size={15} />
                         Facture
-                    </AppButton>
-                    <AppButton size="sm" variant="ghost" className="bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]" onPress={onCreateQuote}>
+                    </AppButton> : null}
+                    {canCreateDocument ? <AppButton size="sm" variant="ghost" className="bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]" onPress={onCreateQuote}>
                         <Plus size={15} />
                         Nouveau devis
-                    </AppButton>
+                    </AppButton> : null}
                 </div>
             </div>
         </section>

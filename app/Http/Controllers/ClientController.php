@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Clients\UpdateClientStatusAction;
 use App\Http\Requests\ScanCinRequest;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
+use App\Http\Requests\UpdateClientStatusRequest;
 use App\Http\Resources\ClientResource;
 use App\Models\AuditLog;
 use App\Models\Client;
@@ -61,6 +63,8 @@ class ClientController extends Controller
     {
         $this->authorize('view', $client);
 
+        $canViewFinance = $request->user()->can('finance.view') || $request->user()->can('manage finance');
+
         $client->load(['intermediary', 'dossiers'])->loadCount('dossiers');
         $selectedDossierId = $request->integer('dossier_id') ?: null;
 
@@ -68,7 +72,7 @@ class ClientController extends Controller
             'tab' => $request->query('tab', 'overview'),
             'client' => ClientResource::make($client)->resolve(),
             'cities' => City::all(),
-            'workspace' => $workspaceService->forClient($client, $selectedDossierId),
+            'workspace' => $workspaceService->forClient($client, $selectedDossierId, $request->user()),
             'documentTemplates' => DocumentTemplate::query()
                 ->where('is_active', true)
                 ->orderBy('name')
@@ -79,7 +83,8 @@ class ClientController extends Controller
                     'type' => $template->document_type,
                 ])
                 ->values(),
-            'financeTemplates' => $financeContext->apply(FinanceTemplate::query(), $request->user())
+            'financeTemplates' => $canViewFinance && ($request->user()->can('finance.templates.view') || $request->user()->can('manage finance'))
+                ? $financeContext->apply(FinanceTemplate::query(), $request->user())
                 ->active()
                 ->orderBy('type')
                 ->orderByDesc('is_default')
@@ -92,8 +97,9 @@ class ClientController extends Controller
                     'slug' => $template->slug,
                     'isDefault' => (bool) $template->is_default,
                 ])
-                ->values(),
-            'financeSettings' => [
+                ->values()
+                : collect(),
+            'financeSettings' => $canViewFinance ? [
                 'defaultTvaRate' => FinanceSettingsService::getTvaRate(),
                 'defaultCurrency' => FinanceSettingsService::getCurrency(),
                 'defaultPaymentTermsDays' => FinanceSettingsService::getDefaultPaymentDays(),
@@ -102,7 +108,7 @@ class ClientController extends Controller
                 'defaultArchitectRate' => FinanceSettingsService::getArchitectRate(),
                 'companyInfo' => (new FinanceSettingsService())->companyInfo(),
                 'bankInfo' => (new FinanceSettingsService())->bankInfo(),
-            ],
+            ] : null,
             'dossiers' => $client->dossiers()
                 ->latest()
                 ->get()
@@ -174,6 +180,24 @@ class ClientController extends Controller
             ->with('success', 'Client updated successfully.');
     }
 
+    public function updateStatus(
+        UpdateClientStatusRequest $request,
+        Client $client,
+        UpdateClientStatusAction $action,
+    ): RedirectResponse {
+        $this->authorize('updateStatus', $client);
+
+        $action->execute(
+            $client,
+            ClientStatus::from($request->string('status')->toString()),
+            $request->user(),
+            $request->ip(),
+            $request->userAgent(),
+        );
+
+        return back()->with('success', 'Client status updated successfully.');
+    }
+
     public function destroy(Client $client): RedirectResponse
     {
         $this->authorize('delete', $client);
@@ -187,7 +211,7 @@ class ClientController extends Controller
 
     public function scanCin(ScanCinRequest $request, GeminiOcrService $ocrService): JsonResponse
     {
-        $this->authorize('create', Client::class);
+        $this->authorize('scanCin', Client::class);
 
         $result = $ocrService->extractBoth(
             $request->file('front_image')->getRealPath(),

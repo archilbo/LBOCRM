@@ -6,9 +6,10 @@ type Props = {
     settings: FinanceSettings;
     settingsUrl: string;
     onOpen: (url: string) => void;
+    canManage?: boolean;
 };
 
-export function FinanceSettingsSummary({ settings, settingsUrl, onOpen }: Props) {
+export function FinanceSettingsSummary({ settings, settingsUrl, onOpen, canManage = false }: Props) {
     const items = [
         { label: 'Devise', value: settings.defaultCurrency, icon: Landmark },
         { label: 'TVA par defaut', value: `${settings.defaultTvaRate}%`, icon: Percent },
@@ -23,10 +24,12 @@ export function FinanceSettingsSummary({ settings, settingsUrl, onOpen }: Props)
                     <h2 className="text-sm font-semibold text-[var(--text)]">Configuration finance</h2>
                     <p className="mt-0.5 text-xs text-[var(--text-muted)]">Regles utilisees lors de la creation et du calcul des documents.</p>
                 </div>
-                <AppButton size="sm" variant="ghost" className="bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]" onPress={() => onOpen(settingsUrl)}>
-                    <Settings2 size={14} />
-                    Configurer
-                </AppButton>
+                {canManage ? (
+                    <AppButton size="sm" variant="ghost" className="bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]" onPress={() => onOpen(settingsUrl)}>
+                        <Settings2 size={14} />
+                        Configurer
+                    </AppButton>
+                ) : null}
             </header>
             <div className="grid divide-y divide-[var(--border)] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
                 {items.map((item) => {

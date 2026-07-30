@@ -5,9 +5,16 @@ export type AdminUserRow = {
     name: string;
     email: string;
     roles: UserRole[];
+    displayRole?: UserRole | null;
     permissions: string[];
+    permissionConfiguration?: {
+        base_role: string;
+        is_custom: true;
+        modules: Record<string, { access: 'none' | 'view' | 'edit' | 'delete'; scope: 'none' | 'all' | 'assigned_only' }>;
+    } | null;
     lastSeenAt: string | null;
     isOnline: boolean;
+    isSuspended: boolean;
     createdAt: string | null;
     updatedAt: string | null;
 };

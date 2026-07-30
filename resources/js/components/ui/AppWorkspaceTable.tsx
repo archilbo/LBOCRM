@@ -9,6 +9,7 @@ export type AppWorkspaceTableColumn<T> = {
     headerClassName?: string;
     cellClassName?: string;
     reorderable?: boolean;
+    fixedPosition?: 'start' | 'end';
 };
 
 type AppWorkspaceTableProps<T> = {
@@ -83,7 +84,15 @@ export function AppWorkspaceTable<T>({
         const byId = new Map(baseColumns.map((column) => [column.id, column]));
         const orderedIds = columnOrder.length > 0 ? columnOrder : columnIds;
 
-        return orderedIds.map((id) => byId.get(id)).filter((column): column is AppWorkspaceTableColumn<T> => Boolean(column));
+        const orderedColumns = orderedIds
+            .map((id) => byId.get(id))
+            .filter((column): column is AppWorkspaceTableColumn<T> => Boolean(column));
+
+        return [
+            ...orderedColumns.filter((column) => column.fixedPosition === 'start'),
+            ...orderedColumns.filter((column) => !column.fixedPosition),
+            ...orderedColumns.filter((column) => column.fixedPosition === 'end'),
+        ];
     }, [baseColumns, columnIds, columnOrder]);
 
     const resolvedData = data ?? [];

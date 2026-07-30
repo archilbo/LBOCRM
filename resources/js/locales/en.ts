@@ -17,6 +17,7 @@ export const en = {
             principal: 'Main',
             followUp: 'Follow-up',
             management: 'Management',
+            communication: 'Communication',
             administration: 'Administration',
         },
         dashboard: 'Dashboard',
@@ -203,6 +204,11 @@ export const en = {
         created: 'Client created successfully.',
         updated: 'Client updated successfully.',
         deleted: 'Client deleted successfully.',
+        statusActivated: 'Client activated successfully.',
+        statusDeactivated: 'Client deactivated successfully.',
+        statusUpdateError: 'Client status could not be updated.',
+        activateClient: 'Activate client',
+        deactivateClient: 'Deactivate client',
         formError: 'Please check client form errors.',
         deleteError: 'Client could not be deleted.',
         status: {
@@ -227,6 +233,7 @@ export const en = {
             intermediary: 'Intermediary',
             projects: 'Projects',
             status: 'Status',
+            active: 'Active',
             updated: 'Updated',
             actions: 'Actions',
             reorderHint: 'Drag a column to change its order',
@@ -1608,7 +1615,5 @@ export const en = {
 } as const;
 
 export type AppLocale = typeof en;
-
-
 
 

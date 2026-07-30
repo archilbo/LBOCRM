@@ -76,6 +76,11 @@ class TaskController extends Controller
     public function update(UpdateTaskRequest $request, Task $task): RedirectResponse
     {
         $this->authorize('update', $task);
+
+        if ($request->hasAny(['assignee_ids', 'watcher_ids'])) {
+            $this->authorize('assign', $task);
+        }
+
         $this->mutations->update($task, $request->validated(), $request->user());
 
         return redirect()->back()->with('success', 'Task updated.');

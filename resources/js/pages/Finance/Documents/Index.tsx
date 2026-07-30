@@ -51,6 +51,7 @@ import { ExpensesWorkspace } from '@/features/finance/components/ExpensesWorkspa
 import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirection } from '@/features/finance/components/FinanceSortableHeader';
 import { FinanceRowActions, type FinanceRowAction } from '@/features/finance/components/FinanceRowActions';
 import { createFinanceDocumentActions, type FinanceDocumentActionHandlers } from '@/features/finance/components/FinanceDocumentActions';
+import { usePermissions } from '@/hooks/usePermissions';
 import type {
     ClientOption,
     DossierOption,
@@ -217,6 +218,8 @@ function FinanceDocumentDetailPanel({
     document: FinanceDocument | null;
     actions: DocumentActionHandlers;
 }) {
+    const { can } = usePermissions();
+
     if (!document) {
         return (
             <AppCard className="p-3">
@@ -289,11 +292,11 @@ function FinanceDocumentDetailPanel({
                             <Printer size={13} /> Print
                         </AppButton>
                     </div>
-                    <AppButton variant="primary" className="w-full" size="sm" onPress={() => actions.onGeneratePdf(document)}>
+                    {can('finance.documents.update') ? <AppButton variant="primary" className="w-full" size="sm" onPress={() => actions.onGeneratePdf(document)}>
                         <FileText size={13} />
                         Generate PDF
-                    </AppButton>
-                    <div className="grid grid-cols-2 gap-1.5">
+                    </AppButton> : null}
+                    {can('finance.documents.update') ? <div className="grid grid-cols-2 gap-1.5">
                         <AppButton variant="flat" size="sm" onPress={() => actions.onGenerateExcel(document)}>
                             <FileSpreadsheet size={13} />
                             Excel
@@ -302,32 +305,32 @@ function FinanceDocumentDetailPanel({
                             <Pencil size={13} />
                             Edit
                         </AppButton>
-                    </div>
+                    </div> : null}
 
-                    {document.type === 'quote' ? (
+                    {can('finance.documents.issue') && document.type === 'quote' ? (
                         <div className="grid grid-cols-2 gap-1.5">
                             <AppButton variant="flat" className="border-emerald-500/20 text-emerald-400" size="sm" onPress={() => actions.onAccept(document)}>
                                 <CheckCircle2 size={13} />
                                 Accept
                             </AppButton>
-                            <AppButton variant="flat" className="border-[var(--accent)]/20 text-[var(--accent)]" size="sm" onPress={() => actions.onConvert(document)}>
+                            {can('finance.documents.create') ? <AppButton variant="flat" className="border-[var(--accent)]/20 text-[var(--accent)]" size="sm" onPress={() => actions.onConvert(document)}>
                                 <ReceiptText size={13} />
                                 Invoice
-                            </AppButton>
+                            </AppButton> : null}
                         </div>
                     ) : null}
 
-                    {document.type === 'invoice' ? (
+                    {can('finance.payments.create') && document.type === 'invoice' ? (
                         <AppButton variant="flat" className="w-full" size="sm" onPress={() => actions.onPayment(document)}>
                             <WalletCards size={13} />
                             Register payment
                         </AppButton>
                     ) : null}
 
-                    <AppButton variant="danger" className="w-full" size="sm" onPress={() => actions.onDelete(document)}>
+                    {can('finance.documents.delete') ? <AppButton variant="danger" className="w-full" size="sm" onPress={() => actions.onDelete(document)}>
                         <Trash2 size={13} />
                         Delete
-                    </AppButton>
+                    </AppButton> : null}
                 </div>
             </div>
         </AppCard>
@@ -355,6 +358,7 @@ function FinanceDocumentWorkspace({
     filters?: PageProps['filters'];
     activeTab: string;
 }) {
+    const { can } = usePermissions();
     const [query, setQuery] = useState(filters?.search || '');
     const [showFilters, setShowFilters] = useState(false);
     const [statusFilter, setStatusFilter] = useState(filters?.status || 'all');
@@ -394,7 +398,7 @@ function FinanceDocumentWorkspace({
             ...actions,
             onOpen: () => router.visit(docShowUrl(document.id)),
             onPreview: actions.onView,
-        });
+        }, can);
     }
 
     function toggleRow(documentId: number) {
@@ -683,6 +687,7 @@ function PaymentWorkspace({
     pagination: { page: number; pageSize: number; total: number };
     filters?: PageProps['filters'];
 }) {
+    const { can } = usePermissions();
     const [query, setQuery] = useState(filters?.payment_search || '');
     const pagedFiltered = payments;
     const sort = filters?.payment_sort || 'paid_at';
@@ -712,9 +717,9 @@ function PaymentWorkspace({
 
     function paymentActionsFor(payment: Payment): FinanceRowAction[] {
         return [
-            payment.receipt?.urls?.show && { id: 'view-receipt', label: 'Voir le recu', icon: <Eye size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.show) },
-            payment.receipt?.urls?.pdf && { id: 'download-pdf', label: 'Telecharger PDF', icon: <FileText size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.pdf), tone: 'accent' },
-            payment.receipt?.urls?.excel && { id: 'download-excel', label: 'Telecharger Excel', icon: <FileSpreadsheet size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.excel), tone: 'accent' },
+            can('finance.payments.view') && payment.receipt?.urls?.show && { id: 'view-receipt', label: 'Voir le recu', icon: <Eye size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.show) },
+            can('finance.payments.view') && payment.receipt?.urls?.pdf && { id: 'download-pdf', label: 'Telecharger PDF', icon: <FileText size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.pdf), tone: 'accent' },
+            can('finance.payments.view') && payment.receipt?.urls?.excel && { id: 'download-excel', label: 'Telecharger Excel', icon: <FileSpreadsheet size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.excel), tone: 'accent' },
         ].filter((action): action is FinanceRowAction => Boolean(action));
     }
 
@@ -1113,6 +1118,7 @@ export default function FinanceDocumentsIndex({
     settings: rawSettings,
     filters,
 }: PageProps) {
+    const { can } = usePermissions();
     const documents = unwrap(rawDocuments);
     const documentPagination = paginationOf(rawDocuments);
     const payments = unwrap(rawPayments);
@@ -1122,6 +1128,17 @@ export default function FinanceDocumentsIndex({
 
     const settings = { ...defaultSettings, ...rawSettings };
     const [activeTab, setActiveTab] = useState(filters?.tab || new URLSearchParams(window.location.search).get('tab') || 'overview');
+    const visibleFinanceTabs = useMemo(() => [
+        'overview',
+        'quotes',
+        'invoices',
+        'monthly',
+        ...(can('finance.payments.view') ? ['payments'] : []),
+        ...(can('finance.expenses.view') ? ['expenses'] : []),
+        ...(can('finance.templates.view') ? ['templates'] : []),
+        ...(can('finance.settings.view') ? ['settings'] : []),
+    ], [can]);
+    const selectedFinanceTab = visibleFinanceTabs.includes(activeTab) ? activeTab : 'overview';
     const [builderOpen, setBuilderOpen] = useState(false);
     const [builderMode, setBuilderMode] = useState<'create' | 'edit'>('create');
     const [builderType, setBuilderType] = useState<FinanceDocumentType>('quote');
@@ -1137,6 +1154,7 @@ export default function FinanceDocumentsIndex({
     const [renameTemplateError, setRenameTemplateError] = useState<string>();
 
     function changeTab(tab: string) {
+        if (!visibleFinanceTabs.includes(tab)) return;
         setActiveTab(tab);
         router.get('/finance/documents', { tab }, {
             preserveState: true,
@@ -1295,11 +1313,15 @@ export default function FinanceDocumentsIndex({
                     onCreateExpense={() => { setSelectedExpense(null); setExpenseDrawerMode('create'); setExpenseDrawerOpen(true); }}
                     onCreateInvoice={() => openCreate('invoice')}
                     onCreateQuote={() => openCreate('quote')}
+                    canCreateDocument={can('finance.documents.create')}
+                    canCreatePayment={can('finance.payments.create')}
+                    canCreateExpense={can('finance.expenses.create')}
                 />
 
                 <FinanceTabs
-                    selectedKey={activeTab}
+                    selectedKey={selectedFinanceTab}
                     onSelectionChange={changeTab}
+                    visibleTabIds={visibleFinanceTabs}
                     counts={{
                         quotes: quotes.length,
                         invoices: invoices.length,
@@ -1356,43 +1378,55 @@ export default function FinanceDocumentsIndex({
                         <FinanceMonthlySummary months={monthlySummaries} currency={settings.defaultCurrency} />
                     </TabPanel>
 
-                    <TabPanel id="payments" className="outline-none">
-                        <PaymentWorkspace
-                            payments={payments}
-                            currency={settings.defaultCurrency}
-                            onReceipt={openPaymentReceiptUrl}
-                            pagination={paymentPagination}
-                            filters={filters}
-                        />
-                    </TabPanel>
+                    {can('finance.payments.view') ? (
+                        <TabPanel id="payments" className="outline-none">
+                            <PaymentWorkspace
+                                payments={payments}
+                                currency={settings.defaultCurrency}
+                                onReceipt={openPaymentReceiptUrl}
+                                pagination={paymentPagination}
+                                filters={filters}
+                            />
+                        </TabPanel>
+                    ) : null}
 
-                    <TabPanel id="expenses" className="outline-none">
-                        <ExpensesWorkspace
-                            expenses={expenses}
-                            currency={settings.defaultCurrency}
-                            pagination={expensePagination}
-                            filters={filters}
-                            onEdit={(expense) => { setSelectedExpense(expense); setExpenseDrawerMode('edit'); setExpenseDrawerOpen(true); }}
-                            onView={(expense) => { setSelectedExpense(expense); setExpenseDrawerMode('view'); setExpenseDrawerOpen(true); }}
-                        />
-                    </TabPanel>
+                    {can('finance.expenses.view') ? (
+                        <TabPanel id="expenses" className="outline-none">
+                            <ExpensesWorkspace
+                                expenses={expenses}
+                                currency={settings.defaultCurrency}
+                                pagination={expensePagination}
+                                filters={filters}
+                                onEdit={(expense) => { setSelectedExpense(expense); setExpenseDrawerMode('edit'); setExpenseDrawerOpen(true); }}
+                                onView={(expense) => { setSelectedExpense(expense); setExpenseDrawerMode('view'); setExpenseDrawerOpen(true); }}
+                                canEdit={can('finance.expenses.update')}
+                                canDelete={can('finance.expenses.delete')}
+                            />
+                        </TabPanel>
+                    ) : null}
 
-                    <TabPanel id="templates" className="outline-none">
-                        <FinanceTemplateManager
-                            templates={templates}
-                            editorUrl={templateEditorUrl}
-                            onOpenEditor={(url) => router.visit(url)}
-                            onRename={openTemplateRename}
-                        />
-                    </TabPanel>
+                    {can('finance.templates.view') ? (
+                        <TabPanel id="templates" className="outline-none">
+                            <FinanceTemplateManager
+                                templates={templates}
+                                editorUrl={templateEditorUrl}
+                                onOpenEditor={(url) => router.visit(url)}
+                                onRename={openTemplateRename}
+                                canManage={can('finance.templates.manage')}
+                            />
+                        </TabPanel>
+                    ) : null}
 
-                    <TabPanel id="settings" className="outline-none">
-                        <FinanceSettingsSummary
-                            settings={settings}
-                            settingsUrl={settingsEditorUrl}
-                            onOpen={(url) => router.visit(url)}
-                        />
-                    </TabPanel>
+                    {can('finance.settings.view') ? (
+                        <TabPanel id="settings" className="outline-none">
+                            <FinanceSettingsSummary
+                                settings={settings}
+                                settingsUrl={settingsEditorUrl}
+                                onOpen={(url) => router.visit(url)}
+                                canManage={can('finance.settings.update')}
+                            />
+                        </TabPanel>
+                    ) : null}
                 </FinanceTabs>
             </AppShell>
 

@@ -21,6 +21,12 @@ export type ClientRow = {
     updatedAt: string | null;
     createdAt?: string | null;
     notes: string | null;
+    capabilities: {
+        view: boolean;
+        update: boolean;
+        delete: boolean;
+        updateStatus: boolean;
+    };
 };
 
 export type CinScanResult = {

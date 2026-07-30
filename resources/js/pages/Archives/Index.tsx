@@ -38,8 +38,10 @@ import { useHotkeys } from '@/features/archives/hooks/useHotkeys';
 import type { ArchiveFormPayload, ArchiveRecordRow, ArchivesPageProps } from '@/features/archives/types';
 import { ARCHIVE_STATUS, defaultDue } from '@/config/statuses';
 import { cn } from '@/lib/cn';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ArchivesIndex(props: ArchivesPageProps) {
+    const { can } = usePermissions();
     const { filters, patch, debouncedPatch, reset, activeCount, activeChips } = useArchiveFilters({
         initial: props.filters,
         route: '/archives',
@@ -91,6 +93,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function handleRowDoubleClick(record: ArchiveRecordRow) {
+        if (!can('archive.update')) return;
         setSelectedArchive(record);
         setDrawerMode('edit');
         setFormErrors({});
@@ -98,6 +101,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function openCreateDrawer() {
+        if (!can('archive.create')) return;
         setSelectedArchive(null);
         setDrawerMode('create');
         setFormErrors({});
@@ -105,6 +109,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function openEditDrawer(record: ArchiveRecordRow) {
+        if (!can('archive.update')) return;
         setSelectedArchive(record);
         setDrawerMode('edit');
         setFormErrors({});
@@ -112,6 +117,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function handleSubmit(payload: ArchiveFormPayload) {
+        if (drawerMode === 'edit' ? !can('archive.update') : !can('archive.create')) return;
         const backendPayload = {
             dossier_id: payload.dossierId,
             status: payload.status || 'ready_to_archive',
@@ -142,6 +148,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function handleCheckout(data: { archiveIds: number[]; requester: string; dueAt: string; purpose: string }) {
+        if (!can('archive.checkout')) return;
         router.post('/archives/checkout', { archive_ids: data.archiveIds, requested_by: data.requester, due_at: data.dueAt, purpose: data.purpose, notify: true }, {
             preserveScroll: true,
             onSuccess: () => { setSelectedIds(new Set()); toast.success('Checked out.'); },
@@ -150,6 +157,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function handleReturn(data: { archiveIds: number[]; note: string }) {
+        if (!can('archive.checkin')) return;
         router.post('/archives/return', { archive_ids: data.archiveIds, note: data.note }, {
             preserveScroll: true,
             onSuccess: () => { setSelectedIds(new Set()); toast.success('Returned.'); },
@@ -158,6 +166,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function handleMove(data: { archiveIds: number[]; roomCode: string; shelfCode: string; boxCode: string }) {
+        if (!can('archive.update')) return;
         router.post('/archives/move', { archive_ids: data.archiveIds, room: data.roomCode, shelf: data.shelfCode, box: data.boxCode }, {
             preserveScroll: true,
             onSuccess: () => { setSelectedIds(new Set()); toast.success('Moved.'); },
@@ -166,6 +175,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function handleCheckoutSingle(record: ArchiveRecordRow) {
+        if (!can('archive.checkout')) return;
         router.post('/archives/checkout', { archive_ids: [record.id], requested_by: record.requestedBy || '', due_at: defaultDue(), purpose: '' }, {
             preserveScroll: true,
             onSuccess: () => toast.success('Checked out.'),
@@ -174,6 +184,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function handleReturnSingle(record: ArchiveRecordRow) {
+        if (!can('archive.checkin')) return;
         router.post('/archives/return', { archive_ids: [record.id], note: '' }, {
             preserveScroll: true,
             onSuccess: () => toast.success('Returned.'),
@@ -182,11 +193,12 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     function deleteRecord(record: ArchiveRecordRow) {
+        if (!can('archive.delete')) return;
         setDeleteTarget(record);
     }
 
     function confirmDelete() {
-        if (!deleteTarget) return;
+        if (!deleteTarget || !can('archive.delete')) return;
         router.delete(`/archives/${deleteTarget.id}`, {
             preserveScroll: true,
             onSuccess: () => { setDeleteTarget(null); toast.success('Deleted.'); },
@@ -238,7 +250,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                 <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 flex flex-col min-h-0 space-y-4">
                     <div className="flex items-center justify-between shrink-0">
                         <h1 className="text-2xl font-semibold text-white">Archives</h1>
-                        <div className="relative">
+                        {can('archive.create') ? <div className="relative">
                             <AppButton variant="primary" size="sm" onPress={() => setShowNewMenu(!showNewMenu)}>
                                 <Plus size={14} /> New archive <ChevronDown size={11} />
                             </AppButton>
@@ -253,7 +265,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                         className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5">Import CSV</button>
                                 </div>
                             ) : null}
-                        </div>
+                        </div> : null}
                     </div>
 
                     <KpiStrip kpis={props.kpis} activeFilter={filters.overdueOnly ? 'overdue' : (filters.status?.[0] ?? null)} onFilter={handleKpiFilter} />
@@ -371,10 +383,10 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                     onToggleAll={() => setSelectedIds((prev) => prev.size === props.archives.length ? new Set() : new Set(props.archives.map((r) => r.id)))}
                                     onRowClick={handleRowClick}
                                     onRowDoubleClick={handleRowDoubleClick}
-                                    onCheckoutSingle={handleCheckoutSingle}
-                                    onReturnSingle={handleReturnSingle}
-                                    onEditSingle={openEditDrawer}
-                                    onDeleteSingle={deleteRecord}
+                                    onCheckoutSingle={can('archive.checkout') ? handleCheckoutSingle : undefined}
+                                    onReturnSingle={can('archive.checkin') ? handleReturnSingle : undefined}
+                                    onEditSingle={can('archive.update') ? openEditDrawer : undefined}
+                                    onDeleteSingle={can('archive.delete') ? deleteRecord : undefined}
                                     onSortChange={(sort) => patch({ sort: sort || undefined })}
                                 />
                             ) : (

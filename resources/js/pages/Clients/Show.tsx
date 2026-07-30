@@ -15,6 +15,7 @@ import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
+import { usePermissions } from '@/hooks/usePermissions';
 import type { ClientFormPayload, ClientProjectDocument, ClientProjectPayment, ClientRow, ClientStatus, ClientWorkspace } from '@/features/clients/types';
 import type { DossierWorkflowRequirement, DossierWorkflowStep } from '@/features/clients/types';
 import type { DossierFormPayload } from '@/features/dossiers/types';
@@ -103,6 +104,7 @@ function isClientTab(value: string | undefined): value is TabId {
 
 export default function ClientShow({ client, dossiers, workspace, cities, intermediaries, documentTemplates, financeTemplates, financeSettings, tab }: PageProps) {
     const { t } = useTranslation();
+    const { can } = usePermissions();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('edit');
@@ -142,20 +144,21 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
     } | null>(null);
 
     const selectedProject = workspace?.selectedProject ?? null;
+    const canViewFinance = can('finance.view');
 
     const tabs = useMemo(() => [
         { id: 'overview', label: t('clients.show.overview'), icon: LayoutDashboard },
         { id: 'projects', label: t('clients.show.projects'), icon: FolderKanban },
         { id: 'workflow', label: t('clients.show.workflow'), icon: ListChecks },
         { id: 'documents', label: t('clients.show.documents'), icon: FileText },
-        { id: 'finance', label: t('clients.show.finance'), icon: ReceiptText },
+        ...(canViewFinance ? [{ id: 'finance', label: t('clients.show.finance'), icon: ReceiptText }] : []),
         { id: 'notes', label: t('clients.show.notes'), icon: Pencil },
         { id: 'activity', label: t('clients.show.activity'), icon: History },
-    ], [t]);
+    ], [canViewFinance, t]);
 
     useEffect(() => {
-        setActiveTab(isClientTab(tab) ? tab : 'overview');
-    }, [tab]);
+        setActiveTab(isClientTab(tab) && (tab !== 'finance' || canViewFinance) ? tab : 'overview');
+    }, [canViewFinance, tab]);
 
     function clientWorkspacePath(targetTab: TabId = activeTab, dossierId: number | null = selectedProject?.id ?? null) {
         const parameters = new URLSearchParams({ tab: targetTab });
@@ -169,6 +172,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
 
     function selectTab(targetTab: string) {
         const safe = targetTab as TabId;
+        if (safe === 'finance' && !canViewFinance) return;
         setActiveTab(safe);
         window.history.replaceState(window.history.state, '', clientWorkspacePath(safe));
     }
@@ -692,9 +696,9 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                         <FileText size={15} />
                                     </AppButton>
                                 ) : null}
-                        <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.newQuote')} aria-label={t('clients.show.newQuote')} onPress={() => openFinanceCreate('quote')}>
+                                {can('finance.documents.create') ? <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.newQuote')} aria-label={t('clients.show.newQuote')} onPress={() => openFinanceCreate('quote')}>
                                     <ReceiptText size={15} />
-                                </AppButton>
+                                </AppButton> : null}
                                 {projects.length > 0 ? (
                         <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.uploadDocument')} aria-label={t('clients.show.uploadDocument')} onPress={() => { setStandaloneUploadOpen(true); }}>
                                         <Upload size={15} />
@@ -1204,7 +1208,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                         </div>
                     </TabPanel>
 
-                    <TabPanel id="finance" className="outline-none">
+                    {canViewFinance ? <TabPanel id="finance" className="outline-none">
                         <ClientFinanceTab
                             project={selectedProject}
                             onCreateDocument={openFinanceCreate}
@@ -1219,7 +1223,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                 router.visit(`/finance/documents?dossier_id=${selectedProject.id}`);
                             }}
                         />
-                    </TabPanel>
+                    </TabPanel> : null}
 
                     <TabPanel id="notes" className="outline-none">
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">

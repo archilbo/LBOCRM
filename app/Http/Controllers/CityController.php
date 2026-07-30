@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\City;
+use App\Services\PermissionRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -10,8 +11,13 @@ use Inertia\Response;
 
 class CityController extends Controller
 {
+    public function __construct(private readonly PermissionRegistry $permissions)
+    {
+    }
+
     public function index(Request $request): Response
     {
+        $this->authorizeArchive($request, 'archive.view');
         $cities = City::query()
             ->withCount('dossiers')
             ->orderBy('name')
@@ -38,6 +44,7 @@ class CityController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->authorizeArchive($request, 'archive.update');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:cities,name'],
             'code' => ['required', 'string', 'max:8', 'unique:cities,code', 'uppercase'],
@@ -52,6 +59,7 @@ class CityController extends Controller
 
     public function update(Request $request, City $city): RedirectResponse
     {
+        $this->authorizeArchive($request, 'archive.update');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:cities,name,' . $city->id],
             'code' => ['required', 'string', 'max:8', 'unique:cities,code,' . $city->id, 'uppercase'],
@@ -64,8 +72,9 @@ class CityController extends Controller
         return redirect()->route('archives.cities.index')->with('success', 'City updated.');
     }
 
-    public function destroy(City $city): RedirectResponse
+    public function destroy(Request $request, City $city): RedirectResponse
     {
+        $this->authorizeArchive($request, 'archive.delete');
         if ($city->dossiers()->exists()) {
             return redirect()->route('archives.cities.index')->with('error', 'Cannot delete a city that has dossiers.');
         }
@@ -73,5 +82,10 @@ class CityController extends Controller
         $city->delete();
 
         return redirect()->route('archives.cities.index')->with('success', 'City deleted.');
+    }
+
+    private function authorizeArchive(Request $request, string $permission): void
+    {
+        abort_unless($request->user() && $this->permissions->allows($request->user(), $permission), 403);
     }
 }

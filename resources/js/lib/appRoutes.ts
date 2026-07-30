@@ -55,6 +55,8 @@ export type AppRoute = {
     searchable: boolean;
     group: AppRouteGroup;
     badgeKey?: string;
+    requiredPermission?: string;
+    shortcut?: string;
 };
 
 export const appRoutes: AppRoute[] = [
@@ -66,6 +68,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'principal',
+        requiredPermission: 'dashboard.view',
+        shortcut: 'Alt+H',
     },
     {
         key: 'clients',
@@ -75,6 +79,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'principal',
+        requiredPermission: 'clients.view',
+        shortcut: 'Alt+C',
     },
     {
         key: 'intermediaries',
@@ -84,6 +90,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'principal',
+        requiredPermission: 'intermediaries.view',
+        shortcut: 'Alt+I',
     },
     {
         key: 'dossiers',
@@ -93,6 +101,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'principal',
+        requiredPermission: 'dossiers.view',
+        shortcut: 'Alt+P',
     },
     {
         key: 'documents',
@@ -102,6 +112,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'followUp',
+        requiredPermission: 'documents.view',
+        shortcut: 'Alt+D',
     },
     {
         key: 'contracts',
@@ -111,6 +123,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'followUp',
+        requiredPermission: 'contracts.view',
+        shortcut: 'Alt+K',
     },
     {
         key: 'finance',
@@ -120,6 +134,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'management',
+        requiredPermission: 'finance.view',
+        shortcut: 'Alt+F',
     },
     {
         key: 'financeDocuments',
@@ -129,6 +145,7 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'management',
+        requiredPermission: 'finance.view',
     },
     {
         key: 'financePayments',
@@ -138,6 +155,7 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'management',
+        requiredPermission: 'finance.payments.view',
     },
     {
         key: 'financeMonthly',
@@ -147,6 +165,7 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'management',
+        requiredPermission: 'finance.view',
     },
 
     {
@@ -157,6 +176,7 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'management',
+        requiredPermission: 'finance.templates.view',
     },
     {
         key: 'financeSettings',
@@ -166,6 +186,7 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'management',
+        requiredPermission: 'finance.settings.view',
     },
     {
         key: 'archives',
@@ -175,6 +196,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'management',
+        requiredPermission: 'archive.view',
+        shortcut: 'Alt+A',
     },
     {
         key: 'tasks',
@@ -184,6 +207,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'followUp',
+        requiredPermission: 'tasks.view',
+        shortcut: 'Alt+T',
     },
     {
         key: 'calendar',
@@ -193,6 +218,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'followUp',
+        requiredPermission: 'calendar.view',
+        shortcut: 'Alt+L',
     },
     {
         key: 'workload',
@@ -202,6 +229,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'followUp',
+        requiredPermission: 'reports.workload.view',
+        shortcut: 'Alt+W',
     },
     {
         key: 'operationsReports',
@@ -211,6 +240,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'followUp',
+        requiredPermission: 'reports.operations.view',
+        shortcut: 'Alt+R',
     },
     {
         key: 'inbox',
@@ -220,6 +251,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'management',
+        requiredPermission: 'inbox.view',
+        shortcut: 'Alt+M',
     },
     {
         key: 'notifications',
@@ -229,6 +262,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'administration',
+        requiredPermission: 'notifications.view',
+        shortcut: 'Alt+N',
     },
     {
         key: 'users',
@@ -238,6 +273,8 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'administration',
+        requiredPermission: 'users.view',
+        shortcut: 'Alt+U',
     },
     {
         key: 'branches',

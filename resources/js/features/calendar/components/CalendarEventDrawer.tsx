@@ -1,8 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { X, Info } from 'lucide-react';
-import { CalendarDate, CalendarDateTime } from '@internationalized/date';
-import { Calendar, CalendarYearPicker, Checkbox, DatePicker, Input, TextArea } from '@heroui/react';
+import { CalendarDateTime, type DateValue } from '@internationalized/date';
+import { Calendar, Checkbox, DateField, DatePicker, Input, TextArea } from '@heroui/react';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
@@ -40,23 +40,46 @@ function initials(name: string): string {
 
 function toCalendarDateTime(str: string): CalendarDateTime | null {
     if (!str) return null;
-    const [datePart, timePart] = str.split('T');
+    // Accept both "T" and space as date/time separator (API returns "Y-m-d H:i:s")
+    const norm = str.replace(' ', 'T');
+    const [datePart, timePart] = norm.split('T');
     const [y, m, d] = datePart.split('-').map(Number);
     const [hh, mm] = timePart ? timePart.split(':').map(Number) : [0, 0];
     return new CalendarDateTime(y, m, d, hh || 0, mm || 0);
 }
 
-function fromCalendarDateTime(v: CalendarDateTime | null): string {
+function fromCalendarDateTime(v: DateValue | null): string {
     if (!v) return '';
-    return `${v.year}-${String(v.month).padStart(2, '0')}-${String(v.day).padStart(2, '0')}T${String(v.hour).padStart(2, '0')}:${String(v.minute).padStart(2, '0')}`;
+    const hh = 'hour' in v ? String(v.hour).padStart(2, '0') : '00';
+    const mm = 'minute' in v ? String(v.minute).padStart(2, '0') : '00';
+    return `${v.year}-${String(v.month).padStart(2, '0')}-${String(v.day).padStart(2, '0')}T${hh}:${mm}`;
 }
 
-function formatDateTime(str: string): string {
-    if (!str) return '';
-    const [datePart, timePart] = str.split('T');
-    const [y, m, d] = datePart.split('-').map(Number);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d} ${months[m - 1]} ${y} ${timePart || '00:00'}`;
+type CalendarEventForm = ReturnType<typeof initForm>;
+
+function toBackendPayload(f: CalendarEventForm) {
+    return {
+        type: f.type,
+        title: f.title,
+        description: f.description,
+        status: f.status,
+        priority: f.priority,
+        color: f.color,
+        starts_at: f.startsAt,
+        ends_at: f.endsAt,
+        all_day: f.allDay,
+        timezone: f.timezone,
+        visibility: f.visibility,
+        owner_id: f.ownerId,
+        client_id: f.clientId,
+        dossier_id: f.dossierId,
+        dossier_document_id: f.dossierDocumentId,
+        finance_document_id: f.financeDocumentId,
+        contract_id: f.contractId,
+        archive_record_id: f.archiveRecordId,
+        participant_ids: f.participantIds,
+        reminder_offset: f.reminderOffset,
+    };
 }
 
 export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, defaultStart }: Props) {
@@ -80,14 +103,16 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
         e.preventDefault();
         setFormErrors({});
 
+        const payload = toBackendPayload(form);
+
         if (isEdit) {
-            router.put(`/calendar/events/${editEvent!.id}`, form, {
+            router.put(`/calendar/events/${editEvent!.id}`, payload, {
                 preserveScroll: true,
                 onSuccess: () => { onOpenChange(false); },
                 onError: (err) => { setFormErrors(err); },
             });
         } else {
-            router.post('/calendar/events', form, {
+            router.post('/calendar/events', payload, {
                 preserveScroll: true,
                 onSuccess: () => { onOpenChange(false); resetForm(); },
                 onError: (err) => { setFormErrors(err); },
@@ -175,68 +200,90 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                     <div className={drawerStyles.sectionGrid}>
                         <div className="grid grid-cols-2 gap-2">
                             <DrawerField label="Start" error={firstError(formErrors, 'starts_at')}>
-                                <DatePicker
-                                    value={toCalendarDateTime(currentForm.startsAt)}
-                                    onChange={(v) => setForm((p) => ({ ...p, startsAt: fromCalendarDateTime(v as CalendarDateTime | null) }))}
-                                    granularity="minute"
-                                >
-                                    <DatePicker.Trigger className={drawerStyles.trigger}>
-                                        <span className="flex-1 text-left">{formatDateTime(currentForm.startsAt) || 'Select start'}</span>
-                                        <DatePicker.TriggerIndicator />
-                                    </DatePicker.Trigger>
-                                    <DatePicker.Popover isNonModal className={drawerStyles.popover}>
-                                        <Calendar.Root>
-                                            <Calendar.Header>
-                                                <CalendarYearPicker.Trigger>
-                                                    <CalendarYearPicker.TriggerHeading />
-                                                    <CalendarYearPicker.TriggerIndicator />
-                                                </CalendarYearPicker.Trigger>
-                                                <Calendar.NavButton slot="previous" />
-                                                <Calendar.NavButton slot="next" />
-                                            </Calendar.Header>
-                                            <Calendar.Grid>
-                                                <Calendar.GridHeader>
-                                                    {(day: string) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
-                                                </Calendar.GridHeader>
-                                                <Calendar.GridBody>
-                                                    {(date: CalendarDate) => <Calendar.Cell date={date}>{({ formattedDate }: { formattedDate: string }) => formattedDate}</Calendar.Cell>}
-                                                </Calendar.GridBody>
-                                            </Calendar.Grid>
-                                        </Calendar.Root>
-                                    </DatePicker.Popover>
-                                </DatePicker>
+                            <DatePicker
+                                value={toCalendarDateTime(currentForm.startsAt)}
+                                onChange={(v) => setForm((p) => ({ ...p, startsAt: fromCalendarDateTime(v) }))}
+                                granularity="minute"
+                            >
+                                <DateField.Group fullWidth className={drawerStyles.input}>
+                                    <DateField.Input>
+                                        {(segment) => <DateField.Segment segment={segment} />}
+                                    </DateField.Input>
+                                    <DateField.Suffix>
+                                        <DatePicker.Trigger>
+                                            <DatePicker.TriggerIndicator />
+                                        </DatePicker.Trigger>
+                                    </DateField.Suffix>
+                                </DateField.Group>
+                                <DatePicker.Popover isNonModal className={drawerStyles.popover}>
+                                    <Calendar aria-label="Start date">
+                                        <Calendar.Header>
+                                            <Calendar.YearPickerTrigger>
+                                                <Calendar.YearPickerTriggerHeading />
+                                                <Calendar.YearPickerTriggerIndicator />
+                                            </Calendar.YearPickerTrigger>
+                                            <Calendar.NavButton slot="previous" />
+                                            <Calendar.NavButton slot="next" />
+                                        </Calendar.Header>
+                                        <Calendar.Grid>
+                                            <Calendar.GridHeader>
+                                                {(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
+                                            </Calendar.GridHeader>
+                                            <Calendar.GridBody>
+                                                {(date) => <Calendar.Cell date={date} />}
+                                            </Calendar.GridBody>
+                                        </Calendar.Grid>
+                                        <Calendar.YearPickerGrid>
+                                            <Calendar.YearPickerGridBody>
+                                                {({year}) => <Calendar.YearPickerCell year={year} />}
+                                            </Calendar.YearPickerGridBody>
+                                        </Calendar.YearPickerGrid>
+                                    </Calendar>
+                                </DatePicker.Popover>
+                            </DatePicker>
                             </DrawerField>
                             <DrawerField label="End" error={firstError(formErrors, 'ends_at')}>
-                                <DatePicker
-                                    value={toCalendarDateTime(currentForm.endsAt)}
-                                    onChange={(v) => setForm((p) => ({ ...p, endsAt: fromCalendarDateTime(v as CalendarDateTime | null) }))}
-                                    granularity="minute"
-                                >
-                                    <DatePicker.Trigger className={drawerStyles.trigger}>
-                                        <span className="flex-1 text-left">{formatDateTime(currentForm.endsAt) || 'Select end'}</span>
-                                        <DatePicker.TriggerIndicator />
-                                    </DatePicker.Trigger>
-                                    <DatePicker.Popover isNonModal className={drawerStyles.popover}>
-                                        <Calendar.Root>
-                                            <Calendar.Header>
-                                                <CalendarYearPicker.Trigger>
-                                                    <CalendarYearPicker.TriggerHeading />
-                                                    <CalendarYearPicker.TriggerIndicator />
-                                                </CalendarYearPicker.Trigger>
-                                                <Calendar.NavButton slot="previous" />
-                                                <Calendar.NavButton slot="next" />
-                                            </Calendar.Header>
-                                            <Calendar.Grid>
-                                                <Calendar.GridHeader>
-                                                    {(day: string) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
-                                                </Calendar.GridHeader>
-                                                <Calendar.GridBody>
-                                                    {(date: CalendarDate) => <Calendar.Cell date={date}>{({ formattedDate }: { formattedDate: string }) => formattedDate}</Calendar.Cell>}
-                                                </Calendar.GridBody>
-                                            </Calendar.Grid>
-                                        </Calendar.Root>
-                                    </DatePicker.Popover>
-                                </DatePicker>
+                            <DatePicker
+                                value={toCalendarDateTime(currentForm.endsAt)}
+                                onChange={(v) => setForm((p) => ({ ...p, endsAt: fromCalendarDateTime(v) }))}
+                                granularity="minute"
+                            >
+                                <DateField.Group fullWidth className={drawerStyles.input}>
+                                    <DateField.Input>
+                                        {(segment) => <DateField.Segment segment={segment} />}
+                                    </DateField.Input>
+                                    <DateField.Suffix>
+                                        <DatePicker.Trigger>
+                                            <DatePicker.TriggerIndicator />
+                                        </DatePicker.Trigger>
+                                    </DateField.Suffix>
+                                </DateField.Group>
+                                <DatePicker.Popover isNonModal className={drawerStyles.popover}>
+                                    <Calendar aria-label="End date">
+                                        <Calendar.Header>
+                                            <Calendar.YearPickerTrigger>
+                                                <Calendar.YearPickerTriggerHeading />
+                                                <Calendar.YearPickerTriggerIndicator />
+                                            </Calendar.YearPickerTrigger>
+                                            <Calendar.NavButton slot="previous" />
+                                            <Calendar.NavButton slot="next" />
+                                        </Calendar.Header>
+                                        <Calendar.Grid>
+                                            <Calendar.GridHeader>
+                                                {(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
+                                            </Calendar.GridHeader>
+                                            <Calendar.GridBody>
+                                                {(date) => <Calendar.Cell date={date} />}
+                                            </Calendar.GridBody>
+                                        </Calendar.Grid>
+                                        <Calendar.YearPickerGrid>
+                                            <Calendar.YearPickerGridBody>
+                                                {({year}) => <Calendar.YearPickerCell year={year} />}
+                                            </Calendar.YearPickerGridBody>
+                                        </Calendar.YearPickerGrid>
+                                    </Calendar>
+                                </DatePicker.Popover>
+                            </DatePicker>
                             </DrawerField>
                         </div>
 

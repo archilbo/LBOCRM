@@ -9,13 +9,14 @@ use App\Models\Dossier;
 use App\Models\DossierDocument;
 use App\Models\FinanceDocument;
 use App\Services\CompanyContext;
+use App\Services\PermissionRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 class GlobalSearchController extends Controller
 {
-    public function index(Request $request, CompanyContext $companyContext): JsonResponse
+    public function index(Request $request, CompanyContext $companyContext, PermissionRegistry $permissions): JsonResponse
     {
         $query = trim((string) $request->query('q', ''));
 
@@ -27,13 +28,14 @@ class GlobalSearchController extends Controller
 
         $like = '%' . $query . '%';
 
+        $user = $request->user();
         $results = collect()
-            ->merge($this->clients($like, $request, $companyContext))
-            ->merge($this->dossiers($like, $request, $companyContext))
-            ->merge($this->documents($like, $request, $companyContext))
-            ->merge($this->contracts($like, $request, $companyContext))
-            ->merge($this->finance($like))
-            ->merge($this->archives($like, $request, $companyContext))
+            ->when($permissions->allows($user, 'clients.view'), fn ($results) => $results->merge($this->clients($like, $request, $companyContext)))
+            ->when($permissions->allows($user, 'dossiers.view'), fn ($results) => $results->merge($this->dossiers($like, $request, $companyContext)))
+            ->when($permissions->allows($user, 'documents.view'), fn ($results) => $results->merge($this->documents($like, $request, $companyContext)))
+            ->when($permissions->allows($user, 'contracts.view'), fn ($results) => $results->merge($this->contracts($like, $request, $companyContext)))
+            ->when($permissions->allows($user, 'finance.view'), fn ($results) => $results->merge($this->finance($like)))
+            ->when($permissions->allows($user, 'archive.view'), fn ($results) => $results->merge($this->archives($like, $request, $companyContext)))
             ->take(18)
             ->values();
 

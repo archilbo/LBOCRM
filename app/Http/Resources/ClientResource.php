@@ -30,6 +30,12 @@ class ClientResource extends JsonResource
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
             'createdAt' => optional($this->created_at)->format('Y-m-d'),
             'notes' => $this->notes,
+            'capabilities' => [
+                'view' => $request->user()?->can('view', $this->resource) ?? false,
+                'update' => $request->user()?->can('update', $this->resource) ?? false,
+                'delete' => $request->user()?->can('delete', $this->resource) ?? false,
+                'updateStatus' => $request->user()?->can('updateStatus', $this->resource) ?? false,
+            ],
         ];
     }
 }

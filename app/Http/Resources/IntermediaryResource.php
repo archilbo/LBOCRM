@@ -21,6 +21,11 @@ class IntermediaryResource extends JsonResource
             'clientsCount' => $this->clients_count ?? $this->clients()->count(),
             'createdAt' => optional($this->created_at)->format('Y-m-d'),
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
+            'capabilities' => [
+                'view' => $request->user()?->can('view', $this->resource) ?? false,
+                'update' => $request->user()?->can('update', $this->resource) ?? false,
+                'delete' => $request->user()?->can('delete', $this->resource) ?? false,
+            ],
         ];
     }
 }

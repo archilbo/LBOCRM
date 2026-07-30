@@ -133,6 +133,42 @@ class ClientSecurityHardeningTest extends TestCase
             ->assertDontSee('Intermediary Hidden B');
     }
 
+    public function test_client_status_switch_is_tenant_scoped_and_audited(): void
+    {
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+        $user = $this->userFor($companyA, ['manage clients']);
+
+        $ownClient = Client::factory()->create([
+            'company_id' => $companyA->id,
+            'branch_id' => null,
+            'status' => 'active',
+        ]);
+        $foreignClient = Client::factory()->create([
+            'company_id' => $companyB->id,
+            'branch_id' => null,
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('clients.status.update', $ownClient), ['status' => 'inactive'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('clients', ['id' => $ownClient->id, 'status' => 'inactive']);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $user->id,
+            'action' => 'client.status_updated',
+            'auditable_type' => Client::class,
+            'auditable_id' => $ownClient->id,
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('clients.status.update', $foreignClient), ['status' => 'inactive'])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('clients', ['id' => $foreignClient->id, 'status' => 'active']);
+    }
+
     private function userFor(Company $company, array $permissions): User
     {
         $permissionModels = collect($permissions)

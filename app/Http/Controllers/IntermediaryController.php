@@ -30,7 +30,7 @@ class IntermediaryController extends Controller
 
         $monthlyClients = $companyContext->applyTo(Client::query(), $request->user())
             ->whereNotNull('intermediary_id')
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, count(*) as count")
+            ->selectRaw($this->monthExpression().' as month, count(*) as count')
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('count', 'month')
@@ -248,6 +248,15 @@ class IntermediaryController extends Controller
             ])
             ->sortBy('month')
             ->values();
+    }
+
+    private function monthExpression(): string
+    {
+        return match (Client::query()->getConnection()->getDriverName()) {
+            'sqlite' => "strftime('%Y-%m', created_at)",
+            'pgsql' => "to_char(created_at, 'YYYY-MM')",
+            default => "DATE_FORMAT(created_at, '%Y-%m')",
+        };
     }
 
     private function relationshipActivity(

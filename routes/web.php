@@ -46,14 +46,14 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/finance/settings', [FinanceSettingsController::class, 'index'])->name('finance.settings.index');
-    Route::put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update');
-    Route::put('/finance/settings/reset', [FinanceSettingsController::class, 'reset'])->name('finance.settings.reset');
-    Route::post('/finance/settings/logo', [CompanyLogoController::class, 'store'])->name('finance.settings.logo.store');
-    Route::delete('/finance/settings/logo', [CompanyLogoController::class, 'destroy'])->name('finance.settings.logo.destroy');
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/finance/settings', [FinanceSettingsController::class, 'index'])->name('finance.settings.index')->middleware('permission.route');
+    Route::put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update')->middleware('permission.route');
+    Route::put('/finance/settings/reset', [FinanceSettingsController::class, 'reset'])->name('finance.settings.reset')->middleware('permission.route');
+    Route::post('/finance/settings/logo', [CompanyLogoController::class, 'store'])->name('finance.settings.logo.store')->middleware('permission.route');
+    Route::delete('/finance/settings/logo', [CompanyLogoController::class, 'destroy'])->name('finance.settings.logo.destroy')->middleware('permission.route');
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard')->middleware('permission.route');
 
-    Route::get('/global-search', [GlobalSearchController::class, 'index'])->name('global-search.index');
+    Route::get('/global-search', [GlobalSearchController::class, 'index'])->name('global-search.index')->middleware('permission.route');
 
     Route::resource('clients', ClientController::class)->only([
         'index',
@@ -61,8 +61,9 @@ Route::middleware('auth')->group(function () {
         'store',
         'update',
         'destroy',
-    ]);
-    Route::post('/clients/scan-cin', [ClientController::class, 'scanCin'])->name('clients.scan-cin')->withoutMiddleware([\App\Http\Middleware\HandleInertiaRequests::class]);
+    ])->middleware('permission.route');
+    Route::patch('/clients/{client}/status', [ClientController::class, 'updateStatus'])->name('clients.status.update')->middleware('permission.route');
+    Route::post('/clients/scan-cin', [ClientController::class, 'scanCin'])->name('clients.scan-cin')->middleware('permission.route')->withoutMiddleware([\App\Http\Middleware\HandleInertiaRequests::class]);
 
     Route::resource('intermediaries', IntermediaryController::class)->only([
         'index',
@@ -70,7 +71,7 @@ Route::middleware('auth')->group(function () {
         'store',
         'update',
         'destroy',
-    ]);
+    ])->middleware('permission.route');
 
     Route::resource('dossiers', DossierController::class)->only([
         'index',
@@ -78,10 +79,12 @@ Route::middleware('auth')->group(function () {
         'store',
         'update',
         'destroy',
-    ]);
+    ])->middleware('permission.route');
     Route::put('/dossiers/{dossier}/workflow-requirements', [DossierWorkflowRequirementController::class, 'update'])
-        ->name('dossiers.workflow-requirements.update');
+        ->name('dossiers.workflow-requirements.update')
+        ->middleware('permission.route');
 
+    Route::middleware('permission.route')->group(function () {
     Route::get('/dossiers/{dossier}/project-design/summary', [ProjectDesignController::class, 'summary'])->name('dossiers.project-design.summary');
     Route::get('/dossiers/{dossier}/project-design/folders', [ProjectDesignController::class, 'folders'])->name('dossiers.project-design.folders');
     Route::post('/dossiers/{dossier}/project-design/folders', [ProjectDesignController::class, 'storeFolder'])->name('dossiers.project-design.folders.store');
@@ -126,28 +129,30 @@ Route::middleware('auth')->group(function () {
     Route::match(['GET', 'HEAD'], '/tus/{upload}', [TusController::class, 'head'])->name('tus.head');
     Route::patch('/tus/{upload}', [TusController::class, 'patch'])->name('tus.patch');
     Route::delete('/tus/{upload}', [TusController::class, 'delete'])->name('tus.delete');
+    });
 
-    Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
-    Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
-    Route::put('/documents/{dossierDocument}/status', [DocumentController::class, 'updateStatus'])->name('documents.status');
-    Route::delete('/documents/{dossierDocument}', [DocumentController::class, 'destroy'])->name('documents.destroy');
-    Route::post('/documents/{dossierDocument}/replace', [DocumentController::class, 'replace'])->name('documents.replace');
-    Route::get('/documents/{dossierDocument}/view', [DocumentController::class, 'view'])->name('documents.view');
-    Route::get('/documents/{dossierDocument}/print', [DocumentController::class, 'print'])->name('documents.print');
-    Route::get('/documents/{dossierDocument}/download', [DocumentController::class, 'download'])->name('documents.download');
+    Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index')->middleware('permission.route');
+    Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store')->middleware('permission.route');
+    Route::put('/documents/{dossierDocument}/status', [DocumentController::class, 'updateStatus'])->name('documents.status')->middleware('permission.route');
+    Route::delete('/documents/{dossierDocument}', [DocumentController::class, 'destroy'])->name('documents.destroy')->middleware('permission.route');
+    Route::post('/documents/{dossierDocument}/replace', [DocumentController::class, 'replace'])->name('documents.replace')->middleware('permission.route');
+    Route::get('/documents/{dossierDocument}/view', [DocumentController::class, 'view'])->name('documents.view')->middleware('permission.route');
+    Route::get('/documents/{dossierDocument}/print', [DocumentController::class, 'print'])->name('documents.print')->middleware('permission.route');
+    Route::get('/documents/{dossierDocument}/download', [DocumentController::class, 'download'])->name('documents.download')->middleware('permission.route');
 
-    Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
-    Route::post('/contracts', [ContractController::class, 'store'])->name('contracts.store');
-    Route::put('/contracts/{contract}', [ContractController::class, 'update'])->name('contracts.update');
-    Route::delete('/contracts/{contract}', [ContractController::class, 'destroy'])->name('contracts.destroy');
-    Route::put('/contracts/{contract}/generate', [ContractController::class, 'generate'])->name('contracts.generate');
-    Route::put('/contracts/{contract}/export-pdf', [ContractController::class, 'exportPdf'])->name('contracts.export-pdf');
-    Route::put('/contracts/{contract}/signed', [ContractController::class, 'markSigned'])->name('contracts.signed');
-    Route::get('/contracts/{contract}/print', [ContractController::class, 'print'])->name('contracts.print');
-    Route::get('/contracts/{contract}/download/generated', [ContractController::class, 'downloadGenerated'])->name('contracts.download.generated');
-    Route::get('/contracts/{contract}/download/pdf', [ContractController::class, 'downloadPdf'])->name('contracts.download.pdf');
-    Route::get('/contracts/{contract}/preview/pdf', [ContractController::class, 'previewPdf'])->name('contracts.preview.pdf');
+    Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index')->middleware('permission.route');
+    Route::post('/contracts', [ContractController::class, 'store'])->name('contracts.store')->middleware('permission.route');
+    Route::put('/contracts/{contract}', [ContractController::class, 'update'])->name('contracts.update')->middleware('permission.route');
+    Route::delete('/contracts/{contract}', [ContractController::class, 'destroy'])->name('contracts.destroy')->middleware('permission.route');
+    Route::put('/contracts/{contract}/generate', [ContractController::class, 'generate'])->name('contracts.generate')->middleware('permission.route');
+    Route::put('/contracts/{contract}/export-pdf', [ContractController::class, 'exportPdf'])->name('contracts.export-pdf')->middleware('permission.route');
+    Route::put('/contracts/{contract}/signed', [ContractController::class, 'markSigned'])->name('contracts.signed')->middleware('permission.route');
+    Route::get('/contracts/{contract}/print', [ContractController::class, 'print'])->name('contracts.print')->middleware('permission.route');
+    Route::get('/contracts/{contract}/download/generated', [ContractController::class, 'downloadGenerated'])->name('contracts.download.generated')->middleware('permission.route');
+    Route::get('/contracts/{contract}/download/pdf', [ContractController::class, 'downloadPdf'])->name('contracts.download.pdf')->middleware('permission.route');
+    Route::get('/contracts/{contract}/preview/pdf', [ContractController::class, 'previewPdf'])->name('contracts.preview.pdf')->middleware('permission.route');
 
+    Route::middleware('permission.route')->group(function () {
     Route::get('/finance', [FinanceDocumentController::class, 'index'])->name('finance.index');
     Route::get('/finance/monthly-summary/export-pdf', [MonthlySummaryExportController::class, 'exportPdf'])->name('finance.monthly-summary.export-pdf');
     Route::get('/finance/monthly-summary/export-excel', [MonthlySummaryExportController::class, 'exportExcel'])->name('finance.monthly-summary.export-excel');
@@ -198,52 +203,58 @@ Route::middleware('auth')->group(function () {
     Route::post('/finance/expenses', [ExpenseController::class, 'store'])->name('finance.expenses.store');
     Route::put('/finance/expenses/{expense}', [ExpenseController::class, 'update'])->name('finance.expenses.update');
     Route::delete('/finance/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('finance.expenses.destroy');
+    });
 
-    // Static routes first (before wildcard {archiveRecord})
-    Route::get('/archives/reports', [ArchiveController::class, 'reports'])->name('archives.reports');
-    Route::get('/archives/count', [ArchiveController::class, 'count'])->name('archives.count');
-    Route::post('/archives/checkout', [ArchiveController::class, 'checkout'])->name('archives.checkout');
-    Route::post('/archives/return', [ArchiveController::class, 'returnArchives'])->name('archives.return');
-    Route::post('/archives/move', [ArchiveController::class, 'moveArchives'])->name('archives.move');
-    Route::post('/archives/bulk/status', [ArchiveController::class, 'bulkStatus'])->name('archives.bulk.status');
-    Route::post('/archives/bulk/move', [ArchiveController::class, 'bulkMove'])->name('archives.bulk.move');
-    Route::get('/archives/boxes/{box}/contents', [ArchiveController::class, 'boxContents'])->name('archives.boxes.contents');
-    Route::get('/archives/cities', [\App\Http\Controllers\CityController::class, 'index'])->name('archives.cities.index');
-    Route::post('/archives/cities', [\App\Http\Controllers\CityController::class, 'store'])->name('archives.cities.store');
-    Route::put('/archives/cities/{city}', [\App\Http\Controllers\CityController::class, 'update'])->name('archives.cities.update');
-    Route::delete('/archives/cities/{city}', [\App\Http\Controllers\CityController::class, 'destroy'])->name('archives.cities.destroy');
-    // Wildcard routes last
-    Route::get('/archives', [ArchiveController::class, 'index'])->name('archives.index');
-    Route::get('/archives/{archiveRecord}', [ArchiveController::class, 'show'])->name('archives.show');
-    Route::post('/archives', [ArchiveController::class, 'store'])->name('archives.store');
-    Route::put('/archives/{archiveRecord}', [ArchiveController::class, 'update'])->name('archives.update');
-    Route::put('/archives/{archiveRecord}/status', [ArchiveController::class, 'updateStatus'])->name('archives.status');
-    Route::put('/archives/{archiveRecord}/mark-lost', [ArchiveController::class, 'markLost'])->name('archives.mark-lost');
-    Route::delete('/archives/{archiveRecord}', [ArchiveController::class, 'destroy'])->name('archives.destroy');
+    Route::middleware('permission.route')->group(function () {
+        // Static routes first (before wildcard {archiveRecord})
+        Route::get('/archives/reports', [ArchiveController::class, 'reports'])->name('archives.reports');
+        Route::get('/archives/count', [ArchiveController::class, 'count'])->name('archives.count');
+        Route::post('/archives/checkout', [ArchiveController::class, 'checkout'])->name('archives.checkout');
+        Route::post('/archives/return', [ArchiveController::class, 'returnArchives'])->name('archives.return');
+        Route::post('/archives/move', [ArchiveController::class, 'moveArchives'])->name('archives.move');
+        Route::post('/archives/bulk/status', [ArchiveController::class, 'bulkStatus'])->name('archives.bulk.status');
+        Route::post('/archives/bulk/move', [ArchiveController::class, 'bulkMove'])->name('archives.bulk.move');
+        Route::get('/archives/boxes/{box}/contents', [ArchiveController::class, 'boxContents'])->name('archives.boxes.contents');
+        // Wildcard routes last
+        Route::get('/archives', [ArchiveController::class, 'index'])->name('archives.index');
+        Route::get('/archives/{archiveRecord}', [ArchiveController::class, 'show'])->name('archives.show');
+        Route::post('/archives', [ArchiveController::class, 'store'])->name('archives.store');
+        Route::put('/archives/{archiveRecord}', [ArchiveController::class, 'update'])->name('archives.update');
+        Route::put('/archives/{archiveRecord}/status', [ArchiveController::class, 'updateStatus'])->name('archives.status');
+        Route::put('/archives/{archiveRecord}/mark-lost', [ArchiveController::class, 'markLost'])->name('archives.mark-lost');
+        Route::delete('/archives/{archiveRecord}', [ArchiveController::class, 'destroy'])->name('archives.destroy');
+    });
+    Route::get('/archives/cities', [\App\Http\Controllers\CityController::class, 'index'])->name('archives.cities.index')->middleware('permission.route');
+    Route::post('/archives/cities', [\App\Http\Controllers\CityController::class, 'store'])->name('archives.cities.store')->middleware('permission.route');
+    Route::put('/archives/cities/{city}', [\App\Http\Controllers\CityController::class, 'update'])->name('archives.cities.update')->middleware('permission.route');
+    Route::delete('/archives/cities/{city}', [\App\Http\Controllers\CityController::class, 'destroy'])->name('archives.cities.destroy')->middleware('permission.route');
 
-    Route::prefix('api')->group(function () {
+    Route::prefix('api')->middleware('permission.route')->group(function () {
         Route::get('/clients/search', [ApiClientController::class, 'search'])->name('api.clients.search');
         Route::get('/clients/{client}/projects', [ApiClientController::class, 'projects'])->name('api.clients.projects');
     });
 
     Route::get('/frontend-qa', function () {
         return Inertia::render('FrontendQa/Index');
-    })->name('frontend-qa.index');
-    Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
-    Route::put('/admin/users/bulk/role', [AdminUserController::class, 'bulkUpdateRole'])->name('admin.users.bulk.role');
-    Route::put('/admin/users/bulk/suspend', [AdminUserController::class, 'bulkSuspend'])->name('admin.users.bulk.suspend');
-    Route::post('/admin/users/bulk/delete', [AdminUserController::class, 'bulkDestroy'])->name('admin.users.bulk.destroy');
-    Route::put('/admin/users/{user}/role', [AdminUserController::class, 'updateRole'])->name('admin.users.role');
-    Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
-    Route::put('/admin/users/{user}/permissions', [AdminUserController::class, 'updatePermissions'])->name('admin.users.permissions');
-    Route::post('/admin/users/invite', [AdminUserInvitationController::class, 'store'])->name('admin.users.invite');
-    Route::post('/admin/users/invite/bulk/validate', [AdminUserInvitationController::class, 'bulkValidate'])->name('admin.users.invite.bulk.validate');
-    Route::post('/admin/users/invite/bulk', [AdminUserInvitationController::class, 'bulkStore'])->name('admin.users.invite.bulk');
-    Route::get('/admin/users/audit-logs', [AdminUserController::class, 'auditLogs'])->name('admin.users.audit-logs');
+    })->name('frontend-qa.index')->middleware('permission.route');
+    Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index')->middleware('permission.route');
+    Route::post('/admin/users', [AdminUserController::class, 'store'])->name('admin.users.store')->middleware('permission.route');
+    Route::put('/admin/users/bulk/role', [AdminUserController::class, 'bulkUpdateRole'])->name('admin.users.bulk.role')->middleware('permission.route');
+    Route::put('/admin/users/bulk/suspend', [AdminUserController::class, 'bulkSuspend'])->name('admin.users.bulk.suspend')->middleware('permission.route');
+    Route::post('/admin/users/bulk/delete', [AdminUserController::class, 'bulkDestroy'])->name('admin.users.bulk.destroy')->middleware('permission.route');
+    Route::put('/admin/users/{user}/access', [AdminUserController::class, 'updateAccess'])->name('admin.users.access.update')->middleware('permission.route');
+    Route::put('/admin/users/{user}/role', [AdminUserController::class, 'updateRole'])->name('admin.users.role')->middleware('permission.route');
+    Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy')->middleware('permission.route');
+    Route::put('/admin/users/{user}/permissions', [AdminUserController::class, 'updatePermissions'])->name('admin.users.permissions')->middleware('permission.route');
+    Route::post('/admin/users/invite', [AdminUserInvitationController::class, 'store'])->name('admin.users.invite')->middleware('permission.route');
+    Route::post('/admin/users/invite/bulk/validate', [AdminUserInvitationController::class, 'bulkValidate'])->name('admin.users.invite.bulk.validate')->middleware('permission.route');
+    Route::post('/admin/users/invite/bulk', [AdminUserInvitationController::class, 'bulkStore'])->name('admin.users.invite.bulk')->middleware('permission.route');
+    Route::get('/admin/users/audit-logs', [AdminUserController::class, 'auditLogs'])->name('admin.users.audit-logs')->middleware('permission.route');
 
 
-    Route::get('/backend-qa', [BackendQaController::class, 'index'])->name('backend-qa.index');
+    Route::get('/backend-qa', [BackendQaController::class, 'index'])->name('backend-qa.index')->middleware('permission.route');
 
+    Route::middleware('permission.route')->group(function () {
     Route::get('/tasks', [\App\Http\Controllers\TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tasks', [\App\Http\Controllers\TaskController::class, 'store'])->name('tasks.store');
     Route::get('/tasks/{task}', [\App\Http\Controllers\TaskController::class, 'show'])->name('tasks.show');
@@ -311,6 +322,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/calendar/events/{calendarEvent}/reminders', [CalendarReminderController::class, 'store'])->name('calendar.events.reminders.store');
     Route::put('/calendar/reminders/{calendarReminder}/snooze', [CalendarReminderController::class, 'snooze'])->name('calendar.reminders.snooze');
     Route::put('/calendar/reminders/{calendarReminder}/dismiss', [CalendarReminderController::class, 'dismiss'])->name('calendar.reminders.dismiss');
+    });
 
     Route::get('/planning', [\App\Http\Controllers\PlanningController::class, 'index'])->name('planning.index');
 });

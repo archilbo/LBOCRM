@@ -33,6 +33,8 @@ type ExpensesWorkspaceProps = {
         expense_sort?: string;
         expense_direction?: FinanceSortDirection;
     };
+    canEdit: boolean;
+    canDelete: boolean;
 };
 
 const categoryOptions = [
@@ -50,7 +52,7 @@ const categoryLabels: Record<string, string> = Object.fromEntries(categoryOption
 
 const categoryFilterOptions = [{ id: 'all', label: 'Toutes' }, ...categoryOptions];
 
-export function ExpensesWorkspace({ expenses, currency, onEdit, onView, pagination, filters }: ExpensesWorkspaceProps) {
+export function ExpensesWorkspace({ expenses, currency, onEdit, onView, pagination, filters, canEdit, canDelete }: ExpensesWorkspaceProps) {
     const [query, setQuery] = useState(filters?.expense_search || '');
     const [categoryFilter, setCategoryFilter] = useState(filters?.expense_category || 'all');
     const [showFilters, setShowFilters] = useState(false);
@@ -204,9 +206,9 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                                     <td className="px-3 py-2">
                                         <FinanceRowActions actions={[
                                             { id: 'view', label: 'Voir', icon: <Eye size={13} />, onPress: () => onView(expense) },
-                                            { id: 'edit', label: 'Modifier', icon: <Pencil size={13} />, onPress: () => onEdit(expense) },
-                                            { id: 'delete', label: 'Supprimer', icon: <Trash2 size={13} />, onPress: () => setDeleteTarget(expense), tone: 'danger', dividerBefore: true },
-                                        ]} />
+                                            canEdit && { id: 'edit', label: 'Modifier', icon: <Pencil size={13} />, onPress: () => onEdit(expense) },
+                                            canDelete && { id: 'delete', label: 'Supprimer', icon: <Trash2 size={13} />, onPress: () => setDeleteTarget(expense), tone: 'danger', dividerBefore: true },
+                                        ].filter(Boolean) as Parameters<typeof FinanceRowActions>[0]['actions']} />
                                     </td>
                                 </tr>
                             ))
@@ -244,16 +246,16 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                                 {formatCompactMoney(expense.amount, currency)}
                             </span>
                         </div>
-                        <div className="grid grid-cols-3 gap-1.5">
+                        <div className={`grid gap-1.5 ${canEdit && canDelete ? 'grid-cols-3' : canEdit || canDelete ? 'grid-cols-2' : 'grid-cols-1'}`}>
                             <AppButton size="sm" variant="outline" className="h-8 text-[11px]" onPress={() => onView(expense)}>
                                 <Eye size={12} /> Voir
                             </AppButton>
-                            <AppButton size="sm" variant="outline" className="h-8 text-[11px]" onPress={() => onEdit(expense)}>
+                            {canEdit ? <AppButton size="sm" variant="outline" className="h-8 text-[11px]" onPress={() => onEdit(expense)}>
                                 <Pencil size={12} /> Modifier
-                            </AppButton>
-                            <AppButton size="sm" variant="danger-soft" className="h-8 text-[11px]" onPress={() => setDeleteTarget(expense)}>
+                            </AppButton> : null}
+                            {canDelete ? <AppButton size="sm" variant="danger-soft" className="h-8 text-[11px]" onPress={() => setDeleteTarget(expense)}>
                                 <Trash2 size={12} /> Supprimer
-                            </AppButton>
+                            </AppButton> : null}
                         </div>
                     </article>
                 )) : (

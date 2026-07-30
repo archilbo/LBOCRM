@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'permission.route' => \App\Http\Middleware\EnsureRoutePermission::class,
+        ]);
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
             UpdateLastSeen::class,
@@ -28,4 +32,3 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
     })->create();
-

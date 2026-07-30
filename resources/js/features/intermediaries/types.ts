@@ -10,6 +10,11 @@ export type IntermediaryRow = {
     clientsCount: number;
     createdAt: string | null;
     updatedAt: string | null;
+    capabilities: {
+        view: boolean;
+        update: boolean;
+        delete: boolean;
+    };
 };
 
 export type IntermediaryFormPayload = {

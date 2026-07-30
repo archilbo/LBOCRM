@@ -15,12 +15,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use App\Services\PermissionRegistry;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AdminUserInvitationController extends Controller
 {
     use AuditsActions;
+
+    public function __construct(private readonly PermissionRegistry $permissions)
+    {
+    }
     public function store(InviteUserRequest $request): RedirectResponse
     {
         $validated = $request->validated();
@@ -68,27 +73,34 @@ class AdminUserInvitationController extends Controller
 
     public function bulkValidate(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->can('manage users'), 403);
+        abort_unless($request->user()
+            && $this->permissions->allows($request->user(), 'users.create')
+            && $this->permissions->allows($request->user(), 'users.roles.manage'), 403);
 
         $data = $request->validate([
             'emails' => 'required|array',
             'emails.*' => 'email',
         ]);
 
-        $existing = User::whereIn('email', $data['emails'])->pluck('email');
+        $existing = User::query()
+            ->where('company_id', $request->user()->company_id)
+            ->whereIn('email', $data['emails'])
+            ->pluck('email');
 
         return response()->json(['existing' => $existing]);
     }
 
     public function bulkStore(Request $request): RedirectResponse
     {
-        abort_unless($request->user()?->can('manage users'), 403);
+        abort_unless($request->user()
+            && $this->permissions->allows($request->user(), 'users.create')
+            && $this->permissions->allows($request->user(), 'users.roles.manage'), 403);
 
         $data = $request->validate([
             'users' => 'required|array',
             'users.*.name' => 'required|string|max:255',
             'users.*.email' => 'required|email|max:255',
-            'users.*.role' => 'required|string|in:admin,manager,staff,viewer',
+            'users.*.role' => ['required', 'string', \Illuminate\Validation\Rule::in($this->assignableRoles($request))],
             'overrides' => 'nullable|array',
             'overrides.*' => 'boolean',
         ]);
@@ -103,7 +115,10 @@ class AdminUserInvitationController extends Controller
         try {
             foreach ($data['users'] as $entry) {
                 try {
-                    $existing = User::where('email', $entry['email'])->first();
+                    $existing = User::query()
+                        ->where('company_id', $request->user()->company_id)
+                        ->where('email', $entry['email'])
+                        ->first();
 
                     if ($existing) {
                         if (!empty($overrides[$entry['email']])) {
@@ -113,6 +128,11 @@ class AdminUserInvitationController extends Controller
                         } else {
                             $skipped++;
                         }
+                        continue;
+                    }
+
+                    if (User::where('email', $entry['email'])->exists()) {
+                        $errors[] = $entry['email'] . ': unable to create this account.';
                         continue;
                     }
 
@@ -204,5 +224,16 @@ class AdminUserInvitationController extends Controller
         auth()->login($user);
 
         return redirect()->route('dashboard');
+    }
+
+    private function assignableRoles(Request $request): array
+    {
+        $roles = config('archilbo_roles.assignable');
+
+        if (! $request->user()->hasRole(config('archilbo_roles.super_admin_role'))) {
+            $roles = array_values(array_diff($roles, [config('archilbo_roles.super_admin_role')]));
+        }
+
+        return $roles;
     }
 }

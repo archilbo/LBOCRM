@@ -2,8 +2,9 @@ import { router, usePage } from '@inertiajs/react';
 import {
     BadgeDollarSign, Building2, ChevronDown, ChevronRight, FolderKanban,
     HelpCircle, LogOut, PanelLeftClose, PanelLeftOpen, Search, Settings, Check,
+    ClipboardList, MessageCircleMore, ShieldCheck,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import type { AppRoute } from '@/config/navigation';
 import { appRoutes, isActivePath, isValidHref } from '@/config/navigation';
@@ -19,16 +20,12 @@ function getRoute(key: string): AppRoute | undefined {
     return routeMap.get(key);
 }
 
-const mainItems = [
-    { key: 'dashboard' as const },
-    { key: 'clients' as const, shortcut: '#1' },
-    { key: 'intermediaries' as const, shortcut: '#2' },
-    { key: 'dossiers' as const, shortcut: '#3' },
-];
+const workspaceItems = ['dashboard', 'clients', 'intermediaries', 'dossiers'];
 
 const followUpItems: { key: string }[] = [
     { key: 'documents' },
     { key: 'contracts' },
+    { key: 'archives' },
     { key: 'tasks' },
     { key: 'calendar' },
     { key: 'workload' },
@@ -42,13 +39,6 @@ const financeChildren: { key: string; labelKey?: string }[] = [
     { key: 'financeMonthly' },
     { key: 'financeTemplates' },
     { key: 'financeSettings' },
-];
-
-const statusDots = [
-    { label: 'Active dossiers', color: '#22c55e' },
-    { label: 'Finance', color: '#f59e0b' },
-    { label: 'Blocked', color: '#ef4444' },
-    { label: 'Archive', color: '#8b5cf6' },
 ];
 
 /* ── Group keys for collapsed rail popovers ── */
@@ -69,17 +59,30 @@ function isGroupActive(keys: readonly string[], isActive: (r: AppRoute) => boole
     });
 }
 
-function SectionLabel({ label }: { label: string }) {
+function NavigationSection({
+    label,
+    icon,
+    children,
+}: {
+    label: string;
+    icon: ReactNode;
+    children: ReactNode;
+}) {
     return (
-        <p className="mb-1 mt-[18px] px-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-subtle">
-            {label}
-        </p>
+        <section className="mt-4">
+            <div className="flex h-6 items-center gap-2 px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-subtle">
+                <span className="flex size-4 items-center justify-center text-accent/80">
+                    {icon}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{label}</span>
+            </div>
+            <div className="mt-1 space-y-0.5">{children}</div>
+        </section>
     );
 }
 
-function NavItem({ route, shortcut, isActive, goTo, t }: {
+function NavItem({ route, isActive, goTo, t }: {
     route: AppRoute;
-    shortcut?: string;
     isActive: (r: AppRoute) => boolean;
     goTo: (href: string, enabled: boolean) => void;
     t: (key: string) => string;
@@ -100,8 +103,10 @@ function NavItem({ route, shortcut, isActive, goTo, t }: {
                 <Icon size={16} />
             </span>
             <span className="min-w-0 flex-1 truncate">{t(route.labelKey)}</span>
-            {shortcut ? (
-                <span className="shrink-0 text-[10px] font-medium text-subtle">{shortcut}</span>
+            {route.shortcut ? (
+                <kbd className="shrink-0 rounded border border-border bg-surface-2 px-1 py-0.5 text-[9px] font-medium text-subtle">
+                    {route.shortcut}
+                </kbd>
             ) : null}
         </button>
     );
@@ -109,12 +114,12 @@ function NavItem({ route, shortcut, isActive, goTo, t }: {
 
 function renderNavItem(routeKey: string, opts: {
     isActive: (r: AppRoute) => boolean;
+    canView: (r: AppRoute) => boolean;
     goTo: (href: string, enabled: boolean) => void;
     t: (key: string) => string;
-    shortcut?: string;
 }) {
     const route = getRoute(routeKey);
-    if (!route || !route.enabled) return null;
+    if (!route || !route.enabled || !opts.canView(route)) return null;
     return <NavItem key={routeKey} route={route} {...opts} />;
 }
 
@@ -122,25 +127,13 @@ export function AppSidebar() {
     const { t } = useTranslation();
     const { sidebarCollapsed, toggleSidebar } = useTheme();
     const { url: currentPath, props } = usePage();
-    const authUser = ((props as any).auth?.user || {}) as { id?: number; name?: string; email?: string };
+    const authUser = ((props as any).auth?.user || {}) as { id?: number; name?: string; email?: string; permissions?: string[] };
     const unreadCount = ((props as any).auth?.user?.unread_messages as number) || 0;
 
     const [wsOpen, setWsOpen] = useState(false);
     const [userOpen, setUserOpen] = useState(false);
-    const [financeOpen, setFinanceOpen] = useState(false);
     const wsRef = useRef<HTMLDivElement>(null);
     const userRef = useRef<HTMLDivElement>(null);
-    const prevPath = useRef(currentPath);
-
-    const isFinanceRoute = currentPath === '/finance' || currentPath.startsWith('/finance/');
-    useEffect(() => {
-        if (prevPath.current !== currentPath) {
-            if (isFinanceRoute) setFinanceOpen(true);
-            prevPath.current = currentPath;
-        }
-    }, [currentPath, isFinanceRoute]);
-
-    const showFinanceChildren = financeOpen || isFinanceRoute;
 
     useEffect(() => {
         function close(e: MouseEvent) {
@@ -169,7 +162,36 @@ export function AppSidebar() {
         return item.enabled && isActivePath(currentPath, item.href);
     }, [currentPath]);
 
-    const navOpts = { isActive, goTo, t };
+    const canView = useCallback((route: AppRoute) => {
+        return !route.requiredPermission || authUser.permissions?.includes(route.requiredPermission) === true;
+    }, [authUser.permissions]);
+
+    const navOpts = { isActive, canView, goTo, t };
+
+    useEffect(() => {
+        const shortcutToRoute: Record<string, string> = Object.fromEntries(
+            appRoutes
+                .filter((route) => route.shortcut)
+                .map((route) => [route.shortcut!.replace('Alt+', '').toLowerCase(), route.key]),
+        );
+
+        function handleNavigationShortcut(event: KeyboardEvent) {
+            if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) return;
+
+            const target = event.target as HTMLElement | null;
+            if (target?.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '')) return;
+
+            const route = getRoute(shortcutToRoute[event.key.toLowerCase()]);
+            if (!route || !route.enabled || !canView(route)) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            goTo(route.href, route.enabled);
+        }
+
+        window.addEventListener('keydown', handleNavigationShortcut, true);
+        return () => window.removeEventListener('keydown', handleNavigationShortcut, true);
+    }, [canView, goTo]);
 
     const userInitial = (authUser?.name || 'U').charAt(0).toUpperCase();
 
@@ -236,7 +258,7 @@ export function AppSidebar() {
 
         function renderFlyoutItem({ key, labelKey }: { key: string; labelKey?: string }) {
             const route = routeMap.get(key);
-            if (!route || !route.enabled) return null;
+            if (!route || !route.enabled || !canView(route)) return null;
             const Icon = route.icon;
             const active = isActive(route);
             return (
@@ -285,7 +307,7 @@ export function AppSidebar() {
                         {/* Dashboard */}
                         {(() => {
                             const route = getRoute('dashboard');
-                            if (!route || !route.enabled) return null;
+                            if (!route || !route.enabled || !canView(route)) return null;
                             const Icon = route.icon;
                             const active = isActive(route);
                             return (
@@ -303,7 +325,7 @@ export function AppSidebar() {
                         {/* Clients */}
                         {(() => {
                             const route = getRoute('clients');
-                            if (!route || !route.enabled) return null;
+                            if (!route || !route.enabled || !canView(route)) return null;
                             const Icon = route.icon;
                             const active = isActive(route);
                             return (
@@ -321,7 +343,7 @@ export function AppSidebar() {
                         {/* Dossiers */}
                         {(() => {
                             const route = getRoute('dossiers');
-                            if (!route || !route.enabled) return null;
+                            if (!route || !route.enabled || !canView(route)) return null;
                             const Icon = route.icon;
                             const active = isActive(route);
                             return (
@@ -337,7 +359,10 @@ export function AppSidebar() {
                         })()}
 
                         {/* Operations group flyout */}
-                        <button type="button"
+                        {operationsGroupKeys.some((key) => {
+                            const route = routeMap.get(key);
+                            return route && route.enabled && canView(route);
+                        }) ? <button type="button"
                             onMouseEnter={(e) => handleEnter(e, 'Operations', {
                                 icon: <FolderKanban size={16} />,
                                 items: operationsGroupKeys.map((k) => ({ key: k })),
@@ -346,10 +371,13 @@ export function AppSidebar() {
                             className={railBtn(opsActive)}
                             aria-label="Operations">
                             <FolderKanban size={16} />
-                        </button>
+                        </button> : null}
 
                         {/* Finance group flyout */}
-                        <button type="button"
+                        {financeGroupKeys.some((key) => {
+                            const route = routeMap.get(key);
+                            return route && route.enabled && canView(route);
+                        }) ? <button type="button"
                             onMouseEnter={(e) => handleEnter(e, 'Finance', {
                                 icon: <BadgeDollarSign size={16} />,
                                 items: financeGroupKeys.map((k) => ({
@@ -361,12 +389,12 @@ export function AppSidebar() {
                             className={railBtn(financeActive)}
                             aria-label="Finance">
                             <BadgeDollarSign size={16} />
-                        </button>
+                        </button> : null}
 
                         {/* Inbox */}
                         {(() => {
                             const route = getRoute('inbox');
-                            if (!route || !route.enabled) return null;
+                            if (!route || !route.enabled || !canView(route)) return null;
                             const Icon = route.icon;
                             const active = isActive(route);
                             return (
@@ -387,7 +415,7 @@ export function AppSidebar() {
                         {/* Notifications */}
                         {(() => {
                             const route = getRoute('notifications');
-                            if (!route || !route.enabled) return null;
+                            if (!route || !route.enabled || !canView(route)) return null;
                             const Icon = route.icon;
                             const active = isActive(route);
                             return (
@@ -528,130 +556,38 @@ export function AppSidebar() {
             </div>
 
             {/* ── Navigation ── */}
-            <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-2 scrollbar-none">
-                {/* Main */}
-                <SectionLabel label={t('nav.groups.principal')} />
-                {mainItems.map(({ key, shortcut }) => (
-                    <NavItem key={key} route={getRoute(key)!} shortcut={shortcut} {...navOpts} />
-                ))}
+            <nav className="flex-1 overflow-y-auto px-2 pb-2 scrollbar-none">
+                <NavigationSection label={t('nav.groups.principal')} icon={<FolderKanban size={13} />}>
+                    {workspaceItems.map((key) => renderNavItem(key, navOpts))}
+                </NavigationSection>
 
-                {/* Follow-up */}
-                <SectionLabel label={t('nav.groups.followUp')} />
-                {followUpItems.map(({ key }) => renderNavItem(key, navOpts))}
+                <NavigationSection label={t('nav.groups.followUp')} icon={<ClipboardList size={13} />}>
+                    {followUpItems.map(({ key }) => renderNavItem(key, navOpts))}
+                </NavigationSection>
 
-                {/* Management */}
-                <SectionLabel label={t('nav.groups.management')} />
+                <NavigationSection label={t('nav.finance')} icon={<BadgeDollarSign size={13} />}>
 
-                {/* Finance expandable */}
-                {(() => {
-                    const fr = routeMap.get('finance');
-                    if (!fr || !fr.enabled) return null;
-                    const Icon = fr.icon;
-                    const active = isActive(fr);
-                    return (
-                        <div key="finance-group">
-                            <button type="button"
-                                onClick={() => goTo(fr.href, fr.enabled)}
-                                className={cn(
-                                    'flex h-8 w-full items-center gap-[10px] rounded-lg px-2 text-left text-[13px] font-medium transition',
-                                    active
-                                        ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-foreground'
-                                        : 'text-muted hover:bg-surface-2 hover:text-foreground',
-                                )}>
-                                <span className="flex size-4 shrink-0 items-center justify-center">
-                                    <Icon size={16} />
-                                </span>
-                                <span className="min-w-0 flex-1 truncate">{t(fr.labelKey)}</span>
-                                <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); setFinanceOpen((o) => !o); }}
-                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); setFinanceOpen((o) => !o); } }}
-                                    className="flex size-5 cursor-pointer items-center justify-center rounded text-subtle hover:text-foreground"
-                                    aria-label="Toggle finance">
-                                    <ChevronRight size={12} className={cn('transition', showFinanceChildren && 'rotate-90')} />
-                                </span>
-                            </button>
-                            {showFinanceChildren ? (
-                                <div className="ml-[22px] mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
-                                    {financeChildren.map(({ key, labelKey }) => {
-                                        const cr = routeMap.get(key);
-                                        if (!cr || !cr.enabled) return null;
-                                        const ChildIcon = cr.icon;
-                                        const childActive = isActive(cr);
-                                        return (
-                                            <button key={key} type="button"
-                                                onClick={() => goTo(cr.href, cr.enabled)}
-                                                className={cn(
-                                                    'flex h-7 w-full items-center gap-2 rounded-lg pl-2 pr-2 text-left text-[12px] font-medium transition',
-                                                    childActive
-                                                        ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-foreground'
-                                                        : 'text-muted hover:bg-surface-2 hover:text-foreground',
-                                                )}>
-                                                <span className="flex size-3.5 shrink-0 items-center justify-center">
-                                                    <ChildIcon size={13} />
-                                                </span>
-                                                <span className="min-w-0 flex-1 truncate">
-                                                    {t(labelKey || cr.labelKey)}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            ) : null}
-                        </div>
-                    );
-                })()}
+                    <div className="ml-2 border-l border-border/70 pl-2">
+                        {financeChildren.map(({ key, labelKey }) => {
+                            const route = getRoute(key);
+                            if (!route || !route.enabled || !canView(route)) return null;
+                            return <NavItem key={key} route={{ ...route, labelKey: labelKey ?? route.labelKey }} {...navOpts} />;
+                        })}
+                    </div>
 
-                {/* Archives */}
-                {(() => {
-                    const route = routeMap.get('archives');
-                    if (!route || !route.enabled) return null;
-                    return <NavItem key="archives" route={route} {...navOpts} />;
-                })()}
+                </NavigationSection>
 
-                {/* Inbox */}
-                {(() => {
-                    const route = routeMap.get('inbox');
-                    if (!route || !route.enabled) return null;
-                    const Icon = route.icon;
-                    const active = isActive(route);
-                    const showDot = unreadCount > 0;
-                    return (
-                        <button key="inbox" type="button"
-                            onClick={() => goTo(route.href, route.enabled)}
-                            className={cn(
-                                'flex h-8 w-full items-center gap-[10px] rounded-lg px-2 text-left text-[13px] font-medium transition',
-                                active
-                                    ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-foreground'
-                                    : 'text-muted hover:bg-surface-2 hover:text-foreground',
-                            )}>
-                            <span className="relative flex size-4 shrink-0 items-center justify-center">
-                                <Icon size={16} />
-                                {showDot ? <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-danger" /> : null}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate">{t(route.labelKey)}</span>
-                            {showDot ? (
-                                <span className="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">
-                                    {unreadCount > 99 ? '99+' : unreadCount}
-                                </span>
-                            ) : null}
-                        </button>
-                    );
-                })()}
+                <NavigationSection label={t('nav.groups.communication')} icon={<MessageCircleMore size={13} />}>
+                    {renderNavItem('inbox', navOpts)}
+                    {renderNavItem('notifications', navOpts)}
+                </NavigationSection>
 
                 {/* Administration */}
-                <SectionLabel label={t('nav.groups.administration')} />
-                {['notifications', 'users'].map((k) => renderNavItem(k, navOpts))}
+                <NavigationSection label={t('nav.groups.administration')} icon={<ShieldCheck size={13} />}>
+                    {['users'].map((key) => renderNavItem(key, navOpts))}
+                </NavigationSection>
 
                 {/* ── Projects / Status dots ── */}
-                <SectionLabel label="PROJECTS" />
-                <div className="space-y-0.5">
-                    {statusDots.map((dot) => (
-                        <div key={dot.label}
-                            className="flex h-7 items-center gap-[10px] rounded-lg px-2 text-[12px] font-medium text-muted">
-                            <span className="block size-2 shrink-0 rounded-sm" style={{ background: dot.color }} />
-                            <span className="min-w-0 flex-1 truncate">{dot.label}</span>
-                        </div>
-                    ))}
-                </div>
             </nav>
 
             {/* ── Bottom: settings, help, user ── */}

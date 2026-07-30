@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CalendarEventReminder;
+use App\Services\Collaboration\RelatedRecordScopeGuard;
 use App\Services\Calendar\CalendarReminderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -12,6 +13,7 @@ class CalendarReminderController extends Controller
 {
     public function __construct(
         protected CalendarReminderService $service,
+        protected RelatedRecordScopeGuard $scopeGuard,
     ) {}
 
     public function store(Request $request, \App\Models\CalendarEvent $calendarEvent): RedirectResponse
@@ -24,6 +26,8 @@ class CalendarReminderController extends Controller
             'remind_at' => ['nullable', 'date'],
             'channel' => ['nullable', 'string'],
         ]);
+
+        $this->scopeGuard->assertUserIds($request->user(), array_filter([$data['user_id'] ?? null]));
 
         $calendarEvent->reminders()->create([
             ...$data,

@@ -4,6 +4,7 @@ namespace App\Services\Task;
 
 use App\Models\Task;
 use App\Models\User;
+use App\Services\Collaboration\RelatedRecordScopeGuard;
 
 class TaskMutationService
 {
@@ -11,12 +12,14 @@ class TaskMutationService
         protected TaskNumberService $numberService,
         protected TaskActivityService $activityService,
         protected TaskNotificationService $notificationService,
+        protected RelatedRecordScopeGuard $scopeGuard,
     ) {}
 
     public function create(array $data, User $user): Task
     {
         $assigneeIds = $data['assignee_ids'] ?? [];
         $watcherIds = $data['watcher_ids'] ?? [];
+        $this->scopeGuard->assertTaskLinks($user, $data);
         unset($data['assignee_ids'], $data['watcher_ids']);
 
         $task = Task::create([
@@ -24,8 +27,8 @@ class TaskMutationService
             'task_number' => $data['task_number'] ?? $this->numberService->generate(),
             'type' => $data['type'] ?? 'general',
             'impact' => $data['impact'] ?? 'normal',
-            'created_by' => $data['created_by'] ?? $user->id,
-            'assigned_by' => $data['assigned_by'] ?? $user->id,
+            'created_by' => $user->id,
+            'assigned_by' => $user->id,
         ]);
 
         $task->assignees()->sync($assigneeIds);
@@ -44,6 +47,7 @@ class TaskMutationService
         $oldAssigneeIds = $task->assignees()->pluck('users.id')->all();
         $assigneeIds = $data['assignee_ids'] ?? null;
         $watcherIds = $data['watcher_ids'] ?? null;
+        $this->scopeGuard->assertTaskLinks($user, $data);
         unset($data['assignee_ids'], $data['watcher_ids']);
 
         $task->update($data);

@@ -3,12 +3,17 @@
 namespace App\Services\Task;
 
 use App\Models\User;
+use App\Services\CompanyContext;
 
 class WorkloadService
 {
-    public function summary(): array
+    public function __construct(private readonly CompanyContext $companyContext)
     {
-        return User::query()
+    }
+
+    public function summary(User $user): array
+    {
+        return $this->companyContext->applyTo(User::query(), $user)
             ->withCount([
                 'tasksAssigned as open_tasks_count' => fn ($query) => $query->whereNotIn('status', ['completed', 'cancelled']),
                 'tasksAssigned as urgent_tasks_count' => fn ($query) => $query->where('priority', 'urgent')->whereNotIn('status', ['completed', 'cancelled']),

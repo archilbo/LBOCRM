@@ -22,29 +22,38 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ContractController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request, \App\Services\CompanyContext $companyContext): Response
     {
-        $contracts = Contract::query()
+        $this->authorize('viewAny', Contract::class);
+
+        $scope = Contract::query()->whereIn(
+            'dossier_id',
+            $companyContext->applyTo(Dossier::query(), $request->user())->select('id'),
+        );
+
+        $contracts = (clone $scope)
             ->with(['dossier.client'])
             ->latest()
             ->get();
 
         return Inertia::render('Contracts/Index', [
             'contracts' => ContractResource::collection($contracts)->resolve(),
-            'dossiers' => $this->dossierOptions(),
-            'clients' => $this->clientOptions(),
+            'dossiers' => $this->dossierOptions($request->user(), $companyContext),
+            'clients' => $this->clientOptions($request->user(), $companyContext),
             'metrics' => [
-                'total' => Contract::count(),
-                'draft' => Contract::where('status', 'draft')->count(),
-                'generated' => Contract::where('status', 'generated')->count(),
-                'signed' => Contract::where('status', 'signed')->count(),
-                'totalTtc' => (float) Contract::sum('ttc'),
+                'total' => (clone $scope)->count(),
+                'draft' => (clone $scope)->where('status', 'draft')->count(),
+                'generated' => (clone $scope)->where('status', 'generated')->count(),
+                'signed' => (clone $scope)->where('status', 'signed')->count(),
+                'totalTtc' => (float) (clone $scope)->sum('ttc'),
             ],
         ]);
     }
 
     public function store(StoreContractRequest $request): RedirectResponse
     {
+        $this->authorize('create', Contract::class);
+        abort_unless(app(\App\Services\CompanyContext::class)->applyTo(Dossier::query(), $request->user())->whereKey($request->integer('dossier_id'))->exists(), 404);
         $data = $this->prepareContractData($request->validated());
         $data['contract_number'] = $data['contract_number'] ?? $this->nextContractNumber();
 
@@ -65,6 +74,7 @@ class ContractController extends Controller
 
     public function update(UpdateContractRequest $request, Contract $contract): RedirectResponse
     {
+        $this->authorize('update', $contract);
         $hadGeneratedFiles = $contract->generated_document_path || $contract->pdf_path;
 
         $contract->update($this->prepareContractData($request->validated()));
@@ -85,6 +95,7 @@ class ContractController extends Controller
 
     public function destroy(Request $request, Contract $contract): RedirectResponse
     {
+        $this->authorize('delete', $contract);
         $directory = 'contracts/' . $contract->contract_number;
 
         if (Storage::disk('public')->exists($directory)) {
@@ -104,6 +115,7 @@ class ContractController extends Controller
 
     public function generate(Request $request, Contract $contract): RedirectResponse
     {
+        $this->authorize('generate', $contract);
         try {
             if ($contract->generated_document_path && Storage::disk('local')->exists($contract->generated_document_path)) {
                 Storage::disk('local')->delete($contract->generated_document_path);
@@ -142,6 +154,7 @@ class ContractController extends Controller
 
     public function exportPdf(Request $request, Contract $contract): RedirectResponse
     {
+        $this->authorize('generate', $contract);
         try {
             $contract->loadMissing(['dossier.city', 'dossier.client']);
 
@@ -180,6 +193,7 @@ class ContractController extends Controller
 
     public function markSigned(Request $request, Contract $contract): RedirectResponse
     {
+        $this->authorize('update', $contract);
         if ($contract->status === 'signed') {
             if ($request->filled('return_to')) {
                 return redirect()->to($request->string('return_to')->toString())->with('error', 'Ce contrat est deja signe.');
@@ -207,6 +221,7 @@ class ContractController extends Controller
 
     public function print(Contract $contract): BinaryFileResponse|RedirectResponse
     {
+        $this->authorize('print', $contract);
         try {
             if (! $this->ensurePdfExists($contract) || ! $contract->pdf_path) {
                 return redirect()
@@ -241,6 +256,7 @@ class ContractController extends Controller
 
     public function downloadGenerated(Contract $contract): StreamedResponse|RedirectResponse
     {
+        $this->authorize('download', $contract);
         $contract->loadMissing(['dossier.city', 'dossier.client']);
 
         if (!$contract->generated_document_path || !Storage::disk('local')->exists($contract->generated_document_path)) {
@@ -269,6 +285,7 @@ class ContractController extends Controller
 
     public function downloadPdf(Contract $contract): StreamedResponse|RedirectResponse
     {
+        $this->authorize('download', $contract);
         $contract->loadMissing(['dossier.city', 'dossier.client']);
 
         if (!$contract->generated_document_path || !Storage::disk('local')->exists($contract->generated_document_path)) {
@@ -312,6 +329,8 @@ class ContractController extends Controller
 
     public function previewPdf(Contract $contract): BinaryFileResponse|RedirectResponse
     {
+        $this->authorize('view', $contract);
+
         if (!$this->ensurePdfExists($contract)) {
             return redirect()
                 ->route('contracts.index')
@@ -437,10 +456,10 @@ class ContractController extends Controller
         return $number;
     }
 
-    private function clientOptions(): array
+    private function clientOptions(\App\Models\User $user, \App\Services\CompanyContext $companyContext): array
     {
-        return Client::query()
-            ->with(['dossiers' => fn ($q) => $q->with('contract')->orderByDesc('created_at')])
+        return $companyContext->applyTo(Client::query(), $user)
+            ->with(['dossiers' => fn ($query) => $companyContext->applyTo($query->getQuery(), $user)->with('contract')->orderByDesc('created_at')])
             ->orderBy('full_name')
             ->get()
             ->map(fn (Client $client) => [
@@ -458,9 +477,9 @@ class ContractController extends Controller
             ->all();
     }
 
-    private function dossierOptions(): array
+    private function dossierOptions(\App\Models\User $user, \App\Services\CompanyContext $companyContext): array
     {
-        return Dossier::query()
+        return $companyContext->applyTo(Dossier::query(), $user)
             ->with(['client', 'contract'])
             ->orderByDesc('created_at')
             ->get()

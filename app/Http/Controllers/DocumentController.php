@@ -168,7 +168,7 @@ class DocumentController extends Controller
         DossierDocument $dossierDocument,
         DossierPathBuilder $pathBuilder,
     ): RedirectResponse {
-        $this->authorize('update', $dossierDocument);
+        $this->authorize('replace', $dossierDocument);
 
         $dossierDocument->loadMissing(['dossier.city', 'dossier.client', 'template']);
         $dossier = $dossierDocument->dossier;
@@ -221,7 +221,7 @@ class DocumentController extends Controller
 
     public function print(DossierDocument $dossierDocument, DossierDocumentFileService $files)
     {
-        $this->authorize('view', $dossierDocument);
+        $this->authorize('print', $dossierDocument);
         abort_unless($files->canPreview($dossierDocument), 422, 'Ce format ne peut pas etre imprime depuis le navigateur.');
 
         $viewUrl = route('documents.view', $dossierDocument);

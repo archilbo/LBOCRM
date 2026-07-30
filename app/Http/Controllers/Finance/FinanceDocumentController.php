@@ -53,8 +53,11 @@ class FinanceDocumentController extends Controller
         $user = $request->user();
         $context->payload($user);
 
+        $canViewPayments = $user->can('finance.payments.view') || $user->can('manage finance');
+        $canViewExpenses = $user->can('finance.expenses.view') || $user->can('manage finance');
+        $canViewTemplates = $user->can('finance.templates.view') || $user->can('manage finance');
         $currency = FinanceSettingsService::getCurrency();
-        $expenses = $queries->expenses($request, $user)->through(fn (Expense $expense) => [
+        $expenses = $canViewExpenses ? $queries->expenses($request, $user)->through(fn (Expense $expense) => [
                 'id' => $expense->id,
                 'category' => $expense->category,
                 'vendor' => $expense->vendor,
@@ -69,20 +72,22 @@ class FinanceDocumentController extends Controller
                 ] : null,
                 'createdBy' => $expense->creator?->name,
                 'createdAt' => $expense->created_at?->toDateTimeString(),
-            ]);
-        $financeTemplates = $context->apply(FinanceTemplate::query(), $user)
+            ]) : collect();
+        $financeTemplates = $canViewTemplates ? $context->apply(FinanceTemplate::query(), $user)
             ->orderBy('type')
             ->orderByDesc('is_default')
             ->orderBy('name')
-            ->get();
+            ->get() : collect();
 
         return Inertia::render('Finance/Documents/Index', [
             'documents' => FinanceDocumentResource::collection($queries->documents($request, $user)),
-            'payments' => PaymentResource::collection($queries->payments($request, $user)),
+            'payments' => $canViewPayments
+                ? PaymentResource::collection($queries->payments($request, $user))
+                : [],
             'expenses' => $expenses,
             'monthlySummaries' => $monthlySummaryService->months(null, $user),
             'metrics' => $queries->metrics($user, $currency),
-            'clients' => Client::select('id', 'full_name', 'cin', 'address')
+            'clients' => $context->apply(Client::query()->select('id', 'full_name', 'cin', 'address'), $user)
                 ->orderBy('full_name')
                 ->get()
                 ->map(fn ($c) => [
@@ -91,7 +96,7 @@ class FinanceDocumentController extends Controller
                     'cin' => $c->cin,
                     'address' => $c->address,
                 ]),
-            'dossiers' => Dossier::select('id', 'client_id', 'dossier_number', 'project_object', 'project_address', 'floor_area', 'land_surface')
+            'dossiers' => $context->apply(Dossier::query()->select('id', 'client_id', 'dossier_number', 'project_object', 'project_address', 'floor_area', 'land_surface'), $user)
                 ->orderBy('dossier_number')
                 ->get()
                 ->map(fn ($d) => [

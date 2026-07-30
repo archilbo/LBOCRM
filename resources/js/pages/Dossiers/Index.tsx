@@ -16,6 +16,7 @@ import type { City, DossierFormPayload, DossierRow } from '@/features/dossiers/t
 import type { FormErrors } from '@/lib/formErrors';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
 import { DossierLocationExplorer } from '@/features/dossiers/components/DossierLocationExplorer';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
     dossierWorkflowOptions, getDossierReadiness, getDossierWorkflowLabel,
 } from '@/config/statuses';
@@ -57,6 +58,7 @@ type SortField = 'projectObject' | 'clientName' | 'status' | 'documentsCount' | 
 type SortDir = 'asc' | 'desc';
 
 export default function DossiersIndex({ dossiers, locationGroups, clients, cities, metrics }: PageProps) {
+    const { can, canAny } = usePermissions();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('create');
@@ -118,6 +120,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
     }
 
     function openCreateDrawer() {
+        if (!can('dossiers.create')) return;
         setSelectedDossier(null);
         setDrawerMode('create');
         setFormErrors({});
@@ -131,6 +134,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
     }, []);
 
     function openEditDrawer(dossier: DossierRow) {
+        if (!can('dossiers.update')) return;
         setSelectedDossier(dossier);
         setDrawerMode('edit');
         setFormErrors({});
@@ -155,7 +159,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
     }
 
     function confirmDelete() {
-        if (!deleteTarget) return;
+        if (!deleteTarget || !can('dossiers.delete')) return;
         setActionLoading(true);
         router.delete(`/dossiers/${deleteTarget.id}`, {
             preserveScroll: true,
@@ -178,17 +182,18 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
     }
 
     function RowMenu({ dossier, isOpen, onToggle }: { dossier: DossierRow; isOpen: boolean; onToggle: () => void }) {
+        const hasMenuActions = canAny(['documents.view', 'finance.view', 'archive.view', 'dossiers.delete']);
         return (
             <div className="flex items-center gap-0.5">
                 <button type="button" onClick={() => setPreviewDossier(dossier)}
                     className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Apercu">
                     <Eye size={12} />
                 </button>
-                <button type="button" onClick={() => openEditDrawer(dossier)}
+                {can('dossiers.update') ? <button type="button" onClick={() => openEditDrawer(dossier)}
                     className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Modifier">
                     <Pencil size={12} />
-                </button>
-                <Dropdown>
+                </button> : null}
+                {hasMenuActions ? <Dropdown>
                     <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]">
                         <span className="contents"><MoreHorizontal size={12} /></span>
                     </Dropdown.Trigger>
@@ -205,25 +210,25 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                     <span>View project</span>
                                 </div>
                             </Dropdown.Item>
-                            <Dropdown.Item key="documents" id="documents" className="text-[var(--text)]">
+                            {can('documents.view') ? <Dropdown.Item key="documents" id="documents" className="text-[var(--text)]">
                                 <div className="flex items-center gap-2">
                                     <FolderKanban size={13} className="text-sky-400 shrink-0" />
                                     <span>Documents</span>
                                 </div>
-                            </Dropdown.Item>
-                            <Dropdown.Item key="finance" id="finance" className="text-[var(--text)]">
+                            </Dropdown.Item> : null}
+                            {can('finance.view') ? <Dropdown.Item key="finance" id="finance" className="text-[var(--text)]">
                                 <div className="flex items-center gap-2">
                                     <SlidersHorizontal size={13} className="text-amber-400 shrink-0" />
                                     <span>Finance</span>
                                 </div>
-                            </Dropdown.Item>
-                            <Dropdown.Item key="archive" id="archive" className="text-[var(--text)]">
+                            </Dropdown.Item> : null}
+                            {can('archive.view') ? <Dropdown.Item key="archive" id="archive" className="text-[var(--text)]">
                                 <div className="flex items-center gap-2">
                                     <Trash2 size={13} className="text-[var(--text-muted)] shrink-0" />
                                     <span>Archiver</span>
                                 </div>
-                            </Dropdown.Item>
-                            <Dropdown.Section title="Danger"
+                            </Dropdown.Item> : null}
+                            {can('dossiers.delete') ? <Dropdown.Section title="Danger"
                                 classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
                                 <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
                                     <div className="flex items-center gap-2">
@@ -231,10 +236,10 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                         <span>Supprimer</span>
                                     </div>
                                 </Dropdown.Item>
-                            </Dropdown.Section>
+                            </Dropdown.Section> : null}
                         </Dropdown.Menu>
                     </Dropdown.Popover>
-                </Dropdown>
+                </Dropdown> : null}
             </div>
         );
     }
@@ -258,9 +263,9 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                             Suivez et gerez tous les projets et dossiers.
                         </p>
                     </div>
-                    <Button variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={openCreateDrawer}>
+                    {can('dossiers.create') ? <Button variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={openCreateDrawer}>
                         <Plus size={15} /> Nouveau projet
-                    </Button>
+                    </Button> : null}
                 </header>
 
                 {/* ── Tab bar ── */}
@@ -483,7 +488,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                             size="md"
                         >
                             {previewDossier ? (
-                                <PreviewContent dossier={previewDossier} onEdit={openEditDrawer}
+                                <PreviewContent dossier={previewDossier} canEdit={can('dossiers.update')} canDelete={can('dossiers.delete')} canArchive={can('archive.view')} onEdit={openEditDrawer}
                                     onDelete={() => { setDeleteTarget(previewDossier); setPreviewDossier(null); }} />
                             ) : null}
                         </AppDrawer>
@@ -541,7 +546,7 @@ const workflowChipColor: Record<string, 'default' | 'primary' | 'secondary' | 's
     archive: 'default',
 };
 
-function PreviewContent({ dossier, onEdit, onDelete }: { dossier: DossierRow; onEdit: (d: DossierRow) => void; onDelete: (d: DossierRow) => void }) {
+function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDelete }: { dossier: DossierRow; canEdit: boolean; canDelete: boolean; canArchive: boolean; onEdit: (d: DossierRow) => void; onDelete: (d: DossierRow) => void }) {
     const readiness = getDossierReadiness(dossier);
     const doneSteps = readiness.filter((i) => i.done).length;
 
@@ -620,19 +625,19 @@ function PreviewContent({ dossier, onEdit, onDelete }: { dossier: DossierRow; on
                 </div>
             </Card>
 
-            <div className="grid grid-cols-4 gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-sm">
+            <div className="grid grid-cols-1 gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-sm sm:grid-cols-2">
                 <Button variant="solid" color="primary" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
                     <Eye size={13} /> View project
                 </Button>
-                <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => onEdit(dossier)}>
+                {canEdit ? <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => onEdit(dossier)}>
                     <Pencil size={13} /> Modifier
-                </Button>
-                <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => router.visit('/archives')}>
+                </Button> : null}
+                {canArchive ? <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => router.visit('/archives')}>
                     <Trash2 size={13} /> Archiver
-                </Button>
-                <Button variant="light" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap text-red-400" onPress={() => onDelete(dossier)}>
+                </Button> : null}
+                {canDelete ? <Button variant="light" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap text-red-400" onPress={() => onDelete(dossier)}>
                     <Trash2 size={13} /> Supprimer
-                </Button>
+                </Button> : null}
             </div>
         </div>
     );

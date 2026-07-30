@@ -5,6 +5,7 @@ namespace App\Services\Clients;
 use App\Http\Resources\FinanceDocumentResource;
 use App\Models\Client;
 use App\Models\Dossier;
+use App\Models\User;
 use App\Services\Dossiers\DossierWorkflowStepperService;
 use App\Services\Documents\DossierDocumentFileService;
 use App\Services\Finance\FinanceSettingsService;
@@ -19,31 +20,40 @@ class ClientWorkspaceService
     ) {
     }
 
-    public function forClient(Client $client, ?int $selectedDossierId = null): array
+    public function forClient(Client $client, ?int $selectedDossierId = null, ?User $viewer = null): array
     {
-        $client->loadMissing([
+        $canViewFinance = $viewer === null || $viewer->can('finance.view') || $viewer->can('manage finance');
+
+        $relations = [
             'intermediary',
             'dossiers.documents.template',
             'dossiers.contract',
             'dossiers.workflowRequirements.checkedBy',
-            'dossiers.financeDocuments.client',
-            'dossiers.financeDocuments.dossier',
-            'dossiers.financeDocuments.items',
-            'dossiers.financeDocuments.creator',
-            'dossiers.financeDocuments.payments.document',
-            'dossiers.financeDocuments.payments.client',
-            'dossiers.financeDocuments.payments.dossier',
-            'dossiers.financeDocuments.payments.receiptDocument',
-            'dossiers.financeDocuments.payments.creator',
-            'dossiers.payments.document',
-            'dossiers.payments.creator',
             'dossiers.archiveRecord',
-        ]);
+        ];
+
+        if ($canViewFinance) {
+            $relations = array_merge($relations, [
+                'dossiers.financeDocuments.client',
+                'dossiers.financeDocuments.dossier',
+                'dossiers.financeDocuments.items',
+                'dossiers.financeDocuments.creator',
+                'dossiers.financeDocuments.payments.document',
+                'dossiers.financeDocuments.payments.client',
+                'dossiers.financeDocuments.payments.dossier',
+                'dossiers.financeDocuments.payments.receiptDocument',
+                'dossiers.financeDocuments.payments.creator',
+                'dossiers.payments.document',
+                'dossiers.payments.creator',
+            ]);
+        }
+
+        $client->loadMissing($relations);
 
         $projects = $client->dossiers
             ->sortByDesc('updated_at')
             ->values()
-            ->map(fn (Dossier $dossier) => $this->projectSummary($dossier))
+            ->map(fn (Dossier $dossier) => $this->projectSummary($dossier, $canViewFinance))
             ->all();
 
         $selectedDossier = $selectedDossierId
@@ -63,15 +73,15 @@ class ClientWorkspaceService
                 'intermediaryName' => $client->intermediary?->name,
             ],
             'projects' => $projects,
-            'selectedProject' => $selectedDossier ? $this->projectWorkspace($selectedDossier) : null,
+            'selectedProject' => $selectedDossier ? $this->projectWorkspace($selectedDossier, $canViewFinance) : null,
         ];
     }
 
-    public function projectSummary(Dossier $dossier): array
+    public function projectSummary(Dossier $dossier, bool $includeFinance = true): array
     {
-        $financeDocuments = $dossier->financeDocuments;
+        $financeDocuments = $includeFinance ? $dossier->financeDocuments : collect();
         $invoices = $financeDocuments->where('type', 'invoice');
-        $payments = $dossier->payments;
+        $payments = $includeFinance ? $dossier->payments : collect();
 
         return [
             'id' => $dossier->id,
@@ -96,14 +106,14 @@ class ClientWorkspaceService
         ];
     }
 
-    private function projectWorkspace(Dossier $dossier): array
+    private function projectWorkspace(Dossier $dossier, bool $includeFinance): array
     {
-        $financeDocuments = $dossier->financeDocuments->sortByDesc('issue_date')->values();
-        $payments = $dossier->payments->sortByDesc('paid_at')->values();
+        $financeDocuments = $includeFinance ? $dossier->financeDocuments->sortByDesc('issue_date')->values() : collect();
+        $payments = $includeFinance ? $dossier->payments->sortByDesc('paid_at')->values() : collect();
 
         return [
-            ...$this->projectSummary($dossier),
-            'currency' => FinanceSettingsService::getCurrency(),
+            ...$this->projectSummary($dossier, $includeFinance),
+            'currency' => $includeFinance ? FinanceSettingsService::getCurrency() : null,
             'contract' => $dossier->contract ? [
                 'id' => $dossier->contract->id,
                 'number' => $dossier->contract->contract_number,
@@ -140,10 +150,10 @@ class ClientWorkspaceService
                     'downloadUrl' => $hasFile ? route('documents.download', $document) : null,
                 ];
             })->values()->all(),
-            'financeDocuments' => $financeDocuments
+            'financeDocuments' => $includeFinance ? $financeDocuments
                 ->map(fn ($document) => (new FinanceDocumentResource($document))->resolve(request()))
-                ->all(),
-            'payments' => $payments->map(fn ($payment) => [
+                ->all() : [],
+            'payments' => $includeFinance ? $payments->map(fn ($payment) => [
                 'id' => $payment->id,
                 'paymentNumber' => $payment->payment_number,
                 'paymentKind' => $payment->payment_kind?->value ?? $payment->payment_kind ?? 'invoice',
@@ -154,8 +164,8 @@ class ClientWorkspaceService
                 'paidAt' => optional($payment->paid_at)->toDateString(),
                 'canDelete' => (bool) request()->user()?->can('delete', $payment),
                 'deleteUrl' => route('finance.payments.destroy', $payment),
-            ])->all(),
-            'financeEligibility' => $this->financeEligibility->stateForDocuments($financeDocuments),
+            ])->all() : [],
+            'financeEligibility' => $includeFinance ? $this->financeEligibility->stateForDocuments($financeDocuments) : null,
             'archiveRecord' => $dossier->archiveRecord ? [
                 'id' => $dossier->archiveRecord->id,
                 'archiveNumber' => $dossier->archiveRecord->archive_number,
@@ -165,11 +175,11 @@ class ClientWorkspaceService
                 'returnedAt' => optional($dossier->archiveRecord->returned_at)->toISOString(),
             ] : null,
             'workflow' => $this->workflowStepper->evaluate($dossier),
-            'timeline' => $this->buildTimeline($dossier),
+            'timeline' => $this->buildTimeline($dossier, $includeFinance),
         ];
     }
 
-    private function buildTimeline(Dossier $dossier): array
+    private function buildTimeline(Dossier $dossier, bool $includeFinance = true): array
     {
         $events = [];
 
@@ -211,26 +221,28 @@ class ClientWorkspaceService
             }
         }
 
-        foreach ($dossier->financeDocuments as $fin) {
-            $events[] = [
-                'date' => optional($fin->issue_date ?? $fin->created_at)->toISOString(),
-                'type' => 'finance',
-                'action' => 'financeDocumentCreated',
-                'description' => $fin->number,
-                'status' => $fin->status,
-                'actorName' => $fin->creator?->name,
-            ];
-        }
+        if ($includeFinance) {
+            foreach ($dossier->financeDocuments as $fin) {
+                $events[] = [
+                    'date' => optional($fin->issue_date ?? $fin->created_at)->toISOString(),
+                    'type' => 'finance',
+                    'action' => 'financeDocumentCreated',
+                    'description' => $fin->number,
+                    'status' => $fin->status,
+                    'actorName' => $fin->creator?->name,
+                ];
+            }
 
-        foreach ($dossier->payments as $pay) {
-            $events[] = [
-                'date' => optional($pay->paid_at ?? $pay->created_at)->toISOString(),
-                'type' => 'payment',
-                'action' => 'paymentRecorded',
-                'description' => $pay->payment_number . ' - ' . number_format((float) $pay->amount, 2) . ' ' . FinanceSettingsService::getCurrency(),
-                'status' => $pay->method ?? 'payment',
-                'actorName' => $pay->creator?->name,
-            ];
+            foreach ($dossier->payments as $pay) {
+                $events[] = [
+                    'date' => optional($pay->paid_at ?? $pay->created_at)->toISOString(),
+                    'type' => 'payment',
+                    'action' => 'paymentRecorded',
+                    'description' => $pay->payment_number . ' - ' . number_format((float) $pay->amount, 2) . ' ' . FinanceSettingsService::getCurrency(),
+                    'status' => $pay->method ?? 'payment',
+                    'actorName' => $pay->creator?->name,
+                ];
+            }
         }
 
         if ($dossier->archiveRecord) {

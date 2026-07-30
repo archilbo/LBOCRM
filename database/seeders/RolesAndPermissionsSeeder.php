@@ -18,7 +18,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ->whereIn('name', ['manage authorizations', 'view task requests', 'manage task requests'])
             ->delete();
 
-        $permissions = [
+        $legacyPermissions = [
             'view dashboard',
             'manage clients',
             'manage dossiers',
@@ -53,6 +53,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage notifications',
             'view workload',
             'view operations reports',
+            'calendar.view',
+            'calendar.create',
+            'calendar.update',
+            'calendar.delete',
             'manage users',
             'view qa',
             'project_design',
@@ -81,6 +85,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'project-design.manage',
         ];
 
+        $permissions = array_values(array_unique([
+            ...$legacyPermissions,
+            ...array_keys(config('archilbo_permissions.permissions', [])),
+        ]));
+
         foreach ($permissions as $permission) {
             Permission::query()->firstOrCreate([
                 'name' => $permission,
@@ -98,8 +107,18 @@ class RolesAndPermissionsSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
+        $financeAdmin = Role::query()->firstOrCreate([
+            'name' => 'finance_admin',
+            'guard_name' => 'web',
+        ]);
+
         $manager = Role::query()->firstOrCreate([
             'name' => 'manager',
+            'guard_name' => 'web',
+        ]);
+
+        $operationsManager = Role::query()->firstOrCreate([
+            'name' => 'operations_manager',
             'guard_name' => 'web',
         ]);
 
@@ -110,6 +129,11 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $viewer = Role::query()->firstOrCreate([
             'name' => 'viewer',
+            'guard_name' => 'web',
+        ]);
+
+        $custom = Role::query()->firstOrCreate([
+            'name' => 'custom',
             'guard_name' => 'web',
         ]);
 
@@ -148,44 +172,74 @@ class RolesAndPermissionsSeeder extends Seeder
         $admin->syncPermissions(Permission::all());
         $superAdmin->syncPermissions(Permission::all());
 
+        $operationsManagerPermissions = array_merge([
+            'view dashboard',
+            'manage clients',
+            'manage dossiers',
+            'manage documents',
+            'manage contracts',
+            'manage archives',
+            'view tasks',
+            'manage tasks',
+            'view inbox',
+            'manage inbox',
+            'view notifications',
+            'manage notifications',
+            'view workload',
+            'view operations reports',
+            'calendar.view',
+            'calendar.create',
+            'calendar.update',
+            'calendar.delete',
+            'view qa',
+        ], $projectDesignManagerPerms);
+
+        $managerFinanceReadPermissions = [
+            'finance.view',
+            'finance.payments.view',
+            'finance.expenses.view',
+            'finance.templates.view',
+        ];
+
+        $financeAdminPermissions = [
+            'view dashboard',
+            'view inbox',
+            'view notifications',
+            'manage finance',
+            'finance.view',
+            'finance.documents.create',
+            'finance.documents.update',
+            'finance.documents.issue',
+            'finance.documents.cancel',
+            'finance.documents.delete',
+            'finance.payments.view',
+            'finance.payments.create',
+            'finance.payments.update',
+            'finance.payments.reverse',
+            'finance.expenses.view',
+            'finance.expenses.create',
+            'finance.expenses.update',
+            'finance.expenses.delete',
+            'finance.templates.view',
+            'finance.templates.manage',
+            'finance.reports.export',
+            'finance.settings.view',
+            'finance.settings.update',
+        ];
+
+        $operationsManager->syncPermissions(
+            $permissionModels->whereIn('name', $operationsManagerPermissions)
+        );
+
+        $financeAdmin->syncPermissions(
+            $permissionModels->whereIn('name', $financeAdminPermissions)
+        );
+
         $manager->syncPermissions(
-            $permissionModels->whereIn('name', array_merge([
-                'view dashboard',
-                'manage clients',
-                'manage dossiers',
-                'manage documents',
-                'manage contracts',
-                'manage finance',
-                'finance.view',
-                'finance.documents.create',
-                'finance.documents.update',
-                'finance.documents.issue',
-                'finance.documents.cancel',
-                'finance.documents.delete',
-                'finance.payments.view',
-                'finance.payments.create',
-                'finance.payments.update',
-                'finance.payments.reverse',
-                'finance.expenses.view',
-                'finance.expenses.create',
-                'finance.expenses.update',
-                'finance.expenses.delete',
-                'finance.templates.view',
-                'finance.templates.manage',
-                'finance.reports.export',
-                'finance.settings.view',
-                'finance.settings.update',
-                'manage archives',
-                'view tasks',
-                'manage tasks',
-                'view inbox',
-                'manage inbox',
-                'view notifications',
-                'manage notifications',
-                'view workload',
-                'view operations reports',
-                'view qa',
-            ], $projectDesignManagerPerms))
+            $permissionModels->whereIn('name', array_merge(
+                $operationsManagerPermissions,
+                $managerFinanceReadPermissions,
+            ))
         );
 
         $staff->syncPermissions(
@@ -210,6 +264,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view inbox',
                 'manage inbox',
                 'view notifications',
+                'calendar.view',
+                'calendar.create',
+                'calendar.update',
+                'calendar.delete',
             ], $projectDesignPerms))
         );
 
@@ -219,6 +277,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view tasks',
                 'view inbox',
                 'view notifications',
+                'calendar.view',
                 'finance.view',
                 'finance.payments.view',
                 'finance.expenses.view',
@@ -228,6 +287,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'project-design.view',
             ]))
         );
+
+        $custom->syncPermissions([]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

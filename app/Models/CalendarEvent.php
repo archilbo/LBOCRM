@@ -111,4 +111,13 @@ class CalendarEvent extends Model
     {
         return $this->hasMany(CalendarEventRecurrence::class);
     }
+
+    public function belongsToScope(User $user): bool
+    {
+        $this->loadMissing('creator');
+
+        return $this->creator !== null
+            && (int) $this->creator->company_id === (int) $user->company_id
+            && (! $user->branch_id || (int) $this->creator->branch_id === (int) $user->branch_id);
+    }
 }

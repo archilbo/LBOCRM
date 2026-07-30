@@ -10,6 +10,7 @@ type Props = {
     editorUrl: string;
     onOpenEditor: (url: string) => void;
     onRename: (template: TemplateOption) => void;
+    canManage?: boolean;
 };
 
 const templateTypes: Array<{ id: 'all' | FinanceDocumentType; label: string }> = [
@@ -25,7 +26,7 @@ function typeMeta(type: string) {
     return { label: 'Recu', icon: WalletCards, tone: 'text-emerald-300 bg-emerald-400/10' };
 }
 
-export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onRename }: Props) {
+export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onRename, canManage = false }: Props) {
     const [query, setQuery] = useState('');
     const [type, setType] = useState<'all' | FinanceDocumentType>('all');
     const [showFilters, setShowFilters] = useState(false);
@@ -57,10 +58,12 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                     </div>
                     <p className="mt-0.5 text-xs text-[var(--text-muted)]">Modeles disponibles pour les devis, factures et recus.</p>
                 </div>
-                <AppButton size="sm" variant="ghost" className="bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]" onPress={() => onOpenEditor(editorUrl)}>
-                    <Settings2 size={14} />
-                    Ouvrir l editeur
-                </AppButton>
+                {canManage ? (
+                    <AppButton size="sm" variant="ghost" className="bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]" onPress={() => onOpenEditor(editorUrl)}>
+                        <Settings2 size={14} />
+                        Ouvrir l editeur
+                    </AppButton>
+                ) : null}
             </header>
 
             <div className="flex flex-col gap-2 border-b border-[var(--border)] px-3 py-2.5 sm:flex-row sm:items-center">
@@ -127,15 +130,19 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                                         </div>
                                         <p className="mt-0.5 truncate font-mono text-[10px] text-[var(--text-muted)]">{template.slug || '-'}</p>
                                     </div>
-                                    <button type="button" onClick={() => onRename(template)} className="flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-3)] hover:text-[var(--accent)]" title="Renommer">
-                                        <Pencil size={13} />
-                                    </button>
+                                    {canManage ? (
+                                        <button type="button" onClick={() => onRename(template)} className="flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-3)] hover:text-[var(--accent)]" title="Renommer">
+                                            <Pencil size={13} />
+                                        </button>
+                                    ) : null}
                                 </div>
                                 <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--border)] pt-2.5">
                                     <span className="text-[10px] text-[var(--text-muted)]">{template.updatedAt ? `Mis a jour ${template.updatedAt}` : meta.label}</span>
-                                    <AppButton size="sm" variant="ghost" onPress={() => onOpenEditor(template.editorUrl || editorUrl)}>
-                                        Modifier
-                                    </AppButton>
+                                    {canManage ? (
+                                        <AppButton size="sm" variant="ghost" onPress={() => onOpenEditor(template.editorUrl || editorUrl)}>
+                                            Modifier
+                                        </AppButton>
+                                    ) : null}
                                 </div>
                             </article>
                         );

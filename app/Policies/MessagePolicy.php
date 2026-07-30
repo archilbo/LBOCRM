@@ -4,24 +4,28 @@ namespace App\Policies;
 
 use App\Models\Message;
 use App\Models\User;
+use App\Policies\Concerns\HandlesTenantAuthorization;
 
 class MessagePolicy
 {
+    use HandlesTenantAuthorization;
+
     public function view(User $user, Message $message): bool
     {
         return $message->conversation
-            ? $message->conversation->participants()->where('user_id', $user->id)->exists()
+            ? app(ConversationPolicy::class)->view($user, $message->conversation)
             : false;
     }
 
     public function create(User $user): bool
     {
-        return $user->can('manage inbox') || $user->can('view inbox') || $user->hasRole('admin');
+        return $this->allowed($user, 'inbox.manage');
     }
 
     public function update(User $user, Message $message): bool
     {
-        return $user->can('manage inbox') || $user->hasRole('admin') || (
+        return $this->allowed($user, 'inbox.manage') && $this->view($user, $message) && (
+            $user->hasAnyRole(config('archilbo_roles.protected')) ||
             $message->user_id === $user->id
             && $message->created_at?->gte(now()->subMinutes(config('chat.message_edit_window_minutes', 30)))
         );
@@ -29,7 +33,8 @@ class MessagePolicy
 
     public function delete(User $user, Message $message): bool
     {
-        return $user->can('manage inbox') || $user->hasRole('admin') || (
+        return $this->allowed($user, 'inbox.manage') && $this->view($user, $message) && (
+            $user->hasAnyRole(config('archilbo_roles.protected')) ||
             $message->user_id === $user->id
             && $message->created_at?->gte(now()->subMinutes(config('chat.message_delete_window_minutes', 30)))
         );

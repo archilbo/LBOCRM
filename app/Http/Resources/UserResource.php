@@ -9,14 +9,20 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $customConfiguration = is_array($this->module_permissions) && ($this->module_permissions['is_custom'] ?? false)
+            ? $this->module_permissions
+            : null;
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
             'roles' => $this->getRoleNames()->values(),
+            'displayRole' => $customConfiguration['base_role'] ?? $this->getRoleNames()->first(),
+            'permissionConfiguration' => $customConfiguration,
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),
             'lastSeenAt' => optional($this->last_seen_at)->toISOString(),
-            'isOnline' => $this->last_seen_at ? $this->last_seen_at->gt(now()->subMinutes(5)) : false,
+            'isOnline' => is_null($this->suspended_at) && $this->last_seen_at ? $this->last_seen_at->gt(now()->subMinutes(5)) : false,
             'createdAt' => optional($this->created_at)->format('Y-m-d'),
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
             'isSuspended' => !is_null($this->suspended_at),

@@ -221,14 +221,18 @@ export function ArchiveTable({
                     {menuOpen === row.original.id ? (
                         <div className="absolute right-0 top-full z-20 min-w-32 rounded-lg border border-white/10 bg-zinc-900 py-1 shadow-sm"
                             onMouseLeave={() => setMenuOpen(null)} onClick={(e) => e.stopPropagation()}>
-                            <button type="button" onClick={() => { setMenuOpen(null); onCheckoutSingle?.(row.original); }}
+                            {onCheckoutSingle ? <button type="button" onClick={() => { setMenuOpen(null); onCheckoutSingle(row.original); }}
                                 className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"><LogOut size={12} /> Check out</button>
-                            <button type="button" onClick={() => { setMenuOpen(null); onReturnSingle?.(row.original); }}
+                            : null}
+                            {onReturnSingle ? <button type="button" onClick={() => { setMenuOpen(null); onReturnSingle(row.original); }}
                                 className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"><Undo2 size={12} /> Return</button>
-                            <button type="button" onClick={() => { setMenuOpen(null); onEditSingle?.(row.original); }}
+                            : null}
+                            {onEditSingle ? <button type="button" onClick={() => { setMenuOpen(null); onEditSingle(row.original); }}
                                 className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"><Pencil size={12} /> Edit</button>
-                            <button type="button" onClick={() => { setMenuOpen(null); onDeleteSingle?.(row.original); }}
+                            : null}
+                            {onDeleteSingle ? <button type="button" onClick={() => { setMenuOpen(null); onDeleteSingle(row.original); }}
                                 className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-white/5"><Trash2 size={12} /> Delete</button>
+                            : null}
                         </div>
                     ) : null}
                 </div>

@@ -16,6 +16,7 @@ import { ContractDrawer } from '@/components/drawers';
 import type { ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow, ContractStatus } from '@/features/contracts/types';
 import { cn } from '@/lib/cn';
 import { formatCompactMoney } from '@/lib/currency';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type PageProps = {
     contracts: ContractRow[];
@@ -45,6 +46,7 @@ type SortKey = 'contractNumber' | 'dossierNumber' | 'clientName' | 'ttc' | 'stat
 type SortDir = 'asc' | 'desc';
 
 export default function ContractsIndex({ contracts, dossiers, clients, metrics }: PageProps) {
+    const { can } = usePermissions();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('create');
     const [selectedContract, setSelectedContract] = useState<ContractRow | null>(null);
@@ -95,14 +97,17 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
     }
 
     function openCreateDrawer() {
+        if (!can('contracts.create')) return;
         setSelectedContract(null); setDrawerMode('create'); setFormErrors({}); setDrawerOpen(true);
     }
 
     function openEditDrawer(contract: ContractRow) {
+        if (!can('contracts.update')) return;
         setSelectedContract(contract); setDrawerMode('edit'); setFormErrors({}); setDrawerOpen(true);
     }
 
     function handleSubmit(payload: ContractFormPayload) {
+        if (drawerMode === 'edit' ? !can('contracts.update') : !can('contracts.create')) return;
         setIsSubmitting(true);
         if (drawerMode === 'edit' && selectedContract) {
             router.put(`/contracts/${selectedContract.id}`, payload, {
@@ -120,7 +125,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
     }
 
     function confirmDelete() {
-        if (!deleteTarget) return;
+        if (!deleteTarget || !can('contracts.delete')) return;
         setActionLoading(true);
         router.delete(`/contracts/${deleteTarget.id}`, {
             preserveScroll: true,
@@ -130,6 +135,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
     }
 
     function generateDocument(contractId: number, type: 'pdf' | 'docx') {
+        if (!can('contracts.generate')) return;
         setGeneratingId(contractId);
         const label = type === 'pdf' ? 'PDF' : 'DOCX';
         toast.loading(`Generation du ${label}...`);
@@ -142,6 +148,12 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
     }
 
     function handleAction(contract: ContractRow, action: ActionId) {
+        const requiredPermission: Partial<Record<ActionId, string>> = {
+            edit: 'contracts.update', print: 'contracts.print', 'mark-signed': 'contracts.update',
+            'generate-docx': 'contracts.generate', 'generate-pdf': 'contracts.generate',
+            'download-pdf': 'contracts.download', 'download-docx': 'contracts.download', delete: 'contracts.delete',
+        };
+        if (requiredPermission[action] && !can(requiredPermission[action]!)) return;
         switch (action) {
             case 'preview': setPreviewContract(contract); break;
             case 'edit': openEditDrawer(contract); break;
@@ -190,9 +202,9 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                             Preparez les calculs de contrats, generer les fichiers DOCX/PDF officiels, et suivez le workflow de signature.
                         </p>
                     </div>
-                    <Button variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={openCreateDrawer}>
+                    {can('contracts.create') ? <Button variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={openCreateDrawer}>
                         <Plus size={15} /> Nouveau contrat
-                    </Button>
+                    </Button> : null}
                 </header>
 
                 <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">

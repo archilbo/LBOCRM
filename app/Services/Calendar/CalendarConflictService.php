@@ -17,7 +17,17 @@ class CalendarConflictService
         $start = Carbon::parse($event->starts_at);
         $end = Carbon::parse($event->ends_at);
 
+        $creator = $event->creator()->first();
+
+        if (! $creator) {
+            return collect();
+        }
+
         $conflicts = CalendarEvent::where('id', '!=', $event->id)
+            ->whereHas('creator', function ($query) use ($creator) {
+                $query->where('company_id', $creator->company_id)
+                    ->when($creator->branch_id, fn ($branch) => $branch->where('branch_id', $creator->branch_id));
+            })
             ->where(function ($q) use ($start, $end) {
                 $q->whereBetween('starts_at', [$start, $end])
                   ->orWhereBetween('ends_at', [$start, $end])

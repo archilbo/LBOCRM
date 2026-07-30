@@ -1,5 +1,0 @@
-﻿9557060 (HEAD -> finance-template-editor, origin/finance-template-editor) feat(intermediaries): rebuild show workspace with backend tabs
-4284dbf pages ui updates and improve
-05e43f0 fix bugs
-7833247 remove authorization & requests
-44d1e63 update

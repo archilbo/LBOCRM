@@ -6835,3 +6835,206 @@ The local baseline seeder reads `LOCAL_BASELINE_PASSWORD` from `.env` when prese
 
 - `npm.cmd run build` passed.
 - `git diff --check` passed; only unrelated CRLF notices were reported.
+
+## Users Workspace Cleanup And Tenant Safety
+
+### What Was Changed
+
+- Simplified the Users workspace by removing the unused fake firm-profile tab and the duplicate add-user action.
+- Replaced the legacy profile side panel, including fake projects and activity, with the shared HeroUI-backed `AppDrawer` using real account, role, status, date, and effective-permission data.
+- Improved the responsive Users table toolbar, added icon-led headers, persisted column ordering, and added a distinct suspended-user state and filter.
+- Scoped user listing, single-user changes, bulk role/suspend/delete actions, and audit-log results to the authenticated user's company.
+- Prevented CSV bulk import from updating an account owned by another company.
+
+### Files Modified
+
+- `resources/js/pages/Admin/Users/Index.tsx`
+- `resources/js/features/users/types.ts`
+- `app/Http/Resources/UserResource.php`
+- `app/Http/Controllers/Admin/AdminUserController.php`
+- `app/Http/Controllers/Admin/AdminUserInvitationController.php`
+- `docs/AI_WORK_REPORT.md`
+
+### Verification
+
+- PHP lint passed for both admin user controllers and `UserResource`.
+- `php artisan route:list --name=admin.users` passed.
+- `npm.cmd run build` passed.
+- No focused Admin Users test exists yet; add coverage for cross-company direct and bulk actions in the next security test pass.
+
+### Follow-up UI Fix
+
+- Corrected the Users filter control to use the required HeroUI `Dropdown.Popover` wrapper.
+- The role and status choices now render as a compact framed menu instead of expanding through the table toolbar.
+- `npm.cmd run build` passed again after the fix.
+
+### KPI And Search Refinement
+
+- Kept the Users metrics on the shared `AppKpiCard` component and aligned its live detail and accent configuration with the Finance KPI pattern.
+- Replaced the narrow Users search with a responsive, clearable HeroUI search input for names, emails, roles, and permissions.
+- `npm.cmd run build` passed.
+
+### Users Filter Consolidation
+
+- Removed the duplicate role-chip filter row below the Users toolbar.
+- Kept one compact HeroUI filter menu for role and account status, with an active-filter count and an in-menu reset action.
+- `npm.cmd run build` passed.
+
+### Users Search Visibility
+
+- Strengthened the dark-theme search border and added a dedicated accent icon container for faster visual recognition.
+- `npm.cmd run build` passed.
+
+### Users Section Spacing
+
+- Added consistent vertical separation between the shared KPI strip and the Users table.
+- `npm.cmd run build` passed.
+
+### Users Import, Export, And Bulk Actions
+
+- Moved CSV import beside CSV export in the Users table toolbar.
+- Extracted CSV parsing/validation into a focused handler; import validates file type, rows, roles, CSRF response, and duplicate data before review.
+- CSV export now reflects the filtered table and safely escapes values.
+- Redesigned the selected-row table header into a clear HeroUI-backed bulk action bar for role assignment, suspension, deletion, and deselection.
+- `npm.cmd run build` passed.
+
+### Selected Users Export And Protection
+
+- Added `Export selected` to the Users bulk-action bar; it exports only checked accounts.
+- Kept toolbar export scoped to the current filtered table.
+- Bulk suspension now skips the signed-in account and protects the final active admin account for the current company.
+- Updated bulk-action feedback to avoid reporting protected accounts as changed.
+- PHP lint and `npm.cmd run build` passed.
+
+### HeroUI Users Selection Controls
+
+- Replaced native table selection buttons with HeroUI `Checkbox` controls, matching the Finance documents table pattern.
+- Replaced the hand-built selected-count indicator with a HeroUI `Chip`.
+- `npm.cmd run build` passed.
+
+### Users Bulk Control Cleanup
+
+- Replaced the bulk role assignment compatibility wrapper with direct HeroUI `Select` and `ListBox` components.
+- Converted the destructive bulk delete action to the shared compact icon-only button with an accessible tooltip and the existing confirmation dialog.
+- `npm.cmd run build` passed.
+
+### Client Active Status Control
+
+- Added a HeroUI active/inactive switch column to the shared Clients table; archived clients remain intentionally non-toggleable.
+- Added the policy-protected `clients.status.update` route, validated request, and focused action that records the old/new status in `audit_logs`.
+- Added tenant-boundary coverage for the status update action.
+- `php artisan test tests/Feature/ClientSecurityHardeningTest.php` passed: 4 tests, 26 assertions.
+- `npm.cmd run build` passed.
+
+### User Access Switch
+
+- Added a HeroUI Access column to the User Management table while retaining the existing selection checkboxes.
+- Each managed user can now be suspended or restored from the table; the signed-in account is disabled in the UI, and the backend also protects self-disable, the last active admin, and cross-company users.
+- Added `admin.users.access.update` and audit events for access suspension/restoration.
+- `php artisan test tests/Feature/AdminUserAccessTest.php` passed: 1 test, 7 assertions.
+- `npm.cmd run build` passed.
+
+### User Table Access Protection
+
+- Added a reusable fixed-end table column option and pinned the User Management Actions column to the far right, including for saved column layouts.
+- Admin rows now show a protected access state instead of a switch.
+- The access endpoint rejects suspension of any Admin account, in addition to existing self and tenant protections.
+- `php artisan test tests/Feature/AdminUserAccessTest.php` passed: 2 tests, 9 assertions.
+- `npm.cmd run build` passed.
+
+### User Table Multi-Select Restoration
+
+- Pinned the HeroUI selection checkbox column to the first table position, including when a saved column layout exists.
+- Added correct indeterminate selection state and preserved selected users across paginated pages.
+- Bulk actions continue to operate on every selected user ID.
+- `npm.cmd run build` passed.
+
+### User Checkbox Visibility Fix
+
+- Replaced the invisible Checkbox shorthand with the required HeroUI Checkbox compound controls in the User table header and rows.
+- Multi-select, partial selection, and bulk actions remain unchanged.
+- `npm.cmd run build` passed.
+
+### User Dropdown Dismissal
+
+- Made the User Management filter and row-action menus controlled HeroUI dropdowns.
+- Menus now dismiss reliably when users click outside; row actions also close before opening their follow-up dialog.
+- Kept the filter menu open while selecting multiple filter criteria.
+- `npm.cmd run build` passed.
+
+### User Role Labels
+
+- Kept database role identifiers unchanged for authorization while formatting visible labels with Laravel's `Str::headline`.
+- Role selectors and User Management role displays now render readable names such as `Super Admin`.
+- PHP lint and `npm.cmd run build` passed.
+
+### Bulk Role Selector Dismissal
+
+- Renamed the User Management bulk selector placeholder to `Change role`.
+- Removed its non-modal popover configuration and added controlled HeroUI open state, so outside clicks and role selections reliably close the menu.
+- `npm.cmd run build` passed.
+
+### User Profile Drawer
+
+- Redesigned the User Management profile drawer around the real `UserResource` role, permission, access, and activity payload.
+- Added readable role/status badges, compact account metadata, and HeroUI accordion groups for permission modules.
+- Replaced raw permission-name walls with concise, expandable action chips.
+- `npm.cmd run build` passed.
+
+### Role Matrix, Secure Account Creation, And Permission-Aware Navigation
+
+- Added a configuration-backed role matrix with the assignable roles: `Super Admin`, `Finance Admin`, `Manager`, `Operations Manager`, `Staff`, and `Viewer`.
+- Added `Finance Admin` for full Finance operations, and `Operations Manager` for client, dossier, document, contract, archive, task, inbox, workload, and operations-report work without Finance visibility or access.
+- Updated `Manager` to retain operational access with Finance read-only permissions. Manager accounts cannot create, edit, issue, cancel, delete, or otherwise manage Finance records.
+- Added direct account creation from User Management with validated name, email, role, password confirmation, tenant assignment, role assignment, and audit logging.
+- Enforced a privileged-account boundary: only an existing `Super Admin` can create or assign another `Super Admin`; backend validation enforces this even if a request is forged.
+- Added permission-aware desktop sidebar and mobile navigation. Modules are hidden when the signed-in user lacks their required backend permission; this is a usability layer and does not replace policy/controller authorization.
+- Added role-access coverage for Finance/Operations separation, Super Admin creation protection, and protected-administrator suspension prevention.
+- Verification: PHP lint passed; `php artisan test tests/Feature/RoleAccessMatrixTest.php tests/Feature/AdminUserAccessTest.php` passed (4 tests, 23 assertions); `npm.cmd run build` passed. Vite reports only the existing large-chunk warning. PHPUnit could not write its local result-cache file in this sandbox, but the test suite itself passed.
+
+### User Table Role Filter Consistency
+
+- Split the User Management role data into safe assignable roles for creation/bulk assignment and visible roles for table filtering.
+- The default `All users` filter now includes existing protected legacy Admin and Super Admin accounts, so the table matches KPI totals without exposing those roles as normal assignable choices.
+- `npm.cmd run build` passed. Vite reports only the existing large-chunk warning.
+
+### Finance Permission Visibility And Client Workspace Isolation
+
+- Added a shared `usePermissions` hook and applied it to Finance document actions, Finance workspace header actions, expense actions, payment receipt actions, template management, and Finance settings controls.
+- Finance-only tabs and actions are now hidden when the signed-in user lacks the matching permission. Context-specific disabled states remain separate from permission visibility.
+- The Client workspace now removes its Finance tab and does not load or return dossier finance documents, payment records, finance totals, eligibility state, or finance timeline entries for users without `finance.view`.
+- Finance list payloads now respect payment, expense, and template view permissions, and client/dossier selector data is constrained to the signed-in user's company and branch scope.
+- Direct finance routes remain protected by Laravel policies; a manually entered protected URL is denied server-side.
+- Verification: PHP lint and `git diff --check` passed; `npm.cmd run build` passed; `php artisan test tests/Feature/RoleAccessMatrixTest.php tests/Feature/AdminUserAccessTest.php` passed (4 tests, 23 assertions). PHPUnit only reported its local result-cache write restriction.
+
+### Central Permission Catalogue And Tenant Enforcement
+
+- Added `config/archilbo_permissions.php`, `PermissionRegistry`, and `permission.route` middleware as the shared authorization source for Clients, Intermediaries, Dossiers, Documents, Contracts, Archives, Finance, and User Management.
+- Replaced legacy broad checks in protected controller and policy paths with granular action permissions and company/branch scope checks.
+- Added Contract and Archive policies, protected archive bulk operations against cross-company IDs, and constrained contract/archive selectors and reports to the active tenant.
+- The User Management access matrix now resolves to real direct Spatie permissions. Standard-role changes clear old direct grants.
+- Shared effective permissions through Inertia and hid unavailable create, edit, delete, generation, download, checkout, and return controls in key workspaces.
+- Added regression coverage for custom view/edit/delete behavior and protected client mutation routes. Details are in `docs/ROLES_AND_PERMISSIONS.md`.
+- Verification: `php artisan test tests/Feature/GranularClientPermissionTest.php tests/Feature/ClientSecurityHardeningTest.php tests/Feature/RoleAccessMatrixTest.php tests/Feature/AdminUserAccessTest.php` passed (11 tests, 75 assertions); `npm.cmd run build`, PHP lint, `git diff --check`, and `php artisan optimize:clear` passed. Vite reports only the existing large-chunk advisory.
+
+### Sidebar Navigation And Keyboard Shortcuts
+
+- Reorganized the desktop sidebar into static icon-and-name `Main`, `Follow-up`, `Finance`, `Communication`, and `Administration` sections, with all authorized items visible by default.
+- Moved Archive into operational follow-up and grouped Inbox and Notifications under Communication; removed decorative, non-actionable sidebar status items.
+- Added permission-aware sidebar visibility from the central route catalog, including the collapsed rail and its flyouts.
+- Added compact shortcut chips and in-app Alt navigation for authorized routes: Dashboard, Clients, Intermediaries, Projects, Documents, Contracts, Finance, Archive, Tasks, Calendar, Workload, Operations reports, Inbox, Notifications, and Users.
+- Sidebar shortcuts never run while the user is typing in an input, textarea, select, or contenteditable field. Browser-reserved shortcuts remain under browser control where the browser prevents page-level handling.
+- Files modified: `resources/js/components/layout/AppSidebar.tsx`, `resources/js/lib/appRoutes.ts`, `resources/js/locales/en.ts`, `resources/js/locales/fr/common.ts`.
+- Verification: `npm.cmd run build` passed. Vite only reports the existing large-chunk advisory.
+
+### Collaboration Permission And Tenant-Scope Audit
+
+- Extended the central route-permission catalogue with exact and wildcard mappings for Dashboard, global search, client API lookup, project design, upload sessions, tasks, inbox, notifications, calendar, workload, operations reports, invitations, and QA routes.
+- Added policy registration and granular policy enforcement for Tasks, Calendar Events, Calendar Reminders, Conversations, Messages, and Notifications. Read-only inbox users cannot send or manage conversations.
+- Scoped task and calendar queries through their creator's company and branch, then applied that same scope to calendar conflicts, workload, operations reports, suggestions, participants, reminders, and related client/dossier/document/contract/archive/finance records.
+- Added `RelatedRecordScopeGuard` so forged cross-company related IDs and user IDs cannot be attached when creating or updating tasks or calendar events.
+- Protected global search so it only returns result categories the signed-in user is allowed to view, including Finance results.
+- Seeded direct calendar permissions into the standard Operations Manager, Staff, and Viewer roles, while Finance Admin remains Finance-focused.
+- Added `CollaborationPermissionScopeTest` coverage for denied cross-company task and calendar access.
+- Verification: `php artisan test tests/Feature/CollaborationPermissionScopeTest.php tests/Feature/RoleAccessMatrixTest.php tests/Feature/GranularClientPermissionTest.php tests/Feature/AdminUserAccessTest.php` passed (9 tests, 53 assertions). `php artisan db:seed --class=RolesAndPermissionsSeeder`, `php artisan optimize:clear`, `npm.cmd run build`, and `git diff --check` passed. Vite still reports only the existing large-chunk advisory.
+- Known documentation gap: `docs/ARCHITECTURE.md` is not present in this repository. Current task/calendar tenancy is enforced through their creator while those tables lack direct company/branch columns; adding indexed tenant keys is a future schema optimisation, not a current security gap.

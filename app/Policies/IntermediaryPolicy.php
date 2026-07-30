@@ -10,9 +10,9 @@ class IntermediaryPolicy
 {
     use HandlesTenantAuthorization;
 
-    public function viewAny(User $user): bool { return $this->allowed($user, 'manage clients'); }
-    public function view(User $user, Intermediary $intermediary): bool { return $this->allowed($user, 'manage clients') && $this->sameScope($user, $intermediary); }
-    public function create(User $user): bool { return $this->allowed($user, 'manage clients'); }
-    public function update(User $user, Intermediary $intermediary): bool { return $this->view($user, $intermediary); }
-    public function delete(User $user, Intermediary $intermediary): bool { return $this->view($user, $intermediary); }
+    public function viewAny(User $user): bool { return $this->allowed($user, 'intermediaries.view'); }
+    public function view(User $user, Intermediary $intermediary): bool { return $this->allowed($user, 'intermediaries.view') && $this->sameScope($user, $intermediary); }
+    public function create(User $user): bool { return $this->allowed($user, 'intermediaries.create'); }
+    public function update(User $user, Intermediary $intermediary): bool { return $this->allowed($user, 'intermediaries.update') && $this->sameScope($user, $intermediary); }
+    public function delete(User $user, Intermediary $intermediary): bool { return $this->allowed($user, 'intermediaries.delete') && $this->sameScope($user, $intermediary); }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use App\Services\Chat\ChatService;
+use App\Services\PermissionRegistry;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -30,9 +31,7 @@ class HandleInertiaRequests extends Middleware
                     'roles' => method_exists($user, 'getRoleNames')
                         ? $user->getRoleNames()->values()
                         : [],
-                    'permissions' => method_exists($user, 'getAllPermissions')
-                        ? $user->getAllPermissions()->pluck('name')->values()
-                        : [],
+                    'permissions' => app(PermissionRegistry::class)->effectiveNames($user),
                     'unread_notifications' => $user->unreadNotifications()->count(),
                     'unread_messages' => \App\Models\Message::whereHas(
                         'conversation.participants',

@@ -4,6 +4,8 @@ namespace App\Services\Calendar;
 
 use App\Models\CalendarEvent;
 use App\Models\User;
+use App\Services\CompanyContext;
+use App\Services\Collaboration\RelatedRecordScopeGuard;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -16,20 +18,23 @@ class CalendarEventService
         protected CalendarTaskSyncService $taskSyncService,
         protected CalendarConflictService $conflictService,
         protected CalendarRecurrenceService $recurrenceService,
+        protected CompanyContext $companyContext,
+        protected RelatedRecordScopeGuard $scopeGuard,
     ) {}
 
     public function indexPayload(User $user, array $filters): array
     {
         $query = CalendarEvent::with([
             'creator', 'owner', 'participants.user', 'reminders',
-        ])->where(function ($q) use ($user) {
+        ])->whereHas('creator', fn ($creator) => $this->companyContext->applyTo($creator, $user))
+            ->where(function ($q) use ($user) {
             $q->where('created_by', $user->id)
               ->orWhereHas('participants', fn ($p) => $p->where('user_id', $user->id))
               ->orWhere('visibility', 'team')
               ->orWhere('visibility', 'admins');
         });
 
-        if ($user->cannot('admin')) {
+        if (! $user->hasAnyRole(config('archilbo_roles.protected'))) {
             $query->where(function ($q) use ($user) {
                 $q->where('visibility', '!=', 'admins')
                   ->orWhere('created_by', $user->id);
@@ -60,7 +65,9 @@ class CalendarEventService
 
         return [
             'events' => \App\Http\Resources\CalendarEventResource::collection($events)->resolve(),
-            'users' => User::orderBy('name')->get(['id', 'name', 'email']),
+            'users' => $this->companyContext->applyTo(User::query(), $user)
+                ->orderBy('name')
+                ->get(['id', 'name', 'email']),
         ];
     }
 
@@ -68,6 +75,7 @@ class CalendarEventService
     {
         $participantIds = $data['participant_ids'] ?? [];
         $reminderOffset = $data['reminder_offset'] ?? null;
+        $this->scopeGuard->assertCalendarLinks($user, $data);
         unset($data['participant_ids'], $data['reminder_offset']);
 
         $event = CalendarEvent::create([
@@ -120,6 +128,7 @@ class CalendarEventService
         $old = $event->replicate();
         $participantIds = $data['participant_ids'] ?? null;
         $reminderOffset = $data['reminder_offset'] ?? null;
+        $this->scopeGuard->assertCalendarLinks($user, $data);
         unset($data['participant_ids'], $data['reminder_offset']);
 
         $event->update($data);

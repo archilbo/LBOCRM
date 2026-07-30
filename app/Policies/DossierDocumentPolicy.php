@@ -12,38 +12,43 @@ class DossierDocumentPolicy
 
     public function viewAny(User $user): bool
     {
-        return $this->managesDocuments($user);
+        return $this->allowed($user, 'documents.view');
     }
 
     public function view(User $user, DossierDocument $document): bool
     {
-        return $this->managesDocuments($user)
+        return $this->allowed($user, 'documents.view')
             && $document->dossier !== null
             && $this->sameScope($user, $document->dossier);
     }
 
     public function create(User $user): bool
     {
-        return $this->managesDocuments($user);
+        return $this->allowed($user, 'documents.create');
     }
 
     public function update(User $user, DossierDocument $document): bool
     {
-        return $this->view($user, $document);
+        return $this->allowed($user, 'documents.update') && $document->dossier !== null && $this->sameScope($user, $document->dossier);
     }
 
     public function delete(User $user, DossierDocument $document): bool
     {
-        return $this->view($user, $document);
+        return $this->allowed($user, 'documents.delete') && $document->dossier !== null && $this->sameScope($user, $document->dossier);
     }
 
     public function download(User $user, DossierDocument $document): bool
     {
-        return $this->view($user, $document);
+        return $this->allowed($user, 'documents.download') && $document->dossier !== null && $this->sameScope($user, $document->dossier);
     }
 
-    private function managesDocuments(User $user): bool
+    public function replace(User $user, DossierDocument $document): bool
     {
-        return $user->hasRole('admin') || $user->can('manage documents');
+        return $this->allowed($user, 'documents.replace') && $document->dossier !== null && $this->sameScope($user, $document->dossier);
+    }
+
+    public function print(User $user, DossierDocument $document): bool
+    {
+        return $this->allowed($user, 'documents.print') && $document->dossier !== null && $this->sameScope($user, $document->dossier);
     }
 }

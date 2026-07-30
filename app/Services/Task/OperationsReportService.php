@@ -3,12 +3,19 @@
 namespace App\Services\Task;
 
 use App\Models\Task;
+use App\Models\User;
+use App\Services\CompanyContext;
 
 class OperationsReportService
 {
-    public function summary(): array
+    public function __construct(private readonly CompanyContext $companyContext)
     {
-        $base = Task::query();
+    }
+
+    public function summary(User $user): array
+    {
+        $base = Task::query()
+            ->whereHas('creator', fn ($creator) => $this->companyContext->applyTo($creator, $user));
 
         return [
             'totalTasks' => (clone $base)->count(),

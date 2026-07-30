@@ -9,7 +9,11 @@ export function AppMobileNav() {
     const { t } = useTranslation();
     const page = usePage();
     const currentPath = page.url;
-    const mobileItems = appRoutes.filter((route) => mobileRouteKeys.includes(route.key));
+    const permissions = ((page.props as any).auth?.user?.permissions ?? []) as string[];
+    const mobileItems = appRoutes.filter((route) => (
+        mobileRouteKeys.includes(route.key)
+        && (!route.requiredPermission || permissions.includes(route.requiredPermission))
+    ));
 
     function goTo(href: string, enabled: boolean) {
         if (!enabled || !isValidHref(href)) {

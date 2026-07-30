@@ -5,10 +5,18 @@ namespace App\Services\Task;
 use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\CompanyContext;
+use App\Services\PermissionRegistry;
 use Illuminate\Http\Request;
 
 class TaskQueryService
 {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+        private readonly PermissionRegistry $permissions,
+    ) {
+    }
+
     public function indexPayload(Request $request): array
     {
         $user = $request->user();
@@ -18,9 +26,10 @@ class TaskQueryService
 
         $query = Task::query()
             ->with(['assignees', 'watchers', 'creator', 'assigner', 'checklistItems', 'dossier', 'client'])
-            ->withCount(['comments', 'attachments']);
+            ->withCount(['comments', 'attachments'])
+            ->whereHas('creator', fn ($creator) => $this->companyContext->applyTo($creator, $user));
 
-        if (! $user->can('manage tasks') && ! $user->hasRole('admin')) {
+        if (! $this->permissions->allows($user, 'tasks.update') && ! $this->permissions->allows($user, 'tasks.assign')) {
             $query->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id)
                     ->orWhereHas('assignees', fn ($assignees) => $assignees->where('user_id', $user->id))
@@ -57,7 +66,7 @@ class TaskQueryService
         return [
             'tasks' => TaskResource::collection($tasks)->resolve(),
             'currentUserId' => $user->id,
-            'users' => User::query()
+            'users' => $this->companyContext->applyTo(User::query(), $user)
                 ->orderBy('name')
                 ->get(['id', 'name', 'email'])
                 ->map(fn (User $user) => [

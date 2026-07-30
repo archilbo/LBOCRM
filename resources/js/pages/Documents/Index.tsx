@@ -20,6 +20,7 @@ import type {
 } from '@/features/documents/types';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type PageProps = {
     documents: DossierDocumentRow[];
@@ -58,6 +59,7 @@ function hasSearchMatch(document: DossierDocumentRow, query: string) {
 
 export default function DocumentsIndex({ documents, documentGroups, clients, dossiers, templates, metrics }: PageProps) {
     const { t } = useTranslation();
+    const { can } = usePermissions();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState('all');
     const [viewMode, setViewMode] = useState<ViewMode>('workspace');
@@ -69,7 +71,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
 
     useEffect(() => {
         if (new URLSearchParams(window.location.search).get('command') !== 'upload') return;
-        setDrawerOpen(true);
+        if (can('documents.create')) setDrawerOpen(true);
         window.history.replaceState({}, '', window.location.pathname);
     }, []);
 
@@ -106,6 +108,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
     }, [missingDocs]);
 
     function handleSubmit(payload: DocumentUploadPayload) {
+        if (!can('documents.create')) return;
         setIsUploading(true);
         const formData = new FormData();
         formData.append('dossier_id', payload.dossierId);
@@ -121,6 +124,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
     }
 
     function updateStatus(document: DossierDocumentRow, status: string) {
+        if (!can('documents.update')) return;
         router.put(`/documents/${document.id}/status`, { status, notes: document.notes || '' }, {
             preserveScroll: true,
             onSuccess: () => toast.success('Document status updated.'),
@@ -129,7 +133,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
     }
 
     function confirmDelete() {
-        if (!deleteTarget) return;
+        if (!deleteTarget || !can('documents.delete')) return;
         router.delete(`/documents/${deleteTarget.id}`, {
             preserveScroll: true,
             onSuccess: () => { toast.success('Document deleted successfully.'); setDeleteTarget(null); },
@@ -163,7 +167,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                 <span>Preview</span>
                             </div>
                         </Dropdown.Item>
-                        {doc.status !== 'verified' && (
+                        {can('documents.update') && doc.status !== 'verified' && (
                             <Dropdown.Item key="verify" id="verify">
                                 <div className="flex items-center gap-2">
                                     <CheckCircle2 size={14} className="shrink-0 text-emerald-400" />
@@ -171,7 +175,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                 </div>
                             </Dropdown.Item>
                         )}
-                        {doc.hasFile && doc.downloadUrl && (
+                        {can('documents.download') && doc.hasFile && doc.downloadUrl && (
                             <Dropdown.Item key="download" id="download">
                                 <div className="flex items-center gap-2">
                                     <Download size={14} className="shrink-0 text-blue-400" />
@@ -185,20 +189,20 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                 <span>Open project</span>
                             </div>
                         </Dropdown.Item>
-                        <Dropdown.Item key="missing" id="missing">
+                        {can('documents.update') ? <Dropdown.Item key="missing" id="missing">
                             <div className="flex items-center gap-2">
                                 <XCircle size={14} className="shrink-0 text-amber-400" />
                                 <span>Mark missing</span>
                             </div>
-                        </Dropdown.Item>
-                        <Dropdown.Section title="Danger" classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
+                        </Dropdown.Item> : null}
+                        {can('documents.delete') ? <Dropdown.Section title="Danger" classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
                             <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
                                 <div className="flex items-center gap-2">
                                     <Trash2 size={14} className="shrink-0 text-red-400" />
                                     <span>Delete</span>
                                 </div>
                             </Dropdown.Item>
-                        </Dropdown.Section>
+                        </Dropdown.Section> : null}
                     </Dropdown.Menu>
                 </Dropdown.Popover>
             </Dropdown>
@@ -350,9 +354,9 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                             {t('documents.subtitle')}
                         </p>
                     </div>
-                    <AppButton variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={() => setDrawerOpen(true)}>
+                    {can('documents.create') ? <AppButton variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={() => setDrawerOpen(true)}>
                         <UploadCloud size={15} /> Upload document
-                    </AppButton>
+                    </AppButton> : null}
                 </header>
 
                 <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">

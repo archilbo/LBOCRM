@@ -17,10 +17,14 @@ type FinanceTabsProps = {
     selectedKey: string;
     onSelectionChange: (key: string) => void;
     counts?: Partial<Record<string, number>>;
+    visibleTabIds?: string[];
     children: ReactNode;
 };
 
-export function FinanceTabs(props: FinanceTabsProps) {
-    return <AppWorkspaceTabs tabs={financeTabs} {...props} />;
-}
+export function FinanceTabs({ visibleTabIds, ...props }: FinanceTabsProps) {
+    const tabs = visibleTabIds
+        ? financeTabs.filter((tab) => visibleTabIds.includes(tab.id))
+        : financeTabs;
 
+    return <AppWorkspaceTabs tabs={tabs} {...props} />;
+}

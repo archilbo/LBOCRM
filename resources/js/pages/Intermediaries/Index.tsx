@@ -20,6 +20,7 @@ import type { IntermediaryFormPayload, IntermediaryRow } from '@/features/interm
 import { cn } from '@/lib/cn';
 import type { FormErrors } from '@/lib/formErrors';
 import { useTranslation } from '@/lib/i18n';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type PageProps = {
     intermediaries: IntermediaryRow[];
@@ -72,6 +73,7 @@ function toBackendPayload(payload: IntermediaryFormPayload) {
 
 export default function IntermediariesIndex({ intermediaries, metrics }: PageProps) {
     const { t } = useTranslation();
+    const { can } = usePermissions();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('create');
     const [editTarget, setEditTarget] = useState<IntermediaryRow | null>(null);
@@ -202,20 +204,22 @@ export default function IntermediariesIndex({ intermediaries, metrics }: PagePro
     }
 
     function RowMenu({ item }: { item: IntermediaryRow }) {
-        const items = [{ id: 'delete', label: t('intermediaries.deleteIntermediary'), icon: <Trash2 size={14} />, action: () => setDeleteTarget(item) }];
+        const items = item.capabilities.delete
+            ? [{ id: 'delete', label: t('intermediaries.deleteIntermediary'), icon: <Trash2 size={14} />, action: () => setDeleteTarget(item) }]
+            : [];
 
         return (
             <div className="flex items-center gap-0.5">
-                <AppButton isIconOnly compact variant="quiet" size="sm" tooltip={t('intermediaries.viewIntermediary')} aria-label={t('intermediaries.viewIntermediary')} onPress={() => router.visit(`/intermediaries/${item.id}`)} className="size-7 text-[var(--text-muted)]"><Eye size={13} /></AppButton>
-                <AppButton isIconOnly compact variant="quiet" size="sm" tooltip={t('intermediaries.editIntermediary')} aria-label={t('intermediaries.editIntermediary')} onPress={() => openEditDrawer(item)} className="size-7 text-[var(--text-muted)]"><Pencil size={13} /></AppButton>
-                <Dropdown>
+                {item.capabilities.view ? <AppButton isIconOnly compact variant="quiet" size="sm" tooltip={t('intermediaries.viewIntermediary')} aria-label={t('intermediaries.viewIntermediary')} onPress={() => router.visit(`/intermediaries/${item.id}`)} className="size-7 text-[var(--text-muted)]"><Eye size={13} /></AppButton> : null}
+                {item.capabilities.update ? <AppButton isIconOnly compact variant="quiet" size="sm" tooltip={t('intermediaries.editIntermediary')} aria-label={t('intermediaries.editIntermediary')} onPress={() => openEditDrawer(item)} className="size-7 text-[var(--text-muted)]"><Pencil size={13} /></AppButton> : null}
+                {items.length ? <Dropdown>
                     <Dropdown.Trigger className="flex size-7 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]" aria-label={t('intermediaries.actions')}><MoreHorizontal size={13} /></Dropdown.Trigger>
                     <Dropdown.Popover placement="bottom end" className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                         <Dropdown.Menu aria-label={t('intermediaries.actions')} onAction={(key) => items.find((menuItem) => menuItem.id === key)?.action()} itemClasses={{ base: 'rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--danger)]/10' }}>
                             {items.map((menuItem) => <Dropdown.Item key={menuItem.id} id={menuItem.id} textValue={menuItem.label} className="text-[var(--danger)]"><div className="flex items-center gap-2"><span className="flex size-4 shrink-0 items-center justify-center">{menuItem.icon}</span><span>{menuItem.label}</span></div></Dropdown.Item>)}
                         </Dropdown.Menu>
                     </Dropdown.Popover>
-                </Dropdown>
+                </Dropdown> : null}
             </div>
         );
     }
@@ -248,7 +252,7 @@ export default function IntermediariesIndex({ intermediaries, metrics }: PagePro
                         <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">{t('intermediaries.title')}</h1>
                         <p className="mt-1 max-w-2xl text-sm text-[var(--text-muted)]">{t('intermediaries.subtitle')}</p>
                     </div>
-                    <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('intermediaries.newIntermediary')} aria-label={t('intermediaries.newIntermediary')} onPress={openCreateDrawer}><Plus size={16} /></AppButton>
+                    {can('intermediaries.create') ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('intermediaries.newIntermediary')} aria-label={t('intermediaries.newIntermediary')} onPress={openCreateDrawer}><Plus size={16} /></AppButton> : null}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

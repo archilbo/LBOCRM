@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatActivityService;
 use App\Services\Chat\ConversationQueryService;
+use App\Services\PermissionRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -26,11 +27,12 @@ class ConversationController extends Controller
         protected ChatService $chatService,
         protected ConversationQueryService $queries,
         protected ChatActivityService $activity,
+        protected PermissionRegistry $permissions,
     ) {}
 
     public function index(Request $request): Response
     {
-        abort_unless($request->user()->can('view inbox') || $request->user()->can('manage inbox') || $request->user()->hasRole('admin'), 403);
+        abort_unless($this->permissions->allows($request->user(), 'inbox.view'), 403);
         $user = $request->user();
         $conversations = $this->queries->paginate($user, $request->only(['search', 'type', 'unread', 'per_page']));
         $this->chatService->loadLatestMessagePreviews($conversations->getCollection());
@@ -221,6 +223,8 @@ class ConversationController extends Controller
 
     public function archived(Request $request): JsonResponse
     {
+        abort_unless($this->permissions->allows($request->user(), 'inbox.view'), 403);
+
         $user = $request->user();
         $conversations = $this->queries->paginate($user, $request->only(['search', 'type', 'unread', 'per_page']), true);
         $this->chatService->loadLatestMessagePreviews($conversations->getCollection());
@@ -237,7 +241,7 @@ class ConversationController extends Controller
 
     public function listing(Request $request): JsonResponse
     {
-        abort_unless($request->user()->can('view inbox') || $request->user()->can('manage inbox') || $request->user()->hasRole('admin'), 403);
+        abort_unless($this->permissions->allows($request->user(), 'inbox.view'), 403);
         $conversations = $this->queries->paginate(
             $request->user(),
             $request->only(['search', 'type', 'unread', 'per_page']),

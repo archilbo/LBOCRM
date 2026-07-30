@@ -6,6 +6,7 @@ import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { formatCompactMoney } from '@/lib/currency';
 import { useTranslation } from '@/lib/i18n';
+import { usePermissions } from '@/hooks/usePermissions';
 import type { ClientProjectPayment, ClientSelectedProjectWorkspace } from '@/features/clients/types';
 import { FinanceDocumentActions, type FinanceDocumentActionHandlers } from '@/features/finance/components/FinanceDocumentActions';
 import type { FinanceDocumentType } from '@/features/finance/types';
@@ -34,6 +35,7 @@ function formatDate(value: string | null, locale: string) {
 
 export function ClientFinanceTab({ project, onCreateDocument, onCreatePayment, documentActions, onOpenFinance, onDeletePayment }: ClientFinanceTabProps) {
     const { t, locale } = useTranslation();
+    const { can } = usePermissions();
 
     if (!project) {
         return <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm"><AppEmptyState title={t('clients.finance.noProjectTitle')} description={t('clients.finance.noProjectDescription')} /></div>;
@@ -59,9 +61,9 @@ export function ClientFinanceTab({ project, onCreateDocument, onCreatePayment, d
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
                     <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.finance.openFinance')} aria-label={t('clients.finance.openFinance')} onPress={onOpenFinance}><ExternalLink size={14} /></AppButton>
-                    <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.finance.recordPayment')} aria-label={t('clients.finance.recordPayment')} onPress={onCreatePayment}><Wallet size={14} /></AppButton>
-                    <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.finance.newInvoice')} aria-label={t('clients.finance.newInvoice')} onPress={() => onCreateDocument('invoice')} isDisabled={!project.financeEligibility.canCreateInvoice}><ReceiptText size={14} /></AppButton>
-                    <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.finance.newQuote')} aria-label={t('clients.finance.newQuote')} onPress={() => onCreateDocument('quote')} isDisabled={!project.financeEligibility.canCreateQuote}><Plus size={14} /></AppButton>
+                    {can('finance.payments.create') ? <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.finance.recordPayment')} aria-label={t('clients.finance.recordPayment')} onPress={onCreatePayment}><Wallet size={14} /></AppButton> : null}
+                    {can('finance.documents.create') ? <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.finance.newInvoice')} aria-label={t('clients.finance.newInvoice')} onPress={() => onCreateDocument('invoice')} isDisabled={!project.financeEligibility.canCreateInvoice}><ReceiptText size={14} /></AppButton> : null}
+                    {can('finance.documents.create') ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.finance.newQuote')} aria-label={t('clients.finance.newQuote')} onPress={() => onCreateDocument('quote')} isDisabled={!project.financeEligibility.canCreateQuote}><Plus size={14} /></AppButton> : null}
                 </div>
             </div>
 
@@ -99,7 +101,7 @@ export function ClientFinanceTab({ project, onCreateDocument, onCreatePayment, d
                                         <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{payment.paymentNumber}</p>
                                         <div className="flex shrink-0 items-center gap-2">
                                             <p className="text-[12px] font-semibold text-emerald-400">{formatCompactMoney(payment.amount, currency)}</p>
-                                            {payment.canDelete ? <AppTableActionButton label={t('clients.finance.deletePayment')} tone="delete" onPress={() => onDeletePayment(payment)}><Trash2 size={13} /></AppTableActionButton> : null}
+                                            {can('finance.payments.reverse') && payment.canDelete ? <AppTableActionButton label={t('clients.finance.deletePayment')} tone="delete" onPress={() => onDeletePayment(payment)}><Trash2 size={13} /></AppTableActionButton> : null}
                                         </div>
                                     </div>
                                     <div className="mt-1 flex items-center justify-between gap-3 text-[11px] text-[var(--text-muted)]">

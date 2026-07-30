@@ -1,40 +1,42 @@
 import { Head, router } from '@inertiajs/react';
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import type { Key } from 'react-aria-components';
 import {
     AlertTriangle,
-    Briefcase,
-    Building2,
+    ChevronDown,
+    CalendarDays,
     Check,
     ChevronLeft,
     ChevronRight,
+    Clock3,
     Download,
     EllipsisVertical,
     Eye,
-    LogIn,
+    Mail,
     PenLine,
     Plus,
+    Power,
     Save,
     Search,
     ShieldAlert,
     ShieldCheck,
     SlidersHorizontal,
     Trash2,
-    Upload,
     UserCheck,
     UserCog,
     UserMinus,
-    UserPlus,
     Users,
+    Upload,
     X,
 } from 'lucide-react';
-import { Button, Dropdown, Input, Select, SelectItem } from '@heroui/react';
+import { Accordion, Button, Checkbox, Chip, Dropdown, Input, ListBox, Select, Switch } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppSelect } from '@/components/ui/AppSelect';
+import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppWorkspaceTable, type AppWorkspaceTableColumn } from '@/components/ui/AppWorkspaceTable';
@@ -49,9 +51,11 @@ import type { AdminUserRow, RoleOption } from '@/features/users/types';
 type PageProps = {
     users: AdminUserRow[];
     roles: RoleOption[];
+    filterRoles: RoleOption[];
+    currentUserId: number;
 };
 
-type TabId = 'firm' | 'users' | 'security';
+type TabId = 'users' | 'security';
 
 type ActivityLogEntry = {
     id: number;
@@ -63,13 +67,15 @@ type ActivityLogEntry = {
 
 const ROLE_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
     admin: { bg: 'bg-[var(--crm-danger-soft)]', text: 'text-[var(--crm-danger)]', dot: 'bg-[var(--crm-danger)]' },
+    super_admin: { bg: 'bg-[var(--crm-danger-soft)]', text: 'text-[var(--crm-danger)]', dot: 'bg-[var(--crm-danger)]' },
+    finance_admin: { bg: 'bg-[var(--crm-success-soft)]', text: 'text-[var(--crm-success)]', dot: 'bg-[var(--crm-success)]' },
     manager: { bg: 'bg-[var(--crm-violet-soft)]', text: 'text-[var(--crm-violet)]', dot: 'bg-[var(--crm-violet)]' },
+    operations_manager: { bg: 'bg-[var(--crm-info-soft)]', text: 'text-[var(--crm-info)]', dot: 'bg-[var(--crm-info)]' },
     staff: { bg: 'bg-[var(--crm-info-soft)]', text: 'text-[var(--crm-info)]', dot: 'bg-[var(--crm-info)]' },
     viewer: { bg: 'bg-[var(--crm-surface-2)]', text: 'text-[var(--crm-text-muted)]', dot: 'bg-[var(--crm-text-muted)]' },
 };
 
 const TABS: (AppWorkspaceTab & { id: TabId })[] = [
-    { id: 'firm', label: 'Firm Profile', icon: Building2 },
     { id: 'users', label: 'User & Permissions', icon: UserCheck },
     { id: 'security', label: 'Security & Audit', icon: ShieldCheck },
 ];
@@ -108,9 +114,13 @@ function cloneDefaults(role: string): PermissionsState {
 const TABLE_PAGE_SIZE = 10;
 
 function roleIcon(role: string) {
-    if (role === 'admin') return ShieldAlert;
+    if (role === 'admin' || role === 'super_admin') return ShieldAlert;
     if (role === 'manager') return ShieldCheck;
     return UserCog;
+}
+
+function isProtectedAdministrator(role: string) {
+    return role === 'admin' || role === 'super_admin';
 }
 
 function initials(name: string) {
@@ -118,7 +128,38 @@ function initials(name: string) {
 }
 
 function primaryRole(user: AdminUserRow) {
-    return user.roles[0] ?? 'viewer';
+    return user.displayRole ?? user.roles[0] ?? 'viewer';
+}
+
+function formatRoleLabel(role: string) {
+    return role.replace(/[_-]+/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function permissionModule(permission: string) {
+    const leadingSegment = permission.split('.')[0] ?? permission;
+    const module = leadingSegment.trim().split(/\s+/).at(-1) ?? leadingSegment;
+
+    return formatRoleLabel(module);
+}
+
+function permissionActionLabel(permission: string) {
+    if (permission.includes('.')) {
+        return formatRoleLabel(permission.split('.').slice(1).join(' '));
+    }
+
+    const words = permission.trim().split(/\s+/);
+
+    return formatRoleLabel(words.slice(0, -1).join(' ') || permission);
+}
+
+function groupPermissions(permissions: string[]) {
+    return Object.entries(permissions.reduce<Record<string, string[]>>((groups, permission) => {
+        const module = permissionModule(permission);
+        groups[module] ??= [];
+        groups[module].push(permission);
+
+        return groups;
+    }, {})).sort(([left], [right]) => left.localeCompare(right));
 }
 
 function formatDate(dateStr: string | null) {
@@ -215,21 +256,18 @@ function PermissionsMatrix({
     );
 }
 
-export default function AdminUsersIndex({ users, roles }: PageProps) {
+export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleOptions, currentUserId }: PageProps) {
     const [activeTab, setActiveTab] = useState<TabId>('users');
     const [query, setQuery] = useState('');
-    const [roleFilter, setRoleFilter] = useState<string>('all');
     const [page, setPage] = useState(1);
-    const [openActionId, setOpenActionId] = useState<number | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-    const [filterOpen, setFilterOpen] = useState(false);
-    const [filterRoles, setFilterRoles] = useState<Set<string>>(new Set(['admin', 'manager', 'staff', 'viewer']));
-    const [filterStatus, setFilterStatus] = useState<'all' | 'online' | 'offline'>('all');
+    const [filterRoles, setFilterRoles] = useState<Set<string>>(() => new Set(filterRoleOptions.map((role) => role.id)));
+    const [filterStatus, setFilterStatus] = useState<'all' | 'online' | 'offline' | 'suspended'>('all');
     const [activeKpi, setActiveKpi] = useState<string | null>(null);
 
     // Modals & drawers state
     const [isInviteOpen, setIsInviteOpen] = useState(false);
-    const [inviteForm, setInviteForm] = useState({ firstName: '', lastName: '', email: '', role: 'staff' as string });
+    const [inviteForm, setInviteForm] = useState({ firstName: '', lastName: '', email: '', password: '', passwordConfirmation: '', role: 'staff' as string });
     const [inviteErrors, setInviteErrors] = useState<FormErrors>({});
     const [viewProfileUser, setViewProfileUser] = useState<AdminUserRow | null>(null);
     const [editUser, setEditUser] = useState<AdminUserRow | null>(null);
@@ -243,10 +281,11 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
     const [csvModal, setCsvModal] = useState<{ users: { name: string; email: string; role: string }[]; existing: Set<string>; overrides: Set<string> } | null>(null);
     const [auditEntries, setAuditEntries] = useState<ActivityLogEntry[]>([]);
     const [auditLoading, setAuditLoading] = useState(false);
+    const [accessUpdatingUserId, setAccessUpdatingUserId] = useState<number | null>(null);
+    const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+    const [openRowActionId, setOpenRowActionId] = useState<number | null>(null);
+    const [bulkRoleSelectOpen, setBulkRoleSelectOpen] = useState(false);
 
-    // Refs for filter dropdown positioning
-    const filterRef = useRef<HTMLDivElement>(null);
-    const filterBtnRef = useRef<HTMLButtonElement>(null);
     const filteredUsers = useMemo(() => {
         const q = query.trim().toLowerCase();
         return users.filter((user) => {
@@ -255,28 +294,18 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
             if (activeKpi === 'admin' && role !== 'admin') return false;
             if (activeKpi === 'manager' && role !== 'manager') return false;
             if (!filterRoles.has(role)) return false;
-            if (filterStatus === 'online' && !user.isOnline) return false;
-            if (filterStatus === 'offline' && user.isOnline) return false;
+            if (filterStatus === 'online' && (!user.isOnline || user.isSuspended)) return false;
+            if (filterStatus === 'offline' && (user.isOnline || user.isSuspended)) return false;
+            if (filterStatus === 'suspended' && !user.isSuspended) return false;
             const searchable = [user.name, user.email, role, ...user.permissions].join(' ').toLowerCase();
-            return (roleFilter === 'all' || role === roleFilter) && (q === '' || searchable.includes(q));
+            return q === '' || searchable.includes(q);
         });
-    }, [users, query, roleFilter, activeKpi, filterRoles, filterStatus]);
+    }, [users, query, activeKpi, filterRoles, filterStatus]);
 
     const totalPages = Math.ceil(filteredUsers.length / TABLE_PAGE_SIZE);
     const pagedUsers = filteredUsers.slice((page - 1) * TABLE_PAGE_SIZE, page * TABLE_PAGE_SIZE);
 
-    useEffect(() => { setPage(1); }, [query, roleFilter, activeKpi, filterRoles, filterStatus]);
-
-    useEffect(() => {
-        if (!filterOpen) return;
-        function handleClick(e: MouseEvent) {
-            if (filterRef.current && !filterRef.current.contains(e.target as Node) && filterBtnRef.current && !filterBtnRef.current.contains(e.target as Node)) {
-                setFilterOpen(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClick);
-        return () => document.removeEventListener('mousedown', handleClick);
-    }, [filterOpen]);
+    useEffect(() => { setPage(1); }, [query, activeKpi, filterRoles, filterStatus]);
 
     // ── fetch audit logs when security tab is active ──
     useEffect(() => {
@@ -293,85 +322,235 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
         return pagedUsers.length > 0 && pagedUsers.every((u) => selectedIds.has(u.id));
     }
 
+    function hasPartialSelection() {
+        return pagedUsers.some((u) => selectedIds.has(u.id)) && !isAllSelected();
+    }
+
     function toggleAll() {
-        if (isAllSelected()) setSelectedIds(new Set());
-        else setSelectedIds(new Set(pagedUsers.map((u) => u.id)));
+        setSelectedIds((current) => {
+            const next = new Set(current);
+
+            if (isAllSelected()) {
+                pagedUsers.forEach((user) => next.delete(user.id));
+            } else {
+                pagedUsers.forEach((user) => next.add(user.id));
+            }
+
+            return next;
+        });
     }
 
     function toggleOne(id: number) {
-        const next = new Set(selectedIds);
-        if (next.has(id)) next.delete(id); else next.add(id);
-        setSelectedIds(next);
+        setSelectedIds((current) => {
+            const next = new Set(current);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
     }
 
-    function exportCsv() {
+    function updateUserAccess(user: AdminUserRow, isActive: boolean) {
+        if (user.id === currentUserId || accessUpdatingUserId === user.id) return;
+
+        setAccessUpdatingUserId(user.id);
+        router.put(`/admin/users/${user.id}/access`, { is_active: isActive }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => toast.success(isActive ? 'User access restored.' : 'User access suspended.'),
+            onError: () => toast.error('User access could not be updated.'),
+            onFinish: () => setAccessUpdatingUserId(null),
+        });
+    }
+
+    function UserAccessSwitch({ user }: { user: AdminUserRow }) {
+        if (isProtectedAdministrator(primaryRole(user))) {
+            return <span className="text-[11px] font-medium text-[var(--text-muted)]">Protected</span>;
+        }
+
+        const isCurrentUser = user.id === currentUserId;
+        const isUpdating = accessUpdatingUserId === user.id;
+
+        return (
+            <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+                <Switch
+                    size="sm"
+                    isSelected={!user.isSuspended}
+                    isDisabled={isCurrentUser || isUpdating}
+                    aria-label={user.isSuspended ? `Restore access for ${user.name}` : `Suspend access for ${user.name}`}
+                    onChange={(isActive) => updateUserAccess(user, isActive)}
+                >
+                    <Switch.Content>
+                        <Switch.Control>
+                            <Switch.Thumb />
+                        </Switch.Control>
+                    </Switch.Content>
+                </Switch>
+                <span className={cn('text-[11px] font-medium', user.isSuspended ? 'text-[var(--crm-danger)]' : 'text-[var(--crm-success)]')}>
+                    {user.isSuspended ? 'Inactive' : 'Active'}
+                </span>
+            </div>
+        );
+    }
+
+    function downloadUsersCsv(records: AdminUserRow[], filename: string) {
+        if (records.length === 0) {
+            toast.error('There are no users to export.');
+            return;
+        }
+
         const header = 'Name,Email,Role,Status,Created,Last Active\n';
-        const rows = users.map((u) => `${u.name},${u.email},${primaryRole(u)},${u.isOnline ? 'Online' : 'Offline'},${u.createdAt || ''},${u.lastSeenAt || ''}`).join('\n');
+        const escapeCsv = (value: string | null) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+        const rows = records.map((user) => [
+            user.name,
+            user.email,
+            primaryRole(user),
+            user.isSuspended ? 'Suspended' : user.isOnline ? 'Online' : 'Offline',
+            user.createdAt,
+            user.lastSeenAt,
+        ].map(escapeCsv).join(',')).join('\n');
         const blob = new Blob([header + rows], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'users-export.csv';
+        a.download = filename;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         URL.revokeObjectURL(url);
-        toast.success('CSV exported.');
+        toast.success(`${records.length} user(s) exported.`);
+    }
+
+    function exportCsv() {
+        downloadUsersCsv(filteredUsers, 'users-export.csv');
+    }
+
+    function exportSelectedCsv() {
+        downloadUsersCsv(users.filter((user) => selectedIds.has(user.id)), 'selected-users-export.csv');
+    }
+
+    async function handleCsvImport(event: ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            toast.error('Choose a CSV file.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (loadEvent) => {
+            const text = String(loadEvent.target?.result ?? '');
+            const rows = text.split(/\r?\n/).filter((line) => line.trim() !== '');
+            const availableRoles = new Set(roles.map((role) => role.id.toLowerCase()));
+            const importedUsers = rows.slice(1).reduce<{ name: string; email: string; role: string }[]>((result, row) => {
+                const values = row.split(',').map((value) => value.trim().replace(/^"|"$/g, ''));
+                const [name = '', email = '', requestedRole = 'staff'] = values;
+                const role = requestedRole.toLowerCase();
+
+                if (!name || !email) return result;
+                result.push({ name, email, role: availableRoles.has(role) ? role : 'staff' });
+                return result;
+            }, []);
+
+            if (importedUsers.length === 0) {
+                toast.error('No valid users were found in this CSV.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/users/invite/bulk/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement | null)?.content ?? '',
+                    },
+                    body: JSON.stringify({ emails: importedUsers.map((user) => user.email) }),
+                });
+
+                if (!response.ok) throw new Error('Validation request failed.');
+
+                const payload = await response.json();
+                setCsvModal({
+                    users: importedUsers,
+                    existing: new Set(Array.isArray(payload.existing) ? payload.existing : []),
+                    overrides: new Set(),
+                });
+            } catch {
+                toast.error('Could not validate the CSV. Try again.');
+            }
+        };
+        reader.readAsText(file);
     }
 
     function handleInvite(e: FormEvent) {
         e.preventDefault();
         setInviteErrors({});
-        router.post('/admin/users/invite', { name: `${inviteForm.firstName} ${inviteForm.lastName}`, email: inviteForm.email, role: inviteForm.role }, {
+        router.post('/admin/users', {
+            name: `${inviteForm.firstName} ${inviteForm.lastName}`.trim(),
+            email: inviteForm.email,
+            role: inviteForm.role,
+            password: inviteForm.password,
+            password_confirmation: inviteForm.passwordConfirmation,
+        }, {
             preserveScroll: true,
             onSuccess: () => {
                 setIsInviteOpen(false);
-                setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' });
-                toast.success(`Invite sent to ${inviteForm.email}`);
+                setInviteForm({ firstName: '', lastName: '', email: '', password: '', passwordConfirmation: '', role: 'staff' });
+                toast.success(`User account created for ${inviteForm.email}`);
             },
             onError: (err) => setInviteErrors(err),
         });
     }
 
     // ── KPI metrics ──
-    const metrics = useMemo(() => [
-        { key: 'total', label: 'Total Users', value: users.length, icon: Users, color: 'text-[var(--crm-gold)]' },
-        { key: 'online', label: 'Active Now', value: users.filter((u) => u.isOnline).length, icon: UserCheck, color: 'text-[var(--crm-success)]' },
-        { key: 'admin', label: 'Admins', value: users.filter((u) => primaryRole(u) === 'admin').length, icon: ShieldAlert, color: 'text-[var(--crm-danger)]' },
-        { key: 'manager', label: 'Managers', value: users.filter((u) => primaryRole(u) === 'manager').length, icon: ShieldCheck, color: 'text-[var(--crm-violet)]' },
-    ], [users]);
+    const metrics = useMemo(() => {
+        const activeUsers = users.filter((user) => user.isOnline).length;
+        const adminUsers = users.filter((user) => isProtectedAdministrator(primaryRole(user))).length;
+        const managerUsers = users.filter((user) => primaryRole(user) === 'manager').length;
 
-    const roleCounts = useMemo(() => ({
-        all: users.length,
-        admin: users.filter((u) => primaryRole(u) === 'admin').length,
-        manager: users.filter((u) => primaryRole(u) === 'manager').length,
-        staff: users.filter((u) => primaryRole(u) === 'staff').length,
-        viewer: users.filter((u) => primaryRole(u) === 'viewer').length,
-    }), [users]);
+        return [
+            { key: 'total', label: 'Total users', value: users.length, detail: `${users.length} account${users.length === 1 ? '' : 's'} in this company`, icon: Users, color: 'text-[var(--crm-gold)]', accentColor: 'var(--crm-gold)' },
+            { key: 'online', label: 'Active now', value: activeUsers, detail: 'Active within the last five minutes', icon: UserCheck, color: 'text-[var(--crm-success)]', accentColor: 'var(--crm-success)' },
+            { key: 'admin', label: 'Admins', value: adminUsers, detail: 'Accounts with full administration access', icon: ShieldAlert, color: 'text-[var(--crm-danger)]', accentColor: 'var(--crm-danger)' },
+            { key: 'manager', label: 'Managers', value: managerUsers, detail: 'Accounts with management access', icon: ShieldCheck, color: 'text-[var(--crm-violet)]', accentColor: 'var(--crm-violet)' },
+        ];
+    }, [users]);
+
+    const activeFilterCount = Number(filterRoles.size !== filterRoleOptions.length) + Number(filterStatus !== 'all');
 
     // ── Firm Profile state ──
-    const [firmForm, setFirmForm] = useState({ name: 'ARCHI LBO', regNumber: 'NDIS 435678965', phone: '+212 5XX XX XX XX', address: '123 Avenue Mohammed V, Casablanca' });
-
     // ── User table columns ──
     const userColumns: AppWorkspaceTableColumn<AdminUserRow>[] = [
         {
             id: 'select',
             label: (
-                <button type="button" onClick={toggleAll} className={cn('flex size-4 items-center justify-center rounded border transition', isAllSelected() ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)] hover:border-[var(--crm-text-muted)]')}>
-                    {isAllSelected() && <Check size={10} strokeWidth={3} className="text-black" />}
-                </button>
+                <Checkbox isSelected={isAllSelected()} isIndeterminate={hasPartialSelection()} onChange={toggleAll} aria-label="Select all visible users">
+                    <Checkbox.Content>
+                        <Checkbox.Control>
+                            <Checkbox.Indicator />
+                        </Checkbox.Control>
+                    </Checkbox.Content>
+                </Checkbox>
             ),
             headerClassName: 'w-12',
             reorderable: false,
+            fixedPosition: 'start',
             render: (user) => (
                 <div onClick={(e) => e.stopPropagation()}>
-                    <button type="button" onClick={() => toggleOne(user.id)} className={cn('flex size-4 items-center justify-center rounded border transition', selectedIds.has(user.id) ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)] hover:border-[var(--crm-text-muted)]')}>
-                        {selectedIds.has(user.id) && <Check size={10} strokeWidth={3} className="text-black" />}
-                    </button>
+                    <Checkbox isSelected={selectedIds.has(user.id)} onChange={() => toggleOne(user.id)} aria-label={`Select ${user.name}`}>
+                        <Checkbox.Content>
+                            <Checkbox.Control>
+                                <Checkbox.Indicator />
+                            </Checkbox.Control>
+                        </Checkbox.Content>
+                    </Checkbox>
                 </div>
             ),
         },
         {
             id: 'name',
             label: 'User Name',
+            icon: <UserCog size={13} />,
             render: (user) => (
                 <div className="flex items-center gap-3">
                     <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[11px] font-bold text-[var(--crm-gold)]">{initials(user.name)}</div>
@@ -385,18 +564,20 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
         {
             id: 'email',
             label: 'Email Address',
+            icon: <Mail size={13} />,
             render: (user) => <span className="text-[12px] text-[var(--text-muted)]">{user.email}</span>,
         },
         {
             id: 'role',
             label: 'User Role',
+            icon: <ShieldCheck size={13} />,
             render: (user) => {
                 const role = primaryRole(user);
                 const Icon = roleIcon(role);
                 const rs = ROLE_STYLES[role] || ROLE_STYLES.viewer;
                 return (
-                    <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold capitalize', rs.bg, rs.text)}>
-                        <span className={cn('size-1.5 rounded-full', rs.dot)} /><Icon size={12} />{role}
+                    <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold', rs.bg, rs.text)}>
+                        <span className={cn('size-1.5 rounded-full', rs.dot)} /><Icon size={12} />{formatRoleLabel(role)}
                     </span>
                 );
             },
@@ -404,7 +585,12 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
         {
             id: 'status',
             label: 'Status',
-            render: (user) => user.isOnline ? (
+            icon: <UserCheck size={13} />,
+            render: (user) => user.isSuspended ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-danger)]/20 bg-[var(--crm-danger-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--crm-danger)]">
+                    <span className="size-1.5 rounded-full bg-[var(--crm-danger)]" />Suspended
+                </span>
+            ) : user.isOnline ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-success)]/20 bg-[var(--crm-success-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--crm-success)]">
                     <span className="size-1.5 rounded-full bg-[var(--crm-success)]" />Online
                 </span>
@@ -415,13 +601,21 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
             ),
         },
         {
+            id: 'access',
+            label: 'Access',
+            icon: <Power size={13} />,
+            render: (user) => <UserAccessSwitch user={user} />,
+        },
+        {
             id: 'created',
             label: 'Add Date',
+            icon: <CalendarDays size={13} />,
             render: (user) => <span className="text-[12px] text-[var(--text-muted)] tabular-nums">{formatDate(user.createdAt)}</span>,
         },
         {
             id: 'lastActive',
             label: 'Last Active',
+            icon: <Clock3 size={13} />,
             render: (user) => <span className="text-[12px] text-[var(--text-muted)] tabular-nums">{user.lastSeenAt ? formatDate(user.lastSeenAt) : '-'}</span>,
         },
         {
@@ -429,22 +623,37 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
             label: '',
             headerClassName: 'w-10',
             reorderable: false,
+            fixedPosition: 'end',
             render: (user) => (
-                <div className="relative" onClick={(e) => e.stopPropagation()}>
-                    <AppButton isIconOnly variant="quiet" compact tooltip="Actions" onPress={() => setOpenActionId(openActionId === user.id ? null : user.id)}>
-                        <EllipsisVertical size={14} />
-                    </AppButton>
-                    {openActionId === user.id && (
-                        <>
-                            <div className="fixed inset-0 z-40" onClick={() => setOpenActionId(null)} />
-                            <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1.5 shadow-2xl">
-                                <AppButton variant="quiet" fullWidth className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { setOpenActionId(null); setViewProfileUser(user); }}><Eye size={14} />View Profile</AppButton>
-                                <AppButton variant="quiet" fullWidth className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { const role = primaryRole(user); const defaults = cloneDefaults(role); setOpenActionId(null); setEditUser(user); setEditRole(role); setEditPerms(defaults); setInitialPerms(JSON.parse(JSON.stringify(defaults))); setPendingEditAction(null); }}><PenLine size={14} />Edit Details</AppButton>
-                                <div className="mx-2 my-1 h-px bg-[var(--border)]" />
-                                <AppButton variant="quiet" fullWidth color="danger" className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { setOpenActionId(null); setDeleteTarget(user); }}><Trash2 size={14} />Delete User</AppButton>
-                            </div>
-                        </>
-                    )}
+                <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => setViewProfileUser(user)} className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="View Profile">
+                        <Eye size={12} />
+                    </button>
+                    <button type="button" onClick={() => { const role = primaryRole(user); const saved = user.permissionConfiguration?.modules; const defaults = saved ?? cloneDefaults(role); setEditUser(user); setEditRole(role); setEditPerms(defaults); setInitialPerms(JSON.parse(JSON.stringify(defaults))); setPendingEditAction(null); }} className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Edit Details">
+                        <PenLine size={12} />
+                    </button>
+                    <Dropdown
+                        isOpen={openRowActionId === user.id}
+                        onOpenChange={(isOpen) => setOpenRowActionId(isOpen ? user.id : null)}
+                    >
+                        <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]" aria-label="Actions">
+                            <EllipsisVertical size={12} />
+                        </Dropdown.Trigger>
+                        <Dropdown.Popover placement="bottom end" className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                            <Dropdown.Menu
+                                aria-label="Actions"
+                                onAction={(key) => {
+                                    setOpenRowActionId(null);
+
+                                    if (key === 'delete') setDeleteTarget(user);
+                                }}
+                            >
+                                <Dropdown.Item key="delete" id="delete" textValue="Delete User" className="text-[var(--danger)] data-[hover]:bg-[var(--danger)]/10">
+                                    <div className="flex items-center gap-2"><span className="flex size-4 shrink-0 items-center justify-center"><Trash2 size={14} /></span><span>Delete User</span></div>
+                                </Dropdown.Item>
+                            </Dropdown.Menu>
+                        </Dropdown.Popover>
+                    </Dropdown>
                 </div>
             ),
         },
@@ -454,7 +663,7 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
         <>
             <Head title="User Management" />
             <AppShell>
-                <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8 py-6">
+                <div className="w-full space-y-5">
                     {/* ── Page header ── */}
                     <div className="flex items-start justify-between mb-6">
                         <div>
@@ -462,43 +671,7 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                             <p className="text-[13px] text-[var(--crm-text-muted)] mt-0.5">Manage team access, roles, and permissions.</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <AppButton isIconOnly compact variant="ghost" tooltip="Import CSV" aria-label="Import CSV" onPress={() => (document.getElementById('csv-import') as HTMLInputElement)?.click()}>
-                                <Upload size={16} />
-                            </AppButton>
-                            <input id="csv-import" type="file" accept=".csv" className="hidden"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    const reader = new FileReader();
-                                    reader.onload = async (ev) => {
-                                        const text = ev.target?.result as string;
-                                        const lines = text.split('\n').filter(Boolean);
-                                        const users: { name: string; email: string; role: string }[] = [];
-                                        for (let i = 1; i < lines.length; i++) {
-                                            const cols = lines[i].split(',').map((c) => c.trim());
-                                            const name = cols[0] || '';
-                                            const email = cols[1] || '';
-                                            const role = cols[2] || 'staff';
-                                            if (!name || !email) continue;
-                                            users.push({ name, email, role });
-                                        }
-                                        if (users.length === 0) { toast.error('No valid rows found in CSV.'); return; }
-                                        try {
-                                            const res = await fetch('/admin/users/invite/bulk/validate', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content || '' },
-                                                body: JSON.stringify({ emails: users.map(u => u.email) }),
-                                            });
-                                            const data = await res.json();
-                                            setCsvModal({ users, existing: new Set(data.existing), overrides: new Set() });
-                                        } catch {
-                                            toast.error('Could not validate CSV. Try again.');
-                                        }
-                                    };
-                                    reader.readAsText(file);
-                                    e.target.value = '';
-                                }} />
-                            <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Add User" aria-label="Add User" onPress={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' }); setIsInviteOpen(true); }}>
+                            <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Add User" aria-label="Add User" onPress={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', password: '', passwordConfirmation: '', role: 'staff' }); setIsInviteOpen(true); }}>
                                 <Plus size={16} />
                             </AppButton>
                         </div>
@@ -506,248 +679,205 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
 
                     <AppWorkspaceTabs tabs={TABS} selectedKey={activeTab} onSelectionChange={(key) => setActiveTab(key as TabId)}>
 
-                    <TabPanel id="firm" className="outline-none">
-                        <div className="max-w-3xl">
-                            {/* Logo upload */}
-                            <div className="mb-6">
-                                <label className="text-xs font-semibold text-[var(--crm-text-muted)] mb-2 block">Company Logo</label>
-                                <div className="flex items-center gap-5 rounded-lg border-2 border-dashed border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 px-6 py-8 transition hover:border-[var(--crm-border-strong)]">
-                                    <div className="flex size-16 items-center justify-center rounded-xl bg-[var(--crm-gold-soft)] text-xl font-bold text-[var(--crm-gold)]">AL</div>
-                                    <div>
-                                        <p className="text-sm font-medium text-[var(--crm-text-muted)]">Drop your logo here or <span className="text-[var(--crm-gold)] underline underline-offset-2 cursor-pointer">browse</span></p>
-                                        <p className="text-[11px] text-[var(--crm-text-soft)] mt-0.5">PNG, JPG or SVG. Max 2MB.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Two-column form */}
-                            <div className="grid grid-cols-2 gap-5 mb-6">
-                                <div>
-                                    <AppTextField label="Firm Name" value={firmForm.name} onChange={(v) => setFirmForm((p) => ({ ...p, name: v }))} />
-                                </div>
-                                <div>
-                                    <AppTextField label="Registration Number" value={firmForm.regNumber} onChange={(v) => setFirmForm((p) => ({ ...p, regNumber: v }))} />
-                                </div>
-                                <div>
-                                    <AppTextField label="Primary Phone" value={firmForm.phone} onChange={(v) => setFirmForm((p) => ({ ...p, phone: v }))} />
-                                </div>
-                                <div>
-                                    <AppTextField label="Billing Address" value={firmForm.address} onChange={(v) => setFirmForm((p) => ({ ...p, address: v }))} />
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end">
-                                <AppButton compact variant="solid" color="primary" onPress={() => toast.success('Firm profile saved.')}>
-                                    <Save size={13} />
-                                    Save Changes
-                                </AppButton>
-                            </div>
-                        </div>
-                    </TabPanel>
-
                     <TabPanel id="users" className="outline-none">
                             {/* KPI cards */}
-                            <div className="grid grid-cols-4 gap-3 mb-5">
+                            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                                 {metrics.map((m) => {
                                     const Icon = m.icon;
                                     const isActive = activeKpi === m.key;
-                                    return <AppKpiCard key={m.key} label={m.label} value={m.value} icon={<Icon size={14} className={m.color} />} valueClassName={m.color} onPress={() => setActiveKpi(isActive ? null : m.key)} isSelected={isActive} />;
+                                    return <AppKpiCard key={m.key} label={m.label} value={m.value} detail={m.detail} icon={<Icon size={15} className={m.color} />} accentColor={m.accentColor} valueClassName={m.color} onPress={() => setActiveKpi(isActive ? null : m.key)} isSelected={isActive} />;
                                 })}
                             </div>
 
                             {/* ── Users table ── */}
-                            {(() => {
-                                const userColumns: AppWorkspaceTableColumn<typeof pagedUsers[0]>[] = [
-                                    {
-                                        id: 'select',
-                                        label: (
-                                            <button type="button" onClick={toggleAll} className={cn('flex size-4 items-center justify-center rounded border transition', isAllSelected() ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)] hover:border-[var(--crm-text-muted)]')}>
-                                                {isAllSelected() && <Check size={10} strokeWidth={3} className="text-black" />}
-                                            </button>
-                                        ),
-                                        headerClassName: 'w-12',
-                                        reorderable: false,
-                                        render: (user) => (
-                                            <div onClick={(e) => e.stopPropagation()}>
-                                                <button type="button" onClick={() => toggleOne(user.id)} className={cn('flex size-4 items-center justify-center rounded border transition', selectedIds.has(user.id) ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)] hover:border-[var(--crm-text-muted)]')}>
-                                                    {selectedIds.has(user.id) && <Check size={10} strokeWidth={3} className="text-black" />}
-                                                </button>
-                                            </div>
-                                        ),
-                                    },
-                                    {
-                                        id: 'name',
-                                        label: 'User Name',
-                                        render: (user) => (
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[11px] font-bold text-[var(--crm-gold)]">{initials(user.name)}</div>
-                                                <div className="min-w-0">
-                                                    <p className="text-[13px] font-medium text-[var(--crm-text)]/80 truncate max-w-[180px]">{user.name}</p>
-                                                    <p className="text-[11px] text-[var(--crm-text-soft)] truncate max-w-[180px]">{user.email}</p>
+                            <AppWorkspaceTable
+                                ariaLabel="Users & Permissions"
+                                columns={userColumns}
+                                data={pagedUsers}
+                                rowKey={(user) => user.id}
+                                minTableWidthClassName="min-w-[860px]"
+                                columnOrderStorageKey="archilbo.admin-users.table.columns.v1"
+                                columnOrderHint="Drag to reorder this column"
+                                onRowPress={(user) => setViewProfileUser(user)}
+                                emptyContent={<AppEmptyState title="No users found" description="No users match the current filters." />}
+                                toolbar={
+                                    selectedIds.size > 0 ? (
+                                        <div className="flex flex-wrap items-center gap-3 border-b border-[var(--accent)]/15 bg-[var(--accent-soft)]/70 px-4 py-3">
+                                            <div className="flex min-w-0 items-center gap-2.5">
+                                                <div>
+                                                    <p className="text-xs font-semibold text-[var(--foreground)]">Bulk actions</p>
+                                                    <Chip size="sm" variant="soft" color="warning" startContent={<Check size={12} strokeWidth={2.5} />} className="mt-1 h-5 px-1.5 text-[10px]">
+                                                        {selectedIds.size} selected
+                                                    </Chip>
                                                 </div>
                                             </div>
-                                        ),
-                                    },
-                                    {
-                                        id: 'email',
-                                        label: 'Email Address',
-                                        render: (user) => <span className="text-[12px] text-[var(--crm-text-muted)]">{user.email}</span>,
-                                    },
-                                    {
-                                        id: 'role',
-                                        label: 'User Role',
-                                        render: (user) => {
-                                            const role = primaryRole(user);
-                                            const Icon = roleIcon(role);
-                                            const rs = ROLE_STYLES[role] || ROLE_STYLES.viewer;
-                                            return (
-                                                <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold capitalize', rs.bg, rs.text)}>
-                                                    <span className={cn('size-1.5 rounded-full', rs.dot)} /><Icon size={12} />{role}
-                                                </span>
-                                            );
-                                        },
-                                    },
-                                    {
-                                        id: 'status',
-                                        label: 'Status',
-                                        render: (user) => user.isOnline ? (
-                                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-success)]/20 bg-[var(--crm-success-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--crm-success)]">
-                                                <span className="size-1.5 rounded-full bg-[var(--crm-success)]" />Online
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 px-2.5 py-0.5 text-[11px] font-semibold text-[var(--crm-text-soft)]">
-                                                <span className="size-1.5 rounded-full bg-[var(--crm-text-soft)]" />Offline
-                                            </span>
-                                        ),
-                                    },
-                                    {
-                                        id: 'created',
-                                        label: 'Add Date',
-                                        render: (user) => <span className="text-[12px] text-[var(--crm-text-muted)] tabular-nums">{formatDate(user.createdAt)}</span>,
-                                    },
-                                    {
-                                        id: 'lastActive',
-                                        label: 'Last Active',
-                                        render: (user) => <span className="text-[12px] text-[var(--crm-text-muted)] tabular-nums">{user.lastSeenAt ? formatDate(user.lastSeenAt) : '-'}</span>,
-                                    },
-                                    {
-                                        id: 'actions',
-                                        label: '',
-                                        headerClassName: 'w-10',
-                                        reorderable: false,
-                                        render: (user) => (
-                                            <div className="relative" onClick={(e) => e.stopPropagation()}>
-                                                <AppButton isIconOnly variant="quiet" compact tooltip="Actions" onPress={() => setOpenActionId(openActionId === user.id ? null : user.id)}>
-                                                    <EllipsisVertical size={14} />
+                                            <div className="ml-auto flex flex-wrap items-center gap-2">
+                                                <Select
+                                                    aria-label="Assign role to selected users"
+                                                    isOpen={bulkRoleSelectOpen}
+                                                    onOpenChange={setBulkRoleSelectOpen}
+                                                    onChange={(key) => {
+                                                        if (!key) return;
+                                                        setBulkRoleSelectOpen(false);
+                                                        router.put('/admin/users/bulk/role', { userIds: [...selectedIds], role: String(key) }, {
+                                                            preserveScroll: true,
+                                                            onSuccess: () => { setSelectedIds(new Set()); toast.success(`Role updated for ${selectedIds.size} user(s).`); },
+                                                            onError: () => toast.error('Could not update roles.'),
+                                                        });
+                                                    }}
+                                                >
+                                                    <Select.Trigger className="h-8 min-w-[150px] rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] shadow-sm transition hover:border-[var(--text-muted)]">
+                                                        <Select.Value className="flex-1 truncate text-left" placeholder="Change role" />
+                                                        <Select.Indicator />
+                                                    </Select.Trigger>
+                                                    <Select.Popover className="z-[120] min-w-[150px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
+                                                        <ListBox aria-label="Assign role to selected users" className="gap-0">
+                                                            {roles.map((role) => (
+                                                                <ListBox.Item key={role.id} id={role.id} textValue={role.label} className="rounded-lg px-2.5 py-2 text-xs">
+                                                                    {role.label}
+                                                                </ListBox.Item>
+                                                            ))}
+                                                        </ListBox>
+                                                    </Select.Popover>
+                                                </Select>
+                                                <AppButton variant="bordered" compact onPress={exportSelectedCsv}>
+                                                    <Download size={12} />Export selected
                                                 </AppButton>
-                                                {openActionId === user.id && (
-                                                    <>
-                                                        <div className="fixed inset-0 z-40" onClick={() => setOpenActionId(null)} />
-                                                        <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[var(--crm-bg-2)] py-1.5 shadow-2xl shadow-black/50 backdrop-blur-sm">
-                                                            <AppButton variant="quiet" fullWidth className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { setOpenActionId(null); setViewProfileUser(user); }}><Eye size={14} />View Profile</AppButton>
-                                                            <AppButton variant="quiet" fullWidth className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { const role = primaryRole(user); const defaults = cloneDefaults(role); setOpenActionId(null); setEditUser(user); setEditRole(role); setEditPerms(defaults); setInitialPerms(JSON.parse(JSON.stringify(defaults))); setPendingEditAction(null); }}><PenLine size={14} />Edit Details</AppButton>
-                                                            <div className="mx-2 my-1 h-px bg-[var(--crm-border)]" />
-                                                            <AppButton variant="quiet" fullWidth color="danger" className="justify-start gap-3 px-3 text-[12px] font-medium" onPress={() => { setOpenActionId(null); setDeleteTarget(user); }}><Trash2 size={14} />Delete User</AppButton>
-                                                        </div>
-                                                    </>
-                                                )}
+                                                <AppButton variant="bordered" compact onPress={() => setConfirmBulkAction('suspend')}><UserMinus size={12} />Suspend</AppButton>
+                                                <AppButton isIconOnly compact size="sm" variant="solid" color="danger" tooltip="Delete selected users" aria-label="Delete selected users" onPress={() => setConfirmBulkAction('delete')}><Trash2 size={14} /></AppButton>
+                                                <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Clear selection" aria-label="Clear selection" onPress={() => setSelectedIds(new Set())}><X size={14} /></AppButton>
                                             </div>
-                                        ),
-                                    },
-                                ];
-
-                                const bulkToolbar = (
-                                    <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--crm-gold-soft)]">
-                                        <span className="text-[12px] font-medium text-[var(--crm-gold)]/80">{selectedIds.size} user(s) selected</span>
-                                        <div className="flex items-center gap-2">
-                                            <select onChange={(e) => { const role = e.target.value; if (!role) return; router.put('/admin/users/bulk/role', { userIds: [...selectedIds], role }, { preserveScroll: true, onSuccess: () => { setSelectedIds(new Set()); toast.success(`Role updated for ${selectedIds.size} user(s).`); }, onError: () => toast.error('Could not update roles.') }); e.target.value = ''; }} className="h-7 rounded-md border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 px-2 text-[11px] font-medium text-[var(--crm-text-muted)] outline-none transition focus:border-[var(--crm-border-strong)] cursor-pointer">
-                                                <option value="">Assign Role</option>
-                                                {roles.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
-                                            </select>
-                                            <AppButton variant="bordered" compact onPress={() => setConfirmBulkAction('suspend')}><UserMinus size={12} />Suspend</AppButton>
-                                            <AppButton variant="solid" color="danger" compact onPress={() => setConfirmBulkAction('delete')}><Trash2 size={12} />Delete</AppButton>
-                                            <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Clear selection" aria-label="Clear selection" onPress={() => setSelectedIds(new Set())}><X size={13} /></AppButton>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="text-[12px] font-semibold text-[var(--text)]">User Details</span>
+                                                    <span className="flex h-4 min-w-[20px] items-center justify-center rounded bg-[var(--surface-2)] px-1.5 text-[9px] font-bold text-[var(--text-muted)]">{filteredUsers.length}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Input
+                                                        size="sm"
+                                                        type="text"
+                                                        value={query}
+                                                        onChange={(e) => setQuery(e.target.value)}
+                                                        placeholder="Search name, email, role, or permission..."
+                                                        aria-label="Search users"
+                                                        classNames={{
+                                                            base: 'w-full sm:w-[280px]',
+                                                            input: 'text-[12px]',
+                                                            inputWrapper: 'h-8 min-h-8 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-2)]/65 px-2 shadow-sm shadow-black/10 transition hover:border-[var(--text-muted)] focus-within:border-[var(--accent)] focus-within:bg-[var(--surface)]',
+                                                        }}
+                                                        startContent={<span className="flex size-5 items-center justify-center rounded-md bg-[var(--surface)] text-[var(--accent)]"><Search size={12} /></span>}
+                                                        endContent={query ? (
+                                                            <Button
+                                                                isIconOnly
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                aria-label="Clear user search"
+                                                                className="-mr-1 size-6 min-w-6 text-[var(--text-muted)]"
+                                                                onPress={() => setQuery('')}
+                                                            >
+                                                                <X size={13} />
+                                                            </Button>
+                                                        ) : null}
+                                                    />
+                                                    <Dropdown isOpen={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
+                                                        <Dropdown.Trigger>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="bordered"
+                                                                className={cn(
+                                                                    'h-7 min-h-7 gap-1.5 px-2 text-[11px] font-medium',
+                                                                    filterRoles.size !== filterRoleOptions.length || filterStatus !== 'all'
+                                                                        ? 'border-[var(--accent)] text-[var(--accent)]'
+                                                                        : '',
+                                                                )}
+                                                            >
+                                                                <SlidersHorizontal size={12} />
+                                                                Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+                                                            </Button>
+                                                        </Dropdown.Trigger>
+                                                        <Dropdown.Popover placement="bottom end" className="z-[80] min-w-52 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                                                            <Dropdown.Menu
+                                                                aria-label="Filter users"
+                                                                closeOnSelect={false}
+                                                                itemClasses={{ base: 'rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]' }}
+                                                            >
+                                                                <Dropdown.Section title="By role" className="mb-0">
+                                                                    {filterRoleOptions.map((role) => (
+                                                                        <Dropdown.Item
+                                                                            key={role.id}
+                                                                            startContent={
+                                                                                <span className={cn('flex size-4 items-center justify-center rounded border transition', filterRoles.has(role.id) ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--border)]')}>
+                                                                                    {filterRoles.has(role.id) && <Check size={10} strokeWidth={3} className="text-white" />}
+                                                                                </span>
+                                                                            }
+                                                                            onPress={() => {
+                                                                                const nextRoles = new Set(filterRoles);
+                                                                                if (nextRoles.has(role.id)) nextRoles.delete(role.id);
+                                                                                else nextRoles.add(role.id);
+                                                                                setFilterRoles(nextRoles);
+                                                                            }}
+                                                                        >
+                                                                            {role.label}
+                                                                        </Dropdown.Item>
+                                                                    ))}
+                                                                </Dropdown.Section>
+                                                                <Dropdown.Section title="By status">
+                                                                    {(['all', 'online', 'offline', 'suspended'] as const).map((s) => (
+                                                                        <Dropdown.Item
+                                                                            key={s}
+                                                                            className="capitalize"
+                                                                            startContent={
+                                                                                <span className={cn('flex size-4 items-center justify-center rounded-full border transition', filterStatus === s ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--border)]')}>
+                                                                                    {filterStatus === s && <Check size={10} strokeWidth={3} className="text-white" />}
+                                                                                </span>
+                                                                            }
+                                                                            onPress={() => setFilterStatus(s)}
+                                                                        >
+                                                                            {s}
+                                                                        </Dropdown.Item>
+                                                                    ))}
+                                                                </Dropdown.Section>
+                                                                {activeFilterCount > 0 ? (
+                                                                    <Dropdown.Section>
+                                                                        <Dropdown.Item
+                                                                            id="reset-filters"
+                                                                            className="text-[var(--accent)]"
+                                                                            onPress={() => {
+                                                                                setFilterRoles(new Set(filterRoleOptions.map((role) => role.id)));
+                                                                                setFilterStatus('all');
+                                                                            }}
+                                                                        >
+                                                                            Reset filters
+                                                                        </Dropdown.Item>
+                                                                    </Dropdown.Section>
+                                                                ) : null}
+                                                            </Dropdown.Menu>
+                                                        </Dropdown.Popover>
+                                                    </Dropdown>
+                                                    <input id="csv-import" type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvImport} />
+                                                    <AppButton isIconOnly compact variant="ghost" tooltip="Import CSV" aria-label="Import CSV" onPress={() => (document.getElementById('csv-import') as HTMLInputElement | null)?.click()}>
+                                                        <Upload size={16} />
+                                                    </AppButton>
+                                                    <AppButton isIconOnly compact variant="ghost" tooltip="Export CSV" onPress={exportCsv}><Download size={16} /></AppButton>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                }
+                                footer={
+                                    <div className="flex items-center justify-between px-3 py-2">
+                                        <span className="text-[10px] text-[var(--text-muted)]">Showing {filteredUsers.length === 0 ? 0 : (page - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(page * TABLE_PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Previous page" isDisabled={page <= 1} onPress={() => setPage(Math.max(1, page - 1))}><ChevronLeft size={14} /></AppButton>
+                                            <span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-[var(--text-muted)]">{page} / {totalPages || 1}</span>
+                                            <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Next page" isDisabled={page >= totalPages || totalPages === 0} onPress={() => setPage(Math.min(totalPages, page + 1))}><ChevronRight size={14} /></AppButton>
                                         </div>
                                     </div>
-                                );
-
-                                const normalToolbar = (
-                                    <div>
-                                        <div className="flex items-center justify-between px-4 py-2.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[12px] font-semibold text-[var(--crm-text)]/70">User Details</span>
-                                                <span className="flex h-4 min-w-[20px] items-center justify-center rounded bg-[var(--crm-surface-2)] px-1.5 text-[9px] font-bold text-[var(--crm-text-soft)]">{filteredUsers.length}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <div className="relative">
-                                                    <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)]" />
-                                                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search users..." className="h-7 w-[160px] rounded-md border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 pl-7 pr-2 text-[11px] text-[var(--crm-text)]/70 placeholder-[var(--crm-text-soft)] outline-none transition focus:border-[var(--crm-border-strong)]" />
-                                                </div>
-                                                <div className="relative">
-                                                    <button ref={filterBtnRef} type="button" onClick={() => setFilterOpen((o) => !o)} className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--crm-border)] px-2 text-[11px] font-medium text-[var(--crm-text-soft)] transition hover:border-[var(--crm-border-strong)] hover:text-[var(--crm-text-muted)]">
-                                                        <SlidersHorizontal size={12} />Filter
-                                                    </button>
-                                                    {filterOpen && (
-                                                        <div ref={filterRef} className="absolute right-0 top-full z-50 mt-1 w-60 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[var(--crm-bg-2)] py-2 shadow-2xl shadow-black/50 backdrop-blur-sm">
-                                                            <div className="px-3 pb-1.5"><p className="text-[10px] font-semibold tracking-widest text-[var(--crm-text-soft)] uppercase">By Role</p></div>
-                                                            <div className="px-1 pb-2 border-b border-[var(--crm-border)]">
-                                                                {['admin', 'manager', 'staff', 'viewer'].map((r) => (
-                                                                    <button key={r} type="button" onClick={() => { const n = new Set(filterRoles); if (n.has(r)) n.delete(r); else n.add(r); setFilterRoles(n); }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface-hover)] hover:text-[var(--crm-text)]/85">
-                                                                        <span className={cn('flex size-4 items-center justify-center rounded border transition', filterRoles.has(r) ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)]')}>{filterRoles.has(r) && <Check size={10} strokeWidth={3} className="text-black" />}</span>
-                                                                        <span className="capitalize">{r}</span>
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                            <div className="px-3 pt-2 pb-1"><p className="text-[10px] font-semibold tracking-widest text-[var(--crm-text-soft)] uppercase">By Status</p></div>
-                                                            <div className="px-1">
-                                                                {(['all', 'online', 'offline'] as const).map((s) => (
-                                                                    <button key={s} type="button" onClick={() => setFilterStatus(s)} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface-hover)] hover:text-[var(--crm-text)]/85">
-                                                                        <span className={cn('flex size-4 items-center justify-center rounded-full border transition', filterStatus === s ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)]' : 'border-[var(--crm-border-strong)]')}>{filterStatus === s && <Check size={10} strokeWidth={3} className="text-black" />}</span>
-                                                                        <span className="capitalize">{s}</span>
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <AppButton isIconOnly compact variant="ghost" tooltip="Export CSV" aria-label="Export CSV" onPress={exportCsv}><Download size={16} /></AppButton>
-                                                <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Add User" aria-label="Add User" onPress={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' }); setIsInviteOpen(true); }}><Plus size={16} /></AppButton>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-1 px-4 py-2 border-t border-[var(--border)]">
-                                            {(['all', 'admin', 'manager', 'staff', 'viewer'] as const).map((r) => (
-                                                <button key={r} type="button" onClick={() => { setRoleFilter(r); setPage(1); }} className={cn('inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-medium capitalize transition', roleFilter === r ? 'bg-[var(--surface-2)] text-[var(--foreground)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]')}>
-                                                    {r}
-                                                    <span className="flex h-3 min-w-[14px] items-center justify-center rounded bg-[var(--surface-2)] px-1 text-[7px] font-bold text-[var(--text-muted)]">{roleCounts[r]}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
-
-                                return (
-                                    <AppWorkspaceTable
-                                        ariaLabel="Users & Permissions"
-                                        columns={userColumns}
-                                        data={pagedUsers}
-                                        rowKey={(user) => user.id}
-                                        minTableWidthClassName="min-w-[860px]"
-                                        onRowPress={(user) => setViewProfileUser(user)}
-                                        emptyContent={<AppEmptyState title="No users found" description="No users match the current filters." />}
-                                        toolbar={selectedIds.size > 0 ? bulkToolbar : normalToolbar}
-                                        footer={
-                                            <div className="flex items-center justify-between px-3 py-2">
-                                                <span className="text-[10px] text-[var(--text-muted)]">Showing {filteredUsers.length === 0 ? 0 : (page - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(page * TABLE_PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}</span>
-                                                <div className="flex items-center gap-1.5">
-                                                    <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Previous page" aria-label="Previous page" isDisabled={page <= 1} onPress={() => setPage(Math.max(1, page - 1))}><ChevronLeft size={14} /></AppButton>
-                                                    <span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-[var(--text-muted)]">{page} / {totalPages || 1}</span>
-                                                    <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Next page" aria-label="Next page" isDisabled={page >= totalPages || totalPages === 0} onPress={() => setPage(Math.min(totalPages, page + 1))}><ChevronRight size={14} /></AppButton>
-                                                </div>
-                                            </div>
-                                        }
-                                    />
-                                );
-                            })()}
+                                }
+                            />
                     </TabPanel>
 
                     <TabPanel id="security" className="outline-none">
@@ -787,7 +917,7 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                 </div>
 
                 {/* ── Modal: Invite New Team Member ── */}
-                <AppModal isOpen={isInviteOpen} onOpenChange={(o) => { if (!o) { setIsInviteOpen(false); setInviteErrors({}); } }} title="Invite New Team Member" size="sm">
+                <AppModal isOpen={isInviteOpen} onOpenChange={(o) => { if (!o) { setIsInviteOpen(false); setInviteErrors({}); } }} title="Create user account" size="sm">
                     <form onSubmit={handleInvite} className="space-y-4">
                         <AppTextField label="First Name" placeholder="First name" value={inviteForm.firstName}
                             onChange={(v) => setInviteForm((p) => ({ ...p, firstName: v }))}
@@ -802,76 +932,145 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                             onSelectionChange={(v: Key | null) => setInviteForm((p) => ({ ...p, role: v ? String(v) : 'staff' }))}
                             error={firstError(inviteErrors, 'role')}
                             options={roles.map((r) => ({ id: r.id, label: r.label }))} />
+                        <AppTextField label="Password" type="password" placeholder="Set a secure password" value={inviteForm.password}
+                            onChange={(v) => setInviteForm((p) => ({ ...p, password: v }))}
+                            description="At least 12 characters with uppercase, lowercase, number, and symbol."
+                            error={firstError(inviteErrors, 'password')} isRequired />
+                        <AppTextField label="Confirm password" type="password" placeholder="Repeat the password" value={inviteForm.passwordConfirmation}
+                            onChange={(v) => setInviteForm((p) => ({ ...p, passwordConfirmation: v }))}
+                            error={firstError(inviteErrors, 'password_confirmation')} isRequired />
                         <div className="flex items-center justify-end gap-2 pt-2">
                             <AppButton variant="bordered" onPress={() => setIsInviteOpen(false)}>Cancel</AppButton>
-                            <AppButton type="submit" variant="solid" color="primary">Send Invite</AppButton>
+                            <AppButton type="submit" variant="solid" color="primary">Create user</AppButton>
                         </div>
                     </form>
                 </AppModal>
 
                 {/* ── Drawer: View Profile ── */}
-                {viewProfileUser && (
-                    <>
-                        <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setViewProfileUser(null)} />
-                        <div className="fixed right-0 top-0 z-50 h-full w-[420px] border-l border-[var(--crm-border)] bg-[var(--crm-bg-2)] shadow-2xl shadow-black/40 overflow-y-auto">
-                            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--crm-border)]">
-                                <span className="text-sm font-semibold text-[var(--crm-text)]/80">User Profile</span>
-                                <AppButton isIconOnly variant="quiet" compact tooltip="Close" onPress={() => setViewProfileUser(null)}>
-                                    <X size={14} />
-                                </AppButton>
-                            </div>
-                            <div className="p-5 space-y-5">
-                                <div className="flex items-center gap-4">
-                                    <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--crm-gold-soft)] text-xl font-bold text-[var(--crm-gold)]">
+                <AppDrawer
+                    isOpen={Boolean(viewProfileUser)}
+                    onOpenChange={(open) => { if (!open) setViewProfileUser(null); }}
+                    title="User profile"
+                    description="Account access and current status"
+                    headerIcon={<UserCog size={17} />}
+                    size="md"
+                    footer={viewProfileUser ? (
+                        <AppButton
+                            variant="solid"
+                            color="primary"
+                            onPress={() => {
+                                const role = primaryRole(viewProfileUser);
+                                const defaults = cloneDefaults(role);
+                                setEditUser(viewProfileUser);
+                                setEditRole(role);
+                                setEditPerms(defaults);
+                                setInitialPerms(JSON.parse(JSON.stringify(defaults)));
+                                setViewProfileUser(null);
+                            }}
+                        >
+                            <PenLine size={15} />Edit permissions
+                        </AppButton>
+                    ) : null}
+                >
+                    {viewProfileUser ? (
+                        <div className="space-y-4">
+                            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]/45 p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--crm-gold-soft)] text-sm font-bold text-[var(--crm-gold)]">
                                         {initials(viewProfileUser.name)}
                                     </div>
+                                    <div className="min-w-0 flex-1">
+                                        <h2 className="truncate text-base font-semibold text-[var(--foreground)]">{viewProfileUser.name}</h2>
+                                        <p className="mt-0.5 truncate text-sm text-[var(--text-muted)]">{viewProfileUser.email}</p>
+                                        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                                            {viewProfileUser.roles.map((role) => {
+                                                const style = ROLE_STYLES[role] ?? ROLE_STYLES.viewer;
+
+                                                return (
+                                                    <Chip key={role} size="sm" variant="soft" className={cn('h-6 gap-1 px-2 text-[10px] font-semibold', style.bg, style.text)}>
+                                                        <span className={cn('size-1.5 rounded-full', style.dot)} />
+                                                        {formatRoleLabel(role)}
+                                                    </Chip>
+                                                );
+                                            })}
+                                            <Chip
+                                                size="sm"
+                                                variant="soft"
+                                                className={cn(
+                                                    'h-6 px-2 text-[10px] font-semibold',
+                                                    viewProfileUser.isSuspended
+                                                        ? 'bg-[var(--crm-danger-soft)] text-[var(--crm-danger)]'
+                                                        : viewProfileUser.isOnline
+                                                            ? 'bg-[var(--crm-success-soft)] text-[var(--crm-success)]'
+                                                            : 'bg-[var(--surface)] text-[var(--text-muted)]',
+                                                )}
+                                            >
+                                                {viewProfileUser.isSuspended ? 'Suspended' : viewProfileUser.isOnline ? 'Online' : 'Offline'}
+                                            </Chip>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <dl className="grid grid-cols-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--border)]">
+                                {[
+                                    ['Account', viewProfileUser.isSuspended ? 'Suspended' : 'Active'],
+                                    ['Last active', viewProfileUser.isOnline ? 'Online now' : viewProfileUser.lastSeenAt ? formatDate(viewProfileUser.lastSeenAt) : 'No activity'],
+                                    ['Joined', formatDate(viewProfileUser.createdAt)],
+                                ].map(([label, value]) => (
+                                    <div key={label} className="min-w-0 bg-[var(--surface)] px-3 py-2.5">
+                                        <dt className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</dt>
+                                        <dd className="mt-1 truncate text-xs font-semibold text-[var(--foreground)]">{value}</dd>
+                                    </div>
+                                ))}
+                            </dl>
+
+                            <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                                <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-3.5 py-3">
                                     <div>
-                                        <h2 className="text-base font-semibold text-[var(--crm-text)]/90">{viewProfileUser.name}</h2>
-                                        <p className="text-[13px] text-[var(--crm-text-muted)]">{viewProfileUser.email}</p>
-                                        <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-semibold capitalize mt-1', ROLE_STYLES[primaryRole(viewProfileUser)]?.bg || 'bg-[var(--crm-surface-2)]', ROLE_STYLES[primaryRole(viewProfileUser)]?.text || 'text-[var(--crm-text-soft)]')}>
-                                            {primaryRole(viewProfileUser)}
-                                        </span>
+                                        <h3 className="text-sm font-semibold text-[var(--foreground)]">Access</h3>
+                                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Effective permissions from the assigned roles.</p>
                                     </div>
+                                    <Chip size="sm" variant="soft" className="h-6 shrink-0 px-2 text-[10px] text-[var(--text-muted)]">
+                                        {viewProfileUser.permissions.length}
+                                    </Chip>
                                 </div>
 
-                                <div>
-                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--crm-text-soft)] mb-2">Assigned Projects</p>
-                                    <div className="space-y-2">
-                                        {['Parc Central - Phase 2', 'Tour Hassan Expansion', 'Marina Bay Residences'].map((p) => (
-                                            <div key={p} className="flex items-center gap-2.5 rounded-md bg-[var(--crm-surface-3)]/30 px-3 py-2">
-                                                <Briefcase size={12} className="text-[var(--crm-text-soft)]" />
-                                                <span className="text-[12px] text-[var(--crm-text-muted)]">{p}</span>
-                                            </div>
+                                {viewProfileUser.permissions.length > 0 ? (
+                                    <Accordion className="px-1.5 py-1" allowsMultipleExpanded>
+                                        {groupPermissions(viewProfileUser.permissions).map(([module, permissions]) => (
+                                            <Accordion.Item key={module} id={module} className="border-b border-[var(--border)] last:border-b-0">
+                                                <Accordion.Heading>
+                                                    <Accordion.Trigger className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left outline-none transition hover:bg-[var(--surface-2)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]">
+                                                        <span className="flex min-w-0 flex-1 items-center gap-2">
+                                                            <span className="size-1.5 rounded-full bg-[var(--accent)]" />
+                                                            <span className="truncate text-xs font-semibold text-[var(--foreground)]">{module}</span>
+                                                            <span className="text-[10px] text-[var(--text-muted)]">{permissions.length}</span>
+                                                        </span>
+                                                        <Accordion.Indicator className="text-[var(--text-muted)]"><ChevronDown size={14} /></Accordion.Indicator>
+                                                    </Accordion.Trigger>
+                                                </Accordion.Heading>
+                                                <Accordion.Panel>
+                                                    <Accordion.Body className="flex flex-wrap gap-1.5 px-2.5 pb-3">
+                                                        {permissions.map((permission) => (
+                                                            <Chip key={permission} size="sm" variant="soft" className="h-6 bg-[var(--surface-2)] px-2 text-[10px] text-[var(--text-muted)]">
+                                                                {permissionActionLabel(permission)}
+                                                            </Chip>
+                                                        ))}
+                                                    </Accordion.Body>
+                                                </Accordion.Panel>
+                                            </Accordion.Item>
                                         ))}
-                                        <p className="text-[11px] text-[var(--crm-text-soft)] italic">+ 2 more projects</p>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--crm-text-soft)] mb-2">Recent Activity</p>
-                                    <div className="space-y-2">
-                                        {[
-                                            { icon: Upload, text: 'Uploaded Blueprint_v2.pdf', time: '2h ago' },
-                                            { icon: PenLine, text: 'Edited Contract #CT-089', time: '1d ago' },
-                                            { icon: LogIn, text: 'Logged in from 192.168.1.22', time: '3d ago' },
-                                        ].map((a, i) => {
-                                            const A = a.icon;
-                                            return (
-                                                <div key={i} className="flex items-start gap-2.5">
-                                                    <div className="flex size-6 items-center justify-center rounded-md bg-[var(--crm-surface-hover)] text-[var(--crm-text-soft)] mt-0.5"><A size={11} /></div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[12px] text-[var(--crm-text-muted)]">{a.text}</p>
-                                                        <p className="text-[10px] text-[var(--crm-text-soft)]">{a.time}</p>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
+                                    </Accordion>
+                                ) : (
+                                    <p className="m-3 rounded-lg border border-dashed border-[var(--border)] px-3 py-4 text-sm text-[var(--text-muted)]">
+                                        This account currently inherits its role permissions.
+                                    </p>
+                                )}
+                            </section>
                         </div>
-                    </>
-                )}
+                    ) : null}
+                </AppDrawer>
 
                 {/* ── Modal: Edit Details (RBAC) ── */}
                 <AppModal isOpen={!!editUser} onOpenChange={(o) => {
@@ -963,7 +1162,7 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                     const payload = {
                                         userId: editUser.id,
                                         role: editRole,
-                                        isCustom: JSON.stringify(editPerms) !== JSON.stringify(cloneDefaults(editRole)),
+                                        isCustom: editUser.permissionConfiguration?.is_custom === true || JSON.stringify(editPerms) !== JSON.stringify(cloneDefaults(editRole)),
                                         permissions: editPerms,
                                     };
                                     router.put(`/admin/users/${editUser.id}/permissions`, payload, {
@@ -1027,7 +1226,7 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                         setConfirmBulkAction(null);
                                         router.post('/admin/users/bulk/delete', { userIds: ids }, {
                                             preserveScroll: true,
-                                            onSuccess: () => { setSelectedIds(new Set()); toast.success('Users removed.'); },
+                                            onSuccess: () => { setSelectedIds(new Set()); toast.success('Bulk deletion processed.'); },
                                             onError: () => toast.error('Could not remove some users.'),
                                         });
                                     }}>Yes, Remove Users</AppButton>
@@ -1037,7 +1236,7 @@ export default function AdminUsersIndex({ users, roles }: PageProps) {
                                         setConfirmBulkAction(null);
                                         router.put('/admin/users/bulk/suspend', { userIds: ids }, {
                                             preserveScroll: true,
-                                            onSuccess: () => { setSelectedIds(new Set()); toast.success(`${ids.length} user(s) suspended.`); },
+                                            onSuccess: () => { setSelectedIds(new Set()); toast.success('Bulk suspension processed.'); },
                                             onError: () => toast.error('Could not suspend users.'),
                                         });
                                     }}>Yes, Suspend Users</AppButton>

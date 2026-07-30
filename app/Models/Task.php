@@ -48,4 +48,13 @@ class Task extends Model
     public function contract(): BelongsTo { return $this->belongsTo(Contract::class); }
     public function archiveRecord(): BelongsTo { return $this->belongsTo(ArchiveRecord::class); }
     public function conversation(): BelongsTo { return $this->belongsTo(Conversation::class); }
+
+    public function belongsToScope(User $user): bool
+    {
+        $this->loadMissing('creator');
+
+        return $this->creator !== null
+            && (int) $this->creator->company_id === (int) $user->company_id
+            && (! $user->branch_id || (int) $this->creator->branch_id === (int) $user->branch_id);
+    }
 }

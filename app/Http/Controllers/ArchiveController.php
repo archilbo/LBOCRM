@@ -14,17 +14,26 @@ use App\Models\Dossier;
 use App\Models\Room;
 use App\Models\Shelf;
 use App\Services\Archive\ArchiveNotificationService;
+use App\Services\CompanyContext;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ArchiveController extends Controller
 {
+    public function __construct(private readonly CompanyContext $companyContext)
+    {
+    }
+
     public function index(Request $request): Response
     {
-        $query = ArchiveRecord::with(['dossier.client', 'dossier.city']);
+        $this->authorize('viewAny', ArchiveRecord::class);
+
+        $query = $this->scopedRecords($request->user())->with(['dossier.client', 'dossier.city']);
 
         // Status filter
         if ($statuses = $request->input('status')) {
@@ -120,12 +129,12 @@ class ArchiveController extends Controller
         $archiveRecords = $query->paginate($perPage);
 
         // Build storage tree with fill counts and record status summaries
-        $archiveCountsByBox = ArchiveRecord::selectRaw('box, COUNT(*) as count')
+        $archiveCountsByBox = $this->scopedRecords($request->user())->selectRaw('box, COUNT(*) as count')
             ->whereNotNull('box')
             ->groupBy('box')
             ->pluck('count', 'box');
 
-        $archiveStatusesByBox = ArchiveRecord::selectRaw('box, status, COUNT(*) as count')
+        $archiveStatusesByBox = $this->scopedRecords($request->user())->selectRaw('box, status, COUNT(*) as count')
             ->whereNotNull('box')
             ->groupBy('box', 'status')
             ->get()
@@ -153,14 +162,14 @@ class ArchiveController extends Controller
         ]);
 
         // Requesters (distinct requested_by names from archive records)
-        $requesters = ArchiveRecord::whereNotNull('requested_by')
+        $requesters = $this->scopedRecords($request->user())->whereNotNull('requested_by')
             ->distinct('requested_by')
             ->pluck('requested_by')
             ->map(fn ($name) => ['id' => $name, 'name' => $name]);
 
         // Cells — Room > Box > City grouping for sidebar
         $roomNames = Room::pluck('name', 'code');
-        $cells = ArchiveRecord::whereNotNull('room')
+        $cells = $this->scopedRecords($request->user())->whereNotNull('room')
             ->with('dossier.city')
             ->get()
             ->groupBy(fn ($r) => $r->room)
@@ -193,17 +202,17 @@ class ArchiveController extends Controller
             ],
             'tree' => $rooms,
             'cells' => $cells,
-            'dossiers' => $this->dossierOptions(),
+            'dossiers' => $this->dossierOptions($request->user()),
             'requesters' => $requesters,
             'cities' => $cities,
             'kpis' => [
-                'total' => ArchiveRecord::count(),
-                'ready' => ArchiveRecord::where('status', 'ready_to_archive')->count(),
-                'stored' => ArchiveRecord::where('status', 'stored')->count(),
-                'checkedOut' => ArchiveRecord::where('status', 'checked_out')->count(),
-                'returned' => ArchiveRecord::where('status', 'returned')->count(),
-                'overdue' => ArchiveRecord::overdue()->count(),
-                'lost' => ArchiveRecord::where('is_lost', true)->count(),
+                'total' => $this->scopedRecords($request->user())->count(),
+                'ready' => $this->scopedRecords($request->user())->where('status', 'ready_to_archive')->count(),
+                'stored' => $this->scopedRecords($request->user())->where('status', 'stored')->count(),
+                'checkedOut' => $this->scopedRecords($request->user())->where('status', 'checked_out')->count(),
+                'returned' => $this->scopedRecords($request->user())->where('status', 'returned')->count(),
+                'overdue' => $this->scopedRecords($request->user())->overdue()->count(),
+                'lost' => $this->scopedRecords($request->user())->where('is_lost', true)->count(),
             ],
             'filters' => $request->only([
                 'q', 'status', 'view', 'room', 'shelf', 'box',
@@ -215,7 +224,9 @@ class ArchiveController extends Controller
 
     public function count(Request $request): \Illuminate\Http\JsonResponse
     {
-        $query = ArchiveRecord::query();
+        $this->authorize('viewAny', ArchiveRecord::class);
+
+        $query = $this->scopedRecords($request->user());
 
         if ($statuses = $request->input('status')) {
             $query->whereIn('status', (array) $statuses);
@@ -247,6 +258,7 @@ class ArchiveController extends Controller
 
     public function show(ArchiveRecord $archiveRecord): Response
     {
+        $this->authorize('view', $archiveRecord);
         $archiveRecord->load(['dossier.client', 'events.actor']);
 
         return Inertia::render('Archives/Show', [
@@ -257,7 +269,9 @@ class ArchiveController extends Controller
 
     public function store(StoreArchiveRecordRequest $request): RedirectResponse
     {
+        $this->authorize('create', ArchiveRecord::class);
         $data = $this->prepareArchiveData($request->validated());
+        $this->scopedDossiers($request->user())->findOrFail($data['dossier_id']);
         $data['archive_number'] = $this->nextArchiveNumber();
 
         $record = ArchiveRecord::create($data);
@@ -274,7 +288,10 @@ class ArchiveController extends Controller
 
     public function update(UpdateArchiveRecordRequest $request, ArchiveRecord $archiveRecord): RedirectResponse
     {
-        $archiveRecord->update($this->prepareArchiveData($request->validated()));
+        $this->authorize('update', $archiveRecord);
+        $data = $this->prepareArchiveData($request->validated());
+        $this->scopedDossiers($request->user())->findOrFail($data['dossier_id']);
+        $archiveRecord->update($data);
 
         if ($request->filled('return_to')) {
             return redirect()->to($request->string('return_to')->toString())->with('success', 'Archive record updated successfully.');
@@ -291,6 +308,7 @@ class ArchiveController extends Controller
         ArchiveNotificationService $notifier,
     ): RedirectResponse {
         $status = $request->validated('status');
+        $this->authorize($status === 'checked_out' ? 'checkout' : ($status === 'returned' ? 'checkin' : 'update'), $archiveRecord);
 
         $payload = [
             'status' => $status,
@@ -358,6 +376,7 @@ class ArchiveController extends Controller
 
     public function destroy(ArchiveRecord $archiveRecord): RedirectResponse
     {
+        $this->authorize('delete', $archiveRecord);
         $archiveRecord->delete();
 
         return redirect()
@@ -367,6 +386,7 @@ class ArchiveController extends Controller
 
     public function markLost(Request $request, ArchiveRecord $archiveRecord): RedirectResponse
     {
+        $this->authorize('update', $archiveRecord);
         $data = $request->validate([
             'lost_reason' => 'nullable|string|max:1000',
         ]);
@@ -396,9 +416,13 @@ class ArchiveController extends Controller
             'status' => ['required', 'string', 'max:50'],
         ]);
 
-        $records = ArchiveRecord::whereIn('id', $data['ids'])->get();
+        $records = $this->recordsByIds($request->user(), $data['ids']);
 
         foreach ($records as $record) {
+            $this->authorize(
+                $data['status'] === 'checked_out' ? 'checkout' : ($data['status'] === 'returned' ? 'checkin' : 'update'),
+                $record,
+            );
             $record->update(['status' => $data['status']]);
 
             $record->events()->create([
@@ -435,9 +459,10 @@ class ArchiveController extends Controller
                 ->with('error', 'No location fields provided.');
         }
 
-        $records = ArchiveRecord::whereIn('id', $data['ids'])->get();
+        $records = $this->recordsByIds($request->user(), $data['ids']);
 
         foreach ($records as $record) {
+            $this->authorize('update', $record);
             $from = $record->locationLabel();
             $record->update($payload);
 
@@ -470,9 +495,10 @@ class ArchiveController extends Controller
             $data['due_at'] = now()->addDays(7)->format('Y-m-d');
         }
 
-        $records = ArchiveRecord::whereIn('id', $data['archive_ids'])->get();
+        $records = $this->recordsByIds($request->user(), $data['archive_ids']);
 
         foreach ($records as $record) {
+            $this->authorize('checkout', $record);
             $record->update([
                 'status' => 'checked_out',
                 'out_date' => $record->out_date ?? now()->toDateString(),
@@ -504,9 +530,10 @@ class ArchiveController extends Controller
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $records = ArchiveRecord::whereIn('id', $data['archive_ids'])->get();
+        $records = $this->recordsByIds($request->user(), $data['archive_ids']);
 
         foreach ($records as $record) {
+            $this->authorize('checkin', $record);
             $record->update([
                 'status' => 'returned',
                 'returned_at' => $record->returned_at ?? now()->toDateString(),
@@ -534,9 +561,10 @@ class ArchiveController extends Controller
             'box' => ['required', 'string', 'max:120'],
         ]);
 
-        $records = ArchiveRecord::whereIn('id', $data['archive_ids'])->get();
+        $records = $this->recordsByIds($request->user(), $data['archive_ids']);
 
         foreach ($records as $record) {
+            $this->authorize('update', $record);
             $from = $record->locationLabel();
 
             $record->update([
@@ -555,9 +583,11 @@ class ArchiveController extends Controller
         return redirect()->route('archives.index')->with('success', count($records) . ' archive(s) moved.');
     }
 
-    public function boxContents(string $box): \Illuminate\Http\JsonResponse
+    public function boxContents(Request $request, string $box): \Illuminate\Http\JsonResponse
     {
-        $records = ArchiveRecord::where('box', $box)
+        $this->authorize('viewAny', ArchiveRecord::class);
+
+        $records = $this->scopedRecords($request->user())->where('box', $box)
             ->with(['dossier.city', 'dossier.client'])
             ->orderBy('archive_number')
             ->get();
@@ -642,7 +672,9 @@ class ArchiveController extends Controller
 
     public function reports(Request $request): Response
     {
-        $overdue = ArchiveRecord::with('dossier.client')
+        $this->authorize('viewAny', ArchiveRecord::class);
+
+        $overdue = $this->scopedRecords($request->user())->with('dossier.client')
             ->overdue()
             ->orderBy('due_at')
             ->get()
@@ -657,14 +689,14 @@ class ArchiveController extends Controller
                 'overdueDays' => (int) max(0, Carbon::parse($r->due_at)->diffInDays(now(), false)),
             ]);
 
-        $monthly = ArchiveRecord::selectRaw("DATE_FORMAT(created_at, '%Y-%m') as period, COUNT(*) as total")
+        $monthly = $this->scopedRecords($request->user())->selectRaw($this->monthExpression() . ' as period, COUNT(*) as total')
             ->where('created_at', '>=', now()->subMonths(12))
             ->groupBy('period')
             ->orderBy('period')
             ->get()
             ->map(fn ($r) => ['period' => $r->period, 'total' => (int) $r->total]);
 
-        $lost = ArchiveRecord::with('dossier.client')
+        $lost = $this->scopedRecords($request->user())->with('dossier.client')
             ->where('is_lost', true)
             ->orderByDesc('updated_at')
             ->get()
@@ -689,9 +721,9 @@ class ArchiveController extends Controller
         ]);
     }
 
-    private function dossierOptions(): array
+    private function dossierOptions(User $user): array
     {
-        return Dossier::query()
+        return $this->scopedDossiers($user)
             ->with(['client', 'archiveRecord'])
             ->orderByDesc('created_at')
             ->get()
@@ -702,5 +734,33 @@ class ArchiveController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function scopedDossiers(User $user): Builder
+    {
+        return $this->companyContext->applyTo(Dossier::query(), $user);
+    }
+
+    private function scopedRecords(User $user): Builder
+    {
+        return ArchiveRecord::query()->whereIn('dossier_id', $this->scopedDossiers($user)->select('id'));
+    }
+
+    private function recordsByIds(User $user, array $ids): \Illuminate\Support\Collection
+    {
+        $records = $this->scopedRecords($user)->whereIn('id', $ids)->get();
+
+        abort_unless($records->count() === count(array_unique($ids)), 403);
+
+        return $records;
+    }
+
+    private function monthExpression(): string
+    {
+        return match (config('database.default')) {
+            'sqlite' => "strftime('%Y-%m', created_at)",
+            'pgsql' => "to_char(created_at, 'YYYY-MM')",
+            default => "DATE_FORMAT(created_at, '%Y-%m')",
+        };
     }
 }

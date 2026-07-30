@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CalendarEvent;
 use App\Models\User;
+use App\Services\Collaboration\RelatedRecordScopeGuard;
 use App\Services\Calendar\CalendarActivityService;
 use App\Services\Calendar\CalendarNotificationService;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +15,7 @@ class CalendarParticipantController extends Controller
     public function __construct(
         protected CalendarNotificationService $notificationService,
         protected CalendarActivityService $activityService,
+        protected RelatedRecordScopeGuard $scopeGuard,
     ) {}
 
     public function store(Request $request, CalendarEvent $calendarEvent): RedirectResponse
@@ -24,6 +26,8 @@ class CalendarParticipantController extends Controller
             'user_id' => ['required', 'exists:users,id'],
             'role' => ['nullable', 'string', 'in:owner,assignee,watcher,guest'],
         ]);
+
+        $this->scopeGuard->assertUserIds($request->user(), [$data['user_id']]);
 
         $calendarEvent->participants()->firstOrCreate(
             ['user_id' => $data['user_id']],
@@ -43,6 +47,7 @@ class CalendarParticipantController extends Controller
     public function destroy(CalendarEvent $calendarEvent, User $user): RedirectResponse
     {
         $this->authorize('update', $calendarEvent);
+        $this->scopeGuard->assertUserIds(request()->user(), [$user->id]);
 
         $calendarEvent->participants()->where('user_id', $user->id)->where('role', '!=', 'owner')->delete();
 
