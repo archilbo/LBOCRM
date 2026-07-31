@@ -38,7 +38,6 @@ const financeChildren: { key: string; labelKey?: string }[] = [
     { key: 'financePayments' },
     { key: 'financeMonthly' },
     { key: 'financeTemplates' },
-    { key: 'financeSettings' },
 ];
 
 /* ── Group keys for collapsed rail popovers ── */
@@ -49,7 +48,7 @@ const operationsGroupKeys = [
 
 const financeGroupKeys = [
     'finance', 'financeDocuments', 'financePayments',
-    'financeMonthly', 'financeTemplates', 'financeSettings',
+    'financeMonthly', 'financeTemplates',
 ] as const;
 
 function isGroupActive(keys: readonly string[], isActive: (r: AppRoute) => boolean): boolean {
@@ -434,7 +433,7 @@ export function AppSidebar() {
                     {/* ── Bottom: settings, user, logout ── */}
                     <div className="shrink-0 border-t border-border px-2 py-2">
                         <div className="flex flex-col items-center gap-[6px]">
-                            <button type="button" onClick={() => goTo('/settings', false)}
+                            <button type="button" onClick={() => goTo('/settings', true)}
                                 onMouseEnter={(e) => handleEnter(e, t('nav.settings'))}
                                 onMouseLeave={handleLeave}
                                 className="flex size-9 items-center justify-center rounded-xl text-muted transition hover:bg-surface-2 hover:text-foreground"
@@ -593,7 +592,7 @@ export function AppSidebar() {
             {/* ── Bottom: settings, help, user ── */}
             <div className="relative shrink-0 border-t border-border" ref={userRef}>
                 <div className="flex items-center gap-0.5 border-b border-border px-2 py-1">
-                    <button type="button" onClick={() => goTo('/settings', false)}
+                    <button type="button" onClick={() => goTo('/settings', true)}
                         className="flex h-7 flex-1 items-center gap-2 rounded-md px-2 text-[12px] font-medium text-muted transition hover:bg-surface-2 hover:text-foreground">
                         <Settings size={14} />
                         {t('nav.settings')}

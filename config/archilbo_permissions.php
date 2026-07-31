@@ -333,11 +333,15 @@ return [
         'finance.expenses.store' => 'finance.expenses.create',
         'finance.expenses.update' => 'finance.expenses.update',
         'finance.expenses.destroy' => 'finance.expenses.delete',
-        'finance.settings.index' => 'finance.settings.view',
         'finance.settings.update' => 'finance.settings.update',
         'finance.settings.reset' => 'finance.settings.update',
         'finance.settings.logo.store' => 'finance.settings.update',
         'finance.settings.logo.destroy' => 'finance.settings.update',
+
+        'settings.index' => 'archive.view',
+        'settings.cities.store' => 'archive.update',
+        'settings.cities.update' => 'archive.update',
+        'settings.cities.destroy' => 'archive.delete',
 
         'dossiers.project-design.*' => 'project-design.view',
         'project-design.assets.*' => 'project-design.view',

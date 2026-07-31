@@ -94,9 +94,9 @@ final class UnicodeText
          * - mathematical symbols
          */
         $text = preg_replace(
-            '/[^\x{0009}\x{000A}\x{000D}' .
-            '\x{0020}-\x{D7FF}' .
-            '\x{E000}-\x{FFFD}' .
+            '/[^\x{0009}\x{000A}\x{000D}'.
+            '\x{0020}-\x{D7FF}'.
+            '\x{E000}-\x{FFFD}'.
             '\x{10000}-\x{10FFFF}]/u',
             '',
             $text
@@ -105,7 +105,5 @@ final class UnicodeText
         return $text === '' ? '-' : $text;
     }
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 }

@@ -37,7 +37,7 @@ class ArchiveDemoSeeder extends Seeder
 
         foreach ($dossiersWithoutCity as $dossier) {
             $city = $cityPool->random();
-            $numbering = $numberService->generate($city, $dossier->created_at ?? now());
+            $numbering = $numberService->generate($dossier->created_at ?? now());
             $dossier->update([
                 'city_id' => $city->id,
                 'dossier_number' => $numbering['number'],

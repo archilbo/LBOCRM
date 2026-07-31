@@ -3,6 +3,7 @@ import { router } from '@inertiajs/react';
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
 import { AlertTriangle, FileDown, FileSpreadsheet, FileText, Printer, ReceiptText } from 'lucide-react';
 import { Button, Card, Input, ListBox, Select, TextArea } from '@heroui/react';
+import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { toast } from 'sonner';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { DateField } from '@/features/archives/components/DateField';
@@ -146,44 +147,30 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                         {clients.length > 0 ? (
                             <div className="flex min-w-0 flex-col gap-1">
                                 <label className={labelCls}>Client</label>
-                                <Select
-                                    placeholder="Filtrer par client"
-                                    selectedKey={selectedClientId || null}
-                                    isDisabled={lockClientContext}
-                                    onSelectionChange={(key) => {
-                                        const clientId = key != null ? String(key) : '';
-                                        setSelectedClientId(clientId);
+                                <AppAutocomplete
+                                    value={selectedClientId}
+                                    onChange={(v) => {
+                                        setSelectedClientId(v);
                                         setForm((prev) => ({ ...prev, financeDocumentId: '', dossierId: '' }));
                                     }}
-                                >
-                                    <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" placeholder="Tous les clients" /><Select.Indicator /></Select.Trigger>
-                                    <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
-                                        {clients.map((c) => (
-                                            <ListBox.Item key={c.id} id={c.id} textValue={c.label} className={compactItem}>{c.label}</ListBox.Item>
-                                        ))}
-                                    </ListBox></Select.Popover>
-                                </Select>
+                                    options={clients}
+                                    placeholder="Tous les clients"
+                                    isDisabled={lockClientContext}
+                                />
                             </div>
                         ) : null}
                         {dossiers.length > 0 ? (
                             <div className="flex min-w-0 flex-col gap-1">
                                 <label className={labelCls}>Dossier</label>
-                                <Select
-                                    placeholder="Choisir un dossier"
-                                    selectedKey={form.dossierId || null}
-                                    isDisabled={lockDossierContext}
-                                    onSelectionChange={(key) => {
-                                        const dossierId = key != null ? String(key) : '';
-                                        setForm((prev) => ({ ...prev, dossierId, financeDocumentId: '' }));
+                                <AppAutocomplete
+                                    value={form.dossierId}
+                                    onChange={(v) => {
+                                        setForm((prev) => ({ ...prev, dossierId: v, financeDocumentId: '' }));
                                     }}
-                                >
-                                    <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" placeholder="Choisir un dossier" /><Select.Indicator /></Select.Trigger>
-                                    <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
-                                        {filteredDossiers.map((dossier) => (
-                                            <ListBox.Item key={dossier.id} id={dossier.id} textValue={dossier.label} className={compactItem}>{dossier.label}</ListBox.Item>
-                                        ))}
-                                    </ListBox></Select.Popover>
-                                </Select>
+                                    options={filteredDossiers}
+                                    placeholder="Choisir un dossier"
+                                    isDisabled={lockDossierContext}
+                                />
                             </div>
                         ) : null}
                         <div className="flex min-w-0 flex-col gap-1">

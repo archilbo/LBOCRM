@@ -284,7 +284,7 @@ class FinanceController extends Controller
             ->get()
             ->map(fn (Dossier $dossier) => [
                 'id' => (string) $dossier->id,
-                'label' => $dossier->dossier_number . ' - ' . $dossier->project_object . ' - ' . ($dossier->client?->full_name ?? '-'),
+                'label' => $dossier->dossier_number . ($dossier->project_object ? ' - ' . $dossier->project_object : ''),
                 'clientName' => $dossier->client?->full_name ?? '-',
             ])
             ->values()

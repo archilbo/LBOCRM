@@ -49,9 +49,15 @@ export type ArchiveRecordRow = {
     events?: ArchiveEventRow[];
 };
 
+export type ArchiveClientOption = {
+    id: string;
+    label: string;
+};
+
 export type ArchiveDossierOption = {
     id: string;
     label: string;
+    clientId: string;
     hasArchiveRecord: boolean;
 };
 
@@ -62,7 +68,6 @@ export type ArchiveFormPayload = {
     room: string;
     shelf: string;
     box: string;
-    folder: string;
     inDate: string;
     outDate: string;
     returnedAt: string;
@@ -126,6 +131,7 @@ export type ArchivesPageProps = {
     };
     tree: TreeNode[];
     cells: CellRoom[];
+    clients: ArchiveClientOption[];
     dossiers: ArchiveDossierOption[];
     requesters: { id: string; name: string }[];
     cities: { id: number; name: string; code: string; color: string }[];

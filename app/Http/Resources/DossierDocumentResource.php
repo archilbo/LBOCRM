@@ -10,39 +10,109 @@ class DossierDocumentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $files = app(DossierDocumentFileService::class);
+        $files = app(
+            DossierDocumentFileService::class
+        );
+
         $hasFile = $files->exists($this->resource);
-        $canPreview = $files->canPreview($this->resource, $hasFile);
+        $canPreview = $files->canPreview(
+            $this->resource,
+            $hasFile
+        );
+
+        $baseName =
+            $this->template?->name
+            ?? 'Manual document';
+
+        $displayName = match (
+            $this->document_side
+        ) {
+            DossierDocument::SIDE_FRONT =>
+                $baseName.' — Recto',
+
+            DossierDocument::SIDE_BACK =>
+                $baseName.' — Verso',
+
+            default => $baseName,
+        };
 
         return [
             'id' => $this->id,
-            'dossierId' => $this->dossier_id ? (string) $this->dossier_id : '',
-            'dossierNumber' => $this->dossier?->dossier_number ?? '-',
-            'projectObject' => $this->dossier?->project_object ?? '-',
-            'clientName' => $this->dossier?->client?->full_name ?? '-',
-
-            'documentTemplateId' => $this->document_template_id ? (string) $this->document_template_id : '',
-            'templateName' => $this->template?->name ?? 'Manual document',
-            'templateCode' => $this->template?->code ?? null,
-            'documentType' => $this->template?->document_type ?? 'manual',
-
-            'documentNumber' => $this->document_number,
-            'originalFilename' => $this->original_filename,
+            'dossierId' => $this->dossier_id
+                ? (string) $this->dossier_id
+                : '',
+            'dossierNumber' =>
+                $this->dossier?->dossier_number
+                ?? '-',
+            'projectObject' =>
+                $this->dossier?->project_object
+                ?? '-',
+            'clientName' =>
+                $this->dossier?->client?->full_name
+                ?? '-',
+            'documentTemplateId' =>
+                $this->document_template_id
+                    ? (string)
+                        $this->document_template_id
+                    : '',
+            'templateName' => $displayName,
+            'templateBaseName' => $baseName,
+            'templateCode' =>
+                $this->template?->code,
+            'documentType' =>
+                $this->template?->document_type
+                ?? 'manual',
+            'documentSide' =>
+                $this->document_side
+                ?? DossierDocument::SIDE_SINGLE,
+            'documentNumber' =>
+                $this->document_number,
+            'originalFilename' =>
+                $this->original_filename,
             'mimeType' => $this->mime_type,
             'sizeBytes' => $this->size_bytes,
-            'sizeLabel' => $this->formatSize($this->size_bytes),
+            'sizeLabel' =>
+                $this->formatSize(
+                    $this->size_bytes
+                ),
             'status' => $this->status,
-            'uploadedAt' => optional($this->uploaded_at)->format('Y-m-d H:i'),
-            'verifiedAt' => optional($this->verified_at)->format('Y-m-d H:i'),
-            'updatedAt' => optional($this->updated_at)->diffForHumans(),
+            'uploadedAt' =>
+                optional(
+                    $this->uploaded_at
+                )->format('Y-m-d H:i'),
+            'verifiedAt' =>
+                optional(
+                    $this->verified_at
+                )->format('Y-m-d H:i'),
+            'updatedAt' =>
+                optional(
+                    $this->updated_at
+                )->diffForHumans(),
             'notes' => $this->notes,
-
             'hasFile' => $hasFile,
             'canPreview' => $canPreview,
-            'storageLocation' => $files->locationLabel($this->resource),
-            'viewUrl' => $canPreview ? route('documents.view', $this->id) : null,
-            'printUrl' => $canPreview ? route('documents.print', $this->id) : null,
-            'downloadUrl' => $hasFile ? route('documents.download', $this->id) : null,
+            'storageLocation' =>
+                $files->locationLabel(
+                    $this->resource
+                ),
+            'viewUrl' => $canPreview
+                ? route(
+                    'documents.view',
+                    $this->id
+                )
+                : null,
+            'printUrl' => $canPreview
+                ? route(
+                    'documents.print',
+                    $this->id
+                )
+                : null,
+            'downloadUrl' => $hasFile
+                ? route(
+                    'documents.download',
+                    $this->id
+                )
+                : null,
         ];
     }
 

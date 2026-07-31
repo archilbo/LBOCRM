@@ -17,6 +17,7 @@ use App\Models\Room;
 use App\Models\Shelf;
 use App\Models\User;
 use App\Services\CompanyContext;
+use App\Services\Documents\WorkflowDocumentTemplateResolver;
 use App\Services\Finance\DossierFinanceEligibilityService;
 use App\Services\PermissionRegistry;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class ProjectWorkspaceDataService
     public function __construct(
         private readonly CompanyContext $companyContext,
         private readonly PermissionRegistry $permissions,
+        private readonly WorkflowDocumentTemplateResolver $documentTemplateResolver,
         private readonly DossierWorkflowStepperService $workflowStepper,
         private readonly DossierFinanceEligibilityService $financeEligibility,
         private readonly ProjectActivityService $activity,
@@ -160,12 +162,26 @@ class ProjectWorkspaceDataService
                     ->orderBy('name')
                     ->get(['id', 'name', 'code', 'color'])
                 : [],
-            'dossiers' => $capabilities['canViewDocuments']
+            'dossiers' => (
+                $capabilities['canViewDocuments']
+                || $capabilities['canCreateDocuments']
+            )
                 ? $this->dossierOptions($user)
                 : [],
-            'templates' => $capabilities['canViewDocuments']
+
+            'templates' => (
+                $capabilities['canViewDocuments']
+                || $capabilities['canCreateDocuments']
+            )
                 ? $this->documentTemplateOptions()
                 : [],
+
+            'workflowTemplateMap' =>
+                $capabilities['canCreateDocuments']
+                    ? $this
+                        ->documentTemplateResolver
+                        ->requirementTemplateMap()
+                    : [],
             'contractClients' => $capabilities['canViewContract']
                 ? $this->contractClientOptions($user)
                 : [],
@@ -222,13 +238,31 @@ class ProjectWorkspaceDataService
             ->map(function (DossierDocument $document) use ($user): array {
                 $canDownload = $user->can('download', $document);
 
+                $baseName =
+                    $document->template?->name
+                    ?? $document->original_filename
+                    ?? 'Document';
+
+                $displayName = match (
+                    $document->document_side
+                ) {
+                    DossierDocument::SIDE_FRONT =>
+                        $baseName.' — Recto',
+
+                    DossierDocument::SIDE_BACK =>
+                        $baseName.' — Verso',
+
+                    default => $baseName,
+                };
+
                 return [
                     'id' => $document->id,
                     'documentNumber' => $document->document_number,
-                    'name' => $document->template?->name
-                        ?? $document->original_filename
-                        ?? $document->document_number
-                        ?? 'Document',
+                    'name' => $displayName,
+                    'baseName' => $baseName,
+                    'documentSide' =>
+                        $document->document_side
+                        ?? DossierDocument::SIDE_SINGLE,
                     'status' => $document->status,
                     'fileName' => $document->original_filename,
                     'mimeType' => $document->mime_type,
@@ -239,6 +273,15 @@ class ProjectWorkspaceDataService
                     'downloadUrl' => $canDownload && Route::has('documents.download')
                         ? route('documents.download', $document)
                         : null,
+                    'type' =>
+                        $document->template
+                            ?->document_type
+                        ?? 'manual',
+                    'templateId' =>
+                        $document
+                            ->document_template_id,
+                    'templateCode' =>
+                        $document->template?->code,
                 ];
             });
     }
@@ -408,7 +451,7 @@ class ProjectWorkspaceDataService
             ->get()
             ->map(fn (Client $client) => [
                 'id' => (string) $client->id,
-                'label' => $client->client_number.' - '.$client->full_name,
+                'label' => $client->cin . ' - ' . $client->full_name,
             ])
             ->values()
             ->all();
@@ -417,16 +460,11 @@ class ProjectWorkspaceDataService
     private function dossierOptions(User $user): Collection
     {
         return $this->companyContext->applyTo(Dossier::query(), $user)
-            ->with('client:id,full_name')
             ->latest('created_at')
             ->get(['id', 'client_id', 'dossier_number', 'project_object'])
             ->map(fn (Dossier $dossier) => [
                 'id' => (string) $dossier->id,
-                'label' => trim(implode(' - ', array_filter([
-                    $dossier->dossier_number,
-                    $dossier->project_object,
-                    $dossier->client?->full_name,
-                ]))),
+                'label' => $dossier->dossier_number . ($dossier->project_object ? ' - ' . $dossier->project_object : ''),
                 'clientId' => (string) $dossier->client_id,
             ])
             ->values();
@@ -436,15 +474,15 @@ class ProjectWorkspaceDataService
     {
         return DocumentTemplate::query()
             ->where('is_active', true)
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
-            ->map(fn (DocumentTemplate $template) => [
-                'id' => (string) $template->id,
-                'label' => $template->name,
-                'code' => $template->code,
-                'documentType' => $template->document_type,
-                'isRequired' => (bool) $template->is_required,
-            ])
+            ->map(
+                fn (DocumentTemplate $template) =>
+                    $this
+                        ->documentTemplateResolver
+                        ->option($template)
+            )
             ->values();
     }
 

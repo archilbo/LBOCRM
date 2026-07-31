@@ -91,6 +91,7 @@ type PageProps = {
     cities: City[];
     dossiers: DossierOption[];
     templates: DocumentTemplateOption[];
+    workflowTemplateMap: Record<string, string>;
     contractClients: ContractClientOption[];
     financeDossiers: FinanceDossierOption[];
     archiveRooms: ArchiveLocationOption[];
@@ -152,7 +153,13 @@ function workflowLabel(value: string) {
 
 export default function DossierShow({
     dossier, workflow, documents, contract, financeRecords, archiveRecord,
-    clients, cities, dossiers: dossiersOptions, templates, contractClients, financeDossiers,
+    clients,
+    cities,
+    dossiers: dossiersOptions,
+    templates,
+    workflowTemplateMap,
+    contractClients,
+    financeDossiers,
     archiveRooms, archiveShelves, archiveBoxes, canDesign,
 }: PageProps) {
     function parseQuery(): { tab: TabId; pdMode: string; pdFile: string; pdVersion: string; pdAsset: string; pdPage: string; pdRemark: string; pdInspector: string } {
@@ -219,37 +226,43 @@ export default function DossierShow({
     const [contractSigned, setContractSigned] = useState(false);
     const [formErrors, setFormErrors] = useState<FormErrors>({});
 
-    const handleOpenUpload = useCallback((stepKey?: string, reqKey?: string) => {
-        setPendingStepKey(stepKey ?? '');
-        setPendingReqKey(reqKey ?? '');
-        if (reqKey) {
-            const match: Record<string, string> = {
-                cin: 'CIN',
-                certificat_propriete: 'Certificat de propriete',
-                plan_cadastral: 'Plan cadastral',
-                calcul_contenance: 'Calcul de contenance',
-                plan_parcellaire: 'Plan parcellaire',
-                cahier_received: 'Cahier de chantier',
-                contract_bureau_etude: 'Contrat BE',
-                plan_beton: 'Plan beton arme',
-                attestation_implantation: 'Attestation implantation',
-                contrat_topographie: 'Contrat topographie',
-                contrat_laboratoire: 'Contrat laboratoire',
-                bureau_controle: 'Bureau de controle',
-                fiche_energetique: 'Fiche energetique',
-                site_images: 'Plan cadastral',
-                demande_permis_habiter: 'Certificat de propriete',
-                recent_certificat_propriete: 'Certificat de propriete',
-                engineer_request: 'Cahier de chantier',
-            };
-            const templateName = match[reqKey];
-            const tmpl = templateName ? templates.find((t) => t.label === templateName) : undefined;
-            setInitialTemplateId(tmpl?.id ?? '');
-        } else {
-            setInitialTemplateId('');
-        }
-        setDocumentDrawerOpen(true);
-    }, [templates]);
+    const handleOpenUpload = useCallback(
+        (
+            stepKey?: string,
+            reqKey?: string,
+        ) => {
+            const resolvedTemplateId =
+                reqKey
+                    ? workflowTemplateMap[
+                        reqKey
+                    ] ?? ''
+                    : '';
+
+            setPendingStepKey(
+                stepKey ?? ''
+            );
+
+            setPendingReqKey(
+                reqKey ?? ''
+            );
+
+            setInitialTemplateId(
+                resolvedTemplateId
+            );
+
+            if (
+                reqKey
+                && ! resolvedTemplateId
+            ) {
+                toast.warning(
+                    'Aucun type de document actif n\'est configuré pour cette exigence.'
+                );
+            }
+
+            setDocumentDrawerOpen(true);
+        },
+        [workflowTemplateMap],
+    );
 
     function handleArchiveSubmit(payload: { clientId: string; dossierId: string; status: string; room: string | null; shelf: string | null; box: string | null; folder: string | null; inDate: string | null; outDate: string | null; returnedAt: string | null; requestedBy: string | null; notes: string | null; }) {
         router.post('/archives', { ...payload, dossier_id: payload.dossierId, return_to: window.location.pathname }, {
@@ -285,21 +298,123 @@ export default function DossierShow({
         });
     }
 
-    function handleDocumentSubmit(payload: DocumentUploadPayload) {
+    function handleDocumentSubmit(
+        payload: DocumentUploadPayload,
+    ) {
         const formData = new FormData();
-        formData.append('dossier_id', payload.dossierId);
-        formData.append('document_template_id', payload.documentTemplateId);
-        formData.append('status', payload.status);
-        formData.append('notes', payload.notes);
-        if (pendingStepKey) formData.append('workflow_step_key', pendingStepKey);
-        if (pendingReqKey) formData.append('workflow_req_key', pendingReqKey);
-        if (payload.file) formData.append('file', payload.file);
-        router.post('/documents', formData, {
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => { setDocumentDrawerOpen(false); setPendingStepKey(''); setPendingReqKey(''); setFormErrors({}); toast.success('Document uploaded.'); },
-            onError: (err) => { setFormErrors(err as FormErrors); toast.error('Could not upload document.'); },
-        });
+
+        const selectedTemplate =
+            templates.find(
+                (template) =>
+                    template.id ===
+                    payload.documentTemplateId
+            ) ?? null;
+
+        formData.append(
+            'dossier_id',
+            payload.dossierId
+        );
+
+        formData.append(
+            'document_template_id',
+            payload.documentTemplateId
+        );
+
+        formData.append(
+            'status',
+            payload.status
+        );
+
+        formData.append(
+            'notes',
+            payload.notes
+        );
+
+        if (
+            selectedTemplate?.uploadMode
+                === 'cin_pair'
+        ) {
+            if (payload.cinFrontFile) {
+                formData.append(
+                    'file_front',
+                    payload.cinFrontFile
+                );
+            }
+
+            if (payload.cinBackFile) {
+                formData.append(
+                    'file_back',
+                    payload.cinBackFile
+                );
+            }
+        } else if (payload.file) {
+            formData.append(
+                'file',
+                payload.file
+            );
+        }
+
+        const expectedTemplateId =
+            pendingReqKey
+                ? workflowTemplateMap[
+                    pendingReqKey
+                ] ?? ''
+                : '';
+
+        const matchesWorkflowType =
+            pendingReqKey === ''
+            || expectedTemplateId
+                === payload.documentTemplateId;
+
+        if (
+            pendingStepKey
+            && pendingReqKey
+            && matchesWorkflowType
+        ) {
+            formData.append(
+                'workflow_step_key',
+                pendingStepKey
+            );
+
+            formData.append(
+                'workflow_req_key',
+                pendingReqKey
+            );
+        }
+
+        router.post(
+            '/documents',
+            formData,
+            {
+                preserveScroll: true,
+                preserveState: true,
+
+                onSuccess: () => {
+                    setDocumentDrawerOpen(
+                        false
+                    );
+
+                    setInitialTemplateId('');
+                    setPendingStepKey('');
+                    setPendingReqKey('');
+                    setFormErrors({});
+
+                    toast.success(
+                        'Document téléversé.'
+                    );
+                },
+
+                onError: (errorBag) => {
+                    setFormErrors(
+                        errorBag as FormErrors
+                    );
+
+                    toast.error(
+                        'Le document n\'a pas pu être téléversé.'
+                    );
+                },
+            }
+        );
     }
 
     function handleContractSubmit(payload: ContractFormPayload) {

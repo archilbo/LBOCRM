@@ -71,7 +71,7 @@ class GlobalSearchController extends Controller
     private function dossiers(string $like, Request $request, CompanyContext $companyContext): Collection
     {
         return $companyContext->applyTo(Dossier::query(), $request->user())
-            ->with('client')
+            ->with(['client', 'archiveRecord'])
             ->where(function ($builder) use ($like) {
                 $builder
                     ->where('dossier_number', 'like', $like)
@@ -97,6 +97,13 @@ class GlobalSearchController extends Controller
                 'subtitle' => $dossier->dossier_number . ' Â· ' . ($dossier->client?->full_name ?? '-'),
                 'href' => '/dossiers/' . $dossier->id,
                 'badge' => $dossier->workflow_step,
+                'archive' => $dossier->relationLoaded('archiveRecord') && $dossier->archiveRecord
+                    ? [
+                        'number' => $dossier->archiveRecord->archive_number,
+                        'status' => $dossier->archiveRecord->status,
+                        'location' => collect([$dossier->archiveRecord->room, $dossier->archiveRecord->shelf, $dossier->archiveRecord->box])->filter()->implode(' / '),
+                    ]
+                    : null,
             ]);
     }
 

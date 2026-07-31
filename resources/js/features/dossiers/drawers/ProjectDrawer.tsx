@@ -3,6 +3,7 @@ import {
     FileText, MapPin, MessageSquareText, Ruler, Users,
 } from 'lucide-react';
 import { Input, TextArea } from '@heroui/react';
+import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { DrawerField, DrawerSelect, DrawerSection, drawerStyles } from '@/components/drawers';
@@ -134,7 +135,7 @@ export function ProjectDrawer({
                 <DrawerSection icon={<Users size={12} />} title="Client & workflow">
                     <div className="flex flex-col gap-2">
                         <DrawerField label="Client" error={firstError(errors, 'client_id')}>
-                            <DrawerSelect
+                            <AppAutocomplete
                                 value={form.clientId}
                                 onChange={(v) => updateField('clientId', v)}
                                 options={clients}

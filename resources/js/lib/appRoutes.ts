@@ -10,7 +10,6 @@ import {
     ReceiptText,
     CalendarDays,
     Settings,
-    SlidersHorizontal,
     UserRound,
     Users,
     ListChecks,
@@ -32,7 +31,6 @@ export type AppRouteKey =
     | 'financePayments'
     | 'financeMonthly'
     | 'financeTemplates'
-    | 'financeSettings'
     | 'archives'
     | 'branches'
     | 'settings'
@@ -179,16 +177,6 @@ export const appRoutes: AppRoute[] = [
         requiredPermission: 'finance.templates.view',
     },
     {
-        key: 'financeSettings',
-        labelKey: 'nav.financeSettings',
-        href: '/finance/settings',
-        icon: SlidersHorizontal,
-        enabled: true,
-        searchable: true,
-        group: 'management',
-        requiredPermission: 'finance.settings.view',
-    },
-    {
         key: 'archives',
         labelKey: 'nav.archives',
         href: '/archives',
@@ -289,12 +277,12 @@ export const appRoutes: AppRoute[] = [
     {
         key: 'settings',
         labelKey: 'nav.settings',
-        href: '#',
+        href: '/settings',
         icon: Settings,
-        enabled: false,
+        enabled: true,
         searchable: false,
         group: 'administration',
-        badgeKey: 'app.soon',
+        requiredPermission: 'archive.view',
     },
 ];
 

@@ -10,12 +10,15 @@ use App\Models\Client;
 use App\Models\DocumentTemplate;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
-use App\Models\DossierWorkflowRequirement;
 use App\Notifications\DocumentNotification;
 use App\Services\Documents\DocumentGroupingService;
 use App\Services\Documents\DossierDocumentFileService;
+use App\Services\Documents\DossierDocumentUploadService;
+use App\Services\Documents\WorkflowDocumentCompletionService;
+use App\Services\Documents\WorkflowDocumentTemplateResolver;
 use App\Services\Dossiers\DossierPathBuilder;
 use App\Services\CompanyContext;
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -57,15 +60,109 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function store(StoreDossierDocumentRequest $request, CompanyContext $companyContext): RedirectResponse
-    {
-        $this->authorize('create', DossierDocument::class);
+    public function store(
+        StoreDossierDocumentRequest $request,
+        CompanyContext $companyContext,
+        DossierDocumentUploadService $uploads,
+        WorkflowDocumentCompletionService $workflowCompletion,
+        WorkflowDocumentTemplateResolver $templateResolver,
+    ): RedirectResponse {
+        $this->authorize(
+            'create',
+            DossierDocument::class
+        );
+
         $data = $request->validated();
 
-        $dossier = $companyContext->applyTo(Dossier::query(), $request->user())
-            ->with(['city', 'client'])
-            ->findOrFail($data['dossier_id']);
-        $file = $request->file('file');
+        $dossier = $companyContext
+            ->applyTo(
+                Dossier::query(),
+                $request->user()
+            )
+            ->with([
+                'city',
+                'client',
+            ])
+            ->findOrFail(
+                $data['dossier_id']
+            );
+
+        $template = DocumentTemplate::query()
+            ->where('is_active', true)
+            ->findOrFail(
+                $data['document_template_id']
+            );
+
+        $filesBySide =
+            $templateResolver
+                ->isCinTemplate($template)
+            ? [
+                DossierDocument::SIDE_FRONT =>
+                    $request->file('file_front'),
+
+                DossierDocument::SIDE_BACK =>
+                    $request->file('file_back'),
+            ]
+            : [
+                DossierDocument::SIDE_SINGLE =>
+                    $request->file('file'),
+            ];
+
+        $filesBySide = array_filter(
+            $filesBySide,
+            fn ($file): bool =>
+                $file !== null
+        );
+
+        $documents = $uploads->upload(
+            $dossier,
+            $template,
+            $filesBySide,
+            $data['status'] ?? 'uploaded',
+            $data['notes'] ?? null,
+        );
+
+        $workflowCompletion
+            ->completeWhenSatisfied(
+                $dossier,
+                $template,
+                $data['workflow_step_key']
+                    ?? null,
+                $data['workflow_req_key']
+                    ?? null,
+                $request->user(),
+            );
+
+        $firstDocument =
+            $documents->first();
+
+        if ($firstDocument) {
+            $request->user()->notify(
+                new DocumentNotification(
+                    $firstDocument,
+                    'uploaded',
+                    'Document uploaded: '
+                        .$template->name
+                )
+            );
+        }
+
+        return $this->redirectToReturnPath(
+            $request,
+            'Document saved successfully.'
+        );
+    }
+
+    private function storeSingleDocument(
+        Dossier $dossier,
+        ?DocumentTemplate $template,
+        DossierPathBuilder $pathBuilder,
+        Request $request,
+        array $data,
+        $file,
+        string $suffix,
+    ): DossierDocument {
+        $cleanName = $this->generateDocumentName($dossier, $template) . $suffix;
 
         $payload = [
             'dossier_id' => $dossier->id,
@@ -75,24 +172,22 @@ class DocumentController extends Controller
         ];
 
         if ($file) {
-            $pathBuilder = app(DossierPathBuilder::class);
-            $template = $data['document_template_id']
-                ? DocumentTemplate::find($data['document_template_id'])
-                : null;
-            $relativePath = $pathBuilder->documentPath($dossier, $template, $file->getClientOriginalName());
+            $extension = $file->getClientOriginalExtension() ?: 'pdf';
+            $namedFilename = $cleanName . '.' . $extension;
+            $relativePath = $pathBuilder->documentPath($dossier, $template, $namedFilename);
             $storedPath = $file->storeAs(dirname($relativePath), basename($relativePath), 'local');
 
             $payload['document_number'] = $this->nextDocumentNumber();
-            $payload['original_filename'] = $file->getClientOriginalName();
+            $payload['original_filename'] = $namedFilename;
             $payload['stored_path'] = $storedPath;
             $payload['mime_type'] = $file->getClientMimeType();
             $payload['size_bytes'] = $file->getSize();
             $payload['uploaded_at'] = now();
         }
 
+        // Upsert by dossier_id + document_template_id for non-CIN
         $existing = null;
-
-        if (!empty($payload['document_template_id'])) {
+        if (!empty($payload['document_template_id']) && $template?->code !== 'cin') {
             $existing = DossierDocument::query()
                 ->where('dossier_id', $dossier->id)
                 ->where('document_template_id', $payload['document_template_id'])
@@ -103,34 +198,27 @@ class DocumentController extends Controller
             if ($file && $existing->stored_path) {
                 $this->deleteStoredDocument($existing);
             }
-
             $existing->update($payload);
             if ($file) {
-                $request->user()->notify(new DocumentNotification($existing->fresh(), 'uploaded', 'Document uploaded: ' . ($payload['original_filename'] ?? $existing->document_number)));
+                $request->user()?->notify(new DocumentNotification($existing->fresh(), 'uploaded', 'Document uploaded: ' . ($payload['original_filename'] ?? $existing->document_number)));
             }
-        } else {
-            $doc = DossierDocument::create($payload);
-            if ($file) {
-                $request->user()->notify(new DocumentNotification($doc, 'uploaded', 'Document uploaded: ' . ($payload['original_filename'] ?? $doc->document_number)));
-            }
+            return $existing;
         }
 
-        if ($file && $request->filled('workflow_step_key') && $request->filled('workflow_req_key')) {
-            DossierWorkflowRequirement::updateOrCreate(
-                [
-                    'dossier_id' => $dossier->id,
-                    'step_key' => $request->string('workflow_step_key')->toString(),
-                    'requirement_key' => $request->string('workflow_req_key')->toString(),
-                ],
-                [
-                    'is_done' => true,
-                    'checked_at' => now(),
-                    'checked_by' => $request->user()?->id,
-                ]
-            );
+        $doc = DossierDocument::create($payload);
+        if ($file) {
+            $request->user()?->notify(new DocumentNotification($doc, 'uploaded', 'Document uploaded: ' . ($payload['original_filename'] ?? $doc->document_number)));
         }
 
-        return $this->redirectToReturnPath($request, 'Document saved successfully.');
+        return $doc;
+    }
+
+    private function generateDocumentName(Dossier $dossier, ?DocumentTemplate $template): string
+    {
+        $clientName = $dossier->client?->full_name ?? 'CLIENT';
+        $typeName = $template?->name ?? 'DOCUMENT';
+
+        return mb_strtoupper($typeName) . ' - ' . mb_strtoupper($clientName);
     }
 
     public function updateStatus(
@@ -175,13 +263,48 @@ class DocumentController extends Controller
         abort_unless($dossier, 404, 'Le dossier du document est introuvable.');
 
         $file = $request->file('file');
-        $relativePath = $pathBuilder->documentPath($dossier, $dossierDocument->template, $file->getClientOriginalName());
+        
+        $clientName = mb_strtoupper(
+            $dossier->client?->full_name ?? 'CLIENT'
+        );
+
+        $typeName = mb_strtoupper(
+            $dossierDocument->template?->name ?? 'DOCUMENT'
+        );
+
+        $sidePrefix = match (
+            $dossierDocument->document_side
+        ) {
+            DossierDocument::SIDE_FRONT =>
+                'RECTO',
+
+            DossierDocument::SIDE_BACK =>
+                'VERSO',
+
+            default => null,
+        };
+
+        $storageFilename = implode(
+            '_',
+            array_filter([
+                $sidePrefix,
+                $typeName,
+                $clientName,
+                (string) Str::uuid(),
+            ])
+        );
+
+        $relativePath = $pathBuilder->documentPath(
+            $dossier,
+            $dossierDocument->template,
+            $storageFilename,
+        );
         $storedPath = $file->storeAs(dirname($relativePath), basename($relativePath), 'local');
         $previousPath = $dossierDocument->stored_path;
         $status = $request->string('status')->toString() ?: $dossierDocument->status;
 
         $dossierDocument->update([
-            'original_filename' => $file->getClientOriginalName(),
+            'original_filename' => $storageFilename,
             'stored_path' => $storedPath,
             'mime_type' => $file->getClientMimeType(),
             'size_bytes' => $file->getSize(),
@@ -282,7 +405,7 @@ class DocumentController extends Controller
             ->get()
             ->map(fn (Dossier $dossier) => [
                 'id' => (string) $dossier->id,
-                'label' => $dossier->dossier_number . ' - ' . $dossier->project_object . ' - ' . ($dossier->client?->full_name ?? '-'),
+                'label' => $dossier->dossier_number . ($dossier->project_object ? ' - ' . $dossier->project_object : ''),
                 'clientId' => (string) ($dossier->client_id ?? $dossier->client?->id ?? ''),
             ])
             ->values()
@@ -296,7 +419,7 @@ class DocumentController extends Controller
             ->get()
             ->map(fn (Client $client) => [
                 'id' => (string) $client->id,
-                'label' => $client->client_number . ' - ' . $client->full_name,
+                'label' => $client->cin . ' - ' . $client->full_name,
             ])
             ->values()
             ->all();
@@ -304,32 +427,21 @@ class DocumentController extends Controller
 
     private function templateOptions(): array
     {
+        $resolver = app(
+            WorkflowDocumentTemplateResolver::class
+        );
+
         return DocumentTemplate::query()
             ->where('is_active', true)
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
-            ->map(fn (DocumentTemplate $template) => [
-                'id' => (string) $template->id,
-                'label' => $template->name,
-                'code' => $template->code,
-                'documentType' => $template->document_type,
-                'isRequired' => (bool) $template->is_required,
-            ])
+            ->map(
+                fn (DocumentTemplate $template) =>
+                    $resolver->option($template)
+            )
             ->values()
             ->all();
-    }
-
-    private function nextDocumentNumber(): string
-    {
-        $year = now()->format('Y');
-        $next = DossierDocument::count() + 1;
-
-        do {
-            $number = sprintf('DOC-%s-%04d', $year, $next);
-            $next++;
-        } while (DossierDocument::where('document_number', $number)->exists());
-
-        return $number;
     }
 
     private function scopedDocumentQuery(Request $request, CompanyContext $companyContext): Builder

@@ -1,6 +1,14 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import {
+    FormEvent,
+    useEffect,
+    useState,
+} from 'react';
 import type { Key } from 'react-aria-components';
-import { ImageUp, Loader2, ScanLine, Upload, X } from 'lucide-react';
+import {
+    CheckCircle2,
+    ScanLine,
+    Upload,
+} from 'lucide-react';
 import { Input, TextArea } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
@@ -9,8 +17,17 @@ import { drawerStyles, type DrawerBaseProps } from '@/components/drawers';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/cn';
 import { firstError } from '@/lib/formErrors';
-import { DateField } from '@/features/archives/components/DateField';
-import type { CinScanResult, ClientFormPayload, ClientRow, IntermediaryOption } from '@/features/clients/types';
+import { AppDatePicker } from '@/components/ui/AppDatePicker';
+import {
+    CinScannerPanel,
+} from '@/features/clients/cin-scanner/CinScannerPanel';
+import {
+    applyVerifiedCinScan,
+} from '@/features/clients/cin-scanner/applyCinScan';
+import type {
+    CinScanResult,
+} from '@/features/clients/cin-scanner/types';
+import type { ClientFormPayload, ClientRow, IntermediaryOption } from '@/features/clients/types';
 import type { FormErrors } from '@/lib/formErrors';
 
 const CIVILITY_OPTIONS = [
@@ -32,79 +49,21 @@ const emptyForm: ClientFormPayload = {
   intermediaryId: '', notes: '',
 };
 
-function UploadZone({ label, uploadHint, file, preview, onSelect, onClear }: {
-  label: string;
-  uploadHint: string;
-  file: File | null;
-  preview: string | null;
-  onSelect: (f: File) => void;
-  onClear: () => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  return (
-    <div
-      onClick={() => !file && inputRef.current?.click()}
-      className={cn(
-        'relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 transition',
-        file
-          ? 'border-[var(--accent)]/40 bg-[var(--accent)]/5'
-          : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]/30 hover:bg-[var(--surface-2)]',
-      )}
-    >
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onSelect(f);
-        }}
-      />
-      {preview ? (
-        <>
-          <img src={preview} alt={label}
-            className="mb-2 max-h-32 rounded-lg object-contain" />
-          <span className="text-[11px] font-medium text-[var(--foreground)]">{file?.name}</span>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onClear(); }}
-            className="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-[var(--danger)]/10 text-[var(--danger)] hover:bg-[var(--danger)]/20">
-            <X size={12} />
-          </button>
-        </>
-      ) : (
-        <>
-          <div className="mb-2 flex size-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
-            <ImageUp size={20} />
-          </div>
-          <span className="text-[12px] font-medium text-[var(--text-muted)]">{label}</span>
-          <span className="mt-0.5 text-[10px] text-[var(--text-subtle)]">{uploadHint}</span>
-        </>
-      )}
-    </div>
-  );
-}
 
 export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChange, onSubmit, errors = {}, isSubmitting = false }: ClientDrawerProps) {
   const { t } = useTranslation();
   const [form, setForm] = useState<ClientFormPayload>(emptyForm);
   const [inputMode, setInputMode] = useState<'manual' | 'scan'>('manual');
-  const [frontFile, setFrontFile] = useState<File | null>(null);
-  const [backFile, setBackFile] = useState<File | null>(null);
-  const [frontPreview, setFrontPreview] = useState<string | null>(null);
-  const [backPreview, setBackPreview] = useState<string | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
+  const [lastScan, setLastScan] = useState<{
+    generation: CinScanResult['document']['generation'];
+    appliedCount: number;
+    reviewCount: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setInputMode('manual');
-    setFrontFile(null);
-    setBackFile(null);
-    setFrontPreview(null);
-    setBackPreview(null);
-    setIsScanning(false);
-    setScanError(null);
+    setLastScan(null);
     if (mode === 'edit' && client) {
       setForm({
         civility: client.civility ?? 'Mr',
@@ -125,13 +84,6 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
     setForm(emptyForm);
   }, [client, isOpen, mode]);
 
-  useEffect(() => {
-    return () => {
-      if (frontPreview) URL.revokeObjectURL(frontPreview);
-      if (backPreview) URL.revokeObjectURL(backPreview);
-    };
-  }, [frontPreview, backPreview]);
-
   function updateField(field: keyof ClientFormPayload, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -141,102 +93,31 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
     onSubmit(form);
   }
 
-  function handleFrontSelect(file: File) {
-    if (frontPreview) URL.revokeObjectURL(frontPreview);
-    setFrontFile(file);
-    setFrontPreview(URL.createObjectURL(file));
-    setScanError(null);
-  }
+  function handleCinAutoFill(
+    result: CinScanResult,
+  ): void {
+    const applied = applyVerifiedCinScan(
+      form,
+      result,
+      {
+        /*
+         * Never overwrite text the user already entered,
+         * including in create mode.
+         */
+        overwriteExisting: false,
+      },
+    );
 
-  function handleBackSelect(file: File) {
-    if (backPreview) URL.revokeObjectURL(backPreview);
-    setBackFile(file);
-    setBackPreview(URL.createObjectURL(file));
-    setScanError(null);
-  }
+    setForm(applied.form);
 
-  function handleFrontClear() {
-    if (frontPreview) URL.revokeObjectURL(frontPreview);
-    setFrontFile(null);
-    setFrontPreview(null);
-  }
-
-  function handleBackClear() {
-    if (backPreview) URL.revokeObjectURL(backPreview);
-    setBackFile(null);
-    setBackPreview(null);
-  }
-
-  async function handleScan() {
-    if (!frontFile || !backFile) return;
-    setIsScanning(true);
-    setScanError(null);
-    const formData = new FormData();
-    formData.append('front_image', frontFile);
-    formData.append('back_image', backFile);
-
-    try {
-      const res = await fetch('/clients/scan-cin', {
-        method: 'POST',
-        headers: {
-          'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
-          'Accept': 'application/json',
-        },
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        setScanError(err.message || err.error || t('clients.drawer.scanRequestError'));
-        return;
-      }
-      const data: CinScanResult = await res.json();
-      const recto = data.recto ?? {};
-      const verso = data.verso ?? {};
-
-      if (!recto.cin_number && !recto.first_name && !recto.last_name && !verso.address) {
-        setScanError(t('clients.drawer.scanFailed'));
-        setIsScanning(false);
-        return;
-      }
-
-      const sexToCivility: Record<string, string> = { M: 'Mr', F: 'Ms' };
-
-      let fatherName = '';
-      let motherName = '';
-      const filiation = verso.filiation ?? '';
-      if (filiation) {
-        const raw = filiation.replace(/fils\s+de|fille\s+de|enfant\s+de/i, '').trim();
-        const parts = raw.split(/\s*et\s*/i).filter(Boolean);
-        if (parts.length >= 2) {
-          fatherName = parts[0].trim();
-          motherName = parts[1].trim();
-        } else if (parts.length === 1) {
-          fatherName = parts[0].trim();
-        }
-      }
-
-      setForm((prev) => ({
-        ...prev,
-        civility: (verso.sex ? sexToCivility[verso.sex] : null) || prev.civility,
-        firstName: recto.first_name || prev.firstName,
-        lastName: recto.last_name || prev.lastName,
-        cin: recto.cin_number || prev.cin,
-        fatherName: fatherName || prev.fatherName,
-        motherName: motherName || prev.motherName,
-        cniExpirationDate: recto.expiry_date || prev.cniExpirationDate,
-      }));
-      setInputMode('manual');
-      setFrontFile(null);
-      setBackFile(null);
-      if (frontPreview) URL.revokeObjectURL(frontPreview);
-      if (backPreview) URL.revokeObjectURL(backPreview);
-      setFrontPreview(null);
-      setBackPreview(null);
-    } catch {
-      setScanError(t('clients.drawer.scanNetworkError'));
-    } finally {
-      setIsScanning(false);
-    }
+    setLastScan({
+      generation:
+        result.document.generation,
+      appliedCount:
+        applied.appliedFields.length,
+      reviewCount:
+        applied.reviewFields.length,
+    });
   }
 
   const title = mode === 'create' ? t('clients.drawer.createTitle') : t('clients.drawer.editTitle');
@@ -285,33 +166,40 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
         )}
 
         {inputMode === 'scan' ? (
-          <div className="space-y-4">
-            <p className="text-[12px] text-[var(--text-muted)]">
-              {t('clients.drawer.scanDescription')}
-            </p>
-
-            <div className="grid grid-cols-2 gap-3">
-              <UploadZone label={t('clients.drawer.frontCin')} uploadHint={t('clients.drawer.uploadImage')} file={frontFile} preview={frontPreview}
-                onSelect={handleFrontSelect} onClear={handleFrontClear} />
-              <UploadZone label={t('clients.drawer.backCin')} uploadHint={t('clients.drawer.uploadImage')} file={backFile} preview={backPreview}
-                onSelect={handleBackSelect} onClear={handleBackClear} />
-            </div>
-
-            {scanError && (
-              <p className="text-[12px] font-medium text-[var(--danger)]">{scanError}</p>
-            )}
-
-            <AppButton variant="solid" color="primary" className="w-full"
-              isDisabled={!frontFile || !backFile || isScanning}
-              isLoading={isScanning}
-              onPress={handleScan}>
-              {isScanning ? t('clients.drawer.analyzingCin') : t('clients.drawer.analyzeCin')}
-            </AppButton>
-          </div>
-        ) : null}
+    <CinScannerPanel
+        onAutoFill={handleCinAutoFill}
+        onContinue={() =>
+            setInputMode('manual')
+        }
+        onCancel={() =>
+            setInputMode('manual')
+        }
+    />
+) : null}
 
         {inputMode === 'manual' ? (
           <>
+            {lastScan ? (
+              <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5">
+                <CheckCircle2
+                  size={15}
+                  className="mt-0.5 shrink-0 text-emerald-500"
+                />
+
+                <div>
+                  <p className="text-[11px] font-medium text-emerald-500">
+                    Données CNI appliquées
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                    {lastScan.appliedCount} champ(s) remplis automatiquement
+                    {lastScan.reviewCount > 0
+                      ? ` · ${lastScan.reviewCount} valeur(s) doivent être vérifiées manuellement`
+                      : ''}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
             <DrawerSection title={t('clients.form.identity')}>
               <div className={drawerStyles.sectionGrid}>
                 <DrawerField label={t('clients.form.civility')} error={errors.civility}>
@@ -357,11 +245,11 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
                   </DrawerField>
                 </div>
                 <DrawerField label={t('clients.form.cniExpirationDate')} error={errors.cni_expiration_date}>
-                  <DateField
-                    label=""
-                    value={form.cniExpirationDate ? new Date(form.cniExpirationDate) : null}
-                    onChange={(d) => updateField('cniExpirationDate', d ? d.toISOString().split('T')[0] : '')}
+                  <AppDatePicker
+                    value={form.cniExpirationDate || null}
+                    onChange={(v) => updateField('cniExpirationDate', v)}
                     placeholder={t('clients.drawer.expirationPlaceholder')}
+                    ariaLabel={t('clients.form.cniExpirationDate')}
                   />
                 </DrawerField>
               </div>

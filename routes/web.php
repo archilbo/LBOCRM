@@ -46,7 +46,6 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/finance/settings', [FinanceSettingsController::class, 'index'])->name('finance.settings.index')->middleware('permission.route');
     Route::put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update')->middleware('permission.route');
     Route::put('/finance/settings/reset', [FinanceSettingsController::class, 'reset'])->name('finance.settings.reset')->middleware('permission.route');
     Route::post('/finance/settings/logo', [CompanyLogoController::class, 'store'])->name('finance.settings.logo.store')->middleware('permission.route');
@@ -219,6 +218,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/archives', [ArchiveController::class, 'index'])->name('archives.index');
         Route::get('/archives/{archiveRecord}', [ArchiveController::class, 'show'])->name('archives.show');
         Route::post('/archives', [ArchiveController::class, 'store'])->name('archives.store');
+        Route::post('/archives/rooms', [ArchiveController::class, 'storeRoom'])->name('archives.rooms.store');
         Route::put('/archives/{archiveRecord}', [ArchiveController::class, 'update'])->name('archives.update');
         Route::put('/archives/{archiveRecord}/status', [ArchiveController::class, 'updateStatus'])->name('archives.status');
         Route::put('/archives/{archiveRecord}/mark-lost', [ArchiveController::class, 'markLost'])->name('archives.mark-lost');
@@ -228,6 +228,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/archives/cities', [\App\Http\Controllers\CityController::class, 'store'])->name('archives.cities.store')->middleware('permission.route');
     Route::put('/archives/cities/{city}', [\App\Http\Controllers\CityController::class, 'update'])->name('archives.cities.update')->middleware('permission.route');
     Route::delete('/archives/cities/{city}', [\App\Http\Controllers\CityController::class, 'destroy'])->name('archives.cities.destroy')->middleware('permission.route');
+
+    Route::get('/settings', [\App\Http\Controllers\CityController::class, 'settings'])->name('settings.index')->middleware('permission.route');
+    Route::post('/settings/cities', [\App\Http\Controllers\CityController::class, 'store'])->name('settings.cities.store')->middleware('permission.route');
+    Route::put('/settings/cities/{city}', [\App\Http\Controllers\CityController::class, 'update'])->name('settings.cities.update')->middleware('permission.route');
+    Route::delete('/settings/cities/{city}', [\App\Http\Controllers\CityController::class, 'destroy'])->name('settings.cities.destroy')->middleware('permission.route');
 
     Route::prefix('api')->middleware('permission.route')->group(function () {
         Route::get('/clients/search', [ApiClientController::class, 'search'])->name('api.clients.search');

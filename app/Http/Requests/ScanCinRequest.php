@@ -13,23 +13,34 @@ class ScanCinRequest extends FormRequest
 
     public function rules(): array
     {
+        $imageRules = [
+            'required',
+            'file',
+            'image',
+            'mimetypes:image/jpeg,image/png,image/webp',
+            'mimes:jpg,jpeg,png,webp',
+            'max:15360',
+        ];
+
         return [
-            'front_image' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
-            'back_image' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
+            'front_image' => $imageRules,
+            'back_image' => $imageRules,
         ];
     }
 
     public function messages(): array
     {
         return [
-            'front_image.required' => 'The front image of the CIN is required.',
-            'front_image.image' => 'The front image must be an image file.',
-            'front_image.mimes' => 'The front image must be a JPG or PNG file.',
-            'front_image.max' => 'The front image must not exceed 10 MB.',
-            'back_image.required' => 'The back image of the CIN is required.',
-            'back_image.image' => 'The back image must be an image file.',
-            'back_image.mimes' => 'The back image must be a JPG or PNG file.',
-            'back_image.max' => 'The back image must not exceed 10 MB.',
+            'front_image.required' => 'L\'image recto de la CNI est obligatoire.',
+            'front_image.image' => 'Le recto doit être une image valide.',
+            'front_image.mimetypes' => 'Le recto doit être au format JPEG, PNG ou WEBP.',
+            'front_image.mimes' => 'Le recto doit être au format JPEG, PNG ou WEBP.',
+            'front_image.max' => 'Le recto ne doit pas dépasser 15 Mo.',
+            'back_image.required' => 'L\'image verso de la CNI est obligatoire.',
+            'back_image.image' => 'Le verso doit être une image valide.',
+            'back_image.mimetypes' => 'Le verso doit être au format JPEG, PNG ou WEBP.',
+            'back_image.mimes' => 'Le verso doit être au format JPEG, PNG ou WEBP.',
+            'back_image.max' => 'Le verso ne doit pas dépasser 15 Mo.',
         ];
     }
 }

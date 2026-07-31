@@ -11,6 +11,7 @@ use App\Models\Dossier;
 use App\Notifications\ContractNotification;
 use App\Services\ContractDocumentGenerator;
 use App\Services\Dossiers\DossierPathBuilder;
+use App\Support\DecimalMoney;
 use App\Services\WordDocumentConverter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -419,9 +420,18 @@ class ContractController extends Controller
         $estimation = $surface * $unitPrice;
 
         if ($calculationMode === 'forfait') {
-            $ttc = max(0, (float) ($data['forfait_ttc'] ?? 0));
-            $ht = $tvaRate > -1 ? $ttc / (1 + $tvaRate) : $ttc;
-            $tva = $ttc - $ht;
+            $ttcCents = DecimalMoney::parse($data['forfait_ttc'] ?? '0');
+            $ttc = DecimalMoney::fromCents($ttcCents);
+            // Use integer-cent math for HT/TVA to avoid floating-point drift
+            $divisor = 1 + $tvaRate; // e.g. 1.2
+            if ($divisor > 0) {
+                $htCents = (int) round($ttcCents / $divisor);
+                $ht = DecimalMoney::fromCents($htCents);
+                $tva = round($ttc - $ht, 2);
+            } else {
+                $ht = $ttc;
+                $tva = 0.0;
+            }
         } else {
             $ht = $estimation * ($feeRatePercent / 100);
             $tva = $ht * $tvaRate;
@@ -485,7 +495,7 @@ class ContractController extends Controller
             ->get()
             ->map(fn (Dossier $dossier) => [
                 'id' => (string) $dossier->id,
-                'label' => $dossier->dossier_number . ' - ' . $dossier->project_object . ' - ' . ($dossier->client?->full_name ?? '-'),
+                'label' => $dossier->dossier_number . ($dossier->project_object ? ' - ' . $dossier->project_object : ''),
                 'floorArea' => $dossier->floor_area !== null ? (float) $dossier->floor_area : null,
                 'hasContract' => $dossier->contract !== null,
             ])

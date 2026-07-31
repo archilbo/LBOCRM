@@ -1,3 +1,19 @@
+/**
+ * Strip non-numeric characters (except comma, period, minus) from a
+ * raw input string and normalize comma → period.
+ *
+ * Returns a clean string suitable for controlled input state.
+ * The backend will handle the final parse via DecimalMoney::parse().
+ */
+export function normalizeDecimalInput(raw: string): string {
+    if (!raw) return '';
+    // Preserve digits, comma, period, minus, and spaces (thousands separator)
+    const cleaned = raw.replace(/[^0-9,.\-\s]/g, '');
+    if (!cleaned) return '';
+    // Normalize comma → period for internal numeric compatibility
+    return cleaned.replace(',', '.');
+}
+
 export function normalizeNumber(value: unknown): number {
     if (typeof value === 'number') {
         return Number.isFinite(value) ? value : 0;

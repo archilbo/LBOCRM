@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Button, Card, Input, ListBox, Select, TextArea } from '@heroui/react';
+import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { DateField } from '@/features/archives/components/DateField';
 import { strToDate, dateToStr } from '@/lib/dateUtils';
@@ -89,54 +90,32 @@ export function FinanceDrawer({ isOpen, mode, record, dossiers, clients = [], on
                         <div className="grid gap-2 md:grid-cols-2">
                             <div className="flex min-w-0 flex-col gap-1">
                                 <label className={labelCls}>Client</label>
-                                <Select
-                                    placeholder="Filtrer par client"
-                                    selectedKeys={[selectedClientId || '']}
-                                    onSelectionChange={(key) => { setSelectedClientId(key != null ? String(key) : ''); }}
-                                >
-                                    <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" placeholder="Tous les clients" /><Select.Indicator /></Select.Trigger>
-                                    <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
-                                        {clients.map((c) => (
-                                            <ListBox.Item key={c.id} id={c.id} textValue={c.label} className={compactItem}>{c.label}</ListBox.Item>
-                                        ))}
-                                    </ListBox></Select.Popover>
-                                </Select>
+                                <AppAutocomplete
+                                    value={selectedClientId}
+                                    onChange={(v) => { setSelectedClientId(v); }}
+                                    options={clients}
+                                    placeholder="Tous les clients"
+                                />
                             </div>
                             <div className="flex min-w-0 flex-col gap-1">
                                 <label className={labelCls}>Dossier</label>
-                                <Select
+                                <AppAutocomplete
+                                    value={form.dossierId}
+                                    onChange={(v) => updateField('dossierId', v)}
+                                    options={filteredDossiers}
                                     placeholder="Selectionner un dossier"
-                                    selectedKeys={[form.dossierId || '']}
-                                    onSelectionChange={(key) => { updateField('dossierId', key != null ? String(key) : ''); }}
-                                    validationState={errors.dossier_id ? 'invalid' : 'valid'}
-                                    errorMessage={firstError(errors, 'dossier_id')}
-                                >
-                                    <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
-                                    <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
-                                        {filteredDossiers.map((d) => (
-                                            <ListBox.Item key={d.id} id={d.id} textValue={d.label} className={compactItem}>{d.label}</ListBox.Item>
-                                        ))}
-                                    </ListBox></Select.Popover>
-                                </Select>
+                                />
                             </div>
                         </div>
                     ) : (
                     <div className="flex min-w-0 flex-col gap-1">
                         <label className={labelCls}>Dossier</label>
-                        <Select
+                        <AppAutocomplete
+                            value={form.dossierId}
+                            onChange={(v) => updateField('dossierId', v)}
+                            options={dossiers}
                             placeholder="Selectionner un dossier"
-                            selectedKeys={[form.dossierId || '']}
-                            onSelectionChange={(key) => { updateField('dossierId', key != null ? String(key) : ''); }}
-                            validationState={errors.dossier_id ? 'invalid' : 'valid'}
-                            errorMessage={firstError(errors, 'dossier_id')}
-                        >
-                            <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
-                            <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
-                                {dossiers.map((d) => (
-                                    <ListBox.Item key={d.id} id={d.id} textValue={d.label} className={compactItem}>{d.label}</ListBox.Item>
-                                ))}
-                            </ListBox></Select.Popover>
-                        </Select>
+                        />
                     </div>
                     )}
                     <div className="grid gap-2 md:grid-cols-2">

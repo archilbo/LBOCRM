@@ -124,7 +124,12 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
         formData.append('document_template_id', payload.documentTemplateId || '');
         formData.append('status', payload.status || 'uploaded');
         formData.append('notes', payload.notes || '');
-        if (payload.file) formData.append('file', payload.file);
+        if (payload.cinFrontFile && payload.cinBackFile) {
+            formData.append('cin_front_file', payload.cinFrontFile);
+            formData.append('cin_back_file', payload.cinBackFile);
+        } else if (payload.file) {
+            formData.append('file', payload.file);
+        }
         router.post('/documents', formData, {
             forceFormData: true, preserveScroll: true,
             onSuccess: () => { setDrawerOpen(false); setIsUploading(false); toast.success('Document saved successfully.'); },

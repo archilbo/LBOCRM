@@ -39,7 +39,6 @@ const financeParent: NavigationItem = {
         routeByKey('financePayments'),
         routeByKey('financeMonthly'),
         routeByKey('financeTemplates'),
-        routeByKey('financeSettings'),
     ],
 };
 

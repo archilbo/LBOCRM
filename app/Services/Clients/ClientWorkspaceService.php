@@ -4,12 +4,14 @@ namespace App\Services\Clients;
 
 use App\Http\Resources\FinanceDocumentResource;
 use App\Models\Client;
+use App\Models\Contract;
 use App\Models\Dossier;
 use App\Models\User;
 use App\Services\Dossiers\DossierWorkflowStepperService;
 use App\Services\Documents\DossierDocumentFileService;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\Finance\DossierFinanceEligibilityService;
+use Illuminate\Support\Facades\Storage;
 
 class ClientWorkspaceService
 {
@@ -74,6 +76,11 @@ class ClientWorkspaceService
             ],
             'projects' => $projects,
             'selectedProject' => $selectedDossier ? $this->projectWorkspace($selectedDossier, $canViewFinance) : null,
+            'contracts' => $client->dossiers
+                ->filter(fn (Dossier $dossier) => $dossier->contract !== null)
+                ->map(fn (Dossier $dossier) => $this->contractSummary($dossier->contract, $dossier))
+                ->values()
+                ->all(),
         ];
     }
 
@@ -267,6 +274,35 @@ class ClientWorkspaceService
         usort($events, fn (array $a, array $b) => ($a['date'] ?? '') <=> ($b['date'] ?? ''));
 
         return $events;
+    }
+
+    private function contractSummary(Contract $contract, Dossier $dossier): array
+    {
+        $hasGeneratedDocument = filled($contract->generated_document_path);
+        $hasPdf = filled($contract->pdf_path);
+
+        return [
+            'id' => $contract->id,
+            'dossierId' => (string) $contract->dossier_id,
+            'dossierNumber' => $dossier->dossier_number,
+            'projectObject' => $dossier->project_object,
+            'contractNumber' => $contract->contract_number,
+            'status' => $contract->status,
+            'surface' => (float) $contract->surface,
+            'feeRatePercent' => (float) ($contract->fee_rate_percent ?? 0),
+            'calculationMode' => $contract->calculation_mode,
+            'forfaitTtc' => $contract->forfait_ttc !== null ? (float) $contract->forfait_ttc : null,
+            'ttc' => (float) $contract->ttc,
+            'generatedAt' => optional($contract->generated_at)->toISOString(),
+            'signedAt' => optional($contract->signed_at)->toISOString(),
+            'createdAt' => optional($contract->created_at)->toISOString(),
+            'notes' => $contract->notes,
+            'hasGeneratedDocument' => $hasGeneratedDocument,
+            'hasPdf' => $hasPdf,
+            'generatedDocumentDownloadUrl' => $hasGeneratedDocument ? route('contracts.download.generated', $contract) : null,
+            'pdfDownloadUrl' => $hasPdf ? route('contracts.download.pdf', $contract) : null,
+            'pdfPublicUrl' => $hasPdf ? route('contracts.preview.pdf', $contract) : null,
+        ];
     }
 
     private function formatSize(?int $size): string

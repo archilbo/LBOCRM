@@ -29,24 +29,12 @@ export type ClientRow = {
     };
 };
 
-export type CinScanResult = {
-    document_type: string;
-    recto: {
-        cin_number: string | null;
-        last_name: string | null;
-        first_name: string | null;
-        date_of_birth: string | null;
-        place_of_birth: string | null;
-        expiry_date: string | null;
-        can_number: string | null;
-    };
-    verso: {
-        sex: string | null;
-        civil_status_number: string | null;
-        filiation: string | null;
-        address: string | null;
-    };
-};
+export type {
+    CinScanResult,
+    CinScannedField,
+    CinFieldStatus,
+    CinDocumentGeneration,
+} from '@/features/clients/cin-scanner/types';
 
 export type IntermediaryOption = {
     id: string;
@@ -156,6 +144,29 @@ export type DossierWorkflowProgress = {
     steps: DossierWorkflowStep[];
 };
 
+export type ClientContractSummary = {
+    id: number;
+    dossierId: string;
+    dossierNumber: string;
+    projectObject: string | null;
+    contractNumber: string;
+    status: string;
+    surface: number | null;
+    feeRatePercent: number | null;
+    calculationMode: string | null;
+    forfaitTtc: number | null;
+    ttc: number;
+    generatedAt: string | null;
+    signedAt: string | null;
+    createdAt: string | null;
+    notes: string | null;
+    hasGeneratedDocument: boolean;
+    hasPdf: boolean;
+    generatedDocumentDownloadUrl: string | null;
+    pdfDownloadUrl: string | null;
+    pdfPublicUrl: string | null;
+};
+
 export type ClientProjectContract = {
     id: number;
     number: string;
@@ -223,4 +234,5 @@ export type ClientWorkspace = {
     };
     projects: ClientProjectSummary[];
     selectedProject: ClientSelectedProjectWorkspace | null;
+    contracts: ClientContractSummary[];
 };

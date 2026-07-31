@@ -149,7 +149,7 @@ class DossierController extends Controller
             ->where('is_active', true)
             ->findOrFail($request->integer('city_id'));
 
-        $numbering = $numberService->generate($city);
+        $numbering = $numberService->generate();
         $data = $this->prepareDossierData($request->validated(), true);
 
         $data['dossier_number'] = $numbering['number'];
@@ -293,7 +293,8 @@ class DossierController extends Controller
             ->get()
             ->map(fn (Client $client) => [
                 'id' => (string) $client->id,
-                'label' => $client->client_number.' - '.$client->full_name,
+                'label' => $client->cin.' - '.$client->full_name,
+                'cin' => $client->cin,
             ])
             ->values()
             ->all();

@@ -122,7 +122,7 @@ class FinanceDocumentController extends Controller
                     ]),
                 ]),
             'templateEditorUrl' => route('finance.templates.index'),
-            'settingsEditorUrl' => route('finance.settings.index'),
+            'settingsEditorUrl' => url('/settings?tab=finance'),
             'settings' => [
                 'defaultTvaRate' => FinanceSettingsService::getTvaRate(),
                 'defaultCurrency' => $currency,

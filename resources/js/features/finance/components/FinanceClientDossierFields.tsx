@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo } from 'react';
-import { Card, ListBox, Select } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { AlertTriangle, User } from 'lucide-react';
+import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import type { ClientOption, DossierOption } from '@/features/finance/types';
 
 type FinanceClientDossierFieldsProps = {
@@ -15,9 +16,6 @@ type FinanceClientDossierFieldsProps = {
 };
 
 const labelCls = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]';
-const compactTrigger = 'flex h-8 w-full min-w-0 items-center gap-2 rounded-[var(--radius-md)] border bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] outline-none transition border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)]';
-const compactItem = 'flex cursor-pointer items-center rounded-lg px-2.5 py-2 text-xs text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10';
-const compactPopover = 'z-[70] min-w-[var(--trigger-width)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg';
 
 export function FinanceClientDossierFields({
     clientId, dossierId, clients, dossiers, onClientChange, onDossierChange, disabled = false, restrictedDossierIds = [],
@@ -50,36 +48,24 @@ export function FinanceClientDossierFields({
             <div className="grid gap-2 lg:grid-cols-2">
                 <div className="flex min-w-0 flex-col gap-1">
                     <label className={labelCls}>Client</label>
-                    <Select
+                    <AppAutocomplete
+                        value={clientId}
+                        onChange={onClientChange}
+                        options={clients}
                         placeholder="Selectionner un client"
-                        selectedKey={clientId || null}
                         isDisabled={disabled}
-                        onSelectionChange={(key) => { onClientChange(key != null ? String(key) : ''); }}
-                    >
-                        <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
-                        <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
-                            {clients.map((c) => (
-                                <ListBox.Item key={c.id} id={c.id} textValue={c.label} className={compactItem}>{c.label}</ListBox.Item>
-                            ))}
-                        </ListBox></Select.Popover>
-                    </Select>
+                    />
                 </div>
                 <div className="flex min-w-0 flex-col gap-1">
                     <label className={labelCls}>Dossier</label>
-                    <Select
+                    <AppAutocomplete
                         key={clientId || 'empty'}
+                        value={dossierId}
+                        onChange={onDossierChange}
+                        options={dossiers}
                         placeholder={hasNoDossiers ? 'Aucun dossier pour ce client' : 'Selectionner un dossier'}
-                        selectedKey={dossierId || null}
                         isDisabled={dossierDisabled}
-                        onSelectionChange={(key) => { onDossierChange(key != null ? String(key) : ''); }}
-                    >
-                        <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
-                        <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
-                            {dossiers.map((d) => (
-                                <ListBox.Item key={d.id} id={d.id} textValue={d.label} className={compactItem}>{d.label}</ListBox.Item>
-                            ))}
-                        </ListBox></Select.Popover>
-                    </Select>
+                    />
                 </div>
             </div>
             {hasNoDossiers ? (

@@ -4,6 +4,7 @@ namespace App\Services\Dossiers;
 
 use App\Enums\DossierWorkflowStepStatus;
 use App\Models\Dossier;
+use App\Models\DossierDocument;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -107,7 +108,8 @@ class DossierWorkflowStepperService
         }
 
         return match ($step . '.' . $requirement) {
-            'documents.cin' => $this->hasDocument($dossier, ['cin', 'cni', 'carte nationale']),
+            'documents.cin' =>
+                $this->hasCompleteCin($dossier),
             'documents.certificat_propriete' => $this->hasDocument($dossier, ['certificat propriete', 'certificat de propriete', 'titre foncier']),
             'documents.plan_cadastral' => $this->hasDocument($dossier, ['plan cadastral'])
                 || $this->isTerrainAlternativeSatisfied($dossier),
@@ -187,6 +189,61 @@ class DossierWorkflowStepperService
         }
 
         return true;
+    }
+
+    private function hasCompleteCin(
+        Dossier $dossier
+    ): bool {
+        $cinDocuments =
+            $dossier->documents->filter(
+                function (
+                    DossierDocument $document
+                ): bool {
+                    if (
+                        ! filled(
+                            $document->stored_path
+                        )
+                        && ! filled(
+                            $document
+                                ->original_filename
+                        )
+                    ) {
+                        return false;
+                    }
+
+                    $templateText =
+                        $this->normalize(
+                            implode(
+                                ' ',
+                                array_filter([
+                                    $document
+                                        ->template
+                                        ?->name,
+                                    $document
+                                        ->template
+                                        ?->code,
+                                ])
+                            )
+                        );
+
+                    return Str::contains(
+                        $templateText,
+                        [
+                            'cin',
+                            'cni',
+                            'carte nationale',
+                        ]
+                    );
+                }
+            );
+
+        return $cinDocuments->contains(
+            'document_side',
+            DossierDocument::SIDE_FRONT
+        ) && $cinDocuments->contains(
+            'document_side',
+            DossierDocument::SIDE_BACK
+        );
     }
 
     private function hasDocument(Dossier $dossier, array $aliases): bool

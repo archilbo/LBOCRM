@@ -4,13 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { MapPin, Archive, Calendar, User } from 'lucide-react';
 import { Input, TextArea } from '@heroui/react';
+import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { DrawerSection, DrawerField, DrawerSelect, drawerStyles } from '@/components/drawers';
 import { ARCHIVE_STATUS } from '@/config/statuses';
-import { AsyncCombobox } from '@/features/archives/components/AsyncCombobox';
 import { DateField } from '@/features/archives/components/DateField';
-import type { ArchiveFormPayload, ArchiveRecordRow, RoomOption, ShelfOption, BoxOption } from '@/features/archives/types';
+import type { ArchiveClientOption, ArchiveDossierOption, ArchiveFormPayload, ArchiveRecordRow, RoomOption, ShelfOption, BoxOption } from '@/features/archives/types';
 import { format } from 'date-fns';
 
 const schema = z.object({
@@ -20,7 +20,6 @@ const schema = z.object({
     room: z.string().nullable().default(null),
     shelf: z.string().nullable().default(null),
     box: z.string().nullable().default(null),
-    folder: z.string().optional().default(''),
     in_date: z.date().nullable().default(null),
     out_date: z.date().nullable().default(null),
     returned_at: z.date().nullable().default(null),
@@ -35,45 +34,17 @@ type FormValues = z.infer<typeof schema>;
 
 const statusOptions = Object.values(ARCHIVE_STATUS).map((s) => ({ id: s.key, label: s.label }));
 
-async function apiGet(url: string, params: Record<string, string | number>) {
-    const search = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) search.set(k, String(v));
-    const res = await fetch(`${url}?${search}`, {
-        headers: { Accept: 'application/json' },
-        credentials: 'same-origin',
-    });
-    if (!res.ok) throw new Error(`API error: ${res.status}`);
-    return res.json();
-}
-
-async function fetchClients(q: string) {
-    const json = await apiGet('/api/clients/search', { q, limit: 20 });
-    return json.data.map((c: { id: number; code: string; name: string }) => ({
-        id: String(c.id),
-        label: `${c.name} · ${c.code}`,
-    }));
-}
-
-async function fetchProjects(clientId: string, q: string) {
-    if (!clientId) return [];
-    const json = await apiGet(`/api/clients/${clientId}/projects`, { q, limit: 20 });
-    return json.data.map((p: { id: number; code: string; name: string }) => ({
-        id: String(p.id),
-        label: `${p.name} · ${p.code}`,
-    }));
-}
-
 type ArchiveDrawerProps = {
     isOpen: boolean;
     mode: 'create' | 'edit';
     archiveRecord: ArchiveRecordRow | null;
+    clients: ArchiveClientOption[];
+    dossiers: ArchiveDossierOption[];
     rooms: RoomOption[];
     shelves: ShelfOption[];
     boxes: BoxOption[];
     initialClientId?: string;
     initialDossierId?: string;
-    initialClientName?: string;
-    initialDossierLabel?: string;
     lockProject?: boolean;
     onOpenChange: (isOpen: boolean) => void;
     onSubmit: (payload: ArchiveFormPayload) => void;
@@ -83,13 +54,13 @@ export function ArchiveDrawer({
     isOpen,
     mode,
     archiveRecord,
+    clients,
+    dossiers,
     rooms,
     shelves,
     boxes,
     initialClientId,
     initialDossierId,
-    initialClientName,
-    initialDossierLabel,
     lockProject,
     onOpenChange,
     onSubmit,
@@ -110,7 +81,6 @@ export function ArchiveDrawer({
             room: null,
             shelf: null,
             box: null,
-            folder: '',
             in_date: null,
             out_date: null,
             returned_at: null,
@@ -141,6 +111,11 @@ export function ArchiveDrawer({
             .map((b) => ({ id: b.code, label: `${b.code} - ${b.name}` }));
     }, [shelves, boxes, shelf]);
 
+    const filteredDossiers = useMemo(() => {
+        if (!clientId) return [];
+        return dossiers.filter((d) => d.clientId === clientId);
+    }, [dossiers, clientId]);
+
     useEffect(() => {
         if (!isOpen) return;
 
@@ -152,7 +127,6 @@ export function ArchiveDrawer({
                 room: archiveRecord.room,
                 shelf: archiveRecord.shelf,
                 box: archiveRecord.box,
-                folder: archiveRecord.folder ?? '',
                 in_date: archiveRecord.inDate ? new Date(archiveRecord.inDate) : null,
                 out_date: archiveRecord.outDate ? new Date(archiveRecord.outDate) : null,
                 returned_at: archiveRecord.returnedAt ? new Date(archiveRecord.returnedAt) : null,
@@ -167,7 +141,6 @@ export function ArchiveDrawer({
                 room: null,
                 shelf: null,
                 box: null,
-                folder: '',
                 in_date: null,
                 out_date: null,
                 returned_at: null,
@@ -182,7 +155,6 @@ export function ArchiveDrawer({
                 room: null,
                 shelf: null,
                 box: null,
-                folder: '',
                 in_date: null,
                 out_date: null,
                 returned_at: null,
@@ -192,8 +164,8 @@ export function ArchiveDrawer({
         }
     }, [archiveRecord, initialClientId, initialDossierId, isOpen, mode, reset]);
 
-    function handleClientChange(id: string | null) {
-        setValue('client_id', id ?? '', { shouldDirty: true });
+    function handleClientChange(id: string) {
+        setValue('client_id', id, { shouldDirty: true });
         setValue('dossier_id', '', { shouldDirty: true });
         setValue('room', null, { shouldDirty: true });
         setValue('shelf', null, { shouldDirty: true });
@@ -210,7 +182,6 @@ export function ArchiveDrawer({
             room: data.room ?? '',
             shelf: data.shelf ?? '',
             box: data.box ?? '',
-            folder: data.folder ?? '',
             inDate: serialize(data.in_date),
             outDate: serialize(data.out_date),
             returnedAt: serialize(data.returned_at),
@@ -220,14 +191,6 @@ export function ArchiveDrawer({
 
         onSubmit(payload);
     }
-
-    const clientLabel = mode === 'edit' && archiveRecord?.clientName
-        ? archiveRecord.clientName
-        : initialClientName;
-
-    const projectLabel = mode === 'edit' && archiveRecord?.dossierNumber
-        ? `${archiveRecord.projectObject} · ${archiveRecord.dossierNumber}`
-        : initialDossierLabel;
 
     return (
         <AppDrawer
@@ -251,31 +214,25 @@ export function ArchiveDrawer({
             <form id="archive-form" className="flex flex-col gap-3" onSubmit={handleSubmit(handleFormSubmit)}>
                 <DrawerSection icon={<Archive size={12} />} title="Client et projet">
                     <div className="flex flex-col gap-2">
-                        <AsyncCombobox
-                            label="Client"
-                            placeholder="Chercher un client…"
-                            value={clientId || null}
-                            onChange={handleClientChange}
-                            queryKey={['clients']}
-                            queryFn={fetchClients}
-                            emptyMessage="Aucun client trouve"
-                            defaultLabel={clientLabel}
-                            isDisabled={lockProject}
-                            error={errors.client_id?.message}
-                        />
+                        <DrawerField label="Client" error={errors.client_id?.message}>
+                            <AppAutocomplete
+                                value={clientId}
+                                onChange={handleClientChange}
+                                options={clients}
+                                placeholder="Chercher un client…"
+                                isDisabled={lockProject}
+                            />
+                        </DrawerField>
 
-                        <AsyncCombobox
-                            label="Projet"
-                            placeholder={clientId ? 'Rechercher un projet…' : 'Selectionnez un client d abord'}
-                            value={watch('dossier_id') || null}
-                            onChange={(id) => setValue('dossier_id', id ?? '', { shouldDirty: true })}
-                            queryKey={['projects', clientId ?? '']}
-                            queryFn={(q) => fetchProjects(clientId ?? '', q)}
-                            emptyMessage="Aucun projet trouve"
-                            isDisabled={lockProject || !clientId}
-                            defaultLabel={projectLabel}
-                            error={errors.dossier_id?.message}
-                        />
+                        <DrawerField label="Projet" error={errors.dossier_id?.message}>
+                            <AppAutocomplete
+                                value={watch('dossier_id')}
+                                onChange={(id) => setValue('dossier_id', id, { shouldDirty: true })}
+                                options={filteredDossiers}
+                                placeholder={clientId ? 'Rechercher un projet…' : 'Selectionnez un client d abord'}
+                                isDisabled={lockProject || !clientId}
+                            />
+                        </DrawerField>
 
                         <DrawerField label="Statut" error={errors.status?.message}>
                             <Controller
@@ -295,7 +252,7 @@ export function ArchiveDrawer({
                 </DrawerSection>
 
                 <DrawerSection icon={<MapPin size={12} />} title="Emplacement physique">
-                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                         <DrawerField label="Salle">
                             <Controller
                                 name="room"
@@ -345,23 +302,6 @@ export function ArchiveDrawer({
                                         options={boxOptions}
                                         placeholder={shelf ? 'Selectionner boite' : 'Etagere d abord'}
                                         isDisabled={!shelf}
-                                    />
-                                )}
-                            />
-                        </DrawerField>
-
-                        <DrawerField label="Dossier">
-                            <Controller
-                                name="folder"
-                                control={control}
-                                render={({ field }) => (
-                                    <Input
-                                        type="text"
-                                        {...field}
-                                        value={field.value ?? ''}
-                                        onChange={(e) => field.onChange(e.target.value)}
-                                        placeholder="Numero dossier"
-                                        className={drawerStyles.input}
                                     />
                                 )}
                             />

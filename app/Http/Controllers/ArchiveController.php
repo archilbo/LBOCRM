@@ -10,6 +10,7 @@ use App\Http\Resources\ArchiveRecordResource;
 use App\Models\ArchiveRecord;
 use App\Models\Box;
 use App\Models\City;
+use App\Models\Client;
 use App\Models\Dossier;
 use App\Models\Room;
 use App\Models\Shelf;
@@ -19,6 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -202,6 +204,7 @@ class ArchiveController extends Controller
             ],
             'tree' => $rooms,
             'cells' => $cells,
+            'clients' => $this->clientOptions($request->user()),
             'dossiers' => $this->dossierOptions($request->user()),
             'requesters' => $requesters,
             'cities' => $cities,
@@ -273,6 +276,7 @@ class ArchiveController extends Controller
         $data = $this->prepareArchiveData($request->validated());
         $this->scopedDossiers($request->user())->findOrFail($data['dossier_id']);
         $data['archive_number'] = $this->nextArchiveNumber();
+        $data['folder'] = (string) $this->nextFolderNumber();
 
         $record = ArchiveRecord::create($data);
         $record->events()->create(['type' => 'ready', 'payload' => ['note' => 'Archive record created']]);
@@ -284,6 +288,66 @@ class ArchiveController extends Controller
         return redirect()
             ->route('archives.index')
             ->with('success', 'Archive record created successfully.');
+    }
+
+    public function storeRoom(Request $request): RedirectResponse
+    {
+        $this->authorize('create', ArchiveRecord::class);
+
+        $rawName = $request->input('name');
+
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^SALLE [A-Z]$/i',
+                Rule::unique('rooms', 'name')->where(function ($q) use ($rawName) {
+                    $q->whereRaw('UPPER(name) = ?', [strtoupper($rawName)]);
+                }),
+            ],
+            'description' => 'nullable|string|max:1000',
+            'shelves_count' => 'nullable|integer|min:0|max:100',
+            'boxes_per_shelf' => 'nullable|integer|min:0|max:1000',
+        ], [
+            'name.regex' => 'Le nom doit suivre le format SALLE + lettre (ex: SALLE A).',
+            'name.unique' => 'Cette salle existe déjà.',
+        ]);
+
+        $roomName = strtoupper($validated['name']);
+
+        $room = Room::create([
+            'name' => $roomName,
+            'code' => str_replace(' ', '-', $roomName),
+            'description' => $validated['description'] ?? null,
+        ]);
+
+        $shelvesCount = (int) ($validated['shelves_count'] ?? 0);
+        $boxesPerShelf = (int) ($validated['boxes_per_shelf'] ?? 0);
+
+        for ($i = 1; $i <= $shelvesCount; $i++) {
+            $shelfNumber = str_pad((string) $i, 2, '0', STR_PAD_LEFT);
+            $shelf = Shelf::create([
+                'room_id' => $room->id,
+                'name' => "{$room->name} - Étagère {$i}",
+                'code' => "{$room->code}-ET{$shelfNumber}",
+            ]);
+
+            if ($boxesPerShelf > 0) {
+                for ($j = 1; $j <= $boxesPerShelf; $j++) {
+                    $boxNumber = str_pad((string) $j, 2, '0', STR_PAD_LEFT);
+                    Box::create([
+                        'shelf_id' => $shelf->id,
+                        'name' => "{$shelf->name} - Boîte {$j}",
+                        'code' => "{$shelf->code}-BT{$boxNumber}",
+                    ]);
+                }
+            }
+        }
+
+        return redirect()
+            ->route('archives.index')
+            ->with('success', 'Salle créée avec succès.');
     }
 
     public function update(UpdateArchiveRecordRequest $request, ArchiveRecord $archiveRecord): RedirectResponse
@@ -670,6 +734,17 @@ class ArchiveController extends Controller
         return $number;
     }
 
+    private function nextFolderNumber(): int
+    {
+        $lastFolder = ArchiveRecord::query()
+            ->whereNotNull('folder')
+            ->where('folder', 'REGEXP', '^[0-9]+$')
+            ->orderByRaw('CAST(folder AS UNSIGNED) DESC')
+            ->value('folder');
+
+        return ((int) $lastFolder) + 1;
+    }
+
     public function reports(Request $request): Response
     {
         $this->authorize('viewAny', ArchiveRecord::class);
@@ -721,6 +796,19 @@ class ArchiveController extends Controller
         ]);
     }
 
+    private function clientOptions(User $user): array
+    {
+        return $this->companyContext->applyTo(Client::query(), $user)
+            ->orderBy('full_name')
+            ->get()
+            ->map(fn (Client $client) => [
+                'id' => (string) $client->id,
+                'label' => $client->cin . ' - ' . $client->full_name,
+            ])
+            ->values()
+            ->all();
+    }
+
     private function dossierOptions(User $user): array
     {
         return $this->scopedDossiers($user)
@@ -729,7 +817,8 @@ class ArchiveController extends Controller
             ->get()
             ->map(fn (Dossier $dossier) => [
                 'id' => (string) $dossier->id,
-                'label' => $dossier->dossier_number . ' - ' . $dossier->project_object . ' - ' . ($dossier->client?->full_name ?? '-'),
+                'label' => $dossier->dossier_number . ($dossier->project_object ? ' - ' . $dossier->project_object : ''),
+                'clientId' => (string) $dossier->client_id,
                 'hasArchiveRecord' => $dossier->archiveRecord !== null,
             ])
             ->values()

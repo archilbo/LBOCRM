@@ -49,7 +49,7 @@ class ContractDocumentGenerator
         $templates = (array) config('archilbo_templates.contracts.templates');
         $path = $templates[$key] ?? null;
 
-        if (!$path || !File::exists($path)) {
+        if (! $path || ! File::exists($path)) {
             throw new \RuntimeException("Contract template not found for type $key.");
         }
 
@@ -140,7 +140,7 @@ class ContractDocumentGenerator
          * (e.g. [CLIENT_ADD] broken into <w:t>[</w:t><w:t>CLIENT_</w:t><w:t>ADD]</w:t>).
          */
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($docxPath) !== true) {
             throw new \RuntimeException('Could not open generated DOCX file.');
@@ -150,14 +150,14 @@ class ContractDocumentGenerator
         $replace = [];
 
         foreach ($values as $key => $value) {
-            $search[$key] = '[' . $key . ']';
+            $search[$key] = '['.$key.']';
             $replace[$key] = UnicodeText::forDocument($value);
         }
 
         for ($index = 0; $index < $zip->numFiles; $index++) {
             $name = $zip->getNameIndex($index);
 
-            if (!$name || !str_starts_with($name, 'word/') || !str_ends_with($name, '.xml')) {
+            if (! $name || ! str_starts_with($name, 'word/') || ! str_ends_with($name, '.xml')) {
                 continue;
             }
 
@@ -186,7 +186,7 @@ class ContractDocumentGenerator
 
         libxml_use_internal_errors(true);
 
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         $dom->loadXML($xml, LIBXML_PARSEHUGE);
         $xpath = new \DOMXPath($dom);
         $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
@@ -214,7 +214,7 @@ class ContractDocumentGenerator
                 }
             }
 
-            if (!$hasPlaceholder) {
+            if (! $hasPlaceholder) {
                 continue;
             }
 
@@ -237,11 +237,11 @@ class ContractDocumentGenerator
         if (str_starts_with($xml, '<?xml')) {
             $end = strpos($xml, '?>');
             if ($end !== false) {
-                $decl = substr($xml, 0, $end + 2) . "\n";
+                $decl = substr($xml, 0, $end + 2)."\n";
             }
         }
 
-        return $decl . $dom->saveXML($dom->documentElement);
+        return $decl.$dom->saveXML($dom->documentElement);
     }
 
     private function money(float|int|string|null $value): string
@@ -259,5 +259,4 @@ class ContractDocumentGenerator
 
         return number_format($number, 2, '.', ' ');
     }
-
 }

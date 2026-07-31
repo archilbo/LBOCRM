@@ -1,12 +1,13 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Building2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Building2, Palette, Pencil, Plus, Power, Trash2 } from 'lucide-react';
+import { Button, Input, Switch } from '@heroui/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
-import { AppTextField } from '@/components/ui/AppTextField';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppShell } from '@/components/layout/AppShell';
+import { DrawerSection, DrawerField, drawerStyles } from '@/components/drawers';
 import { cn } from '@/lib/cn';
 import type { FormErrors } from '@/lib/formErrors';
 
@@ -55,7 +56,10 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!form.name.trim() || !form.code.trim()) {
-            setErrors({ name: !form.name.trim() ? 'Required' : undefined, code: !form.code.trim() ? 'Required' : undefined });
+            setErrors({
+                ...(!form.name.trim() ? { name: 'Required' } : {}),
+                ...(!form.code.trim() ? { code: 'Required' } : {}),
+            });
             return;
         }
         const payload = { ...form, code: form.code.toUpperCase() };
@@ -190,105 +194,94 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                     <form onSubmit={handleSubmit} className="flex h-full flex-col">
                         <div className="flex-1 space-y-5 px-5 pb-4">
                             {/* Section: Identity */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Building2 size={13} className="text-white/30" />
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-white/40">Identity</span>
-                                    <div className="flex-1 h-px bg-white/5" />
+                            <DrawerSection icon={<Building2 size={12} />} title="Identity">
+                                <div className="grid gap-2">
+                                    <DrawerField label="Name" error={errors.name}>
+                                        <Input
+                                            type="text"
+                                            value={form.name}
+                                            onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                            placeholder="e.g. Marrakech"
+                                            className={drawerStyles.input}
+                                        />
+                                    </DrawerField>
+                                    <DrawerField label="Code" error={errors.code}>
+                                        <Input
+                                            type="text"
+                                            value={form.code}
+                                            onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                                            placeholder="e.g. MRK"
+                                            maxLength={8}
+                                            className={drawerStyles.input}
+                                        />
+                                    </DrawerField>
                                 </div>
-                                <div className="space-y-3">
-                                    <div>
-                                        <AppTextField label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })}
-                                            placeholder="e.g. Marrakech" error={errors.name} isRequired />
-                                    </div>
-                                    <div>
-                                        <AppTextField label="Code" value={form.code} onChange={(v) => setForm({ ...form, code: v.toUpperCase() })}
-                                            placeholder="e.g. MRK" error={errors.code} isRequired maxLength={8} />
-                                    </div>
-                                </div>
-                            </div>
+                            </DrawerSection>
 
                             {/* Section: Color */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/30">
-                                        <circle cx="12" cy="12" r="10" />
-                                        <circle cx="12" cy="12" r="4" />
-                                    </svg>
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-white/40">Folder color</span>
-                                    <div className="flex-1 h-px bg-white/5" />
-                                </div>
-                                <div className="flex items-center gap-3 mb-3">
-                                    <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })}
-                                        className="size-9 rounded-lg border border-white/10 bg-transparent cursor-pointer p-0.5" />
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono text-xs text-white/50">{form.color}</span>
-                                            {errors.color && <span className="text-[11px] text-red-400">{errors.color}</span>}
-                                        </div>
+                            <DrawerSection icon={<Palette size={12} />} title="Folder color">
+                                <DrawerField label="Color" error={errors.color}>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="color"
+                                            value={form.color}
+                                            onChange={(e) => setForm({ ...form, color: e.target.value })}
+                                            className="size-9 shrink-0 cursor-pointer rounded-[var(--radius-md)] border border-[var(--border)] bg-transparent p-0.5"
+                                        />
+                                        <span className="font-mono text-xs text-[var(--text-muted)]">{form.color}</span>
                                     </div>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5">
+                                </DrawerField>
+                                <div className="mt-2 flex flex-wrap gap-1.5">
                                     {availableSwatches.length === 0 ? (
-                                        <span className="text-[11px] text-white/30 italic">All preset colors are taken</span>
+                                        <span className="text-[11px] italic text-[var(--text-muted)]">All preset colors are taken</span>
                                     ) : (
                                         availableSwatches.map((s) => (
-                                            <button key={s} type="button" onClick={() => setForm({ ...form, color: s })}
+                                            <button
+                                                key={s}
+                                                type="button"
+                                                onClick={() => setForm({ ...form, color: s })}
+                                                aria-label={`Select color ${s}`}
                                                 className={cn(
                                                     'size-6 rounded-md ring-1 ring-inset transition hover:scale-110',
-                                                    form.color === s ? 'ring-2 ring-amber-400 scale-110' : 'ring-white/10',
+                                                    form.color === s ? 'scale-110 ring-2 ring-[var(--accent)]' : 'ring-[var(--border)]',
                                                 )}
-                                                style={{ backgroundColor: s }} />
+                                                style={{ backgroundColor: s }}
+                                            />
                                         ))
                                     )}
                                 </div>
-                            </div>
+                            </DrawerSection>
 
                             {/* Section: Status */}
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/30">
-                                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-                                        <polyline points="22 4 12 14.01 9 11.01" />
-                                    </svg>
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-white/40">Status</span>
-                                    <div className="flex-1 h-px bg-white/5" />
-                                </div>
-                                <label className="flex items-center gap-3 text-sm text-white/70 cursor-pointer group">
-                                    <div
-                                        onClick={() => setForm({ ...form, is_active: !form.is_active })}
-                                        className={cn(
-                                            'relative inline-flex h-5 w-9 items-center rounded-full transition-all cursor-pointer',
-                                            form.is_active ? 'bg-emerald-500' : 'bg-white/10 group-hover:bg-white/15',
-                                        )}>
-                                        <span className={cn(
-                                            'inline-block size-3.5 rounded-full bg-white transition-transform shadow-sm',
-                                            form.is_active ? 'translate-x-[18px]' : 'translate-x-[3px]',
-                                        )} />
-                                    </div>
+                            <DrawerSection icon={<Power size={12} />} title="Status">
+                                <div className="flex items-center gap-3">
+                                    <Switch
+                                        size="sm"
+                                        isSelected={form.is_active}
+                                        onChange={(isActive) => setForm({ ...form, is_active: isActive })}
+                                        aria-label="Active city"
+                                    >
+                                        <Switch.Content>
+                                            <Switch.Control>
+                                                <Switch.Thumb />
+                                            </Switch.Control>
+                                        </Switch.Content>
+                                    </Switch>
                                     <div className="flex flex-col">
-                                        <span className="text-xs font-medium text-white/70">Active</span>
-                                        <span className="text-[10px] text-white/40">City appears in filters and dropdowns</span>
+                                        <span className="text-xs font-medium text-[var(--text)]">Active</span>
+                                        <span className="text-[10px] text-[var(--text-muted)]">City appears in filters and dropdowns</span>
                                     </div>
-                                </label>
-                            </div>
+                                </div>
+                            </DrawerSection>
                         </div>
 
                         {/* Footer */}
-                        <div className="shrink-0 border-t border-white/5 px-5 py-4">
+                        <div className="shrink-0 border-t border-[var(--border)] px-5 py-4">
                             <div className="flex items-center justify-between gap-2">
-                                <button type="button" onClick={() => setDrawerOpen(false)}
-                                    className="rounded-lg border border-white/10 px-4 py-1.5 text-xs font-medium text-white/60 hover:text-white/80 hover:bg-white/5 transition">
-                                    Cancel
-                                </button>
-                                <button type="submit"
-                                    className={cn(
-                                        'rounded-lg px-4 py-1.5 text-xs font-semibold transition',
-                                        'bg-amber-500/20 text-amber-400 border border-amber-500/30',
-                                        'hover:bg-amber-500/30 hover:border-amber-500/50',
-                                    )}>
+                                <Button variant="ghost" size="sm" onPress={() => setDrawerOpen(false)}>Cancel</Button>
+                                <Button variant="primary" size="sm" type="submit">
                                     {editCity ? 'Update city' : 'Create city'}
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </form>

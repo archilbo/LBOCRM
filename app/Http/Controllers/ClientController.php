@@ -19,7 +19,8 @@ use App\Services\Clients\ClientWorkspaceService;
 use App\Services\CompanyContext;
 use App\Services\Finance\FinanceContextService;
 use App\Services\Finance\FinanceSettingsService;
-use App\Services\GeminiOcrService;
+use App\Exceptions\CinScanException;
+use App\Services\Cin\CinScanner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -80,6 +81,7 @@ class ClientController extends Controller
                 ->map(fn (DocumentTemplate $template) => [
                     'id' => (string) $template->id,
                     'label' => $template->name,
+                    'code' => $template->code,
                     'type' => $template->document_type,
                 ])
                 ->values(),
@@ -209,16 +211,32 @@ class ClientController extends Controller
             ->with('success', 'Client deleted successfully.');
     }
 
-    public function scanCin(ScanCinRequest $request, GeminiOcrService $ocrService): JsonResponse
-    {
-        $this->authorize('scanCin', Client::class);
-
-        $result = $ocrService->extractBoth(
-            $request->file('front_image')->getRealPath(),
-            $request->file('back_image')->getRealPath(),
+    public function scanCin(
+        ScanCinRequest $request,
+        CinScanner $scanner,
+    ): JsonResponse {
+        $this->authorize(
+            'scanCin',
+            Client::class
         );
 
-        return response()->json($result);
+        try {
+            $result = $scanner->scan(
+                $request->file('front_image'),
+                $request->file('back_image'),
+            );
+
+            return response()->json($result);
+        } catch (CinScanException $exception) {
+            return response()->json(
+                [
+                    'success' => false,
+                    'error' => $exception->errorCode,
+                    'message' => $exception->getMessage(),
+                ],
+                $exception->httpStatus,
+            );
+        }
     }
 
     private function prepareClientData(array $data): array

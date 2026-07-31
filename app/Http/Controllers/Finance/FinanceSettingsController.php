@@ -5,29 +5,10 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\UpdateFinanceSettingsRequest;
 use App\Models\CompanySetting;
-use App\Services\Finance\FinanceSettingsService;
 use Illuminate\Http\RedirectResponse;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class FinanceSettingsController extends Controller
 {
-    public function index(FinanceSettingsService $settings): Response
-    {
-        abort_unless(request()->user()->can('finance.settings.view') || request()->user()->can('manage finance'), 403);
-        return Inertia::render('Finance/Settings/Index', [
-            'settings' => $settings->allGrouped(),
-            'routes' => [
-                'update' => route('finance.settings.update'),
-                'reset' => route('finance.settings.reset'),
-                'templates' => route('finance.templates.index'),
-                'finance' => route('finance.index'),
-                'uploadLogo' => route('finance.settings.logo.store'),
-                'deleteLogo' => route('finance.settings.logo.destroy'),
-            ],
-        ]);
-    }
-
     public function update(UpdateFinanceSettingsRequest $request): RedirectResponse
     {
         abort_unless($request->user()->can('finance.settings.update') || $request->user()->can('manage finance'), 403);
@@ -58,7 +39,7 @@ class FinanceSettingsController extends Controller
         CompanySetting::setValue('bank', 'bank_rib', $bank['bank_rib'] ?? '', 'string', 'Bank RIB');
 
         return redirect()
-            ->route('finance.settings.index')
+            ->back(302, [], route('settings.index', ['tab' => 'finance']))
             ->with('success', 'Finance settings updated successfully.');
     }
 
@@ -73,7 +54,7 @@ class FinanceSettingsController extends Controller
         CompanySetting::setValue('finance', 'default_architect_rate', 0.5, 'decimal', 'Default architect rate');
 
         return redirect()
-            ->route('finance.settings.index')
+            ->back(302, [], route('settings.index', ['tab' => 'finance']))
             ->with('success', 'Finance defaults reset successfully.');
     }
 }

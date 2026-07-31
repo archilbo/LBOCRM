@@ -36,7 +36,7 @@ trait HasClientPayloadRules
             'address' => ['nullable', 'string', 'max:2000'],
             'father_name' => ['nullable', 'string', 'max:190'],
             'mother_name' => ['nullable', 'string', 'max:190'],
-            'cni_expiration_date' => ['nullable', 'date'],
+            'cni_expiration_date' => ['nullable', 'date_format:Y-m-d'],
             'status' => ['nullable', Rule::enum(ClientStatus::class)],
             'notes' => ['nullable', 'string', 'max:5000'],
             'return_to' => ['nullable', 'string', 'max:2048', 'starts_with:/'],

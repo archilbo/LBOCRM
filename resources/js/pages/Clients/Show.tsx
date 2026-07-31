@@ -29,6 +29,8 @@ import { DocumentDrawer } from '@/components/drawers';
 import type { DocumentUploadPayload } from '@/features/documents/types';
 import { ContractDrawer } from '@/components/drawers';
 import type { ContractFormPayload, ContractClientOption, ContractDossierOption } from '@/features/contracts/types';
+import { formatDate } from '@/lib/formatters';
+import { formatMoney } from '@/lib/currency';
 import { ClientArchivesCard } from '@/features/clients/components/ClientArchivesCard';
 import { ClientFinanceTab } from '@/features/clients/components/ClientFinanceTab';
 import { ConfirmActionModal } from '@/features/clients/components/ConfirmActionModal';
@@ -95,10 +97,10 @@ function toBackendPayload(payload: ClientFormPayload, status: ClientStatus = 'ac
     };
 }
 
-type TabId = 'overview' | 'projects' | 'workflow' | 'documents' | 'finance' | 'notes' | 'activity';
+type TabId = 'overview' | 'projects' | 'contracts' | 'workflow' | 'documents' | 'finance' | 'notes' | 'activity';
 
 function isClientTab(value: string | undefined): value is TabId {
-    const validTabs: TabId[] = ['overview', 'projects', 'workflow', 'documents', 'finance', 'notes', 'activity'];
+    const validTabs: TabId[] = ['overview', 'projects', 'contracts', 'workflow', 'documents', 'finance', 'notes', 'activity'];
     return validTabs.includes(value as TabId);
 }
 
@@ -117,6 +119,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
     const [uploadStepKey, setUploadStepKey] = useState<string | null>(null);
     const [contractDrawerOpen, setContractDrawerOpen] = useState(false);
     const [editContract, setEditContract] = useState<any>(null);
+    const [contractTabCreateMode, setContractTabCreateMode] = useState(false);
     const [contractFormErrors, setContractFormErrors] = useState<FormErrors>({});
     const [projectDrawerOpen, setProjectDrawerOpen] = useState(false);
     const [projectFormErrors, setProjectFormErrors] = useState<FormErrors>({});
@@ -149,6 +152,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
     const tabs = useMemo(() => [
         { id: 'overview', label: t('clients.show.overview'), icon: LayoutDashboard },
         { id: 'projects', label: t('clients.show.projects'), icon: FolderKanban },
+        { id: 'contracts', label: t('clients.show.contracts'), icon: FileText },
         { id: 'workflow', label: t('clients.show.workflow'), icon: ListChecks },
         { id: 'documents', label: t('clients.show.documents'), icon: FileText },
         ...(canViewFinance ? [{ id: 'finance', label: t('clients.show.finance'), icon: ReceiptText }] : []),
@@ -515,6 +519,13 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
         setContractDrawerOpen(true);
     }
 
+    function openContractTabCreateDrawer() {
+        setEditContract(null);
+        setContractTabCreateMode(true);
+        setContractFormErrors({});
+        setContractDrawerOpen(true);
+    }
+
     function handleContractSubmit(payload: ContractFormPayload) {
         router.post('/contracts', { ...payload, return_to: clientWorkspacePath() }, {
             preserveScroll: true,
@@ -540,8 +551,14 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
         formData.append('status', payload.status || 'uploaded');
         formData.append('notes', payload.notes || '');
         formData.append('return_to', clientWorkspacePath());
-        if (payload.file) formData.append('file', payload.file);
         const isReplacement = replaceTarget !== null;
+
+        if (payload.cinFrontFile && payload.cinBackFile) {
+            formData.append('cin_front_file', payload.cinFrontFile);
+            formData.append('cin_back_file', payload.cinBackFile);
+        } else if (payload.file) {
+            formData.append('file', payload.file);
+        }
 
         if (!isReplacement) {
             formData.append('dossier_id', payload.dossierId);
@@ -997,6 +1014,140 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                         </div>
                     </TabPanel>
 
+                    <TabPanel id="contracts" className="outline-none">
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[13px] font-semibold text-[var(--foreground)]">
+                                    {workspace.contracts.length} {t('clients.show.contracts').toLowerCase()}
+                                </p>
+                                {projects.length > 0 ? (
+                                    <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.newContract')} aria-label={t('clients.show.newContract')} onPress={() => { openContractTabCreateDrawer(); }}>
+                                        <FileText size={15} />
+                                    </AppButton>
+                                ) : null}
+                            </div>
+
+                            {workspace.contracts.length > 0 ? (
+                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    {workspace.contracts.map((contract) => (
+                                        <div key={contract.id}
+                                            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition hover:shadow-md"
+                                        >
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">
+                                                        {contract.contractNumber}
+                                                    </p>
+                                                    <p className="text-[11px] text-[var(--text-muted)]">
+                                                        {contract.dossierNumber}
+                                                    </p>
+                                                </div>
+                                                <StatusPill
+                                                    label={contract.status}
+                                                    color={contract.status === 'signed' ? 'success' : contract.status === 'generated' ? 'warning' : 'default'}
+                                                    size="sm"
+                                                />
+                                            </div>
+
+                                            {contract.projectObject ? (
+                                                <p className="mt-2 text-[12px] text-[var(--text-subtle)]">
+                                                    {contract.projectObject}
+                                                </p>
+                                            ) : null}
+
+                                            <div className="mt-3 space-y-1.5 text-[11px] text-[var(--text-muted)]">
+                                                {contract.surface !== null ? (
+                                                    <div className="flex justify-between">
+                                                        <span>Surface</span>
+                                                        <span className="font-medium text-[var(--foreground)]">{contract.surface} m²</span>
+                                                    </div>
+                                                ) : null}
+                                                {contract.ttc > 0 ? (
+                                                    <div className="flex justify-between">
+                                                        <span>TTC</span>
+                                                        <span className="font-medium text-[var(--foreground)]">{formatMoney(contract.ttc)}</span>
+                                                    </div>
+                                                ) : null}
+                                                {contract.generatedAt ? (
+                                                    <div className="flex justify-between">
+                                                        <span>Généré le</span>
+                                                        <span className="font-medium text-[var(--foreground)]">{formatDate(contract.generatedAt)}</span>
+                                                    </div>
+                                                ) : null}
+                                                {contract.signedAt ? (
+                                                    <div className="flex justify-between">
+                                                        <span>Signé le</span>
+                                                        <span className="font-medium text-[var(--foreground)]">{formatDate(contract.signedAt)}</span>
+                                                    </div>
+                                                ) : null}
+                                                <div className="flex justify-between">
+                                                    <span>Créé le</span>
+                                                    <span className="font-medium text-[var(--foreground)]">{formatDate(contract.createdAt)}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 flex items-center gap-1.5 border-t border-[var(--border)] pt-3">
+                                                {contract.status === 'draft' || contract.status === 'pending' ? (
+                                                    <AppTableActionButton
+                                                        label={t('workflow.generateContract')}
+                                                        tone="edit"
+                                                        onPress={() => {
+                                                            setConfirmActionConfig({
+                                                                title: t('workflow.generateContract'),
+                                                                description: t('workflow.generateContractDesc'),
+                                                                confirmLabel: t('workflow.confirmGenerate'),
+                                                                method: 'put',
+                                                                url: `/contracts/${contract.id}/generate`,
+                                                                extraPayload: { return_to: clientWorkspacePath('contracts') },
+                                                            });
+                                                            setConfirmActionOpen(true);
+                                                        }}
+                                                    >
+                                                        <FileText size={14} />
+                                                    </AppTableActionButton>
+                                                ) : null}
+                                                {contract.hasGeneratedDocument ? (
+                                                    <AppTableActionButton
+                                                        label="Télécharger le document"
+                                                        tone="documents"
+                                                        onPress={() => openDocumentWindow(contract.generatedDocumentDownloadUrl, 'Document non disponible')}
+                                                    >
+                                                        <Download size={14} />
+                                                    </AppTableActionButton>
+                                                ) : null}
+                                                {contract.hasPdf ? (
+                                                    <>
+                                                        <AppTableActionButton
+                                                            label="Télécharger le PDF"
+                                                            tone="documents"
+                                                            onPress={() => openDocumentWindow(contract.pdfDownloadUrl, 'PDF non disponible')}
+                                                        >
+                                                            <Download size={14} />
+                                                        </AppTableActionButton>
+                                                        <AppTableActionButton
+                                                            label="Aperçu PDF"
+                                                            tone="view"
+                                                            onPress={() => openDocumentWindow(contract.pdfPublicUrl, 'Aperçu non disponible')}
+                                                        >
+                                                            <Eye size={14} />
+                                                        </AppTableActionButton>
+                                                    </>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
+                                    <AppEmptyState
+                                        title={t('clients.show.noContracts')}
+                                        description={t('clients.show.noContractsDesc')}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </TabPanel>
+
                     <TabPanel id="workflow" className="outline-none">
                         <div className="space-y-5">
                             {projects.length > 1 && (
@@ -1290,10 +1441,10 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     contract={editContract}
                     clients={contractClients}
                     dossiers={contractDossiers}
-                    initialDossierId={selectedProject ? String(selectedProject.id) : ''}
-                    initialFloorArea={selectedProject?.floorArea ?? null}
-                    lockProject={!editContract}
-                    onOpenChange={(open) => { setContractDrawerOpen(open); if (!open) setEditContract(null); }}
+                    initialDossierId={editContract ? (editContract.dossierId ?? '') : (contractTabCreateMode ? '' : (selectedProject ? String(selectedProject.id) : ''))}
+                    initialFloorArea={contractTabCreateMode ? null : (selectedProject?.floorArea ?? null)}
+                    lockProject={!editContract && !contractTabCreateMode}
+                    onOpenChange={(open) => { setContractDrawerOpen(open); if (!open) { setEditContract(null); setContractTabCreateMode(false); } }}
                     onSubmit={editContract ? handleContractUpdate : handleContractSubmit}
                     errors={contractFormErrors}
                 />

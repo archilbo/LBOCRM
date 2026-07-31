@@ -19,7 +19,7 @@ return [
         'templates' => [
             '0_5' => storage_path('app/private/archi-templates/contracts/contrat_architecte_0_5.docx'),
             '2' => storage_path('app/private/archi-templates/contracts/contrat_architecte_2.docx'),
-            'forfait' => storage_path('app/private/archi-templates/contracts/CONTRAT_DARCHITECT _FORFAITAIRES.docx'),
+            'forfait' => storage_path('app/private/archi-templates/contracts/contrat_architecte_forfait.docx'),
         ],
     ],
 

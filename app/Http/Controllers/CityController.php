@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\City;
+use App\Services\Finance\FinanceSettingsService;
 use App\Services\PermissionRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,46 @@ class CityController extends Controller
     public function index(Request $request): Response
     {
         $this->authorizeArchive($request, 'archive.view');
+        [$cities, $usedColors] = $this->cityData();
+
+        return Inertia::render('Archives/Cities', [
+            'cities' => $cities,
+            'usedColors' => $usedColors,
+        ]);
+    }
+
+    public function settings(Request $request): Response
+    {
+        $user = $request->user();
+        $canViewFinance = $user && $this->permissions->allows($user, 'finance.settings.view');
+
+        abort_unless(
+            $user && ($this->permissions->allows($user, 'archive.view') || $canViewFinance),
+            403
+        );
+
+        [$cities, $usedColors] = $this->cityData();
+
+        return Inertia::render('Admin/Settings', [
+            'cities' => $cities,
+            'usedColors' => $usedColors,
+            'canViewFinanceSettings' => $canViewFinance,
+            'financeSettings' => $canViewFinance ? [
+                'settings' => app(FinanceSettingsService::class)->allGrouped(),
+                'routes' => [
+                    'update' => route('finance.settings.update'),
+                    'reset' => route('finance.settings.reset'),
+                    'templates' => route('finance.templates.index'),
+                    'finance' => route('finance.index'),
+                    'uploadLogo' => route('finance.settings.logo.store'),
+                    'deleteLogo' => route('finance.settings.logo.destroy'),
+                ],
+            ] : null,
+        ]);
+    }
+
+    private function cityData(): array
+    {
         $cities = City::query()
             ->withCount('dossiers')
             ->orderBy('name')
@@ -36,10 +77,7 @@ class CityController extends Controller
             ->pluck('color')
             ->toArray();
 
-        return Inertia::render('Archives/Cities', [
-            'cities' => $cities,
-            'usedColors' => $usedColors,
-        ]);
+        return [$cities, $usedColors];
     }
 
     public function store(Request $request): RedirectResponse
@@ -54,7 +92,7 @@ class CityController extends Controller
 
         City::create($data);
 
-        return redirect()->route('archives.cities.index')->with('success', 'City created.');
+        return redirect()->route($this->backRoute($request))->with('success', 'City created.');
     }
 
     public function update(Request $request, City $city): RedirectResponse
@@ -69,19 +107,24 @@ class CityController extends Controller
 
         $city->update($data);
 
-        return redirect()->route('archives.cities.index')->with('success', 'City updated.');
+        return redirect()->route($this->backRoute($request))->with('success', 'City updated.');
     }
 
     public function destroy(Request $request, City $city): RedirectResponse
     {
         $this->authorizeArchive($request, 'archive.delete');
         if ($city->dossiers()->exists()) {
-            return redirect()->route('archives.cities.index')->with('error', 'Cannot delete a city that has dossiers.');
+            return redirect()->route($this->backRoute($request))->with('error', 'Cannot delete a city that has dossiers.');
         }
 
         $city->delete();
 
-        return redirect()->route('archives.cities.index')->with('success', 'City deleted.');
+        return redirect()->route($this->backRoute($request))->with('success', 'City deleted.');
+    }
+
+    private function backRoute(Request $request): string
+    {
+        return $request->routeIs('settings.*') ? 'settings.index' : 'archives.cities.index';
     }
 
     private function authorizeArchive(Request $request, string $permission): void

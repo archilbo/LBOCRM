@@ -1,10 +1,12 @@
 import { Head, router } from '@inertiajs/react';
 import {
-    ChevronDown,
+    Archive,
     ChevronLeft,
     ChevronRight,
     BarChart3,
     Building2,
+    FileText,
+    Layers,
     List,
     Map,
     Plus,
@@ -16,11 +18,13 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { Input, TextArea } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppTooltip } from '@/components/ui/AppTooltip';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppSelect } from '@/components/ui/AppSelect';
+import { DrawerSection, DrawerField, drawerStyles } from '@/components/drawers';
 import { AppShell } from '@/components/layout/AppShell';
 import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
 import { CheckoutDrawer } from '@/features/archives/drawers/CheckoutDrawer';
@@ -60,9 +64,15 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     const [moveDrawerOpen, setMoveDrawerOpen] = useState(false);
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
     const [scanModalOpen, setScanModalOpen] = useState(false);
-    const [showNewMenu, setShowNewMenu] = useState(false);
     const [cheatsheetOpen, setCheatsheetOpen] = useState(false);
     const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
+    const [roomModalOpen, setRoomModalOpen] = useState(false);
+    const [roomName, setRoomName] = useState('');
+    const [roomDescription, setRoomDescription] = useState('');
+    const [shelvesCount, setShelvesCount] = useState(0);
+    const [boxesPerShelf, setBoxesPerShelf] = useState(0);
+    const [roomSubmitting, setRoomSubmitting] = useState(false);
+    const [roomErrors, setRoomErrors] = useState<Record<string, string>>({});
 
     const searchRef = useRef<HTMLInputElement>(null);
 
@@ -124,7 +134,6 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
             room: payload.room || null,
             shelf: payload.shelf || null,
             box: payload.box || null,
-            folder: payload.folder || null,
             in_date: payload.inDate || null,
             out_date: payload.outDate || null,
             returned_at: payload.returnedAt || null,
@@ -206,6 +215,32 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
         });
     }
 
+    function submitRoom() {
+        setRoomSubmitting(true);
+        setRoomErrors({});
+        router.post('/archives/rooms', {
+            name: roomName,
+            description: roomDescription || undefined,
+            shelves_count: shelvesCount || undefined,
+            boxes_per_shelf: boxesPerShelf || undefined,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setRoomModalOpen(false);
+                setRoomName('');
+                setRoomDescription('');
+                setShelvesCount(0);
+                setBoxesPerShelf(0);
+                setRoomSubmitting(false);
+                toast.success('Salle créée avec succès.');
+            },
+            onError: (err) => {
+                setRoomErrors(err as Record<string, string>);
+                setRoomSubmitting(false);
+            },
+        });
+    }
+
     function handlePageChange(page: number) {
         const url = new URL(window.location.href);
         if (page > 1) {
@@ -235,12 +270,11 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     useHotkeys([
         { key: 'k', meta: true, handler: () => searchRef.current?.focus() },
         { key: 'n', handler: openCreateDrawer },
-        { key: 'n', shift: true, handler: () => { setShowNewMenu(true); } },
         { key: 'c', handler: () => setCheckoutDrawerOpen(true) },
         { key: 'r', handler: () => setReturnDrawerOpen(true) },
         { key: 'm', handler: () => setMoveDrawerOpen(true) },
         { key: '?', handler: () => setCheatsheetOpen(true) },
-        { key: 'Escape', handler: () => { setCheatsheetOpen(false); setShowNewMenu(false); } },
+        { key: 'Escape', handler: () => { setCheatsheetOpen(false); } },
     ]);
 
     return (
@@ -250,22 +284,16 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                 <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 flex flex-col min-h-0 space-y-4">
                     <div className="flex items-center justify-between shrink-0">
                         <h1 className="text-2xl font-semibold text-white">Archives</h1>
-                        {can('archive.create') ? <div className="relative">
-                            <AppButton variant="primary" size="sm" onPress={() => setShowNewMenu(!showNewMenu)}>
-                                <Plus size={14} /> New archive <ChevronDown size={11} />
-                            </AppButton>
-                            {showNewMenu ? (
-                                <div className="absolute right-0 top-full z-30 mt-1 min-w-36 rounded-lg border border-white/10 bg-zinc-900 py-1 shadow-sm"
-                                    onMouseLeave={() => setShowNewMenu(false)}>
-                                    <button type="button" onClick={() => { setShowNewMenu(false); openCreateDrawer(); }}
-                                        className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5">Single</button>
-                                    <button type="button" onClick={() => { setShowNewMenu(false); toast.info('Batch create coming soon.'); }}
-                                        className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5">Batch</button>
-                                    <button type="button" onClick={() => { setShowNewMenu(false); toast.info('CSV import coming soon.'); }}
-                                        className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5">Import CSV</button>
-                                </div>
-                            ) : null}
-                        </div> : null}
+                        {can('archive.create') ? (
+                            <div className="flex items-center gap-2">
+                                <AppButton variant="ghost" compact isIconOnly onPress={() => setRoomModalOpen(true)} tooltip="Créer salle">
+                                    <Building2 size={16} />
+                                </AppButton>
+                                <AppButton variant="primary" compact isIconOnly onPress={openCreateDrawer} tooltip="Nouvelle archive">
+                                    <Archive size={16} />
+                                </AppButton>
+                            </div>
+                        ) : null}
                     </div>
 
                     <KpiStrip kpis={props.kpis} activeFilter={filters.overdueOnly ? 'overdue' : (filters.status?.[0] ?? null)} onFilter={handleKpiFilter} />
@@ -482,13 +510,13 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                     isOpen={drawerOpen}
                     mode={drawerMode}
                     archiveRecord={selectedArchive}
+                    clients={props.clients}
                     dossiers={props.dossiers}
                     rooms={props.tree.map((r) => ({ id: r.id, name: r.name, code: r.code }))}
                     shelves={props.tree.flatMap((r) => (r.shelves || []).map((s) => ({ id: s.id, roomId: r.id, name: s.name, code: s.code })))}
                     boxes={props.tree.flatMap((r) => (r.shelves || []).flatMap((s) => (s.boxes || []).map((b) => ({ id: b.id, shelfId: s.id, name: b.name, code: b.code, capacity: b.capacity }))))}
                     onOpenChange={setDrawerOpen}
                     onSubmit={handleSubmit}
-                    errors={formErrors}
                 />
 
                 <CheckoutDrawer
@@ -638,6 +666,67 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                     <div className="flex justify-end gap-2">
                         <AppButton variant="bordered" size="sm" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
                         <AppButton color="danger" variant="solid" size="sm" onPress={confirmDelete}>Delete</AppButton>
+                    </div>
+                </AppModal>
+
+                <AppModal isOpen={roomModalOpen} onOpenChange={setRoomModalOpen} title="Créer salle" size="sm">
+                    <div className="flex flex-col gap-3">
+                        <DrawerSection icon={<Building2 size={12} />} title="Salle">
+                            <DrawerField label="Nom" error={roomErrors.name}>
+                                <Input
+                                    type="text"
+                                    value={roomName}
+                                    onChange={(e) => setRoomName(e.target.value)}
+                                    placeholder="ex: SALLE A"
+                                    className={drawerStyles.input}
+                                />
+                            </DrawerField>
+                        </DrawerSection>
+
+                        <DrawerSection icon={<Layers size={12} />} title="Étagères">
+                            <div className="grid grid-cols-2 gap-2">
+                                <DrawerField label="Nombre" error={roomErrors.shelves_count}>
+                                    <Input
+                                        type="number"
+                                        value={String(shelvesCount)}
+                                        onChange={(e) => setShelvesCount(Number(e.target.value) || 0)}
+                                        min={0}
+                                        max={30}
+                                        step={1}
+                                        placeholder="0"
+                                        className={drawerStyles.input}
+                                    />
+                                </DrawerField>
+                                <DrawerField label="Boîtes / étagère" error={roomErrors.boxes_per_shelf}>
+                                    <Input
+                                        type="number"
+                                        value={String(boxesPerShelf)}
+                                        onChange={(e) => setBoxesPerShelf(Number(e.target.value) || 0)}
+                                        min={0}
+                                        max={30}
+                                        step={1}
+                                        placeholder="0"
+                                        className={drawerStyles.input}
+                                    />
+                                </DrawerField>
+                            </div>
+                        </DrawerSection>
+
+                        <DrawerSection icon={<FileText size={12} />} title="Description">
+                            <DrawerField label="Description (optionnelle)" error={roomErrors.description}>
+                                <TextArea
+                                    value={roomDescription}
+                                    onChange={(e) => setRoomDescription(e.target.value)}
+                                    placeholder="ex: Étage 2, aile nord"
+                                    className={drawerStyles.textarea}
+                                />
+                            </DrawerField>
+                        </DrawerSection>
+
+                        <div className="flex justify-end gap-2">
+                            <AppButton variant="bordered" size="sm" onPress={() => { setRoomModalOpen(false); setRoomErrors({}); }}>Annuler</AppButton>
+                            <AppButton variant="primary" size="sm" isDisabled={roomSubmitting} onPress={submitRoom}>{roomSubmitting ? 'Création...' : 'Créer'}</AppButton>
+                        </div>
                     </div>
                 </AppModal>
             </AppShell>

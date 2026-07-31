@@ -1,4 +1,15 @@
-export type DocumentStatus = 'uploaded' | 'verified' | 'missing' | 'rejected' | string;
+export type DocumentStatus =
+    | 'uploaded'
+    | 'verified'
+    | 'missing'
+    | 'rejected'
+    | string;
+
+export type DocumentSide =
+    | 'single'
+    | 'front'
+    | 'back'
+    | string;
 
 export type DossierDocumentRow = {
     id: number;
@@ -7,7 +18,10 @@ export type DossierDocumentRow = {
     projectObject: string | null;
     clientName: string | null;
     templateName: string | null;
+    templateBaseName?: string | null;
+    templateCode?: string | null;
     documentType: string | null;
+    documentSide: DocumentSide;
     documentNumber: string | null;
     status: DocumentStatus;
     originalFilename: string | null;
@@ -31,10 +45,17 @@ export type ClientOption = {
     label: string;
 };
 
+export type DocumentUploadMode =
+    | 'single'
+    | 'cin_pair';
+
 export type DocumentTemplateOption = {
     id: string;
     label: string;
-    type?: string | null;
+    code: string;
+    documentType: string | null;
+    isRequired: boolean;
+    uploadMode: DocumentUploadMode;
 };
 
 export type DocumentUploadPayload = {
@@ -43,6 +64,8 @@ export type DocumentUploadPayload = {
     status: string;
     notes: string;
     file: File | null;
+    cinFrontFile: File | null;
+    cinBackFile: File | null;
 };
 
 export type DocumentGroupStats = {

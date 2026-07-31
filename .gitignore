@@ -30,3 +30,6 @@ Thumbs.db
 tessdata/
 
 /.repair-backups
+
+/storage/tus
+*.bak*
