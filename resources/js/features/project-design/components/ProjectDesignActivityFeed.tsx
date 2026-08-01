@@ -35,8 +35,8 @@ export function ProjectDesignActivityFeed({ dossierId }: { dossierId: number }) 
                     <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
                         <Activity size={17} />
                     </span>
-                    <p className="mt-2 text-[12px] font-medium text-[var(--foreground)]">No recent activity</p>
-                    <p className="mt-1 max-w-72 text-[10px] leading-4 text-[var(--text-muted)]">
+                    <p className="mt-2 text-[11px] font-medium text-[var(--foreground)]">No recent activity</p>
+                    <p className="mt-1 max-w-72 text-[9px] leading-4 text-[var(--text-muted)]">
                         Design file changes, annotations and review actions will appear here.
                     </p>
                 </Card.Content>
@@ -53,7 +53,7 @@ export function ProjectDesignActivityFeed({ dossierId }: { dossierId: number }) 
                             <Clock size={13} />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-medium leading-4 text-[var(--foreground)]">
+                            <p className="text-[10px] font-medium leading-4 text-[var(--foreground)]">
                                 <span className="font-semibold">{item.user?.name ?? 'System'}</span>
                                 {' '}{describeAction(item.action)}
                                 {item.description ? <span className="text-[var(--text-muted)]"> — {item.description}</span> : null}

@@ -67,7 +67,7 @@ export function ProjectWorkflowStepper({ steps, currentStep, completed, total, o
                                 title={`${step.label} \u2014 ${statusText(step.status)}`}
                                 className="group relative z-10 flex flex-col items-center gap-1.5 transition hover:opacity-90">
                                 <span className={cn(
-                                    'flex size-[34px] items-center justify-center rounded-full text-[12px] font-bold transition-all duration-200 border-2',
+                                    'flex size-[34px] items-center justify-center rounded-full text-[11px] font-bold transition-all duration-200 border-2',
                                     'group-hover:scale-110 group-hover:shadow-md',
                                     isCompleted && 'border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20',
                                     isActive && !isCompleted && 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)] shadow-lg shadow-[var(--accent)]/20',
@@ -80,7 +80,7 @@ export function ProjectWorkflowStepper({ steps, currentStep, completed, total, o
                                     }
                                 </span>
                                 <span className={cn(
-                                    'text-[11px] font-medium text-center leading-tight max-w-[80px] truncate',
+                                    'text-[10px] font-medium text-center leading-tight max-w-[80px] truncate',
                                     isCompleted && 'text-emerald-400',
                                     isActive && !isCompleted && 'text-[var(--accent)] font-semibold',
                                     !isCompleted && !isActive && 'text-[var(--text-muted)]',
@@ -89,7 +89,7 @@ export function ProjectWorkflowStepper({ steps, currentStep, completed, total, o
                                 </span>
                                 {step.total > 0 && (
                                     <span className={cn(
-                                        'text-[10px] leading-none text-center',
+                                        'text-[9px] leading-none text-center',
                                         isCompleted && 'text-emerald-400/70',
                                         !isCompleted && 'text-[var(--text-subtle)]',
                                     )}>
@@ -111,8 +111,8 @@ export function ProjectWorkflowStepper({ steps, currentStep, completed, total, o
                 })}
             </div>
             <div className="shrink-0 flex items-center gap-2 pl-4 ml-4 border-l border-[var(--border)] self-stretch">
-                <span className="text-[15px] font-bold text-[var(--accent)] leading-none">{completed}</span>
-                <span className="text-[12px] text-[var(--text-muted)]">/ {total}</span>
+                <span className="text-[14px] font-bold text-[var(--accent)] leading-none">{completed}</span>
+                <span className="text-[11px] text-[var(--text-muted)]">/ {total}</span>
             </div>
         </div>
     );

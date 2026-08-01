@@ -79,7 +79,7 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                 <div className="shrink-0 border-b border-white/5 bg-white/[0.01] px-4 py-2">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] font-medium uppercase tracking-wider text-white/30 mr-1">
+                            <span className="text-[9px] font-medium uppercase tracking-wider text-white/30 mr-1">
                                 Rooms
                             </span>
                             {tree.map((room) => (
@@ -88,7 +88,7 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                     type="button"
                                     onClick={() => scrollToRoom(room.code)}
                                     className={cn(
-                                        'rounded-md border px-2.5 py-1 text-[11px] font-medium transition',
+                                        'rounded-md border px-2.5 py-1 text-[10px] font-medium transition',
                                         activeRoomTab === room.code
                                             ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
                                             : 'border-white/10 text-white/50 hover:text-white/85 hover:bg-white/5',
@@ -108,7 +108,7 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Search boxes…"
-                                    className="h-7 w-36 rounded-md border border-white/10 bg-white/[0.02] pl-2 pr-6 text-[11px] text-white outline-none placeholder:text-white/30 focus:border-white/20 transition"
+                                    className="h-7 w-36 rounded-md border border-white/10 bg-white/[0.02] pl-2 pr-6 text-[10px] text-white outline-none placeholder:text-white/30 focus:border-white/20 focus:ring-2 focus:ring-white/15 transition"
                                 />
                                 {searchQuery && (
                                     <button
@@ -122,7 +122,7 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                     </button>
                                 )}
                             </div>
-                            <span className="text-[10px] text-white/30 tabular-nums">
+                            <span className="text-[9px] text-white/30 tabular-nums">
                                 {totalRecords} rec · {totalBoxes} boxes
                             </span>
                         </div>
@@ -173,9 +173,9 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[10px] text-white/40">{roomRecs} rec{roomRecs !== 1 ? 's' : ''}</span>
+                                                    <span className="text-[9px] text-white/40">{roomRecs} rec{roomRecs !== 1 ? 's' : ''}</span>
                                                     <span className="text-white/15">·</span>
-                                                    <span className="text-[10px] text-white/40">{util.filled}/{util.total} boxes used</span>
+                                                    <span className="text-[9px] text-white/40">{util.filled}/{util.total} boxes used</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -193,7 +193,7 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                                     />
                                                 </div>
                                                 <span className={cn(
-                                                    'text-[10px] font-medium tabular-nums',
+                                                    'text-[9px] font-medium tabular-nums',
                                                     util.pct >= 90 ? 'text-red-400' : util.pct >= 70 ? 'text-amber-400' : 'text-emerald-400',
                                                 )}>
                                                     {util.pct}%
@@ -247,7 +247,7 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
 
                                                         <div className="flex-1 h-px bg-gradient-to-r from-white/10 via-white/5 to-transparent mx-1.5" />
 
-                                                        <span className="text-[10px] font-medium text-white/40">Shelf {shelf.code}</span>
+                                                        <span className="text-[9px] font-medium text-white/40">Shelf {shelf.code}</span>
 
                                                         <div className="flex-1 h-px bg-gradient-to-l from-white/10 via-white/5 to-transparent mx-1.5" />
 

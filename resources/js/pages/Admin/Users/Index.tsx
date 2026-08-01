@@ -198,11 +198,11 @@ function PermissionsMatrix({
         <div className="rounded-lg border border-[var(--crm-border)] overflow-hidden">
             {/* Grid header */}
             <div className="grid grid-cols-[1fr_56px_56px_56px_56px_80px] gap-0 bg-[var(--crm-surface-3)]/30 px-4 py-2.5 border-b border-[var(--crm-border)]">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)]">Module</span>
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)]">Module</span>
                 {levels.map(l => (
-                    <span key={l.key} className="text-[10px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)] text-center">{l.label}</span>
+                    <span key={l.key} className="text-[9px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)] text-center">{l.label}</span>
                 ))}
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)] text-center">Scope</span>
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)] text-center">Scope</span>
             </div>
 
             {/* Module rows */}
@@ -215,7 +215,7 @@ function PermissionsMatrix({
                             'grid grid-cols-[1fr_56px_56px_56px_56px_80px] gap-0 px-4 py-2.5 items-center transition',
                             isOverridden ? 'bg-[var(--crm-gold-soft)]' : 'hover:bg-[var(--crm-surface-hover)]',
                         )}>
-                            <span className="text-[13px] font-medium text-[var(--crm-text)]/80">{mod}</span>
+                            <span className="text-[12px] font-medium text-[var(--crm-text)]/80">{mod}</span>
                             {levels.map(l => (
                                 <button key={l.key} type="button" onClick={() => onChange(mod, l.key)}
                                     className="flex items-center justify-center py-0.5 group">
@@ -229,14 +229,14 @@ function PermissionsMatrix({
                             ))}
                             <div className="flex items-center justify-center">
                                 {SCOPE_MODULES.has(mod) ? (
-                                    <div className="flex items-center rounded-md text-[10px] font-semibold overflow-hidden border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30">
+                                    <div className="flex items-center rounded-md text-[9px] font-semibold overflow-hidden border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30">
                                         <button type="button" onClick={() => onScopeChange(mod, 'all')}
                                             className={cn('px-2 py-0.5 transition', p.scope === 'all' ? 'bg-[var(--crm-surface-2)] text-[var(--crm-text-muted)]' : 'text-[var(--crm-text-soft)] hover:text-[var(--crm-text-muted)]')}>All</button>
                                         <button type="button" onClick={() => onScopeChange(mod, 'assigned_only')}
                                             className={cn('px-2 py-0.5 transition', p.scope === 'assigned_only' ? 'bg-[var(--crm-surface-2)] text-[var(--crm-text-muted)]' : 'text-[var(--crm-text-soft)] hover:text-[var(--crm-text-muted)]')}>Asgn</button>
                                     </div>
                                 ) : (
-                                    <span className="text-[10px] text-[var(--crm-text-soft)]/40">—</span>
+                                    <span className="text-[9px] text-[var(--crm-text-soft)]/40">—</span>
                                 )}
                             </div>
                         </div>
@@ -363,7 +363,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
 
     function UserAccessSwitch({ user }: { user: AdminUserRow }) {
         if (isProtectedAdministrator(primaryRole(user))) {
-            return <span className="text-[11px] font-medium text-[var(--text-muted)]">Protected</span>;
+            return <span className="text-[10px] font-medium text-[var(--text-muted)]">Protected</span>;
         }
 
         const isCurrentUser = user.id === currentUserId;
@@ -384,7 +384,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                         </Switch.Control>
                     </Switch.Content>
                 </Switch>
-                <span className={cn('text-[11px] font-medium', user.isSuspended ? 'text-[var(--crm-danger)]' : 'text-[var(--crm-success)]')}>
+                <span className={cn('text-[10px] font-medium', user.isSuspended ? 'text-[var(--crm-danger)]' : 'text-[var(--crm-success)]')}>
                     {user.isSuspended ? 'Inactive' : 'Active'}
                 </span>
             </div>
@@ -553,10 +553,10 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
             icon: <UserCog size={13} />,
             render: (user) => (
                 <div className="flex items-center gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[11px] font-bold text-[var(--crm-gold)]">{initials(user.name)}</div>
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[10px] font-bold text-[var(--crm-gold)]">{initials(user.name)}</div>
                     <div className="min-w-0">
-                        <p className="text-[13px] font-medium text-[var(--text)] truncate max-w-[180px]">{user.name}</p>
-                        <p className="text-[11px] text-[var(--text-muted)] truncate max-w-[180px]">{user.email}</p>
+                        <p className="text-[12px] font-medium text-[var(--text)] truncate max-w-[180px]">{user.name}</p>
+                        <p className="text-[10px] text-[var(--text-muted)] truncate max-w-[180px]">{user.email}</p>
                     </div>
                 </div>
             ),
@@ -565,7 +565,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
             id: 'email',
             label: 'Email Address',
             icon: <Mail size={13} />,
-            render: (user) => <span className="text-[12px] text-[var(--text-muted)]">{user.email}</span>,
+            render: (user) => <span className="text-[11px] text-[var(--text-muted)]">{user.email}</span>,
         },
         {
             id: 'role',
@@ -576,7 +576,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                 const Icon = roleIcon(role);
                 const rs = ROLE_STYLES[role] || ROLE_STYLES.viewer;
                 return (
-                    <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold', rs.bg, rs.text)}>
+                    <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold', rs.bg, rs.text)}>
                         <span className={cn('size-1.5 rounded-full', rs.dot)} /><Icon size={12} />{formatRoleLabel(role)}
                     </span>
                 );
@@ -587,15 +587,15 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
             label: 'Status',
             icon: <UserCheck size={13} />,
             render: (user) => user.isSuspended ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-danger)]/20 bg-[var(--crm-danger-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--crm-danger)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-danger)]/20 bg-[var(--crm-danger-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-danger)]">
                     <span className="size-1.5 rounded-full bg-[var(--crm-danger)]" />Suspended
                 </span>
             ) : user.isOnline ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-success)]/20 bg-[var(--crm-success-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--crm-success)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-success)]/20 bg-[var(--crm-success-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-success)]">
                     <span className="size-1.5 rounded-full bg-[var(--crm-success)]" />Online
                 </span>
             ) : (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">
                     <span className="size-1.5 rounded-full bg-[var(--text-muted)]" />Offline
                 </span>
             ),
@@ -610,13 +610,13 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
             id: 'created',
             label: 'Add Date',
             icon: <CalendarDays size={13} />,
-            render: (user) => <span className="text-[12px] text-[var(--text-muted)] tabular-nums">{formatDate(user.createdAt)}</span>,
+            render: (user) => <span className="text-[11px] text-[var(--text-muted)] tabular-nums">{formatDate(user.createdAt)}</span>,
         },
         {
             id: 'lastActive',
             label: 'Last Active',
             icon: <Clock3 size={13} />,
-            render: (user) => <span className="text-[12px] text-[var(--text-muted)] tabular-nums">{user.lastSeenAt ? formatDate(user.lastSeenAt) : '-'}</span>,
+            render: (user) => <span className="text-[11px] text-[var(--text-muted)] tabular-nums">{user.lastSeenAt ? formatDate(user.lastSeenAt) : '-'}</span>,
         },
         {
             id: 'actions',
@@ -668,7 +668,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                     <div className="flex items-start justify-between mb-6">
                         <div>
                             <h1 className="text-xl font-bold text-[var(--crm-text)]">User Management</h1>
-                            <p className="text-[13px] text-[var(--crm-text-muted)] mt-0.5">Manage team access, roles, and permissions.</p>
+                            <p className="text-[12px] text-[var(--crm-text-muted)] mt-0.5">Manage team access, roles, and permissions.</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Add User" aria-label="Add User" onPress={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', password: '', passwordConfirmation: '', role: 'staff' }); setIsInviteOpen(true); }}>
@@ -706,7 +706,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                             <div className="flex min-w-0 items-center gap-2.5">
                                                 <div>
                                                     <p className="text-xs font-semibold text-[var(--foreground)]">Bulk actions</p>
-                                                    <Chip size="sm" variant="soft" color="warning" startContent={<Check size={12} strokeWidth={2.5} />} className="mt-1 h-5 px-1.5 text-[10px]">
+                                                    <Chip size="sm" variant="soft" color="warning" startContent={<Check size={12} strokeWidth={2.5} />} className="mt-1 h-5 px-1.5 text-[9px]">
                                                         {selectedIds.size} selected
                                                     </Chip>
                                                 </div>
@@ -752,7 +752,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                         <div>
                                             <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="text-[12px] font-semibold text-[var(--text)]">User Details</span>
+                                                    <span className="text-[11px] font-semibold text-[var(--text)]">User Details</span>
                                                     <span className="flex h-4 min-w-[20px] items-center justify-center rounded bg-[var(--surface-2)] px-1.5 text-[9px] font-bold text-[var(--text-muted)]">{filteredUsers.length}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
@@ -765,7 +765,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                                         aria-label="Search users"
                                                         classNames={{
                                                             base: 'w-full sm:w-[280px]',
-                                                            input: 'text-[12px]',
+                                                            input: 'text-[11px]',
                                                             inputWrapper: 'h-8 min-h-8 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-2)]/65 px-2 shadow-sm shadow-black/10 transition hover:border-[var(--text-muted)] focus-within:border-[var(--accent)] focus-within:bg-[var(--surface)]',
                                                         }}
                                                         startContent={<span className="flex size-5 items-center justify-center rounded-md bg-[var(--surface)] text-[var(--accent)]"><Search size={12} /></span>}
@@ -788,7 +788,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                                                 size="sm"
                                                                 variant="bordered"
                                                                 className={cn(
-                                                                    'h-7 min-h-7 gap-1.5 px-2 text-[11px] font-medium',
+                                                                    'h-7 min-h-7 gap-1.5 px-2 text-[10px] font-medium',
                                                                     filterRoles.size !== filterRoleOptions.length || filterStatus !== 'all'
                                                                         ? 'border-[var(--accent)] text-[var(--accent)]'
                                                                         : '',
@@ -802,7 +802,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                                             <Dropdown.Menu
                                                                 aria-label="Filter users"
                                                                 closeOnSelect={false}
-                                                                itemClasses={{ base: 'rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]' }}
+                                                                itemClasses={{ base: 'rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]' }}
                                                             >
                                                                 <Dropdown.Section title="By role" className="mb-0">
                                                                     {filterRoleOptions.map((role) => (
@@ -869,10 +869,10 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                 }
                                 footer={
                                     <div className="flex items-center justify-between px-3 py-2">
-                                        <span className="text-[10px] text-[var(--text-muted)]">Showing {filteredUsers.length === 0 ? 0 : (page - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(page * TABLE_PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}</span>
+                                        <span className="text-[9px] text-[var(--text-muted)]">Showing {filteredUsers.length === 0 ? 0 : (page - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(page * TABLE_PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}</span>
                                         <div className="flex items-center gap-1.5">
                                             <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Previous page" isDisabled={page <= 1} onPress={() => setPage(Math.max(1, page - 1))}><ChevronLeft size={14} /></AppButton>
-                                            <span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-[var(--text-muted)]">{page} / {totalPages || 1}</span>
+                                            <span className="min-w-10 text-center text-[9px] font-semibold tabular-nums text-[var(--text-muted)]">{page} / {totalPages || 1}</span>
                                             <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Next page" isDisabled={page >= totalPages || totalPages === 0} onPress={() => setPage(Math.min(totalPages, page + 1))}><ChevronRight size={14} /></AppButton>
                                         </div>
                                     </div>
@@ -882,7 +882,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
 
                     <TabPanel id="security" className="outline-none">
                             <div className="flex items-center justify-between mb-5">
-                                <p className="text-[13px] text-[var(--crm-text-soft)]">Track all security-related events and changes in the system.</p>
+                                <p className="text-[12px] text-[var(--crm-text-soft)]">Track all security-related events and changes in the system.</p>
                                 <AppButton isIconOnly compact variant="ghost" tooltip="Download Audit Log" aria-label="Download Audit Log" onPress={exportCsv}>
                                     <Download size={16} />
                                 </AppButton>
@@ -892,7 +892,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                     <thead>
                                         <tr className="border-b border-[var(--crm-border)]">
                                             {['Timestamp', 'User', 'Action Taken', 'IP Address'].map((label) => (
-                                                <th key={label} className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--crm-text-soft)]">{label}</th>
+                                                <th key={label} className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-text-soft)]">{label}</th>
                                             ))}
                                         </tr>
                                     </thead>
@@ -902,11 +902,11 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                         ) : auditEntries.length === 0 ? (
                                             <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-[var(--crm-text-soft)]">No audit logs yet.</td></tr>
                                         ) : auditEntries.map((entry) => (
-                                            <tr key={entry.id} className="text-[13px] text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-hover)] transition">
+                                            <tr key={entry.id} className="text-[12px] text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-hover)] transition">
                                                 <td className="px-3 py-2.5 tabular-nums text-[var(--crm-text-soft)]">{entry.timestamp}</td>
                                                 <td className="px-3 py-2.5 font-medium text-[var(--crm-text)]/70">{entry.user}</td>
                                                 <td className="px-3 py-2.5 text-[var(--crm-text-muted)]">{entry.action}</td>
-                                                <td className="px-3 py-2.5 font-mono text-[12px] text-[var(--crm-text-soft)]">{entry.ip}</td>
+                                                <td className="px-3 py-2.5 font-mono text-[11px] text-[var(--crm-text-soft)]">{entry.ip}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -987,7 +987,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                                 const style = ROLE_STYLES[role] ?? ROLE_STYLES.viewer;
 
                                                 return (
-                                                    <Chip key={role} size="sm" variant="soft" className={cn('h-6 gap-1 px-2 text-[10px] font-semibold', style.bg, style.text)}>
+                                                    <Chip key={role} size="sm" variant="soft" className={cn('h-6 gap-1 px-2 text-[9px] font-semibold', style.bg, style.text)}>
                                                         <span className={cn('size-1.5 rounded-full', style.dot)} />
                                                         {formatRoleLabel(role)}
                                                     </Chip>
@@ -997,7 +997,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                                 size="sm"
                                                 variant="soft"
                                                 className={cn(
-                                                    'h-6 px-2 text-[10px] font-semibold',
+                                                    'h-6 px-2 text-[9px] font-semibold',
                                                     viewProfileUser.isSuspended
                                                         ? 'bg-[var(--crm-danger-soft)] text-[var(--crm-danger)]'
                                                         : viewProfileUser.isOnline
@@ -1029,9 +1029,9 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                 <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-3.5 py-3">
                                     <div>
                                         <h3 className="text-sm font-semibold text-[var(--foreground)]">Access</h3>
-                                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Effective permissions from the assigned roles.</p>
+                                        <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Effective permissions from the assigned roles.</p>
                                     </div>
-                                    <Chip size="sm" variant="soft" className="h-6 shrink-0 px-2 text-[10px] text-[var(--text-muted)]">
+                                    <Chip size="sm" variant="soft" className="h-6 shrink-0 px-2 text-[9px] text-[var(--text-muted)]">
                                         {viewProfileUser.permissions.length}
                                     </Chip>
                                 </div>
@@ -1045,7 +1045,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                                         <span className="flex min-w-0 flex-1 items-center gap-2">
                                                             <span className="size-1.5 rounded-full bg-[var(--accent)]" />
                                                             <span className="truncate text-xs font-semibold text-[var(--foreground)]">{module}</span>
-                                                            <span className="text-[10px] text-[var(--text-muted)]">{permissions.length}</span>
+                                                            <span className="text-[9px] text-[var(--text-muted)]">{permissions.length}</span>
                                                         </span>
                                                         <Accordion.Indicator className="text-[var(--text-muted)]"><ChevronDown size={14} /></Accordion.Indicator>
                                                     </Accordion.Trigger>
@@ -1053,7 +1053,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                                 <Accordion.Panel>
                                                     <Accordion.Body className="flex flex-wrap gap-1.5 px-2.5 pb-3">
                                                         {permissions.map((permission) => (
-                                                            <Chip key={permission} size="sm" variant="soft" className="h-6 bg-[var(--surface-2)] px-2 text-[10px] text-[var(--text-muted)]">
+                                                            <Chip key={permission} size="sm" variant="soft" className="h-6 bg-[var(--surface-2)] px-2 text-[9px] text-[var(--text-muted)]">
                                                                 {permissionActionLabel(permission)}
                                                             </Chip>
                                                         ))}
@@ -1090,26 +1090,26 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                 <div className="flex size-14 items-center justify-center rounded-2xl bg-[var(--crm-gold-soft)] text-xl font-bold text-[var(--crm-gold)]">{initials(editUser.name)}</div>
                                 <div>
                                     <p className="text-lg font-semibold text-[var(--crm-text)]/90">{editUser.name}</p>
-                                    <p className="text-[13px] text-[var(--crm-text-muted)]">{editUser.email}</p>
+                                    <p className="text-[12px] text-[var(--crm-text-muted)]">{editUser.email}</p>
                                 </div>
                             </div>
 
                             {/* ── Role + Restore ── */}
                             <div className="flex items-end gap-4 mb-7">
                                 <div className="flex-1">
-                                    <label className="text-[11px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)] mb-2 block">Access Role</label>
+                                    <label className="text-[10px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)] mb-2 block">Access Role</label>
                                     <select value={editRole} onChange={(e) => {
                                         const newRole = e.target.value;
                                         setEditRole(newRole);
                                         setEditPerms(cloneDefaults(newRole));
                                     }}
-                                        className="h-10 w-full max-w-xs rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 px-3 text-[13px] text-[var(--crm-text)]/70 outline-none transition focus:border-[var(--crm-border-strong)] cursor-pointer appearance-none">
+                                        className="h-10 w-full max-w-xs rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 px-3 text-[12px] text-[var(--crm-text)]/70 outline-none transition focus:border-[var(--crm-border-strong)] focus:ring-2 focus:ring-[var(--crm-gold)]/15 cursor-pointer appearance-none">
                                         {roles.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
                                     </select>
                                 </div>
                                 <button type="button" onClick={() => setEditPerms(cloneDefaults(editRole))}
                                     className={cn(
-                                        'flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-medium transition',
+                                        'flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-medium transition',
                                         JSON.stringify(editPerms) !== JSON.stringify(cloneDefaults(editRole))
                                             ? 'border border-[var(--crm-gold)]/20 text-[var(--crm-gold)] hover:bg-[var(--crm-gold-soft)]'
                                             : 'border border-[var(--crm-border)] text-[var(--crm-text-soft)] hover:text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-hover)]',
@@ -1122,9 +1122,9 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                             {/* ── Permissions grid ── */}
                             <div className="mb-2">
                                 <div className="flex items-center justify-between mb-3">
-                                    <label className="text-[11px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)]">Module Permissions</label>
+                                    <label className="text-[10px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)]">Module Permissions</label>
                                     {JSON.stringify(editPerms) !== JSON.stringify(initialPerms) && (
-                                        <span className="text-[10px] text-[var(--crm-gold)]/60">Customized from role defaults</span>
+                                        <span className="text-[9px] text-[var(--crm-gold)]/60">Customized from role defaults</span>
                                     )}
                                 </div>
                                 <PermissionsMatrix
@@ -1188,7 +1188,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                             </div>
                         </div>
                         <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Unsaved Changes</h3>
-                        <p className="text-[13px] text-[var(--crm-text-muted)] leading-relaxed">
+                        <p className="text-[12px] text-[var(--crm-text-muted)] leading-relaxed">
                             You have unsaved permission changes. Discard them?
                         </p>
                         <div className="flex items-center justify-center gap-2 mt-6">
@@ -1213,7 +1213,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                             <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">
                                 {confirmBulkAction === 'delete' ? 'Remove Users' : 'Suspend Users'}
                             </h3>
-                            <p className="text-[13px] text-[var(--crm-text-muted)] leading-relaxed">
+                            <p className="text-[12px] text-[var(--crm-text-muted)] leading-relaxed">
                                 {confirmBulkAction === 'delete'
                                     ? `${selectedIds.size} user(s) will lose all access immediately. This cannot be undone.`
                                     : `${selectedIds.size} user(s) will lose access until manually reinstated.`}
@@ -1251,7 +1251,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                 <AppModal isOpen={!!csvModal} onOpenChange={(o) => { if (!o) setCsvModal(null); }} title="Review CSV Import" size="lg">
                     {csvModal && (
                         <div className="space-y-4">
-                            <p className="text-[13px] text-[var(--crm-text-muted)]">
+                            <p className="text-[12px] text-[var(--crm-text-muted)]">
                                 {csvModal.users.filter(u => !csvModal.existing.has(u.email)).length} new · {csvModal.existing.size} existing
                             </p>
                             <div className="max-h-[320px] overflow-y-auto rounded-lg border border-[var(--crm-border)] divide-y divide-[var(--crm-border)]/40">
@@ -1264,18 +1264,18 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                             isDuplicate ? (isOverridden ? 'bg-[var(--crm-gold-soft)]' : 'bg-[var(--crm-surface-3)]/30') : '',
                                         )}>
                                             <div className="flex items-center gap-3 min-w-0">
-                                                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[10px] font-bold text-[var(--crm-gold)]">
+                                                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[9px] font-bold text-[var(--crm-gold)]">
                                                     {u.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-[13px] font-medium text-[var(--crm-text)]/80 truncate">{u.name}</p>
-                                                    <p className="text-[11px] text-[var(--crm-text-soft)] truncate">{u.email}</p>
+                                                    <p className="text-[12px] font-medium text-[var(--crm-text)]/80 truncate">{u.name}</p>
+                                                    <p className="text-[10px] text-[var(--crm-text-soft)] truncate">{u.email}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2 shrink-0">
-                                                <span className="rounded-md bg-[var(--crm-surface-hover)] px-2 py-0.5 text-[10px] font-semibold capitalize text-[var(--crm-text-soft)]">{u.role}</span>
+                                                <span className="rounded-md bg-[var(--crm-surface-hover)] px-2 py-0.5 text-[9px] font-semibold capitalize text-[var(--crm-text-soft)]">{u.role}</span>
                                                 {isDuplicate && (
-                                                    <div className="flex items-center rounded-md border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 text-[10px] font-semibold overflow-hidden">
+                                                    <div className="flex items-center rounded-md border border-[var(--crm-border)] bg-[var(--crm-surface-3)]/30 text-[9px] font-semibold overflow-hidden">
                                                         <button type="button" onClick={() => {
                                                             setCsvModal((p) => {
                                                                 if (!p) return p;
@@ -1297,7 +1297,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                                     </div>
                                                 )}
                                                 {!isDuplicate && (
-                                                    <span className="text-[10px] font-medium text-[var(--crm-success)]/60">New</span>
+                                                    <span className="text-[9px] font-medium text-[var(--crm-success)]/60">New</span>
                                                 )}
                                             </div>
                                         </div>
@@ -1305,7 +1305,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                 })}
                             </div>
                             <div className="flex items-center justify-between pt-2 border-t border-[var(--crm-border)]">
-                                <span className="text-[11px] text-[var(--crm-text-soft)]">
+                                <span className="text-[10px] text-[var(--crm-text-soft)]">
                                     {csvModal.existing.size > 0 && (
                                         <>{csvModal.overrides.size} of {csvModal.existing.size} duplicate(s) will be overridden</>
                                     )}
@@ -1341,7 +1341,7 @@ export default function AdminUsersIndex({ users, roles, filterRoles: filterRoleO
                                 </div>
                             </div>
                             <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Remove {deleteTarget.name}?</h3>
-                            <p className="text-[13px] text-[var(--crm-text-muted)] leading-relaxed">
+                            <p className="text-[12px] text-[var(--crm-text-muted)] leading-relaxed">
                                 They will lose all access to <strong className="text-[var(--crm-text)]/70">ARCHI LBO OS</strong> immediately.
                             </p>
                             <div className="flex items-center justify-center gap-2 mt-6">

@@ -196,7 +196,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
             <AppShell>
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Finance</p>
+                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Finance</p>
                         <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">Contrats</h1>
                         <p className="mt-1 max-w-3xl text-sm text-[var(--text-muted)]">
                             Preparez les calculs de contrats, generer les fichiers DOCX/PDF officiels, et suivez le workflow de signature.
@@ -220,7 +220,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                             <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }}
                                 placeholder="Rechercher par contrat, client..."
-                                className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[11px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+                                className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[10px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                             />
                             {query ? (
                                 <button type="button" onClick={() => setQuery('')}
@@ -231,7 +231,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                         </div>
                         <div className="ml-auto flex items-center gap-1">
                             <Dropdown>
-                                <Dropdown.Trigger className={cn("inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition hover:border-[var(--accent)]/30", statusFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
+                                <Dropdown.Trigger className={cn("inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-medium transition hover:border-[var(--accent)]/30", statusFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
                                     <span className="contents">
                                         <ListFilter size={12} />
                                         {statusFilter === 'all' ? 'Tous' : statusOptions.find((o) => o.id === statusFilter)?.label}
@@ -246,7 +246,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                         disabledKeys={statusOptions.filter((o) => o.count === 0).map((o) => o.id)}
                                         onAction={(key) => { setStatusFilter(key as string); setPage(0); }}
                                         itemClasses={{
-                                            base: 'rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40',
+                                            base: 'rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40',
                                         }}>
                                         {statusOptions.map((opt) => {
                                             const Icon = opt.id === 'all' ? ListFilter
@@ -265,7 +265,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                         </Dropdown.ItemIndicator>
                                                         <Icon size={14} className={cn('shrink-0', color)} />
                                                         <span className="flex-1">{opt.label}</span>
-                                                        <span className="rounded bg-[var(--surface-2)] px-1.5 py-px text-[10px] font-semibold text-[var(--text-muted)]">{opt.count}</span>
+                                                        <span className="rounded bg-[var(--surface-2)] px-1.5 py-px text-[9px] font-semibold text-[var(--text-muted)]">{opt.count}</span>
                                                     </div>
                                                 </Dropdown.Item>
                                             );
@@ -282,7 +282,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs min-w-[700px]">
                             <thead>
-                                <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                                <tr className="border-b border-[var(--border)] text-left text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                                     <th className="w-8 px-3 py-2"></th>
                                     <th className="px-3 py-2">
                                         <button type="button" onClick={() => toggleSort('contractNumber')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
@@ -322,7 +322,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                     <tr key={c.id}
                                         className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
                                         <td className="px-3 py-2">
-                                            <span className="flex size-5 items-center justify-center rounded bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[10px] font-bold text-[var(--accent)]">
+                                            <span className="flex size-5 items-center justify-center rounded bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[9px] font-bold text-[var(--accent)]">
                                                 <ScrollText size={10} />
                                             </span>
                                         </td>
@@ -371,7 +371,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                             disabledKeys={generating(c.id) ? ['generate-docx', 'generate-pdf'] : []}
                                                             onAction={(key) => handleAction(c, key as ActionId)}
                                                             itemClasses={{
-                                                                base: 'rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-30',
+                                                                base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-30',
                                                             }}>
                                                             <Dropdown.Section title="Document"
                                                                 classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
@@ -453,15 +453,15 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                     </div>
 
                     <div className="flex items-center justify-between border-t border-[var(--border)] px-3 py-2">
-                        <p className="text-[10px] text-[var(--text-muted)]">{filteredContracts.length} element(s)</p>
+                        <p className="text-[9px] text-[var(--text-muted)]">{filteredContracts.length} element(s)</p>
                         <div className="flex items-center gap-2">
                             <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)}
-                                className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
+                                className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[9px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
                                 Precedent
                             </button>
-                            <span className="text-[10px] text-[var(--text-muted)]">{page + 1} / {pageCount}</span>
+                            <span className="text-[9px] text-[var(--text-muted)]">{page + 1} / {pageCount}</span>
                             <button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}
-                                className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
+                                className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[9px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
                                 Suivant
                             </button>
                         </div>
@@ -504,20 +504,20 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
 
                             <div className="grid grid-cols-2 gap-3">
                                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
+                                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
                                     <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{previewContract.clientName || '-'}</p>
                                     <p className="truncate text-xs text-[var(--text-muted)]">{previewContract.clientCin}</p>
                                 </Card>
                                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Dossier</p>
+                                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Dossier</p>
                                     <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{previewContract.dossierNumber || '-'}</p>
                                 </Card>
                                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Montant</p>
+                                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Montant</p>
                                     <p className="mt-1 text-lg font-semibold text-[var(--accent)]">{formatCompactMoney(previewContract.ttc)}</p>
                                 </Card>
                                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Statut</p>
+                                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Statut</p>
                                     <div className="mt-1">
                                         <Chip variant="flat" size="sm" color={statusChipColor[previewContract.status] || 'default'}>
                                             {statusLabel[previewContract.status] || previewContract.status}
@@ -527,18 +527,18 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                             </div>
 
                             <Card className="gap-0 p-4" classNames={{ base: 'border border-[var(--border)] shadow-sm' }}>
-                                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Calcul</p>
+                                <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Calcul</p>
                                 <div className="grid grid-cols-3 gap-2">
                                     <div className="rounded-lg bg-[var(--surface-2)] p-2 text-center">
-                                        <p className="text-[10px] text-[var(--text-muted)]">HT</p>
+                                        <p className="text-[9px] text-[var(--text-muted)]">HT</p>
                                         <p className="text-sm font-semibold text-[var(--foreground)]">{formatCompactMoney(previewContract.ht)}</p>
                                     </div>
                                     <div className="rounded-lg bg-[var(--surface-2)] p-2 text-center">
-                                        <p className="text-[10px] text-[var(--text-muted)]">TVA</p>
+                                        <p className="text-[9px] text-[var(--text-muted)]">TVA</p>
                                         <p className="text-sm font-semibold text-[var(--foreground)]">{formatCompactMoney(previewContract.tva)}</p>
                                     </div>
                                     <div className="rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface-2))] p-2 text-center">
-                                        <p className="text-[10px] text-[var(--accent)]">TTC</p>
+                                        <p className="text-[9px] text-[var(--accent)]">TTC</p>
                                         <p className="text-sm font-semibold text-[var(--accent)]">{formatCompactMoney(previewContract.ttc)}</p>
                                     </div>
                                 </div>
@@ -551,8 +551,8 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                         { label: 'Prix/m²', value: formatCompactMoney(previewContract.pricePerSquareMeter) },
                                     ].map((item) => (
                                         <div key={item.label} className="flex items-center justify-between rounded-lg bg-[var(--surface-2)] px-2.5 py-1.5">
-                                            <span className="text-[11px] text-[var(--text-muted)]">{item.label}</span>
-                                            <span className="text-[12px] font-medium text-[var(--foreground)]">{item.value}</span>
+                                            <span className="text-[10px] text-[var(--text-muted)]">{item.label}</span>
+                                            <span className="text-[11px] font-medium text-[var(--foreground)]">{item.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -560,13 +560,13 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
 
                             {previewContract.notes ? (
                                 <Card className="gap-0 p-4" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Notes</p>
+                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Notes</p>
                                     <p className="text-sm leading-relaxed text-[var(--text-muted)]">{previewContract.notes}</p>
                                 </Card>
                             ) : null}
 
                             <Card className="gap-0 p-4" classNames={{ base: 'border border-[var(--border)] shadow-sm' }}>
-                                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Chronologie</p>
+                                <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Chronologie</p>
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
                                         { label: 'Cree', date: previewContract.createdAt, color: 'bg-[var(--accent)]', icon: ScrollText },
@@ -580,8 +580,8 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                             <div className={cn('flex size-7 items-center justify-center rounded-full', event.color === 'bg-[var(--accent)]' ? 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]' : `${event.color}/15`)}>
                                                 <div className={cn('size-2.5 rounded-full', event.color)} />
                                             </div>
-                                            <p className="text-[11px] font-medium text-[var(--foreground)]">{event.label}</p>
-                                            <p className={cn('text-[10px]', event.date ? 'text-[var(--text-muted)]' : 'text-[var(--text-subtle)]')}>
+                                            <p className="text-[10px] font-medium text-[var(--foreground)]">{event.label}</p>
+                                            <p className={cn('text-[9px]', event.date ? 'text-[var(--text-muted)]' : 'text-[var(--text-subtle)]')}>
                                                 {event.date || '—'}
                                             </p>
                                         </Card>
@@ -591,26 +591,26 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
 
                             <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 shadow-sm">
                                 {previewContract.status !== 'signed' && (
-                                    <Button variant="solid" color="primary" size="sm" className="min-w-0 h-8 text-[11px]" onPress={() => { openEditDrawer(previewContract); setPreviewContract(null); }}>
+                                    <Button variant="solid" color="primary" size="sm" className="min-w-0 h-8 text-[10px]" onPress={() => { openEditDrawer(previewContract); setPreviewContract(null); }}>
                                         <Pencil size={13} /> Modifier
                                     </Button>
                                 )}
                                 <span className="h-5 w-px bg-[var(--border)]" />
                                 {previewContract.hasGeneratedDocument ? (
-                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[11px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.generatedDocumentDownloadUrl!; }}>
+                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.generatedDocumentDownloadUrl!; }}>
                                         <FileDown size={13} /> DOCX
                                     </Button>
                                 ) : (
-                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[11px] border-blue-400/40 text-blue-600 hover:bg-blue-500/10" isLoading={generatingId === previewContract.id} isDisabled={generatingId === previewContract.id} onPress={() => { const id = previewContract.id; generateDocument(id, 'docx'); setPreviewContract(null); }}>
+                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-blue-400/40 text-blue-600 hover:bg-blue-500/10" isLoading={generatingId === previewContract.id} isDisabled={generatingId === previewContract.id} onPress={() => { const id = previewContract.id; generateDocument(id, 'docx'); setPreviewContract(null); }}>
                                         <FileUp size={13} /> DOCX
                                     </Button>
                                 )}
                                 {previewContract.hasPdf ? (
-                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[11px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.pdfDownloadUrl!; }}>
+                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.pdfDownloadUrl!; }}>
                                         <Download size={13} /> PDF
                                     </Button>
                                 ) : previewContract.hasGeneratedDocument ? (
-                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[11px] border-violet-400/40 text-violet-600 hover:bg-violet-500/10" isLoading={generatingId === previewContract.id} isDisabled={generatingId === previewContract.id} onPress={() => { const id = previewContract.id; generateDocument(id, 'pdf'); setPreviewContract(null); }}>
+                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-violet-400/40 text-violet-600 hover:bg-violet-500/10" isLoading={generatingId === previewContract.id} isDisabled={generatingId === previewContract.id} onPress={() => { const id = previewContract.id; generateDocument(id, 'pdf'); setPreviewContract(null); }}>
                                         <FileText size={13} /> PDF
                                     </Button>
                                 ) : null}
@@ -619,7 +619,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                     <Printer size={13} />
                                 </Button>
                                 {previewContract.status !== 'signed' && (
-                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[11px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { router.put(`/contracts/${previewContract.id}/signed`, {}, { preserveScroll: true, onSuccess: () => { toast.success('Contrat marque comme signe.'); setPreviewContract(null); }, onError: () => toast.error('Erreur lors de la mise a jour.') }); }}>
+                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { router.put(`/contracts/${previewContract.id}/signed`, {}, { preserveScroll: true, onSuccess: () => { toast.success('Contrat marque comme signe.'); setPreviewContract(null); }, onError: () => toast.error('Erreur lors de la mise a jour.') }); }}>
                                         <CheckCircle2 size={13} /> Signer
                                     </Button>
                                 )}

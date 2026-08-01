@@ -31,7 +31,7 @@ export function TaskListView({ columns, onTaskClick, onStatusChange }: Props) {
                             {isCollapsed ? <ChevronRight size={14} className="text-[var(--crm-muted)]" /> : <ChevronDown size={14} className="text-[var(--crm-muted)]" />}
                             <span className={`size-2 rounded-full ${STATUS_DOT_COLORS[status]}`} />
                             <span className="text-sm font-semibold text-[var(--crm-text)]">{STATUS_LABELS[status]}</span>
-                            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-md bg-[var(--crm-surface-3)] px-1.5 text-[10px] font-bold text-[var(--crm-text-muted)]">{tasks.length}</span>
+                            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-md bg-[var(--crm-surface-3)] px-1.5 text-[9px] font-bold text-[var(--crm-text-muted)]">{tasks.length}</span>
                         </button>
                         {!isCollapsed ? (
                             tasks.length === 0 ? (
@@ -44,7 +44,7 @@ export function TaskListView({ columns, onTaskClick, onStatusChange }: Props) {
                                                 <span className={`size-2 shrink-0 rounded-full ${STATUS_DOT_COLORS[task.status]}`} />
                                                 <div className="min-w-0 flex-1">
                                                     <p className="truncate text-sm font-semibold text-[var(--crm-text)]">{task.title}</p>
-                                                    <p className="truncate text-[10px] text-[var(--crm-text-muted)]">{task.taskNumber}{task.dossier?.object ? ` \u00B7 ${task.dossier.object}` : ''}</p>
+                                                    <p className="truncate text-[9px] text-[var(--crm-text-muted)]">{task.taskNumber}{task.dossier?.object ? ` \u00B7 ${task.dossier.object}` : ''}</p>
                                                 </div>
                                             </button>
                                             <div className="flex shrink-0 items-center gap-3">
@@ -59,7 +59,7 @@ export function TaskListView({ columns, onTaskClick, onStatusChange }: Props) {
                                                 ) : null}
                                                 <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${PRIORITY_COLORS[task.priority]}`}>{PRIORITY_LABELS[task.priority]}</span>
                                                 <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${STATUS_COLORS[task.status]}`}>{STATUS_LABELS[task.status]}</span>
-                                                {task.dueDate ? <span className="whitespace-nowrap text-[10px] text-[var(--crm-text-muted)]">{task.dueDate}</span> : null}
+                                                {task.dueDate ? <span className="whitespace-nowrap text-[9px] text-[var(--crm-text-muted)]">{task.dueDate}</span> : null}
                                                 <QuickStatus task={task} onStatusChange={onStatusChange} />
                                             </div>
                                         </div>
@@ -79,7 +79,7 @@ function QuickStatus({ task, onStatusChange }: { task: TaskRow; onStatusChange: 
     return (
         <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setOpen(!open)}
-                className="flex h-7 items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)]">
+                className="flex h-7 items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)]">
                 <ChevronDown size={11} /> Move
             </button>
             {open ? (

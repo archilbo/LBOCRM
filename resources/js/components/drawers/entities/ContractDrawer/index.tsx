@@ -129,14 +129,14 @@ function CalculationSummary({ estimation, ht, tva, ttc }: { estimation?: number;
     ];
     return (
         <Card className="mt-4 border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Resume</p>
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Resume</p>
             <div className={cn('grid gap-2', estimation != null ? 'grid-cols-4' : 'grid-cols-3')}>
                 {items.map((item) => (
                     <Card key={item.label} className={cn(
                         'rounded-lg p-3 shadow-none',
                         item.accent ? 'bg-[color-mix(in_srgb,var(--accent)_9%,var(--surface-2))]' : 'bg-[var(--surface-2)]',
                     )}>
-                        <p className={cn('text-[10px]', item.accent ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]')}>{item.label}</p>
+                        <p className={cn('text-[9px]', item.accent ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]')}>{item.label}</p>
                         <p className={cn('mt-0.5', item.accent ? 'text-base font-bold text-[var(--accent)]' : 'text-base font-semibold text-[var(--foreground)]')}>{item.value}</p>
                     </Card>
                 ))}
@@ -218,7 +218,7 @@ function CalculationSection({
                         aria-invalid={firstError(errors, 'forfait_ttc') ? true : undefined}
                         className={drawerStyles.input}
                         placeholder="ex: 1500,50" />
-                    <p className="text-[10px] text-[var(--text-muted)]">Saisissez le montant TTC final. HT et TVA sont calcules automatiquement.</p>
+                    <p className="text-[9px] text-[var(--text-muted)]">Saisissez le montant TTC final. HT et TVA sont calcules automatiquement.</p>
                 </div>
             ) : (
                 <>
@@ -286,7 +286,7 @@ function ReviewStep({ form, dossiers, isForfait, estimation, ht, tva, ttc, updat
                         'flex items-center justify-between px-3 py-2',
                         idx < summaryRows.length - 1 && 'border-b border-[var(--border)]',
                     )}>
-                        <span className="text-[11px] text-[var(--text-muted)]">{row.label}</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">{row.label}</span>
                         <span className={cn('text-xs font-medium text-[var(--foreground)]', row.capitalize && 'capitalize')}>{row.value}</span>
                     </div>
                 ))}
@@ -630,7 +630,7 @@ export function ContractDrawer({
                                             {isCompleted ? <Check size={14} strokeWidth={3} /> : <span>{i + 1}</span>}
                                         </span>
                                         <span className={cn(
-                                            'text-[11px] font-medium text-center leading-tight max-w-[80px] truncate',
+                                            'text-[10px] font-medium text-center leading-tight max-w-[80px] truncate',
                                             isCompleted && 'text-emerald-400',
                                             isCurrent && 'text-[var(--accent)] font-semibold',
                                             isPending && 'text-[var(--text-muted)]',
@@ -663,7 +663,7 @@ export function ContractDrawer({
                                 <p className="text-xs font-medium text-[var(--foreground)]">Champs requis pour continuer :</p>
                                 <ul className="mt-1 space-y-0.5">
                                     {stepHints.map((hint, i) => (
-                                        <li key={i} className="text-[11px] text-[var(--text-muted)]">• {hint}</li>
+                                        <li key={i} className="text-[10px] text-[var(--text-muted)]">• {hint}</li>
                                     ))}
                                 </ul>
                             </div>

@@ -33,7 +33,7 @@ export function AppPagination({ page, pageSize, total, onChange, variant = 'defa
                     <ChevronLeft size={13} />
                     Precedent
                 </button>
-                <span className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text)]">
+                <span className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-[10px] font-semibold text-[var(--text)]">
                     {page} / {totalPages}
                 </span>
                 <button

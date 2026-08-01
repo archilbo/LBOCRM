@@ -363,7 +363,7 @@ export default function PdfDesignViewer({
     return (
         <div
             ref={viewerRef}
-            className="relative flex h-full w-full flex-col outline-none"
+            className="relative flex h-full w-full flex-col outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_35%,transparent)] focus-visible:ring-inset"
             tabIndex={0}
             onPointerDownCapture={handlePointerDownCapture}
             onPointerMoveCapture={handlePointerMoveCapture}
@@ -374,9 +374,9 @@ export default function PdfDesignViewer({
         >
             {!hideToolbar ? (
                 <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
-                    <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{filename}</p>
+                    <p className="truncate text-[11px] font-medium text-[var(--foreground)]">{filename}</p>
                     <div className="flex items-center gap-1">
-                        <span className="min-w-[42px] text-center text-[11px] tabular-nums text-[var(--text-muted)]">
+                        <span className="min-w-[42px] text-center text-[10px] tabular-nums text-[var(--text-muted)]">
                             {Math.round(zoom * 100)}%
                         </span>
                         <Tooltip delay={350}>
@@ -395,7 +395,7 @@ export default function PdfDesignViewer({
                             </Tooltip.Trigger>
                             <Tooltip.Content>Previous page</Tooltip.Content>
                         </Tooltip>
-                        <span className="flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+                        <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
                             <Input
                                 inputMode="numeric"
                                 value={pageInput}
@@ -408,7 +408,7 @@ export default function PdfDesignViewer({
                                 }}
                                 placeholder={String(pageNumber)}
                                 variant="secondary"
-                                className="h-7 w-10 text-center text-[11px]"
+                                className="h-7 w-10 text-center text-[10px]"
                                 aria-label="Page number"
                             />
                             <span>/ {Math.max(1, numPages)}</span>
@@ -466,7 +466,7 @@ export default function PdfDesignViewer({
                     loading={(
                         <div className="flex h-full flex-col items-center justify-center gap-2 py-20">
                             <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
-                            <p className="text-[12px] text-[var(--text-muted)]">
+                            <p className="text-[11px] text-[var(--text-muted)]">
                                 Loading PDF{loadingProgress > 0 ? ` · ${loadingProgress}%` : '…'}
                             </p>
                         </div>
@@ -474,12 +474,12 @@ export default function PdfDesignViewer({
                     error={(
                         <div className="flex h-full flex-col items-center justify-center gap-2 py-20">
                             <FileWarning size={24} className="text-amber-400" />
-                            <p className="text-[13px] text-[var(--text-muted)]">Could not load this PDF.</p>
+                            <p className="text-[12px] text-[var(--text-muted)]">Could not load this PDF.</p>
                             <Button
                                 size="sm"
                                 variant="ghost"
                                 onPress={() => window.open(downloadUrl, '_blank', 'noopener,noreferrer')}
-                                className="h-8 text-[11px] text-[var(--accent)]"
+                                className="h-8 text-[10px] text-[var(--accent)]"
                             >
                                 Open source file
                             </Button>

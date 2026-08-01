@@ -23,7 +23,7 @@ export function TaskCard({ task, onClick }: { task: TaskRow; onClick: () => void
             <button type="button" onClick={onClick} className="w-full p-3 text-left">
                 <div className="mb-2 flex items-start justify-between gap-2">
                     <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[task.status]}`}>
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${STATUS_COLORS[task.status]}`}>
                             <span className={`size-1.5 rounded-full ${STATUS_DOT_COLORS[task.status]}`} />
                             {STATUS_LABELS[task.status]}
                         </span>
@@ -52,14 +52,14 @@ export function TaskCard({ task, onClick }: { task: TaskRow; onClick: () => void
                     </div>
                 </div>
 
-                <p className={`line-clamp-2 text-[13px] font-semibold leading-5 ${isSoft ? 'text-[var(--crm-text-muted)]' : 'text-[var(--crm-text)]'}`}>{task.title}</p>
+                <p className={`line-clamp-2 text-[12px] font-semibold leading-5 ${isSoft ? 'text-[var(--crm-text-muted)]' : 'text-[var(--crm-text)]'}`}>{task.title}</p>
 
                 {task.description ? (
-                    <p className="mt-1 line-clamp-1 text-[11px] text-[var(--crm-text-muted)]">{task.description}</p>
+                    <p className="mt-1 line-clamp-1 text-[10px] text-[var(--crm-text-muted)]">{task.description}</p>
                 ) : null}
 
                 {linkedRecord ? (
-                    <div className="mt-1.5 inline-flex items-center gap-1 rounded bg-black/10 px-1.5 py-0.5 text-[10px] text-[var(--crm-muted)]">
+                    <div className="mt-1.5 inline-flex items-center gap-1 rounded bg-black/10 px-1.5 py-0.5 text-[9px] text-[var(--crm-muted)]">
                         <Link2 size={10} />
                         <span className="truncate max-w-[140px]">{linkedRecord}</span>
                     </div>
@@ -78,7 +78,7 @@ export function TaskCard({ task, onClick }: { task: TaskRow; onClick: () => void
                             </div>
                         ) : null}
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] text-[var(--crm-text-muted)]">
+                    <div className="flex items-center gap-2 text-[9px] text-[var(--crm-text-muted)]">
                         {task.dueDate ? (
                             <span className={`inline-flex items-center gap-1 ${overdue ? 'font-semibold text-red-400' : ''}`}>
                                 <CalendarDays size={11} />
@@ -92,14 +92,14 @@ export function TaskCard({ task, onClick }: { task: TaskRow; onClick: () => void
                 </div>
 
                 {task.status === 'blocked' && task.blockedReason ? (
-                    <div className="mt-2 flex gap-1.5 rounded-lg border border-red-400/15 bg-red-400/5 p-2 text-[10px] leading-4 text-red-200">
+                    <div className="mt-2 flex gap-1.5 rounded-lg border border-red-400/15 bg-red-400/5 p-2 text-[9px] leading-4 text-red-200">
                         <AlertTriangle size={11} className="mt-0.5 shrink-0" />
                         <span className="line-clamp-1">{task.blockedReason}</span>
                     </div>
                 ) : null}
 
                 {isCompleted ? (
-                    <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
+                    <div className="mt-2 flex items-center gap-1 text-[9px] font-semibold text-emerald-400">
                         <CheckCircle2 size={11} /> Completed
                     </div>
                 ) : null}

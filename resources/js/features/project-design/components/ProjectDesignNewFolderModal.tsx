@@ -59,7 +59,7 @@ export function NewFolderModal({
                                     <Modal.Heading className="text-sm font-semibold text-[var(--foreground)]">
                                         New folder
                                     </Modal.Heading>
-                                    <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+                                    <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
                                         Organize project design files without leaving fullscreen.
                                     </p>
                                 </div>

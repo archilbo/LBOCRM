@@ -43,12 +43,12 @@ function ForwardMessagePreview({ message, currentUserId }: { message: MessageRow
                         />
                     )}
                     <div className="min-w-0 flex-1">
-                        <p className="truncate text-[11px] font-semibold text-[var(--text)]">
+                        <p className="truncate text-[10px] font-semibold text-[var(--text)]">
                             {message.attachments.length === 1
                                 ? (message.attachments[0].originalFilename || 'Fichier')
                                 : `${message.attachments.length} fichiers`}
                         </p>
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">
+                        <p className="truncate text-[9px] text-[var(--text-muted)]">
                             {message.attachments.length > 1
                                 ? `${message.attachments.length} pièces jointes`
                                 : `${getFileTypeAppearance(files[0]?.mimeType || message.attachments[0]?.mimeType || '', message.attachments[0]?.originalFilename).label} · ${formatFileSize(message.attachments[0]?.size || 0)}`
@@ -62,8 +62,8 @@ function ForwardMessagePreview({ message, currentUserId }: { message: MessageRow
                         <Forward size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-semibold text-[var(--text)]">{message.userName || message.user?.name || 'Message'}</p>
-                        <p className="line-clamp-2 text-[10px] text-[var(--text-muted)]">
+                        <p className="text-[10px] font-semibold text-[var(--text)]">{message.userName || message.user?.name || 'Message'}</p>
+                        <p className="line-clamp-2 text-[9px] text-[var(--text-muted)]">
                             {message.body || 'Message sans texte'}
                         </p>
                     </div>
@@ -88,7 +88,7 @@ function ForwardConversationSearch({ value, onChange, onClear }: { value: string
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     placeholder="Rechercher une conversation…"
-                    className="h-[42px] w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-10 pr-10 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30"
+                    className="h-[42px] w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-10 pr-10 text-[12px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]/30"
                     aria-label="Rechercher une conversation"
                 />
                 {value ? (
@@ -120,7 +120,8 @@ function ForwardConversationFilters({ active, onChange }: { active: FilterTab; o
                     key={tab.id}
                     onClick={() => onChange(tab.id)}
                     className={cn(
-                        'h-8 rounded-lg px-3 text-[11px] font-semibold transition outline-none',
+                        'h-8 rounded-lg px-3 text-[10px] font-semibold transition outline-none',
+                        'focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
                         active === tab.id
                             ? 'bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]'
                             : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]',
@@ -148,7 +149,7 @@ function ForwardSelectedDestinations({
     if (selected.length === 0) return null;
     return (
         <div className="mx-5 mt-3">
-            <p className="mb-1.5 text-[10px] font-medium text-[var(--text-muted)]">
+            <p className="mb-1.5 text-[9px] font-medium text-[var(--text-muted)]">
                 {selected.length} conversation{selected.length > 1 ? 's' : ''} sélectionnée{selected.length > 1 ? 's' : ''}
             </p>
             <div className="flex max-h-[72px] flex-wrap gap-1.5 overflow-y-auto [scrollbar-width:none]">
@@ -162,7 +163,7 @@ function ForwardSelectedDestinations({
                             <Avatar size="sm" name={conv.displayName} className={`size-5 min-w-5 text-[9px] ${tone.bg} ${tone.text}`}>
                                 {conv.type === 'group' ? <Users size={9} /> : null}
                             </Avatar>
-                            <span className="max-w-24 truncate text-[10px] font-medium text-[var(--text)]">{conv.displayName}</span>
+                            <span className="max-w-24 truncate text-[9px] font-medium text-[var(--text)]">{conv.displayName}</span>
                             <button
                                 onClick={() => onRemove(conv.id)}
                                 className="flex size-4 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
@@ -222,7 +223,7 @@ function ForwardConversationRow({
 
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                    <span className="truncate text-[13px] font-semibold text-[var(--text)]">{name}</span>
+                    <span className="truncate text-[12px] font-semibold text-[var(--text)]">{name}</span>
                     {catMeta ? (
                         <span className={cn('shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-medium', catMeta.tone.bg, catMeta.tone.text)}>
                             {catMeta.label}
@@ -230,7 +231,7 @@ function ForwardConversationRow({
                     ) : null}
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <p className="min-w-0 flex-1 truncate text-[11px] text-[var(--text-muted)]">{preview || 'Aucun message'}</p>
+                    <p className="min-w-0 flex-1 truncate text-[10px] text-[var(--text-muted)]">{preview || 'Aucun message'}</p>
                 </div>
                 {conversation.type === 'group' ? (
                     <p className="text-[9px] text-[var(--text-muted)]/60">{memberCount} membre{memberCount !== 1 ? 's' : ''}</p>
@@ -239,7 +240,7 @@ function ForwardConversationRow({
 
             <div className="flex shrink-0 flex-col items-end gap-0.5 self-center">
                 {conversation.lastMessageAt ? (
-                    <span className="text-[10px] text-[var(--text-muted)]">{formatConversationTime(conversation.lastMessageAt)}</span>
+                    <span className="text-[9px] text-[var(--text-muted)]">{formatConversationTime(conversation.lastMessageAt)}</span>
                 ) : null}
                 {conversation.unreadCount > 0 ? (
                     <span className="flex size-[18px] items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-bold text-black">
@@ -432,8 +433,8 @@ export function ForwardMessageDialog({ isOpen, onClose, message, conversations, 
                                 <Forward size={16} />
                             </span>
                             <div>
-                                <h2 className="text-[16px] font-semibold text-[var(--text)]">Transférer le message</h2>
-                                <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Sélectionnez une ou plusieurs conversations.</p>
+                                <h2 className="text-[15px] font-semibold text-[var(--text)]">Transférer le message</h2>
+                                <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Sélectionnez une ou plusieurs conversations.</p>
                             </div>
                         </div>
                         <button
@@ -493,12 +494,12 @@ export function ForwardMessageDialog({ isOpen, onClose, message, conversations, 
 
                     {/* Error inline */}
                     {error ? (
-                        <p className="px-5 py-2 text-[11px] font-medium text-red-400">{error}</p>
+                        <p className="px-5 py-2 text-[10px] font-medium text-red-400">{error}</p>
                     ) : null}
 
                     {/* Footer */}
                     <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] px-5 py-[14px]">
-                        <span className="text-[11px] text-[var(--text-muted)]">
+                        <span className="text-[10px] text-[var(--text-muted)]">
                             {selectedIds.size === 0
                                 ? 'Aucune conversation sélectionnée'
                                 : `${selectedIds.size} destination${selectedIds.size > 1 ? 's' : ''}`}
@@ -506,7 +507,7 @@ export function ForwardMessageDialog({ isOpen, onClose, message, conversations, 
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={onClose}
-                                className="h-[38px] rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-[12px] font-semibold text-[var(--text)] hover:bg-[var(--surface)] transition"
+                                className="h-[38px] rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-[11px] font-semibold text-[var(--text)] hover:bg-[var(--surface)] transition"
                             >
                                 Annuler
                             </button>
@@ -514,7 +515,7 @@ export function ForwardMessageDialog({ isOpen, onClose, message, conversations, 
                                 onClick={handleForward}
                                 disabled={!canForward}
                                 className={cn(
-                                    'flex h-[38px] items-center gap-1.5 rounded-xl px-4 text-[12px] font-semibold transition',
+                                    'flex h-[38px] items-center gap-1.5 rounded-xl px-4 text-[11px] font-semibold transition',
                                     canForward
                                         ? 'bg-[var(--accent)] text-black hover:opacity-90'
                                         : 'bg-[var(--surface-2)] text-[var(--text-muted)] cursor-not-allowed',

@@ -359,13 +359,13 @@ export function TemplateEditorForm({
                             <h2 className="truncate text-sm font-semibold">{value.name || 'Template editor'}</h2>
 
                             {value.isDefault ? (
-                                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
+                                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-500">
                                     Default
                                 </span>
                             ) : null}
                         </div>
 
-                        <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">
+                        <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">
                             {value.slug || 'template'} / {value.typeLabel || value.type}
                         </p>
                     </div>
@@ -488,7 +488,7 @@ export function TemplateEditorForm({
                                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
                                     {activeConfig.label} / {activeConfig.language}
                                 </p>
-                                <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{activeConfig.help}</p>
+                                <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{activeConfig.help}</p>
                             </div>
 
                             <div className="flex items-center gap-1.5">
@@ -517,7 +517,7 @@ export function TemplateEditorForm({
                             value={code}
                             onChange={(event) => updateCode(event.target.value)}
                             spellCheck={false}
-                            className="min-h-[520px] w-full resize-y bg-[#111827] px-4 py-3 font-mono text-[12px] leading-6 text-slate-100 outline-none selection:bg-[var(--accent)]/30"
+                            className="min-h-[520px] w-full resize-y bg-[#111827] px-4 py-3 font-mono text-[11px] leading-6 text-slate-100 outline-none selection:bg-[var(--accent)]/30"
                         />
                     </div>
                 </div>
@@ -532,7 +532,7 @@ export function TemplateEditorForm({
                                 <p className="mt-1 text-xs text-[var(--text-muted)]">{usedCount} placeholders used</p>
                             </div>
 
-                            <span className="rounded-full bg-[var(--surface)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                            <span className="rounded-full bg-[var(--surface)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                                 {warnings.filter((item) => item.type === 'error').length} errors
                             </span>
                         </div>
@@ -563,7 +563,7 @@ export function TemplateEditorForm({
                                     key={placeholder}
                                     type="button"
                                     onClick={() => insertPlaceholder(placeholder)}
-                                    className="block w-full truncate rounded-xl bg-[var(--surface)] px-3 py-2 text-left font-mono text-[11px] text-[var(--text-muted)] transition hover:bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] hover:text-[var(--accent)]"
+                                    className="block w-full truncate rounded-xl bg-[var(--surface)] px-3 py-2 text-left font-mono text-[10px] text-[var(--text-muted)] transition hover:bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] hover:text-[var(--accent)]"
                                     title={placeholder}
                                 >
                                     {placeholder}

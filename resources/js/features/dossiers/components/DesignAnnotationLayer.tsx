@@ -294,11 +294,11 @@ function AnnotationInfoPopup({
                                     ) : null}
                                 </div>
                                 {remark ? (
-                                    <p className="mt-1.5 break-words text-[12px] font-semibold leading-snug text-[var(--foreground)]">
+                                    <p className="mt-1.5 break-words text-[11px] font-semibold leading-snug text-[var(--foreground)]">
                                         {remark.title}
                                     </p>
                                 ) : (
-                                    <p className="mt-1.5 text-[12px] font-semibold text-[var(--foreground)]">No remark yet</p>
+                                    <p className="mt-1.5 text-[11px] font-semibold text-[var(--foreground)]">No remark yet</p>
                                 )}
                             </div>
                             <Tooltip delay={350}>
@@ -319,7 +319,7 @@ function AnnotationInfoPopup({
                         </div>
 
                         {remark?.description ? (
-                            <p className="max-h-24 overflow-y-auto whitespace-pre-wrap break-words text-[10px] leading-relaxed text-[var(--text-muted)]">
+                            <p className="max-h-24 overflow-y-auto whitespace-pre-wrap break-words text-[9px] leading-relaxed text-[var(--text-muted)]">
                                 {remark.description}
                             </p>
                         ) : null}
@@ -347,10 +347,10 @@ function AnnotationInfoPopup({
                             {confirmingDelete ? (
                                 <div className="flex items-center gap-1.5">
                                     <span className="text-[9px] text-red-300">Remove this markup?</span>
-                                    <Button size="sm" variant="ghost" onPress={() => setConfirmingDelete(false)} className="h-7 px-2 text-[10px]">
+                                    <Button size="sm" variant="ghost" onPress={() => setConfirmingDelete(false)} className="h-7 px-2 text-[9px]">
                                         Keep
                                     </Button>
-                                    <Button size="sm" variant="danger" onPress={onDelete} className="h-7 px-2 text-[10px]">
+                                    <Button size="sm" variant="danger" onPress={onDelete} className="h-7 px-2 text-[9px]">
                                         Remove
                                     </Button>
                                 </div>
@@ -370,7 +370,7 @@ function AnnotationInfoPopup({
                                 size="sm"
                                 variant="ghost"
                                 onPress={remark ? onEdit : onCreate}
-                                className="ml-auto h-7 min-w-0 gap-1.5 bg-[var(--accent)]/12 px-2.5 text-[10px] font-semibold text-[var(--accent)]"
+                                className="ml-auto h-7 min-w-0 gap-1.5 bg-[var(--accent)]/12 px-2.5 text-[9px] font-semibold text-[var(--accent)]"
                             >
                                 {remark ? <Pencil size={11} /> : <MessageSquarePlus size={11} />}
                                 {remark ? 'Edit' : 'Add remark'}

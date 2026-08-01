@@ -1,4 +1,4 @@
-﻿import { Card } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { formatCompactMoney } from '@/features/finance/utils/calculations';
 
 type FinanceTotalsBoxProps = {
@@ -32,7 +32,7 @@ export function FinanceTotalsBox({ subtotalHt, discountTotal, taxTotal, totalTtc
 function Row({ label, value, strong = false, muted = false, danger = false }: { label: string; value: string; strong?: boolean; muted?: boolean; danger?: boolean }) {
     return (
         <div className="flex items-center justify-between gap-4">
-            <span className={`text-[10px] ${muted ? 'text-[var(--text-muted)]' : 'text-[var(--text)]'}`}>{label}</span>
+            <span className={`text-[9px] ${muted ? 'text-[var(--text-muted)]' : 'text-[var(--text)]'}`}>{label}</span>
             <span className={`font-mono tabular-nums ${strong ? 'text-sm font-bold' : 'text-xs font-medium'} ${danger ? 'text-[var(--danger)]' : ''}`}>{value}</span>
         </div>
     );

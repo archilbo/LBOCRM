@@ -59,7 +59,7 @@ export function ClientProjectsPanel({
                                     <p className="truncate text-sm font-black text-[var(--crm-text)]">
                                         {project.projectObject || project.dossierNumber}
                                     </p>
-                                    <span className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                                    <span className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-300">
                                         {project.status}
                                     </span>
                                 </div>

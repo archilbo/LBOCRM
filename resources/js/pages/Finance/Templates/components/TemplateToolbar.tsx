@@ -89,7 +89,7 @@ export function TemplateToolbar({
                     })}
                 </div>
 
-                <span className="hidden shrink-0 text-[11px] text-[var(--text-muted)] 2xl:inline">
+                <span className="hidden shrink-0 text-[10px] text-[var(--text-muted)] 2xl:inline">
                     {templatesTotal} template{templatesTotal !== 1 ? 's' : ''} / {variablesTotal} variables
                 </span>
             </div>
@@ -149,7 +149,7 @@ export function TemplateToolbar({
                         </Dropdown>
 
                         <span
-                            className={`hidden items-center gap-1 text-[10px] lg:flex ${saving ? 'text-[var(--accent)]' : dirty ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}
+                            className={`hidden items-center gap-1 text-[9px] lg:flex ${saving ? 'text-[var(--accent)]' : dirty ? 'text-[var(--warning)]' : 'text-[var(--success)]'}`}
                         >
                             <span className={`size-1.5 rounded-full ${saving ? 'animate-pulse bg-[var(--accent)]' : dirty ? 'bg-[var(--warning)]' : 'bg-[var(--success)]'}`} />
                             {saving ? 'Enregistrement' : dirty ? 'Non enregistre' : 'Enregistre'}

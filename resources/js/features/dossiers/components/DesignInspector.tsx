@@ -129,7 +129,7 @@ function DetailRow({ icon, label, value }: { icon: ReactNode; label: string; val
         <div className="grid grid-cols-[18px_82px_minmax(0,1fr)] items-start gap-2 py-2.5">
             <span className="mt-0.5 text-[var(--text-subtle)]">{icon}</span>
             <span className="text-[9px] font-medium text-[var(--text-muted)]">{label}</span>
-            <span className="min-w-0 break-words text-right text-[10px] text-[var(--foreground)]">{value}</span>
+            <span className="min-w-0 break-words text-right text-[9px] text-[var(--foreground)]">{value}</span>
         </div>
     );
 }
@@ -139,7 +139,7 @@ function EmptyInspectorState({ icon, title, description }: { icon: ReactNode; ti
         <Card variant="secondary" className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)]/20">
             <Card.Content className="flex min-h-44 flex-col items-center justify-center px-4 py-8 text-center">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">{icon}</span>
-                <p className="mt-2 text-[11px] font-medium text-[var(--foreground)]">{title}</p>
+                <p className="mt-2 text-[10px] font-medium text-[var(--foreground)]">{title}</p>
                 <p className="mt-1 max-w-[220px] text-[9px] leading-4 text-[var(--text-muted)]">{description}</p>
             </Card.Content>
         </Card>
@@ -275,7 +275,7 @@ function DetailsPanel({
                                 variant="secondary"
                                 fullWidth
                                 onPress={() => window.open(activeAsset.downloadUrl ?? '', '_blank', 'noopener,noreferrer')}
-                                className="h-8 text-[10px]"
+                                className="h-8 text-[9px]"
                             >
                                 <Download size={11} />
                                 Download asset
@@ -291,7 +291,7 @@ function DetailsPanel({
                         <div key={asset.id} className="flex items-center gap-2 py-2.5">
                             <span className={cn('size-1.5 shrink-0 rounded-full', asset.id === activeAsset?.id ? 'bg-[var(--accent)]' : 'bg-[var(--text-subtle)]')} />
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-[10px] font-medium text-[var(--foreground)]">{asset.originalFilename}</p>
+                                <p className="truncate text-[9px] font-medium text-[var(--foreground)]">{asset.originalFilename}</p>
                                 <p className="mt-0.5 text-[8px] uppercase tracking-wide text-[var(--text-muted)]">{asset.extension} · {formatFileSize(asset.sizeBytes)}</p>
                             </div>
                             {asset.previewUrl && onOpenReviewAsset ? (
@@ -379,10 +379,10 @@ function RemarksPanel({
             <div className="flex h-11 items-center justify-between gap-3 border-b border-[var(--border)] px-3">
                 <div className="flex min-w-0 items-center gap-2">
                     <MessageSquareText size={14} className="shrink-0 text-[var(--accent)]" />
-                    <span className="text-[12px] font-semibold text-[var(--foreground)]">Remarks</span>
-                    <span className="text-[10px] text-[var(--text-muted)]">{remarkList.length} total</span>
+                    <span className="text-[11px] font-semibold text-[var(--foreground)]">Remarks</span>
+                    <span className="text-[9px] text-[var(--text-muted)]">{remarkList.length} total</span>
                 </div>
-                <div className="flex shrink-0 items-center gap-2 text-[10px] tabular-nums">
+                <div className="flex shrink-0 items-center gap-2 text-[9px] tabular-nums">
                     <span className="inline-flex items-center gap-1 text-amber-300"><CircleDot size={10} /> {openCount}</span>
                     <span className="inline-flex items-center gap-1 text-emerald-300"><CheckCircle2 size={10} /> {resolvedCount}</span>
                     <span className="ml-1 flex items-center gap-0.5 border-l border-[var(--border)] pl-1.5">
@@ -421,7 +421,7 @@ function RemarksPanel({
                         onPress={() => setFilter(item.id)}
                         aria-pressed={filter === item.id}
                         className={cn(
-                            'h-7 min-w-0 shrink-0 rounded-md px-2.5 text-[10px]',
+                            'h-7 min-w-0 shrink-0 rounded-md px-2.5 text-[9px]',
                             filter === item.id
                                 ? 'bg-[var(--accent)]/12 text-[var(--accent)]'
                                 : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
@@ -476,10 +476,10 @@ function RemarksPanel({
                                         </span>
                                         <span className="min-w-0 flex-1">
                                             <span className="flex items-center gap-1.5">
-                                                <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[var(--foreground)]">{remark.title}</span>
+                                                <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-[var(--foreground)]">{remark.title}</span>
                                                 <StatusBadge value={remark.severity} />
                                             </span>
-                                            <span className="mt-1 flex min-w-0 items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
+                                            <span className="mt-1 flex min-w-0 items-center gap-1.5 text-[9px] text-[var(--text-muted)]">
                                                 <span className="truncate">{owner?.name ?? 'Unassigned'}</span>
                                                 <span className="text-[var(--text-subtle)]">/</span>
                                                 <StatusBadge value={remark.status} />
@@ -506,11 +506,11 @@ function RemarksPanel({
                             {isExpanded ? (
                                 <div className="border-t border-[var(--border)]/60 bg-[var(--surface-2)]/20 px-3.5 py-3 pl-[4.75rem]">
                                     {remark.description ? (
-                                        <p className="text-[11px] leading-5 text-[var(--text-muted)]">{remark.description}</p>
+                                        <p className="text-[10px] leading-5 text-[var(--text-muted)]">{remark.description}</p>
                                     ) : (
-                                        <p className="text-[11px] italic text-[var(--text-subtle)]">No description was added.</p>
+                                        <p className="text-[10px] italic text-[var(--text-subtle)]">No description was added.</p>
                                     )}
-                                    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-[var(--text-muted)]">
+                                    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[9px] text-[var(--text-muted)]">
                                         <span className="inline-flex min-w-0 items-center gap-1.5">
                                             <FileText size={11} className="shrink-0 text-[var(--text-subtle)]" />
                                             <span className="truncate">{remark.file?.name ?? 'Current drawing'}{remark.versionNumber ? ` / v${remark.versionNumber}` : ''}</span>
@@ -539,8 +539,8 @@ function RemarksPanel({
                 })}
                 {!visibleRemarks.length ? (
                     <div className="px-4 py-10 text-center">
-                        <p className="text-[12px] font-medium text-[var(--foreground)]">No matching remarks</p>
-                        <p className="mt-1 text-[10px] text-[var(--text-muted)]">Choose another filter to continue reviewing this version.</p>
+                        <p className="text-[11px] font-medium text-[var(--foreground)]">No matching remarks</p>
+                        <p className="mt-1 text-[9px] text-[var(--text-muted)]">Choose another filter to continue reviewing this version.</p>
                     </div>
                 ) : null}
             </div>
@@ -595,7 +595,7 @@ function RemarkWorkflowActions({
                         variant="secondary"
                         onPress={() => void save({ assigned_to: currentUserId })}
                         isDisabled={isSaving}
-                        className="h-7 min-w-0 rounded-md px-2 text-[10px]"
+                        className="h-7 min-w-0 rounded-md px-2 text-[9px]"
                     >
                         <UserRoundCheck size={12} />
                         Assign to me
@@ -607,7 +607,7 @@ function RemarkWorkflowActions({
                         variant="secondary"
                         onPress={() => void save({ status: workflowAction.status })}
                         isDisabled={isSaving}
-                        className="h-7 min-w-0 rounded-md px-2 text-[10px]"
+                        className="h-7 min-w-0 rounded-md px-2 text-[9px]"
                     >
                         {workflowAction.status === 'reopened' ? <RotateCcw size={12} /> : <CheckCircle2 size={12} />}
                         {workflowAction.label}
@@ -624,7 +624,7 @@ function RemarkWorkflowActions({
                         }}
                         disabled={isSaving}
                         variant="secondary"
-                        className="h-7 min-w-0 max-w-[142px] text-[10px]"
+                        className="h-7 min-w-0 max-w-[142px] text-[9px]"
                     />
                 ) : null}
             </div>
@@ -655,7 +655,7 @@ function VersionsPanel({
                 <Card variant="secondary" className="overflow-hidden rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5">
                     <Card.Header className="flex items-center justify-between gap-2 border-b border-[var(--accent)]/20 px-3 py-2.5">
                         <div className="min-w-0">
-                            <Card.Title className="text-[10px] font-semibold text-[var(--foreground)]">Revision comparison</Card.Title>
+                            <Card.Title className="text-[9px] font-semibold text-[var(--foreground)]">Revision comparison</Card.Title>
                             <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{comparisonVersion.label} to {currentVersion.label}</p>
                         </div>
                         <Button isIconOnly size="sm" variant="ghost" onPress={() => setComparisonVersionId(null)} className="size-7 min-w-0" aria-label="Close revision comparison"><ChevronUp size={13} /></Button>
@@ -669,7 +669,7 @@ function VersionsPanel({
                         </div>
                         <div className="rounded-lg border border-[var(--border)]/75 bg-[var(--surface)]/60 p-2.5">
                             <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Change note</p>
-                            <p className="mt-1 text-[10px] leading-4 text-[var(--text-muted)]">{currentVersion.changeSummary || currentVersion.uploadNote || 'No change summary was recorded for this revision.'}</p>
+                            <p className="mt-1 text-[9px] leading-4 text-[var(--text-muted)]">{currentVersion.changeSummary || currentVersion.uploadNote || 'No change summary was recorded for this revision.'}</p>
                         </div>
                         <div className="flex justify-end gap-1.5">
                             <Button size="sm" variant="secondary" onPress={() => onSwitchVersion?.(comparisonVersion.id)} className="h-7 px-2 text-[9px]">Open earlier</Button>
@@ -700,7 +700,7 @@ function VersionsPanel({
                             >
                                 <span className="min-w-0 flex-1">
                                     <span className="flex items-center justify-between gap-2">
-                                        <span className="text-[10px] font-semibold text-[var(--foreground)]">{version.label}</span>
+                                        <span className="text-[9px] font-semibold text-[var(--foreground)]">{version.label}</span>
                                         <StatusBadge value={version.status} />
                                     </span>
                                     <span className="mt-1 flex items-center justify-between text-[8px] text-[var(--text-muted)]">
@@ -737,7 +737,7 @@ function ComparisonValue({ label, value, accent = false }: { label: string; valu
     return (
         <div className={cn('rounded-lg border border-[var(--border)]/75 px-2 py-1.5', accent && 'border-[var(--accent)]/30 bg-[var(--accent)]/8')}>
             <p className="text-[8px] uppercase tracking-[0.1em] text-[var(--text-subtle)]">{label}</p>
-            <p className="mt-0.5 truncate text-[10px] font-medium capitalize text-[var(--foreground)]">{value}</p>
+            <p className="mt-0.5 truncate text-[9px] font-medium capitalize text-[var(--foreground)]">{value}</p>
         </div>
     );
 }

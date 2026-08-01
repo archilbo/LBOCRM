@@ -51,7 +51,7 @@ export function MiniCalendar({ currentDate, onDateChange, onDayClick }: Props) {
             </div>
             <div className="grid grid-cols-7 gap-0 text-center">
                 {DAYS.map((d) => (
-                    <div key={d} className="py-1 text-[10px] font-semibold text-[var(--crm-text-muted)]">{d}</div>
+                    <div key={d} className="py-1 text-[9px] font-semibold text-[var(--crm-text-muted)]">{d}</div>
                 ))}
                 {cells.map((cell, i) => {
                     const m = cell.isOutside ? (cell.day > 15 ? month - 1 : month + 1) : month;
@@ -65,7 +65,7 @@ export function MiniCalendar({ currentDate, onDateChange, onDayClick }: Props) {
                             key={i}
                             type="button"
                             onClick={() => onDayClick(new Date(y, m, cell.day))}
-                            className={`mx-auto flex size-6 items-center justify-center rounded-full text-[11px] font-medium transition hover:bg-white/10 ${
+                            className={`mx-auto flex size-6 items-center justify-center rounded-full text-[10px] font-medium transition hover:bg-white/10 ${
                                 isToday
                                     ? 'bg-[var(--crm-gold)] text-black hover:brightness-110'
                                     : cell.isOutside

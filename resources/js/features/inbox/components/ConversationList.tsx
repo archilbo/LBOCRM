@@ -57,7 +57,7 @@ export function ConversationList({ conversations, selectedConvId, search, onSear
             <div className="flex items-start justify-between border-b border-[var(--crm-border)] px-4 py-3">
                 <div>
                     <h2 className="text-sm font-bold text-[var(--crm-text)]">Messages</h2>
-                    <p className="mt-0.5 text-[10px] text-[var(--crm-text-muted)]">Team conversations and project updates</p>
+                    <p className="mt-0.5 text-[9px] text-[var(--crm-text-muted)]">Team conversations and project updates</p>
                 </div>
                 <button type="button" onClick={onNewConversation}
                     className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] text-[var(--crm-text-muted)] hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)] transition"
@@ -72,7 +72,7 @@ export function ConversationList({ conversations, selectedConvId, search, onSear
                     <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]" />
                     <input value={search} onChange={(e) => onSearchChange(e.target.value)}
                         placeholder="Search conversations..."
-                        className="h-8 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] pl-8 pr-3 text-xs text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)]" />
+                        className="h-8 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] pl-8 pr-3 text-xs text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
                 </div>
             </div>
 
@@ -83,7 +83,7 @@ export function ConversationList({ conversations, selectedConvId, search, onSear
                     <div className="flex flex-wrap gap-1.5">
                         {onlineUsers.map((u) => (
                             <span key={u.id}
-                                className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2 py-0.5 text-[10px] font-semibold text-[var(--crm-text)]">
+                                className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2 py-0.5 text-[9px] font-semibold text-[var(--crm-text)]">
                                 <span className="size-1.5 rounded-full bg-emerald-400" />
                                 {u.name}
                             </span>
@@ -96,7 +96,7 @@ export function ConversationList({ conversations, selectedConvId, search, onSear
             <div className="flex flex-wrap gap-1 border-b border-[var(--crm-border)] px-3 py-2">
                 {MAIN_TABS.map((tab) => (
                     <button key={tab.id} type="button" onClick={() => onTabChange(tab.id)}
-                        className={`rounded-lg px-2.5 py-1 text-[10px] font-semibold transition ${
+                        className={`rounded-lg px-2.5 py-1 text-[9px] font-semibold transition ${
                             activeTab === tab.id
                                 ? 'bg-[var(--crm-gold)] text-black'
                                 : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'
@@ -110,7 +110,7 @@ export function ConversationList({ conversations, selectedConvId, search, onSear
             {activeTab === 'groups' && (
                 <div className="flex items-center gap-2 border-b border-[var(--crm-border)] px-3 py-2">
                     <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}
-                        className="h-7 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2 text-[10px] text-[var(--crm-text)] outline-none focus:border-[var(--crm-gold)]">
+                        className="h-7 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2 text-[9px] text-[var(--crm-text)] outline-none focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20">
                         <option value="">All categories</option>
                         {CATEGORY_OPTIONS.filter((c) => c.id !== 'custom').map((c) => (
                             <option key={c.id} value={c.id}>{c.label}</option>
@@ -133,7 +133,7 @@ export function ConversationList({ conversations, selectedConvId, search, onSear
                             <Search size={18} className="text-[var(--crm-muted)]" />
                         </div>
                         <p className="text-xs text-[var(--crm-text-muted)] text-center">No conversations found</p>
-                        <p className="mt-1 text-[10px] text-[var(--crm-muted)] text-center">Start a new conversation to begin chatting</p>
+                        <p className="mt-1 text-[9px] text-[var(--crm-muted)] text-center">Start a new conversation to begin chatting</p>
                     </div>
                 ) : (
                     displayedConvs.map((conv) => {
@@ -196,7 +196,7 @@ export function ConversationList({ conversations, selectedConvId, search, onSear
                                     </div>
                                     <div className="mt-0.5 flex items-center gap-1.5">
                                         {preview ? (
-                                            <p className="truncate text-[11px] text-[var(--crm-text-muted)]">{preview}</p>
+                                            <p className="truncate text-[10px] text-[var(--crm-text-muted)]">{preview}</p>
                                         ) : null}
                                     </div>
                                 </div>

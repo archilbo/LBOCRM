@@ -77,7 +77,7 @@ export function TaskFilters({ filter, category, priorityFilter, query, viewMode,
                 <div className="relative min-w-[200px] flex-1">
                     <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]" />
                     <input value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder="Search tasks, clients, projects..."
-                        className="h-9 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] pl-8 pr-8 text-xs text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)]" />
+                        className="h-9 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] pl-8 pr-8 text-xs text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
                     {query ? <button type="button" onClick={() => onQueryChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--crm-muted)] hover:text-[var(--crm-gold)]"><X size={14} /></button> : null}
                 </div>
 
@@ -109,7 +109,7 @@ export function TaskFilters({ filter, category, priorityFilter, query, viewMode,
                         const Icon = tab.icon;
                         return (
                             <button key={tab.id} type="button" onClick={() => onViewModeChange(tab.id)}
-                                className={`inline-flex h-7 items-center gap-1 rounded-md px-2 text-[10px] font-semibold transition ${viewMode === tab.id ? 'bg-[var(--crm-gold)] text-black' : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}
+                                className={`inline-flex h-7 items-center gap-1 rounded-md px-2 text-[9px] font-semibold transition ${viewMode === tab.id ? 'bg-[var(--crm-gold)] text-black' : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}
                                 title={tab.label}>
                                 <Icon size={12} />
                                 <span className="hidden md:inline">{tab.label}</span>
@@ -138,7 +138,7 @@ export function TaskFilters({ filter, category, priorityFilter, query, viewMode,
 
 function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
     return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2 py-0.5 text-[10px] font-semibold text-[var(--crm-text)]">
+        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2 py-0.5 text-[9px] font-semibold text-[var(--crm-text)]">
             {label}
             <button type="button" onClick={onRemove} className="text-[var(--crm-muted)] hover:text-red-400"><X size={10} /></button>
         </span>

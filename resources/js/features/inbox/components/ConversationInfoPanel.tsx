@@ -63,7 +63,7 @@ export function ConversationInfoPanel({ conversation, messages, currentUserId, o
 
                 <ScrollShadow className="min-h-0 flex-1 space-y-5 px-4 py-4">
                     <section aria-labelledby="members-heading">
-                        <h3 id="members-heading" className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><Users size={14} /> Membres</h3>
+                        <h3 id="members-heading" className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><Users size={14} /> Membres</h3>
                         <div>
                             {participants.map((participant) => {
                                 const user = participant.user ?? participant;
@@ -77,7 +77,7 @@ export function ConversationInfoPanel({ conversation, messages, currentUserId, o
                                         </div>
                                         <span className="min-w-0 flex-1">
                                             <span className="block truncate text-xs font-semibold">{name}</span>
-                                            <span className="block truncate text-[10px] text-[var(--text-muted)]">{online ? 'En ligne' : user?.email || 'Hors ligne'}</span>
+                                            <span className="block truncate text-[9px] text-[var(--text-muted)]">{online ? 'En ligne' : user?.email || 'Hors ligne'}</span>
                                         </span>
                                         {participant.role && participant.role !== 'member' ? <Chip size="sm" variant="soft">{participant.role}</Chip> : null}
                                     </div>
@@ -87,7 +87,7 @@ export function ConversationInfoPanel({ conversation, messages, currentUserId, o
                     </section>
 
                     <section aria-labelledby="images-heading">
-                        <h3 id="images-heading" className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><ImageIcon size={14} /> Images partagees</h3>
+                        <h3 id="images-heading" className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><ImageIcon size={14} /> Images partagees</h3>
                         {images.length > 0 ? (
                             <div className="grid grid-cols-3 gap-1.5">
                                 {images.map((image) => <img key={image.id} src={image.thumbnailUrl || image.url || ''} alt={image.originalFilename} loading="lazy" className="aspect-square rounded-lg object-cover" />)}
@@ -97,7 +97,7 @@ export function ConversationInfoPanel({ conversation, messages, currentUserId, o
 
                     {files.length > 0 ? (
                         <section aria-labelledby="files-heading">
-                            <h3 id="files-heading" className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><FileText size={14} /> Fichiers</h3>
+                            <h3 id="files-heading" className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><FileText size={14} /> Fichiers</h3>
                             <div className="space-y-1.5">
                                 {files.map((file) => (
                                     <Button key={file.id} href={file.downloadUrl || file.url || '#'} variant="secondary" size="sm" className="w-full justify-start">
@@ -110,7 +110,7 @@ export function ConversationInfoPanel({ conversation, messages, currentUserId, o
 
                     {conversation.context && Object.values(conversation.context).some(Boolean) ? (
                         <section aria-labelledby="context-heading">
-                            <h3 id="context-heading" className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Contexte lie</h3>
+                            <h3 id="context-heading" className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Contexte lie</h3>
                             <div className="grid grid-cols-2 gap-1.5">
                                 {conversation.context.clientId ? <Button size="sm" variant="secondary" href={`/clients/${conversation.context.clientId}`}><BriefcaseBusiness size={13} />Client</Button> : null}
                                 {conversation.context.dossierId ? <Button size="sm" variant="secondary" href={`/dossiers/${conversation.context.dossierId}`}><FolderKanban size={13} />Dossier</Button> : null}
@@ -131,7 +131,7 @@ export function ConversationInfoPanel({ conversation, messages, currentUserId, o
                         {conversation.archivedAt ? <ArchiveRestore size={15} /> : <Archive size={15} />}
                         {conversation.archivedAt ? 'Restaurer la conversation' : 'Archiver la conversation'}
                     </Button>
-                    <p className="mt-2 flex items-center justify-center gap-1 text-[10px] text-[var(--text-muted)]"><Info size={11} /> L archivage est personnel.</p>
+                    <p className="mt-2 flex items-center justify-center gap-1 text-[9px] text-[var(--text-muted)]"><Info size={11} /> L archivage est personnel.</p>
                 </footer>
             </div>
         );

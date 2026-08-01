@@ -478,7 +478,7 @@ export default function DossierShow({
                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                             <button type="button" onClick={() => router.visit('/dossiers')}
-                                className="mb-2 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--foreground)]">
+                                className="mb-2 inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-muted)] hover:text-[var(--foreground)]">
                                 <ArrowLeft size={13} />
                                 Back to Projects
                             </button>
@@ -504,12 +504,12 @@ export default function DossierShow({
                                         <StatusPill label={dossier.status} color={dossierStatusColor(dossier.status)} size="sm" />
                                         <StatusPill label={workflowLabel(selectedStep?.key ?? dossier.workflowStep)} color="primary" size="sm" />
                                     </div>
-                                    <p className="mt-1.5 text-[13px] text-[var(--foreground)]">
+                                    <p className="mt-1.5 text-[12px] text-[var(--foreground)]">
                                         {dossier.clientName} · {dossier.dossierNumber}
                                     </p>
                                 </div>
                             </div>
-                            <div className="grid gap-x-6 gap-y-1 text-[12px] text-[var(--text-muted)] sm:grid-cols-2 sm:text-right">
+                            <div className="grid gap-x-6 gap-y-1 text-[11px] text-[var(--text-muted)] sm:grid-cols-2 sm:text-right">
                                 <span>{dossier.clientNumber} / {dossier.clientCin}</span>
                                 <span>{[dossier.province, dossier.commune].filter(Boolean).join(', ') || '-'}</span>
                                 <span>Opened: {dossier.openedAt || '-'}</span>
@@ -517,16 +517,16 @@ export default function DossierShow({
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-1.5 border-t border-[var(--border)] px-4 py-2.5">
-                            <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => router.visit(`/clients/${dossier.clientId}`)}>
+                            <AppButton variant="bordered" size="sm" className="h-7 text-[10px]" onPress={() => router.visit(`/clients/${dossier.clientId}`)}>
                                 <UserRound size={13} /> Open client
                             </AppButton>
-                            <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => setEditDrawerOpen(true)}>
+                            <AppButton variant="bordered" size="sm" className="h-7 text-[10px]" onPress={() => setEditDrawerOpen(true)}>
                                 <Pencil size={13} /> Edit
                             </AppButton>
-                            <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => { setEditContract(null); setContractDrawerOpen(true); }}>
+                            <AppButton variant="bordered" size="sm" className="h-7 text-[10px]" onPress={() => { setEditContract(null); setContractDrawerOpen(true); }}>
                                 <FileText size={13} /> Contract
                             </AppButton>
-                            <AppButton variant="bordered" size="sm" className="h-7 text-[11px]" onPress={() => setDocumentDrawerOpen(true)}>
+                            <AppButton variant="bordered" size="sm" className="h-7 text-[10px]" onPress={() => setDocumentDrawerOpen(true)}>
                                 <FileCheck2 size={13} /> Documents
                             </AppButton>
                         </div>
@@ -561,7 +561,8 @@ export default function DossierShow({
                         {TABS.map((tab) => (
                             <button key={tab.id} type="button" onClick={() => handleTabChange(tab.id)}
                                 className={cn(
-                                    'relative flex items-center justify-center px-4 py-2.5 text-[13px] font-medium outline-none transition whitespace-nowrap',
+                                    'relative flex items-center justify-center px-4 py-2.5 text-[12px] font-medium outline-none transition whitespace-nowrap',
+                                    'focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:rounded-md',
                                     activeTab === tab.id
                                         ? 'text-[var(--accent)] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-[var(--accent)]'
                                         : 'text-[var(--text-muted)] hover:text-[var(--foreground)]',
@@ -665,14 +666,14 @@ function MetricCard({ label, value, hint, icon: Icon, color = 'text-[var(--foreg
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
             <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-[var(--text-muted)]">{label}</p>
+                    <p className="text-[10px] font-medium text-[var(--text-muted)]">{label}</p>
                     <p className={cn('mt-0.5 text-base font-semibold truncate', color)}>{value}</p>
                 </div>
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]">
                     <Icon size={14} />
                 </div>
             </div>
-            <p className="mt-0.5 text-[10px] text-[var(--text-subtle)]">{hint}</p>
+            <p className="mt-0.5 text-[9px] text-[var(--text-subtle)]">{hint}</p>
         </div>
     );
 }
@@ -680,8 +681,8 @@ function MetricCard({ label, value, hint, icon: Icon, color = 'text-[var(--foreg
 function InfoField({ label, value }: { label: string; value: string | number | null | undefined }) {
     return (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-            <p className="text-[10px] font-medium text-[var(--text-muted)]">{label}</p>
-            <p className="mt-0.5 truncate text-[13px] font-semibold text-[var(--foreground)]">{value || '-'}</p>
+            <p className="text-[9px] font-medium text-[var(--text-muted)]">{label}</p>
+            <p className="mt-0.5 truncate text-[12px] font-semibold text-[var(--foreground)]">{value || '-'}</p>
         </div>
     );
 }
@@ -693,7 +694,7 @@ function SideCard({ icon: Icon, title, children, color = 'text-[var(--accent)]' 
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3.5">
             <div className="flex items-center gap-2 mb-2">
                 <Icon size={14} className={color} />
-                <p className="text-[12px] font-semibold text-[var(--foreground)]">{title}</p>
+                <p className="text-[11px] font-semibold text-[var(--foreground)]">{title}</p>
             </div>
             {children}
         </div>
@@ -704,8 +705,8 @@ function CompactEmpty({ icon: Icon, title, description }: { icon: LucideIcon; ti
     return (
         <div className="flex flex-col items-center gap-1.5 py-6 text-center">
             <Icon size={20} className="text-[var(--text-muted)]/40" />
-            <p className="text-[12px] font-medium text-[var(--foreground)]">{title}</p>
-            <p className="text-[10px] text-[var(--text-muted)]">{description}</p>
+            <p className="text-[11px] font-medium text-[var(--foreground)]">{title}</p>
+            <p className="text-[9px] text-[var(--text-muted)]">{description}</p>
         </div>
     );
 }
@@ -738,28 +739,28 @@ function OverviewTab({ dossier, workflow, contract, archiveRecord }: {
                 <SideCard icon={FileText} title="Contract">
                     {contract ? (
                         <div>
-                            <p className="text-[13px] font-semibold text-[var(--foreground)]">{contract.contractNumber}</p>
-                            <p className="text-[11px] text-[var(--text-muted)]">{contract.status} · {money(contract.ttc)}</p>
+                            <p className="text-[12px] font-semibold text-[var(--foreground)]">{contract.contractNumber}</p>
+                            <p className="text-[10px] text-[var(--text-muted)]">{contract.status} · {money(contract.ttc)}</p>
                         </div>
-                    ) : <p className="text-[12px] text-[var(--text-muted)]">No contract yet.</p>}
+                    ) : <p className="text-[11px] text-[var(--text-muted)]">No contract yet.</p>}
                 </SideCard>
                 <SideCard icon={Archive} title="Archive" color="text-violet-500">
                     {archiveRecord ? (
                         <div>
-                            <p className="text-[13px] font-semibold text-[var(--foreground)]">{archiveRecord.archiveNumber}</p>
-                            <p className="text-[11px] text-[var(--text-muted)]">{archiveRecord.status}</p>
+                            <p className="text-[12px] font-semibold text-[var(--foreground)]">{archiveRecord.archiveNumber}</p>
+                            <p className="text-[10px] text-[var(--text-muted)]">{archiveRecord.status}</p>
                         </div>
-                    ) : <p className="text-[12px] text-[var(--text-muted)]">Not archived yet.</p>}
+                    ) : <p className="text-[11px] text-[var(--text-muted)]">Not archived yet.</p>}
                 </SideCard>
                 <SideCard icon={ArrowLeft} title="Quick navigation">
                     <div className="grid gap-1.5">
-                        <AppButton variant="bordered" size="sm" className="justify-start h-8 text-[11px]" onPress={() => router.visit('/documents')}>
+                        <AppButton variant="bordered" size="sm" className="justify-start h-8 text-[10px]" onPress={() => router.visit('/documents')}>
                             <FileCheck2 size={13} /> Documents
                         </AppButton>
-                        <AppButton variant="bordered" size="sm" className="justify-start h-8 text-[11px]" onPress={() => router.visit('/finance')}>
+                        <AppButton variant="bordered" size="sm" className="justify-start h-8 text-[10px]" onPress={() => router.visit('/finance')}>
                             <BadgeDollarSign size={13} /> Finance
                         </AppButton>
-                        <AppButton variant="bordered" size="sm" className="justify-start h-8 text-[11px]" onPress={() => router.visit('/dossiers')}>
+                        <AppButton variant="bordered" size="sm" className="justify-start h-8 text-[10px]" onPress={() => router.visit('/dossiers')}>
                             <ArrowLeft size={13} /> Back to projects
                         </AppButton>
                     </div>
@@ -801,8 +802,8 @@ function DocumentsTab({ documents, dossierNumber, contract }: { documents: DocSu
                     <Icon size={15} className="text-[var(--accent)]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-medium text-[var(--foreground)]">{name}</p>
-                    <p className="truncate text-[11px] text-[var(--text-muted)]">{fileName || date || '-'}</p>
+                    <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{name}</p>
+                    <p className="truncate text-[10px] text-[var(--text-muted)]">{fileName || date || '-'}</p>
                 </div>
                 <StatusPill label={status} color={stepStatusColor(status)} size="sm" />
                 <div className="flex items-center gap-0.5 shrink-0">
@@ -848,7 +849,7 @@ function DocumentsTab({ documents, dossierNumber, contract }: { documents: DocSu
             ) : null}
             {contractDocs.length > 0 ? (
                 <div className={documents.length > 0 ? 'mt-4' : ''}>
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Documents du contrat</p>
+                    <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Documents du contrat</p>
                     <div className="grid gap-2">
                         {contractDocs.map((cd) => (
                             <DocCard
@@ -1051,7 +1052,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                             disabledKeys={generatingId === contract.id ? ['generate-docx', 'generate-pdf'] : []}
                             onAction={(key) => handleAction(contract, key as string)}
                             itemClasses={{
-                                base: 'rounded-lg px-2 py-1 text-[11px] font-medium',
+                                base: 'rounded-lg px-2 py-1 text-[10px] font-medium',
                             }}
                         >
                             <Dropdown.Section title="Document">
@@ -1116,13 +1117,13 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                         <div>
                             <p className="text-sm font-semibold text-[var(--foreground)]">{contract.contractNumber}</p>
                             {contract.notes ? (
-                                <p className="mt-0.5 text-[11px] text-[var(--text-muted)] leading-tight line-clamp-1">{contract.notes}</p>
+                                <p className="mt-0.5 text-[10px] text-[var(--text-muted)] leading-tight line-clamp-1">{contract.notes}</p>
                             ) : null}
                         </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                         {generatingId === contract.id ? (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-blue-400/20 bg-blue-400/10 px-2 py-0.5 text-[10px] font-semibold text-blue-400">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-blue-400/20 bg-blue-400/10 px-2 py-0.5 text-[9px] font-semibold text-blue-400">
                                 <span className="inline-block size-1.5 animate-ping rounded-full bg-blue-400" />
                                 Generation...
                             </span>
@@ -1133,7 +1134,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                             { key: 'signed', label: 'Signe', show: resolvedStatus === 'signed', color: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20' },
                         ].filter((b) => b.show).map((b, i) => (
                             <span key={b.key} className={cn(
-                                'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
+                                'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
                                 b.color,
                                 i > 0 && 'ml-0.5',
                             )}>
@@ -1149,7 +1150,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                         <div key={r.label} className="flex items-center gap-2 bg-[var(--surface)] px-4 py-2.5">
                             <r.icon size={13} className="text-[var(--text-muted)] shrink-0" />
                             <div className="min-w-0">
-                                <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">{r.label}</p>
+                                <p className="text-[9px] font-medium uppercase tracking-wide text-[var(--text-muted)]">{r.label}</p>
                                 <p className="text-xs font-semibold text-[var(--foreground)]">{r.value}</p>
                             </div>
                         </div>
@@ -1158,11 +1159,11 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
 
                 {/* Financial summary */}
                 <div className="border-t border-[var(--border)] px-4 py-3">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Montants</p>
+                    <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Montants</p>
                     <div className="space-y-1.5">
                         {finRows.map((r) => (
                             <div key={r.label} className="flex items-center justify-between">
-                                <span className="text-[11px] text-[var(--text-muted)]">{r.label}</span>
+                                <span className="text-[10px] text-[var(--text-muted)]">{r.label}</span>
                                 <span className={cn('text-xs font-semibold', r.highlight ? 'text-[var(--accent)]' : 'text-[var(--foreground)]')}>{r.value}</span>
                             </div>
                         ))}
@@ -1171,7 +1172,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
 
                 {/* Timeline */}
                 <div className="border-t border-[var(--border)] px-4 py-3">
-                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Chronologie</p>
+                    <p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Chronologie</p>
                     <div className="flex items-center gap-0">
                         {[
                             { key: 'created', icon: Calendar, label: 'Cree', date: contract.createdAt, done: true },
@@ -1185,7 +1186,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                                 )}>
                                     {step.key === 'created' ? <Calendar size={12} /> : step.key === 'generated' && step.done ? <Check size={12} /> : step.key === 'generated' ? <ScrollText size={12} /> : step.done ? <Check size={12} /> : <Circle size={12} />}
                                 </div>
-                                <p className={cn('mt-1 text-[10px] font-medium text-center leading-tight', step.done ? 'text-emerald-400' : 'text-[var(--text-muted)]')}>{step.label}</p>
+                                <p className={cn('mt-1 text-[9px] font-medium text-center leading-tight', step.done ? 'text-emerald-400' : 'text-[var(--text-muted)]')}>{step.label}</p>
                                 {step.date ? <p className="text-[9px] text-[var(--text-muted)] text-center leading-tight">{step.date}</p> : null}
                                 {idx < 2 ? (
                                     <div className={cn(
@@ -1199,7 +1200,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                     {generatingId === contract.id ? (
                         <div className="mt-2 flex items-center justify-center gap-1.5">
                             <span className="inline-block size-2 animate-ping rounded-full bg-blue-400" />
-                            <span className="text-[10px] text-blue-400 font-medium">Generation en cours...</span>
+                            <span className="text-[9px] text-blue-400 font-medium">Generation en cours...</span>
                         </div>
                     ) : null}
                 </div>
@@ -1257,8 +1258,8 @@ function FinanceTab({ records, total, paid, remaining }: {
                     {records.map((record) => (
                         <div key={record.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5">
                             <div className="min-w-0">
-                                <p className="truncate text-[13px] font-medium text-[var(--foreground)]">{record.recordNumber}</p>
-                                <p className="text-[11px] text-[var(--text-muted)]">{record.type} · {record.status}</p>
+                                <p className="truncate text-[12px] font-medium text-[var(--foreground)]">{record.recordNumber}</p>
+                                <p className="text-[10px] text-[var(--text-muted)]">{record.type} · {record.status}</p>
                             </div>
                             <span className="text-sm font-semibold text-[var(--accent)]">{money(record.totalTtc)}</span>
                         </div>
@@ -1278,7 +1279,7 @@ function NotesTab({ dossier }: { dossier: DossierRow }) {
             <h3 className="mb-1 text-sm font-semibold text-[var(--foreground)]">Notes</h3>
             <p className="mb-4 text-xs text-[var(--text-muted)]">Internal comments related to this project.</p>
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-4">
-                <p className="text-[13px] leading-6 text-[var(--text-muted)]">{dossier.notes || 'No notes saved.'}</p>
+                <p className="text-[12px] leading-6 text-[var(--text-muted)]">{dossier.notes || 'No notes saved.'}</p>
             </div>
         </div>
     );

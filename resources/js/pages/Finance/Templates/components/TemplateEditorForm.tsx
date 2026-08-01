@@ -27,7 +27,7 @@ const TABS: Array<{ key: TemplateDraftSection; label: string; language: 'html' |
 
 type TemplateDraftSection = 'bodyHtml' | 'headerHtml' | 'footerHtml' | 'css';
 
-const compactField = 'h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]';
+const compactField = 'h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]';
 const selectPopover = 'z-[80] min-w-[var(--trigger-width)] rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl';
 const selectItem = 'cursor-pointer rounded-md px-2 py-1.5 text-xs text-[var(--text)] outline-none data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:text-[var(--accent)]';
 
@@ -39,7 +39,7 @@ function EditorSelect<T extends string>({ label, value, options, onChange }: {
 }) {
     return (
         <label className="space-y-1">
-            <span className="text-[10px] font-semibold text-[var(--text-muted)]">{label}</span>
+            <span className="text-[9px] font-semibold text-[var(--text-muted)]">{label}</span>
             <Select selectedKey={value} onSelectionChange={(key) => onChange(String(key) as T)} aria-label={label}>
                 <Select.Trigger className={compactField}>
                     <Select.Value className="flex-1 truncate text-left" />
@@ -109,17 +109,17 @@ export function TemplateEditorForm({
                 {metaOpen ? (
                     <div className="grid grid-cols-1 gap-3 border-t border-[var(--border)] px-3 pb-3 pt-2 sm:grid-cols-2 xl:grid-cols-4">
                         <label className="space-y-1">
-                            <span className="text-[10px] font-semibold text-[var(--text-muted)]">Name</span>
+                            <span className="text-[9px] font-semibold text-[var(--text-muted)]">Name</span>
                             <Input
-                                className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                                className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                                 value={draft.name}
                                 onChange={(e) => onUpdate({ name: e.target.value })}
                             />
                         </label>
                         <label className="space-y-1">
-                            <span className="text-[10px] font-semibold text-[var(--text-muted)]">Slug</span>
+                            <span className="text-[9px] font-semibold text-[var(--text-muted)]">Slug</span>
                             <Input
-                                className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]"
+                                className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                                 value={draft.slug}
                                 onChange={(e) => onUpdate({ slug: e.target.value })}
                             />
@@ -166,19 +166,19 @@ export function TemplateEditorForm({
                 })}
                 <div className="ml-auto flex min-w-0 items-center gap-2 pl-2">
                     {validation.errors.length > 0 ? (
-                        <span className="flex items-center gap-1 text-[10px] font-medium text-[var(--danger)]" title={validationMessage}>
+                        <span className="flex items-center gap-1 text-[9px] font-medium text-[var(--danger)]" title={validationMessage}>
                             <AlertTriangle size={11} /> {validation.errors.length} erreur(s)
                         </span>
                     ) : validation.warnings.length > 0 ? (
-                        <span className="flex items-center gap-1 text-[10px] font-medium text-[var(--warning)]" title={validationMessage}>
+                        <span className="flex items-center gap-1 text-[9px] font-medium text-[var(--warning)]" title={validationMessage}>
                             <AlertTriangle size={11} /> {validation.warnings.length} alerte(s)
                         </span>
                     ) : (
-                        <span className="flex items-center gap-1 text-[10px] font-medium text-[var(--success)]">
+                        <span className="flex items-center gap-1 text-[9px] font-medium text-[var(--success)]">
                             <CheckCircle2 size={11} /> Valide
                         </span>
                     )}
-                    <span className="hidden truncate text-[10px] text-[var(--text-muted)] sm:inline">{activeSection.replace('Html', '.html').replace('css', '.css')}</span>
+                    <span className="hidden truncate text-[9px] text-[var(--text-muted)] sm:inline">{activeSection.replace('Html', '.html').replace('css', '.css')}</span>
                 </div>
             </div>
 

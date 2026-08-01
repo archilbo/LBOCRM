@@ -102,13 +102,13 @@ export function DossierCommuneGroup({ group }: Props) {
                                         </td>
 
                                         <td>
-                                            <span className="rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface-2)] px-2 py-1 text-[11px] font-semibold text-[var(--crm-gold)]">
+                                            <span className="rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface-2)] px-2 py-1 text-[10px] font-semibold text-[var(--crm-gold)]">
                                                 {workflowLabel(dossier.workflowStep)}
                                             </span>
                                         </td>
 
                                         <td>
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-400/10 px-2 py-1 text-[11px] font-semibold text-sky-300">
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-400/10 px-2 py-1 text-[10px] font-semibold text-sky-300">
                                                 <FileCheck2 size={12} />
                                                 {dossier.documentsCount} docs
                                             </span>
@@ -116,7 +116,7 @@ export function DossierCommuneGroup({ group }: Props) {
 
                                         <td>
                                             <div className="space-y-1">
-                                                <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/20 bg-violet-400/10 px-2 py-1 text-[11px] font-semibold text-violet-300">
+                                                <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/20 bg-violet-400/10 px-2 py-1 text-[10px] font-semibold text-violet-300">
                                                     <BadgeDollarSign size={12} />
                                                     {dossier.financeDocumentsCount} finance
                                                 </span>
@@ -125,7 +125,7 @@ export function DossierCommuneGroup({ group }: Props) {
                                         </td>
 
                                         <td>
-                                            <span className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${statusClass(dossier.status)}`}>
+                                            <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold ${statusClass(dossier.status)}`}>
                                                 {dossier.status}
                                             </span>
                                         </td>

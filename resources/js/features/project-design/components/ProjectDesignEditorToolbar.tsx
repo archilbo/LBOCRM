@@ -142,7 +142,7 @@ function ToolButton({
             </Tooltip.Trigger>
             <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-xl">
                 <span>{label}</span>
-                {hint ? <span className="ml-2 text-[10px] text-[var(--text-muted)]">{hint}</span> : null}
+                {hint ? <span className="ml-2 text-[9px] text-[var(--text-muted)]">{hint}</span> : null}
             </Tooltip.Content>
         </Tooltip>
     );
@@ -271,7 +271,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                         onPress={() => onPageChange(Math.max(1, safePage - 1))}
                         isDisabled={safePage <= 1}
                     />
-                    <span className="flex items-center gap-1 text-[11px] tabular-nums text-[var(--text-muted)]">
+                    <span className="flex items-center gap-1 text-[10px] tabular-nums text-[var(--text-muted)]">
                         <Input
                             inputMode="numeric"
                             value={pageInput}
@@ -282,7 +282,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                             onBlur={commitPageInput}
                             variant="secondary"
                             aria-label="Go to page"
-                            className="h-7 w-10 text-center text-[11px]"
+                            className="h-7 w-10 text-center text-[10px]"
                         />
                         <span className="text-[var(--text-subtle)]">/</span>
                         <strong className="font-semibold text-[var(--foreground)]">{safeTotal}</strong>
@@ -305,7 +305,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                         hint="-"
                         onPress={() => onZoomChange(Math.max(0.1, zoom - 0.1))}
                     />
-                    <span className="min-w-[46px] text-center text-[11px] tabular-nums text-[var(--text-muted)]">
+                    <span className="min-w-[46px] text-center text-[10px] tabular-nums text-[var(--text-muted)]">
                         {Math.round(zoom * 100)}%
                     </span>
                     <ToolButton

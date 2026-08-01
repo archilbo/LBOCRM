@@ -1,4 +1,4 @@
-﻿import { type PropsWithChildren } from 'react';
+import { type PropsWithChildren } from 'react';
 import { cn } from '@/lib/cn';
 
 type AppBadgeProps = PropsWithChildren<{
@@ -38,7 +38,7 @@ export function AppBadge({ children, className, variant = 'subtle', tone = 'neut
     return (
         <span
             className={cn(
-                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium leading-tight',
+                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium leading-tight',
                 variant !== 'solid' && 'border',
                 toneStyles[variant]?.[tone],
                 className,

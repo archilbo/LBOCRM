@@ -178,7 +178,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                         {typeHint && (
                             <div className="flex items-start gap-2 rounded-lg border border-[var(--crm-gold)]/20 bg-[var(--crm-gold)]/8 px-3 py-2">
                                 <Info size={13} className="mt-0.5 shrink-0 text-[var(--crm-gold)]" />
-                                <p className="text-[11px] text-[var(--crm-text-muted)]">{typeHint}</p>
+                                <p className="text-[10px] text-[var(--crm-text-muted)]">{typeHint}</p>
                             </div>
                         )}
 

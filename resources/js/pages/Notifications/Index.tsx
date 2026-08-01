@@ -58,13 +58,13 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                             </div>
                             <div>
                                 <h1 className="text-base font-semibold text-white/90">Notifications</h1>
-                                <p className="text-[11px] text-white/30 mt-0.5">{enriched.length} total{unreadCount > 0 ? `, ${unreadCount} unread` : ''}</p>
+                                <p className="text-[10px] text-white/30 mt-0.5">{enriched.length} total{unreadCount > 0 ? `, ${unreadCount} unread` : ''}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-1">
                             {unreadCount > 0 ? (
                                 <button type="button" onClick={markAllAsRead}
-                                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-[11px] font-semibold text-white/40 transition hover:bg-white/5 hover:text-white/70">
+                                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-[10px] font-semibold text-white/40 transition hover:bg-white/5 hover:text-white/70">
                                     <CheckCheck size={13} />
                                     Mark all read
                                 </button>
@@ -79,7 +79,7 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                             return (
                                 <button key={f.id} type="button" onClick={() => router.visit(`/notifications?filter=${f.id}`, { preserveState: true })}
                                     className={cn(
-                                        'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium transition',
+                                        'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[10px] font-medium transition',
                                         isActive
                                             ? 'bg-white/10 text-white/80'
                                             : 'text-white/40 hover:bg-white/5 hover:text-white/60',
@@ -102,7 +102,7 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                                 <div key={group}>
                                     <div className="flex items-center gap-3 mb-3 px-0.5">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-semibold uppercase tracking-widest text-white/25">{TIME_GROUP_LABELS[group]}</span>
+                                            <span className="text-[9px] font-semibold uppercase tracking-widest text-white/25">{TIME_GROUP_LABELS[group]}</span>
                                             <span className="flex h-4 min-w-[18px] items-center justify-center rounded bg-white/[0.04] px-1.5 text-[9px] font-semibold tabular-nums text-white/20">{items.length}</span>
                                         </div>
                                         <div className="flex-1 h-px bg-white/[0.04]" />
@@ -142,13 +142,13 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div className="min-w-0">
                                                                 <p className={cn(
-                                                                    'text-[13px] leading-snug',
+                                                                    'text-[12px] leading-snug',
                                                                     n.isRead ? 'text-white/50' : 'text-white/85 font-semibold',
                                                                 )}>
                                                                     {n.title}
                                                                 </p>
                                                             </div>
-                                                            <span className="shrink-0 text-[10px] text-white/25 tabular-nums mt-0.5">{formatNotificationTime(n.createdAt)}</span>
+                                                            <span className="shrink-0 text-[9px] text-white/25 tabular-nums mt-0.5">{formatNotificationTime(n.createdAt)}</span>
                                                         </div>
                                                         {n.body ? (
                                                             <p className={cn(

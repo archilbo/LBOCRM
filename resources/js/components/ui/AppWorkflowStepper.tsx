@@ -89,7 +89,7 @@ function VerticalStepItem({
             isActive && 'ring-1 ring-[var(--accent)]/20',
         )}>
             <span className={cn(
-                'flex size-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold transition-all',
+                'flex size-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-semibold transition-all',
                 isCompleted && 'bg-emerald-400/15 text-emerald-400',
                 isActive && !isCompleted && 'bg-[var(--accent)]/12 text-[var(--accent)]',
                 !isCompleted && !isActive && 'bg-[var(--surface-3)] text-[var(--text-subtle)]',
@@ -100,7 +100,7 @@ function VerticalStepItem({
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                     <span className={cn(
-                        'truncate text-[13px] font-medium',
+                        'truncate text-[12px] font-medium',
                         isCompleted && 'text-emerald-400',
                         isActive && !isCompleted && 'text-[var(--foreground)]',
                         !isCompleted && !isActive && 'text-[var(--text-muted)]',
@@ -109,13 +109,13 @@ function VerticalStepItem({
                         {step.order}. {step.label}
                     </span>
                     {step.total > 0 && (
-                        <span className="ml-auto shrink-0 text-[10px] font-medium text-[var(--text-subtle)]">
+                        <span className="ml-auto shrink-0 text-[9px] font-medium text-[var(--text-subtle)]">
                             {step.done}/{step.total}
                         </span>
                     )}
                 </div>
                 <span className={cn(
-                    'block text-[11px]',
+                    'block text-[10px]',
                     s.color,
                 )}>
                     {s.label}
@@ -169,13 +169,13 @@ function RequirementRow({
             </span>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] text-[var(--foreground)]">
+                    <span className="text-[12px] text-[var(--foreground)]">
                         {requirement.label}
                     </span>
                     <div className="flex items-center gap-1.5 shrink-0">
                         {!requirement.done && actionType !== 'no_action' ? (
                             <button type="button" onClick={handleAction}
-                                className="flex items-center gap-1 h-7 rounded-md border border-[var(--border)] px-2.5 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                                className="flex items-center gap-1 h-7 rounded-md border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                                 {ACTION_ICONS[actionType]}
                                 {requirement.actionLabel || 'Open'}
                             </button>
@@ -184,7 +184,7 @@ function RequirementRow({
                             <button type="button"
                                 onClick={handleManualToggle}
                                 className={cn(
-                                    'flex items-center gap-1 h-7 rounded-md border px-2.5 text-[11px] font-medium transition',
+                                    'flex items-center gap-1 h-7 rounded-md border px-2.5 text-[10px] font-medium transition',
                                     requirement.done
                                         ? 'border-red-400/30 text-red-400 hover:bg-red-400/8'
                                         : 'border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/8',
@@ -196,10 +196,10 @@ function RequirementRow({
                     </div>
                 </div>
                 {requirement.notes && (
-                    <p className="mt-0.5 text-[11px] text-[var(--text-muted)] line-clamp-2">{requirement.notes}</p>
+                    <p className="mt-0.5 text-[10px] text-[var(--text-muted)] line-clamp-2">{requirement.notes}</p>
                 )}
                 {(requirement.checkedBy || requirement.checkedAt) && (
-                    <p className="mt-0.5 text-[10px] text-[var(--text-subtle)]">
+                    <p className="mt-0.5 text-[9px] text-[var(--text-subtle)]">
                         {[requirement.checkedBy, requirement.checkedAt].filter(Boolean).join(' \u00B7 ')}
                     </p>
                 )}
@@ -226,14 +226,14 @@ function MobileStepChips({
                 return (
                     <button key={step.key} type="button" onClick={() => onSelect(step.key)}
                         className={cn(
-                            'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition',
+                            'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition',
                             isActive && !isCompleted && 'bg-[var(--accent)]/10 text-[var(--accent)] ring-1 ring-[var(--accent)]/20',
                             isCompleted && 'bg-emerald-400/10 text-emerald-400',
                             isBlocked && 'bg-red-400/10 text-red-400',
                             !isActive && !isCompleted && !isBlocked && 'bg-[var(--surface-2)] text-[var(--text-muted)]',
                         )}>
                         <span className={cn(
-                            'flex size-5 items-center justify-center rounded-full text-[10px]',
+                            'flex size-5 items-center justify-center rounded-full text-[9px]',
                             isCompleted && 'bg-emerald-400/20',
                             isActive && !isCompleted && 'bg-[var(--accent)]/20',
                             !isActive && !isCompleted && !isBlocked && 'bg-[var(--surface-3)]',
@@ -286,8 +286,8 @@ export function AppWorkflowStepper({
                 <div className="hidden shrink-0 sm:block sm:w-[260px] lg:w-[280px]">
                     <div className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
                         <div className="mb-3">
-                            <p className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.workflowProgress')}</p>
-                            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+                            <p className="text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.workflowProgress')}</p>
+                            <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
                                 Step {workflow.completed + 1} of {workflow.total}
                             </p>
                         </div>
@@ -295,7 +295,7 @@ export function AppWorkflowStepper({
                         <div className="relative mb-3 h-1 overflow-hidden rounded-full bg-[var(--surface-3)]">
                             <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${workflow.percent}%` }} />
                         </div>
-                        <p className="mb-4 text-right text-[11px] font-medium text-[var(--text-muted)]">{workflow.percent}%</p>
+                        <p className="mb-4 text-right text-[10px] font-medium text-[var(--text-muted)]">{workflow.percent}%</p>
 
                         <div className="space-y-0">
                             {workflow.steps.map((step, idx) => (
@@ -323,11 +323,11 @@ export function AppWorkflowStepper({
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-subtle)]">
+                                            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-subtle)]">
                                                 STEP {activeStep.order}
                                             </span>
                                             <span className={cn(
-                                                'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                                                'inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold',
                                                 isComplete && 'bg-emerald-400/12 text-emerald-400',
                                                 activeStep.status === 'in_progress' && 'bg-[var(--accent)]/10 text-[var(--accent)]',
                                                 activeStep.status === 'blocked' && 'bg-red-400/10 text-red-400',
@@ -336,9 +336,9 @@ export function AppWorkflowStepper({
                                                 {statusLabel(activeStep.status).label}
                                             </span>
                                         </div>
-                                        <h3 className="text-[17px] font-semibold text-[var(--foreground)]">{activeStep.label}</h3>
+                                        <h3 className="text-[16px] font-semibold text-[var(--foreground)]">{activeStep.label}</h3>
                                         {activeStep.description && (
-                                            <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
+                                            <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-muted)]">
                                                 {activeStep.description}
                                             </p>
                                         )}
@@ -366,7 +366,7 @@ export function AppWorkflowStepper({
                                 <div>
                                     {prevStep && (
                                         <button type="button" onClick={() => setActiveStepKey(prevStep.key)}
-                                            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
+                                            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
                                             <ArrowLeft size={14} />
                                             Back
                                         </button>
@@ -375,7 +375,7 @@ export function AppWorkflowStepper({
                                 <div className="flex items-center gap-2">
                                     {isComplete && nextStep ? (
                                         <button type="button" onClick={() => setActiveStepKey(nextStep.key)}
-                                            className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-[12px] font-semibold text-[var(--accent-foreground)] transition hover:brightness-110">
+                                            className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-[11px] font-semibold text-[var(--accent-foreground)] transition hover:brightness-110">
                                             Next step
                                             <ArrowRight size={14} />
                                         </button>
@@ -386,7 +386,7 @@ export function AppWorkflowStepper({
                                                 if (onStepAction) { onStepAction(activeStep); return; }
                                                 openAction(activeStep.primaryActionUrl);
                                             }}
-                                            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[12px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                                            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                                             {ACTION_ICONS.open_module}
                                             {activeStep.primaryActionLabel || 'Open'}
                                             <ExternalLink size={13} />

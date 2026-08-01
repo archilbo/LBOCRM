@@ -1,4 +1,4 @@
-﻿import { Copy, FileText, Plus, Trash2 } from 'lucide-react';
+import { Copy, FileText, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { AppInput } from '@/components/ui/AppInput';
 import type { FinanceDocumentItem } from '@/features/finance/types';
@@ -62,7 +62,7 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
         <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <div className="flex items-center gap-1.5 mb-2"><FileText size={13} className="text-[var(--text-subtle)]" /><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Lignes du document</p></div>
+                    <div className="flex items-center gap-1.5 mb-2"><FileText size={13} className="text-[var(--text-subtle)]" /><p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Lignes du document</p></div>
                     <p className="text-xs text-[var(--text-muted)]">Les totaux sont recalcules en direct.</p>
                 </div>
                 <Button variant="secondary" size="sm" onPress={addItem} isDisabled={disabled}>

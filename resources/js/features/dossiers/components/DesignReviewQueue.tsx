@@ -46,7 +46,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
                         aria-label="Search reviews"
                         variant="secondary"
                         fullWidth
-                        className="h-8 pl-8 text-[11px]"
+                        className="h-8 pl-8 text-[10px]"
                     />
                 </div>
                 <Chip size="sm" variant="soft" className="h-6 px-2 text-[9px]">{filtered.length} reviews</Chip>
@@ -55,16 +55,16 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
             {error ? (
                 <Card variant="secondary" className="rounded-xl border border-red-500/25 bg-red-500/5">
                     <Card.Content className="flex items-center justify-between gap-3 p-3">
-                        <p className="text-[10px] text-red-300">Failed to load the review queue.</p>
-                        <Button size="sm" variant="ghost" onPress={() => window.location.reload()} className="h-7 text-[10px]">Retry</Button>
+                        <p className="text-[9px] text-red-300">Failed to load the review queue.</p>
+                        <Button size="sm" variant="ghost" onPress={() => window.location.reload()} className="h-7 text-[9px]">Retry</Button>
                     </Card.Content>
                 </Card>
             ) : filtered.length === 0 ? (
                 <Card variant="secondary" className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)]/25">
                     <Card.Content className="flex min-h-52 flex-col items-center justify-center p-6 text-center">
                         <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]"><ClipboardCheck size={17} /></span>
-                        <p className="mt-2 text-[12px] font-medium text-[var(--foreground)]">Review queue is empty</p>
-                        <p className="mt-1 text-[10px] text-[var(--text-muted)]">{search ? 'No reviews match your search.' : 'No designs are currently waiting for review.'}</p>
+                        <p className="mt-2 text-[11px] font-medium text-[var(--foreground)]">Review queue is empty</p>
+                        <p className="mt-1 text-[9px] text-[var(--text-muted)]">{search ? 'No reviews match your search.' : 'No designs are currently waiting for review.'}</p>
                     </Card.Content>
                 </Card>
             ) : (
@@ -76,7 +76,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
                                 <Card.Content className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-1.5">
-                                            <p className="min-w-0 truncate text-[11px] font-semibold text-[var(--foreground)]">{review.file?.name ?? 'Unknown file'}</p>
+                                            <p className="min-w-0 truncate text-[10px] font-semibold text-[var(--foreground)]">{review.file?.name ?? 'Unknown file'}</p>
                                             <Chip size="sm" variant="soft" className={cn('h-4 px-1 text-[8px] capitalize', STATUS_STYLES[review.status] ?? '')}>{review.status.replace(/_/g, ' ')}</Chip>
                                         </div>
                                         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-[var(--text-muted)]">
@@ -111,7 +111,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
                                                 variant="secondary"
                                                 onPress={() => startReview.mutate({ versionId: review.versionId, reviewId: review.id })}
                                                 isPending={startReview.isPending}
-                                                className="h-8 text-[10px]"
+                                                className="h-8 text-[9px]"
                                             >
                                                 <Play size={12} />
                                                 Start
@@ -125,7 +125,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
                                                     setSelectedReview(review);
                                                     setDecisionOpen(true);
                                                 }}
-                                                className="h-8 text-[10px]"
+                                                className="h-8 text-[9px]"
                                             >
                                                 <ClipboardCheck size={12} />
                                                 Decide
@@ -161,7 +161,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
             {previewVersion?.assets?.length ? (
                 <Card variant="secondary" className="overflow-hidden rounded-xl border border-[var(--border)] bg-[#101214]">
                     <Card.Header className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
-                        <Card.Title className="text-[10px] font-medium text-[var(--foreground)]">{previewVersion.label}</Card.Title>
+                        <Card.Title className="text-[9px] font-medium text-[var(--foreground)]">{previewVersion.label}</Card.Title>
                         <Button size="sm" variant="ghost" onPress={() => setPreviewVersion(null)} className="h-7 text-[9px]">Close preview</Button>
                     </Card.Header>
                     <Card.Content className="h-[min(68vh,720px)] p-0">

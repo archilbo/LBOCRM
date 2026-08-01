@@ -43,12 +43,12 @@ export function FinanceSidebarActions({
 
                 {/* Export */}
                 <div>
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Export</p>
+                    <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Export</p>
                     <div className="mb-2 grid grid-cols-2 gap-2">
-                        <button type="button" onClick={onView} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-[11px] font-semibold text-[var(--text)] transition hover:border-amber-500/30 hover:text-amber-400">
+                        <button type="button" onClick={onView} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-[10px] font-semibold text-[var(--text)] transition hover:border-amber-500/30 hover:text-amber-400">
                             <Eye size={13} /> View
                         </button>
-                        <button type="button" onClick={onPrint} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-[11px] font-semibold text-[var(--text)] transition hover:border-amber-500/30 hover:text-amber-400">
+                        <button type="button" onClick={onPrint} className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-[10px] font-semibold text-[var(--text)] transition hover:border-amber-500/30 hover:text-amber-400">
                             <Printer size={13} /> Print
                         </button>
                     </div>
@@ -66,7 +66,7 @@ export function FinanceSidebarActions({
                             type="button"
                             disabled={disabled}
                             onClick={onDownloadPdf}
-                            className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-[11px] font-semibold text-[var(--text-muted)] transition-all hover:border-amber-500/25 hover:bg-amber-500/10 hover:text-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-[10px] font-semibold text-[var(--text-muted)] transition-all hover:border-amber-500/25 hover:bg-amber-500/10 hover:text-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Download size={13} />
                             PDF
@@ -75,7 +75,7 @@ export function FinanceSidebarActions({
                             type="button"
                             disabled={disabled}
                             onClick={onDownloadExcel}
-                            className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-[11px] font-semibold text-[var(--text-muted)] transition-all hover:border-amber-500/25 hover:bg-amber-500/10 hover:text-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-[10px] font-semibold text-[var(--text-muted)] transition-all hover:border-amber-500/25 hover:bg-amber-500/10 hover:text-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Download size={13} />
                             Excel
@@ -86,14 +86,14 @@ export function FinanceSidebarActions({
                 {/* Quote workflow */}
                 {document.acceptUrl || document.rejectUrl || document.convertToInvoiceUrl ? (
                     <div className="border-t border-[var(--border)] pt-4">
-                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quote</p>
+                        <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Quote</p>
                         <div className="grid grid-cols-3 gap-1.5">
                             {document.acceptUrl ? (
                                 <button
                                     type="button"
                                     disabled={disabled}
                                     onClick={onAcceptQuote}
-                                    className="flex items-center justify-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/15 px-2 py-1.5 text-[11px] font-semibold text-emerald-400 transition-all hover:bg-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex items-center justify-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-500/15 px-2 py-1.5 text-[10px] font-semibold text-emerald-400 transition-all hover:bg-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <CheckCircle2 size={12} />
                                     Accept
@@ -104,7 +104,7 @@ export function FinanceSidebarActions({
                                     type="button"
                                     disabled={disabled}
                                     onClick={onRejectQuote}
-                                    className="flex items-center justify-center gap-1 rounded-lg border border-red-500/20 bg-red-500/15 px-2 py-1.5 text-[11px] font-semibold text-red-400 transition-all hover:bg-red-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex items-center justify-center gap-1 rounded-lg border border-red-500/20 bg-red-500/15 px-2 py-1.5 text-[10px] font-semibold text-red-400 transition-all hover:bg-red-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <XCircle size={12} />
                                     Reject
@@ -115,7 +115,7 @@ export function FinanceSidebarActions({
                                     type="button"
                                     disabled={disabled}
                                     onClick={onConvertToInvoice}
-                                    className="flex items-center justify-center gap-1 rounded-lg border border-amber-500/20 bg-amber-500/15 px-2 py-1.5 text-[11px] font-semibold text-amber-400 transition-all hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex items-center justify-center gap-1 rounded-lg border border-amber-500/20 bg-amber-500/15 px-2 py-1.5 text-[10px] font-semibold text-amber-400 transition-all hover:bg-amber-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Landmark size={12} />
                                     Convert
@@ -127,7 +127,7 @@ export function FinanceSidebarActions({
 
                 {/* Cancel & Delete */}
                 <div className="border-t border-[var(--border)] pt-4">
-                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-red-500">
+                    <p className="mb-2 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-red-500">
                         <span className="h-1.5 w-1.5 rounded-full bg-red-500/60" />
                         Danger zone
                     </p>

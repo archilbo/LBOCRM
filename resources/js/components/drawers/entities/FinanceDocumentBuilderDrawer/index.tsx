@@ -103,9 +103,9 @@ function createForm(type: FinanceDocumentType, settings: FinanceSettings, docume
     };
 }
 
-const labelCls = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]';
+const labelCls = 'text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]';
 const compactInput = 'h-8 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)]';
-const compactTrigger = 'flex h-8 w-full min-w-0 items-center gap-2 rounded-[var(--radius-md)] border bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] outline-none transition border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)]';
+const compactTrigger = 'flex h-8 w-full min-w-0 items-center gap-2 rounded-[var(--radius-md)] border bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] outline-none transition border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]';
 const compactItem = 'flex cursor-pointer items-center rounded-lg px-2.5 py-2 text-xs text-[var(--foreground)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10';
 const compactTextarea = 'min-h-20 w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_14%,transparent)]';
 const compactPopover = 'z-[70] min-w-[var(--trigger-width)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg';
@@ -289,9 +289,9 @@ export function FinanceDocumentBuilderDrawer({
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex flex-wrap items-center gap-2">
                                 <FinanceDocumentLockNotice document={document} compact />
-                                {lockMessage && !canEditNumberFields ? <p className="text-[10px] text-amber-400">{lockMessage}</p> : null}
-                                {hasNoDossiers ? <p className="text-[10px] text-amber-400">Impossible de creer un document : ce client n&apos;a aucun dossier</p> : null}
-                                {isDossierRestricted ? <p className="text-[10px] text-red-400">Impossible de creer un document : ce dossier a deja un devis/facture</p> : null}
+                                {lockMessage && !canEditNumberFields ? <p className="text-[9px] text-amber-400">{lockMessage}</p> : null}
+                                {hasNoDossiers ? <p className="text-[9px] text-amber-400">Impossible de creer un document : ce client n&apos;a aucun dossier</p> : null}
+                                {isDossierRestricted ? <p className="text-[9px] text-red-400">Impossible de creer un document : ce dossier a deja un devis/facture</p> : null}
                             </div>
                             <Button variant="light" size="sm" onPress={() => setPreviewOpen((p) => !p)} className="shrink-0">
                                 {previewOpen ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -372,7 +372,7 @@ export function FinanceDocumentBuilderDrawer({
 
                                 <Card className="p-3 space-y-3">
                                     <div className="flex items-center gap-1.5 mb-2"><FileText size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Resume du document</p></div>
-                                    <div className="grid gap-3 text-[11px] sm:grid-cols-2">
+                                    <div className="grid gap-3 text-[10px] sm:grid-cols-2">
                                         <div>
                                             <p className="font-semibold text-[var(--text)]">Client</p>
                                             <p className="text-[var(--text-muted)]">{selectedClient?.label || '-'}</p>
@@ -394,12 +394,12 @@ export function FinanceDocumentBuilderDrawer({
                                         <p className="mb-1.5 font-semibold text-[var(--text)]">Lignes ({totals.items.length})</p>
                                         <div className="space-y-1">
                                             {totals.items.slice(0, 5).map((item, i) => (
-                                                <div key={i} className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+                                                <div key={i} className="flex items-center justify-between text-[10px] text-[var(--text-muted)]">
                                                     <span className="truncate mr-2">{item.title || `Ligne ${i + 1}`}</span>
                                                     <span className="shrink-0 font-mono">{item.quantity} x {formatCompactMoney(item.unitPrice, form.currency)}</span>
                                                 </div>
                                             ))}
-                                            {totals.items.length > 5 ? <p className="text-[10px] text-[var(--text-muted)]">... et {totals.items.length - 5} ligne(s) supplementaire(s)</p> : null}
+                                            {totals.items.length > 5 ? <p className="text-[9px] text-[var(--text-muted)]">... et {totals.items.length - 5} ligne(s) supplementaire(s)</p> : null}
                                         </div>
                                     </div>
                                     <FinanceTotalsBox

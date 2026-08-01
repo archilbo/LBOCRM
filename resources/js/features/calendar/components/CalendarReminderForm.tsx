@@ -21,7 +21,7 @@ export function CalendarReminderForm({ value, onChange }: Props) {
             <div className="flex flex-wrap gap-1.5">
                 {OPTIONS.map((opt) => (
                     <button key={String(opt.value)} type="button" onClick={() => onChange(opt.value)}
-                        className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition ${value === opt.value ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
+                        className={`rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition ${value === opt.value ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
                         {opt.label}
                     </button>
                 ))}

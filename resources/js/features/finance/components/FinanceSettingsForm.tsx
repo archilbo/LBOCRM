@@ -5,13 +5,16 @@ import {
     Calculator,
     FileText,
     ImageIcon,
+    Landmark,
     RotateCcw,
     Save,
+    ScrollText,
     Settings,
     Upload,
 } from 'lucide-react';
-import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { Chip, Description, FieldError, Input, Label, TextArea, TextField } from '@heroui/react';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
@@ -163,26 +166,16 @@ function Field({
     help?: string;
 }) {
     return (
-        <label className="block min-w-0">
-            <span className="mb-1.5 block text-xs font-bold text-[var(--text)]">{label}</span>
-            <input
-                type={type}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                placeholder={placeholder}
-                className={[
-                    'h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)] outline-none transition',
-                    'hover:border-[color-mix(in_srgb,var(--accent)_45%,var(--border))] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]',
-                    error ? 'border-red-500/70' : '',
-                ].join(' ')}
-            />
-            {help ? <span className="mt-1 block text-xs text-[var(--text-muted)]">{help}</span> : null}
-            {error ? <span className="mt-1 block text-xs font-semibold text-red-400">{error}</span> : null}
-        </label>
+        <TextField type={type} value={value} onChange={onChange} isInvalid={Boolean(error)} className="min-w-0">
+            <Label className="mb-1.5 block text-xs font-semibold text-[var(--text)]">{label}</Label>
+            <Input placeholder={placeholder} className="h-11 rounded-xl" />
+            {help ? <Description className="mt-1 text-[10px] text-[var(--text-muted)]">{help}</Description> : null}
+            {error ? <FieldError className="mt-1 text-[10px] font-semibold">{error}</FieldError> : null}
+        </TextField>
     );
 }
 
-function TextArea({
+function TextAreaField({
     label,
     value,
     onChange,
@@ -196,21 +189,11 @@ function TextArea({
     placeholder?: string;
 }) {
     return (
-        <label className="block min-w-0">
-            <span className="mb-1.5 block text-xs font-bold text-[var(--text)]">{label}</span>
-            <textarea
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                placeholder={placeholder}
-                rows={4}
-                className={[
-                    'w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] outline-none transition',
-                    'hover:border-[color-mix(in_srgb,var(--accent)_45%,var(--border))] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]',
-                    error ? 'border-red-500/70' : '',
-                ].join(' ')}
-            />
-            {error ? <span className="mt-1 block text-xs font-semibold text-red-400">{error}</span> : null}
-        </label>
+        <TextField value={value} onChange={onChange} isInvalid={Boolean(error)} className="min-w-0">
+            <Label className="mb-1.5 block text-xs font-semibold text-[var(--text)]">{label}</Label>
+            <TextArea rows={4} placeholder={placeholder} className="w-full resize-y rounded-xl" />
+            {error ? <FieldError className="mt-1 text-[10px] font-semibold">{error}</FieldError> : null}
+        </TextField>
     );
 }
 
@@ -243,9 +226,9 @@ function Section({
 
 function PreviewTile({ label, value }: { label: string; value: ReactNode }) {
     return (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-            <p className="text-xs text-[var(--text-muted)]">{label}</p>
-            <div className="mt-2 text-sm font-semibold text-[var(--text)]">{value || '-'}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
+            <div className="mt-1 truncate text-[12px] font-semibold text-[var(--text)]">{value || '-'}</div>
         </div>
     );
 }
@@ -258,8 +241,10 @@ export function FinanceSettingsForm({ settings, routes }: FinanceSettingsFormPro
     const [processing, setProcessing] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [showRemoveLogoConfirm, setShowRemoveLogoConfirm] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const isDirty = useMemo(() => !sameForm(form, initialForm), [form, initialForm]);
+    const hasLogo = Boolean(form.company.companyLogoPath || form.company.companyLogoUrl);
 
     useEffect(() => {
         function handleKeyDown(event: KeyboardEvent) {
@@ -371,15 +356,9 @@ export function FinanceSettingsForm({ settings, routes }: FinanceSettingsFormPro
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                            {isDirty ? (
-                                <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
-                                    Unsaved changes
-                                </span>
-                            ) : (
-                                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300">
-                                    Saved
-                                </span>
-                            )}
+                            <Chip size="sm" variant="soft" color={isDirty ? 'warning' : 'success'}>
+                                {isDirty ? 'Unsaved changes' : 'Saved'}
+                            </Chip>
 
                             <AppButton variant="secondary" onPress={() => router.visit(routes.templates)}>
                                 <FileText size={16} />
@@ -425,14 +404,14 @@ export function FinanceSettingsForm({ settings, routes }: FinanceSettingsFormPro
                                 <Field label="Company phone" value={form.company.companyPhone} onChange={(value) => updateCompany('companyPhone', value)} error={errors['company.company_phone']} />
                                 <Field label="Logo path" value={form.company.companyLogoPath} onChange={(value) => updateCompany('companyLogoPath', value)} error={errors['company.company_logo_path']} help="Use a public URL or upload the logo below." />
 
-                                <div className="md:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                                <div className="md:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
                                     <div className="flex flex-wrap items-center justify-between gap-3">
                                         <div className="flex items-start gap-3">
                                             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
                                                 <ImageIcon size={18} />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-semibold">Company logo</p>
+                                                <p className="text-sm font-semibold text-[var(--text)]">Company logo</p>
                                                 <p className="mt-1 text-xs text-[var(--text-muted)]">
                                                     Upload PNG, JPG, WEBP or SVG. Use {'{{company.logo_html}}'} inside templates.
                                                 </p>
@@ -440,13 +419,19 @@ export function FinanceSettingsForm({ settings, routes }: FinanceSettingsFormPro
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
+                                            <AppButton variant="secondary" onPress={() => fileInputRef.current?.click()}>
                                                 <Upload size={15} />
                                                 Upload logo
-                                                <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg" className="hidden" onChange={uploadLogo} />
-                                            </label>
+                                            </AppButton>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept=".png,.jpg,.jpeg,.webp,.svg"
+                                                className="hidden"
+                                                onChange={uploadLogo}
+                                            />
 
-                                            {form.company.companyLogoPath ? (
+                                            {hasLogo ? (
                                                 <AppButton variant="secondary" onPress={deleteLogo}>
                                                     Remove
                                                 </AppButton>
@@ -458,7 +443,7 @@ export function FinanceSettingsForm({ settings, routes }: FinanceSettingsFormPro
                                         <div className="mt-4 flex items-center gap-3 rounded-xl border border-[var(--border)] bg-black/20 p-3">
                                             <img src={form.company.companyLogoUrl} alt="Company logo" className="h-12 w-12 rounded-xl object-contain" />
                                             <div className="min-w-0">
-                                                <p className="text-xs font-semibold">Current logo</p>
+                                                <p className="text-xs font-semibold text-[var(--text)]">Current logo</p>
                                                 <p className="mt-1 truncate text-xs text-[var(--text-muted)]">{form.company.companyLogoPath}</p>
                                             </div>
                                         </div>
@@ -470,7 +455,7 @@ export function FinanceSettingsForm({ settings, routes }: FinanceSettingsFormPro
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <TextArea label="Company address" value={form.company.companyAddress} onChange={(value) => updateCompany('companyAddress', value)} error={errors['company.company_address']} />
+                                    <TextAreaField label="Company address" value={form.company.companyAddress} onChange={(value) => updateCompany('companyAddress', value)} error={errors['company.company_address']} />
                                 </div>
 
                                 <Field label="ICE" value={form.company.companyIce} onChange={(value) => updateCompany('companyIce', value)} error={errors['company.company_ice']} />
@@ -499,12 +484,12 @@ export function FinanceSettingsForm({ settings, routes }: FinanceSettingsFormPro
                                     <FileText size={18} />
                                 </div>
                                 <div>
-                                    <h2 className="text-sm font-semibold">Document impact</h2>
+                                    <h2 className="text-sm font-semibold text-[var(--text)]">Document impact</h2>
                                     <p className="text-xs text-[var(--text-muted)]">Values used by templates.</p>
                                 </div>
                             </div>
 
-                            <div className="grid gap-3">
+                            <div className="grid gap-2.5">
                                 <PreviewTile label="Company" value={form.company.companyName || '-'} />
                                 <PreviewTile label="TVA" value={`${form.finance.defaultTvaRate || 0}%`} />
                                 <PreviewTile label="Currency" value={form.finance.defaultCurrency || 'MAD'} />
@@ -514,18 +499,33 @@ export function FinanceSettingsForm({ settings, routes }: FinanceSettingsFormPro
                         </AppCard>
 
                         <AppCard className="p-5">
-                            <h2 className="text-sm font-semibold">Legal footer</h2>
-                            <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-                                ICE: {form.company.companyIce || '-'} / CNSS: {form.company.companyCnss || '-'} / Patente: {form.company.companyPatente || '-'} / TVA: {form.company.companyTva || '-'}
-                            </p>
+                            <div className="flex items-start gap-3">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
+                                    <ScrollText size={18} />
+                                </div>
+                                <div className="min-w-0">
+                                    <h2 className="text-sm font-semibold text-[var(--text)]">Legal footer</h2>
+                                    <p className="mt-2 text-[12px] leading-6 text-[var(--text-muted)]">
+                                        ICE: {form.company.companyIce || '-'} / CNSS: {form.company.companyCnss || '-'} / Patente: {form.company.companyPatente || '-'} / TVA: {form.company.companyTva || '-'}
+                                    </p>
+                                </div>
+                            </div>
                         </AppCard>
 
                         <AppCard className="p-5">
-                            <h2 className="text-sm font-semibold">Bank</h2>
-                            <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-                                {form.bank.bankName || 'No bank selected'}<br />
-                                {form.bank.bankRib || 'No RIB'}
-                            </p>
+                            <div className="flex items-start gap-3">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
+                                    <Landmark size={18} />
+                                </div>
+                                <div className="min-w-0">
+                                    <h2 className="text-sm font-semibold text-[var(--text)]">Bank</h2>
+                                    <p className="mt-2 text-[12px] leading-6 text-[var(--text-muted)]">
+                                        {form.bank.bankName || 'No bank selected'}
+                                        <br />
+                                        {form.bank.bankRib || 'No RIB'}
+                                    </p>
+                                </div>
+                            </div>
                         </AppCard>
                     </aside>
                 </section>

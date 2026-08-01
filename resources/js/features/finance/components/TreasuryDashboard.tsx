@@ -91,7 +91,7 @@ function LegendItem({
         <button
             type="button"
             onClick={onToggle}
-            className={`flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[11px] font-medium transition ${
+            className={`flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[10px] font-medium transition ${
                 active
                     ? 'bg-[var(--surface-2)] text-[var(--text)]'
                     : 'text-[var(--text-muted)] line-through opacity-40'
@@ -261,7 +261,7 @@ export function TreasuryDashboard({ months, currency }: TreasuryDashboardProps) 
                                         key={tf}
                                         type="button"
                                         onClick={() => setTimeframe(tf)}
-                                        className={`rounded-lg px-2 py-0.5 text-[11px] font-medium transition ${
+                                        className={`rounded-lg px-2 py-0.5 text-[10px] font-medium transition ${
                                             timeframe === tf
                                                 ? 'bg-[var(--surface-2)] text-[var(--text)]'
                                                 : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
@@ -308,7 +308,7 @@ export function TreasuryDashboard({ months, currency }: TreasuryDashboardProps) 
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="mt-1 text-right text-[10px] font-medium text-[var(--text-muted)]">en MAD</div>
+                    <div className="mt-1 text-right text-[9px] font-medium text-[var(--text-muted)]">en MAD</div>
                 </div>
 
                 {/* Zone 3: Cash Retention & Categories */}
@@ -359,14 +359,14 @@ export function TreasuryDashboard({ months, currency }: TreasuryDashboardProps) 
                     </div>
 
                     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-                        <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+                        <div className="mb-2 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
                             <Layers size={12} />
                             Répartition dépenses
                         </div>
                         <div className="space-y-2">
                             {totalExpensesBreakdown.map((cat) => (
                                 <div key={cat.id}>
-                                    <div className="mb-0.5 flex items-center justify-between text-[11px]">
+                                    <div className="mb-0.5 flex items-center justify-between text-[10px]">
                                         <span className="text-[var(--text)]">{cat.label}</span>
                                         <span className="font-medium text-[var(--text-muted)]">{formatCompactMoney(cat.amount, currency)}</span>
                                     </div>

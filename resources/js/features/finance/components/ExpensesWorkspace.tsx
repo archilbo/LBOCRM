@@ -137,11 +137,11 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                    <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => router.reload({ only: ['expenses'] })}>
+                    <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => router.reload({ only: ['expenses'] })}>
                         <RefreshCw size={12} />
                         Actualiser
                     </button>
-                    <button type="button" className={`flex h-7 items-center gap-1.5 rounded-lg border px-2 text-[11px] font-medium transition ${
+                    <button type="button" className={`flex h-7 items-center gap-1.5 rounded-lg border px-2 text-[10px] font-medium transition ${
                         showFilters
                             ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
                             : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
@@ -151,7 +151,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                     </button>
                 </div>
 
-                <div className="hidden text-[11px] font-medium text-[var(--text-muted)] md:block">
+                <div className="hidden text-[10px] font-medium text-[var(--text-muted)] md:block">
                     {pagination.total} depense(s) / page {formatCompactMoney(totalAmount, currency)}
                 </div>
             </div>
@@ -173,7 +173,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
             <div className="finance-table-shell hidden md:block">
                 <table className="finance-table min-w-[820px] text-xs">
                     <thead>
-                        <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                        <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                             <FinanceSortableHeader column="expense_date" label={<><BadgeDollarSign size={11} /> Date</>} sort={sort} direction={direction} onSort={changeSort} />
                             <FinanceSortableHeader column="category" label="Categorie" sort={sort} direction={direction} onSort={changeSort} />
                             <FinanceSortableHeader column="vendor" label="Fournisseur" sort={sort} direction={direction} onSort={changeSort} />
@@ -189,7 +189,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                                 <tr key={expense.id} className="group border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
                                     <td className="px-3 py-2 font-semibold text-[var(--text)]">{expense.expenseDate}</td>
                                     <td className="px-3 py-2">
-                                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${categoryBadge(expense.category)}`}>
+                                        <span className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold ${categoryBadge(expense.category)}`}>
                                             {categoryLabels[expense.category] || expense.category}
                                         </span>
                                     </td>
@@ -232,13 +232,13 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${categoryBadge(expense.category)}`}>
+                                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${categoryBadge(expense.category)}`}>
                                         {categoryLabels[expense.category] || expense.category}
                                     </span>
-                                    <span className="text-[10px] text-[var(--text-muted)]">{expense.expenseDate}</span>
+                                    <span className="text-[9px] text-[var(--text-muted)]">{expense.expenseDate}</span>
                                 </div>
                                 <p className="mt-1.5 truncate text-xs font-semibold text-[var(--text)]">{expense.vendor || 'Sans fournisseur'}</p>
-                                <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">
+                                <p className="mt-0.5 truncate text-[9px] text-[var(--text-muted)]">
                                     {expense.dossier?.number || 'Sans dossier'} / {expense.paymentMethod || 'Paiement non precise'}
                                 </p>
                             </div>
@@ -247,13 +247,13 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                             </span>
                         </div>
                         <div className={`grid gap-1.5 ${canEdit && canDelete ? 'grid-cols-3' : canEdit || canDelete ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                            <AppButton size="sm" variant="outline" className="h-8 text-[11px]" onPress={() => onView(expense)}>
+                            <AppButton size="sm" variant="outline" className="h-8 text-[10px]" onPress={() => onView(expense)}>
                                 <Eye size={12} /> Voir
                             </AppButton>
-                            {canEdit ? <AppButton size="sm" variant="outline" className="h-8 text-[11px]" onPress={() => onEdit(expense)}>
+                            {canEdit ? <AppButton size="sm" variant="outline" className="h-8 text-[10px]" onPress={() => onEdit(expense)}>
                                 <Pencil size={12} /> Modifier
                             </AppButton> : null}
-                            {canDelete ? <AppButton size="sm" variant="danger-soft" className="h-8 text-[11px]" onPress={() => setDeleteTarget(expense)}>
+                            {canDelete ? <AppButton size="sm" variant="danger-soft" className="h-8 text-[10px]" onPress={() => setDeleteTarget(expense)}>
                                 <Trash2 size={12} /> Supprimer
                             </AppButton> : null}
                         </div>

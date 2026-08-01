@@ -5,7 +5,7 @@ export function DonutChart({ data, colorMap, size = 120 }: { data: StatusCount[]
     if (total === 0) {
         return (
             <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-                <p className="text-[11px] text-[var(--text-subtle)]">No data</p>
+                <p className="text-[10px] text-[var(--text-subtle)]">No data</p>
             </div>
         );
     }

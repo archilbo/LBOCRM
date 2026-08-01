@@ -125,16 +125,16 @@ class DashboardCommandCenterService
                     'key' => 'unpaidInvoices',
                     'value' => (string) $unpaidInvoices,
                     'helperKey' => 'remainingAmount',
-                    'helperValues' => ['amount' => $this->money($remainingTotal)],
+                    'helperValues' => ['amount' => $remainingTotal],
                     'tone' => $unpaidInvoices > 0 ? 'violet' : 'green',
                     'icon' => 'invoices',
                     'href' => '/finance/documents?tab=invoices',
                 ],
                 [
                     'key' => 'todayPayments',
-                    'value' => $this->compactMoney($todayPayments),
+                    'value' => $todayPayments,
                     'helperKey' => 'monthlyAmount',
-                    'helperValues' => ['amount' => $this->money($monthlyPayments)],
+                    'helperValues' => ['amount' => $monthlyPayments],
                     'tone' => 'green',
                     'icon' => 'payments',
                     'href' => '/finance/documents?tab=monthly',
@@ -272,9 +272,9 @@ class DashboardCommandCenterService
                 'step' => $dossier->workflow_step ?? '-',
                 'status' => $dossier->status ?? '-',
                 'missingDocs' => $dossier->documents->where('status', 'missing')->count(),
-                'remaining' => $this->money((float) $dossier->financeDocuments
+                'remaining' => (float) $dossier->financeDocuments
                     ->where('type', 'invoice')
-                    ->sum('remaining_total')),
+                    ->sum('remaining_total'),
                 'href' => '/dossiers/' . $dossier->id,
             ])
             ->values()
@@ -296,21 +296,21 @@ class DashboardCommandCenterService
         return [
             [
                 'id' => 'overdue',
-                'amount' => $this->money($overdueTotal),
+                'amount' => $overdueTotal,
                 'count' => $overdueCount,
                 'tone' => $overdueCount > 0 ? 'red' : 'green',
                 'href' => '/finance/documents?tab=invoices',
             ],
             [
                 'id' => 'remaining',
-                'amount' => $this->money($remainingTotal),
+                'amount' => $remainingTotal,
                 'count' => $unpaidCount,
                 'tone' => $unpaidCount > 0 ? 'gold' : 'green',
                 'href' => '/finance/documents?tab=invoices',
             ],
             [
                 'id' => 'monthly',
-                'amount' => $this->money($monthlyPayments),
+                'amount' => $monthlyPayments,
                 'tone' => 'blue',
                 'href' => '/finance/documents?tab=monthly',
             ],
@@ -492,23 +492,5 @@ class DashboardCommandCenterService
     private function assignedTasks(User $user): Builder
     {
         return Task::query()->whereHas('assignees', fn (Builder $query) => $query->whereKey($user->id));
-    }
-
-    private function money(float $value): string
-    {
-        return number_format($value, 0, '.', ',') . ' MAD';
-    }
-
-    private function compactMoney(float $value): string
-    {
-        if ($value >= 1000000) {
-            return number_format($value / 1000000, 1) . 'M';
-        }
-
-        if ($value >= 1000) {
-            return number_format($value / 1000, 0) . 'K';
-        }
-
-        return number_format($value, 0);
     }
 }

@@ -128,7 +128,7 @@ export function AppWorkspaceTable<T>({
             <div className={cn('overflow-x-auto', desktopHiddenClassName)}>
                 <table aria-label={ariaLabel} className={cn('w-full text-xs', minTableWidthClassName)}>
                     <thead>
-                        <tr className="border-b border-[var(--border)] bg-[var(--surface-2)]/55 text-left text-[11px] font-semibold tracking-[0.04em] text-[var(--text-muted)]">
+                        <tr className="border-b border-[var(--border)] bg-[var(--surface-2)]/55 text-left text-[10px] font-semibold tracking-[0.04em] text-[var(--text-muted)]">
                             {resolvedColumns.map((column) => (
                                 <th
                                     key={column.id}

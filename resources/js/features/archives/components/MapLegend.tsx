@@ -15,13 +15,13 @@ export function MapLegend() {
 
     return (
         <div className="flex flex-wrap items-center gap-3 px-4 py-2">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-white/40">Fill</span>
+            <span className="text-[9px] font-medium uppercase tracking-wider text-white/40">Fill</span>
             {items.map((item) => (
-                <span key={item.label} className={`inline-block rounded border px-2 py-[1px] text-[10px] text-white/50 ${item.className}`}>
+                <span key={item.label} className={`inline-block rounded border px-2 py-[1px] text-[9px] text-white/50 ${item.className}`}>
                     {item.label}
                 </span>
             ))}
-            <span className="ml-2 text-[10px] font-medium uppercase tracking-wider text-white/40">Status</span>
+            <span className="ml-2 text-[9px] font-medium uppercase tracking-wider text-white/40">Status</span>
             {badges.map((badge) => (
                 <span key={badge.label} className={`inline-block rounded px-1.5 py-[1px] text-[9px] font-semibold uppercase leading-none ${badge.className}`}>
                     {badge.label}

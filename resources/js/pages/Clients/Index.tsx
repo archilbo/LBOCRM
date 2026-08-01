@@ -227,7 +227,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                         <MoreHorizontal size={12} />
                     </Dropdown.Trigger>
                     <Dropdown.Popover placement="bottom end" className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
-                        <Dropdown.Menu aria-label={t('clients.actions')} onAction={(key) => items.find((item) => item.id === key)?.action()} itemClasses={{ base: 'rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]' }}>
+                        <Dropdown.Menu aria-label={t('clients.actions')} onAction={(key) => items.find((item) => item.id === key)?.action()} itemClasses={{ base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]' }}>
                             {items.map((item) => (
                                 <Dropdown.Item key={item.id} id={item.id} textValue={item.label} className={cn(item.danger ? 'text-[var(--danger)] data-[hover]:bg-[var(--danger)]/10' : '')}>
                                     <div className="flex items-center gap-2"><span className="flex size-4 shrink-0 items-center justify-center">{item.icon}</span><span>{item.label}</span></div>
@@ -246,7 +246,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
             label: '',
             headerClassName: 'w-8',
             reorderable: false,
-            render: (client) => <span className={cn('flex size-6 shrink-0 items-center justify-center rounded text-[10px] font-bold', avatarColor(client.id))}>{initials(client)}</span>,
+            render: (client) => <span className={cn('flex size-6 shrink-0 items-center justify-center rounded text-[9px] font-bold', avatarColor(client.id))}>{initials(client)}</span>,
         },
         {
             id: 'client',
@@ -261,7 +261,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
         {
             id: 'contact',
             label: <ColumnHeader label={t('clients.table.contact')} icon={Phone} />,
-            render: (client) => <div className="grid gap-0.5"><span className="text-[var(--text)]">{formatContact(client.phone)}</span><span className="max-w-[160px] truncate text-[11px] text-[var(--text-muted)]">{formatContact(client.email)}</span></div>,
+            render: (client) => <div className="grid gap-0.5"><span className="text-[var(--text)]">{formatContact(client.phone)}</span><span className="max-w-[160px] truncate text-[10px] text-[var(--text-muted)]">{formatContact(client.email)}</span></div>,
         },
         {
             id: 'intermediary',
@@ -271,7 +271,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
         {
             id: 'projects',
             label: <ColumnHeader label={t('clients.table.projects')} icon={ShieldCheck} field="projectsCount" />,
-            render: (client) => <span className="inline-flex min-w-6 items-center justify-center rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--text)]">{client.projectsCount}</span>,
+            render: (client) => <span className="inline-flex min-w-6 items-center justify-center rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text)]">{client.projectsCount}</span>,
         },
         {
             id: 'status',
@@ -300,7 +300,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                 {/* ── Page header ── */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
+                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
                             {t('clients.eyebrow')}
                         </p>
                         <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">
@@ -345,17 +345,17 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                             <div className="flex flex-wrap items-center gap-2 px-3 py-2">
                                 <div className="relative max-w-[220px] flex-1">
                                     <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-                                    <Input type="text" value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} placeholder={t('clients.searchPlaceholder')} className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-7 text-[11px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]" />
+                                    <Input type="text" value={query} onChange={(event) => { setQuery(event.target.value); setPage(0); }} placeholder={t('clients.searchPlaceholder')} className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-7 text-[10px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]" />
                                     {query ? <button type="button" onClick={() => { setQuery(''); setPage(0); }} className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]" aria-label={t('clients.resetFilters')}><X size={12} /></button> : null}
                                 </div>
                                 <div className="ml-auto flex items-center gap-1">
                                     <Dropdown>
-                                        <Dropdown.Trigger className={cn('inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition hover:border-[var(--accent)]/30', statusFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
+                                        <Dropdown.Trigger className={cn('inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-medium transition hover:border-[var(--accent)]/30', statusFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
                                             <span className="contents"><ListFilter size={12} />{statusOptions.find((option) => option.id === statusFilter)?.label}<span className="rounded bg-[var(--surface-2)] px-1 py-px text-[9px] font-semibold text-[var(--text-muted)]">{statusOptions.find((option) => option.id === statusFilter)?.count ?? clients.length}</span></span>
                                         </Dropdown.Trigger>
                                         <Dropdown.Popover placement="bottom start" className="min-w-44 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
-                                            <Dropdown.Menu aria-label={t('clients.filter')} selectionMode="single" disabledKeys={statusOptions.filter((option) => option.count === 0).map((option) => option.id)} onAction={(key) => { setStatusFilter(key as typeof statusFilter); setPage(0); }} itemClasses={{ base: 'rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40' }}>
-                                                {statusOptions.map((option) => <Dropdown.Item key={option.id} id={option.id} textValue={option.label}><div className="flex w-full items-center gap-2"><Dropdown.ItemIndicator><CheckCircle2 size={14} className="text-[var(--accent)]" /></Dropdown.ItemIndicator><span className="flex-1">{option.label}</span><span className="rounded bg-[var(--surface-2)] px-1.5 py-px text-[10px] font-semibold text-[var(--text-muted)]">{option.count}</span></div></Dropdown.Item>)}
+                                            <Dropdown.Menu aria-label={t('clients.filter')} selectionMode="single" disabledKeys={statusOptions.filter((option) => option.count === 0).map((option) => option.id)} onAction={(key) => { setStatusFilter(key as typeof statusFilter); setPage(0); }} itemClasses={{ base: 'rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40' }}>
+                                                {statusOptions.map((option) => <Dropdown.Item key={option.id} id={option.id} textValue={option.label}><div className="flex w-full items-center gap-2"><Dropdown.ItemIndicator><CheckCircle2 size={14} className="text-[var(--accent)]" /></Dropdown.ItemIndicator><span className="flex-1">{option.label}</span><span className="rounded bg-[var(--surface-2)] px-1.5 py-px text-[9px] font-semibold text-[var(--text-muted)]">{option.count}</span></div></Dropdown.Item>)}
                                             </Dropdown.Menu>
                                         </Dropdown.Popover>
                                     </Dropdown>
@@ -365,12 +365,12 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                         }
                         renderMobileRow={(client) => (
                             <div key={client.id} className="flex items-start gap-2 p-3 transition hover:bg-[var(--surface-2)]">
-                                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold', avatarColor(client.id))}>{initials(client)}</span>
-                                <AppButton variant="ghost" size="sm" onPress={() => router.visit(`/clients/${client.id}`)} className="h-auto min-w-0 flex-1 justify-start p-0 text-left"><span className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-[13px] font-semibold text-[var(--foreground)]">{client.fullName}</p><StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" /></div><p className="mt-0.5 text-[12px] text-[var(--text-muted)]">{client.cin ? `${client.cin} · ` : ''}{client.phone || client.email || '-'}</p><div className="mt-1 flex items-center gap-3 text-[11px] text-[var(--text-muted)]"><span>{t('clients.pagination.projects', { count: client.projectsCount })}</span><span>{client.updatedAt || '-'}</span></div></span></AppButton>
+                                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold', avatarColor(client.id))}>{initials(client)}</span>
+                                <AppButton variant="ghost" size="sm" onPress={() => router.visit(`/clients/${client.id}`)} className="h-auto min-w-0 flex-1 justify-start p-0 text-left"><span className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-[12px] font-semibold text-[var(--foreground)]">{client.fullName}</p><StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" /></div><p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{client.cin ? `${client.cin} · ` : ''}{client.phone || client.email || '-'}</p><div className="mt-1 flex items-center gap-3 text-[10px] text-[var(--text-muted)]"><span>{t('clients.pagination.projects', { count: client.projectsCount })}</span><span>{client.updatedAt || '-'}</span></div></span></AppButton>
                                 <RowMenu client={client} />
                             </div>
                         )}
-                        footer={<div className="flex items-center justify-between px-3 py-2"><span className="text-[10px] text-[var(--text-muted)]">{filteredClients.length} {t('clients.resultCount')}</span><div className="flex items-center gap-1.5"><AppButton isIconOnly compact size="sm" variant="quiet" tooltip={t('clients.pagination.previous')} aria-label={t('clients.pagination.previous')} isDisabled={page === 0} onPress={() => setPage((current) => current - 1)}><ChevronLeft size={14} /></AppButton><span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-[var(--text-muted)]">{page + 1} / {pageCount}</span><AppButton isIconOnly compact size="sm" variant="quiet" tooltip={t('clients.pagination.next')} aria-label={t('clients.pagination.next')} isDisabled={page >= pageCount - 1} onPress={() => setPage((current) => current + 1)}><ChevronRight size={14} /></AppButton></div></div>}
+                        footer={<div className="flex items-center justify-between px-3 py-2"><span className="text-[9px] text-[var(--text-muted)]">{filteredClients.length} {t('clients.resultCount')}</span><div className="flex items-center gap-1.5"><AppButton isIconOnly compact size="sm" variant="quiet" tooltip={t('clients.pagination.previous')} aria-label={t('clients.pagination.previous')} isDisabled={page === 0} onPress={() => setPage((current) => current - 1)}><ChevronLeft size={14} /></AppButton><span className="min-w-10 text-center text-[9px] font-semibold tabular-nums text-[var(--text-muted)]">{page + 1} / {pageCount}</span><AppButton isIconOnly compact size="sm" variant="quiet" tooltip={t('clients.pagination.next')} aria-label={t('clients.pagination.next')} isDisabled={page >= pageCount - 1} onPress={() => setPage((current) => current + 1)}><ChevronRight size={14} /></AppButton></div></div>}
                     />
 
                     {/* ── Mobile cards ── */}
@@ -398,7 +398,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                         {t('clients.deleteWarning')}
                     </p>
                     {deleteTarget && deleteTarget.projectsCount > 0 ? (
-                        <div className="mb-4 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-3 py-2 text-[12px] text-[var(--danger)]">
+                        <div className="mb-4 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-3 py-2 text-[11px] text-[var(--danger)]">
                             {t('clients.deleteHasProjects', 'This client has {count} linked project(s). Deleting will remove them all.', { count: String(deleteTarget.projectsCount) })}
                         </div>
                     ) : null}

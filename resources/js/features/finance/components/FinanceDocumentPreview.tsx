@@ -32,7 +32,7 @@ function FinanceDocumentLockedInlineBadge({ document }: { document: UiLockAwareF
 
     return (
         <span
-            className="ml-2 inline-flex items-center rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-300"
+            className="ml-2 inline-flex items-center rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-300"
             title={lockedAt ? `Locked at ${lockedAt}` : 'Locked after export'}
         >
             Locked
@@ -109,7 +109,7 @@ export function FinanceDocumentPreview({
                         <p className="text-xs font-semibold tracking-[0.22em] text-slate-500">ARCHI LBO</p>
                         <h3 className="mt-2 text-2xl font-bold">{typeLabels[type]}</h3>
                         <p className="mt-1 text-xs text-slate-500">{number || 'Nouveau document'}</p>
-                        {templateLabel ? <span className="mt-1 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500">{templateLabel}</span> : null}
+                        {templateLabel ? <span className="mt-1 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-500">{templateLabel}</span> : null}
                     </div>
                     <div className="text-right text-xs text-slate-500">
                         <p>Date: {issueDate || '-'}</p>

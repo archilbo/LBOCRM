@@ -133,7 +133,7 @@ function QueueRow({
                     <div className="min-w-0 flex-1">
                         <div className="flex items-start gap-2">
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-[11px] font-medium text-[var(--foreground)]">{item.file.name}</p>
+                                <p className="truncate text-[10px] font-medium text-[var(--foreground)]">{item.file.name}</p>
                                 <div className="mt-1 flex items-center gap-1.5">
                                     <Chip size="sm" variant="soft" className={cn('h-4 px-1 text-[8px] capitalize', assetTone(item.assetType))}>
                                         {item.assetType.replace(/_/g, ' ')}
@@ -401,7 +401,7 @@ export function DesignUploadDrawer({
                                 </span>
                                 <div className="min-w-0">
                                     <Drawer.Heading className="text-sm font-semibold text-[var(--foreground)]">Upload design file</Drawer.Heading>
-                                    <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Create the file record and upload its first revision.</p>
+                                    <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">Create the file record and upload its first revision.</p>
                                 </div>
                             </div>
                             <Drawer.CloseTrigger
@@ -456,7 +456,7 @@ export function DesignUploadDrawer({
                                             <Select.Popover className="z-[190] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
                                                 <ListBox>
                                                     {DISCIPLINES.map((item) => (
-                                                        <ListBox.Item key={item} id={item} textValue={item} className="rounded-lg px-2 py-1.5 text-[11px] capitalize">
+                                                        <ListBox.Item key={item} id={item} textValue={item} className="rounded-lg px-2 py-1.5 text-[10px] capitalize">
                                                             {item}
                                                         </ListBox.Item>
                                                     ))}
@@ -474,9 +474,9 @@ export function DesignUploadDrawer({
                                             <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
                                             <Select.Popover className="z-[190] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
                                                 <ListBox>
-                                                    <ListBox.Item id="__none__" textValue="No folder" className="rounded-lg px-2 py-1.5 text-[11px]">No folder</ListBox.Item>
+                                                    <ListBox.Item id="__none__" textValue="No folder" className="rounded-lg px-2 py-1.5 text-[10px]">No folder</ListBox.Item>
                                                     {folders.map((folder) => (
-                                                        <ListBox.Item key={folder.id} id={String(folder.id)} textValue={folder.name} className="rounded-lg px-2 py-1.5 text-[11px]">
+                                                        <ListBox.Item key={folder.id} id={String(folder.id)} textValue={folder.name} className="rounded-lg px-2 py-1.5 text-[10px]">
                                                             {folder.name}
                                                         </ListBox.Item>
                                                     ))}
@@ -507,7 +507,7 @@ export function DesignUploadDrawer({
                                         className="h-auto min-h-32 flex-col gap-2 rounded-2xl border-2 border-dashed border-[var(--border)] py-6 hover:border-[var(--accent)]/50 hover:bg-[var(--surface-2)]/45"
                                     >
                                         <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]"><Upload size={18} /></span>
-                                        <span className="text-[11px] font-medium text-[var(--foreground)]">Select design files</span>
+                                        <span className="text-[10px] font-medium text-[var(--foreground)]">Select design files</span>
                                         <span className="max-w-80 text-center text-[9px] leading-4 text-[var(--text-muted)]">DWG, PDF, PNG, JPG, DXF, RVT, IFC and supporting files</span>
                                     </Button>
                                     {queue.length ? (
@@ -533,12 +533,12 @@ export function DesignUploadDrawer({
                                         <Input label="Internal note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note" variant="secondary" fullWidth />
                                     </div>
                                     <div>
-                                        <p className="mb-2 text-[10px] font-medium text-[var(--text-muted)]">After upload</p>
+                                        <p className="mb-2 text-[9px] font-medium text-[var(--text-muted)]">After upload</p>
                                         <div className="grid grid-cols-2 gap-2">
                                             <Button
                                                 variant={submitAction === 'draft' ? 'secondary' : 'outline'}
                                                 onPress={() => setSubmitAction('draft')}
-                                                className={cn('h-10 text-[11px]', submitAction === 'draft' && 'border-[var(--accent)]/35 text-[var(--accent)]')}
+                                                className={cn('h-10 text-[10px]', submitAction === 'draft' && 'border-[var(--accent)]/35 text-[var(--accent)]')}
                                             >
                                                 <Save size={13} />
                                                 Save draft
@@ -546,7 +546,7 @@ export function DesignUploadDrawer({
                                             <Button
                                                 variant={submitAction === 'submit' ? 'secondary' : 'outline'}
                                                 onPress={() => setSubmitAction('submit')}
-                                                className={cn('h-10 text-[11px]', submitAction === 'submit' && 'border-[var(--accent)]/35 text-[var(--accent)]')}
+                                                className={cn('h-10 text-[10px]', submitAction === 'submit' && 'border-[var(--accent)]/35 text-[var(--accent)]')}
                                             >
                                                 <Send size={13} />
                                                 Submit for review
@@ -559,7 +559,7 @@ export function DesignUploadDrawer({
                             {step === 3 ? (
                                 <Card variant="secondary" className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]/30">
                                     <Card.Content className="space-y-3 p-4">
-                                        <div className="grid gap-3 text-[10px] sm:grid-cols-2">
+                                        <div className="grid gap-3 text-[9px] sm:grid-cols-2">
                                             <div><span className="text-[var(--text-muted)]">Name</span><p className="mt-0.5 font-medium text-[var(--foreground)]">{name}</p></div>
                                             <div><span className="text-[var(--text-muted)]">Discipline</span><p className="mt-0.5 font-medium capitalize text-[var(--foreground)]">{discipline}</p></div>
                                             <div><span className="text-[var(--text-muted)]">Folder</span><p className="mt-0.5 font-medium text-[var(--foreground)]">{folders.find((folder) => folder.id === folderId)?.name ?? 'No folder'}</p></div>
@@ -571,7 +571,7 @@ export function DesignUploadDrawer({
                                                 {queue.map((item) => (
                                                     <div key={item.id} className="flex items-center gap-2 rounded-lg bg-[var(--surface)]/55 px-2.5 py-2">
                                                         <FileText size={12} className="shrink-0 text-[var(--text-muted)]" />
-                                                        <span className="min-w-0 flex-1 truncate text-[10px] text-[var(--foreground)]">{item.file.name}</span>
+                                                        <span className="min-w-0 flex-1 truncate text-[9px] text-[var(--foreground)]">{item.file.name}</span>
                                                         <Chip size="sm" variant="soft" className={cn('h-4 px-1 text-[8px] capitalize', assetTone(item.assetType))}>{item.assetType.replace(/_/g, ' ')}</Chip>
                                                     </div>
                                                 ))}
@@ -588,7 +588,7 @@ export function DesignUploadDrawer({
                                 variant="ghost"
                                 onPress={() => setStep((current) => Math.max(0, current - 1))}
                                 isDisabled={step === 0 || submitting}
-                                className="h-8 text-[11px]"
+                                className="h-8 text-[10px]"
                             >
                                 <ChevronLeft size={13} />
                                 Back
@@ -600,7 +600,7 @@ export function DesignUploadDrawer({
                                     variant="primary"
                                     onPress={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))}
                                     isDisabled={!canNext()}
-                                    className="h-8 text-[11px]"
+                                    className="h-8 text-[10px]"
                                 >
                                     Next
                                     <ChevronRight size={13} />
@@ -612,7 +612,7 @@ export function DesignUploadDrawer({
                                     onPress={() => void handleSubmit()}
                                     isDisabled={submitting || hasErrors}
                                     isPending={submitting}
-                                    className="h-8 text-[11px]"
+                                    className="h-8 text-[10px]"
                                 >
                                     {!submitting ? (submitAction === 'draft' ? <Save size={13} /> : <Send size={13} />) : null}
                                     {submitAction === 'draft' ? 'Save draft' : 'Upload & submit'}

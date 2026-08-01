@@ -100,11 +100,11 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                                 <ArrowLeft size={13} />
                             </button>
                             <h1 className="text-lg font-semibold text-white/90">Cities</h1>
-                            <span className="rounded bg-white/5 px-2 py-0.5 text-[11px] font-mono text-white/40">{cities.length}</span>
+                            <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-white/40">{cities.length}</span>
                         </div>
                         <button type="button" onClick={openCreate}
                             className={cn(
-                                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition',
+                                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition',
                                 'bg-amber-500/15 text-amber-400 border border-amber-500/25',
                                 'hover:bg-amber-500/25 hover:border-amber-500/40',
                                 'active:bg-amber-500/30',
@@ -120,7 +120,7 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                             <thead>
                                 <tr className="border-b border-white/5">
                                     {['Code', 'Name', 'Color', 'Status', 'Dossiers', ''].map((label) => (
-                                        <th key={label} className="h-9 px-3 text-left text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                                        <th key={label} className="h-9 px-3 text-left text-[9px] font-semibold uppercase tracking-wider text-white/40">
                                             {label}
                                         </th>
                                     ))}
@@ -137,20 +137,20 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                                     cities.map((city) => (
                                         <tr key={city.id} className="group transition hover:bg-white/[0.015]">
                                             <td className="px-3 py-2.5">
-                                                <span className="font-mono text-[13px] font-bold text-white/80">{city.code}</span>
+                                                <span className="font-mono text-[12px] font-bold text-white/80">{city.code}</span>
                                             </td>
                                             <td className="px-3 py-2.5">
-                                                <span className="text-[13px] text-white/70">{city.name}</span>
+                                                <span className="text-[12px] text-white/70">{city.name}</span>
                                             </td>
                                             <td className="px-3 py-2.5">
                                                 <div className="flex items-center gap-2">
                                                     <span className="size-4 rounded-md ring-1 ring-black/10 shrink-0" style={{ backgroundColor: city.color }} />
-                                                    <span className="font-mono text-[11px] text-white/40">{city.color}</span>
+                                                    <span className="font-mono text-[10px] text-white/40">{city.color}</span>
                                                 </div>
                                             </td>
                                             <td className="px-3 py-2.5">
                                                 <span className={cn(
-                                                    'inline-flex items-center gap-1.5 rounded-full px-2 py-[2px] text-[10px] font-medium',
+                                                    'inline-flex items-center gap-1.5 rounded-full px-2 py-[2px] text-[9px] font-medium',
                                                     city.isActive
                                                         ? 'bg-emerald-500/10 text-emerald-400'
                                                         : 'bg-white/5 text-white/40',
@@ -160,7 +160,7 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                                                 </span>
                                             </td>
                                             <td className="px-3 py-2.5">
-                                                <span className="text-[13px] tabular-nums text-white/50">{city.dossiersCount}</span>
+                                                <span className="text-[12px] tabular-nums text-white/50">{city.dossiersCount}</span>
                                             </td>
                                             <td className="px-3 py-2.5">
                                                 <div className="flex items-center gap-1">
@@ -233,7 +233,7 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                                 </DrawerField>
                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                     {availableSwatches.length === 0 ? (
-                                        <span className="text-[11px] italic text-[var(--text-muted)]">All preset colors are taken</span>
+                                        <span className="text-[10px] italic text-[var(--text-muted)]">All preset colors are taken</span>
                                     ) : (
                                         availableSwatches.map((s) => (
                                             <button
@@ -269,7 +269,7 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                                     </Switch>
                                     <div className="flex flex-col">
                                         <span className="text-xs font-medium text-[var(--text)]">Active</span>
-                                        <span className="text-[10px] text-[var(--text-muted)]">City appears in filters and dropdowns</span>
+                                        <span className="text-[9px] text-[var(--text-muted)]">City appears in filters and dropdowns</span>
                                     </div>
                                 </div>
                             </DrawerSection>

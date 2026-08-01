@@ -19,7 +19,7 @@ export function TemplatePlaceholderPanel({ placeholders }: { placeholders: Templ
         <AppCard className="p-2">
             <div className="mb-1.5 flex items-center justify-between gap-2">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Placeholders</h2>
-                <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">{total}</span>
+                <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[9px] text-[var(--text-muted)]">{total}</span>
             </div>
             <AppTextField label="Search" value={search} onChange={setSearch} icon={<Search size={14} />} placeholder="company, total..." />
             <div className="mt-2 max-h-44 space-y-2 overflow-auto pr-1">
@@ -27,7 +27,7 @@ export function TemplatePlaceholderPanel({ placeholders }: { placeholders: Templ
                     <div key={group.group}>
                         <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{group.group}</p>
                         <div className="flex flex-wrap gap-1">
-                            {group.items.map((item) => <button key={item} type="button" onClick={() => copy(item)} className="rounded-md border bg-[var(--surface-2)] px-1.5 py-0.5 font-mono text-[10px] hover:border-[var(--accent)] hover:text-[var(--accent)]">{item}</button>)}
+                            {group.items.map((item) => <button key={item} type="button" onClick={() => copy(item)} className="rounded-md border bg-[var(--surface-2)] px-1.5 py-0.5 font-mono text-[9px] hover:border-[var(--accent)] hover:text-[var(--accent)]">{item}</button>)}
                         </div>
                     </div>
                 ))}

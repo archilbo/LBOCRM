@@ -67,7 +67,7 @@ function NotifCard({ n, onClose }: { n: EnrichedNotification; onClose: () => voi
                     <span className="shrink-0 text-[9px] text-[var(--crm-text-muted)]">{formatNotificationTime(n.createdAt)}</span>
                 </div>
                 {n.body ? (
-                    <p className={`mt-0.5 line-clamp-1 text-[11px] ${n.isRead ? 'text-[var(--crm-text-muted)]/70' : 'text-[var(--crm-text-muted)]'}`}>
+                    <p className={`mt-0.5 line-clamp-1 text-[10px] ${n.isRead ? 'text-[var(--crm-text-muted)]/70' : 'text-[var(--crm-text-muted)]'}`}>
                         {n.body}
                     </p>
                 ) : null}
@@ -91,7 +91,7 @@ function NotifGroup({ label, items, onClose }: { label: string; items: EnrichedN
     return (
         <div>
             <div className="sticky top-0 z-10 bg-[var(--crm-elevated)] px-3 pb-1 pt-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">{label}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">{label}</span>
             </div>
             {items.map((n) => (
                 <NotifCard key={n.id} n={n} onClose={onClose} />
@@ -146,13 +146,13 @@ export function NotificationPopover() {
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-bold text-[var(--crm-text)]">Notifications</span>
                                     {unreadCount > 0 ? (
-                                        <span className="flex h-5 min-w-[22px] items-center justify-center rounded-md bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-sm shadow-red-500/30">{unreadCount}</span>
+                                        <span className="flex h-5 min-w-[22px] items-center justify-center rounded-md bg-red-500 px-1.5 text-[9px] font-bold text-white shadow-sm shadow-red-500/30">{unreadCount}</span>
                                     ) : null}
                                 </div>
                                 <div className="flex items-center gap-1">
                                     {unreadCount > 0 ? (
                                         <button type="button" onClick={handleMarkAllRead}
-                                            className="flex h-7 items-center gap-1 rounded-md px-2 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface)] hover:text-[var(--crm-gold)]">
+                                            className="flex h-7 items-center gap-1 rounded-md px-2 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface)] hover:text-[var(--crm-gold)]">
                                             <CheckCheck size={12} />
                                             <span className="hidden sm:inline">Mark all read</span>
                                         </button>
@@ -170,7 +170,7 @@ export function NotificationPopover() {
                                     const isActive = activeTab === tab.key;
                                     return (
                                         <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
-                                            className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[10px] font-semibold transition ${isActive ? 'bg-[var(--crm-gold)] text-black' : 'text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface)] hover:text-[var(--crm-text)]'}`}>
+                                            className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[9px] font-semibold transition ${isActive ? 'bg-[var(--crm-gold)] text-black' : 'text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface)] hover:text-[var(--crm-text)]'}`}>
                                             {tab.label}
                                             {count > 0 ? (
                                                 <span className={`flex h-4 min-w-[16px] items-center justify-center rounded px-1 text-[9px] font-bold ${isActive ? 'bg-black/20 text-black' : 'bg-[var(--crm-surface-2)] text-[var(--crm-text-muted)]'}`}>
@@ -187,7 +187,7 @@ export function NotificationPopover() {
                                     <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
                                         <Bell size={24} className="text-[var(--crm-text-muted)]/40" />
                                         <p className="mt-2 text-xs font-semibold text-[var(--crm-text-muted)]">No notifications right now</p>
-                                        <p className="mt-1 text-[10px] text-[var(--crm-text-muted)]/60">Important task, request and system updates will appear here.</p>
+                                        <p className="mt-1 text-[9px] text-[var(--crm-text-muted)]/60">Important task, request and system updates will appear here.</p>
                                     </div>
                                 ) : (
                                     TIME_GROUP_ORDER.map((group) => {
@@ -201,13 +201,13 @@ export function NotificationPopover() {
                             <div className="flex items-center justify-between border-t border-[var(--crm-border)] px-3 py-2">
                                 {unreadCount > 0 ? (
                                     <button type="button" onClick={handleMarkAllRead}
-                                        className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface)] hover:text-[var(--crm-gold)]">
+                                        className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface)] hover:text-[var(--crm-gold)]">
                                         <MailOpen size={12} />
                                         Mark all read
                                     </button>
                                 ) : <div />}
                                 <button type="button" onClick={() => { router.visit('/notifications'); close(); }}
-                                    className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface)] hover:text-[var(--crm-gold)]">
+                                    className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface)] hover:text-[var(--crm-gold)]">
                                     <ExternalLink size={12} />
                                     View all
                                 </button>

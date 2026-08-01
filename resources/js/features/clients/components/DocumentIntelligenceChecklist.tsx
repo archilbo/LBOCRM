@@ -181,7 +181,7 @@ export function DocumentIntelligenceChecklist({
 
                 <div className="flex items-center gap-3">
                     {totals.expired > 0 ? (
-                        <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-1 text-[11px] font-bold text-red-300">
+                        <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-1 text-[10px] font-bold text-red-300">
                             <AlertTriangle size={12} />
                             {totals.expired} expired
                         </span>
@@ -203,7 +203,7 @@ export function DocumentIntelligenceChecklist({
             <div className="mt-4 grid gap-3">
                 {Object.entries(grouped).map(([stepLabel, reqs]) => (
                     <div key={stepLabel}>
-                        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]">{stepLabel}</p>
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]">{stepLabel}</p>
                         <div className="grid gap-2">
                             {reqs.map((req) => (
                                 <div key={req.key} className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--crm-border)] bg-black/10 px-3 py-2 md:flex-nowrap md:justify-between">
@@ -217,14 +217,14 @@ export function DocumentIntelligenceChecklist({
                                         )}
                                         <span className="truncate text-xs font-bold text-[var(--crm-text)]">{req.label}</span>
                                         {req.isExpired ? (
-                                            <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[10px] font-bold text-red-300">Expired</span>
+                                            <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-bold text-red-300">Expired</span>
                                         ) : req.isExpiringSoon ? (
-                                            <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+                                            <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
                                                 <Clock size={10} className="inline" /> Soon
                                             </span>
                                         ) : null}
                                     </div>
-                                    <div className="flex shrink-0 items-center gap-2 text-[11px]">
+                                    <div className="flex shrink-0 items-center gap-2 text-[10px]">
                                         {req.notes ? (
                                             <span className="text-[var(--crm-muted)]">{req.notes}</span>
                                         ) : null}

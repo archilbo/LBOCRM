@@ -39,20 +39,20 @@ function Section({ title, count, events, onEventClick, accent }: {
     return (
         <div>
             <div className="mb-1.5 flex items-center gap-2">
-                <span className={`text-[10px] font-semibold uppercase tracking-wider ${accent}`}>{title}</span>
-                <span className="text-[10px] text-[var(--crm-text-muted)]">{count}</span>
+                <span className={`text-[9px] font-semibold uppercase tracking-wider ${accent}`}>{title}</span>
+                <span className="text-[9px] text-[var(--crm-text-muted)]">{count}</span>
             </div>
             {events.length === 0 ? (
-                <p className="py-2 text-[11px] text-[var(--crm-text-soft)]">None</p>
+                <p className="py-2 text-[10px] text-[var(--crm-text-soft)]">None</p>
             ) : (
                 <div className="space-y-1">
                     {events.map((e) => (
                         <button key={e.id} type="button" onClick={() => onEventClick(e)}
                             className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-[var(--crm-surface-2)]">
                             <span className={`size-2 shrink-0 rounded-full ${EVENT_TYPE_CLASSES[e.type]?.split(' ')[0] || 'bg-zinc-400'}`} />
-                            <span className="min-w-0 flex-1 truncate text-[11px] font-medium">{e.title}</span>
+                            <span className="min-w-0 flex-1 truncate text-[10px] font-medium">{e.title}</span>
                             {e.startsAt?.startsWith(todayStr) ? (
-                                <span className="shrink-0 text-[10px] text-[var(--crm-text-soft)]">
+                                <span className="shrink-0 text-[9px] text-[var(--crm-text-soft)]">
                                     {new Date(e.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             ) : null}

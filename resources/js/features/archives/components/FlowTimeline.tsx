@@ -57,11 +57,11 @@ export function FlowTimeline({ events }: FlowTimelineProps) {
                             <p className="text-xs font-medium capitalize text-[var(--foreground)] leading-tight">
                                 {event.type.replace(/_/g, ' ')}
                             </p>
-                            <p className="text-[11px] text-[var(--text-muted)] leading-tight">
+                            <p className="text-[10px] text-[var(--text-muted)] leading-tight">
                                 {event.actorName} · {event.createdAt}
                             </p>
                             {event.payload && Object.keys(event.payload).length > 0 ? (
-                                <p className="mt-0.5 text-[11px] text-[var(--text-subtle)] leading-tight">
+                                <p className="mt-0.5 text-[10px] text-[var(--text-subtle)] leading-tight">
                                     {Object.values(event.payload).filter(v => typeof v === 'string').join(' · ')}
                                 </p>
                             ) : null}

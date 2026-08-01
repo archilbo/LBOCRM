@@ -153,7 +153,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                     <div className="rounded-2xl border bg-[var(--surface)] p-4">
                         <div className="flex flex-wrap items-start justify-between gap-4">
                             <div className="min-w-0">
-                                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
                                     <Clock size={14} />
                                     Template History
                                 </div>
@@ -223,7 +223,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                                                         </p>
                                                     </div>
 
-                                                    <span className="rounded-full bg-[var(--surface)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                                                    <span className="rounded-full bg-[var(--surface)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                                                         {version.paperSize}
                                                     </span>
                                                 </div>

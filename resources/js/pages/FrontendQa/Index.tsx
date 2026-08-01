@@ -205,7 +205,7 @@ This will be replaced by backend document generation.`,
                                 <p className="mt-1 text-xs text-[var(--text-muted)]">{project.client}</p>
 
                                 <div className="mt-3 rounded-xl border bg-[var(--surface-2)] p-3">
-                                    <p className="text-[11px] font-medium text-[var(--text-muted)]">
+                                    <p className="text-[10px] font-medium text-[var(--text-muted)]">
                                         {t('frontendQa.expected')}
                                     </p>
                                     <p className="mt-1 text-xs">{project.expected}</p>

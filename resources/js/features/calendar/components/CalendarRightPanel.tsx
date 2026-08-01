@@ -31,10 +31,10 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                 <div className="mb-3 flex items-center gap-2">
                     <CalendarDays size={14} className="text-[var(--crm-gold)]" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-[var(--crm-gold)]">Today</span>
-                    <span className="ml-auto text-[10px] text-[var(--crm-text-muted)]">{dateLabel}</span>
+                    <span className="ml-auto text-[9px] text-[var(--crm-text-muted)]">{dateLabel}</span>
                 </div>
                 {dueToday.length === 0 ? (
-                    <p className="py-5 text-center text-[11px] text-[var(--crm-text-muted)]">Nothing scheduled today</p>
+                    <p className="py-5 text-center text-[10px] text-[var(--crm-text-muted)]">Nothing scheduled today</p>
                 ) : (
                     <div className="space-y-1">
                         {dueToday.map((e) => (
@@ -45,8 +45,8 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                                 className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition hover:bg-white/5">
                                 <span className={`size-2 shrink-0 rounded-full ${EVENT_TYPE_CLASSES[e.type]?.split(' ')[0] || 'bg-zinc-400'}`} />
                                 <div className="min-w-0 flex-1">
-                                    <p className="truncate text-[11px] font-medium">{e.title}</p>
-                                    <p className="text-[10px] text-[var(--crm-text-muted)]">
+                                    <p className="truncate text-[10px] font-medium">{e.title}</p>
+                                    <p className="text-[9px] text-[var(--crm-text-muted)]">
                                         {e.allDay ? 'All day' : new Date(e.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                 </div>
@@ -61,10 +61,10 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                 <div className="mb-3 flex items-center gap-2">
                     <Bell size={14} className="text-purple-400" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-purple-400">Reminders</span>
-                    <span className="ml-auto text-[10px] text-[var(--crm-text-muted)]">{reminders.length}</span>
+                    <span className="ml-auto text-[9px] text-[var(--crm-text-muted)]">{reminders.length}</span>
                 </div>
                 {reminders.length === 0 ? (
-                    <p className="py-5 text-center text-[11px] text-[var(--crm-text-muted)]">No upcoming reminders</p>
+                    <p className="py-5 text-center text-[10px] text-[var(--crm-text-muted)]">No upcoming reminders</p>
                 ) : (
                     <div className="space-y-1">
                         {reminders.map((e) => (
@@ -74,7 +74,7 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                                 onClick={() => onEventClick(e)}
                                 className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition hover:bg-white/5">
                                 <Bell size={12} className="shrink-0 text-purple-400/60" />
-                                <span className="min-w-0 flex-1 truncate text-[11px] font-medium">{e.title}</span>
+                                <span className="min-w-0 flex-1 truncate text-[10px] font-medium">{e.title}</span>
                             </button>
                         ))}
                     </div>
@@ -86,10 +86,10 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                 <div className="mb-3 flex items-center gap-2">
                     <AlertTriangle size={14} className="text-red-400" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-red-400">Overdue</span>
-                    <span className="ml-auto text-[10px] text-[var(--crm-text-muted)]">{overdue.length}</span>
+                    <span className="ml-auto text-[9px] text-[var(--crm-text-muted)]">{overdue.length}</span>
                 </div>
                 {overdue.length === 0 ? (
-                    <p className="py-5 text-center text-[11px] text-[var(--crm-text-muted)]">All caught up</p>
+                    <p className="py-5 text-center text-[10px] text-[var(--crm-text-muted)]">All caught up</p>
                 ) : (
                     <div className="space-y-1">
                         {overdue.map((e) => (
@@ -99,8 +99,8 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                                 onClick={() => onEventClick(e)}
                                 className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition hover:bg-white/5">
                                 <span className={`size-2 shrink-0 rounded-full ${EVENT_TYPE_CLASSES[e.type]?.split(' ')[0] || 'bg-zinc-400'}`} />
-                                <span className="min-w-0 flex-1 truncate text-[11px] font-medium">{e.title}</span>
-                                <span className="text-[10px] text-red-400/60">
+                                <span className="min-w-0 flex-1 truncate text-[10px] font-medium">{e.title}</span>
+                                <span className="text-[9px] text-red-400/60">
                                     {Math.ceil((Date.now() - new Date(e.startsAt).getTime()) / 86400000)}d
                                 </span>
                             </button>
@@ -119,13 +119,13 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                     <button
                         type="button"
                         onClick={onCreateEvent}
-                        className="flex items-center gap-2 rounded-lg border border-white/8 px-3 py-2.5 text-[11px] font-medium transition hover:bg-white/5">
+                        className="flex items-center gap-2 rounded-lg border border-white/8 px-3 py-2.5 text-[10px] font-medium transition hover:bg-white/5">
                         <CalendarDays size={13} className="text-[var(--crm-gold)]" /> New event
                     </button>
                     <button
                         type="button"
                         onClick={onCreateEvent}
-                        className="flex items-center gap-2 rounded-lg border border-white/8 px-3 py-2.5 text-[11px] font-medium transition hover:bg-white/5">
+                        className="flex items-center gap-2 rounded-lg border border-white/8 px-3 py-2.5 text-[10px] font-medium transition hover:bg-white/5">
                         <Plus size={13} className="text-blue-400" /> New note
                     </button>
                 </div>

@@ -29,7 +29,7 @@ export function DossierLocationStats({ stats, compact = false }: Props) {
         <div className={compact ? 'grid gap-2 sm:grid-cols-2 xl:grid-cols-4' : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8'}>
             {items.slice(0, compact ? 4 : items.length).map((item) => (
                 <div key={item.label} className="crm-panel-soft px-3 py-2">
-                    <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">{item.label}</p>
+                    <p className="truncate text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--crm-text-soft)]">{item.label}</p>
                     <p className="mt-1 truncate text-sm font-semibold text-[var(--crm-text)]">{item.value}</p>
                 </div>
             ))}

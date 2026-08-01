@@ -67,7 +67,7 @@ export function MessageMoreMenu({ isOpen, onClose, anchorRef, isMine, hasBody, o
                         role="menuitem"
                         onClick={() => { onAction(item.id); onClose(); }}
                         className={cn(
-                            'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium outline-none transition hover:bg-[var(--surface-2)]',
+                            'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12px] font-medium outline-none transition hover:bg-[var(--surface-2)] focus-visible:bg-[var(--surface-2)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
                             item.danger ? 'text-red-400' : 'text-[var(--text)]',
                         )}
                     >

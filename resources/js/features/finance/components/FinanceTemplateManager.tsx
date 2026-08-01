@@ -54,7 +54,7 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                 <div>
                     <div className="flex items-center gap-2">
                         <h2 className="text-sm font-semibold text-[var(--text)]">Templates finance</h2>
-                        <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">{templates.length}</span>
+                        <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[9px] font-semibold text-[var(--text-muted)]">{templates.length}</span>
                     </div>
                     <p className="mt-0.5 text-xs text-[var(--text-muted)]">Modeles disponibles pour les devis, factures et recus.</p>
                 </div>
@@ -84,7 +84,7 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                     </div>
                     <button
                         type="button"
-                        className={`flex h-7 items-center gap-1 rounded-lg border px-2 text-[11px] font-medium transition ${
+                        className={`flex h-7 items-center gap-1 rounded-lg border px-2 text-[10px] font-medium transition ${
                             showFilters
                                 ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
                                 : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
@@ -98,7 +98,7 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                     </button>
                 </div>
 
-                <div className="ml-auto hidden text-[11px] font-medium text-[var(--text-muted)] md:block">
+                <div className="ml-auto hidden text-[10px] font-medium text-[var(--text-muted)] md:block">
                     {filtered.length} template{filtered.length !== 1 ? 's' : ''}
                 </div>
             </div>
@@ -128,7 +128,7 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                                             <p className="truncate text-sm font-semibold text-[var(--text)]">{template.label}</p>
                                             {template.isDefault ? <Star size={12} className="shrink-0 fill-[var(--accent)] text-[var(--accent)]" /> : null}
                                         </div>
-                                        <p className="mt-0.5 truncate font-mono text-[10px] text-[var(--text-muted)]">{template.slug || '-'}</p>
+                                        <p className="mt-0.5 truncate font-mono text-[9px] text-[var(--text-muted)]">{template.slug || '-'}</p>
                                     </div>
                                     {canManage ? (
                                         <button type="button" onClick={() => onRename(template)} className="flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-3)] hover:text-[var(--accent)]" title="Renommer">
@@ -137,7 +137,7 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                                     ) : null}
                                 </div>
                                 <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--border)] pt-2.5">
-                                    <span className="text-[10px] text-[var(--text-muted)]">{template.updatedAt ? `Mis a jour ${template.updatedAt}` : meta.label}</span>
+                                    <span className="text-[9px] text-[var(--text-muted)]">{template.updatedAt ? `Mis a jour ${template.updatedAt}` : meta.label}</span>
                                     {canManage ? (
                                         <AppButton size="sm" variant="ghost" onPress={() => onOpenEditor(template.editorUrl || editorUrl)}>
                                             Modifier

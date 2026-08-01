@@ -135,7 +135,7 @@ export function AppDataTable<TData extends object>({
                 </div>
             ) : null}
 
-            <div className="overflow-x-auto">
+            <div>
                 <table className={cn('w-full', compact ? 'text-xs' : 'text-sm')}>
                     <thead>
                         {table.getHeaderGroups().map((headerGroup) => (

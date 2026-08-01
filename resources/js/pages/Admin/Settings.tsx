@@ -175,7 +175,7 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
                             <thead>
                                 <tr className="border-b border-[var(--border)]">
                                     {['Code', 'Name', 'Color', 'Status', 'Dossiers', ''].map((label) => (
-                                        <th key={label} className="h-9 px-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                                        <th key={label} className="h-9 px-3 text-left text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                                             {label}
                                         </th>
                                     ))}
@@ -192,20 +192,20 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
                                     cities.map((city) => (
                                         <tr key={city.id} className="group transition hover:bg-[var(--surface-2)]">
                                             <td className="px-3 py-2.5">
-                                                <span className="font-mono text-[13px] font-bold text-[var(--text)]">{city.code}</span>
+                                                <span className="font-mono text-[12px] font-bold text-[var(--text)]">{city.code}</span>
                                             </td>
                                             <td className="px-3 py-2.5">
-                                                <span className="text-[13px] text-[var(--text)]">{city.name}</span>
+                                                <span className="text-[12px] text-[var(--text)]">{city.name}</span>
                                             </td>
                                             <td className="px-3 py-2.5">
                                                 <div className="flex items-center gap-2">
                                                     <span className="size-4 rounded-md ring-1 ring-black/10 shrink-0" style={{ backgroundColor: city.color }} />
-                                                    <span className="font-mono text-[11px] text-[var(--text-muted)]">{city.color}</span>
+                                                    <span className="font-mono text-[10px] text-[var(--text-muted)]">{city.color}</span>
                                                 </div>
                                             </td>
                                             <td className="px-3 py-2.5">
                                                 <span className={cn(
-                                                    'inline-flex items-center gap-1.5 rounded-full px-2 py-[2px] text-[10px] font-medium',
+                                                    'inline-flex items-center gap-1.5 rounded-full px-2 py-[2px] text-[9px] font-medium',
                                                     city.isActive
                                                         ? 'bg-emerald-500/10 text-emerald-400'
                                                         : 'bg-[var(--surface-2)] text-[var(--text-muted)]',
@@ -215,7 +215,7 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
                                                 </span>
                                             </td>
                                             <td className="px-3 py-2.5">
-                                                <span className="text-[13px] tabular-nums text-[var(--text-muted)]">{city.dossiersCount}</span>
+                                                <span className="text-[12px] tabular-nums text-[var(--text-muted)]">{city.dossiersCount}</span>
                                             </td>
                                             <td className="px-3 py-2.5">
                                                 <div className="flex items-center gap-1">
@@ -289,7 +289,7 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
                             </DrawerField>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                                 {availableSwatches.length === 0 ? (
-                                    <span className="text-[11px] italic text-[var(--text-muted)]">All preset colors are taken</span>
+                                    <span className="text-[10px] italic text-[var(--text-muted)]">All preset colors are taken</span>
                                 ) : (
                                     availableSwatches.map((s) => (
                                         <button
@@ -325,7 +325,7 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
                                 </Switch>
                                 <div className="flex flex-col">
                                     <span className="text-xs font-medium text-[var(--text)]">Active</span>
-                                    <span className="text-[10px] text-[var(--text-muted)]">City appears in filters and dropdowns</span>
+                                    <span className="text-[9px] text-[var(--text-muted)]">City appears in filters and dropdowns</span>
                                 </div>
                             </div>
                         </DrawerSection>

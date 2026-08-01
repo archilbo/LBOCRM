@@ -1,7 +1,7 @@
 import { router, usePage } from '@inertiajs/react';
 import {
     BadgeDollarSign, Building2, ChevronDown, ChevronRight, FolderKanban,
-    HelpCircle, LogOut, PanelLeftClose, PanelLeftOpen, Search, Settings, Check,
+    HelpCircle, LogOut, PanelLeftClose, PanelLeftOpen, Settings, Check,
     ClipboardList, MessageCircleMore, ShieldCheck,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
@@ -69,7 +69,7 @@ function NavigationSection({
 }) {
     return (
         <section className="mt-4">
-            <div className="flex h-6 items-center gap-2 px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-subtle">
+            <div className="flex h-6 items-center gap-2 px-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-subtle">
                 <span className="flex size-4 items-center justify-center text-accent/80">
                     {icon}
                 </span>
@@ -93,7 +93,7 @@ function NavItem({ route, isActive, goTo, t }: {
         <button type="button"
             onClick={() => goTo(route.href, route.enabled)}
             className={cn(
-                'flex h-8 w-full items-center gap-[10px] rounded-lg px-2 text-left text-[13px] font-medium transition',
+                'flex h-8 w-full items-center gap-[10px] rounded-lg px-2 text-left text-[12px] font-medium transition',
                 active
                     ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-foreground'
                     : 'text-muted hover:bg-surface-2 hover:text-foreground',
@@ -264,7 +264,7 @@ export function AppSidebar() {
                 <button key={key} type="button"
                     onClick={() => { goTo(route.href, route.enabled); setFlyout(null); }}
                     className={cn(
-                        'flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] font-medium transition',
+                        'flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[12px] font-medium transition',
                         active
                             ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-foreground'
                             : 'text-muted hover:bg-surface-2 hover:text-foreground',
@@ -484,8 +484,8 @@ export function AppSidebar() {
                                 {flyout.icon || null}
                             </span>
                             <div>
-                                <p className="text-[13px] font-semibold text-foreground">{flyout.label}</p>
-                                <p className="text-[10px] text-muted">Quick access</p>
+                                <p className="text-[12px] font-semibold text-foreground">{flyout.label}</p>
+                                <p className="text-[9px] text-muted">Quick access</p>
                             </div>
                         </div>
                         <div className="space-y-0.5">
@@ -513,10 +513,10 @@ export function AppSidebar() {
                         <Building2 size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-semibold leading-tight text-foreground">
+                        <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
                             ARCHI LBO <span className="text-accent">OS</span>
                         </p>
-                        <p className="truncate text-[11px] leading-tight text-muted">
+                        <p className="truncate text-[10px] leading-tight text-muted">
                             {t('app.description')}
                         </p>
                     </div>
@@ -537,21 +537,12 @@ export function AppSidebar() {
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-xs font-semibold text-foreground">ARCHI LBO OS</p>
-                                <p className="truncate text-[10px] text-muted">{t('app.description')}</p>
+                                <p className="truncate text-[9px] text-muted">{t('app.description')}</p>
                             </div>
                             <Check size={13} className="shrink-0 text-accent" />
                         </div>
                     </div>
                 ) : null}
-            </div>
-
-            {/* ── Search ── */}
-            <div className="shrink-0 px-3 py-2.5">
-                <div className="relative">
-                    <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-subtle" />
-                    <input type="text" placeholder={t('nav.search')}
-                        className="h-8 w-full rounded-lg border border-border bg-surface-2 pl-7 pr-2 text-[12px] text-foreground outline-none transition placeholder:text-subtle focus:border-accent/50" />
-                </div>
             </div>
 
             {/* ── Navigation ── */}
@@ -593,7 +584,7 @@ export function AppSidebar() {
             <div className="relative shrink-0 border-t border-border" ref={userRef}>
                 <div className="flex items-center gap-0.5 border-b border-border px-2 py-1">
                     <button type="button" onClick={() => goTo('/settings', true)}
-                        className="flex h-7 flex-1 items-center gap-2 rounded-md px-2 text-[12px] font-medium text-muted transition hover:bg-surface-2 hover:text-foreground">
+                        className="flex h-7 flex-1 items-center gap-2 rounded-md px-2 text-[11px] font-medium text-muted transition hover:bg-surface-2 hover:text-foreground">
                         <Settings size={14} />
                         {t('nav.settings')}
                     </button>
@@ -606,14 +597,14 @@ export function AppSidebar() {
 
                 <button type="button" onClick={() => setUserOpen((o) => !o)}
                     className="flex h-11 w-full items-center gap-2.5 px-3 transition hover:bg-surface-2">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[10px] font-bold text-accent">
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[9px] font-bold text-accent">
                         {userInitial}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
+                        <p className="truncate text-[11px] font-semibold leading-tight text-foreground">
                             {authUser?.name || 'User'}
                         </p>
-                        <p className="truncate text-[11px] leading-tight text-muted">
+                        <p className="truncate text-[10px] leading-tight text-muted">
                             {authUser?.email || ''}
                         </p>
                     </div>
@@ -623,12 +614,12 @@ export function AppSidebar() {
                 {userOpen ? (
                     <div className="absolute bottom-full left-2 right-2 z-[60] mb-1 rounded-xl border border-border bg-surface p-1.5 shadow-lg">
                         <div className="flex items-center gap-2.5 border-b border-border px-2.5 py-2">
-                            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[10px] font-bold text-accent">
+                            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[9px] font-bold text-accent">
                                 {userInitial}
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-xs font-semibold text-foreground">{authUser?.name || 'User'}</p>
-                                <p className="truncate text-[10px] text-muted">{authUser?.email || ''}</p>
+                                <p className="truncate text-[9px] text-muted">{authUser?.email || ''}</p>
                             </div>
                         </div>
                         <div className="mt-1 space-y-0.5">

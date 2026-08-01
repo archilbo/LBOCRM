@@ -52,7 +52,8 @@ function ConversationModeToggle({
                         aria-checked={active}
                         onClick={() => onChange(value)}
                         className={cn(
-                            'flex flex-1 items-center justify-center gap-1.5 rounded-[11px] px-3 py-1.5 text-[11px] font-semibold outline-none transition-all',
+                            'flex flex-1 items-center justify-center gap-1.5 rounded-[11px] px-3 py-1.5 text-[10px] font-semibold outline-none transition-all',
+                            'focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]',
                             active
                                 ? 'bg-[var(--surface)] text-[var(--accent)] shadow-sm'
                                 : 'text-[var(--text-muted)] hover:text-[var(--text)]',
@@ -214,7 +215,7 @@ function ConversationDrawerFooter({
 }) {
     return (
         <>
-            <span className="mr-auto text-[10px] text-[var(--text-muted)]">
+            <span className="mr-auto text-[9px] text-[var(--text-muted)]">
                 {userCount > 0
                     ? `${userCount} sélectionné${userCount > 1 ? 's' : ''}`
                     : 'Aucun destinataire'}
@@ -348,7 +349,7 @@ export function NewConversationDrawer({
                             value={userSearch}
                             onChange={(e) => setUserSearch(e.target.value)}
                             placeholder="Rechercher..."
-                            className="h-9 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-9 pr-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+                            className="h-9 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-9 pr-3 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                             aria-label="Rechercher un utilisateur"
                         />
                     </div>

@@ -33,7 +33,7 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
             {/* Review asset selector */}
             {hasReviewAssets && (
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                    <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
                         Review Assets
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -65,7 +65,7 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="text-base font-semibold text-[var(--foreground)]">{cap?.label ?? asset.extension.toUpperCase()}</h3>
-                        <p className="mt-0.5 truncate text-[13px] text-[var(--text-muted)]">{asset.originalFilename}</p>
+                        <p className="mt-0.5 truncate text-[12px] text-[var(--text-muted)]">{asset.originalFilename}</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                             <Chip size="sm" variant="flat" color="default" startContent={<HardDrive size={11} />}>
                                 Source stored
@@ -92,8 +92,8 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                     <div className="flex items-start gap-2">
                         <FileWarning size={16} className="mt-0.5 shrink-0 text-amber-500" />
                         <div>
-                            <p className="text-[12px] font-medium text-amber-800 dark:text-amber-300">Browser preview unavailable</p>
-                            <p className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-400">
+                            <p className="text-[11px] font-medium text-amber-800 dark:text-amber-300">Browser preview unavailable</p>
+                            <p className="mt-0.5 text-[10px] text-amber-700 dark:text-amber-400">
                                 {fallbackMsg}
                             </p>
                         </div>
@@ -130,7 +130,7 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                 <div className="my-4 h-px bg-[var(--border)]" />
 
                 {/* Source metadata grid */}
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-[12px]">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-[11px]">
                     <MetaRow icon={<FileText size={12} />} label="Format" value={asset.extension.toUpperCase()} />
                     <MetaRow icon={<Info size={12} />} label="MIME" value={asset.mimeType} />
                     <MetaRow icon={<HardDrive size={12} />} label="Size" value={formatFileSize(asset.sizeBytes)} />
@@ -142,13 +142,13 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                     <MetaRow
                         icon={<Shield size={12} />}
                         label="Scan status"
-                        value={<Chip size="sm" variant="flat" color={scanColor as any} className="h-5 text-[10px]">{scanLabel}</Chip>}
+                        value={<Chip size="sm" variant="flat" color={scanColor as any} className="h-5 text-[9px]">{scanLabel}</Chip>}
                     />
                     {asset.conversionStatus && (
                         <MetaRow
                             icon={<Clock size={12} />}
                             label="Conversion"
-                            value={<Chip size="sm" variant="flat" color={asset.conversionStatus === 'ready' ? 'success' : 'warning'} className="h-5 text-[10px]">{asset.conversionStatus}</Chip>}
+                            value={<Chip size="sm" variant="flat" color={asset.conversionStatus === 'ready' ? 'success' : 'warning'} className="h-5 text-[9px]">{asset.conversionStatus}</Chip>}
                         />
                     )}
                 </div>
@@ -156,7 +156,7 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
 
             {/* No review assets hint */}
             {!hasReviewAssets && (
-                <div className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--border)] px-4 py-3 text-[11px] text-[var(--text-muted)]">
+                <div className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--border)] px-4 py-3 text-[10px] text-[var(--text-muted)]">
                     <Info size={14} className="shrink-0" />
                     <span>No review assets have been added to this version. Upload a PDF, IFC, or image to enable browser review.</span>
                 </div>

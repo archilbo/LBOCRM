@@ -28,7 +28,7 @@ export function CalendarToolbar({ currentDate, viewMode, onViewModeChange, onPre
                 <button
                     type="button"
                     onClick={onToday}
-                    className="h-7 rounded-lg border border-white/8 px-3 text-[11px] font-semibold text-white/70 transition hover:bg-white/5 hover:text-white">
+                    className="h-7 rounded-lg border border-white/8 px-3 text-[10px] font-semibold text-white/70 transition hover:bg-white/5 hover:text-white">
                     Today
                 </button>
                 <div className="flex items-center">
@@ -55,7 +55,7 @@ export function CalendarToolbar({ currentDate, viewMode, onViewModeChange, onPre
                         key={v.key}
                         type="button"
                         onClick={() => onViewModeChange(v.key)}
-                        className={`h-7 rounded-md px-3 text-[11px] font-semibold transition ${
+                        className={`h-7 rounded-md px-3 text-[10px] font-semibold transition ${
                             viewMode === v.key
                                 ? 'bg-[var(--crm-gold)] text-black'
                                 : 'text-white/50 hover:text-white'

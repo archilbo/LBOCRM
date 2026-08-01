@@ -99,7 +99,7 @@ export function ScanModal({ isOpen, onOpenChange }: ScanModalProps) {
                             value={manualCode}
                             onChange={(e) => setManualCode(e.target.value)}
                             placeholder="ARC-2026-0001"
-                            className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-mono text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+                            className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-xs font-mono text-[var(--foreground)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                             autoFocus
                         />
                         <div className="flex gap-2">

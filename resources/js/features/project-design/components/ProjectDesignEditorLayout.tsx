@@ -97,7 +97,7 @@ function PanelSurface({ children, edge }: { children: ReactNode; edge: 'left' | 
 function ResizeHandle() {
     return (
         <Separator
-            className="group relative w-1 shrink-0 cursor-col-resize bg-[var(--border)]/55 outline-none transition-colors hover:bg-[var(--accent)]/35 data-[resize-handle-active]:bg-[var(--accent)]/55"
+            className="group relative w-1 shrink-0 cursor-col-resize bg-[var(--border)]/55 outline-none transition-colors hover:bg-[var(--accent)]/35 data-[resize-handle-active]:bg-[var(--accent)]/55 focus-visible:bg-[var(--accent)]/40 focus-visible:ring-1 focus-visible:ring-[var(--accent)]"
         >
             <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent group-hover:bg-[var(--accent)]/60" />
         </Separator>
@@ -141,7 +141,7 @@ function ResponsiveDrawer({
                     >
                         <Drawer.Header className="relative shrink-0 border-b border-[var(--border)] px-4 py-3 pr-12">
                             <Drawer.Heading className="text-sm font-semibold text-[var(--foreground)]">{title}</Drawer.Heading>
-                            <p className="mt-0.5 text-[10px] leading-4 text-[var(--text-muted)]">{description}</p>
+                            <p className="mt-0.5 text-[9px] leading-4 text-[var(--text-muted)]">{description}</p>
                             <Drawer.CloseTrigger
                                 aria-label={`Close ${title}`}
                                 className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-lg text-[var(--text-muted)] outline-none transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"

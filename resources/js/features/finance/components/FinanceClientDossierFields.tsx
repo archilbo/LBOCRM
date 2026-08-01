@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Card } from '@heroui/react';
 import { AlertTriangle, User } from 'lucide-react';
 import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
@@ -15,7 +15,7 @@ type FinanceClientDossierFieldsProps = {
     restrictedDossierIds?: string[];
 };
 
-const labelCls = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]';
+const labelCls = 'text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]';
 
 export function FinanceClientDossierFields({
     clientId, dossierId, clients, dossiers, onClientChange, onDossierChange, disabled = false, restrictedDossierIds = [],
@@ -83,7 +83,7 @@ export function FinanceClientDossierFields({
                     </div>
                 </Card>
             ) : selectedDossier ? (
-                <div className="grid gap-2 text-[11px] text-[var(--text-muted)] sm:grid-cols-3">
+                <div className="grid gap-2 text-[10px] text-[var(--text-muted)] sm:grid-cols-3">
                     <p><span className="font-semibold text-[var(--text)]">Projet:</span> {selectedDossier.projectObject || '-'}</p>
                     <p><span className="font-semibold text-[var(--text)]">Adresse:</span> {selectedDossier.address || '-'}</p>
                     <p><span className="font-semibold text-[var(--text)]">Surface:</span> {selectedDossier.floorArea || selectedDossier.landSurface || '-'} m2</p>

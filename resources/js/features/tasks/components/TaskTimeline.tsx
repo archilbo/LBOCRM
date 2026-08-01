@@ -46,7 +46,7 @@ export function TaskTimeline({ tasks, onTaskClick }: Props) {
                 <div key={group.label} className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
                     <div className="mb-3 flex items-center gap-2">
                         <span className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--crm-muted)]">{group.label}</span>
-                        <span className="text-[10px] text-[var(--crm-text-muted)]">({group.tasks.length})</span>
+                        <span className="text-[9px] text-[var(--crm-text-muted)]">({group.tasks.length})</span>
                     </div>
                     <div className="space-y-1">
                         {group.tasks.map((task, idx) => (
@@ -61,10 +61,10 @@ export function TaskTimeline({ tasks, onTaskClick }: Props) {
                                     className="flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left transition hover:border-[var(--crm-border)] hover:bg-[var(--crm-surface)]">
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-sm font-semibold text-[var(--crm-text)]">{task.title}</p>
-                                        <p className="truncate text-[10px] text-[var(--crm-text-muted)]">{task.taskNumber}{task.dossier?.object ? ` \u00B7 ${task.dossier.object}` : ''}</p>
+                                        <p className="truncate text-[9px] text-[var(--crm-text-muted)]">{task.taskNumber}{task.dossier?.object ? ` \u00B7 ${task.dossier.object}` : ''}</p>
                                     </div>
                                     <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${PRIORITY_COLORS[task.priority]}`}>{PRIORITY_LABELS[task.priority]}</span>
-                                    {task.dueDate ? <span className="whitespace-nowrap text-[10px] text-[var(--crm-text-muted)]">{task.dueDate}</span> : null}
+                                    {task.dueDate ? <span className="whitespace-nowrap text-[9px] text-[var(--crm-text-muted)]">{task.dueDate}</span> : null}
                                     {Array.isArray(task.assignees) && task.assignees.length > 0 ? (
                                         <div className="flex -space-x-1">
                                             {task.assignees.slice(0, 2).map((a) => (

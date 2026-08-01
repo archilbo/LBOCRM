@@ -38,7 +38,7 @@ export function FinanceSettingsSummary({ settings, settingsUrl, onOpen, canManag
                         <div key={item.label} className="flex items-center gap-3 px-4 py-4">
                             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><Icon size={16} /></div>
                             <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{item.label}</p>
+                                <p className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{item.label}</p>
                                 <p className="mt-0.5 text-sm font-semibold text-[var(--text)]">{item.value}</p>
                             </div>
                         </div>

@@ -99,14 +99,14 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                     return (
                         <button key={step.key} type="button" onClick={() => onSelectStep(step.key)}
                             className={cn(
-                                'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition',
+                                'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition',
                                 isActive && !isCompleted && 'bg-[var(--accent)]/10 text-[var(--accent)] ring-1 ring-[var(--accent)]/20',
                                 isCompleted && 'bg-emerald-400/10 text-emerald-400',
                                 isBlocked && 'bg-red-400/10 text-red-400',
                                 !isActive && !isCompleted && !isBlocked && 'bg-[var(--surface-2)] text-[var(--text-muted)]',
                             )}>
                             <span className={cn(
-                                'flex size-5 items-center justify-center rounded-full text-[10px]',
+                                'flex size-5 items-center justify-center rounded-full text-[9px]',
                                 isCompleted && 'bg-emerald-400/20',
                                 isActive && !isCompleted && 'bg-[var(--accent)]/20',
                                 !isActive && !isCompleted && !isBlocked && 'bg-[var(--surface-3)]',
@@ -125,15 +125,15 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                 <div className="hidden shrink-0 sm:block sm:w-[260px] lg:w-[280px]">
                     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
                         <div className="mb-3">
-                            <p className="text-[13px] font-semibold text-[var(--foreground)]">Avancement</p>
-                            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+                            <p className="text-[12px] font-semibold text-[var(--foreground)]">Avancement</p>
+                            <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
                                 Etape {workflow.completed + 1} sur {workflow.total}
                             </p>
                         </div>
                         <div className="relative mb-3 h-1 overflow-hidden rounded-full bg-[var(--surface-3)]">
                             <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${workflow.percent}%` }} />
                         </div>
-                        <p className="mb-4 text-right text-[11px] font-medium text-[var(--text-muted)]">{workflow.percent}%</p>
+                        <p className="mb-4 text-right text-[10px] font-medium text-[var(--text-muted)]">{workflow.percent}%</p>
                         <div className="space-y-0">
                             {workflow.steps.map((step, idx) => {
                                 const isActive = step.key === selectedStepKey;
@@ -148,7 +148,7 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                             isActive && 'ring-1 ring-[var(--accent)]/20',
                                         )}>
                                             <span className={cn(
-                                                'flex size-7 shrink-0 items-center justify-center rounded-[7px] text-[11px] font-semibold transition-all',
+                                                'flex size-7 shrink-0 items-center justify-center rounded-[7px] text-[10px] font-semibold transition-all',
                                                 isCompleted && 'bg-emerald-400/15 text-emerald-400',
                                                 isActive && !isCompleted && 'bg-[var(--accent)]/12 text-[var(--accent)]',
                                                 !isCompleted && !isActive && 'bg-[var(--surface-3)] text-[var(--text-subtle)]',
@@ -159,7 +159,7 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <span className={cn(
-                                                        'truncate text-[13px] font-medium',
+                                                        'truncate text-[12px] font-medium',
                                                         isCompleted && 'text-emerald-400',
                                                         isActive && !isCompleted && 'text-[var(--foreground)]',
                                                         !isCompleted && !isActive && 'text-[var(--text-muted)]',
@@ -168,12 +168,12 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                         {step.order}. {step.label}
                                                     </span>
                                                     {step.total > 0 && (
-                                                        <span className="ml-auto shrink-0 text-[10px] font-medium text-[var(--text-subtle)]">
+                                                        <span className="ml-auto shrink-0 text-[9px] font-medium text-[var(--text-subtle)]">
                                                             {step.done}/{step.total}
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span className={cn('block text-[11px]', s.color)}>
+                                                <span className={cn('block text-[10px]', s.color)}>
                                                     {s.label}
                                                 </span>
                                             </div>
@@ -202,11 +202,11 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-subtle)]">
+                                            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-subtle)]">
                                                 ETAPE {activeStep.order}
                                             </span>
                                             <span className={cn(
-                                                'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                                                'inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold',
                                                 isComplete && 'bg-emerald-400/12 text-emerald-400',
                                                 activeStep.status === 'in_progress' && 'bg-[var(--accent)]/10 text-[var(--accent)]',
                                                 activeStep.status === 'blocked' && 'bg-red-400/10 text-red-400',
@@ -215,9 +215,9 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                 {statusLabel(activeStep.status).label}
                                             </span>
                                         </div>
-                                        <h3 className="text-[17px] font-semibold text-[var(--foreground)]">{activeStep.label}</h3>
+                                        <h3 className="text-[16px] font-semibold text-[var(--foreground)]">{activeStep.label}</h3>
                                         {activeStep.description && (
-                                            <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-muted)]">
+                                            <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-muted)]">
                                                 {activeStep.description}
                                             </p>
                                         )}
@@ -240,11 +240,11 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                 </span>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <span className="text-[13px] text-[var(--foreground)]">{req.label}</span>
+                                                        <span className="text-[12px] text-[var(--foreground)]">{req.label}</span>
                                                         <div className="flex items-center gap-1.5 shrink-0">
                                                             {!req.done && req.actionUrl && (
                                                                  <button type="button" onClick={() => openAction(req.actionUrl, req.actionLabel === 'Televerser / ouvrir', req.key, activeStep.key, req.actionLabel)}
-                                                                    className="flex items-center gap-1 h-7 rounded-md border border-[var(--border)] px-2.5 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                                                                    className="flex items-center gap-1 h-7 rounded-md border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                                                                     {req.actionLabel || 'Ouvrir'}
                                                                 </button>
                                                             )}
@@ -252,7 +252,7 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                                 <button type="button"
                                                                     onClick={() => openRequirementModal(activeStep.key, req.key, !req.done)}
                                                                     className={cn(
-                                                                        'flex items-center gap-1 h-7 rounded-md border px-2.5 text-[11px] font-medium transition',
+                                                                        'flex items-center gap-1 h-7 rounded-md border px-2.5 text-[10px] font-medium transition',
                                                                         req.done
                                                                             ? 'border-red-400/30 text-red-400 hover:bg-red-400/8'
                                                                             : 'border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/8',
@@ -263,17 +263,17 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                             )}
                                                             {req.done && !req.manual && (
                                                                 <button type="button" onClick={() => openRequirementModal(activeStep.key, req.key, false)}
-                                                                    className="flex items-center gap-1 h-7 rounded-md border border-red-400/30 px-2.5 text-[11px] font-medium text-red-400 transition hover:bg-red-400/8">
+                                                                    className="flex items-center gap-1 h-7 rounded-md border border-red-400/30 px-2.5 text-[10px] font-medium text-red-400 transition hover:bg-red-400/8">
                                                                     Annuler
                                                                 </button>
                                                             )}
                                                         </div>
                                                     </div>
                                                     {req.notes && (
-                                                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)] line-clamp-2">{req.notes}</p>
+                                                        <p className="mt-0.5 text-[10px] text-[var(--text-muted)] line-clamp-2">{req.notes}</p>
                                                     )}
                                                     {(req.checkedBy || req.checkedAt) && (
-                                                        <p className="mt-0.5 text-[10px] text-[var(--text-subtle)]">
+                                                        <p className="mt-0.5 text-[9px] text-[var(--text-subtle)]">
                                                             {[req.checkedBy, req.checkedAt].filter(Boolean).join(' \u00B7 ')}
                                                         </p>
                                                     )}
@@ -288,7 +288,7 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                 <div>
                                     {prevStep && (
                                         <button type="button" onClick={() => onSelectStep(prevStep.key)}
-                                            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
+                                            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
                                             <ArrowLeft size={14} />
                                             Precedent
                                         </button>
@@ -297,20 +297,20 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                 <div className="flex items-center gap-2">
                                     {isComplete && nextStep ? (
                                         <button type="button" onClick={() => onSelectStep(nextStep.key)}
-                                            className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-[12px] font-semibold text-[var(--accent-foreground)] transition hover:brightness-110">
+                                            className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-[11px] font-semibold text-[var(--accent-foreground)] transition hover:brightness-110">
                                             Suivante
                                             <ArrowRight size={14} />
                                         </button>
                                     ) : null}
                                     {activeStep.primaryActionUrl && activeStep.key === 'archive' && onOpenArchive ? (
                                         <button type="button" onClick={onOpenArchive}
-                                            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[12px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                                            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                                             <ExternalLink size={13} />
                                             {activeStep.primaryActionLabel || 'Ouvrir'}
                                         </button>
                                     ) : activeStep.primaryActionUrl ? (
                                         <button type="button" onClick={() => openAction(activeStep.primaryActionUrl)}
-                                            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[12px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                                            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                                             <ExternalLink size={13} />
                                             {activeStep.primaryActionLabel || 'Ouvrir'}
                                         </button>
@@ -340,7 +340,7 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                         onChange={(e) => setModalState((prev) => prev ? { ...prev, notes: e.target.value } : null)}
                         placeholder="Note optionnelle..."
                         rows={3}
-                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[13px] text-[var(--foreground)] placeholder:text-[var(--text-subtle)] outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] resize-none"
+                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[12px] text-[var(--foreground)] placeholder:text-[var(--text-subtle)] outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] resize-none"
                     />
                     <div className="flex justify-end gap-2">
                         <Button variant="bordered" onPress={() => setModalState(null)} isDisabled={submitting}>

@@ -85,7 +85,7 @@ export function DesignViewerTabs({
                 <HardDrive size={34} className="text-[var(--text-muted)]" />
                 <div>
                     <p className="text-sm font-medium text-[var(--foreground)]">No design assets</p>
-                    <p className="mt-1 text-[12px] text-[var(--text-muted)]">Upload a source file or review derivative to open the editor.</p>
+                    <p className="mt-1 text-[11px] text-[var(--text-muted)]">Upload a source file or review derivative to open the editor.</p>
                 </div>
             </div>
         );
@@ -134,7 +134,7 @@ export function DesignViewerTabs({
                     <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
                         <XCircle size={40} className="text-red-400" />
                         <p className="text-sm font-medium text-[var(--foreground)]">Conversion failed</p>
-                        <p className="text-[12px] text-[var(--text-muted)]">{resolvedViewer.asset.originalFilename}</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">{resolvedViewer.asset.originalFilename}</p>
                     </div>
                 );
             case 'source-fallback':
@@ -160,13 +160,13 @@ export function DesignViewerTabs({
                 <XCircle size={34} className="text-amber-400" />
                 <div>
                     <p className="text-sm font-medium text-[var(--foreground)]">Selected asset is no longer available</p>
-                    <p className="mt-1 text-[12px] text-[var(--text-muted)]">Open an available asset to repair the editor link.</p>
+                    <p className="mt-1 text-[11px] text-[var(--text-muted)]">Open an available asset to repair the editor link.</p>
                 </div>
                 <Button
                     size="sm"
                     variant="primary"
                     onPress={() => setActiveAssetId(assets[0].id)}
-                    className="h-8 text-[11px]"
+                    className="h-8 text-[10px]"
                 >
                     Open first available asset
                 </Button>
@@ -200,7 +200,7 @@ export function DesignViewerTabs({
                                                     onPress={() => setActiveAssetId(tab.asset.id)}
                                                     aria-pressed={selected}
                                                     className={cn(
-                                                        'h-8 min-w-0 max-w-[190px] gap-1 rounded-lg border px-2 text-[10px] font-medium',
+                                                        'h-8 min-w-0 max-w-[190px] gap-1 rounded-lg border px-2 text-[9px] font-medium',
                                                         selected
                                                             ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
                                                             : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',

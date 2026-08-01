@@ -221,7 +221,7 @@ export function CinScanner({ scanEndpoint = '/api/ocr/scan', onComplete }: CinSc
     if (mode === 'select') {
         return (
             <div className="space-y-4">
-                <p className="text-[12px] text-[var(--text-muted)]">
+                <p className="text-[11px] text-[var(--text-muted)]">
                     Choose how to capture the CIN card. For best results, place the card on a flat surface with even lighting.
                 </p>
 
@@ -235,8 +235,8 @@ export function CinScanner({ scanEndpoint = '/api/ocr/scan', onComplete }: CinSc
                             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                             <circle cx="12" cy="13" r="4" />
                         </svg>
-                        <span className="text-[13px] font-medium text-[var(--text)]">Use Camera</span>
-                        <span className="text-[11px] text-[var(--text-muted)]">Capture live with your device camera</span>
+                        <span className="text-[12px] font-medium text-[var(--text)]">Use Camera</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">Capture live with your device camera</span>
                     </button>
 
                     <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-[var(--border)] p-6 transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
@@ -246,13 +246,13 @@ export function CinScanner({ scanEndpoint = '/api/ocr/scan', onComplete }: CinSc
                             <polyline points="17 8 12 3 7 8" />
                             <line x1="12" y1="3" x2="12" y2="15" />
                         </svg>
-                        <span className="text-[13px] font-medium text-[var(--text)]">Upload Image</span>
-                        <span className="text-[11px] text-[var(--text-muted)]">Select a photo from your device</span>
+                        <span className="text-[12px] font-medium text-[var(--text)]">Upload Image</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">Select a photo from your device</span>
                     </label>
                 </div>
 
                 {errorMessage && (
-                    <p className="text-[12px] font-medium text-[var(--danger)]">{errorMessage}</p>
+                    <p className="text-[11px] font-medium text-[var(--danger)]">{errorMessage}</p>
                 )}
             </div>
         );
@@ -276,7 +276,7 @@ export function CinScanner({ scanEndpoint = '/api/ocr/scan', onComplete }: CinSc
                     <canvas ref={canvasRef} className="hidden" />
                 </div>
 
-                <p className="text-center text-[11px] text-[var(--text-muted)]">
+                <p className="text-center text-[10px] text-[var(--text-muted)]">
                     Align the CIN card within the yellow frame, then tap Capture.
                 </p>
 
@@ -307,7 +307,7 @@ export function CinScanner({ scanEndpoint = '/api/ocr/scan', onComplete }: CinSc
                             <button
                                 type="button"
                                 onClick={() => { setCapturedImage(null); setCapturedPreview(null); setMode('select'); }}
-                                className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white text-[11px] hover:bg-black/70"
+                                className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white text-[10px] hover:bg-black/70"
                             >
                                 &times;
                             </button>
@@ -319,20 +319,20 @@ export function CinScanner({ scanEndpoint = '/api/ocr/scan', onComplete }: CinSc
                                 <polyline points="17 8 12 3 7 8" />
                                 <line x1="12" y1="3" x2="12" y2="15" />
                             </svg>
-                            <p className="text-[13px] text-[var(--text-muted)]">
+                            <p className="text-[12px] text-[var(--text-muted)]">
                                 Drag & drop an image here, or{' '}
                                 <label className="cursor-pointer font-medium text-[var(--accent)] hover:underline">
                                     browse
                                     <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileInputChange} className="hidden" />
                                 </label>
                             </p>
-                            <p className="text-[11px] text-[var(--text-subtle)]">JPEG, PNG, or WebP &middot; Max 5 MB</p>
+                            <p className="text-[10px] text-[var(--text-subtle)]">JPEG, PNG, or WebP &middot; Max 5 MB</p>
                         </>
                     )}
                 </div>
 
                 {errorMessage && (
-                    <p className="text-[12px] font-medium text-[var(--danger)]">{errorMessage}</p>
+                    <p className="text-[11px] font-medium text-[var(--danger)]">{errorMessage}</p>
                 )}
 
                 <div className="flex gap-2">
@@ -359,7 +359,7 @@ export function CinScanner({ scanEndpoint = '/api/ocr/scan', onComplete }: CinSc
                 <div className="h-10 w-10 animate-spin rounded-full border-3 border-[var(--border)] border-t-[var(--accent)]" />
                 <div className="text-center">
                     <p className="text-sm font-medium text-[var(--text)]">AI is analyzing your card...</p>
-                    <p className="text-[12px] text-[var(--text-muted)]">Extracting text from the CIN image</p>
+                    <p className="text-[11px] text-[var(--text-muted)]">Extracting text from the CIN image</p>
                 </div>
             </div>
         );
@@ -376,8 +376,8 @@ export function CinScanner({ scanEndpoint = '/api/ocr/scan', onComplete }: CinSc
                             <line x1="9" y1="9" x2="15" y2="15" />
                         </svg>
                         <div>
-                            <p className="text-[13px] font-medium text-[var(--danger)]">Scan Failed</p>
-                            <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">{errorMessage}</p>
+                            <p className="text-[12px] font-medium text-[var(--danger)]">Scan Failed</p>
+                            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{errorMessage}</p>
                         </div>
                     </div>
                 </div>
@@ -398,12 +398,12 @@ export function CinScanner({ scanEndpoint = '/api/ocr/scan', onComplete }: CinSc
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--accent)]">
                         <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    <p className="text-[12px] font-medium text-[var(--accent)]">CIN data extracted successfully. Review and correct any errors below.</p>
+                    <p className="text-[11px] font-medium text-[var(--accent)]">CIN data extracted successfully. Review and correct any errors below.</p>
                 </div>
             </div>
 
             <div>
-                <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
                     Identity Information
                 </p>
                 <div className="space-y-3">
@@ -461,7 +461,7 @@ export function CinScanner({ scanEndpoint = '/api/ocr/scan', onComplete }: CinSc
             </div>
 
             <div>
-                <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
                     Additional Information
                 </p>
                 <div className="space-y-3">

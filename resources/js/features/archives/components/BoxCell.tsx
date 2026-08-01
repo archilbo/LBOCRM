@@ -152,7 +152,7 @@ export function BoxCell({ box, isSelected, isDrawerOpen, onSelect }: BoxCellProp
                             'shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.08)]',
                         )}>
                             <div className="flex flex-col items-center justify-center h-full px-1">
-                                <span className="text-[11px] font-mono font-bold text-white/85 leading-tight tracking-wide">{box.code}</span>
+                                <span className="text-[10px] font-mono font-bold text-white/85 leading-tight tracking-wide">{box.code}</span>
                                 <div className="my-1 w-[60%] h-px bg-white/10" />
                                 <div className="flex w-[70%] items-center gap-[2px]">
                                     {[25, 50, 75, 100].map((threshold) => (
@@ -166,7 +166,7 @@ export function BoxCell({ box, isSelected, isDrawerOpen, onSelect }: BoxCellProp
                                     ))}
                                 </div>
                                 <div className="mt-1 flex items-baseline gap-0.5">
-                                    <span className="text-[10px] font-semibold tabular-nums text-white/75">{box.count}</span>
+                                    <span className="text-[9px] font-semibold tabular-nums text-white/75">{box.count}</span>
                                     <span className="text-[7px] text-white/30">/ {box.capacity}</span>
                                 </div>
                             </div>
@@ -224,9 +224,9 @@ export function BoxCell({ box, isSelected, isDrawerOpen, onSelect }: BoxCellProp
                         'shadow-xl shadow-black/40 px-3 py-2.5',
                     )}>
                         <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[13px] font-mono font-bold text-[var(--foreground)]">{box.code}</span>
+                            <span className="text-[12px] font-mono font-bold text-[var(--foreground)]">{box.code}</span>
                             <span className={cn(
-                                'text-[10px] font-medium tabular-nums',
+                                'text-[9px] font-medium tabular-nums',
                                 box.fill >= 90 ? 'text-red-400' : box.fill >= 70 ? 'text-[var(--accent)]' : box.fill >= 30 ? 'text-emerald-400' : 'text-[var(--text-subtle)]',
                             )}>
                                 {box.fill}%
@@ -255,9 +255,9 @@ export function BoxCell({ box, isSelected, isDrawerOpen, onSelect }: BoxCellProp
                                     <div key={s.label} className="flex items-center justify-between">
                                         <div className="flex items-center gap-1.5">
                                             <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                                            <span className="text-[10px] text-[var(--text-muted)]">{s.label}</span>
+                                            <span className="text-[9px] text-[var(--text-muted)]">{s.label}</span>
                                         </div>
-                                        <span className="text-[10px] font-medium tabular-nums text-[var(--foreground)]">{s.count}</span>
+                                        <span className="text-[9px] font-medium tabular-nums text-[var(--foreground)]">{s.count}</span>
                                     </div>
                                 ))}
                             </div>

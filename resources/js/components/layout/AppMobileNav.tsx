@@ -41,7 +41,7 @@ export function AppMobileNav() {
                             key={item.key}
                             type="button"
                             onClick={() => goTo(item.href, item.enabled)}
-                            className={`flex h-11 min-w-[68px] shrink-0 flex-col items-center justify-center rounded-lg px-2 py-1.5 text-[10px] font-bold transition ${
+                            className={`flex h-11 min-w-[68px] shrink-0 flex-col items-center justify-center rounded-lg px-2 py-1.5 text-[9px] font-bold transition ${
                                 active
                                     ? 'bg-[var(--accent)] text-black'
                                     : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'

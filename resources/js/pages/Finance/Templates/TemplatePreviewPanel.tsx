@@ -251,7 +251,7 @@ export function TemplatePreviewPanel({
                         <button type="button" onClick={() => void refreshPreview()} className="inline-flex size-6 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]" title="Refresh">
                             <RefreshCcw size={12} />
                         </button>
-                        <button type="button" onClick={openFullPreview} className="inline-flex h-6 items-center gap-1 rounded bg-[var(--accent)] px-2 text-[10px] font-semibold text-black" title="Fullscreen preview">
+                        <button type="button" onClick={openFullPreview} className="inline-flex h-6 items-center gap-1 rounded bg-[var(--accent)] px-2 text-[9px] font-semibold text-black" title="Fullscreen preview">
                             <Maximize2 size={10} />
                             Full
                         </button>

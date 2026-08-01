@@ -133,13 +133,13 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
                             return (
                                 <div key={s} className="flex items-center gap-3">
                                     <span className={`size-2 rounded-full ${STATUS_DOT_COLORS[s]}`} />
-                                    <span className="w-24 text-[11px] font-medium text-[var(--crm-text)]">{STATUS_LABELS[s]}</span>
+                                    <span className="w-24 text-[10px] font-medium text-[var(--crm-text)]">{STATUS_LABELS[s]}</span>
                                     <div className="flex-1">
                                         <div className="h-2 rounded-full bg-[var(--crm-surface-3)]">
                                             <div className={`h-full rounded-full ${STATUS_COLORS[s].split(' ')[0].replace('bg-', 'bg-')}`} style={{ width: `${Math.max(pct, c > 0 ? 4 : 0)}%` }} />
                                         </div>
                                     </div>
-                                    <span className="w-8 text-right text-[11px] font-semibold text-[var(--crm-text-muted)]">{c}</span>
+                                    <span className="w-8 text-right text-[10px] font-semibold text-[var(--crm-text-muted)]">{c}</span>
                                 </div>
                             );
                         })}
@@ -182,7 +182,7 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
                                         className="flex w-full items-center gap-2 rounded-lg border border-[var(--crm-border)] px-2.5 py-2 text-left transition hover:bg-[var(--crm-surface)]">
                                         <span className={`size-2 shrink-0 rounded-full ${STATUS_DOT_COLORS[t.status]}`} />
                                         <span className="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--crm-text)]">{t.title}</span>
-                                        {t.dueDate ? <span className={`whitespace-nowrap text-[10px] ${overdue ? 'font-semibold text-red-400' : 'text-[var(--crm-text-muted)]'}`}>{t.dueDate}</span> : null}
+                                        {t.dueDate ? <span className={`whitespace-nowrap text-[9px] ${overdue ? 'font-semibold text-red-400' : 'text-[var(--crm-text-muted)]'}`}>{t.dueDate}</span> : null}
                                         <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${PRIORITY_COLORS[t.priority]}`}>{PRIORITY_LABELS[t.priority]}</span>
                                     </button>
                                 );
@@ -199,7 +199,7 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
                     <div className="mb-3 flex items-center gap-2">
                         <ShieldAlert size={14} className="text-red-400" />
                         <p className="text-xs font-bold uppercase tracking-[0.1em] text-red-300">Needs attention</p>
-                        <span className="text-[10px] text-[var(--crm-muted)]">({attentionTasks.length})</span>
+                        <span className="text-[9px] text-[var(--crm-muted)]">({attentionTasks.length})</span>
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                         {attentionTasks.map((t) => (
@@ -207,7 +207,7 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
                                 className="flex items-center gap-2 rounded-lg border border-red-400/10 bg-[var(--crm-surface)] px-3 py-2 text-left transition hover:border-red-400/30">
                                 <span className={`size-2 shrink-0 rounded-full ${STATUS_DOT_COLORS[t.status]}`} />
                                 <span className="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--crm-text)]">{t.title}</span>
-                                <span className="whitespace-nowrap text-[10px] text-[var(--crm-text-muted)]">{t.dueDate || 'No date'}</span>
+                                <span className="whitespace-nowrap text-[9px] text-[var(--crm-text-muted)]">{t.dueDate || 'No date'}</span>
                             </button>
                         ))}
                     </div>

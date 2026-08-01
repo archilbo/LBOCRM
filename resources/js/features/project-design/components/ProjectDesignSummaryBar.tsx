@@ -23,14 +23,14 @@ export function ProjectDesignSummaryBar({ summary }: { summary: ProjectDesignSum
                             <item.icon size={14} />
                         </div>
                         <div className="min-w-0">
-                            <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">{item.label}</p>
+                            <p className="text-[9px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">{item.label}</p>
                             <p className="text-sm font-semibold text-[var(--foreground)]">{item.value}</p>
                         </div>
                     </div>
                 ))}
             </div>
             <div className="mt-3">
-                <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+                <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--text-muted)]">
                     <span>Approval Progress</span>
                     <span>{approvalProgress}%</span>
                 </div>

@@ -35,20 +35,20 @@ export function FolderCard({ record, cityColor }: FolderCardProps) {
             <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
                 <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="font-mono text-[13px] font-medium text-white/90">{dn}</span>
-                        <span className="text-[11px] text-white/40">{record.archiveNumber}</span>
+                        <span className="font-mono text-[12px] font-medium text-white/90">{dn}</span>
+                        <span className="text-[10px] text-white/40">{record.archiveNumber}</span>
                     </div>
-                    <div className="mt-0.5 truncate text-[12px] text-white/50">
+                    <div className="mt-0.5 truncate text-[11px] text-white/50">
                         {record.projectObject || record.clientName}
                     </div>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
                     {record.isOverdue && record.dueAt && (
-                        <span className="text-[11px] text-red-400">Overdue</span>
+                        <span className="text-[10px] text-red-400">Overdue</span>
                     )}
                     <span className={cn(
-                        'rounded border px-1.5 py-[1px] text-[10px] font-medium uppercase leading-tight',
+                        'rounded border px-1.5 py-[1px] text-[9px] font-medium uppercase leading-tight',
                         STATUS_PILL[record.status] || 'border-white/10 text-white/40',
                     )}>
                         {record.status === 'checked_out' ? 'OUT' : record.status === 'ready_to_archive' ? 'READY' : record.status}

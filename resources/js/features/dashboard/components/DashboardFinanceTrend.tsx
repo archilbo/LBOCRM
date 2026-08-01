@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import type { DashboardFinanceTrendPoint } from '@/features/dashboard/types';
+import { formatCompactMoney } from '@/lib/currency';
 import { useTranslation } from '@/lib/i18n';
 
 type Props = {
@@ -20,10 +21,6 @@ type TooltipEntry = {
     value?: number;
     color?: string;
 };
-
-function money(value: number): string {
-    return `${new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 0 }).format(value)} MAD`;
-}
 
 function FinanceTooltip({
     active,
@@ -48,7 +45,7 @@ function FinanceTooltip({
                             <span className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
                             {entry.name}
                         </span>
-                        <span className="font-semibold tabular-nums text-[var(--foreground)]">{money(entry.value ?? 0)}</span>
+                        <span className="font-semibold tabular-nums text-[var(--foreground)]">{formatCompactMoney(entry.value ?? 0)}</span>
                     </div>
                 ))}
             </div>
@@ -75,9 +72,9 @@ export function DashboardFinanceTrend({ points }: Props) {
     return (
         <div className="px-4 pb-4 pt-3">
             <div className="mb-3 flex flex-wrap items-baseline gap-x-5 gap-y-1">
-                <p className="text-lg font-semibold tracking-[-0.03em] text-[var(--foreground)]">{money(totalCollected)}</p>
-                <p className="text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--foreground)]">{money(totalInvoiced)}</span> {t('dashboard.chart.invoiced').toLowerCase()}</p>
-                <div className="ml-auto flex items-center gap-3 text-[11px] font-medium text-[var(--text-muted)]">
+                <p className="text-lg font-semibold tracking-[-0.03em] text-[var(--foreground)]">{formatCompactMoney(totalCollected)}</p>
+                <p className="text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--foreground)]">{formatCompactMoney(totalInvoiced)}</span> {t('dashboard.chart.invoiced').toLowerCase()}</p>
+                <div className="ml-auto flex items-center gap-3 text-[10px] font-medium text-[var(--text-muted)]">
                     <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-400" />{t('dashboard.chart.collected')}</span>
                     <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-[var(--accent)]" />{t('dashboard.chart.invoiced')}</span>
                 </div>

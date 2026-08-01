@@ -159,7 +159,7 @@ export function ProjectDesignTabContent({
                                 </span>
                                 Project Design
                             </span>
-                            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                            <p className="mt-1 text-[10px] text-[var(--text-muted)]">
                                 Design files, revisions, review decisions and remarks.
                             </p>
                         </div>
@@ -173,7 +173,7 @@ export function ProjectDesignTabContent({
                                     variant="ghost"
                                     onPress={() => onModeChange(item.id)}
                                     className={[
-                                        'h-8 min-w-0 rounded-lg border px-3 text-[12px] font-medium whitespace-nowrap',
+                                        'h-8 min-w-0 rounded-lg border px-3 text-[11px] font-medium whitespace-nowrap',
                                         mode === item.id
                                             ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
                                             : 'border-transparent text-[var(--text-muted)] hover:border-[var(--border)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]',
@@ -530,7 +530,7 @@ function EditorWorkspace({
                 <Button
                     size="sm"
                     variant="secondary"
-                    className="mt-4 h-8 text-[11px]"
+                    className="mt-4 h-8 text-[10px]"
                     onPress={() => navigate({ file: '', version: '', asset: '', page: '', remark: '', mode: 'files' })}
                 >
                     <Undo2 size={13} />
@@ -570,7 +570,7 @@ function EditorWorkspace({
                             <FolderOpen size={13} />
                         </span>
                         <div className="min-w-0">
-                            <p className="truncate text-[11px] font-semibold text-[var(--foreground)]">{selectedFile.name}</p>
+                            <p className="truncate text-[10px] font-semibold text-[var(--foreground)]">{selectedFile.name}</p>
                             <div className="mt-0.5 flex items-center gap-1.5">
                                 <Chip size="sm" variant="soft" className="h-4 px-1 text-[8px]">{version.label}</Chip>
                                 <span className="truncate text-[9px] text-[var(--text-muted)]">{activeAsset.originalFilename}</span>
@@ -653,7 +653,7 @@ function EditorWorkspace({
                     />
                 </div>
 
-                <div className="flex h-7 shrink-0 items-center justify-between rounded-b-xl border-x border-b border-[var(--border)] bg-[var(--surface)] px-3 text-[10px] text-[var(--text-muted)]">
+                <div className="flex h-7 shrink-0 items-center justify-between rounded-b-xl border-x border-b border-[var(--border)] bg-[var(--surface)] px-3 text-[9px] text-[var(--text-muted)]">
                     <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate">{selectedFile.name}</span>
                         <span className="text-[var(--text-subtle)]">·</span>
@@ -694,15 +694,15 @@ function EditorWorkspace({
                                     <span className="flex size-9 items-center justify-center rounded-xl bg-amber-400/12 text-amber-300"><AlertTriangle size={17} /></span>
                                     <div>
                                         <Modal.Heading className="text-sm font-semibold">Save your markup?</Modal.Heading>
-                                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Changing the drawing context will discard unsaved annotations.</p>
+                                        <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Changing the drawing context will discard unsaved annotations.</p>
                                     </div>
                                 </div>
                                 <Modal.CloseTrigger aria-label="Keep editing" />
                             </Modal.Header>
                             <Modal.Footer className="app-scrollbar flex min-w-0 flex-nowrap justify-end gap-1.5 overflow-x-auto px-5 py-3">
-                                <Button size="sm" variant="ghost" onPress={() => setPendingNavigation(null)} isDisabled={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[10px]">Keep</Button>
-                                <Button size="sm" variant="secondary" onPress={discardAndContinue} isDisabled={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[10px]">Discard</Button>
-                                <Button size="sm" variant="primary" onPress={() => void continueWithPendingNavigation()} isPending={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[10px]">
+                                <Button size="sm" variant="ghost" onPress={() => setPendingNavigation(null)} isDisabled={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[9px]">Keep</Button>
+                                <Button size="sm" variant="secondary" onPress={discardAndContinue} isDisabled={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[9px]">Discard</Button>
+                                <Button size="sm" variant="primary" onPress={() => void continueWithPendingNavigation()} isPending={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[9px]">
                                     <Save size={13} /> Save & continue
                                 </Button>
                             </Modal.Footer>
@@ -737,12 +737,12 @@ function EditorShortcutsDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOp
                         <Modal.Header className="border-b border-[var(--border)] px-5 py-4 pr-12">
                             <div className="flex items-center gap-3">
                                 <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--accent)]/12 text-[var(--accent)]"><CircleHelp size={17} /></span>
-                                <div><Modal.Heading className="text-sm font-semibold">Editor shortcuts</Modal.Heading><p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Use these while the drawing workspace is active.</p></div>
+                                <div><Modal.Heading className="text-sm font-semibold">Editor shortcuts</Modal.Heading><p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Use these while the drawing workspace is active.</p></div>
                             </div>
                             <Modal.CloseTrigger aria-label="Close shortcuts" />
                         </Modal.Header>
                         <Modal.Body className="divide-y divide-[var(--border)]/70 px-5 py-1">
-                            {shortcuts.map(([keys, label]) => <div key={keys} className="flex items-center justify-between gap-4 py-2.5"><span className="text-[11px] text-[var(--text-muted)]">{label}</span><kbd className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--foreground)]">{keys}</kbd></div>)}
+                            {shortcuts.map(([keys, label]) => <div key={keys} className="flex items-center justify-between gap-4 py-2.5"><span className="text-[10px] text-[var(--text-muted)]">{label}</span><kbd className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--foreground)]">{keys}</kbd></div>)}
                         </Modal.Body>
                     </Modal.Dialog>
                 </Modal.Container>

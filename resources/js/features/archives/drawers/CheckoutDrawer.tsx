@@ -76,7 +76,7 @@ export function CheckoutDrawer({ isOpen, onOpenChange, archives, onConfirm }: Ch
                                 key={days}
                                 type="button"
                                 onClick={() => presetDays(days)}
-                                className="rounded-md border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+                                className="rounded-md border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
                             >
                                 +{days}j
                             </button>

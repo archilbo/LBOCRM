@@ -109,17 +109,17 @@ function FilterSelect({
             variant="secondary"
             fullWidth
         >
-            <Select.Trigger className="h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 text-[11px]">
+            <Select.Trigger className="h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 text-[10px]">
                 <Select.Value />
                 <Select.Indicator />
             </Select.Trigger>
             <Select.Popover className="z-[190] min-w-48 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
                 <ListBox>
-                    <ListBox.Item id="__all__" textValue={`All ${label.toLowerCase()}`} className="rounded-lg px-2 py-1.5 text-[11px]">
+                    <ListBox.Item id="__all__" textValue={`All ${label.toLowerCase()}`} className="rounded-lg px-2 py-1.5 text-[10px]">
                         All {label.toLowerCase()}
                     </ListBox.Item>
                     {options.map((option) => (
-                        <ListBox.Item key={option.id} id={option.id} textValue={option.label} className="rounded-lg px-2 py-1.5 text-[11px]">
+                        <ListBox.Item key={option.id} id={option.id} textValue={option.label} className="rounded-lg px-2 py-1.5 text-[10px]">
                             {option.label}
                         </ListBox.Item>
                     ))}
@@ -223,7 +223,7 @@ export function ProjectDesignFileBrowser({
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--surface)]">
             <div className="flex h-9 shrink-0 items-center border-b border-[var(--border)] px-2">
-                <span className="min-w-0 flex-1 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--foreground)]">
+                <span className="min-w-0 flex-1 truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--foreground)]">
                     Explorer
                 </span>
                 <ExplorerAction label="New folder" onPress={() => setNewFolderOpen(true)}>
@@ -243,10 +243,10 @@ export function ProjectDesignFileBrowser({
                     </Popover.Trigger>
                     <Popover.Content placement="bottom end" offset={6} className="z-[190] w-44 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
                         <Popover.Dialog className="space-y-0.5">
-                            <Button size="sm" variant="ghost" fullWidth onPress={() => issueTreeCommand('expand-all')} className="h-8 justify-start gap-2 rounded-lg px-2 text-[11px]">
+                            <Button size="sm" variant="ghost" fullWidth onPress={() => issueTreeCommand('expand-all')} className="h-8 justify-start gap-2 rounded-lg px-2 text-[10px]">
                                 <ChevronsUpDown size={13} /> Expand all
                             </Button>
-                            <Button size="sm" variant="ghost" fullWidth onPress={() => issueTreeCommand('collapse-all')} className="h-8 justify-start gap-2 rounded-lg px-2 text-[11px]">
+                            <Button size="sm" variant="ghost" fullWidth onPress={() => issueTreeCommand('collapse-all')} className="h-8 justify-start gap-2 rounded-lg px-2 text-[10px]">
                                 <ChevronsDownUp size={13} /> Collapse all
                             </Button>
                         </Popover.Dialog>
@@ -265,7 +265,7 @@ export function ProjectDesignFileBrowser({
                             aria-label="Filter project design files"
                             variant="secondary"
                             fullWidth
-                            className="h-7 rounded-md pl-7 pr-7 text-[10px]"
+                            className="h-7 rounded-md pl-7 pr-7 text-[9px]"
                         />
                         {search ? (
                             <Button isIconOnly size="sm" variant="ghost" aria-label="Clear file filter" onPress={() => { setSearch(''); setPage(1); }} className="absolute right-0 top-0 z-10 h-7 w-7 min-w-0 rounded-md text-[var(--text-muted)]">
@@ -288,12 +288,12 @@ export function ProjectDesignFileBrowser({
                         </Popover.Trigger>
                         <Popover.Content placement="bottom end" offset={6} className="z-[190] w-60 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
                             <Popover.Dialog className="space-y-2 p-3">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Filter & sort</p>
+                                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Filter & sort</p>
                                 <FilterSelect label="Disciplines" value={discipline} options={DISCIPLINE_OPTIONS} onChange={(value) => { setDiscipline(value); setPage(1); }} />
                                 <FilterSelect label="Statuses" value={status} options={STATUS_OPTIONS} onChange={(value) => { setStatus(value); setPage(1); }} />
                                 <FilterSelect label="Sort" value={sort} options={SORT_OPTIONS} onChange={(value) => { setSort(value || 'name'); setPage(1); }} />
                                 {hasFilters ? (
-                                    <Button size="sm" variant="ghost" fullWidth onPress={resetFilters} className="h-8 text-[11px]">
+                                    <Button size="sm" variant="ghost" fullWidth onPress={resetFilters} className="h-8 text-[10px]">
                                         <X size={12} /> Clear filters
                                     </Button>
                                 ) : null}
@@ -305,7 +305,7 @@ export function ProjectDesignFileBrowser({
 
             <div className="flex h-7 shrink-0 items-center border-b border-[var(--border)] bg-[var(--surface-2)]/35 px-2">
                 <ChevronDown size={12} className="mr-1 text-[var(--text-subtle)]" />
-                <span className="min-w-0 flex-1 truncate text-[10px] font-semibold uppercase tracking-[0.09em] text-[var(--foreground)]">Project design</span>
+                <span className="min-w-0 flex-1 truncate text-[9px] font-semibold uppercase tracking-[0.09em] text-[var(--foreground)]">Project design</span>
                 <span className="text-[9px] tabular-nums text-[var(--text-subtle)]">{meta.total}</span>
             </div>
 

@@ -146,7 +146,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
           <div className="flex overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <button type="button" onClick={() => setInputMode('manual')}
               className={cn(
-                'flex flex-1 items-center justify-center gap-2 py-2.5 text-[12px] font-medium transition',
+                'flex flex-1 items-center justify-center gap-2 py-2.5 text-[11px] font-medium transition',
                 inputMode === 'manual'
                   ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                   : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)]',
@@ -155,7 +155,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
             </button>
             <button type="button" onClick={() => setInputMode('scan')}
               className={cn(
-                'flex flex-1 items-center justify-center gap-2 py-2.5 text-[12px] font-medium transition',
+                'flex flex-1 items-center justify-center gap-2 py-2.5 text-[11px] font-medium transition',
                 inputMode === 'scan'
                   ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                   : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)]',
@@ -187,10 +187,10 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
                 />
 
                 <div>
-                  <p className="text-[11px] font-medium text-emerald-500">
+                  <p className="text-[10px] font-medium text-emerald-500">
                     Données CNI appliquées
                   </p>
-                  <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                  <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">
                     {lastScan.appliedCount} champ(s) remplis automatiquement
                     {lastScan.reviewCount > 0
                       ? ` · ${lastScan.reviewCount} valeur(s) doivent être vérifiées manuellement`

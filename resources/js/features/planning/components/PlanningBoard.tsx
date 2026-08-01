@@ -1,4 +1,4 @@
-﻿import { CalendarDays } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppBadge } from '@/components/ui/AppBadge';
 import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
@@ -46,7 +46,7 @@ export function PlanningBoard({ tasks, onSelectTask }: PlanningBoardProps) {
                                 className="min-h-32 rounded-2xl border bg-[var(--surface-2)] p-3"
                             >
                                 <div className="mb-3 flex items-center justify-between gap-2">
-                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                                         {t(`planningWorkspace.board.${day}`)}
                                     </p>
                                     <AppBadge tone="neutral">{dayTasks.length}</AppBadge>
@@ -64,7 +64,7 @@ export function PlanningBoard({ tasks, onSelectTask }: PlanningBoardProps) {
                                             <p className="truncate text-xs font-semibold">
                                                 {task.title}
                                             </p>
-                                            <p className="mt-1 truncate text-[11px] text-[var(--text-muted)]">
+                                            <p className="mt-1 truncate text-[10px] text-[var(--text-muted)]">
                                                 {task.dossierNumber}
                                             </p>
                                             <div className="mt-2">

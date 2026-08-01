@@ -25,11 +25,11 @@ export function PreviewPanel({ record }: PreviewPanelProps) {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                     <button type="button" onClick={() => router.visit(`/archives/${record.id}`)}
-                        className="flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[11px] font-medium text-white/70 hover:text-white hover:bg-white/5 transition">
+                        className="flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[10px] font-medium text-white/70 hover:text-white hover:bg-white/5 transition">
                         <ExternalLink size={11} /> Open
                     </button>
                     {record.isOverdue ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-red-400">
+                        <span className="inline-flex items-center gap-1 text-[10px] text-red-400">
                             <AlertCircle size={11} /> Overdue
                         </span>
                     ) : null}
@@ -49,7 +49,7 @@ export function PreviewPanel({ record }: PreviewPanelProps) {
                 {record.city ? (
                     <div className="flex items-center gap-2">
                         <span className="text-white/50 w-14 shrink-0">City</span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
                             style={{ backgroundColor: `${record.city.color}20`, color: record.city.color }}>
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: record.city.color }} />
                             {record.city.name}

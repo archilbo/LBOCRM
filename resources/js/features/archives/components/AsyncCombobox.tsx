@@ -133,7 +133,7 @@ export function AsyncCombobox({
     return (
         <div className={cn('flex min-w-0 flex-col gap-1', isDisabled && 'opacity-60')}>
             {label ? (
-                <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</label>
+                <label className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</label>
             ) : null}
 
             <div ref={triggerRef} className="relative">
@@ -155,7 +155,7 @@ export function AsyncCombobox({
                     className={cn(
                         'flex h-8 w-full cursor-pointer items-center gap-2 rounded-[var(--radius-md)] border px-2.5 text-xs text-[var(--foreground)] outline-none transition',
                         'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]',
-                        'focus-visible:border-[var(--accent)]',
+                        'focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]',
                         isDisabled && 'pointer-events-none opacity-60',
                     )}
                 >
@@ -247,7 +247,7 @@ export function AsyncCombobox({
             </div>
 
             {error ? (
-                <p className="text-[10px] font-medium text-[var(--danger)]">{error}</p>
+                <p className="text-[9px] font-medium text-[var(--danger)]">{error}</p>
             ) : null}
         </div>
     );

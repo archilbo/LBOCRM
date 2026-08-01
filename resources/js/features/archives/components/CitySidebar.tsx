@@ -35,7 +35,7 @@ export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, on
     if (cells.length === 0) {
         return (
             <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                <h3 className="mb-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold">Archives</h3>
+                <h3 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Archives</h3>
                 <p className="text-xs text-white/40">No archives stored yet.</p>
             </div>
         );
@@ -43,7 +43,7 @@ export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, on
 
     return (
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-            <h3 className="mb-2 px-1 text-[11px] uppercase tracking-wide text-white/50 font-semibold">Archives</h3>
+            <h3 className="mb-2 px-1 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Archives</h3>
             <div className="space-y-0.5">
                 {cells.map((room) => {
                     const isRoomExpanded = expandedRooms.has(room.code);
@@ -68,7 +68,7 @@ export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, on
                                                 <button type="button"
                                                     onClick={() => { toggleBox(room.code + box.code); onSelectBox(room.code, box.code); }}
                                                     className={cn(
-                                                        'flex w-full items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] transition hover:bg-white/5',
+                                                        'flex w-full items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] transition hover:bg-white/5',
                                                         isBoxActive ? 'text-white/80' : 'text-white/50',
                                                     )}>
                                                     {isBoxExpanded ? <ChevronDown size={10} className="shrink-0" /> : <ChevronRight size={10} className="shrink-0" />}
@@ -82,7 +82,7 @@ export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, on
                                                                 <button key={city.code} type="button"
                                                                     onClick={() => onSelectCity(isCityActive ? null : city.code)}
                                                                     className={cn(
-                                                                        'flex w-full items-center gap-2 rounded-lg px-2 py-1 text-[11px] transition hover:bg-white/5',
+                                                                        'flex w-full items-center gap-2 rounded-lg px-2 py-1 text-[10px] transition hover:bg-white/5',
                                                                         isCityActive ? 'text-amber-400' : 'text-white/50',
                                                                     )}>
                                                                     <span

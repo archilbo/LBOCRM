@@ -14,7 +14,7 @@ type FinanceDateFieldsProps = {
     isDisabled?: boolean;
 };
 
-const labelCls = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]';
+const labelCls = 'text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]';
 
 export function FinanceDateFields({ type, issueDate, dueDate, validUntil, onChange, isIssueDateDisabled = false, isDisabled = false }: FinanceDateFieldsProps) {
     return (

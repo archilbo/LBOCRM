@@ -18,7 +18,7 @@ export function TemplateList({ templates, selectedId, onSelect, onDuplicate, onS
         <AppCard className="sticky top-3 max-h-[calc(100vh-104px)] overflow-auto p-2">
             <div className="mb-1.5 flex items-center justify-between gap-2">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Templates</h2>
-                <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">{templates.length}</span>
+                <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[9px] text-[var(--text-muted)]">{templates.length}</span>
             </div>
             <div className="space-y-1">
                 {templates.map((template) => (
@@ -28,7 +28,7 @@ export function TemplateList({ templates, selectedId, onSelect, onDuplicate, onS
                                 <p className="truncate text-xs font-semibold leading-5">{template.name}</p>
                                 {template.isDefault ? <AppBadge tone="green" className="text-[9px]">Defaut</AppBadge> : null}
                             </div>
-                            <p className="truncate font-mono text-[10px] text-[var(--text-muted)]">{template.slug}</p>
+                            <p className="truncate font-mono text-[9px] text-[var(--text-muted)]">{template.slug}</p>
                         </button>
                         <div className="mt-1 flex gap-1">
                             <AppButton size="sm" variant="ghost" onPress={() => onDuplicate(template)}><Copy size={12} /></AppButton>

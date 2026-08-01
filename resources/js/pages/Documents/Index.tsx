@@ -172,7 +172,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                             else if (key === 'delete') setDeleteTarget(doc);
                         }}
                         itemClasses={{
-                            base: 'rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]',
+                            base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]',
                         }}
                     >
                         <Dropdown.Item key="preview" id="preview">
@@ -238,7 +238,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                     return (
                         <div key={step.key} className="flex items-center gap-2">
                             <span className={cn(
-                                'flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold',
+                                'flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold',
                                 isDone && step.key === 'verified' && 'bg-emerald-500/15 text-emerald-400',
                                 isDone && step.key === 'uploaded' && 'bg-sky-500/15 text-sky-400',
                                 isDone && step.key === 'missing' && 'bg-amber-500/15 text-amber-400',
@@ -251,7 +251,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                 {isDone ? <CheckCircle2 size={12} /> : idx + 1}
                             </span>
                             <span className={cn(
-                                'text-[11px]',
+                                'text-[10px]',
                                 isCurrent && 'font-semibold text-[var(--foreground)]',
                                 isDone && !isCurrent && 'text-[var(--text-muted)]',
                                 !isDone && 'text-[var(--text-subtle)]',
@@ -279,7 +279,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                             <p className="max-w-[200px] truncate text-xs font-medium text-[var(--foreground)]">
                                 {row.original.templateName || row.original.originalFilename || 'Document'}
                             </p>
-                            <p className="text-[10px] text-[var(--text-muted)]">
+                            <p className="text-[9px] text-[var(--text-muted)]">
                                 {row.original.documentNumber || row.original.documentType}
                             </p>
                         </div>
@@ -295,7 +295,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                     <FolderKanban size={12} className="shrink-0 text-[var(--text-subtle)]" />
                     <div className="min-w-0">
                         <p className="max-w-[160px] truncate text-xs font-medium text-[var(--foreground)]">{row.original.dossierNumber || '-'}</p>
-                        <p className="max-w-[160px] truncate text-[10px] text-[var(--text-muted)]">{row.original.projectObject || '-'}</p>
+                        <p className="max-w-[160px] truncate text-[9px] text-[var(--text-muted)]">{row.original.projectObject || '-'}</p>
                     </div>
                 </div>
             ),
@@ -318,7 +318,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                             {badge.label}
                         </span>
                         <div className="min-w-0">
-                            <p className="max-w-[140px] truncate text-[11px] text-[var(--foreground)]">{row.original.originalFilename || '-'}</p>
+                            <p className="max-w-[140px] truncate text-[10px] text-[var(--foreground)]">{row.original.originalFilename || '-'}</p>
                             <p className="text-[9px] text-[var(--text-subtle)]">{row.original.sizeLabel || ''}</p>
                         </div>
                     </div>
@@ -337,7 +337,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
             header: 'Uploaded',
             cell: ({ row }) => (
                 <div>
-                    <p className="text-[11px] text-[var(--text-muted)]">{row.original.uploadedAt || '-'}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">{row.original.uploadedAt || '-'}</p>
                     {row.original.verifiedAt && (
                         <p className="text-[9px] text-[var(--text-subtle)]">V: {row.original.verifiedAt}</p>
                     )}
@@ -358,7 +358,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
             <AppShell>
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
+                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
                             {t('documents.eyebrow')}
                         </p>
                         <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">
@@ -389,20 +389,20 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                     <div className="grid gap-3 sm:grid-cols-2">
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                                <p className="text-[12px] font-semibold text-[var(--foreground)]">Verification progress</p>
-                                <span className="text-[13px] font-bold text-[var(--accent)]">{verifiedPct}%</span>
+                                <p className="text-[11px] font-semibold text-[var(--foreground)]">Verification progress</p>
+                                <span className="text-[12px] font-bold text-[var(--accent)]">{verifiedPct}%</span>
                             </div>
                             <div className="relative h-1.5 overflow-hidden rounded-full bg-[var(--surface-3)]">
                                 <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${verifiedPct}%` }} />
                             </div>
-                            <p className="mt-2 text-[11px] text-[var(--text-muted)]">
+                            <p className="mt-2 text-[10px] text-[var(--text-muted)]">
                                 <span className="font-semibold text-emerald-400">{metrics.verified}</span> verified / <span className="font-semibold text-[var(--foreground)]">{metrics.total}</span> total
                             </p>
                         </div>
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                                <p className="text-[12px] font-semibold text-[var(--foreground)]">Missing documents</p>
-                                <span className={cn('text-[13px] font-bold', metrics.missing > 0 ? 'text-amber-400' : 'text-emerald-400')}>
+                                <p className="text-[11px] font-semibold text-[var(--foreground)]">Missing documents</p>
+                                <span className={cn('text-[12px] font-bold', metrics.missing > 0 ? 'text-amber-400' : 'text-emerald-400')}>
                                     {metrics.missing > 0 ? metrics.missing : 'None'}
                                 </span>
                             </div>
@@ -410,7 +410,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                 <div className="space-y-1.5">
                                     {topMissing.map((doc) => (
                                         <button key={doc.id} type="button" onClick={() => router.visit(`/dossiers/${doc.dossierId}`)}
-                                            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
+                                            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
                                             <AlertTriangle size={12} className="shrink-0 text-amber-400" />
                                             <span className="truncate">{doc.dossierNumber} — {doc.templateName || doc.originalFilename}</span>
                                         </button>
@@ -419,7 +419,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                             ) : (
                                 <div className="flex items-center gap-2 rounded-lg bg-emerald-500/8 px-3 py-2">
                                     <CheckCircle2 size={14} className="text-emerald-400" />
-                                    <p className="text-[12px] text-emerald-400">All documents accounted for</p>
+                                    <p className="text-[11px] text-emerald-400">All documents accounted for</p>
                                 </div>
                             )}
                         </div>
@@ -431,7 +431,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                     {(['workspace', 'grouped'] as const).map((mode) => (
                         <button key={mode} type="button" onClick={() => setViewMode(mode)}
                             className={cn(
-                                'relative pb-2.5 text-[12px] font-semibold transition',
+                                'relative pb-2.5 text-[11px] font-semibold transition',
                                 viewMode === mode ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]',
                             )}>
                             {mode === 'workspace' ? 'Workspace' : 'Grouped'}
@@ -461,7 +461,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                             <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                                             <input value={query} onChange={(e) => setQuery(e.target.value)}
                                                 placeholder="Search..."
-                                                className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[11px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+                                                className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[10px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                                             />
                                             {query ? (
                                                 <button type="button" onClick={() => setQuery('')}
@@ -471,7 +471,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                             ) : null}
                                         </div>
                                         <Dropdown>
-                                            <Dropdown.Trigger className={cn('inline-flex h-7 items-center gap-1.5 rounded-lg border px-2 text-[11px] font-medium transition', statusFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
+                                            <Dropdown.Trigger className={cn('inline-flex h-7 items-center gap-1.5 rounded-lg border px-2 text-[10px] font-medium transition', statusFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
                                                 <span className="flex items-center gap-1">
                                                     {statusOptions.find((o) => o.id === statusFilter)?.label || 'Status'}
                                                     <span className="rounded bg-[var(--surface-2)] px-1 py-px text-[9px] font-semibold text-[var(--text-muted)]">
@@ -485,7 +485,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                     selectedKeys={[statusFilter]}
                                                     disabledKeys={statusOptions.filter((o) => o.count === 0).map((o) => o.id)}
                                                     onAction={(key) => setStatusFilter(key as string)}
-                                                    itemClasses={{ base: 'rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40' }}
+                                                    itemClasses={{ base: 'rounded-lg px-2 py-1.5 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40' }}
                                                 >
                                                     {statusOptions.map((opt) => (
                                                         <Dropdown.Item key={opt.id} id={opt.id} textValue={opt.label}>
@@ -501,7 +501,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                 </Dropdown.Menu>
                                             </Dropdown.Popover>
                                         </Dropdown>
-                                        <span className="text-[10px] text-[var(--text-muted)]">{filteredDocuments.length} document(s)</span>
+                                        <span className="text-[9px] text-[var(--text-muted)]">{filteredDocuments.length} document(s)</span>
                                     </div>
                                 }
                             />
@@ -521,7 +521,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                         <p className="truncate text-xs font-medium text-[var(--foreground)]">
                                                             {doc.templateName || doc.originalFilename || 'Document'}
                                                         </p>
-                                                        <p className="text-[10px] text-[var(--text-muted)]">{doc.dossierNumber || ''}</p>
+                                                        <p className="text-[9px] text-[var(--text-muted)]">{doc.dossierNumber || ''}</p>
                                                         <div className="mt-0.5 flex items-center gap-1.5">
                                                             <Chip variant="flat" size="sm" color={STATUS_COLORS[doc.status] || 'default'}>{doc.status}</Chip>
                                                             <span className={cn('inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold', badge.color)}>
@@ -542,7 +542,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                                     else if (key === 'delete') setDeleteTarget(doc);
                                                                 }}
                                                                 itemClasses={{
-                                                                    base: 'rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]',
+                                                                    base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]',
                                                                 }}
                                                             >
                                                                 <Dropdown.Item key="preview"><div className="flex items-center gap-2"><Eye size={14} className="shrink-0 text-sky-400" /><span>Preview</span></div></Dropdown.Item>
@@ -615,7 +615,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                         <div className="flex h-32 items-center justify-center bg-[var(--surface-2)]">
                                             <div className="text-center">
                                                 <FileText size={32} className="mx-auto text-[var(--text-muted)]" />
-                                                <p className="mt-1.5 text-[11px] font-medium text-[var(--text-muted)]">{previewDoc.originalFilename || 'No preview'}</p>
+                                                <p className="mt-1.5 text-[10px] font-medium text-[var(--text-muted)]">{previewDoc.originalFilename || 'No preview'}</p>
                                                 <p className="text-[9px] text-[var(--text-subtle)]">{previewDoc.sizeLabel || ''}</p>
                                             </div>
                                         </div>
@@ -624,27 +624,27 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                             )}
 
                             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
-                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Status</p>
+                                <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Status</p>
                                 <StatusLifecycle status={previewDoc.status} />
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <Card className="border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Project</p>
+                                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Project</p>
                                     <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{previewDoc.dossierNumber || '-'}</p>
                                     <p className="truncate text-xs text-[var(--text-muted)]">{previewDoc.projectObject || '-'}</p>
                                 </Card>
                                 <Card className="border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
+                                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
                                     <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">{previewDoc.clientName || '-'}</p>
                                 </Card>
                                 <Card className="border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">File</p>
+                                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">File</p>
                                     <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{previewDoc.originalFilename || '-'}</p>
                                     <p className="text-xs text-[var(--text-muted)]">{previewDoc.sizeLabel || ''}</p>
                                 </Card>
                                 <Card className="border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Uploaded</p>
+                                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Uploaded</p>
                                     <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">{previewDoc.uploadedAt || '-'}</p>
                                     {previewDoc.verifiedAt && (
                                         <p className="text-xs text-emerald-400">V: {previewDoc.verifiedAt}</p>
@@ -654,35 +654,35 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
 
                             {previewDoc.notes ? (
                                 <Card className="border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Notes</p>
+                                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Notes</p>
                                     <p className="mt-1 text-xs text-[var(--text-muted)]">{previewDoc.notes}</p>
                                 </Card>
                             ) : null}
 
                             <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 shadow-sm">
                                 {previewDoc.status !== 'verified' && (
-                                    <AppButton size="sm" variant="solid" color="primary" className="min-w-0 h-8 text-[11px]" onPress={() => { updateStatus(previewDoc, 'verified'); }}>
+                                    <AppButton size="sm" variant="solid" color="primary" className="min-w-0 h-8 text-[10px]" onPress={() => { updateStatus(previewDoc, 'verified'); }}>
                                         <CheckCircle2 size={13} /> Verify
                                     </AppButton>
                                 )}
                                 {previewDoc.hasFile && previewDoc.downloadUrl && (
                                     <>
                                         {previewDoc.status !== 'verified' && <span className="h-5 w-px bg-[var(--border)]" />}
-                                        <AppButton size="sm" variant="bordered" className="min-w-0 h-8 text-[11px]" onPress={() => { window.location.href = previewDoc.downloadUrl!; }}>
+                                        <AppButton size="sm" variant="bordered" className="min-w-0 h-8 text-[10px]" onPress={() => { window.location.href = previewDoc.downloadUrl!; }}>
                                             <Download size={13} /> Download
                                         </AppButton>
                                     </>
                                 )}
                                 <span className="h-5 w-px bg-[var(--border)]" />
-                                <AppButton size="sm" variant="bordered" className="min-w-0 h-8 text-[11px]" onPress={() => { router.visit(`/dossiers/${previewDoc.dossierId}`); }}>
+                                <AppButton size="sm" variant="bordered" className="min-w-0 h-8 text-[10px]" onPress={() => { router.visit(`/dossiers/${previewDoc.dossierId}`); }}>
                                     <FolderKanban size={13} /> Project
                                 </AppButton>
                                 <span className="h-5 w-px bg-[var(--border)]" />
-                                <AppButton size="sm" variant="bordered" className="min-w-0 h-8 text-[11px]" onPress={() => { updateStatus(previewDoc, 'missing'); }}>
+                                <AppButton size="sm" variant="bordered" className="min-w-0 h-8 text-[10px]" onPress={() => { updateStatus(previewDoc, 'missing'); }}>
                                     <XCircle size={13} /> Missing
                                 </AppButton>
                                 <span className="h-5 w-px bg-[var(--border)]" />
-                                <AppButton size="sm" variant="light" className="min-w-0 h-8 px-2 text-[11px] text-red-400" onPress={() => { setDeleteTarget(previewDoc); setPreviewDoc(null); }}>
+                                <AppButton size="sm" variant="light" className="min-w-0 h-8 px-2 text-[10px] text-red-400" onPress={() => { setDeleteTarget(previewDoc); setPreviewDoc(null); }}>
                                     <Trash2 size={13} /> Delete
                                 </AppButton>
                             </div>

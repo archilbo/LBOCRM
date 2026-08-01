@@ -55,7 +55,7 @@ export function TemplatePlaceholderPanel({ placeholders, onInsert }: TemplatePla
                         ) : (
                             filtered.map((group) => (
                                 <div key={group.group}>
-                                    <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                                    <p className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                                         {group.group}
                                     </p>
                                     {group.items.map((item) => (
@@ -65,7 +65,7 @@ export function TemplatePlaceholderPanel({ placeholders, onInsert }: TemplatePla
                                             onClick={() => handleSelect(item)}
                                             className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-xs text-[var(--text)] transition hover:bg-[var(--surface-2)]"
                                         >
-                                            <code className="text-[11px]">{item}</code>
+                                            <code className="text-[10px]">{item}</code>
                                         </button>
                                     ))}
                                 </div>

@@ -30,7 +30,7 @@ export function DateField({
         return (
             <div className="flex min-w-0 flex-col gap-1">
                 {label ? (
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">{label}</label>
+                    <label className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">{label}</label>
                 ) : null}
                 <div className={cn(
                     'flex h-8 w-full items-center gap-2 rounded-[var(--radius-md)] border px-2.5 text-xs',
@@ -39,7 +39,7 @@ export function DateField({
                     <CalendarIcon size={14} className="shrink-0 text-[var(--text-subtle)]" />
                     <span>{value ? format(value, 'dd MMM yyyy') : '—'}</span>
                 </div>
-                {error ? <p className="text-[10px] font-medium text-[var(--danger)]">{error}</p> : null}
+                {error ? <p className="text-[9px] font-medium text-[var(--danger)]">{error}</p> : null}
             </div>
         );
     }
@@ -47,7 +47,7 @@ export function DateField({
     return (
         <div className="flex min-w-0 flex-col gap-1">
             {label ? (
-                <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">{label}</label>
+                <label className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">{label}</label>
             ) : null}
 
             <Popover placement="bottom" isOpen={isOpen} onOpenChange={setIsOpen}>
@@ -58,6 +58,7 @@ export function DateField({
                             'h-8 w-full justify-start gap-2 rounded-[var(--radius-md)] border px-2.5 text-xs font-normal outline-none transition',
                             'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]',
                             'hover:border-[var(--accent)]',
+                            'focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]',
                             !value && 'text-[var(--text-subtle)]',
                         )}
                     >
@@ -138,7 +139,7 @@ export function DateField({
             </Popover>
 
             {error ? (
-                <p className="text-[10px] font-medium text-[var(--danger)]">{error}</p>
+                <p className="text-[9px] font-medium text-[var(--danger)]">{error}</p>
             ) : null}
         </div>
     );

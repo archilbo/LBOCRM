@@ -22,7 +22,7 @@ export function AppPageHeader({
         <div className={cn('flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between', className)}>
             <div className="min-w-0 flex-1">
                 {eyebrow ? (
-                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
                         {eyebrow}
                     </p>
                 ) : null}

@@ -108,7 +108,7 @@ export function AppDatePicker({
                 {label ? (
                     <label
                         className={cn(
-                            'text-[10px] font-semibold uppercase tracking-[0.08em]',
+                            'text-[9px] font-semibold uppercase tracking-[0.08em]',
                             isInvalid
                                 ? 'text-[var(--danger)]'
                                 : 'text-[var(--text-subtle)]',
@@ -260,7 +260,7 @@ export function AppDatePicker({
                 </DatePicker>
 
                 {error ? (
-                    <p className="text-[10px] font-medium text-[var(--danger)]">
+                    <p className="text-[9px] font-medium text-[var(--danger)]">
                         {error}
                     </p>
                 ) : null}

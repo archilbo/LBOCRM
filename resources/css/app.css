@@ -20,6 +20,7 @@
     --color-success: var(--success);
     --color-warning: var(--warning);
     --color-info: var(--info);
+    --color-secondary: var(--secondary);
 
     --radius-xs: 6px;
     --radius-sm: 8px;
@@ -27,6 +28,28 @@
     --radius-lg: 16px;
     --radius-xl: 20px;
     --radius-pill: 999px;
+
+    /* --------------------------------------------------------
+     * TYPOGRAPHY SCALE (2026-07-31): one notch smaller than
+     * Tailwind defaults for denser, more refined typography.
+     * HeroUI v3 consumes these same tokens (var(--text-sm) …),
+     * so every component — app + HeroUI + React Aria — moves
+     * together. Line-heights stay proportional (default
+     * --text-*-line-height ratio vars are preserved).
+     * -------------------------------------------------------- */
+    --text-xs: 0.6875rem; /* 11px (default 12px) */
+    --text-sm: 0.8125rem; /* 13px (default 14px) */
+    --text-base: 0.9375rem; /* 15px (default 16px) */
+    --text-lg: 1.0625rem; /* 17px (default 18px) */
+    --text-xl: 1.1875rem; /* 19px (default 20px) */
+    --text-2xl: 1.375rem; /* 22px (default 24px) */
+    --text-3xl: 1.75rem; /* 28px (default 30px) */
+    --text-4xl: 2.125rem; /* 34px (default 36px) */
+    --text-5xl: 2.75rem; /* 44px (default 48px) */
+    --text-6xl: 3.25rem; /* 52px (default 60px) */
+    --text-7xl: 4rem; /* 64px (default 72px) */
+    --text-8xl: 5rem; /* 80px (default 96px) */
+    --text-9xl: 6.75rem; /* 108px (default 128px) */
 }
 
 @plugin "tailwindcss-react-aria-components";
@@ -65,6 +88,10 @@ summary {
 
     --danger: #dc2626;
     --danger-hover: #b91c1c;
+
+    --secondary: #8b5cf6;
+    --secondary-hover: #7c3aed;
+    --secondary-foreground: #ffffff;
 
     --success: #16a34a;
     --warning: #d97706;
@@ -107,6 +134,10 @@ summary {
     --danger: #f87171;
     --danger-hover: #ef4444;
 
+    --secondary: #a78bfa;
+    --secondary-hover: #c4b5fd;
+    --secondary-foreground: #12110f;
+
     --success: #4ade80;
     --warning: #fbbf24;
     --info: #38bdf8;
@@ -135,6 +166,7 @@ summary {
     --field-border: var(--border);
     --field-border-hover: var(--border-strong);
     --field-border-focus: var(--accent);
+    --field-border-width: 1px;
     --segment: var(--surface-2);
     --segment-foreground: var(--foreground);
     --separator: var(--border);
@@ -144,6 +176,9 @@ summary {
     --accent-soft-hover: color-mix(in srgb, var(--accent) 20%, transparent);
     --danger-soft: color-mix(in srgb, var(--danger) 14%, transparent);
     --danger-soft-foreground: var(--danger);
+    --secondary-soft: color-mix(in srgb, var(--secondary) 14%, transparent);
+    --secondary-soft-foreground: var(--secondary);
+    --secondary-soft-hover: color-mix(in srgb, var(--secondary) 20%, transparent);
     --success-soft: color-mix(in srgb, var(--success) 14%, transparent);
     --success-soft-foreground: var(--success);
     --warning-soft: color-mix(in srgb, var(--warning) 14%, transparent);
@@ -165,7 +200,7 @@ body {
     color: var(--foreground);
     font-family: var(--font-sans);
     font-synthesis: none;
-    font-size: 14px;
+    font-size: 13px; /* inherited text baseline — one notch below default 14px */
     font-kerning: normal;
     letter-spacing: -0.006em;
     text-rendering: optimizeLegibility;
@@ -273,6 +308,34 @@ samp {
 .react-aria-Input[data-invalid],
 .react-aria-TextArea[data-invalid] {
     border-color: var(--danger);
+}
+
+/* ============================================================
+ * GLOBAL FOCUS-VISIBLE POLICY
+ * ------------------------------------------------------------
+ * DESIGN DECISION (2026-07-31): focus outlines are DISABLED for
+ * all elements — keyboard (TAB) navigation never paints a hard
+ * outline rectangle. Focus indication is conveyed exclusively
+ * with soft accent RINGS (box-shadow utilities) and/or border
+ * color changes; see the `.focus-visible:ring-*` utilities in
+ * components and HeroUI v3's baked-in `.button:focus-visible`
+ * ring styles.
+ *
+ * 1. Never re-introduce a global `:focus-visible { outline: ... }`
+ *    rule — it was tried twice and removed on request.
+ * 2. Mouse clicks never paint any focus indicator.
+ * 3. Do NOT pair the absence of an outline with a bare
+ *    `hover:`-only style on interactive elements — keep a ring
+ *    (box-shadow) so keyboard users still see where they are.
+ * 4. HeroUI v3 primitives ship their own keyboard rings
+ *    (`.button`, `.input`, `.dropdown__trigger`, `.menu-item`,
+ *    `.autocomplete__trigger`, `.calendar__cell`, ...).
+ * 5. React Aria primitives get rings from the `.react-aria-*`
+ *    base rules above.
+ * ============================================================ */
+*:focus,
+*:focus-visible {
+    outline: none !important;
 }
 
 .react-aria-FieldError {
@@ -490,7 +553,7 @@ body {
     color: var(--foreground);
     font-family: var(--font-sans);
     font-synthesis: none;
-    font-size: 14px;
+    font-size: 13px; /* inherited text baseline — one notch below default 14px */
     letter-spacing: -0.006em;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -661,8 +724,6 @@ html.pd-editor-fullscreen .pd-tabs-container {
 /* Finance tables share one dense, readable operational pattern. */
 .finance-table-shell {
     min-width: 0;
-    overflow-x: auto;
-    scrollbar-gutter: stable;
 }
 
 .finance-table {

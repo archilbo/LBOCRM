@@ -1,4 +1,4 @@
-﻿import { CheckCircle2, ClipboardList } from 'lucide-react';
+import { CheckCircle2, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -26,7 +26,7 @@ function ProgressBar({ value }: { value: number }) {
                     style={{ width: `${value}%` }}
                 />
             </div>
-            <span className="w-9 text-right text-[11px] font-medium text-[var(--text-muted)]">
+            <span className="w-9 text-right text-[10px] font-medium text-[var(--text-muted)]">
                 {value}%
             </span>
         </div>
@@ -36,7 +36,7 @@ function ProgressBar({ value }: { value: number }) {
 function DetailItem({ label, value }: { label: string; value: string }) {
     return (
         <div className="rounded-xl border bg-[var(--surface-2)] p-3">
-            <p className="text-[11px] font-medium text-[var(--text-muted)]">{label}</p>
+            <p className="text-[10px] font-medium text-[var(--text-muted)]">{label}</p>
             <p className="mt-1 truncate text-sm font-semibold">{value}</p>
         </div>
     );

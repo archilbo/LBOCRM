@@ -245,7 +245,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
             <Popover>
                 <Popover.Trigger>
                     <button type="button"
-                        className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:border-[var(--accent)]">
+                        className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-[10px] font-medium text-[var(--text)] transition hover:border-[var(--accent)]">
                         <span>{selectedKeys.size} mois selectionne(s)</span>
                         <ChevronRight size={12} className="text-[var(--text-muted)]" />
                     </button>
@@ -253,9 +253,9 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                 <Popover.Content placement="bottom start" className="w-64 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
                     <div className="max-h-72 overflow-y-auto">
                         <div className="mb-1.5 flex items-center justify-between gap-2 px-2 py-1">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Mois</span>
+                            <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Mois</span>
                             <button type="button" onClick={() => setSelectedKeys(allSelected ? new Set() : new Set(sortedMonths.map((m) => m.key)))}
-                                className={`rounded-lg border px-2 py-0.5 text-[10px] font-medium transition ${
+                                className={`rounded-lg border px-2 py-0.5 text-[9px] font-medium transition ${
                                     allSelected
                                         ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
                                         : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]'
@@ -270,12 +270,12 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                 return (
                                     <div key={year} className="border-b border-[var(--border)] last:border-0">
                                         <button type="button" onClick={() => toggleYear(year)}
-                                            className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-[11px] font-semibold text-[var(--text)] transition hover:bg-[var(--surface-2)] rounded-md">
+                                            className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-[10px] font-semibold text-[var(--text)] transition hover:bg-[var(--surface-2)] rounded-md">
                                             <span className={`transition-transform duration-150 ${isOpen ? 'rotate-90' : ''}`}>
                                                 <ChevronRight size={12} />
                                             </span>
                                             {year}
-                                            <span className="ml-auto text-[10px] font-normal text-[var(--text-muted)]">
+                                            <span className="ml-auto text-[9px] font-normal text-[var(--text-muted)]">
                                                 {selectedInYear > 0 && <span className="text-[var(--accent)]">{selectedInYear}/{yearMonths.length} </span>}
                                                 {yearMonths.length} mois
                                             </span>
@@ -286,7 +286,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                                     const active = selectedKeys.has(month.key);
                                                     return (
                                                         <button key={month.key} type="button" onClick={() => toggleMonth(month.key)}
-                                                            className={`rounded-lg border px-2 py-0.5 text-[10px] font-medium transition ${
+                                                            className={`rounded-lg border px-2 py-0.5 text-[9px] font-medium transition ${
                                                                 active
                                                                     ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
                                                                     : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]'
@@ -330,7 +330,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                             const active = typeFilter === f.id;
                             return (
                                 <button key={f.id} type="button" onClick={() => setTypeFilter(f.id)}
-                                    className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition ${
+                                    className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition ${
                                         active
                                             ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
                                             : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
@@ -350,14 +350,14 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                         <Popover>
                             <Popover.Trigger>
                                 <AppButton size="sm" variant="ghost"
-                                    className="h-7 min-w-0 gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-[11px] font-medium text-[var(--text)] transition hover:border-[var(--accent)]">
+                                    className="h-7 min-w-0 gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-[10px] font-medium text-[var(--text)] transition hover:border-[var(--accent)]">
                                     <Download size={12} />
                                     Exporter
                                 </AppButton>
                             </Popover.Trigger>
                             <Popover.Content placement="bottom end" className="min-w-44 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                                 <button type="button" onClick={exportPdf}
-                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[11px] font-medium text-rose-400 transition hover:bg-rose-500/10">
+                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[10px] font-medium text-rose-400 transition hover:bg-rose-500/10">
                                     <FileText size={14} />
                                     <span className="flex flex-col items-start leading-tight">
                                         <span>PDF</span>
@@ -365,7 +365,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                     </span>
                                 </button>
                                 <button type="button" onClick={exportExcel}
-                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[11px] font-medium text-emerald-400 transition hover:bg-emerald-500/10">
+                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[10px] font-medium text-emerald-400 transition hover:bg-emerald-500/10">
                                     <FileSpreadsheet size={14} />
                                     <span className="flex flex-col items-start leading-tight">
                                         <span>Excel</span>
@@ -373,7 +373,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                     </span>
                                 </button>
                                 <button type="button" onClick={exportCsv}
-                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[11px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
+                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[10px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
                                     <FileDown size={14} />
                                     <span className="flex flex-col items-start leading-tight">
                                         <span>CSV</span>
@@ -386,7 +386,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                             <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Rechercher..."
-                                className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[11px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+                                className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[10px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                             />
                             {searchQuery ? (
                                 <button type="button" onClick={() => setSearchQuery('')}
@@ -401,7 +401,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                 <div className="finance-table-shell">
                     <table className="finance-table min-w-[700px] text-xs">
                         <thead>
-                            <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                            <tr className="border-b border-[var(--border)] text-left text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                                 <th className="w-8 px-3 py-2"></th>
                                 <FinanceSortableHeader column="number" label="Numero" sort={sort} direction={direction} onSort={changeSort} />
                                 <FinanceSortableHeader column="client" label="Client" sort={sort} direction={direction} onSort={changeSort} />
@@ -420,7 +420,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                         className="cursor-pointer border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0"
                                         onClick={() => row._type === 'document' && router.visit(`/finance/documents/${row.id}`)}>
                                         <td className="px-3 py-2">
-                                            <span className={`inline-flex size-5 items-center justify-center rounded text-[10px] font-bold ${meta.bg} ${meta.color}`}>
+                                            <span className={`inline-flex size-5 items-center justify-center rounded text-[9px] font-bold ${meta.bg} ${meta.color}`}>
                                                 {meta.label}
                                             </span>
                                         </td>
@@ -435,11 +435,11 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                         </td>
                                         <td className="px-3 py-2">
                                             {row._type === 'document' ? (
-                                                <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${statusStyle(row.status)}`}>
+                                                <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${statusStyle(row.status)}`}>
                                                     {statusLabel(row.status)}
                                                 </span>
                                             ) : (
-                                                <span className="text-[10px] text-[var(--text-muted)]">Paiement</span>
+                                                <span className="text-[9px] text-[var(--text-muted)]">Paiement</span>
                                             )}
                                         </td>
                                         <td className="px-3 py-2 text-right font-semibold text-[var(--text)]">
@@ -466,8 +466,8 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                 </div>
 
                 <div className="flex items-center justify-between border-t border-[var(--border)] px-3 py-2">
-                    <p className="text-[10px] text-[var(--text-muted)]">{filteredRows.length} element(s)</p>
-                    <p className="text-[10px] text-[var(--text-muted)]">{selectedMonths.length} mois selectionne(s)</p>
+                    <p className="text-[9px] text-[var(--text-muted)]">{filteredRows.length} element(s)</p>
+                    <p className="text-[9px] text-[var(--text-muted)]">{selectedMonths.length} mois selectionne(s)</p>
                 </div>
                 <AppPagination page={page} pageSize={pageSize} total={filteredRows.length} onChange={setPage} variant="reference" />
             </div>

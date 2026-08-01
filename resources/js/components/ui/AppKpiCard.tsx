@@ -76,29 +76,33 @@ export function AppKpiCard({
 
     const content = (
         <>
-            <div className="p-3 pb-1.5">
-                <div className="flex items-center justify-between gap-1.5">
-                    <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                        {icon}
-                        <span className="truncate">{label}</span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
+            <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-2 py-4 px-3">
+                {/* col 1, row-span 2 — icon tile (padding-based, sized to icon) */}
+                {icon ? <span className="col-start-1 row-span-2 row-start-1 flex shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] p-2">{icon}</span> : null}
+                {/* col 2, row 1 — label */}
+                <div className="col-start-2 row-start-1 flex min-w-0 items-center text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    <span className="truncate">{label}</span>
+                </div>
+                {/* col 2, row 2 — other label (detail) + trend */}
+                <div className="col-start-2 row-start-2 flex min-w-0 items-center gap-1.5">
+                    {detail ? <p className="truncate text-[10px] text-[var(--text-muted)]">{detail}</p> : null}
+                    <span className="ml-auto flex shrink-0 items-center gap-1.5">
                         {trailing}
                         {trend ? (
-                            <span className={cn('inline-flex items-center gap-0.5 text-[11px] font-medium', isFavorableTrend ? 'text-emerald-400' : 'text-rose-400')}>
+                            <span className={cn('inline-flex items-center gap-0.5 text-[10px] font-medium', isFavorableTrend ? 'text-emerald-400' : 'text-rose-400')}>
                                 {trend.isUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
                                 {trend.label}
                             </span>
                         ) : showAutoTrend && sparklineData && trendPct !== 0 ? (
-                            <span className={cn('inline-flex items-center gap-0.5 text-[11px] font-medium', isFavorableTrend ? 'text-emerald-400' : 'text-rose-400')}>
+                            <span className={cn('inline-flex items-center gap-0.5 text-[10px] font-medium', isFavorableTrend ? 'text-emerald-400' : 'text-rose-400')}>
                                 {trendPct >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
                                 {Math.abs(trendPct).toFixed(1)}%
                             </span>
                         ) : null}
-                    </div>
+                    </span>
                 </div>
-                <p className={cn('mt-1 text-base font-bold tracking-tight text-[var(--text)]', valueClassName)} title={title}>{value}</p>
-                {detail ? <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">{detail}</p> : null}
+                {/* col 3, row-span 2 — value number */}
+                <p className={cn('col-start-3 row-span-2 row-start-1 flex items-center justify-end text-lg font-bold tracking-tight text-[var(--text)]', valueClassName)} title={title}>{value}</p>
             </div>
             {sparklineData ? (
                 <div className="h-6 w-full px-1 pb-1" aria-hidden="true">

@@ -60,7 +60,7 @@ export function DesignReviewDecisionDialog({
                         <Modal.CloseTrigger aria-label="Close review decision" className="absolute right-3 top-3 z-10" />
                         <Modal.Header className="border-b border-[var(--border)] px-5 py-4 pr-12">
                             <Modal.Heading className="text-sm font-semibold">Review decision</Modal.Heading>
-                            <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Record the outcome for this design revision.</p>
+                            <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">Record the outcome for this design revision.</p>
                         </Modal.Header>
                         <Modal.Body className="space-y-3 px-5 py-4">
                             <div className="grid gap-2 sm:grid-cols-3">
@@ -71,7 +71,7 @@ export function DesignReviewDecisionDialog({
                                         onPress={() => setDecision(id)}
                                         aria-pressed={decision === id}
                                         className={cn(
-                                            'h-auto min-h-20 flex-col gap-2 rounded-xl border text-[10px]',
+                                            'h-auto min-h-20 flex-col gap-2 rounded-xl border text-[9px]',
                                             decision === id
                                                 ? tone
                                                 : 'border-[var(--border)] bg-[var(--surface-2)]/30 text-[var(--text-muted)] hover:border-[var(--accent)]/30 hover:text-[var(--foreground)]',

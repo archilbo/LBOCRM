@@ -39,12 +39,12 @@ function FilterSelect({
             variant="secondary"
             className="min-w-36"
         >
-            <Select.Trigger className="h-8 text-[10px]"><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Trigger className="h-8 text-[9px]"><Select.Value /><Select.Indicator /></Select.Trigger>
             <Select.Popover className="z-[160] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
                 <ListBox>
-                    <ListBox.Item id="__all__" textValue={`All ${label.toLowerCase()}`} className="rounded-lg px-2 py-1.5 text-[11px]">All {label.toLowerCase()}</ListBox.Item>
+                    <ListBox.Item id="__all__" textValue={`All ${label.toLowerCase()}`} className="rounded-lg px-2 py-1.5 text-[10px]">All {label.toLowerCase()}</ListBox.Item>
                     {options.map((option) => (
-                        <ListBox.Item key={option} id={option} textValue={option} className="rounded-lg px-2 py-1.5 text-[11px] capitalize">
+                        <ListBox.Item key={option} id={option} textValue={option} className="rounded-lg px-2 py-1.5 text-[10px] capitalize">
                             {option.replace(/_/g, ' ')}
                         </ListBox.Item>
                     ))}
@@ -77,7 +77,7 @@ export function DesignRemarksTab({ dossierId }: { dossierId: number }) {
                         aria-label="Search remarks"
                         variant="secondary"
                         fullWidth
-                        className="h-8 pl-8 text-[11px]"
+                        className="h-8 pl-8 text-[10px]"
                     />
                 </div>
                 <div className="flex gap-2 overflow-x-auto">
@@ -92,8 +92,8 @@ export function DesignRemarksTab({ dossierId }: { dossierId: number }) {
                 <Card variant="secondary" className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)]/25">
                     <Card.Content className="flex min-h-52 flex-col items-center justify-center p-6 text-center">
                         <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]"><MessageSquareText size={17} /></span>
-                        <p className="mt-2 text-[12px] font-medium text-[var(--foreground)]">No remarks found</p>
-                        <p className="mt-1 text-[10px] text-[var(--text-muted)]">Remarks appear after a design annotation is reviewed.</p>
+                        <p className="mt-2 text-[11px] font-medium text-[var(--foreground)]">No remarks found</p>
+                        <p className="mt-1 text-[9px] text-[var(--text-muted)]">Remarks appear after a design annotation is reviewed.</p>
                     </Card.Content>
                 </Card>
             ) : (
@@ -107,8 +107,8 @@ export function DesignRemarksTab({ dossierId }: { dossierId: number }) {
                                             <Chip size="sm" variant="soft" className={cn('h-4 px-1 text-[8px] capitalize', SEVERITY_STYLES[remark.severity] ?? '')}>{remark.severity}</Chip>
                                             <Chip size="sm" variant="soft" className={cn('h-4 px-1 text-[8px] capitalize', STATUS_STYLES[remark.status] ?? '')}>{remark.status.replace(/_/g, ' ')}</Chip>
                                         </div>
-                                        <p className="mt-2 text-[11px] font-semibold text-[var(--foreground)]">{remark.title}</p>
-                                        {remark.description ? <p className="mt-1 line-clamp-3 text-[10px] leading-4 text-[var(--text-muted)]">{remark.description}</p> : null}
+                                        <p className="mt-2 text-[10px] font-semibold text-[var(--foreground)]">{remark.title}</p>
+                                        {remark.description ? <p className="mt-1 line-clamp-3 text-[9px] leading-4 text-[var(--text-muted)]">{remark.description}</p> : null}
                                     </div>
                                 </div>
                                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border)] pt-2 text-[8px] text-[var(--text-subtle)]">

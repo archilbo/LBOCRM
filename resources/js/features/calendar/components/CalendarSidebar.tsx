@@ -58,7 +58,7 @@ export function CalendarSidebar({
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
                         placeholder="Search events..."
-                        className="h-8 w-full rounded-lg border border-white/8 bg-white/5 pl-8 pr-8 text-xs text-white placeholder-[var(--crm-text-muted)] outline-none transition focus:border-[var(--crm-gold)]/40"
+                        className="h-8 w-full rounded-lg border border-white/8 bg-white/5 pl-8 pr-8 text-xs text-white placeholder-[var(--crm-text-muted)] outline-none transition focus:border-[var(--crm-gold)]/40 focus:ring-2 focus:ring-[var(--crm-gold)]/20"
                     />
                     {search ? (
                         <button
@@ -87,14 +87,14 @@ export function CalendarSidebar({
                 {/* Today mini-list */}
                 {todayEvents.length > 0 && (
                     <div className="mt-3">
-                        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--crm-gold)]">Today</p>
+                        <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-gold)]">Today</p>
                         <div className="space-y-0.5">
                             {todayEvents.map((e) => (
                                 <button
                                     key={e.id}
                                     type="button"
                                     onClick={() => onEventClick(e)}
-                                    className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-[11px] font-medium text-white/70 transition hover:bg-white/5">
+                                    className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-[10px] font-medium text-white/70 transition hover:bg-white/5">
                                     <span className={`size-1.5 shrink-0 rounded-full ${EVENT_TYPE_CLASSES[e.type]?.split(' ')[0] || 'bg-zinc-400'}`} />
                                     <span className="min-w-0 flex-1 truncate">{e.title}</span>
                                 </button>
@@ -107,7 +107,7 @@ export function CalendarSidebar({
                 <div className="my-3 border-t border-white/8" />
 
                 {/* Event type filter */}
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">Event type</p>
+                <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">Event type</p>
                 <div className="space-y-0.5">
                     {TYPES.map((t) => (
                         <button
@@ -131,12 +131,12 @@ export function CalendarSidebar({
                 <div className="my-3 border-t border-white/8" />
 
                 {/* User filter */}
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">User</p>
+                <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">User</p>
                 <div className="flex flex-wrap gap-1">
                     <button
                         type="button"
                         onClick={() => onFilterUserIdChange('')}
-                        className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition ${
+                        className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${
                             filterUserId === '' ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)] hover:text-white'
                         }`}>All</button>
                     {users.map((u) => (
@@ -144,7 +144,7 @@ export function CalendarSidebar({
                             key={u.id}
                             type="button"
                             onClick={() => onFilterUserIdChange(String(u.id))}
-                            className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition ${
+                            className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${
                                 filterUserId === String(u.id) ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)] hover:text-white'
                             }`}>
                             {u.name.split(' ')[0]}

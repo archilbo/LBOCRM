@@ -102,7 +102,7 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
             ) : null}
             <div className="min-w-0 max-w-[72%] sm:max-w-[68%]">
                 {isGroup && !isMine && !grouped ? (
-                    <p className={`mb-1 px-1 text-[10px] font-semibold ${avatarTone.text}`}>{msg.user?.name || msg.userName || 'Utilisateur'}</p>
+                    <p className={`mb-1 px-1 text-[9px] font-semibold ${avatarTone.text}`}>{msg.user?.name || msg.userName || 'Utilisateur'}</p>
                 ) : null}
                 {msg.isForwarded ? <p className={`mb-0.5 text-[9px] text-[var(--crm-muted)] ${isMine ? 'text-right' : 'text-left'}`}>Transféré</p> : null}
                 {msg.replyTo ? (
@@ -416,7 +416,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                             <Chip size="sm" variant="flat" className={`${catMeta.tone.bg} ${catMeta.tone.text}`}>{catMeta.label}</Chip>
                         ) : null}
                     </div>
-                    {statusLine ? <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{statusLine}</p> : null}
+                    {statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
                 </div>
                 {searchOpen ? (
                     <div className="flex items-center gap-1">
@@ -448,7 +448,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                             <div className="flex flex-col items-center justify-center py-12">
                                 <MessageSquare size={32} className="text-[var(--crm-muted)]" />
                                 <p className="mt-2 text-xs text-[var(--crm-text-muted)]">Aucun message</p>
-                                <p className="mt-0.5 text-[10px] text-[var(--crm-muted)]">Envoyez un message pour demarrer la conversation.</p>
+                                <p className="mt-0.5 text-[9px] text-[var(--crm-muted)]">Envoyez un message pour demarrer la conversation.</p>
                             </div>
                         ) : (
                             <>
@@ -494,8 +494,8 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                         <div className="flex items-center gap-2 border-t border-[var(--crm-border)] bg-[var(--crm-surface)] px-4 py-2 shrink-0">
                             <div className="h-8 w-0.5 rounded-full bg-[var(--crm-gold)]" />
                             <div className="min-w-0 flex-1">
-                                <p className="text-[10px] font-semibold text-[var(--crm-gold)]">Reponse a {replyTo.userName || 'un message'}</p>
-                                <p className="truncate text-[10px] text-[var(--crm-text-muted)]">{replyTo.body || (replyTo.attachments && replyTo.attachments.length > 0 ? 'Photo' : '')}</p>
+                                <p className="text-[9px] font-semibold text-[var(--crm-gold)]">Reponse a {replyTo.userName || 'un message'}</p>
+                                <p className="truncate text-[9px] text-[var(--crm-text-muted)]">{replyTo.body || (replyTo.attachments && replyTo.attachments.length > 0 ? 'Photo' : '')}</p>
                             </div>
                             <InboxIconButton size="sm" label="Annuler la reponse" onPress={() => setReplyTo(null)}><X size={14} /></InboxIconButton>
                         </div>
@@ -506,8 +506,8 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                         <div className="flex items-center gap-2 border-t border-[var(--crm-border)] bg-[var(--crm-surface)] px-4 py-2 shrink-0">
                             <div className="h-8 w-0.5 rounded-full bg-emerald-400" />
                             <div className="min-w-0 flex-1">
-                                <p className="text-[10px] font-semibold text-emerald-400">Modification du message</p>
-                                <p className="truncate text-[10px] text-[var(--crm-text-muted)]">{editingMsg.body || ''}</p>
+                                <p className="text-[9px] font-semibold text-emerald-400">Modification du message</p>
+                                <p className="truncate text-[9px] text-[var(--crm-text-muted)]">{editingMsg.body || ''}</p>
                             </div>
                             <InboxIconButton size="sm" label="Annuler la modification" onPress={() => { setEditingMsg(null); setText(''); if (textareaRef.current) textareaRef.current.style.height = 'auto'; }}><X size={14} /></InboxIconButton>
                         </div>
@@ -521,7 +521,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                     {url ? <img src={url} alt="" className="size-14 rounded-lg object-cover border border-[var(--crm-border)]" /> : (
                                         <div className="flex h-14 w-40 items-center gap-2 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface-2)] px-2">
                                             <FileText size={16} className="shrink-0 text-[var(--crm-gold)]" />
-                                            <span className="truncate text-[10px] text-[var(--crm-text)]">{file.name}</span>
+                                            <span className="truncate text-[9px] text-[var(--crm-text)]">{file.name}</span>
                                         </div>
                                     )}
                                     <InboxIconButton size="sm" label={`Retirer ${file.name}`} tone="danger" onPress={() => removeImage(i)} className="absolute -right-2 -top-2 size-6 min-w-6 bg-red-500 text-white"><X size={10} /></InboxIconButton>
@@ -541,7 +541,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                     </span>
                                 ))}
                                 </div>
-                                <p className="min-w-0 truncate text-[11px] font-semibold text-[var(--crm-text-muted)]">
+                                <p className="min-w-0 truncate text-[10px] font-semibold text-[var(--crm-text-muted)]">
                                     <span className="text-[var(--crm-text)]">
                                         {typingUsers.length === 1 ? typingUsers[0].name :
                                             typingUsers.length === 2 ? `${typingUsers[0].name} + ${typingUsers[1].name}` :
@@ -565,7 +565,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.zip" multiple className="hidden" onChange={handleImageSelect} />
                             <TextArea ref={textareaRef} value={text} onChange={(event) => { setText(event.target.value); sendTyping(); event.target.style.height = 'auto'; event.target.style.height = `${Math.min(event.target.scrollHeight, 120)}px`; }} onKeyDown={handleKeyDown}
                                 aria-label="Message" placeholder="Ecrire un message..." rows={1}
-                                className="min-h-9 flex-1 resize-none border-0 bg-transparent px-2 py-2 text-xs text-[var(--text)] outline-none" />
+                                className="min-h-9 flex-1 resize-none rounded-lg border-0 bg-transparent px-2 py-2 text-xs text-[var(--text)] outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_15%,transparent)]" />
                             <Button isIconOnly variant="primary" size="sm" aria-label={editingMsg ? 'Enregistrer la modification' : 'Envoyer'} onPress={editingMsg ? handleUpdate : handleSend} isDisabled={!canSend || sending} className="shrink-0 rounded-full">
                                 {sending ? <Spinner size="sm" color="current" /> : editingMsg ? <Check size={16} /> : <Send size={16} />}
                             </Button>

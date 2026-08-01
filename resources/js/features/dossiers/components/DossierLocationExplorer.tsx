@@ -177,7 +177,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                                 <Icon size={15} className={card.color} />
                             </span>
                             <div className="min-w-0">
-                                <p className="text-[11px] font-medium text-[var(--text-muted)]">{card.label}</p>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)]">{card.label}</p>
                                 <p className={cn('text-lg font-semibold text-[var(--foreground)]', card.color)}>{card.value}</p>
                             </div>
                         </div>
@@ -189,14 +189,14 @@ export function DossierLocationExplorer({ groups }: Props) {
             {mobileStep === 'provinces' && (
                 <div className="block xl:hidden">
                     <div className="mb-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Provinces</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Provinces</p>
                         <p className="text-xs text-[var(--text-muted)]">Select a province to view communes</p>
                     </div>
                     <div className="grid gap-2">
                         {groups.map((group) => (
                             <button key={group.province} type="button" onClick={() => chooseProvince(group)}
                                 className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-left transition hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]">
-                                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold', provinceColor(group.province))}>
+                                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold', provinceColor(group.province))}>
                                     {group.province.charAt(0)}
                                 </span>
                                 <div className="min-w-0 flex-1">
@@ -214,12 +214,12 @@ export function DossierLocationExplorer({ groups }: Props) {
             {mobileStep === 'communes' && selectedProvinceGroup && (
                 <div className="block xl:hidden">
                     <button type="button" onClick={() => setMobileStep('provinces')}
-                        className="mb-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--accent)] hover:underline">
+                        className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--accent)] hover:underline">
                         <ChevronRight size={14} className="rotate-180" />
                         Back to provinces
                     </button>
                     <div className="mb-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">{selectedProvinceGroup.province}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">{selectedProvinceGroup.province}</p>
                         <p className="text-xs text-[var(--text-muted)]">Select a commune to view projects</p>
                     </div>
                     <div className="grid gap-2">
@@ -241,12 +241,12 @@ export function DossierLocationExplorer({ groups }: Props) {
             {mobileStep === 'projects' && activeCommune && (
                 <div className="block xl:hidden">
                     <button type="button" onClick={() => setMobileStep('communes')}
-                        className="mb-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--accent)] hover:underline">
+                        className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--accent)] hover:underline">
                         <ChevronRight size={14} className="rotate-180" />
                         Back to communes
                     </button>
                     <div className="mb-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
                             {selectedProvinceGroup?.province} / {activeCommune.commune}
                         </p>
                         <p className="text-xs text-[var(--text-muted)]">{projects.length} visible project(s)</p>
@@ -275,8 +275,8 @@ export function DossierLocationExplorer({ groups }: Props) {
                         <div className="flex items-center gap-2">
                             <MapPinned size={15} className="text-[var(--accent)]" />
                             <div>
-                                <p className="text-[12px] font-semibold text-[var(--foreground)]">Provinces</p>
-                                <p className="text-[10px] text-[var(--text-muted)]">{groups.length} total</p>
+                                <p className="text-[11px] font-semibold text-[var(--foreground)]">Provinces</p>
+                                <p className="text-[9px] text-[var(--text-muted)]">{groups.length} total</p>
                             </div>
                         </div>
                     </div>
@@ -293,22 +293,22 @@ export function DossierLocationExplorer({ groups }: Props) {
                                     )}>
                                     {isActive && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--accent)]" />}
                                     <span className={cn(
-                                        'flex size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold',
+                                        'flex size-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold',
                                         isActive ? 'bg-[var(--accent)]/20 text-[var(--accent)]' : provinceColor(group.province),
                                     )}>
                                         {group.province.charAt(0)}
                                     </span>
                                     <div className="min-w-0 flex-1">
                                         <p className={cn(
-                                            'truncate text-[13px] font-medium',
+                                            'truncate text-[12px] font-medium',
                                             isActive ? 'text-[var(--accent)]' : 'text-[var(--foreground)]',
                                         )}>{group.province}</p>
-                                        <p className="truncate text-[11px] text-[var(--text-muted)]">
+                                        <p className="truncate text-[10px] text-[var(--text-muted)]">
                                             {group.stats.projectsCount} projects · {group.communes.length} communes
                                         </p>
                                     </div>
                                     <span className={cn(
-                                        'inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold',
+                                        'inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[9px] font-semibold',
                                         isActive
                                             ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
                                             : 'bg-[var(--surface-2)] text-[var(--text-muted)]',
@@ -325,8 +325,8 @@ export function DossierLocationExplorer({ groups }: Props) {
                         <div className="flex items-center gap-2">
                             <Building2 size={15} className="text-[var(--accent)]" />
                             <div>
-                                <p className="text-[12px] font-semibold text-[var(--foreground)]">Communes</p>
-                                <p className="text-[10px] text-[var(--text-muted)]">{selectedProvinceGroup?.province || 'Select a province'}</p>
+                                <p className="text-[11px] font-semibold text-[var(--foreground)]">Communes</p>
+                                <p className="text-[9px] text-[var(--text-muted)]">{selectedProvinceGroup?.province || 'Select a province'}</p>
                             </div>
                         </div>
                     </div>
@@ -344,7 +344,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                                         )}>
                                         {isActive && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--accent)]" />}
                                         <span className={cn(
-                                            'flex size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold',
+                                            'flex size-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold',
                                             isActive
                                                 ? 'bg-[var(--accent)]/20 text-[var(--accent)]'
                                                 : 'bg-[var(--surface-2)] text-[var(--text-muted)]',
@@ -353,15 +353,15 @@ export function DossierLocationExplorer({ groups }: Props) {
                                         </span>
                                         <div className="min-w-0 flex-1">
                                             <p className={cn(
-                                                'truncate text-[13px] font-medium',
+                                                'truncate text-[12px] font-medium',
                                                 isActive ? 'text-[var(--accent)]' : 'text-[var(--foreground)]',
                                             )}>{commune.commune}</p>
-                                            <p className="truncate text-[11px] text-[var(--text-muted)]">
+                                            <p className="truncate text-[10px] text-[var(--text-muted)]">
                                                 {commune.stats.projectsCount} projects · {commune.stats.documentsCount} docs
                                             </p>
                                         </div>
                                         <span className={cn(
-                                            'inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold',
+                                            'inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[9px] font-semibold',
                                             isActive
                                                 ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
                                                 : 'bg-[var(--surface-2)] text-[var(--text-muted)]',
@@ -372,8 +372,8 @@ export function DossierLocationExplorer({ groups }: Props) {
                         ) : (
                             <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
                                 <Building2 size={28} className="text-[var(--text-muted)]/40" />
-                                <p className="text-[13px] font-medium text-[var(--foreground)]">Select a province</p>
-                                <p className="text-[11px] text-[var(--text-muted)]">to view communes</p>
+                                <p className="text-[12px] font-medium text-[var(--foreground)]">Select a province</p>
+                                <p className="text-[10px] text-[var(--text-muted)]">to view communes</p>
                             </div>
                         )}
                     </div>
@@ -384,12 +384,12 @@ export function DossierLocationExplorer({ groups }: Props) {
                     <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3">
                         <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                                <p className="text-[12px] font-semibold text-[var(--foreground)]">
+                                <p className="text-[11px] font-semibold text-[var(--foreground)]">
                                     {selectedProvinceGroup?.province && activeCommune?.commune
                                         ? `${selectedProvinceGroup.province} / ${activeCommune.commune}`
                                         : 'Select location'}
                                 </p>
-                                <p className="text-[10px] text-[var(--text-muted)]">{projects.length} visible project(s)</p>
+                                <p className="text-[9px] text-[var(--text-muted)]">{projects.length} visible project(s)</p>
                             </div>
                             {activeCommune ? (
                                 <ProjectSearchBar query={query} setQuery={setQuery} searchRef={searchRef} compact />
@@ -405,15 +405,15 @@ export function DossierLocationExplorer({ groups }: Props) {
                             ) : (
                                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                                     <FolderKanban size={32} className="text-[var(--text-muted)]/30" />
-                                    <p className="text-[13px] font-medium text-[var(--foreground)]">No projects found</p>
-                                    <p className="text-[11px] text-[var(--text-muted)]">Choose another commune or clear search.</p>
+                                    <p className="text-[12px] font-medium text-[var(--foreground)]">No projects found</p>
+                                    <p className="text-[10px] text-[var(--text-muted)]">Choose another commune or clear search.</p>
                                 </div>
                             )
                         ) : (
                             <div className="flex flex-col items-center gap-2 py-16 text-center">
                                 <Building2 size={32} className="text-[var(--text-muted)]/30" />
-                                <p className="text-[13px] font-medium text-[var(--foreground)]">Select a commune</p>
-                                <p className="text-[11px] text-[var(--text-muted)]">to view projects</p>
+                                <p className="text-[12px] font-medium text-[var(--foreground)]">Select a commune</p>
+                                <p className="text-[10px] text-[var(--text-muted)]">to view projects</p>
                             </div>
                         )}
                     </div>
@@ -435,7 +435,7 @@ function ProjectSearchBar({ query, setQuery, searchRef, compact }: {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search projects..."
-                className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-8 pr-7 text-[12px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
+                className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-8 pr-7 text-[11px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
             />
             {query ? (
                 <button type="button" onClick={() => setQuery('')}
@@ -478,7 +478,7 @@ function RowMenu({ project, isOpen, onToggle }: {
                     onClick={(e) => e.stopPropagation()}>
                     {items.map((item) => (
                         <button key={item.id} type="button" onClick={() => { item.action(); }}
-                            className="flex h-[32px] w-full items-center gap-2 rounded-lg px-2.5 text-left text-[12px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                            className="flex h-[32px] w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                             <span className={cn('flex size-[14px] shrink-0 items-center justify-center', iconColor(item.id))}>{item.icon}</span>
                             <span>{item.label}</span>
                         </button>
@@ -501,19 +501,19 @@ function ProjectCard({ project, openMenuId, setOpenMenuId }: {
                     </span>
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                            <p className="truncate text-[12px] font-semibold text-[var(--foreground)]">
+                            <p className="truncate text-[11px] font-semibold text-[var(--foreground)]">
                                 {project.projectObject || project.dossierNumber}
                             </p>
                             <StatusPill label={project.status} color={statusColor(project.status)} size="sm" />
                         </div>
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">{project.dossierNumber}</p>
+                        <p className="truncate text-[9px] text-[var(--text-muted)]">{project.dossierNumber}</p>
                     </div>
                 </div>
                 <RowMenu project={project} isOpen={openMenuId === project.id}
                     onToggle={() => setOpenMenuId(openMenuId === project.id ? null : project.id)} />
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-[var(--text-muted)]">
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] text-[var(--text-muted)]">
                 <span>{project.ownerName || '-'}</span>
                 <span className="text-[var(--text-subtle)]">·</span>
                 <span className="text-[var(--accent)]">{workflowLabel(project.workflowStep)}</span>
@@ -528,7 +528,7 @@ function ProjectCard({ project, openMenuId, setOpenMenuId }: {
             </div>
 
             {project.projectAddress ? (
-                <p className="mt-1 truncate text-[10px] text-[var(--text-subtle)]">{project.projectAddress}</p>
+                <p className="mt-1 truncate text-[9px] text-[var(--text-subtle)]">{project.projectAddress}</p>
             ) : null}
         </div>
     );

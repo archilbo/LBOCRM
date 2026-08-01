@@ -80,30 +80,30 @@ function RowMenu({ doc, onPreview }: { doc: DocumentGroupRow; onPreview?: (d: Do
             {open && (
                 <div ref={menuRef} className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
                     <button type="button" onClick={() => { setOpen(false); onPreview?.(doc); }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                         <Eye size={14} /> Preview
                     </button>
                     {doc.status !== 'verified' && (
                         <button type="button" onClick={() => { router.put(`/documents/${doc.id}/status`, { status: 'verified' }, { preserveScroll: true, onSuccess: () => toast.success('Document verified.'), onError: () => toast.error('Could not update status.') }); setOpen(false); }}
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                             <CheckCircle2 size={14} /> Mark verified
                         </button>
                     )}
                     <button type="button" onClick={() => { window.open(`/documents/${doc.id}/download`, '_blank'); setOpen(false); }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                         <Download size={14} /> Download
                     </button>
                     <button type="button" onClick={() => { router.visit(`/dossiers/${doc.dossierId}`); setOpen(false); }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                         <FolderKanban size={14} /> Open project
                     </button>
                     <button type="button" onClick={() => { router.put(`/documents/${doc.id}/status`, { status: 'missing' }, { preserveScroll: true, onSuccess: () => toast.success('Marked as missing.'), onError: () => toast.error('Could not update.') }); setOpen(false); }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-amber-400 transition hover:bg-amber-400/10">
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-amber-400 transition hover:bg-amber-400/10">
                         <XCircle size={14} /> Mark missing
                     </button>
                     <div className="my-1 border-t border-[var(--border)]" />
                     <button type="button" onClick={() => { if (confirm('Delete this document? This cannot be undone.')) { router.delete(`/documents/${doc.id}`, { preserveScroll: true, onSuccess: () => toast.success('Document deleted.'), onError: () => toast.error('Could not delete.') }); } setOpen(false); }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-[var(--danger)] transition hover:bg-[var(--danger)]/10">
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--danger)] transition hover:bg-[var(--danger)]/10">
                         <Trash2 size={14} /> Delete
                     </button>
                 </div>
@@ -138,10 +138,10 @@ function DocumentBrowserCard({ doc, onPreview }: { doc: DocumentGroupRow; onPrev
                         <FileText size={13} />
                     </span>
                     <div className="min-w-0">
-                        <p className="truncate text-[12px] font-medium text-[var(--foreground)]">
+                        <p className="truncate text-[11px] font-medium text-[var(--foreground)]">
                             {doc.templateName || doc.originalFilename || 'Document'}
                         </p>
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">{doc.documentNumber || doc.documentType || 'No number'}</p>
+                        <p className="truncate text-[9px] text-[var(--text-muted)]">{doc.documentNumber || doc.documentType || 'No number'}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -270,8 +270,8 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                 <div className="flex items-center gap-2">
                     <span className="text-[var(--accent)] shrink-0">{icon}</span>
                     <div className="min-w-0">
-                        <p className="truncate text-[12px] font-semibold text-[var(--foreground)]">{label}</p>
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">{subtitle}</p>
+                        <p className="truncate text-[11px] font-semibold text-[var(--foreground)]">{label}</p>
+                        <p className="truncate text-[9px] text-[var(--text-muted)]">{subtitle}</p>
                     </div>
                 </div>
             </div>
@@ -290,13 +290,13 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                 {active && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--accent)]" />}
                 {icon && (
                     <span className={cn(
-                        'flex size-7 shrink-0 items-center justify-center rounded-md text-[11px] font-bold',
+                        'flex size-7 shrink-0 items-center justify-center rounded-md text-[10px] font-bold',
                         active ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'bg-[var(--surface-2)] text-[var(--text-muted)]',
                     )}>{icon}</span>
                 )}
                 <div className="min-w-0 flex-1">
-                    <p className={cn('truncate text-[12px] font-medium', active ? 'text-[var(--accent)]' : 'text-[var(--foreground)]')}>{title}</p>
-                    <p className="truncate text-[10px] text-[var(--text-muted)]">{subtitle}</p>
+                    <p className={cn('truncate text-[11px] font-medium', active ? 'text-[var(--accent)]' : 'text-[var(--foreground)]')}>{title}</p>
+                    <p className="truncate text-[9px] text-[var(--text-muted)]">{subtitle}</p>
                 </div>
                 <ChevronRight size={13} className="shrink-0 text-[var(--text-subtle)]" />
             </button>
@@ -307,8 +307,8 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
         return (
             <div className="flex flex-col items-center gap-2 px-4 py-14 text-center">
                 <span className="text-[var(--text-muted)]/30">{icon}</span>
-                <p className="text-[12px] font-medium text-[var(--foreground)]">{title}</p>
-                <p className="text-[10px] text-[var(--text-muted)]">{description}</p>
+                <p className="text-[11px] font-medium text-[var(--foreground)]">{title}</p>
+                <p className="text-[9px] text-[var(--text-muted)]">{description}</p>
             </div>
         );
     }
@@ -319,14 +319,14 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
         <div className="flex flex-col gap-4">
             {summary && (
                 <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm">
-                    <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
+                    <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
                         <MapPinned size={13} className="text-[var(--accent)]" />
                         <span className="font-medium text-[var(--foreground)]">{selectedProvinceGroup?.province}</span>
                         <span>/</span>
                         <span className="font-medium text-[var(--accent)]">{selectedCommuneGroup?.commune || '-'}</span>
                     </div>
-                    <span className="hidden sm:inline text-[10px] text-[var(--text-subtle)]">|</span>
-                    <span className="text-[10px] text-[var(--text-muted)]">{documents.length} document(s)</span>
+                    <span className="hidden sm:inline text-[9px] text-[var(--text-subtle)]">|</span>
+                    <span className="text-[9px] text-[var(--text-muted)]">{documents.length} document(s)</span>
                 </div>
             )}
 
@@ -418,8 +418,8 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                     <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2.5">
                         <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Document browser</p>
-                                <p className="truncate text-[12px] font-medium text-[var(--foreground)]">
+                                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Document browser</p>
+                                <p className="truncate text-[11px] font-medium text-[var(--foreground)]">
                                     {selectedProvinceGroup?.province && selectedCommuneGroup?.commune
                                         ? `${selectedProvinceGroup.province} / ${selectedCommuneGroup.commune}`
                                         : 'Select location'}
@@ -429,7 +429,7 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                 <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                                 <input ref={searchRef} type="text" value={query} onChange={(e) => setQuery(e.target.value)}
                                     placeholder="Search documents..."
-                                    className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-[11px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]" />
+                                    className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-[10px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]" />
                                 {query ? (
                                     <button type="button" onClick={() => setQuery('')}
                                         className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--foreground)]">
@@ -448,15 +448,15 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                             ) : (
                                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                                     <FileText size={28} className="text-[var(--text-muted)]/30" />
-                                    <p className="text-[12px] font-medium text-[var(--foreground)]">No documents found</p>
-                                    <p className="text-[10px] text-[var(--text-muted)]">Choose another scope or clear search.</p>
+                                    <p className="text-[11px] font-medium text-[var(--foreground)]">No documents found</p>
+                                    <p className="text-[9px] text-[var(--text-muted)]">Choose another scope or clear search.</p>
                                 </div>
                             )
                         ) : (
                             <div className="flex flex-col items-center gap-2 py-16 text-center">
                                 <Building2 size={28} className="text-[var(--text-muted)]/30" />
-                                <p className="text-[12px] font-medium text-[var(--foreground)]">Select a commune</p>
-                                <p className="text-[10px] text-[var(--text-muted)]">to browse documents</p>
+                                <p className="text-[11px] font-medium text-[var(--foreground)]">Select a commune</p>
+                                <p className="text-[9px] text-[var(--text-muted)]">to browse documents</p>
                             </div>
                         )}
                     </div>

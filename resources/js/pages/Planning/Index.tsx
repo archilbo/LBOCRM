@@ -1,4 +1,4 @@
-﻿import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
     AlertTriangle,
@@ -78,7 +78,7 @@ function ProgressCell({ value }: { value: number }) {
                     style={{ width: `${value}%` }}
                 />
             </div>
-            <span className="w-8 text-right text-[11px] text-[var(--text-muted)]">
+            <span className="w-8 text-right text-[10px] text-[var(--text-muted)]">
                 {value}%
             </span>
         </div>

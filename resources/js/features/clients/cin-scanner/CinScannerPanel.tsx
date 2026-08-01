@@ -105,7 +105,7 @@ function ImageSlot({
                 </p>
 
                 {state.info ? (
-                    <span className="text-[10px] text-[var(--text-muted)]">
+                    <span className="text-[9px] text-[var(--text-muted)]">
                         {state.info.width}×{state.info.height}
                     </span>
                 ) : null}
@@ -132,7 +132,7 @@ function ImageSlot({
                     </div>
 
                     <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] px-2.5 py-2">
-                        <p className="min-w-0 truncate text-[10px] text-[var(--text-muted)]">
+                        <p className="min-w-0 truncate text-[9px] text-[var(--text-muted)]">
                             {state.file?.name}
                         </p>
 
@@ -160,7 +160,7 @@ function ImageSlot({
                             <label
                                 htmlFor={inputId}
                                 className={cn(
-                                    'cursor-pointer rounded-md px-2 py-1 text-[10px] font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/10',
+                                    'cursor-pointer rounded-md px-2 py-1 text-[9px] font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/10',
                                     isDisabled && 'pointer-events-none opacity-50',
                                 )}
                             >
@@ -185,7 +185,7 @@ function ImageSlot({
                         {label}
                     </span>
 
-                    <span className="mt-1 text-[10px] leading-4 text-[var(--text-muted)]">
+                    <span className="mt-1 text-[9px] leading-4 text-[var(--text-muted)]">
                         Photo nette, carte entière, sans reflet
                         <br />
                         JPEG, PNG ou WEBP · 15 Mo max
@@ -214,7 +214,7 @@ function ImageSlot({
             {state.info?.warnings.map((warning) => (
                 <p
                     key={`${side}-${warning}`}
-                    className="flex items-center gap-1.5 text-[10px] text-amber-500"
+                    className="flex items-center gap-1.5 text-[9px] text-amber-500"
                 >
                     <AlertTriangle size={11} />
                     {warning}
@@ -222,7 +222,7 @@ function ImageSlot({
             ))}
 
             {state.error ? (
-                <p className="text-[10px] font-medium text-[var(--danger)]">
+                <p className="text-[9px] font-medium text-[var(--danger)]">
                     {state.error}
                 </p>
             ) : null}
@@ -235,7 +235,7 @@ function FieldStatus({ field }: { field: CinScannedField }) {
 
     if (field.status === 'verified') {
         return (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-500">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[9px] font-medium text-emerald-500">
                 <CheckCircle2 size={11} />
                 Vérifié · {percentage}%
             </span>
@@ -244,7 +244,7 @@ function FieldStatus({ field }: { field: CinScannedField }) {
 
     if (field.status === 'review') {
         return (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-500">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-1 text-[9px] font-medium text-amber-500">
                 <AlertTriangle size={11} />
                 À vérifier · {percentage}%
             </span>
@@ -252,7 +252,7 @@ function FieldStatus({ field }: { field: CinScannedField }) {
     }
 
     return (
-        <span className="rounded-full bg-[var(--surface-2)] px-2 py-1 text-[10px] text-[var(--text-muted)]">
+        <span className="rounded-full bg-[var(--surface-2)] px-2 py-1 text-[9px] text-[var(--text-muted)]">
             Illisible
         </span>
     );
@@ -484,7 +484,7 @@ export function CinScannerPanel({
                             <p className="text-sm font-semibold text-[var(--foreground)]">
                                 Analyse terminée
                             </p>
-                            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+                            <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
                                 {result.document.generation === 'new_2020'
                                     ? 'CNIE nouvelle génération (2020)'
                                     : 'CNIE ancienne génération (2008)'}
@@ -498,7 +498,7 @@ export function CinScannerPanel({
                     </div>
 
                     {result.document.imagesSwapped ? (
-                        <p className="mt-3 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-[11px] text-amber-500">
+                        <p className="mt-3 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-[10px] text-amber-500">
                             <AlertTriangle size={13} />
                             Les images recto et verso semblent inversées. Les données ont été réorganisées automatiquement.
                         </p>
@@ -506,7 +506,7 @@ export function CinScannerPanel({
 
                     {result.document.generation === 'new_2020' && result.mrz.detected ? (
                         <p className={cn(
-                            'mt-3 rounded-lg px-3 py-2 text-[11px]',
+                            'mt-3 rounded-lg px-3 py-2 text-[10px]',
                             result.mrz.valid
                                 ? 'bg-emerald-500/10 text-emerald-500'
                                 : 'bg-amber-500/10 text-amber-500',
@@ -528,14 +528,14 @@ export function CinScannerPanel({
                                 className="flex items-start justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5"
                             >
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                                    <p className="text-[9px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
                                         {label}
                                     </p>
                                     <p className="mt-1 break-words text-xs font-medium text-[var(--foreground)]">
                                         {field.value ?? '—'}
                                     </p>
                                     {field.warnings.length > 0 ? (
-                                        <p className="mt-1 text-[10px] text-amber-500">
+                                        <p className="mt-1 text-[9px] text-amber-500">
                                             {field.warnings.join(', ')}
                                         </p>
                                     ) : null}
@@ -571,7 +571,7 @@ export function CinScannerPanel({
 
     return (
         <div className="space-y-4">
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-[11px] leading-5 text-[var(--text-muted)]">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-[10px] leading-5 text-[var(--text-muted)]">
                 Photographiez toute la carte à plat, sans couper les bords. Évitez les reflets, les ombres et le flou.
             </div>
 
@@ -622,7 +622,7 @@ export function CinScannerPanel({
             ) : null}
 
             {requestError ? (
-                <p className="flex items-start gap-2 rounded-lg bg-[var(--danger)]/10 px-3 py-2 text-[11px] text-[var(--danger)]">
+                <p className="flex items-start gap-2 rounded-lg bg-[var(--danger)]/10 px-3 py-2 text-[10px] text-[var(--danger)]">
                     <AlertTriangle size={13} className="mt-0.5 shrink-0" />
                     {requestError}
                 </p>

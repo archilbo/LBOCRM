@@ -202,7 +202,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                         <Dropdown.Menu aria-label="Actions"
                             onAction={(key) => handleAction(dossier, key as ActionId)}
                             itemClasses={{
-                                base: 'rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-30',
+                                base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-30',
                             }}>
                             <Dropdown.Item key="open" id="open" className="text-[var(--text)]">
                                 <div className="flex items-center gap-2">
@@ -257,7 +257,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                 {/* ── Page header ── */}
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
-                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Projets</p>
+                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Projets</p>
                         <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">Dossiers</h1>
                         <p className="mt-1 max-w-3xl text-sm text-[var(--text-muted)]">
                             Suivez et gerez tous les projets et dossiers.
@@ -273,7 +273,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                     {['workspace', 'location'].map((mode) => (
                         <button key={mode} type="button" onClick={() => setViewMode(mode as typeof viewMode)}
                             className={cn(
-                                'relative pb-2.5 text-[12px] font-semibold transition',
+                                'relative pb-2.5 text-[11px] font-semibold transition',
                                 viewMode === mode ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]',
                             )}>
                             {mode === 'workspace' ? 'Workspace' : 'Location'}
@@ -283,7 +283,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                         </button>
                     ))}
                     <div className="ml-auto">
-                        <p className="text-[10px] text-[var(--text-muted)]">{filteredDossiers.length} dossier(s)</p>
+                        <p className="text-[9px] text-[var(--text-muted)]">{filteredDossiers.length} dossier(s)</p>
                     </div>
                 </div>
 
@@ -302,7 +302,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                             <Icon size={15} className={card.color} />
                                         </span>
                                         <div className="min-w-0">
-                                            <p className="text-[11px] font-medium text-[var(--text-muted)]">{card.label}</p>
+                                            <p className="text-[10px] font-medium text-[var(--text-muted)]">{card.label}</p>
                                             <p className={cn('text-lg font-semibold text-[var(--foreground)]', card.color)}>{card.value}</p>
                                         </div>
                                     </div>
@@ -319,7 +319,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                     <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                                     <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }}
                                         placeholder="Rechercher par projet, client..."
-                                        className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[11px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+                                        className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[10px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                                     />
                                     {query ? (
                                         <button type="button" onClick={() => setQuery('')}
@@ -330,7 +330,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                 </div>
                                 <div className="ml-auto flex items-center gap-1">
                                     <Dropdown>
-                                        <Dropdown.Trigger className={cn("inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition hover:border-[var(--accent)]/30", workflowFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
+                                        <Dropdown.Trigger className={cn("inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-medium transition hover:border-[var(--accent)]/30", workflowFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
                                             <span className="contents">
                                                 <ListFilter size={12} />
                                                 {workflowFilter === 'all' ? 'Tous' : statusOptions.find((o) => o.id === workflowFilter)?.label}
@@ -345,7 +345,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                                 disabledKeys={statusOptions.filter((o) => o.count === 0).map((o) => o.id)}
                                                 onAction={(key) => { setWorkflowFilter(key as string); setPage(0); }}
                                                 itemClasses={{
-                                                    base: 'rounded-lg px-2 py-1.5 text-[12px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40',
+                                                    base: 'rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40',
                                                 }}>
                                                 {statusOptions.map((opt) => {
                                                     const Icon = opt.id === 'all' ? ListFilter : AlertTriangle;
@@ -359,7 +359,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                                                 </Dropdown.ItemIndicator>
                                                                 <Icon size={14} className="shrink-0" />
                                                                 <span className="flex-1">{opt.label}</span>
-                                                                <span className="rounded bg-[var(--surface-2)] px-1.5 py-px text-[10px] font-semibold text-[var(--text-muted)]">{opt.count}</span>
+                                                                <span className="rounded bg-[var(--surface-2)] px-1.5 py-px text-[9px] font-semibold text-[var(--text-muted)]">{opt.count}</span>
                                                             </div>
                                                         </Dropdown.Item>
                                                     );
@@ -379,7 +379,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                             <div className="overflow-x-auto">
                                 <table className="w-full text-xs min-w-[800px]">
                                     <thead>
-                                        <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                                        <tr className="border-b border-[var(--border)] text-left text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                                             <th className="w-8 px-3 py-2"></th>
                                             <th className="px-3 py-2">
                                                 <button type="button" onClick={() => toggleSort('projectObject')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
@@ -413,7 +413,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                                 className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0 cursor-pointer"
                                                 onClick={() => setPreviewDossier(dossier)}>
                                                 <td className="px-3 py-2">
-                                                    <span className="flex size-5 items-center justify-center rounded bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[10px] font-bold text-[var(--accent)]">
+                                                    <span className="flex size-5 items-center justify-center rounded bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[9px] font-bold text-[var(--accent)]">
                                                         <FolderKanban size={10} />
                                                     </span>
                                                 </td>
@@ -468,12 +468,12 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                             <div className="flex items-center justify-end border-t border-[var(--border)] px-3 py-2">
                                 <div className="flex items-center gap-2">
                                     <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)}
-                                        className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
+                                        className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[9px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
                                         Precedent
                                     </button>
-                                    <span className="text-[10px] text-[var(--text-muted)]">{page + 1} / {pageCount}</span>
+                                    <span className="text-[9px] text-[var(--text-muted)]">{page + 1} / {pageCount}</span>
                                     <button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}
-                                        className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
+                                        className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[9px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
                                         Suivant
                                     </button>
                                 </div>
@@ -567,16 +567,16 @@ function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDel
 
             <div className="grid grid-cols-2 gap-3">
                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
                     <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{dossier.clientName || '-'}</p>
                     <p className="truncate text-xs text-[var(--text-muted)]">{dossier.clientNumber}</p>
                 </Card>
                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Workflow</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Workflow</p>
                     <p className="mt-1 text-sm font-semibold text-[var(--accent)]">{getDossierWorkflowLabel(dossier.workflowStep)}</p>
                 </Card>
                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Ville</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Ville</p>
                     {dossier.city ? (
                         <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--foreground)]">
                             <span className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10" style={{ backgroundColor: dossier.city.color }} />
@@ -587,16 +587,16 @@ function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDel
                     )}
                 </Card>
                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Localisation</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Localisation</p>
                     <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{dossier.province || '-'}</p>
                     <p className="truncate text-xs text-[var(--text-muted)]">{dossier.commune || '-'}</p>
                 </Card>
                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Surface</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Surface</p>
                     <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">{dossier.floorArea ? `${formatNumber(dossier.floorArea)} m2` : '-'}</p>
                 </Card>
                 <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Statut</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Statut</p>
                     <div className="mt-1">
                         <Chip variant="flat" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>
                     </div>
@@ -605,8 +605,8 @@ function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDel
 
             <Card className="gap-0 p-4" classNames={{ base: 'border border-[var(--border)] shadow-sm' }}>
                 <div className="mb-3 flex items-center justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Readiness</p>
-                    <span className="text-[11px] text-[var(--text-muted)]">{doneSteps}/6</span>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Readiness</p>
+                    <span className="text-[10px] text-[var(--text-muted)]">{doneSteps}/6</span>
                 </div>
                 <div className="mb-3 h-1.5 rounded-full bg-[var(--surface-3)]">
                     <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${(doneSteps / 6) * 100}%` }} />
@@ -614,7 +614,7 @@ function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDel
                 <div className="flex flex-wrap gap-1.5">
                     {readiness.map((item) => (
                         <span key={item.key}
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold ${
                                 item.done
                                     ? 'bg-emerald-500/10 text-emerald-500'
                                     : 'bg-[var(--surface-3)] text-[var(--text-muted)]'
@@ -626,16 +626,16 @@ function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDel
             </Card>
 
             <div className="grid grid-cols-1 gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-sm sm:grid-cols-2">
-                <Button variant="solid" color="primary" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
+                <Button variant="solid" color="primary" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
                     <Eye size={13} /> View project
                 </Button>
-                {canEdit ? <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => onEdit(dossier)}>
+                {canEdit ? <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => onEdit(dossier)}>
                     <Pencil size={13} /> Modifier
                 </Button> : null}
-                {canArchive ? <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap" onPress={() => router.visit('/archives')}>
+                {canArchive ? <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => router.visit('/archives')}>
                     <Trash2 size={13} /> Archiver
                 </Button> : null}
-                {canDelete ? <Button variant="light" size="sm" className="h-8 min-w-0 px-1.5 text-[10px] whitespace-nowrap text-red-400" onPress={() => onDelete(dossier)}>
+                {canDelete ? <Button variant="light" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap text-red-400" onPress={() => onDelete(dossier)}>
                     <Trash2 size={13} /> Supprimer
                 </Button> : null}
             </div>

@@ -113,7 +113,7 @@ export default function ArchivesReports({ overdue, monthly, lost, kpis }: PagePr
                                 <thead>
                                     <tr className="border-b border-white/5">
                                         {['ARC', 'Project', 'Lost reason', 'Date'].map((label) => (
-                                            <th key={label} className="h-8 px-3 text-left text-[11px] uppercase tracking-wide text-white/50 font-semibold">{label}</th>
+                                            <th key={label} className="h-8 px-3 text-left text-[10px] uppercase tracking-wide text-white/50 font-semibold">{label}</th>
                                         ))}
                                     </tr>
                                 </thead>

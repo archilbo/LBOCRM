@@ -366,7 +366,7 @@ export function ProjectDesignFolderTree({
                         }}
                         aria-label="Rename design file"
                         variant="secondary"
-                        className="m-1 h-7 text-[11px]"
+                        className="m-1 h-7 text-[10px]"
                         style={{ marginLeft: `${6 + depth * 13}px`, width: `calc(100% - ${12 + depth * 13}px)` }}
                         isDisabled={savingRename}
                     />
@@ -379,7 +379,7 @@ export function ProjectDesignFolderTree({
                             onPress={() => queueFileSelect(file)}
                             aria-pressed={selected}
                             className={cn(
-                                'group h-7 min-h-7 justify-start rounded-none border-0 px-1.5 pr-8 text-left text-[11px] font-normal',
+                                'group h-7 min-h-7 justify-start rounded-none border-0 px-1.5 pr-8 text-left text-[10px] font-normal',
                                 selected
                                     ? 'bg-[var(--accent)]/18 text-[var(--foreground)]'
                                     : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
@@ -461,7 +461,7 @@ export function ProjectDesignFolderTree({
                             }}
                             aria-label="Rename design folder"
                             variant="secondary"
-                            className="mx-1 h-7 flex-1 text-[11px]"
+                            className="mx-1 h-7 flex-1 text-[10px]"
                             isDisabled={savingRename}
                         />
                     ) : (
@@ -469,7 +469,7 @@ export function ProjectDesignFolderTree({
                             size="sm"
                             variant="ghost"
                             onPress={() => hasChildren && queueFolderToggle(folder.id)}
-                            className="h-7 min-w-0 flex-1 justify-start gap-1.5 rounded-none px-0.5 text-left text-[11px] font-normal text-[var(--foreground)]"
+                            className="h-7 min-w-0 flex-1 justify-start gap-1.5 rounded-none px-0.5 text-left text-[10px] font-normal text-[var(--foreground)]"
                         >
                             <GripVertical size={10} className="shrink-0 text-[var(--text-subtle)] opacity-0 transition group-hover:opacity-70" />
                             <FolderIcon size={13} className="shrink-0 text-amber-300/85" />
@@ -529,7 +529,7 @@ export function ProjectDesignFolderTree({
             {rootFolders.map((folder) => renderFolder(folder, 0))}
             {rootFiles.map((file) => renderFile(file, 0))}
             {folders.length === 0 && files.length === 0 ? (
-                <div className="px-3 py-8 text-center text-[10px] leading-4 text-[var(--text-muted)]">
+                <div className="px-3 py-8 text-center text-[9px] leading-4 text-[var(--text-muted)]">
                     No folders or files match this view.
                 </div>
             ) : null}

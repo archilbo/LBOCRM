@@ -14,9 +14,9 @@ export type DashboardIconKey =
 
 export type DashboardKpi = {
     key: string;
-    value: string;
+    value: string | number; // numeric for money KPIs (formatted client-side with formatCompactMoney)
     helperKey: string;
-    helperValues?: Record<string, string | number>;
+    helperValues?: Record<string, string | number>; // amount keys are raw numbers, formatted client-side
     tone: DashboardTone;
     icon: DashboardIconKey;
     href: string;
@@ -41,13 +41,13 @@ export type DashboardProject = {
     step: string;
     status: string;
     missingDocs: number;
-    remaining: string;
+    remaining: number; // raw amount, formatted client-side with formatCompactMoney
     href: string;
 };
 
 export type DashboardAlert = {
     id: string;
-    amount: string;
+    amount: number; // raw amount, formatted client-side with formatCompactMoney
     count?: number;
     tone: DashboardTone;
     href: string;

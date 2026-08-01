@@ -27,10 +27,10 @@ export function ReplyPreview({ replyTo, isMine, onClick }: Props) {
         >
             <div className={`w-0.5 shrink-0 rounded-full ${isMine ? 'bg-[var(--accent)]/50' : 'bg-[var(--border)]'}`} />
             <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold text-[var(--text-muted)]">
+                <p className="text-[9px] font-semibold text-[var(--text-muted)]">
                     {replyTo.userName || 'Message'}
                 </p>
-                <p className="line-clamp-2 text-[10px] text-[var(--text-muted)]/80">
+                <p className="line-clamp-2 text-[9px] text-[var(--text-muted)]/80">
                     {replyTo.body || (replyTo.attachmentsCount > 0 ? (
                         <span className="flex items-center gap-1">{replyTo.attachmentsCount > 1 ? <FileText size={10} /> : <FileImage size={10} />}{replyLabel(replyTo)}</span>
                     ) : '')}

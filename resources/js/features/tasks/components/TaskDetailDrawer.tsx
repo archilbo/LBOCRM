@@ -30,7 +30,7 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 function Badge({ children, className }: { children: React.ReactNode; className: string }) {
-    return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${className}`}>{children}</span>;
+    return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold ${className}`}>{children}</span>;
 }
 
 export function TaskDetailDrawer({ task, onClose, onComplete, onChecklistToggle, onChecklistAdd, onCommentAdd, onAttachmentUpload }: Props) {
@@ -87,7 +87,7 @@ export function TaskDetailDrawer({ task, onClose, onComplete, onChecklistToggle,
                 <div className="flex items-center gap-3 min-w-0">
                     <div>
                         <p className="text-sm font-bold text-[var(--crm-text)]">{task.title}</p>
-                        <p className="text-[10px] text-[var(--crm-muted)]">{task.taskNumber}</p>
+                        <p className="text-[9px] text-[var(--crm-muted)]">{task.taskNumber}</p>
                     </div>
                 </div>
             }
@@ -178,7 +178,7 @@ function OverviewTab({ task, links }: { task: TaskRow; links: { label: string; h
                         </span>
                     ))}
                     {Array.isArray(task.watchers) && task.watchers.map((w) => (
-                        <span key={w.id} className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] px-2.5 py-1 text-[10px] text-[var(--crm-text-muted)]">Watching: {w.name}</span>
+                        <span key={w.id} className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] px-2.5 py-1 text-[9px] text-[var(--crm-text-muted)]">Watching: {w.name}</span>
                     ))}
                     {(!Array.isArray(task.assignees) || task.assignees.length === 0) && (!Array.isArray(task.watchers) || task.watchers.length === 0) ? (
                         <span className="text-xs text-[var(--crm-text-muted)]">No people assigned.</span>
@@ -211,7 +211,7 @@ function OverviewTab({ task, links }: { task: TaskRow; links: { label: string; h
                         { s: 'in_review', l: 'In review' },
                     ].filter((a) => a.s !== task.status).map((action) => (
                         <button key={action.s} type="button" onClick={() => router.put(`/tasks/${task.id}/status`, { status: action.s }, { preserveScroll: true, preserveState: true })}
-                            className="inline-flex items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]">
+                            className="inline-flex items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2.5 py-1.5 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]">
                             {action.l}
                         </button>
                     ))}
@@ -262,7 +262,7 @@ function ChecklistTab({ task, checklistItems, doneCount, isComplete, onToggle, o
             {!isComplete ? (
                 <form onSubmit={onAdd} className="flex gap-2">
                     <input value={label} onChange={(e) => onLabelChange(e.target.value)} placeholder="Add checklist item"
-                        className="min-w-0 flex-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)]" />
+                        className="min-w-0 flex-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
                     <AppButton variant="secondary" type="submit"><Plus size={14} /> Add</AppButton>
                 </form>
             ) : null}
@@ -287,7 +287,7 @@ function CommentsTab({ task, commentBody, noteBody, showNote, onCommentChange, o
             <div className="flex items-center justify-between">
                 <p className="text-xs font-bold text-[var(--crm-muted)]">Comments ({comments.length})</p>
                 <button type="button" onClick={onToggleNote}
-                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--crm-muted)] hover:text-[var(--crm-gold)]">
+                    className="inline-flex items-center gap-1 text-[9px] font-semibold text-[var(--crm-muted)] hover:text-[var(--crm-gold)]">
                     <StickyNote size={12} /> {showNote ? 'Write comment' : 'Internal note'}
                 </button>
             </div>
@@ -299,7 +299,7 @@ function CommentsTab({ task, commentBody, noteBody, showNote, onCommentChange, o
                                 <span className="flex size-5 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[7px] font-bold text-[var(--crm-gold)]">
                                     {c.user?.name?.charAt(0) || '?'}
                                 </span>
-                                <span className="text-[10px] font-semibold text-[var(--crm-text)]">{c.user?.name || 'Unknown'}</span>
+                                <span className="text-[9px] font-semibold text-[var(--crm-text)]">{c.user?.name || 'Unknown'}</span>
                                 {c.isNote ? <span className="rounded bg-amber-400/15 px-1 py-0.5 text-[8px] font-bold text-amber-300">NOTE</span> : null}
                                 <span className="ml-auto text-[9px] text-[var(--crm-text-muted)]">{c.createdAt?.slice(0, 10)}</span>
                             </div>
@@ -311,13 +311,13 @@ function CommentsTab({ task, commentBody, noteBody, showNote, onCommentChange, o
             {!showNote ? (
                 <form onSubmit={onSubmitComment} className="space-y-2">
                     <textarea value={commentBody} onChange={(e) => onCommentChange(e.target.value)} placeholder="Write a comment or @mention someone..." rows={3}
-                        className="w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)]" />
+                        className="w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
                     <AppButton variant="secondary" type="submit"><MessageSquare size={14} /> Add comment</AppButton>
                 </form>
             ) : (
                 <form onSubmit={onSubmitNote} className="space-y-2">
                     <textarea value={noteBody} onChange={(e) => onNoteChange(e.target.value)} placeholder="Internal note (team only)..." rows={3}
-                        className="w-full rounded-lg border border-amber-400/20 bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)]" />
+                        className="w-full rounded-lg border border-amber-400/20 bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
                     <AppButton variant="secondary" type="submit"><Notebook size={14} /> Add note</AppButton>
                 </form>
             )}
@@ -337,7 +337,7 @@ function FilesTab({ task, attachment, onAttachmentChange, onSubmit }: {
             <p className="text-xs font-bold text-[var(--crm-muted)]">Attachments ({attachments.length})</p>
             <form onSubmit={onSubmit} className="flex flex-wrap items-center gap-2">
                 <input type="file" onChange={(e) => onAttachmentChange(e.target.files?.[0] ?? null)}
-                    className="min-w-0 flex-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-xs text-[var(--crm-text)] file:mr-2 file:rounded file:border-0 file:bg-[var(--crm-gold)] file:px-2 file:py-0.5 file:text-[10px] file:font-bold file:text-black" />
+                    className="min-w-0 flex-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-xs text-[var(--crm-text)] file:mr-2 file:rounded file:border-0 file:bg-[var(--crm-gold)] file:px-2 file:py-0.5 file:text-[9px] file:font-bold file:text-black" />
                 <AppButton variant="secondary" type="submit"><Paperclip size={14} /> Upload</AppButton>
             </form>
             {attachments.length > 0 ? (

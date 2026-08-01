@@ -60,7 +60,7 @@ export function DesignRemarkComposer({
                         {mode === 'edit' ? <Pencil size={12} /> : <MessageSquarePlus size={12} />}
                     </span>
                     <div className="min-w-0">
-                        <p className="truncate text-[11px] font-semibold text-[var(--foreground)]">
+                        <p className="truncate text-[10px] font-semibold text-[var(--foreground)]">
                             {mode === 'edit' ? 'Edit remark' : 'Add remark'}
                         </p>
                         <p className="text-[9px] text-[var(--text-subtle)]">Saved on this annotation</p>
@@ -100,7 +100,7 @@ export function DesignRemarkComposer({
                 isDisabled={saving}
                 variant="secondary"
                 fullWidth
-                className="h-8 text-[11px]"
+                className="h-8 text-[10px]"
             />
 
             <TextArea
@@ -113,7 +113,7 @@ export function DesignRemarkComposer({
                 isDisabled={saving}
                 variant="secondary"
                 fullWidth
-                className="min-h-20 resize-none text-[11px] leading-relaxed"
+                className="min-h-20 resize-none text-[10px] leading-relaxed"
             />
 
             <div className="flex flex-wrap gap-1" role="group" aria-label="Remark severity">
@@ -143,7 +143,7 @@ export function DesignRemarkComposer({
                     variant="ghost"
                     onPress={onCancel}
                     isDisabled={saving}
-                    className="h-7 min-w-0 px-2.5 text-[10px]"
+                    className="h-7 min-w-0 px-2.5 text-[9px]"
                 >
                     Cancel
                 </Button>
@@ -153,7 +153,7 @@ export function DesignRemarkComposer({
                     onPress={submit}
                     isDisabled={!title.trim() || saving}
                     isPending={saving}
-                    className="h-7 min-w-0 gap-1.5 px-2.5 text-[10px]"
+                    className="h-7 min-w-0 gap-1.5 px-2.5 text-[9px]"
                 >
                     {!saving ? <Check size={11} /> : null}
                     {mode === 'edit' ? 'Save changes' : 'Add remark'}

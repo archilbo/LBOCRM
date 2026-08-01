@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Card, Chip, Tooltip } from '@heroui/react';
+import { Button, Card, Chip, Tooltip } from '@heroui/react';
 import {
     AlertTriangle,
     ArrowRight,
@@ -26,6 +26,7 @@ import { DashboardClientActionDrawer } from '@/features/dashboard/components/Das
 import { DashboardFinanceTrend } from '@/features/dashboard/components/DashboardFinanceTrend';
 import { DashboardWorkflowDonut } from '@/features/dashboard/components/DashboardWorkflowDonut';
 import type { DashboardCommandCenter, DashboardIconKey, DashboardTone } from '@/features/dashboard/types';
+import { formatCompactMoney } from '@/lib/currency';
 import { useTranslation } from '@/lib/i18n';
 
 type PageProps = { commandCenter: DashboardCommandCenter };
@@ -70,7 +71,7 @@ function PanelTitle({ title, detail, action, icon }: { title: string; detail?: s
                 {icon ? <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]">{icon}</span> : null}
                 <div className="min-w-0">
                     <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
-                    {detail ? <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">{detail}</p> : null}
+                    {detail ? <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{detail}</p> : null}
                 </div>
             </div>
             {action}
@@ -118,7 +119,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                         <div className="flex min-w-0 items-center gap-3">
                             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]"><FolderKanban size={18} /></span>
                             <div className="min-w-0">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{t('dashboard.hero.eyebrow')}</p>
+                                <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{t('dashboard.hero.eyebrow')}</p>
                                 <div className="flex min-w-0 items-center gap-3">
                                     <h1 className="truncate text-lg font-bold text-[var(--foreground)]">{t('dashboard.hero.title')}</h1>
                                     <span className="hidden h-4 w-px bg-[var(--border)] md:block" />
@@ -126,36 +127,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <AppButton size="sm" compact variant="toolbar" onPress={() => router.reload({ only: ['commandCenter'] })}><RefreshCw size={14} /> {t('dashboard.actions.refresh')}</AppButton>
-                            <AppButton size="sm" compact variant="toolbar" onPress={() => navigate('/finance/documents?tab=monthly')}><CalendarDays size={14} /> {t('dashboard.actions.monthly')}</AppButton>
-                            <AppButton size="sm" compact variant="accent" onPress={() => navigate('/dossiers?command=create')}><Plus size={14} /> {t('dashboard.actions.newProject')}</AppButton>
-                        </div>
                     </header>
-
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-                        {primaryKpis.map((kpi) => {
-                            const Icon = iconMap[kpi.icon] ?? FolderKanban;
-
-                            return <AppKpiCard key={kpi.key} label={t(`dashboard.kpis.${kpi.key}`)} value={kpi.value} detail={t(`dashboard.kpiHelpers.${kpi.helperKey}`, kpi.helperValues)} icon={<Icon size={14} className={tones[kpi.tone].text} />} valueClassName={tones[kpi.tone].text} onPress={() => navigate(kpi.href)} className="min-h-24" />;
-                        })}
-                    </div>
-
-                    <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)]">
-                        <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-                            <PanelTitle icon={<ReceiptText size={15} />} title={t('dashboard.sections.financeTrend')} detail={t('dashboard.sections.financeTrendDetail')} action={<AppButton size="sm" compact variant="quiet" onPress={() => navigate('/finance/documents?tab=monthly')}>{t('dashboard.actions.monthly')}</AppButton>} />
-                            <Card.Content className="p-0">
-                                <DashboardFinanceTrend points={financeTrend} />
-                            </Card.Content>
-                        </Card>
-
-                        <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-                            <PanelTitle icon={<FolderKanban size={15} />} title={t('dashboard.sections.workflow')} detail={t('dashboard.sections.workflowDetail')} action={<FolderKanban size={15} className="text-[var(--accent)]" />} />
-                            <Card.Content className="p-0">
-                                <DashboardWorkflowDonut steps={workflowDistribution} />
-                            </Card.Content>
-                        </Card>
-                    </div>
 
                     {focusAction ? (
                         <Card className="gap-0 overflow-hidden border border-[color-mix(in_srgb,var(--accent)_34%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface))] shadow-sm">
@@ -164,7 +136,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                     <span className="flex min-w-0 items-center gap-3">
                                         <DashboardIcon icon={focusAction.icon} tone={focusAction.tone} className="size-10" size={19} />
                                         <span className="min-w-0 flex-1">
-                                            <span className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">{t('dashboard.sections.focus')}</span><Chip size="sm" variant="soft" color={tones[focusAction.tone].chip}>{t(`dashboard.nextActions.due.${focusAction.dueKey}`)}</Chip></span>
+                                            <span className="flex items-center gap-2"><span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">{t('dashboard.sections.focus')}</span><Chip size="sm" variant="soft" color={tones[focusAction.tone].chip}>{t(`dashboard.nextActions.due.${focusAction.dueKey}`)}</Chip></span>
                                             <span className="mt-1 block truncate text-base font-semibold text-[var(--foreground)]">{t(`dashboard.nextActions.${focusAction.kind}.title`)}</span>
                                             <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">{focusAction.context ?? t(`dashboard.nextActions.${focusAction.kind}.detail`)}</span>
                                         </span>
@@ -200,62 +172,172 @@ export default function Dashboard({ commandCenter }: PageProps) {
                         </Card>
                     ) : null}
 
-                    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(360px,0.85fr)]">
-                        <Card className="gap-0 self-start overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm xl:order-2">
-                            <PanelTitle icon={<ListChecks size={15} />} title={t('dashboard.sections.actionQueue')} detail={t('dashboard.sections.actionQueueDetail')} action={<ListChecks size={15} className="text-[var(--accent)]" />} />
-                            <Card.Content className="divide-y divide-[var(--border)] p-0">
-                                {queuedActions.map((action) => (
-                                    <AppButton key={action.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-3 py-3 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(action.href)}>
-                                        <span className="flex min-w-0 flex-1 items-center gap-2.5"><DashboardIcon icon={action.icon} tone={action.tone} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-[var(--foreground)]">{t(`dashboard.nextActions.${action.kind}.title`)}</span><span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{action.context ?? t(`dashboard.nextActions.${action.kind}.detail`)}</span></span><Chip size="sm" variant="soft" color={tones[action.tone].chip}>{t(`dashboard.nextActions.due.${action.dueKey}`)}</Chip></span>
-                                    </AppButton>
-                                ))}
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+                        {primaryKpis.map((kpi) => {
+                            const Icon = iconMap[kpi.icon] ?? FolderKanban;
+                            const helperValues = kpi.helperValues ? { ...kpi.helperValues, ...(kpi.helperValues.amount !== undefined ? { amount: formatCompactMoney(kpi.helperValues.amount) } : {}) } : undefined;
+
+                            return <AppKpiCard key={kpi.key} label={t(`dashboard.kpis.${kpi.key}`)} value={typeof kpi.value === 'number' ? formatCompactMoney(kpi.value) : kpi.value} detail={t(`dashboard.kpiHelpers.${kpi.helperKey}`, helperValues)} icon={<Icon size={14} className={tones[kpi.tone].text} />} valueClassName={tones[kpi.tone].text} onPress={() => navigate(kpi.href)} />;
+                        })}
+                    </div>
+
+                    <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)] xl:grid-cols-[minmax(0,1.8fr)_minmax(380px,0.9fr)]">
+                        <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                            <PanelTitle icon={<ReceiptText size={15} />} title={t('dashboard.sections.financeTrend')} detail={t('dashboard.sections.financeTrendDetail')} action={<AppButton size="sm" compact variant="quiet" onPress={() => navigate('/finance/documents?tab=monthly')}>{t('dashboard.actions.monthly')}</AppButton>} />
+                            <Card.Content className="p-0">
+                                <DashboardFinanceTrend points={financeTrend} />
                             </Card.Content>
                         </Card>
 
-                        <Card className="gap-0 self-start overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm xl:order-1 xl:row-span-2">
-                            <PanelTitle icon={<FolderKanban size={15} />} title={t('dashboard.sections.projects')} detail={t('dashboard.sections.projectsDetail')} action={<AppButton size="sm" compact variant="quiet" onPress={() => navigate('/dossiers')}>{t('dashboard.actions.viewAll')}</AppButton>} />
-                            <Card.Content className="divide-y divide-[var(--border)] p-0">
-                                {recentProjects.length > 0 ? recentProjects.slice(0, 5).map((project) => (
-                                    <AppButton key={project.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-3 py-3 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(project.href)}>
-                                        <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-3"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--foreground)]">{project.project}</span><span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{project.dossierNumber} / {project.client}</span><span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{project.location}</span></span><span className="flex shrink-0 items-center gap-2"><Chip size="sm" variant="soft" color={project.missingDocs > 0 ? 'warning' : 'success'}>{project.missingDocs} {t('dashboard.states.documents')}</Chip><ChevronRight size={15} className="text-[var(--text-muted)]" /></span></span>
-                                    </AppButton>
-                                )) : <div className="px-4 py-9 text-center text-sm text-[var(--text-muted)]">{t('dashboard.states.noRecentProject')}</div>}
-                            </Card.Content>
-                        </Card>
-
-                        <Card className="gap-0 self-start overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm xl:order-3 xl:col-start-2">
-                            <PanelTitle icon={blockedDossiers.length > 0 || urgentTaskList.length > 0 ? <AlertTriangle size={15} className="text-[var(--danger)]" /> : <CheckCircle2 size={15} className="text-[var(--success)]" />} title={t('dashboard.sections.vigilance')} detail={t('dashboard.sections.vigilanceDetail')} action={blockedDossiers.length > 0 || urgentTaskList.length > 0 ? <AlertTriangle size={15} className="text-[var(--danger)]" /> : <CheckCircle2 size={15} className="text-[var(--success)]" />} />
-                            <Card.Content className="divide-y divide-[var(--border)] p-0">
-                                {blockedDossiers.slice(0, 2).map((dossier) => (
-                                    <AppButton key={dossier.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-3 py-3 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(dossier.href)}><span className="flex min-w-0 flex-1 items-center justify-between gap-2"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--foreground)]">{dossier.project}</span><span className="block truncate text-[11px] text-[var(--text-muted)]">{dossier.client}</span></span><Chip size="sm" variant="soft" color="danger">{dossier.daysStuck} {t('dashboard.states.days')}</Chip></span></AppButton>
-                                ))}
-                                {urgentTaskList.slice(0, 2).map((task) => (
-                                    <AppButton key={task.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-3 py-3 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(`/tasks?task=${task.id}`)}><span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-2"><span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--foreground)]">{task.title}</span><span className="block truncate text-[11px] text-[var(--text-muted)]">{task.taskNumber}</span></span><Chip size="sm" variant="soft" color={task.isOverdue ? 'danger' : 'warning'}>{task.isOverdue ? t('dashboard.states.overdue') : t('dashboard.states.urgent')}</Chip></span></AppButton>
-                                ))}
-                                {blockedDossiers.length === 0 && urgentTaskList.length === 0 ? <div className="flex items-center gap-2 px-3 py-7 text-sm text-[var(--text-muted)]"><CheckCircle2 size={17} className="text-[var(--success)]" /> {t('dashboard.states.allStable')}</div> : null}
+                        <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                            <PanelTitle icon={<FolderKanban size={15} />} title={t('dashboard.sections.workflow')} detail={t('dashboard.sections.workflowDetail')} action={<FolderKanban size={15} className="text-[var(--accent)]" />} />
+                            <Card.Content className="p-0">
+                                <DashboardWorkflowDonut steps={workflowDistribution} />
                             </Card.Content>
                         </Card>
                     </div>
 
+                    <div className="grid min-w-0 items-stretch gap-3 lg:grid-cols-[minmax(0,1.65fr)_minmax(360px,0.85fr)] xl:grid-cols-[minmax(0,1.8fr)_minmax(380px,0.9fr)]">
+                        <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm xl:order-1">
+                            <div className="flex min-w-0 items-center justify-between gap-3 px-2 py-2">
+                                <div className="flex min-w-0 items-center gap-2.5">
+                                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><FolderKanban size={15} /></span>
+                                    <div className="min-w-0">
+                                        <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('dashboard.sections.projects')}</h2>
+                                        <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{t('dashboard.sections.projectsDetail')}</p>
+                                    </div>
+                                </div>
+                                <AppButton size="sm" compact variant="quiet" onPress={() => navigate('/dossiers')}>{t('dashboard.actions.viewAll')}</AppButton>
+                            </div>
+                            <Card.Content className="px-2 py-0">
+                                {recentProjects.length > 0 ? recentProjects.slice(0, 5).map((project) => (
+                                    <Button
+                                        key={project.id}
+                                        variant="ghost"
+                                        className="h-auto w-full justify-start py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px]"
+                                        onPress={() => navigate(project.href)}
+                                    >
+                                        <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><span className="min-w-0"><span className="truncate text-xs font-semibold text-[var(--foreground)]">{project.project}</span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{project.dossierNumber} / {project.client}</span></span><span className="flex shrink-0 items-center gap-2"><Chip size="sm" variant="soft" color={project.missingDocs > 0 ? 'warning' : 'success'}>{project.missingDocs} {t('dashboard.states.documents')}</Chip><ChevronRight size={14} className="text-[var(--text-muted)]" /></span></span>
+                                    </Button>
+                                )) : <div className="px-4 py-9 text-center text-sm text-[var(--text-muted)]">{t('dashboard.states.noRecentProject')}</div>}
+                            </Card.Content>
+                        </Card>
+
+                        <div className="grid h-full grid-rows-2 gap-3 xl:order-2">
+                            <Card className="gap-0 self-start overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                                <div className="flex min-w-0 items-center justify-between gap-3 px-2 py-2">
+                                    <div className="flex min-w-0 items-center gap-2.5">
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><ListChecks size={15} /></span>
+                                        <div className="min-w-0">
+                                            <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('dashboard.sections.actionQueue')}</h2>
+                                            <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{t('dashboard.sections.actionQueueDetail')}</p>
+                                        </div>
+                                    </div>
+                                    <ListChecks size={15} className="text-[var(--accent)]" />
+                                </div>
+                                <Card.Content className="px-2 py-0">
+                                    {queuedActions.map((action) => (
+                                        <Button
+                                            key={action.id}
+                                            variant="ghost"
+                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px] min-w-0"
+                                            onPress={() => navigate(action.href)}
+                                        >
+                                            <span className="flex min-w-0 flex-1 items-center gap-2.5"><DashboardIcon icon={action.icon} tone={action.tone} /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-[var(--foreground)]">{t(`dashboard.nextActions.${action.kind}.title`)}</span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{action.context ?? t(`dashboard.nextActions.${action.kind}.detail`)}</span></span><Chip size="sm" variant="soft" color={tones[action.tone].chip}>{t(`dashboard.nextActions.due.${action.dueKey}`)}</Chip></span>
+                                        </Button>
+                                    ))}
+                                </Card.Content>
+                            </Card>
+
+                            <Card className="gap-0 self-start overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+                                <div className="flex min-w-0 items-center justify-between gap-3 px-2 py-2">
+                                    <div className="flex min-w-0 items-center gap-2.5">
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]">{blockedDossiers.length > 0 || urgentTaskList.length > 0 ? <AlertTriangle size={15} className="text-[var(--danger)]" /> : <CheckCircle2 size={15} className="text-[var(--success)]" />}</span>
+                                        <div className="min-w-0">
+                                            <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('dashboard.sections.vigilance')}</h2>
+                                            <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{t('dashboard.sections.vigilanceDetail')}</p>
+                                        </div>
+                                    </div>
+                                    {blockedDossiers.length > 0 || urgentTaskList.length > 0 ? <AlertTriangle size={15} className="text-[var(--danger)]" /> : <CheckCircle2 size={15} className="text-[var(--success)]" />}
+                                </div>
+                                <Card.Content className="px-2 py-0">
+                                    {blockedDossiers.slice(0, 2).map((dossier) => (
+                                        <Button
+                                            key={dossier.id}
+                                            variant="ghost"
+                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px] min-w-0"
+                                            onPress={() => navigate(dossier.href)}
+                                        >
+                                            <span className="flex min-w-0 flex-1 items-center justify-between gap-2"><span className="min-w-0"><span className="block truncate text-xs font-semibold text-[var(--foreground)]">{dossier.project}</span><span className="block truncate text-[9px] text-[var(--text-muted)]">{dossier.client}</span></span><Chip size="sm" variant="soft" color="danger">{dossier.daysStuck} {t('dashboard.states.days')}</Chip></span>
+                                        </Button>
+                                    ))}
+                                    {urgentTaskList.slice(0, 2).map((task) => (
+                                        <Button
+                                            key={task.id}
+                                            variant="ghost"
+                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px] min-w-0"
+                                            onPress={() => navigate(`/tasks?task=${task.id}`)}
+                                        >
+                                            <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-2"><span className="min-w-0"><span className="block truncate text-xs font-semibold text-[var(--foreground)]">{task.title}</span><span className="block truncate text-[9px] text-[var(--text-muted)]">{task.taskNumber}</span></span><Chip size="sm" variant="soft" color={task.isOverdue ? 'danger' : 'warning'}>{task.isOverdue ? t('dashboard.states.overdue') : t('dashboard.states.urgent')}</Chip></span>
+                                        </Button>
+                                    ))}
+                                    {blockedDossiers.length === 0 && urgentTaskList.length === 0 ? <div className="flex items-center gap-2 px-3 py-7 text-sm text-[var(--text-muted)]"><CheckCircle2 size={17} className="text-[var(--success)]" /> {t('dashboard.states.allStable')}</div> : null}
+                                </Card.Content>
+                            </Card>
+                        </div>
+                    </div>
+
                     <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-                        <Card.Content className="grid min-w-0 divide-y divide-[var(--border)] lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+                        <Card.Content className="grid min-w-0 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
                             <section className="min-w-0">
-                                <PanelTitle icon={<ReceiptText size={15} />} title={t('dashboard.sections.finance')} detail={t('dashboard.sections.financeDetail')} action={<ReceiptText size={15} className="text-[var(--accent)]" />} />
-                                <div className="divide-y divide-[var(--border)]">
+                                <div className="flex min-w-0 items-center justify-between gap-3 px-2 py-2">
+                                    <div className="flex min-w-0 items-center gap-2.5">
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><ReceiptText size={15} /></span>
+                                        <div className="min-w-0">
+                                            <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('dashboard.sections.finance')}</h2>
+                                            <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{t('dashboard.sections.financeDetail')}</p>
+                                        </div>
+                                    </div>
+                                    <ReceiptText size={15} className="text-[var(--accent)]" />
+                                </div>
+                                <div className="flex flex-col gap-2 px-2 py-0">
                                     {financeAlerts.map((alert) => (
-                                        <AppButton key={alert.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-4 py-2.5 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(alert.href)}><span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-2"><span className="min-w-0"><span className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]"><span className={`size-1.5 shrink-0 rounded-full ${tones[alert.tone].dot}`} /><span className="truncate">{t(`dashboard.alerts.${alert.id}.title`)}</span></span><span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{t(`dashboard.alerts.${alert.id}.detail`, alert.count === undefined ? undefined : { count: alert.count })}</span></span><span className={`self-center text-sm font-semibold ${tones[alert.tone].text}`}>{alert.amount}</span></span></AppButton>
+                                        <Button
+                                            key={alert.id}
+                                            variant="ghost"
+                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px] min-w-0"
+                                            onPress={() => navigate(alert.href)}
+                                        >
+                                            <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-2"><span className="min-w-0"><span className="flex items-center gap-2 text-xs font-semibold text-[var(--foreground)]"><span className={`size-1.5 shrink-0 rounded-full ${tones[alert.tone].dot}`} /><span className="truncate">{t(`dashboard.alerts.${alert.id}.title`)}</span></span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{t(`dashboard.alerts.${alert.id}.detail`, alert.count === undefined ? undefined : { count: alert.count })}</span></span><span className={`self-center text-xs font-semibold ${tones[alert.tone].text}`}>{formatCompactMoney(alert.amount)}</span></span>
+                                        </Button>
                                     ))}
                                 </div>
                             </section>
 
                             <section className="min-w-0">
-                                <PanelTitle icon={<MessageSquare size={15} />} title={t('dashboard.sections.updates')} detail={t('dashboard.sections.updatesDetail')} action={<AppButton size="sm" compact variant="quiet" onPress={() => navigate('/inbox')}>{t('dashboard.actions.inbox')}</AppButton>} />
-                                <div className="divide-y divide-[var(--border)]">
+                                <div className="flex min-w-0 items-center justify-between gap-3 px-2 py-2">
+                                    <div className="flex min-w-0 items-center gap-2.5">
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><MessageSquare size={15} /></span>
+                                        <div className="min-w-0">
+                                            <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('dashboard.sections.updates')}</h2>
+                                            <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{t('dashboard.sections.updatesDetail')}</p>
+                                        </div>
+                                    </div>
+                                    <AppButton size="sm" compact variant="quiet" onPress={() => navigate('/inbox')}>{t('dashboard.actions.inbox')}</AppButton>
+                                </div>
+                                <div className="flex flex-col gap-2 px-2 py-0">
                                     {recentMessageList.slice(0, 2).map((message) => (
-                                        <AppButton key={message.id} variant="ghost" className="h-auto w-full justify-start rounded-none px-4 py-2.5 text-left hover:bg-[var(--surface-2)]" onPress={() => navigate(`/inbox?conversation=${message.conversationId}`)}><span className="flex min-w-0 flex-1 items-start gap-2.5"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-bold text-black">{message.sender.charAt(0).toUpperCase()}</span><span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate text-sm font-semibold text-[var(--foreground)]">{message.sender}</span>{message.unread ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent)]" /> : null}</span><span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{message.body}</span></span></span></AppButton>
+                                        <Button
+                                            key={message.id}
+                                            variant="ghost"
+                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px] min-w-0"
+                                            onPress={() => navigate(`/inbox?conversation=${message.conversationId}`)}
+                                        >
+                                            <span className="flex min-w-0 flex-1 items-start gap-2.5"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-bold text-black">{message.sender.charAt(0).toUpperCase()}</span><span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate text-xs font-semibold text-[var(--foreground)]">{message.sender}</span>{message.unread ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent)]" /> : null}</span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{message.body}</span></span></span>
+                                        </Button>
                                     ))}
-                                    {activityFeed.slice(0, 2).map((activity) => <div key={activity.id} className="flex min-w-0 gap-2.5 px-4 py-2.5"><DashboardIcon icon={activity.icon} tone={activity.tone} /><div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--foreground)]">{t(`dashboard.activity.${activity.kind}`)}</p><p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">{activity.description}</p></div></div>)}
-                                    {recentMessageList.length === 0 && activityFeed.length === 0 ? <div className="px-4 py-7 text-center text-sm text-[var(--text-muted)]">{t('dashboard.states.noRecentUpdates')}</div> : null}
+                                    {activityFeed.slice(0, 2).map((activity) => <div key={activity.id} className="flex min-w-0 gap-2.5 px-2 py-2"><DashboardIcon icon={activity.icon} tone={activity.tone} /><div className="min-w-0"><p className="truncate text-xs font-medium text-[var(--foreground)]">{t(`dashboard.activity.${activity.kind}`)}</p><p className="mt-0.5 truncate text-[9px] text-[var(--text-muted)]">{activity.description}</p></div></div>)}
+                                    {recentMessageList.length === 0 && activityFeed.length === 0 ? <div className="px-2 py-7 text-center text-sm text-[var(--text-muted)]">{t('dashboard.states.noRecentUpdates')}</div> : null}
                                 </div>
                             </section>
                         </Card.Content>

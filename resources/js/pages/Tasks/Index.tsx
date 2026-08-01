@@ -255,7 +255,7 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
                         <div className="flex min-w-0 items-center gap-3">
                             <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]"><ClipboardList size={19} /></span>
                             <div className="min-w-0">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Operations</p>
+                                <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Operations</p>
                                 <h1 className="mt-0.5 text-lg font-bold text-[var(--foreground)]">Tasks</h1>
                                 <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">Plan, assign, follow up, and close daily office work.</p>
                             </div>
@@ -309,7 +309,7 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
                             </span>
                             <div className="flex items-center gap-1">
                                 <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                                    className="flex h-7 items-center rounded-lg border border-[var(--crm-border)] px-2.5 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)] disabled:opacity-40 disabled:pointer-events-none">
+                                    className="flex h-7 items-center rounded-lg border border-[var(--crm-border)] px-2.5 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)] disabled:opacity-40 disabled:pointer-events-none">
                                     Prev
                                 </button>
                                 {(() => {
@@ -321,10 +321,10 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
                                     if (end < totalPages) { if (end < totalPages - 1) pages.push('...'); pages.push(totalPages); }
                                     return pages.map((p, i) =>
                                         typeof p === 'string' ? (
-                                            <span key={`e${i}`} className="px-1 text-[10px] text-[var(--crm-text-muted)]">{p}</span>
+                                            <span key={`e${i}`} className="px-1 text-[9px] text-[var(--crm-text-muted)]">{p}</span>
                                         ) : (
                                             <button key={p} type="button" onClick={() => setPage(p)}
-                                                className={`flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-semibold transition ${
+                                                className={`flex h-7 w-7 items-center justify-center rounded-lg text-[9px] font-semibold transition ${
                                                     p === page
                                                         ? 'bg-[var(--crm-gold)] text-black'
                                                         : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'
@@ -335,7 +335,7 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
                                     );
                                 })()}
                                 <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                                    className="flex h-7 items-center rounded-lg border border-[var(--crm-border)] px-2.5 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)] disabled:opacity-40 disabled:pointer-events-none">
+                                    className="flex h-7 items-center rounded-lg border border-[var(--crm-border)] px-2.5 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)] disabled:opacity-40 disabled:pointer-events-none">
                                     Next
                                 </button>
                             </div>

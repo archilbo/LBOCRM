@@ -58,7 +58,7 @@ export default function OperationsReports({ report }: { report: ReportPayload })
                         {/* By module */}
                         <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-5">
                             <h2 className="mb-1 text-sm font-bold text-[var(--crm-text)]">By module</h2>
-                            <p className="mb-4 text-[10px] text-[var(--crm-text-muted)]">Task distribution across operation categories</p>
+                            <p className="mb-4 text-[9px] text-[var(--crm-text-muted)]">Task distribution across operation categories</p>
                             <div className="space-y-2.5">
                                 {Object.entries(report.byModule)
                                     .sort(([, a], [, b]) => b - a)
@@ -86,7 +86,7 @@ export default function OperationsReports({ report }: { report: ReportPayload })
                         {/* By priority */}
                         <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-5">
                             <h2 className="mb-1 text-sm font-bold text-[var(--crm-text)]">By priority</h2>
-                            <p className="mb-4 text-[10px] text-[var(--crm-text-muted)]">Task breakdown by urgency level</p>
+                            <p className="mb-4 text-[9px] text-[var(--crm-text-muted)]">Task breakdown by urgency level</p>
                             <div className="space-y-3">
                                 {Object.entries(report.byPriority)
                                     .sort(([, a], [, b]) => b - a)
@@ -97,7 +97,7 @@ export default function OperationsReports({ report }: { report: ReportPayload })
                                             <div key={key}>
                                                 <div className="mb-1 flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${meta.color} border-current/20`}>
+                                                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold ${meta.color} border-current/20`}>
                                                             {meta.label}
                                                         </span>
                                                     </div>
@@ -121,7 +121,7 @@ export default function OperationsReports({ report }: { report: ReportPayload })
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-sm font-bold text-[var(--crm-text)]">Task completion rate</h2>
-                                <p className="mt-0.5 text-[10px] text-[var(--crm-text-muted)]">{report.completedTasks} of {report.totalTasks} tasks completed</p>
+                                <p className="mt-0.5 text-[9px] text-[var(--crm-text-muted)]">{report.completedTasks} of {report.totalTasks} tasks completed</p>
                             </div>
                             <span className="text-2xl font-black text-[var(--crm-gold)]">{completionRate}%</span>
                         </div>

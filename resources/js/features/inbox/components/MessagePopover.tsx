@@ -41,7 +41,7 @@ function ConversationPreview({ conversation, currentUserId, onSelect, onRemove }
                         <span className={`min-w-0 flex-1 truncate text-xs ${conversation.unreadCount > 0 ? 'font-bold text-[var(--text)]' : 'font-semibold text-[var(--text)]'}`}>{name}</span>
                         <span className="text-[9px] text-[var(--text-subtle)]">{formatConversationTime(conversation.lastMessageAt)}</span>
                     </span>
-                    <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">{getLastMessagePreview(conversation, currentUserId)}</span>
+                    <span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{getLastMessagePreview(conversation, currentUserId)}</span>
                 </span>
                 {conversation.unreadCount > 0 ? <Chip size="sm" color="danger" variant="solid">{conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}</Chip> : null}
             </Button>
@@ -109,7 +109,7 @@ export function MessagePopover() {
                 <Popover.Dialog className="outline-none">
                     <header className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3">
                         <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]"><MessageSquare size={17} /></span>
-                        <span className="min-w-0 flex-1"><Popover.Heading className="text-sm font-semibold">Messages</Popover.Heading><span className="block text-[10px] text-[var(--text-muted)]">Vos echanges recents</span></span>
+                        <span className="min-w-0 flex-1"><Popover.Heading className="text-sm font-semibold">Messages</Popover.Heading><span className="block text-[9px] text-[var(--text-muted)]">Vos echanges recents</span></span>
                         {unreadCount > 0 ? <Chip size="sm" color="danger">{unreadCount}</Chip> : null}
                         <InboxIconButton label="Ouvrir la messagerie" onPress={() => visitInbox()}><ExternalLink size={14} /></InboxIconButton>
                     </header>
@@ -123,7 +123,7 @@ export function MessagePopover() {
                             </SearchField.Group>
                         </SearchField>
                         <Dropdown>
-                            <Dropdown.Trigger aria-label="Filtrer les messages" className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-2.5 text-[10px] font-medium text-[var(--text)] data-[open]:border-[var(--accent)]">
+                            <Dropdown.Trigger aria-label="Filtrer les messages" className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-2.5 text-[9px] font-medium text-[var(--text)] data-[open]:border-[var(--accent)]">
                                 <Filter size={13} /><span className="hidden sm:inline">{activeFilter.label}</span><ChevronDown size={11} />
                             </Dropdown.Trigger>
                             <Dropdown.Popover placement="bottom end" className="min-w-56 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">

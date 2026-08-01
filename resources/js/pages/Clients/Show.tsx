@@ -621,7 +621,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                     size="sm"
                                 />
                             </div>
-                            <p className="truncate text-[12px] text-[var(--text-muted)]">{client.clientNumber} {client.cin ? `/ ${client.cin}` : ''}</p>
+                            <p className="truncate text-[11px] text-[var(--text-muted)]">{client.clientNumber} {client.cin ? `/ ${client.cin}` : ''}</p>
                         </div>
                     </div>
                     <div className="flex items-center justify-end gap-1.5">
@@ -645,30 +645,30 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                         </span>
                         <div className="min-w-0 flex-1 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.form.cin')}</p>
-                                <p className="mt-1 text-[14px] font-medium text-[var(--foreground)]">{client.cin || '-'}</p>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.form.cin')}</p>
+                                <p className="mt-1 text-[13px] font-medium text-[var(--foreground)]">{client.cin || '-'}</p>
                             </div>
                             <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.form.phone')}</p>
-                                <p className="mt-1 text-[14px] font-medium text-[var(--foreground)]">{client.phone || '-'}</p>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.form.phone')}</p>
+                                <p className="mt-1 text-[13px] font-medium text-[var(--foreground)]">{client.phone || '-'}</p>
                             </div>
                             <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.form.email')}</p>
-                                <p className="mt-1 truncate text-[14px] font-medium text-[var(--foreground)]">{client.email || '-'}</p>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.form.email')}</p>
+                                <p className="mt-1 truncate text-[13px] font-medium text-[var(--foreground)]">{client.email || '-'}</p>
                             </div>
                             <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.form.address')}</p>
-                                <p className="mt-1 text-[14px] font-medium text-[var(--foreground)]">{client.address || '-'}</p>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.form.address')}</p>
+                                <p className="mt-1 text-[13px] font-medium text-[var(--foreground)]">{client.address || '-'}</p>
                             </div>
                             <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.form.intermediaryName')}</p>
-                                <p className="mt-1 text-[14px] font-medium text-[var(--foreground)]">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.form.intermediaryName')}</p>
+                                <p className="mt-1 text-[13px] font-medium text-[var(--foreground)]">
                                     {client.intermediaryName && client.intermediaryName !== 'None' ? client.intermediaryName : '-'}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.show.updated')}</p>
-                                <p className="mt-1 text-[14px] font-medium text-[var(--foreground)]">{client.updatedAt || '-'}</p>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('clients.show.updated')}</p>
+                                <p className="mt-1 text-[13px] font-medium text-[var(--foreground)]">{client.updatedAt || '-'}</p>
                             </div>
                         </div>
                     </div>
@@ -676,19 +676,19 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     {/* Stats strip */}
                     <div className="grid grid-cols-2 border-t border-[var(--border)] sm:grid-cols-4">
                         <div className="border-r border-[var(--border)] p-4">
-                            <p className="text-[11px] font-medium text-[var(--text-muted)]">{t('clients.show.projects')}</p>
+                            <p className="text-[10px] font-medium text-[var(--text-muted)]">{t('clients.show.projects')}</p>
                             <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">{projects.length}</p>
                         </div>
                         <div className="border-r border-[var(--border)] p-4">
-                            <p className="text-[11px] font-medium text-[var(--text-muted)]">{t('clients.show.activeProjects')}</p>
+                            <p className="text-[10px] font-medium text-[var(--text-muted)]">{t('clients.show.activeProjects')}</p>
                             <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">{activeProjects}</p>
                         </div>
                         <div className="border-r border-[var(--border)] p-4">
-                            <p className="text-[11px] font-medium text-[var(--text-muted)]">{t('clients.show.documents')}</p>
+                            <p className="text-[10px] font-medium text-[var(--text-muted)]">{t('clients.show.documents')}</p>
                             <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">{totalDocuments}</p>
                         </div>
                         <div className="p-4">
-                            <p className="text-[11px] font-medium text-[var(--text-muted)]">{t('clients.show.status')}</p>
+                            <p className="text-[10px] font-medium text-[var(--text-muted)]">{t('clients.show.status')}</p>
                             <p className="mt-1 text-xl font-semibold capitalize text-[var(--foreground)]">{client.status}</p>
                         </div>
                     </div>
@@ -731,30 +731,30 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                     </span>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
-                                            <h3 className="text-[14px] font-semibold text-[var(--foreground)]">{client.fullName}</h3>
+                                            <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{client.fullName}</h3>
                                             <StatusPill label={client.status} size="sm"
                                                 color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} />
                                         </div>
-                                        <p className="text-[11px] text-[var(--text-muted)]">{client.clientNumber}</p>
+                                        <p className="text-[10px] text-[var(--text-muted)]">{client.clientNumber}</p>
                                     </div>
                                 </div>
                                 <div className="mt-4 space-y-2.5">
-                                    <div className="flex items-center gap-3 text-[12px]">
+                                    <div className="flex items-center gap-3 text-[11px]">
                                         <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[var(--accent)]"><FileText size={12} /></span>
                                         <span className="text-[var(--text-muted)]">CIN:</span>
                                         <span className="font-medium text-[var(--foreground)]">{client.cin || '-'}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-[12px]">
+                                    <div className="flex items-center gap-3 text-[11px]">
                                         <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><Phone size={12} /></span>
                                         <span className="text-[var(--text-muted)]">{t('clients.form.phone')}:</span>
                                         <span className="font-medium text-[var(--foreground)]">{client.phone || '-'}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-[12px]">
+                                    <div className="flex items-center gap-3 text-[11px]">
                                         <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><Mail size={12} /></span>
                                         <span className="text-[var(--text-muted)]">{t('clients.form.email')}:</span>
                                         <span className="truncate font-medium text-[var(--foreground)]">{client.email || '-'}</span>
                                     </div>
-                                    <div className="flex items-center gap-3 text-[12px]">
+                                    <div className="flex items-center gap-3 text-[11px]">
                                         <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><MapPin size={12} /></span>
                                         <span className="text-[var(--text-muted)]">{t('clients.form.address')}:</span>
                                         <span className="font-medium text-[var(--foreground)]">{client.address || '-'}</span>
@@ -764,28 +764,28 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
 
                             {/* Relationship */}
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-                                <h3 className="mb-4 text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.relationship')}</h3>
+                                <h3 className="mb-4 text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.relationship')}</h3>
                                 <div className="space-y-3">
-                                    <div className="flex items-center justify-between text-[12px]">
+                                    <div className="flex items-center justify-between text-[11px]">
                                         <span className="text-[var(--text-muted)]">{t('clients.form.intermediaryName')}</span>
                                         <span className="font-medium text-[var(--foreground)]">
                                             {client.intermediaryName && client.intermediaryName !== 'None' ? client.intermediaryName : '-'}
                                         </span>
                                     </div>
-                                    <div className="flex items-center justify-between text-[12px]">
+                                    <div className="flex items-center justify-between text-[11px]">
                                         <span className="text-[var(--text-muted)]">{t('clients.show.created')}</span>
                                         <span className="font-medium text-[var(--foreground)]">{client.createdAt || '-'}</span>
                                     </div>
-                                    <div className="flex items-center justify-between text-[12px]">
+                                    <div className="flex items-center justify-between text-[11px]">
                                         <span className="text-[var(--text-muted)]">{t('clients.show.updated')}</span>
                                         <span className="font-medium text-[var(--foreground)]">{client.updatedAt || '-'}</span>
                                     </div>
                                     <div className="border-t border-[var(--border)] pt-3 mt-3">
-                                        <div className="flex items-center justify-between text-[12px]">
+                                        <div className="flex items-center justify-between text-[11px]">
                                             <span className="text-[var(--text-muted)]">{t('clients.show.projects')}</span>
                                             <span className="font-semibold text-[var(--foreground)]">{projects.length}</span>
                                         </div>
-                                        <div className="flex items-center justify-between text-[12px] mt-1.5">
+                                        <div className="flex items-center justify-between text-[11px] mt-1.5">
                                             <span className="text-[var(--text-muted)]">{t('clients.show.activeProjects')}</span>
                                             <span className="font-semibold text-[var(--foreground)]">{activeProjects}</span>
                                         </div>
@@ -797,22 +797,22 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                             {latestProject && (
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
                                     <div className="flex items-center justify-between mb-3">
-                                        <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.workflow')}</h3>
+                                        <h3 className="text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.workflow')}</h3>
                                         <StatusPill label={latestProject.status} size="sm"
                                             color={latestProject.status === 'opened' || latestProject.status === 'active' ? 'success' : 'default'} />
                                     </div>
-                                    <p className="text-[13px] font-medium text-[var(--foreground)]">
+                                    <p className="text-[12px] font-medium text-[var(--foreground)]">
                                         {latestProject.projectObject || latestProject.dossierNumber}
                                     </p>
-                                    <p className="text-[11px] text-[var(--text-muted)]">{latestProject.dossierNumber}</p>
+                                    <p className="text-[10px] text-[var(--text-muted)]">{latestProject.dossierNumber}</p>
                                     <div className="mt-3 space-y-2">
-                                        <div className="flex items-center justify-between text-[12px]">
+                                        <div className="flex items-center justify-between text-[11px]">
                                             <span className="text-[var(--text-muted)]">{t('clients.show.currentStep')}</span>
                                             <span className="font-medium text-[var(--foreground)]">{latestProject.workflowStep || t('clients.show.noWorkflow')}</span>
                                         </div>
                                         {workflowPercent !== null && (
                                             <>
-                                                <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+                                                <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)]">
                                                     <span>{t('clients.show.workflowProgress')}</span>
                                                     <span>{workflowPercent}%</span>
                                                 </div>
@@ -832,18 +832,18 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
                                 <div className="flex items-center justify-between gap-3 mb-3">
                                     <div>
-                                        <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.pipelineSummary')}</h3>
-                                        <p className="text-[11px] text-[var(--text-muted)]">{projects.length} {t('clients.show.projects').toLowerCase()}</p>
+                                        <h3 className="text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.pipelineSummary')}</h3>
+                                        <p className="text-[10px] text-[var(--text-muted)]">{projects.length} {t('clients.show.projects').toLowerCase()}</p>
                                     </div>
                                     {projects.length > 5 && (
                                         <button type="button" onClick={() => selectTab('projects')}
-                                            className="shrink-0 rounded-lg border border-[var(--border)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
+                                            className="shrink-0 rounded-lg border border-[var(--border)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
                                             {t('actions.view')}
                                         </button>
                                     )}
                                 </div>
                                 {projects.length === 0 ? (
-                                    <p className="text-[12px] text-[var(--text-muted)]">{t('clients.show.noProjects')}</p>
+                                    <p className="text-[11px] text-[var(--text-muted)]">{t('clients.show.noProjects')}</p>
                                 ) : (
                                     <div className="space-y-1">
                                         {projects.slice(0, 5).map((project) => {
@@ -865,16 +865,16 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                     </span>
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex items-center gap-2">
-                                                            <p className="truncate text-[12px] font-medium text-[var(--foreground)]">
+                                                            <p className="truncate text-[11px] font-medium text-[var(--foreground)]">
                                                                 {project.projectObject || project.dossierNumber}
                                                             </p>
                                                             <StatusPill label={project.status} size="sm"
                                                                 color={project.status === 'opened' || project.status === 'active' ? 'success' : 'default'} />
                                                         </div>
                                                         <div className="flex items-center gap-2 mt-0.5">
-                                                            <span className="text-[10px] text-[var(--text-muted)]">{project.dossierNumber}</span>
-                                                            <span className="text-[10px] text-[var(--text-subtle)]">&middot;</span>
-                                                            <span className="text-[10px] text-[var(--text-subtle)]">{project.workflowStep || t('clients.show.noWorkflow')}</span>
+                                                            <span className="text-[9px] text-[var(--text-muted)]">{project.dossierNumber}</span>
+                                                            <span className="text-[9px] text-[var(--text-subtle)]">&middot;</span>
+                                                            <span className="text-[9px] text-[var(--text-subtle)]">{project.workflowStep || t('clients.show.noWorkflow')}</span>
                                                         </div>
                                                         {showProgress && selectedProject?.workflow && (
                                                             <div className="mt-1 h-1 rounded-full bg-[var(--surface-3)] overflow-hidden">
@@ -891,30 +891,30 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
 
                             {/* Shared client documents */}
                             <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-                                <h3 className="mb-1 text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.sharedDocuments')}</h3>
-                                <p className="mb-4 text-[11px] text-[var(--text-muted)]">{t('clients.show.sharedDocumentsDesc')}</p>
+                                <h3 className="mb-1 text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.sharedDocuments')}</h3>
+                                <p className="mb-4 text-[10px] text-[var(--text-muted)]">{t('clients.show.sharedDocumentsDesc')}</p>
                                 <div className="flex flex-wrap gap-3">
                                     <div className="flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5 min-w-0">
                                         <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[var(--accent)]"><FileText size={12} /></span>
                                         <div className="min-w-0">
-                                            <p className="text-[12px] font-medium text-[var(--foreground)]">CIN</p>
-                                            <p className="text-[10px] text-[var(--text-muted)]">{client.cin || t('common.notAvailable')}</p>
+                                            <p className="text-[11px] font-medium text-[var(--foreground)]">CIN</p>
+                                            <p className="text-[9px] text-[var(--text-muted)]">{client.cin || t('common.notAvailable')}</p>
                                         </div>
                                         <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
                                     </div>
                                     <div className="flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5 min-w-0">
                                         <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><Phone size={12} /></span>
                                         <div className="min-w-0">
-                                            <p className="text-[12px] font-medium text-[var(--foreground)]">{t('clients.form.phone')}</p>
-                                            <p className="text-[10px] text-[var(--text-muted)]">{client.phone || t('common.notAvailable')}</p>
+                                            <p className="text-[11px] font-medium text-[var(--foreground)]">{t('clients.form.phone')}</p>
+                                            <p className="text-[9px] text-[var(--text-muted)]">{client.phone || t('common.notAvailable')}</p>
                                         </div>
                                         <span className="shrink-0 rounded-full bg-[var(--surface-3)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--text-subtle)]">{t('clients.show.reusedFromClient')}</span>
                                     </div>
                                     <div className="flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5 min-w-0">
                                         <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><Mail size={12} /></span>
                                         <div className="min-w-0">
-                                            <p className="text-[12px] font-medium text-[var(--foreground)]">{t('clients.form.email')}</p>
-                                            <p className="truncate text-[10px] text-[var(--text-muted)]">{client.email || t('common.notAvailable')}</p>
+                                            <p className="text-[11px] font-medium text-[var(--foreground)]">{t('clients.form.email')}</p>
+                                            <p className="truncate text-[9px] text-[var(--text-muted)]">{client.email || t('common.notAvailable')}</p>
                                         </div>
                                         <span className="shrink-0 rounded-full bg-[var(--surface-3)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--text-subtle)]">{t('clients.show.reusedFromClient')}</span>
                                     </div>
@@ -923,8 +923,8 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
 
                             {/* Notes */}
                             <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-                                <h3 className="mb-2 text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.notes')}</h3>
-                                <p className="text-[12px] leading-6 text-[var(--text-muted)]">
+                                <h3 className="mb-2 text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.notes')}</h3>
+                                <p className="text-[11px] leading-6 text-[var(--text-muted)]">
                                     {client.notes || t('clients.show.noNotes')}
                                 </p>
                             </div>
@@ -935,7 +935,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     <TabPanel id="projects" className="outline-none">
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <p className="text-[13px] font-semibold text-[var(--foreground)]">
+                                <p className="text-[12px] font-semibold text-[var(--foreground)]">
                                     {projects.length} {t('clients.show.projects').toLowerCase()}
                                 </p>
                             <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.newProject')} aria-label={t('clients.show.newProject')} onPress={() => { setProjectDrawerOpen(true); }}>
@@ -955,10 +955,10 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                             )}>
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="min-w-0">
-                                                    <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">
+                                                    <p className="truncate text-[12px] font-semibold text-[var(--foreground)]">
                                                         {project.projectObject || project.dossierNumber}
                                                     </p>
-                                                    <p className="text-[11px] text-[var(--text-muted)]">{project.dossierNumber}</p>
+                                                    <p className="text-[10px] text-[var(--text-muted)]">{project.dossierNumber}</p>
                                                 </div>
                                                 <StatusPill
                                                     label={project.status}
@@ -967,11 +967,11 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                 />
                                             </div>
                                             {project.projectAddress && (
-                                                <p className="mt-1.5 flex items-center gap-1 text-[11px] text-[var(--text-subtle)]">
+                                                <p className="mt-1.5 flex items-center gap-1 text-[10px] text-[var(--text-subtle)]">
                                                     <MapPin size={11} /> {project.projectAddress}
                                                 </p>
                                             )}
-                                            <div className="mt-2.5 flex items-center gap-3 text-[11px] text-[var(--text-muted)]">
+                                            <div className="mt-2.5 flex items-center gap-3 text-[10px] text-[var(--text-muted)]">
                                                 <span className="flex items-center gap-1">
                                                     <FileText size={12} /> {project.documentsCount} {t('clients.show.documents').toLowerCase()}
                                                 </span>
@@ -979,7 +979,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                             </div>
                                             {showProgress ? (
                                                 <div className="mt-2">
-                                                    <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+                                                    <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--text-muted)]">
                                                         <span className="truncate">{t('clients.show.workflowProgress')}</span>
                                                         <span>{selectedProject.workflow.percent}%</span>
                                                     </div>
@@ -989,7 +989,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                 </div>
                                             ) : (
                                                 <div className="mt-2.5 flex items-center gap-2">
-                                                    <span className="inline-flex items-center rounded-full bg-[var(--surface-3)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-subtle)]">
+                                                    <span className="inline-flex items-center rounded-full bg-[var(--surface-3)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-subtle)]">
                                                         {project.workflowStep}
                                                     </span>
                                                 </div>
@@ -1017,7 +1017,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     <TabPanel id="contracts" className="outline-none">
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <p className="text-[13px] font-semibold text-[var(--foreground)]">
+                                <p className="text-[12px] font-semibold text-[var(--foreground)]">
                                     {workspace.contracts.length} {t('clients.show.contracts').toLowerCase()}
                                 </p>
                                 {projects.length > 0 ? (
@@ -1035,10 +1035,10 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                         >
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="min-w-0">
-                                                    <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">
+                                                    <p className="truncate text-[12px] font-semibold text-[var(--foreground)]">
                                                         {contract.contractNumber}
                                                     </p>
-                                                    <p className="text-[11px] text-[var(--text-muted)]">
+                                                    <p className="text-[10px] text-[var(--text-muted)]">
                                                         {contract.dossierNumber}
                                                     </p>
                                                 </div>
@@ -1050,12 +1050,12 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                             </div>
 
                                             {contract.projectObject ? (
-                                                <p className="mt-2 text-[12px] text-[var(--text-subtle)]">
+                                                <p className="mt-2 text-[11px] text-[var(--text-subtle)]">
                                                     {contract.projectObject}
                                                 </p>
                                             ) : null}
 
-                                            <div className="mt-3 space-y-1.5 text-[11px] text-[var(--text-muted)]">
+                                            <div className="mt-3 space-y-1.5 text-[10px] text-[var(--text-muted)]">
                                                 {contract.surface !== null ? (
                                                     <div className="flex justify-between">
                                                         <span>Surface</span>
@@ -1152,8 +1152,8 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                         <div className="space-y-5">
                             {projects.length > 1 && (
                                 <div>
-                                    <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.projectWorkflows')}</h3>
-                                    <p className="text-[11px] text-[var(--text-muted)] mb-3">{t('clients.show.selectProject')}</p>
+                                    <h3 className="text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.projectWorkflows')}</h3>
+                                    <p className="text-[10px] text-[var(--text-muted)] mb-3">{t('clients.show.selectProject')}</p>
                                     <div className="flex gap-2 overflow-x-auto pb-1">
                                         {projects.map((project) => {
                                             const isSelected = selectedProject?.id === project.id;
@@ -1165,16 +1165,16 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                     isSelected ? 'border-[var(--accent)] bg-[var(--accent)]/5 ring-1 ring-[var(--accent)]/20' : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]',
                                                 )}>
                                                     <div className="flex items-center gap-2 w-full">
-                                                        <p className="truncate text-[12px] font-medium text-[var(--foreground)] flex-1">
+                                                        <p className="truncate text-[11px] font-medium text-[var(--foreground)] flex-1">
                                                             {project.projectObject || project.dossierNumber}
                                                         </p>
                                                         <StatusPill label={project.status} size="sm"
                                                             color={project.status === 'opened' || project.status === 'active' ? 'success' : 'default'} />
                                                     </div>
-                                                    <p className="text-[10px] text-[var(--text-muted)]">{project.dossierNumber}</p>
+                                                    <p className="text-[9px] text-[var(--text-muted)]">{project.dossierNumber}</p>
                                                     {isSelected && selectedProject?.workflow && (
                                                         <div className="mt-1 w-full">
-                                                            <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)]">
+                                                            <div className="flex items-center justify-between text-[9px] text-[var(--text-muted)]">
                                                                 <span>{project.workflowStep}</span>
                                                                 <span>{selectedProject.workflow.percent}%</span>
                                                             </div>
@@ -1183,7 +1183,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                             </div>
                                                         </div>
                                                     )}
-                                                    {isSelected && <span className="mt-1 text-[10px] font-medium text-[var(--accent)]">{t('common.active')}</span>}
+                                                    {isSelected && <span className="mt-1 text-[9px] font-medium text-[var(--accent)]">{t('common.active')}</span>}
                                                 </button>
                                             );
                                         })}
@@ -1218,7 +1218,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     <TabPanel id="documents" className="outline-none">
                         <div className="space-y-5">
                             <div className="flex items-center justify-between">
-                                <p className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.documents')}</p>
+                                <p className="text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.documents')}</p>
                                 {projects.length > 0 ? (
                             <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.uploadDocument')} aria-label={t('clients.show.uploadDocument')} onPress={() => { setStandaloneUploadOpen(true); }}>
                                         <Upload size={15} />
@@ -1226,48 +1226,48 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                 ) : null}
                             </div>
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-                                <h3 className="mb-3 text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.sharedDocuments')}</h3>
-                                <p className="mb-4 text-[11px] text-[var(--text-muted)]">{t('clients.show.sharedDocumentsDesc')}</p>
+                                <h3 className="mb-3 text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.sharedDocuments')}</h3>
+                                <p className="mb-4 text-[10px] text-[var(--text-muted)]">{t('clients.show.sharedDocumentsDesc')}</p>
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5">
                                         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
                                             <FileText size={14} />
                                         </span>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-[13px] font-medium text-[var(--foreground)]">CIN</p>
-                                            <p className="text-[11px] text-[var(--text-muted)]">{client.cin || t('common.notAvailable')}</p>
+                                            <p className="text-[12px] font-medium text-[var(--foreground)]">CIN</p>
+                                            <p className="text-[10px] text-[var(--text-muted)]">{client.cin || t('common.notAvailable')}</p>
                                         </div>
-                                        <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
+                                        <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
                                     </div>
                                     <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5">
                                         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
                                             <FileText size={14} />
                                         </span>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-[13px] font-medium text-[var(--foreground)]">{t('clients.form.phone')}</p>
-                                            <p className="text-[11px] text-[var(--text-muted)]">{client.phone || t('common.notAvailable')}</p>
+                                            <p className="text-[12px] font-medium text-[var(--foreground)]">{t('clients.form.phone')}</p>
+                                            <p className="text-[10px] text-[var(--text-muted)]">{client.phone || t('common.notAvailable')}</p>
                                         </div>
-                                        <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
+                                        <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
                                     </div>
                                     <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5">
                                         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
                                             <FileText size={14} />
                                         </span>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-[13px] font-medium text-[var(--foreground)]">{t('clients.form.email')}</p>
-                                            <p className="text-[11px] text-[var(--text-muted)]">{client.email || t('common.notAvailable')}</p>
+                                            <p className="text-[12px] font-medium text-[var(--foreground)]">{t('clients.form.email')}</p>
+                                            <p className="text-[10px] text-[var(--text-muted)]">{client.email || t('common.notAvailable')}</p>
                                         </div>
-                                        <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
+                                        <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
                                     </div>
                                 </div>
                             </div>
 
                             {selectedProject && selectedProject.documents.length > 0 ? (
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-                                    <h3 className="mb-3 text-[13px] font-semibold text-[var(--foreground)]">
+                                    <h3 className="mb-3 text-[12px] font-semibold text-[var(--foreground)]">
                                         {t('clients.show.projectDocuments')} &mdash; {selectedProject.projectObject || selectedProject.dossierNumber}
                                     </h3>
-                                    <p className="mb-4 text-[11px] text-[var(--text-muted)]">{t('clients.show.projectDocumentsDesc')}</p>
+                                    <p className="mb-4 text-[10px] text-[var(--text-muted)]">{t('clients.show.projectDocumentsDesc')}</p>
                                     <div className="space-y-2">
                                         {selectedProject.documents.map((doc) => (
                                             <div key={doc.id} className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-3 sm:flex-row sm:items-center">
@@ -1278,8 +1278,8 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                     {doc.status === 'verified' ? <CheckCircle2 size={14} /> : <FileText size={14} />}
                                                 </span>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="text-[13px] font-medium text-[var(--foreground)]">{doc.name}</p>
-                                                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--text-muted)]">
+                                                    <p className="text-[12px] font-medium text-[var(--foreground)]">{doc.name}</p>
+                                                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--text-muted)]">
                                                         {doc.documentNumber && <span>{doc.documentNumber}</span>}
                                                         {doc.uploadedAt && <span>{doc.uploadedAt}</span>}
                                                         {doc.sizeLabel && doc.sizeLabel !== '-' && <span>{doc.sizeLabel}</span>}
@@ -1292,12 +1292,12 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                 </div>
                                                 <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
                                                     <span className={cn(
-                                                        'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                                                        'rounded-full px-2 py-0.5 text-[9px] font-medium',
                                                         doc.status === 'verified' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-[var(--surface-3)] text-[var(--text-subtle)]',
                                                     )}>
                                                         {doc.status}
                                                     </span>
-                                                    <span className="rounded-full bg-[var(--surface-3)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-subtle)]">{t('clients.show.projectDocumentLabel')}</span>
+                                                    <span className="rounded-full bg-[var(--surface-3)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-subtle)]">{t('clients.show.projectDocumentLabel')}</span>
                                                     <div className="flex items-center gap-1 border-l border-[var(--border)] pl-2">
                                                         <AppTableActionButton
                                                             label={t('actions.view')}
@@ -1379,12 +1379,12 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     <TabPanel id="notes" className="outline-none">
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
                             <div className="mb-3 flex items-center justify-between gap-3">
-                                <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.notes')}</h3>
+                                <h3 className="text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.notes')}</h3>
                                 <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.edit')} aria-label={t('clients.edit')} onPress={openEditDrawer}>
                                     <Pencil size={14} />
                                 </AppButton>
                             </div>
-                            <p className="text-[13px] leading-6 text-[var(--text-muted)]">
+                            <p className="text-[12px] leading-6 text-[var(--text-muted)]">
                                 {client.notes || t('clients.show.noNotes')}
                             </p>
                         </div>
@@ -1395,8 +1395,8 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                             {selectedProject ? (
                                 <>
                                     <div className="mb-4 border-b border-[var(--border)] pb-3">
-                                        <h3 className="text-[13px] font-semibold text-[var(--foreground)]">{t('clients.show.activity')}</h3>
-                                        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                                        <h3 className="text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.activity')}</h3>
+                                        <p className="mt-1 text-[10px] text-[var(--text-muted)]">
                                             {selectedProject.projectObject || selectedProject.dossierNumber}
                                         </p>
                                     </div>
@@ -1556,7 +1556,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                         {t('clients.deleteWarning')}
                     </p>
                     {deleteTarget && deleteTarget.projectsCount > 0 ? (
-                        <div className="mb-4 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-3 py-2 text-[12px] text-[var(--danger)]">
+                        <div className="mb-4 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-3 py-2 text-[11px] text-[var(--danger)]">
                             {t('clients.deleteHasProjects', 'This client has {count} linked project(s). Deleting will remove them all.', { count: String(deleteTarget.projectsCount) })}
                         </div>
                     ) : null}

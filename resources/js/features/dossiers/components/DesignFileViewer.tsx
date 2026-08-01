@@ -228,7 +228,7 @@ function ViewerLoading() {
     return (
         <div className="flex h-full flex-col items-center justify-center gap-2 bg-[#101214]">
             <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
-            <p className="text-[12px] text-[var(--text-muted)]">Loading design viewer…</p>
+            <p className="text-[11px] text-[var(--text-muted)]">Loading design viewer…</p>
         </div>
     );
 }
@@ -239,7 +239,7 @@ function UnsupportedViewer({ filename }: { filename: string }) {
             <FileWarning size={34} className="text-amber-400" />
             <div>
                 <p className="text-sm font-medium text-[var(--foreground)]">Preview not available</p>
-                <p className="mt-1 max-w-md text-[12px] text-[var(--text-muted)]">
+                <p className="mt-1 max-w-md text-[11px] text-[var(--text-muted)]">
                     “{filename}” cannot be previewed directly in the browser.
                 </p>
             </div>
@@ -1149,7 +1149,7 @@ export function DesignFileViewer({
     return (
         <div
             ref={workspaceRef}
-            className="flex h-full w-full flex-col overflow-hidden outline-none"
+            className="flex h-full w-full flex-col overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_35%,transparent)] focus-visible:ring-inset"
             tabIndex={-1}
             onPointerDown={() => workspaceRef.current?.focus({ preventScroll: true })}
             onKeyDown={handleWorkspaceKeyDown}
@@ -1158,7 +1158,7 @@ export function DesignFileViewer({
             {!isExternal ? (
                 <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
                     {suppressAnnotations ? (
-                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
                             <FileWarning size={12} className="text-amber-400" />
                             <span>Source file · annotations disabled</span>
                         </div>
@@ -1188,7 +1188,7 @@ export function DesignFileViewer({
                         >
                             <ZoomOut size={13} />
                         </Button>
-                        <span className="min-w-[42px] text-center text-[11px] tabular-nums text-[var(--text-muted)]">
+                        <span className="min-w-[42px] text-center text-[10px] tabular-nums text-[var(--text-muted)]">
                             {Math.round(localZoom * 100)}%
                         </span>
                         <Button
@@ -1267,7 +1267,7 @@ export function DesignFileViewer({
                 {viewContent}
 
                 {suppressAnnotations ? (
-                    <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-lg border border-amber-400/20 bg-[var(--surface)]/92 px-2.5 py-1.5 text-[10px] text-[var(--text-muted)] shadow-lg backdrop-blur">
+                    <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-lg border border-amber-400/20 bg-[var(--surface)]/92 px-2.5 py-1.5 text-[9px] text-[var(--text-muted)] shadow-lg backdrop-blur">
                         <FileWarning size={11} className="text-amber-400" />
                         Source asset · open a review derivative to annotate
                     </div>
@@ -1298,7 +1298,7 @@ export function DesignFileViewer({
                 ) : null}
 
                 {!suppressAnnotations && !exactAnnotationContext ? (
-                    <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-lg border border-amber-400/20 bg-[var(--surface)]/94 px-3 py-1.5 text-[10px] text-amber-300 shadow-lg backdrop-blur">
+                    <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-lg border border-amber-400/20 bg-[var(--surface)]/94 px-3 py-1.5 text-[9px] text-amber-300 shadow-lg backdrop-blur">
                         Annotation tools will activate when the exact page and asset are ready.
                     </div>
                 ) : null}

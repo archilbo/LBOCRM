@@ -14,7 +14,7 @@ export function CalendarEventPill(arg: EventContentArg) {
     if (arg.view.type === 'dayGridMonth') {
         return (
             <div
-                className="truncate rounded-md px-2 text-[11px] font-medium leading-[22px]"
+                className="truncate rounded-md px-2 text-[10px] font-medium leading-[22px]"
                 style={{
                     backgroundColor: color + '18',
                     color: color,
@@ -33,7 +33,7 @@ export function CalendarEventPill(arg: EventContentArg) {
                 color: color,
                 borderLeft: `2px solid ${color}`,
             }}>
-            <span className="truncate text-[11px] font-semibold leading-[18px]">
+            <span className="truncate text-[10px] font-semibold leading-[18px]">
                 {arg.timeText ? <span className="opacity-60">{arg.timeText} </span> : null}
                 {arg.event.title}
             </span>

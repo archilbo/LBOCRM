@@ -195,13 +195,13 @@ function DocumentFileBadges({ document }: { document: FinanceDocument }) {
     return (
         <div className="flex flex-nowrap items-center gap-1">
             <span className={[
-                'whitespace-nowrap rounded border px-1.5 py-0.5 text-[10px] font-semibold',
+                'whitespace-nowrap rounded border px-1.5 py-0.5 text-[9px] font-semibold',
                 document.hasExcel ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300' : 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300',
             ].join(' ')}>
                 XLS
             </span>
             <span className={[
-                'whitespace-nowrap rounded border px-1.5 py-0.5 text-[10px] font-semibold',
+                'whitespace-nowrap rounded border px-1.5 py-0.5 text-[9px] font-semibold',
                 document.hasPdf ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300' : 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300',
             ].join(' ')}>
                 PDF
@@ -224,7 +224,7 @@ function FinanceDocumentDetailPanel({
         return (
             <AppCard className="p-3">
                 <p className="text-xs font-semibold text-[var(--text)]">Document finance</p>
-                <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                <p className="mt-1 text-[10px] text-[var(--text-muted)]">
                     Select a quote, invoice, or receipt to see actions and totals.
                 </p>
             </AppCard>
@@ -236,16 +236,16 @@ function FinanceDocumentDetailPanel({
     return (
         <AppCard className="overflow-hidden p-0">
             <div className="border-b border-[var(--border)] px-4 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">Selected document</p>
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-[var(--accent)]">Selected document</p>
                 <div className="mt-1.5 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                             <h2 className="truncate text-sm font-semibold text-[var(--text)]">{document.number}</h2>
                             <FinanceDocumentLockBadge document={document} compact />
                         </div>
-                        <p className="text-[11px] text-[var(--text-muted)]">{typeLabel(document.type)} &middot; {document.dossier?.number || '-'}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">{typeLabel(document.type)} &middot; {document.dossier?.number || '-'}</p>
                     </div>
-                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusClass(document.status)}`}>
+                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${statusClass(document.status)}`}>
                         {document.status?.replace(/_/g, ' ') || document.status}
                     </span>
                 </div>
@@ -254,33 +254,33 @@ function FinanceDocumentDetailPanel({
             <div className="space-y-3 p-4">
                 <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Client</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Client</p>
                         <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text)]">{document.client?.name || '-'}</p>
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">{document.client?.cin || '-'}</p>
+                        <p className="truncate text-[9px] text-[var(--text-muted)]">{document.client?.cin || '-'}</p>
                     </div>
                     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Dossier</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Dossier</p>
                         <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text)]">{document.dossier?.number || '-'}</p>
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">{document.dossier?.projectObject || '-'}</p>
+                        <p className="truncate text-[9px] text-[var(--text-muted)]">{document.dossier?.projectObject || '-'}</p>
                     </div>
                     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Total TTC</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Total TTC</p>
                         <p className="mt-0.5 truncate text-xs font-semibold text-[var(--accent)]">{formatCompactMoney(document.totalTtc, document.currency)}</p>
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">HT {formatCompactMoney(document.subtotalHt, document.currency)}</p>
+                        <p className="truncate text-[9px] text-[var(--text-muted)]">HT {formatCompactMoney(document.subtotalHt, document.currency)}</p>
                     </div>
                     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Remaining</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Remaining</p>
                         <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text)]">{formatCompactMoney(document.remainingTotal, document.currency)}</p>
-                        <p className="truncate text-[10px] text-[var(--text-muted)]">Paid {formatCompactMoney(document.paidTotal, document.currency)}</p>
+                        <p className="truncate text-[9px] text-[var(--text-muted)]">Paid {formatCompactMoney(document.paidTotal, document.currency)}</p>
                     </div>
                 </div>
 
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Files</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Files</p>
                     <div className="mt-1.5">
                         <DocumentFileBadges document={document} />
                     </div>
-                    {lockedAt ? <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">Locked: {lockedAt}</p> : null}
+                    {lockedAt ? <p className="mt-1.5 text-[9px] text-[var(--text-muted)]">Locked: {lockedAt}</p> : null}
                 </div>
 
                 <div className="space-y-1.5">
@@ -480,13 +480,13 @@ function FinanceDocumentWorkspace({
                             </button>
                         ) : null}
                     </div>
-                    <button type="button" className={`flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2 text-[11px] font-medium transition hover:bg-[var(--surface-2)] ${
+                    <button type="button" className={`flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2 text-[10px] font-medium transition hover:bg-[var(--surface-2)] ${
                         isRefreshing ? 'bg-[var(--surface)] text-[var(--accent)]' : 'bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)]'
                     }`} disabled={isRefreshing} onClick={() => { setIsRefreshing(true); router.reload({ only: ['documents'], onFinish: () => setIsRefreshing(false) }); }}>
                         <RefreshCw size={11} className={isRefreshing ? 'animate-spin' : ''} />
                         {isRefreshing ? '...' : null}
                     </button>
-                    <button type="button" className={`flex h-7 items-center gap-1 rounded-lg border px-2 text-[11px] font-medium transition ${
+                    <button type="button" className={`flex h-7 items-center gap-1 rounded-lg border px-2 text-[10px] font-medium transition ${
                         showFilters
                             ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
                             : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
@@ -498,7 +498,7 @@ function FinanceDocumentWorkspace({
                     </button>
                 </div>
 
-                <div className="ml-auto hidden text-[11px] font-medium text-[var(--text-muted)] md:block">
+                <div className="ml-auto hidden text-[10px] font-medium text-[var(--text-muted)] md:block">
                     {filtered.length} document{filtered.length !== 1 ? 's' : ''}
                 </div>
             </div>
@@ -534,14 +534,14 @@ function FinanceDocumentWorkspace({
                 <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] px-3 py-2">
                     <span className="text-xs font-semibold text-[var(--accent)]">{selectedRows.length} selected</span>
                     <div className="ml-auto flex items-center gap-1">
-                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGeneratePdf(doc); }); }}>
+                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGeneratePdf(doc); }); }}>
                             <FileText size={12} /> PDF
                         </button>
-                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGenerateExcel(doc); }); }}>
+                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGenerateExcel(doc); }); }}>
                             <FileSpreadsheet size={12} /> Excel
                         </button>
                         <div className="mx-1 h-5 w-px bg-[var(--border)]" />
-                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => setSelectedRows([])}>
+                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => setSelectedRows([])}>
                             <X size={12} /> Clear
                         </button>
                     </div>
@@ -552,7 +552,7 @@ function FinanceDocumentWorkspace({
             <div className="finance-table-shell hidden md:block">
                 <table className="finance-table min-w-[980px] text-sm">
                     <thead>
-                        <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                        <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                             <th className="w-10 px-3 py-2">
                                 <Checkbox checked={allPageRowsSelected} onChange={togglePageRows} label="Select all visible" />
                             </th>
@@ -604,14 +604,14 @@ function FinanceDocumentWorkspace({
                                             </div>
                                         </td>
                                         <td className="px-3 py-2">
-                                            <span className="text-[11px] font-medium text-[var(--text-muted)]">{document.typeLabel || typeLabel(document.type)}</span>
+                                            <span className="text-[10px] font-medium text-[var(--text-muted)]">{document.typeLabel || typeLabel(document.type)}</span>
                                         </td>
                                         <td className="px-3 py-2">
                                             <p className="max-w-[180px] truncate text-xs font-medium text-[var(--text)]">{document.client?.name || '-'}</p>
-                                            <p className="max-w-[180px] truncate text-[10px] text-[var(--text-muted)]">{document.dossier?.number || ''}{document.dossier?.projectObject ? ` · ${document.dossier.projectObject}` : ''}</p>
+                                            <p className="max-w-[180px] truncate text-[9px] text-[var(--text-muted)]">{document.dossier?.number || ''}{document.dossier?.projectObject ? ` · ${document.dossier.projectObject}` : ''}</p>
                                         </td>
                                         <td className="px-3 py-2">
-                                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusStyle(document.status)}`}>
+                                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold ${statusStyle(document.status)}`}>
                                                 {document.status?.replace(/_/g, ' ') || document.status}
                                             </span>
                                         </td>
@@ -632,7 +632,7 @@ function FinanceDocumentWorkspace({
                                     <div className="flex flex-col items-center gap-1.5">
                                         <FileText size={24} className="text-[var(--text-muted)]" />
                                         <p className="text-xs font-semibold text-[var(--text)]">No finance documents found</p>
-                                        <p className="text-[11px] text-[var(--text-muted)]">Change search or create a new document.</p>
+                                        <p className="text-[10px] text-[var(--text-muted)]">Change search or create a new document.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -652,14 +652,14 @@ function FinanceDocumentWorkspace({
                                 </div>
                                 <div className="min-w-0">
                                     <p className="truncate text-xs font-semibold">{document.number}</p>
-                                    <p className="truncate text-[11px] text-[var(--text-muted)]">{document.client?.name || '-'} / {document.dossier?.number || '-'}</p>
+                                    <p className="truncate text-[10px] text-[var(--text-muted)]">{document.client?.name || '-'} / {document.dossier?.number || '-'}</p>
                                 </div>
                             </div>
-                            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusStyle(document.status)}`}>
+                            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${statusStyle(document.status)}`}>
                                 {document.status?.replace(/_/g, ' ') || document.status}
                             </span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 text-[11px]">
+                        <div className="grid grid-cols-3 gap-2 text-[10px]">
                             <span className="text-[var(--text-muted)]">Total <span className="font-semibold text-[var(--text)]">{formatCompactMoney(document.totalTtc, currency)}</span></span>
                             <span className="text-[var(--text-muted)]">Paid <span className="font-semibold text-emerald-400">{formatCompactMoney(document.paidTotal, currency)}</span></span>
                             <span className="text-[var(--text-muted)]">Due <span className={`font-semibold ${document.remainingTotal > 0 ? 'text-red-400' : 'text-[var(--text-muted)]'}`}>{formatCompactMoney(document.remainingTotal, currency)}</span></span>
@@ -752,7 +752,7 @@ function PaymentWorkspace({
                     </div>
                 </div>
 
-                <div className="ml-auto hidden text-[11px] font-medium text-[var(--text-muted)] md:block">
+                <div className="ml-auto hidden text-[10px] font-medium text-[var(--text-muted)] md:block">
                     {pagination.total} paiement{pagination.total !== 1 ? 's' : ''} / page {formatCompactMoney(totalAmount, currency)}
                 </div>
             </div>
@@ -761,7 +761,7 @@ function PaymentWorkspace({
             <div className="finance-table-shell hidden md:block">
                 <table className="finance-table min-w-[720px] text-sm">
                     <thead>
-                        <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                        <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                             <FinanceSortableHeader column="payment_number" label={<><CircleDollarSign size={11} /> Paiement</>} sort={sort} direction={direction} onSort={changeSort} />
                             <th className="px-3 py-2">
                                 <span className="inline-flex items-center gap-1.5">
@@ -785,7 +785,7 @@ function PaymentWorkspace({
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-xs font-semibold text-[var(--text)]">{payment.paymentNumber}</p>
-                                                <p className="text-[10px] text-[var(--text-muted)]">
+                                                <p className="text-[9px] text-[var(--text-muted)]">
                                                     {payment.paidAt || '-'}
                                                     {payment.method ? <><span className="mx-1">·</span>{payment.method}</> : null}
                                                 </p>
@@ -794,17 +794,17 @@ function PaymentWorkspace({
                                     </td>
                                     <td className="px-3 py-2">
                                         <p className="max-w-[180px] truncate text-xs font-medium text-[var(--text)]">{payment.document?.number || '-'}</p>
-                                        <p className="max-w-[180px] truncate text-[10px] text-[var(--text-muted)]">{payment.client?.name || '-'}</p>
+                                        <p className="max-w-[180px] truncate text-[9px] text-[var(--text-muted)]">{payment.client?.name || '-'}</p>
                                     </td>
                                     <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums text-emerald-400">{formatCompactMoney(payment.amount, currency)}</td>
                                     <td className="px-3 py-2">
                                         {payment.receipt ? (
                                             <div className="flex items-center gap-1.5">
                                                 <span className="inline-block size-1.5 rounded-full bg-emerald-400" />
-                                                <span className="text-[11px] font-medium text-[var(--text)]">{payment.receipt.number}</span>
+                                                <span className="text-[10px] font-medium text-[var(--text)]">{payment.receipt.number}</span>
                                             </div>
                                         ) : (
-                                            <span className="text-[11px] text-[var(--text-muted)]">—</span>
+                                            <span className="text-[10px] text-[var(--text-muted)]">—</span>
                                         )}
                                     </td>
                                     <td className="px-3 py-2">
@@ -818,7 +818,7 @@ function PaymentWorkspace({
                                     <div className="flex flex-col items-center gap-1.5">
                                         <WalletCards size={24} className="text-[var(--text-muted)]" />
                                         <p className="text-xs font-semibold text-[var(--text)]">Aucun paiement trouvé</p>
-                                        <p className="text-[11px] text-[var(--text-muted)]">Enregistrez un paiement depuis une facture.</p>
+                                        <p className="text-[10px] text-[var(--text-muted)]">Enregistrez un paiement depuis une facture.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -839,12 +839,12 @@ function PaymentWorkspace({
                                     </div>
                                     <div className="min-w-0">
                                         <p className="truncate text-xs font-semibold text-[var(--text)]">{payment.paymentNumber}</p>
-                                        <p className="truncate text-[11px] text-[var(--text-muted)]">{payment.paidAt || '-'} / {payment.method || '-'}</p>
+                                        <p className="truncate text-[10px] text-[var(--text-muted)]">{payment.paidAt || '-'} / {payment.method || '-'}</p>
                                     </div>
                                 </div>
                                 <span className="shrink-0 text-xs font-semibold tabular-nums text-emerald-400">{formatCompactMoney(payment.amount, currency)}</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 text-[11px]">
+                            <div className="grid grid-cols-2 gap-2 text-[10px]">
                                 <span className="text-[var(--text-muted)]">Invoice <span className="font-semibold text-[var(--text)]">{payment.document?.number || '-'}</span></span>
                                 <span className="text-[var(--text-muted)]">Client <span className="font-semibold text-[var(--text)]">{payment.client?.name || '-'}</span></span>
                             </div>
@@ -855,7 +855,7 @@ function PaymentWorkspace({
                     <div className="flex flex-col items-center gap-1.5 px-4 py-12 text-center">
                         <WalletCards size={24} className="text-[var(--text-muted)]" />
                         <p className="text-xs font-semibold text-[var(--text)]">Aucun paiement trouvé</p>
-                        <p className="text-[11px] text-[var(--text-muted)]">Enregistrez un paiement depuis une facture.</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">Enregistrez un paiement depuis une facture.</p>
                     </div>
                 )}
             </div>
@@ -992,7 +992,7 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
             <AppCard className="overflow-hidden p-0">
                 <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
                     <h2 className="text-xs font-semibold text-[var(--text)]">{title}</h2>
-                    <span className="text-[11px] text-[var(--text-muted)]">{formatCompactMoney(total, currency || 'MAD')}</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">{formatCompactMoney(total, currency || 'MAD')}</span>
                 </div>
                 <div className="p-4">
                     {agingBuckets.some((b) => b.count > 0) ? (
@@ -1011,7 +1011,7 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
                                                 style={{ width: `${pct}%` }}
                                             />
                                         </div>
-                                        <span className="mt-0.5 block text-[11px] text-[var(--text-muted)]">{bucket.count} document{bucket.count > 1 ? 's' : ''}</span>
+                                        <span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">{bucket.count} document{bucket.count > 1 ? 's' : ''}</span>
                                     </div>
                                 );
                             })}
@@ -1034,7 +1034,7 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
         <AppCard className="overflow-hidden p-0">
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
                 <h2 className="text-xs font-semibold text-[var(--text)]">{title}</h2>
-                <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-muted)]">
+                <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
                     {documents.length}
                 </span>
             </div>
@@ -1060,13 +1060,13 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
                                             className="inline-block size-1.5 shrink-0 rounded-full"
                                             style={{ backgroundColor: barColor }}
                                         />
-                                        <span className="truncate text-[11px] font-semibold text-[var(--text)]">{document.number}</span>
+                                        <span className="truncate text-[10px] font-semibold text-[var(--text)]">{document.number}</span>
                                         <FinanceDocumentLockBadge document={document} />
                                     </div>
-                                    <span className="shrink-0 text-[11px] font-semibold tabular-nums text-[var(--accent)]">{formatCompactMoney(document.totalTtc, document.currency)}</span>
+                                    <span className="shrink-0 text-[10px] font-semibold tabular-nums text-[var(--accent)]">{formatCompactMoney(document.totalTtc, document.currency)}</span>
                                 </div>
                                 <div className="mt-0.5 flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)] min-w-0">
+                                    <div className="flex items-center gap-1.5 text-[9px] text-[var(--text-muted)] min-w-0">
                                         <span className="truncate">{document.client?.name || '-'}</span>
                                         {document.dossier && (
                                             <>
@@ -1089,7 +1089,7 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
                                                     style={{ width: `${Math.min(paidPct, 100)}%`, backgroundColor: barColor }}
                                                 />
                                             </div>
-                                            <span className="text-[10px] text-[var(--text-muted)]">{Math.round(paidPct)}%</span>
+                                            <span className="text-[9px] text-[var(--text-muted)]">{Math.round(paidPct)}%</span>
                                         </div>
                                     )}
                                 </div>

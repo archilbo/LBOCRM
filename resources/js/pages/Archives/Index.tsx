@@ -307,7 +307,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 placeholder="ARC, project, box…"
-                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.02] pl-8 pr-7 text-[13px] text-white outline-none placeholder:text-white/40 focus:border-amber-500/50"
+                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.02] pl-8 pr-7 text-[12px] text-white outline-none placeholder:text-white/40 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20"
                             />
                             {query ? (
                                 <button type="button" onClick={() => { setQuery(''); debouncedPatch({ q: undefined }); }}
@@ -449,7 +449,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                                 ]}
                                                 className="h-7 w-24"
                                             />
-                                            <span className="text-[12px] text-white/40 tabular-nums">
+                                            <span className="text-[11px] text-white/40 tabular-nums">
                                                 {from}–{to} of {total}
                                             </span>
                                         </div>
@@ -462,7 +462,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                             </button>
                                             {pages.map((p, i) =>
                                                 p === 'ellipsis' ? (
-                                                    <span key={`e${i}`} className="px-1 text-white/20 select-none text-[11px]">…</span>
+                                                    <span key={`e${i}`} className="px-1 text-white/20 select-none text-[10px]">…</span>
                                                 ) : (
                                                     <button key={p} type="button"
                                                         onClick={() => handlePageChange(p)}
@@ -556,9 +556,9 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                 >
                     <form id="filter-form" onSubmit={(e) => { e.preventDefault(); setFilterDrawerOpen(false); }} className="space-y-5">
                         <section>
-                            <h4 className="mb-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold">City</h4>
+                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">City</h4>
                             <select value={filters.city || ''} onChange={(e) => patch({ city: e.target.value || undefined })}
-                                className="h-9 w-full rounded-lg border border-white/10 bg-zinc-900 px-2 text-[13px] text-white outline-none focus:border-amber-500/50">
+                                className="h-9 w-full rounded-lg border border-white/10 bg-zinc-900 px-2 text-[12px] text-white outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20">
                                 <option value="">All</option>
                                 {props.cities.map((c) => (
                                     <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
@@ -567,10 +567,10 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                         </section>
 
                         <section>
-                            <h4 className="mb-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold">Status</h4>
+                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Status</h4>
                             <div className="space-y-1">
                                 {Object.entries(ARCHIVE_STATUS).map(([key, s]) => (
-                                    <label key={key} className="flex items-center gap-2 text-[13px] text-white/80">
+                                    <label key={key} className="flex items-center gap-2 text-[12px] text-white/80">
                                         <input type="checkbox" checked={filters.status?.includes(key) ?? false}
                                             onChange={() => {
                                                 const cur = filters.status || [];
@@ -585,21 +585,21 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                         </section>
 
                         <section>
-                            <h4 className="mb-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold">Requester</h4>
+                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Requester</h4>
                             <select value={filters.requesterId || ''} onChange={(e) => patch({ requesterId: e.target.value || undefined })}
-                                className="h-9 w-full rounded-lg border border-white/10 bg-zinc-900 px-2 text-[13px] text-white outline-none focus:border-amber-500/50">
+                                className="h-9 w-full rounded-lg border border-white/10 bg-zinc-900 px-2 text-[12px] text-white outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20">
                                 <option value="">All</option>
                                 {props.requesters.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                             </select>
                         </section>
 
                         <section>
-                            <h4 className="mb-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold">Due date</h4>
+                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Due date</h4>
                             <div className="flex gap-2">
                                 <input type="date" value={filters.dueFrom || ''} onChange={(e) => patch({ dueFrom: e.target.value || undefined })}
-                                    className="h-9 flex-1 rounded-lg border border-white/10 bg-zinc-900 px-2 text-[13px] text-white outline-none focus:border-amber-500/50" placeholder="From" />
+                                    className="h-9 flex-1 rounded-lg border border-white/10 bg-zinc-900 px-2 text-[12px] text-white outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20" placeholder="From" />
                                 <input type="date" value={filters.dueTo || ''} onChange={(e) => patch({ dueTo: e.target.value || undefined })}
-                                    className="h-9 flex-1 rounded-lg border border-white/10 bg-zinc-900 px-2 text-[13px] text-white outline-none focus:border-amber-500/50" placeholder="To" />
+                                    className="h-9 flex-1 rounded-lg border border-white/10 bg-zinc-900 px-2 text-[12px] text-white outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20" placeholder="To" />
                             </div>
                             <div className="mt-1 flex gap-1">
                                 {[
@@ -614,9 +614,9 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                         </section>
 
                         <section>
-                            <h4 className="mb-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold">Dossier</h4>
+                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Dossier</h4>
                             <select value={filters.dossierId || ''} onChange={(e) => patch({ dossierId: e.target.value || undefined })}
-                                className="h-9 w-full rounded-lg border border-white/10 bg-zinc-900 px-2 text-[13px] text-white outline-none focus:border-amber-500/50">
+                                className="h-9 w-full rounded-lg border border-white/10 bg-zinc-900 px-2 text-[12px] text-white outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20">
                                 <option value="">All</option>
                                 {props.dossiers.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
                             </select>
@@ -643,7 +643,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                 <ScanModal isOpen={scanModalOpen} onOpenChange={setScanModalOpen} />
 
                 <AppModal isOpen={cheatsheetOpen} onOpenChange={setCheatsheetOpen} title="Keyboard shortcuts" size="sm">
-                    <div className="space-y-2 text-[13px]">
+                    <div className="space-y-2 text-[12px]">
                         {[
                             { keys: '⌘K', action: 'Focus search' },
                             { keys: 'N', action: 'New archive' },
@@ -662,7 +662,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                 </AppModal>
 
                 <AppModal isOpen={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }} title="Delete archive?" size="sm">
-                    <p className="mb-4 text-[13px] text-white/70">Delete <strong className="text-white">{deleteTarget?.archiveNumber}</strong>? This cannot be undone.</p>
+                    <p className="mb-4 text-[12px] text-white/70">Delete <strong className="text-white">{deleteTarget?.archiveNumber}</strong>? This cannot be undone.</p>
                     <div className="flex justify-end gap-2">
                         <AppButton variant="bordered" size="sm" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
                         <AppButton color="danger" variant="solid" size="sm" onPress={confirmDelete}>Delete</AppButton>

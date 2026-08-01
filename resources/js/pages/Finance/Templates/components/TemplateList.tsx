@@ -103,7 +103,7 @@ export function TemplateList({
                                             <Star size={12} className="shrink-0 fill-[var(--accent)] text-[var(--accent)]" />
                                         ) : null}
                                     </div>
-                                    <p className="truncate text-[11px] text-[var(--text-muted)]">
+                                    <p className="truncate text-[10px] text-[var(--text-muted)]">
                                         {template.paperSize} / {template.orientation}
                                         {timeAgo ? ` / ${timeAgo}` : ''}
                                     </p>

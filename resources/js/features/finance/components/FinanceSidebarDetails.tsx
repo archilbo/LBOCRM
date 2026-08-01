@@ -33,7 +33,7 @@ export function FinanceSidebarDetails({ document }: FinanceSidebarDetailsProps) 
         {
             label: 'Status',
             value: (
-                <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${statusClass(document.status)}`}>
+                <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[9px] font-bold ${statusClass(document.status)}`}>
                     {document.status?.replace(/_/g, ' ') || document.status}
                 </span>
             ),

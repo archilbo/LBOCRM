@@ -29,15 +29,15 @@ export function DesignConversionStatus({ conversionStatus, filename, onRetry }: 
                 </div>
 
                 <h3 className="mt-4 text-sm font-semibold text-[var(--foreground)]">{meta.label}</h3>
-                <p className="mt-1 text-[12px] text-[var(--text-muted)]">{filename}</p>
-                <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-muted)]">{meta.tip}</p>
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">{filename}</p>
+                <p className="mt-2 text-[10px] leading-relaxed text-[var(--text-muted)]">{meta.tip}</p>
 
                 {isProcessing && (
                     <div className="mt-4 space-y-2">
                         <div className="mx-auto h-1.5 w-32 overflow-hidden rounded-full bg-[var(--surface-2)]">
                             <div className="h-full w-2/3 animate-pulse rounded-full bg-[var(--accent)]" />
                         </div>
-                        <p className="text-[10px] text-[var(--text-muted)]">Processing...</p>
+                        <p className="text-[9px] text-[var(--text-muted)]">Processing...</p>
                     </div>
                 )}
 

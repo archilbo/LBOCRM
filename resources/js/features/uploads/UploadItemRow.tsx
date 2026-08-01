@@ -37,7 +37,7 @@ export function UploadItemRow({ file, onPause, onResume, onRetry, onCancel, isUp
                     )}
                     <span className="truncate font-medium text-[var(--foreground)]">{file.originalFilename}</span>
                 </div>
-                <span className="shrink-0 text-[10px] uppercase text-[var(--text-muted)]">{file.assetType}</span>
+                <span className="shrink-0 text-[9px] uppercase text-[var(--text-muted)]">{file.assetType}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -52,10 +52,10 @@ export function UploadItemRow({ file, onPause, onResume, onRetry, onCancel, isUp
                         />
                     </div>
                 </div>
-                <span className="text-[10px] text-[var(--text-muted)] tabular-nums">{formatPercent(pct)}</span>
+                <span className="text-[9px] text-[var(--text-muted)] tabular-nums">{formatPercent(pct)}</span>
             </div>
 
-            <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)]">
+            <div className="flex items-center justify-between text-[9px] text-[var(--text-muted)]">
                 <span>
                     {formatBytes(file.transferredBytes)} / {formatBytes(file.sizeBytes)}
                     {file.speedBps ? ` · ${formatSpeed(file.speedBps)}` : ''}
@@ -87,10 +87,10 @@ export function UploadItemRow({ file, onPause, onResume, onRetry, onCancel, isUp
             </div>
 
             {file.errorMessage && (
-                <p className="text-[10px] text-red-500">{file.errorMessage}</p>
+                <p className="text-[9px] text-red-500">{file.errorMessage}</p>
             )}
             {isProcessing && file.processingStatus !== 'ready' && (
-                <p className="text-[10px] text-amber-500">Processing{file.processingStatus !== 'waiting' ? `: ${file.processingStatus}` : '...'}</p>
+                <p className="text-[9px] text-amber-500">Processing{file.processingStatus !== 'waiting' ? `: ${file.processingStatus}` : '...'}</p>
             )}
         </div>
     );

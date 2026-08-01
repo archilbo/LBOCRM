@@ -19,18 +19,16 @@ export function AppTopbar() {
     return (
         <header className="flex h-16 shrink-0 items-center border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-3 backdrop-blur-[18px] lg:px-6">
             <div className="flex min-w-0 flex-1 items-center gap-1.5 lg:gap-3">
-                <div className="min-w-0 flex-1">
-                    <div className="max-w-[280px] sm:max-w-[340px] lg:max-w-[620px]">
-                        <AppGlobalSearch />
-                    </div>
-                </div>
+                <AppGlobalSearch />
+
+                <div className="min-w-0 flex-1" />
 
                 <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
                     <div className="relative">
                         <button
                             type="button"
                             onClick={() => setNewOpen((o) => !o)}
-                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] max-sm:hidden"
+                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] max-sm:hidden"
                         >
                             <Plus size={14} strokeWidth={2.5} />
                             <span className="hidden lg:inline">New</span>
@@ -43,7 +41,7 @@ export function AppTopbar() {
                                         const Icon = a.icon;
                                         return (
                                             <button key={a.label} type="button" onClick={() => { setNewOpen(false); router.visit(a.href); }}
-                                                className="flex w-full items-center gap-3 px-3 py-2 text-[12px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+                                                className="flex w-full items-center gap-3 px-3 py-2 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
                                                 <Icon size={14} className="text-[var(--text-muted)]" />
                                                 {a.label}
                                             </button>

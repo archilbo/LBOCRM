@@ -36,9 +36,9 @@ export function FinanceWorkspaceHeader({
                         <BadgeDollarSign size={20} />
                     </div>
                     <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Pilotage financier</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Pilotage financier</p>
                         <h1 className="mt-0.5 text-xl font-bold text-[var(--text)]">Finance</h1>
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--text-muted)]">
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-[var(--text-muted)]">
                             <span><strong className="text-[var(--text)]">{documentsCount}</strong> documents</span>
                             <span>Reste <strong className="text-amber-300">{formatCompactMoney(metrics.remainingTotal, currency)}</strong></span>
                             <span>En retard <strong className="text-rose-300">{formatCompactMoney(metrics.overdueTotal, currency)}</strong></span>

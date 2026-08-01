@@ -44,7 +44,7 @@ export function TaskCalendar({ tasks, onTaskClick }: Props) {
                 <div key={group.label} className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
                     <div className="mb-2 flex items-center gap-2">
                         <span className={`text-xs font-bold uppercase tracking-[0.1em] ${group.accent}`}>{group.label}</span>
-                        <span className="text-[10px] text-[var(--crm-text-muted)]">({group.tasks.length})</span>
+                        <span className="text-[9px] text-[var(--crm-text-muted)]">({group.tasks.length})</span>
                     </div>
                     <div className="space-y-1">
                         {group.tasks.map((t) => (
@@ -53,7 +53,7 @@ export function TaskCalendar({ tasks, onTaskClick }: Props) {
                                 <span className={`size-2 shrink-0 rounded-full ${STATUS_DOT_COLORS[t.status]}`} />
                                 <span className="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--crm-text)]">{t.title}</span>
                                 <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${PRIORITY_COLORS[t.priority]}`}>{PRIORITY_LABELS[t.priority]}</span>
-                                {t.dueDate ? <span className={`whitespace-nowrap text-[10px] ${group.label === 'Overdue' ? 'font-semibold text-red-400' : 'text-[var(--crm-text-muted)]'}`}>{t.dueDate}</span> : null}
+                                {t.dueDate ? <span className={`whitespace-nowrap text-[9px] ${group.label === 'Overdue' ? 'font-semibold text-red-400' : 'text-[var(--crm-text-muted)]'}`}>{t.dueDate}</span> : null}
                                 {Array.isArray(t.assignees) && t.assignees.length > 0 ? (
                                     <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold)] text-[7px] font-bold text-black">{t.assignees[0].name.charAt(0)}</span>
                                 ) : null}

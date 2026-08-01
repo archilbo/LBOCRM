@@ -44,13 +44,13 @@ export function GlobalUploadDock() {
                         <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--border)]">
                             <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${dockBadge.pct}%` }} />
                         </div>
-                        <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                        <div className="mt-0.5 text-[9px] text-[var(--text-muted)]">
                             {formatBytes(transferred)} of {formatBytes(totalBytes)}
                         </div>
                     </div>
                     <button
                         onClick={(e) => { e.stopPropagation(); setOpenCenter(p => !p); }}
-                        className="rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/10"
+                        className="rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/10"
                         aria-label="Open upload center"
                     >
                         <ExternalLink size={14} />

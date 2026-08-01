@@ -17,7 +17,7 @@ export function AppInput({ className, label, error, description, onChange, label
             {label ? (
                 <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-[var(--foreground)]">{label}</label>
-                    {labelExtra ? <span className="text-[11px] text-[var(--text-muted)]">{labelExtra}</span> : null}
+                    {labelExtra ? <span className="text-[10px] text-[var(--text-muted)]">{labelExtra}</span> : null}
                 </div>
             ) : null}
             <HeroInput

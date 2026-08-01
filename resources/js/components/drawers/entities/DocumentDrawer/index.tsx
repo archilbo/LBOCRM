@@ -193,7 +193,7 @@ export function DocumentDrawer({
             <div className="space-y-3">
               {/* Front (Recto) */}
               <div>
-                <p className="mb-1 text-[11px] font-medium text-[var(--text-subtle)]">Recto (avant)</p>
+                <p className="mb-1 text-[10px] font-medium text-[var(--text-subtle)]">Recto (avant)</p>
                 {form.cinFrontFile ? (
                   <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2.5">
                     <Image size={16} className="shrink-0 text-[var(--accent)]" />
@@ -201,7 +201,7 @@ export function DocumentDrawer({
                       <p className="truncate text-xs font-medium text-[var(--foreground)]">{form.cinFrontFile.name}</p>
                     </div>
                     <button type="button" onClick={() => setForm((f) => ({ ...f, cinFrontFile: null }))}
-                      className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[10px] text-[var(--text-muted)] transition hover:border-red-400/30 hover:text-red-400">
+                      className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[9px] text-[var(--text-muted)] transition hover:border-red-400/30 hover:text-red-400">
                       Retirer
                     </button>
                   </div>
@@ -209,14 +209,14 @@ export function DocumentDrawer({
                   <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-3 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
                     <Upload size={16} className="text-[var(--accent)]" />
                     <span className="mt-1 text-xs font-medium text-[var(--foreground)]">Recto de la CIN</span>
-                    <span className="text-[10px] text-[var(--text-muted)]">Image, PDF. Max 20 Mo.</span>
+                    <span className="text-[9px] text-[var(--text-muted)]">Image, PDF. Max 20 Mo.</span>
                     <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleCinFileChange('front', e.target.files)} />
                   </label>
                 )}
               </div>
               {/* Back (Verso) */}
               <div>
-                <p className="mb-1 text-[11px] font-medium text-[var(--text-subtle)]">Verso (arrière)</p>
+                <p className="mb-1 text-[10px] font-medium text-[var(--text-subtle)]">Verso (arrière)</p>
                 {form.cinBackFile ? (
                   <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2.5">
                     <Image size={16} className="shrink-0 text-[var(--accent)]" />
@@ -224,7 +224,7 @@ export function DocumentDrawer({
                       <p className="truncate text-xs font-medium text-[var(--foreground)]">{form.cinBackFile.name}</p>
                     </div>
                     <button type="button" onClick={() => setForm((f) => ({ ...f, cinBackFile: null }))}
-                      className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[10px] text-[var(--text-muted)] transition hover:border-red-400/30 hover:text-red-400">
+                      className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[9px] text-[var(--text-muted)] transition hover:border-red-400/30 hover:text-red-400">
                       Retirer
                     </button>
                   </div>
@@ -232,7 +232,7 @@ export function DocumentDrawer({
                   <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-3 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
                     <Upload size={16} className="text-[var(--accent)]" />
                     <span className="mt-1 text-xs font-medium text-[var(--foreground)]">Verso de la CIN</span>
-                    <span className="text-[10px] text-[var(--text-muted)]">Image, PDF. Max 20 Mo.</span>
+                    <span className="text-[9px] text-[var(--text-muted)]">Image, PDF. Max 20 Mo.</span>
                     <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleCinFileChange('back', e.target.files)} />
                   </label>
                 )}
@@ -245,10 +245,10 @@ export function DocumentDrawer({
                   <UploadCloud size={16} className="shrink-0 text-[var(--accent)]" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium text-[var(--foreground)]">{fileName}</p>
-                    <p className="text-[10px] text-[var(--text-muted)]">Fichier sélectionné</p>
+                    <p className="text-[9px] text-[var(--text-muted)]">Fichier sélectionné</p>
                   </div>
                   <button type="button" onClick={() => { setFileName(''); setForm((f) => ({ ...f, file: null })); }}
-                    className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[10px] text-[var(--text-muted)] transition hover:border-red-400/30 hover:text-red-400">
+                    className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[9px] text-[var(--text-muted)] transition hover:border-red-400/30 hover:text-red-400">
                     Retirer
                   </button>
                 </div>
@@ -256,14 +256,14 @@ export function DocumentDrawer({
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-4 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
                   <Upload size={18} className="text-[var(--accent)]" />
                   <span className="mt-1.5 text-xs font-medium text-[var(--foreground)]">Choisir un fichier</span>
-                  <span className="mt-0.5 text-[10px] text-[var(--text-muted)]">PDF, image, DOCX. Max 20 Mo.</span>
+                  <span className="mt-0.5 text-[9px] text-[var(--text-muted)]">PDF, image, DOCX. Max 20 Mo.</span>
                   <input type="file" className="hidden" onChange={(event) => handleFileChange(event.target.files)} />
                 </label>
               )}
             </>
           )}
           {fileError || firstError(errors, 'file') || firstError(errors, 'cin_front_file') || firstError(errors, 'cin_back_file') ? (
-            <p className="mt-1.5 text-[10px] font-medium text-[var(--danger)]">
+            <p className="mt-1.5 text-[9px] font-medium text-[var(--danger)]">
               {fileError || firstError(errors, 'file') || firstError(errors, 'cin_front_file') || firstError(errors, 'cin_back_file')}
             </p>
           ) : null}

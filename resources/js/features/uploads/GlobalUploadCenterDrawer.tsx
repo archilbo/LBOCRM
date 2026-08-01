@@ -112,7 +112,7 @@ function Section({ title, count, children }: { title: string; count: number; chi
         <div>
             <div className="mb-2 flex items-center gap-2">
                 <h3 className="text-xs font-semibold text-[var(--foreground)] uppercase tracking-wider">{title}</h3>
-                <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">{count}</span>
+                <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[9px] text-[var(--text-muted)]">{count}</span>
             </div>
             <div className="space-y-3">{children}</div>
         </div>

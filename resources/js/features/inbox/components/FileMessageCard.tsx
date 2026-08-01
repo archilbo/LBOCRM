@@ -56,10 +56,10 @@ export function FileMessageCard({ attachment, isMine, onPreview }: Props) {
             )}
 
             <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-semibold text-[var(--text)]" title={displayName}>
+                <p className="truncate text-[11px] font-semibold text-[var(--text)]" title={displayName}>
                     {displayName}
                 </p>
-                <p className="truncate text-[10px] text-[var(--text-muted)]">
+                <p className="truncate text-[9px] text-[var(--text-muted)]">
                     {appearance.label} · {formatFileSize(attachment.size)}
                     {attachment.pages ? ` · ${attachment.pages} pages` : ''}
                     {attachment.width && attachment.height ? ` · ${attachment.width}×${attachment.height}` : ''}

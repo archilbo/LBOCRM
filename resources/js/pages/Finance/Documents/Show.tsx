@@ -161,19 +161,19 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                 </div>
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">{document.typeLabel}</p>
+                                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">{document.typeLabel}</p>
                                         <FinanceDocumentLockBadge document={document} />
                                     </div>
                                     <h1 className="mt-1 truncate text-xl font-bold text-[var(--text)]">{document.number}</h1>
                                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusClass(document.status)}`}>
+                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusClass(document.status)}`}>
                                             {document.status?.replace(/_/g, ' ') || document.status}
                                         </span>
-                                        <span className="inline-flex rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-300">
+                                        <span className="inline-flex rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-300">
                                             TVA {document.tvaRate}%
                                         </span>
                                         {locked ? (
-                                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
+                                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
                                                 <LockKeyhole size={11} />
                                                 Locked
                                             </span>
@@ -182,9 +182,9 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                 </div>
                             </div>
                             <div className="shrink-0 text-right">
-                                <p className="text-[11px] text-[var(--text-muted)]">Total TTC</p>
+                                <p className="text-[10px] text-[var(--text-muted)]">Total TTC</p>
                                 <p className="text-3xl font-bold text-[var(--text)]">{money(document.totalTtc, currency)}</p>
-                                <p className="text-[11px] text-[var(--text-muted)]">
+                                <p className="text-[10px] text-[var(--text-muted)]">
                                     Remaining: <span className={document.remainingTotal > 0 ? 'font-semibold text-amber-300' : 'font-semibold text-emerald-400'}>
                                         {money(document.remainingTotal, currency)}
                                     </span>
@@ -240,13 +240,13 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                             <AppCard className="overflow-hidden p-0">
                                 <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
                                     <h2 className="text-xs font-semibold">Document lines</h2>
-                                    <span className="text-[11px] text-[var(--text-muted)]">{items.length} item(s)</span>
+                                    <span className="text-[10px] text-[var(--text-muted)]">{items.length} item(s)</span>
                                 </div>
                                 {items.length > 0 ? (
                                     <div className="finance-table-shell">
                                         <table className="finance-table min-w-[620px] text-xs">
                                             <thead>
-                                                <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                                                <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                                                     <th className="px-4 py-2.5">Item</th>
                                                     <th className="px-4 py-2.5">Qty</th>
                                                     <th className="px-4 py-2.5">Unit</th>
@@ -259,7 +259,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                                     <tr key={item.id ?? item.position} className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
                                                         <td className="px-4 py-2.5">
                                                             <p className="max-w-[320px] truncate font-semibold text-[var(--text)]">{item.title}</p>
-                                                            {item.description ? <p className="max-w-[380px] truncate text-[11px] text-[var(--text-muted)]">{item.description}</p> : null}
+                                                            {item.description ? <p className="max-w-[380px] truncate text-[10px] text-[var(--text-muted)]">{item.description}</p> : null}
                                                         </td>
                                                         <td className="px-4 py-2.5 text-[var(--text)]">{item.quantity}</td>
                                                         <td className="px-4 py-2.5 text-[var(--text-muted)]">{item.unit || '-'}</td>
@@ -280,13 +280,13 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                             <AppCard className="overflow-hidden p-0">
                                 <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
                                     <h2 className="text-xs font-semibold">Payments</h2>
-                                    <span className="text-[11px] text-[var(--text-muted)]">{payments.length} payment(s)</span>
+                                    <span className="text-[10px] text-[var(--text-muted)]">{payments.length} payment(s)</span>
                                 </div>
                                 {payments.length > 0 ? (
                                     <div className="finance-table-shell">
                                         <table className="finance-table min-w-[520px] text-xs">
                                             <thead>
-                                                <tr className="border-b border-[var(--border)] text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                                                <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                                                     <th className="px-4 py-2.5">Reference</th>
                                                     <th className="px-4 py-2.5">Method</th>
                                                     <th className="px-4 py-2.5">Date</th>
@@ -316,11 +316,11 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                 <h2 className="text-xs font-semibold">Notes &amp; terms</h2>
                                 <div className="mt-3 grid gap-3 xl:grid-cols-2">
                                     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
-                                        <p className="text-[11px] font-semibold text-[var(--text-muted)]">Notes</p>
+                                        <p className="text-[10px] font-semibold text-[var(--text-muted)]">Notes</p>
                                         <p className="mt-1.5 text-xs leading-5 text-[var(--text)]">{document.notes || 'No notes saved.'}</p>
                                     </div>
                                     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
-                                        <p className="text-[11px] font-semibold text-[var(--text-muted)]">Terms</p>
+                                        <p className="text-[10px] font-semibold text-[var(--text-muted)]">Terms</p>
                                         <p className="mt-1.5 text-xs leading-5 text-[var(--text)]">{document.terms || 'No terms saved.'}</p>
                                     </div>
                                 </div>

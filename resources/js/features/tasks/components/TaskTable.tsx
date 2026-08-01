@@ -71,15 +71,15 @@ export function TaskTable({ tasks, onTaskClick, onStatusChange }: Props) {
             <table className="w-full">
                 <thead>
                     <tr className="border-b border-[var(--crm-border)] bg-[var(--crm-surface)]">
-                        <SortHeader field="title" label="Task" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
-                        <th className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] md:table-cell">Assigned</th>
-                        <th className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] lg:table-cell">Project</th>
-                        <SortHeader field="category" label="Category" className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] xl:table-cell" />
-                        <SortHeader field="priority" label="Priority" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
-                        <SortHeader field="progress" label="Progress" className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] lg:table-cell" />
-                        <SortHeader field="status" label="Status" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
-                        <SortHeader field="dueDate" label="Due date" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
-                        <th className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-right text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]">Actions</th>
+                        <SortHeader field="title" label="Task" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
+                        <th className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] md:table-cell">Assigned</th>
+                        <th className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] lg:table-cell">Project</th>
+                        <SortHeader field="category" label="Category" className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] xl:table-cell" />
+                        <SortHeader field="priority" label="Priority" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
+                        <SortHeader field="progress" label="Progress" className="sticky top-0 z-10 hidden whitespace-nowrap px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)] lg:table-cell" />
+                        <SortHeader field="status" label="Status" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
+                        <SortHeader field="dueDate" label="Due date" className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]" />
+                        <th className="sticky top-0 z-10 whitespace-nowrap px-4 py-3 text-right text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--crm-muted)]">Actions</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--crm-border)]">
@@ -87,7 +87,7 @@ export function TaskTable({ tasks, onTaskClick, onStatusChange }: Props) {
                         <tr key={task.id} onClick={() => onTaskClick(task)} className="cursor-pointer bg-[var(--crm-elevated)] transition hover:bg-[var(--crm-surface)]">
                             <td className="px-4 py-3">
                                 <p className="max-w-[220px] truncate text-sm font-semibold text-[var(--crm-text)]">{task.title}</p>
-                                <p className="text-[10px] text-[var(--crm-text-muted)]">{task.taskNumber}</p>
+                                <p className="text-[9px] text-[var(--crm-text-muted)]">{task.taskNumber}</p>
                             </td>
                             <td className="hidden px-4 py-3 md:table-cell">
                                 {Array.isArray(task.assignees) && task.assignees.length > 0 ? (
@@ -104,21 +104,21 @@ export function TaskTable({ tasks, onTaskClick, onStatusChange }: Props) {
                                 <span className="text-xs text-[var(--crm-text-muted)]">{task.dossier?.object || task.client?.name || '-'}</span>
                             </td>
                             <td className="hidden px-4 py-3 xl:table-cell">
-                                <span className="text-[10px] text-[var(--crm-text-muted)]">{TYPE_LABELS[task.type]}</span>
+                                <span className="text-[9px] text-[var(--crm-text-muted)]">{TYPE_LABELS[task.type]}</span>
                             </td>
                             <td className="px-4 py-3">
-                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${PRIORITY_COLORS[task.priority]}`}>{PRIORITY_LABELS[task.priority]}</span>
+                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold ${PRIORITY_COLORS[task.priority]}`}>{PRIORITY_LABELS[task.priority]}</span>
                             </td>
                             <td className="hidden px-4 py-3 lg:table-cell">
                                 <div className="flex items-center gap-2">
                                     <div className="h-1.5 w-16 rounded-full bg-[var(--crm-surface-3)]">
                                         <div className="h-full rounded-full bg-[var(--crm-gold)]" style={{ width: `${task.progress}%` }} />
                                     </div>
-                                    <span className="text-[10px] text-[var(--crm-text-muted)]">{task.progress}%</span>
+                                    <span className="text-[9px] text-[var(--crm-text-muted)]">{task.progress}%</span>
                                 </div>
                             </td>
                             <td className="px-4 py-3">
-                                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATUS_COLORS[task.status]}`}>
+                                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${STATUS_COLORS[task.status]}`}>
                                     <span className={`size-1.5 rounded-full ${STATUS_DOT_COLORS[task.status]}`} />
                                     {STATUS_LABELS[task.status]}
                                 </span>
@@ -140,7 +140,7 @@ function StatusMenu({ task, onStatusChange }: { task: TaskRow; onStatusChange: (
     return (
         <div className="relative inline-flex" onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setOpen(!open)}
-                className="flex h-7 items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)]">
+                className="flex h-7 items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)]">
                 <ChevronDown size={11} /> Move
             </button>
             {open ? (

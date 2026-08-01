@@ -42,12 +42,12 @@ function EventRow({ event, isLast }: { event: DossierTimelineEvent; isLast: bool
             <div className="min-w-0 flex-1 pb-6">
                 <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-bold text-[var(--crm-text)]">{t(`clients.activity.actions.${event.action}`)}</p>
-                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cfg.color}`}>
+                    <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${cfg.color}`}>
                         {t(`clients.activity.types.${event.type}`)}
                     </span>
                 </div>
                 <p className="mt-0.5 text-xs text-[var(--crm-muted)]">{event.description}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--crm-muted)]">
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[var(--crm-muted)]">
                     <span>{formatDate(event.date)}</span>
                     {event.actorName ? <span>{t('clients.activity.createdBy', { name: event.actorName })}</span> : null}
                 </div>

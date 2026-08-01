@@ -104,7 +104,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                     <Building2 size={24} />
                                 </div>
                                 <div>
-                                    <p className="text-[17px] font-semibold tracking-[-0.03em]">ARCHI LBO <span className="text-[var(--crm-accent)]">OS</span></p>
+                                    <p className="text-[16px] font-semibold tracking-[-0.03em]">ARCHI LBO <span className="text-[var(--crm-accent)]">OS</span></p>
                                     <p className="mt-0.5 text-xs leading-4 text-[var(--crm-muted)]">Architecture office operating system</p>
                                 </div>
                             </div>
@@ -114,7 +114,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                 <h1 className="mt-3 max-w-2xl text-[2.5rem] font-semibold leading-[1.04] tracking-[-0.052em] xl:text-[3.25rem]">
                                     One command center for projects, documents, finance and archive.
                                 </h1>
-                                <p className="mt-5 max-w-2xl text-[15px] leading-7 text-[var(--crm-text-muted)]">
+                                <p className="mt-5 max-w-2xl text-[14px] leading-7 text-[var(--crm-text-muted)]">
                                     Internal CRM access for managing client files from request to authorization, billing, payment and physical archive.
                                 </p>
 
@@ -129,7 +129,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                                         <Icon size={18} />
                                                     </div>
                                                     <div>
-                                                        <p className="text-[13px] font-semibold tracking-[-0.015em]">{module.label}</p>
+                                                        <p className="text-[12px] font-semibold tracking-[-0.015em]">{module.label}</p>
                                                         <p className="mt-0.5 text-xs leading-4 text-[var(--crm-muted)]">{module.value}</p>
                                                     </div>
                                                 </div>
@@ -140,7 +140,7 @@ export default function Login({ errors = {}, status }: PageProps) {
 
                                 <div className="mt-6 flex flex-wrap gap-2">
                                     {checks.map((check) => (
-                                        <span key={check} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-[11px] font-medium tracking-[-0.01em] text-[var(--crm-text-muted)]">
+                                        <span key={check} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-medium tracking-[-0.01em] text-[var(--crm-text-muted)]">
                                             <CheckCircle2 size={14} className="text-emerald-300" />
                                             {check}
                                         </span>
@@ -157,7 +157,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                     <Building2 size={22} />
                                 </div>
                                 <div>
-                                    <p className="text-[17px] font-semibold tracking-[-0.03em]">ARCHI LBO <span className="text-[var(--crm-accent)]">OS</span></p>
+                                    <p className="text-[16px] font-semibold tracking-[-0.03em]">ARCHI LBO <span className="text-[var(--crm-accent)]">OS</span></p>
                                     <p className="mt-0.5 text-xs leading-4 text-[var(--crm-muted)]">Architecture office operating system</p>
                                 </div>
                             </div>
@@ -167,8 +167,8 @@ export default function Login({ errors = {}, status }: PageProps) {
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
                                             <p className="crm-eyebrow">Private access</p>
-                                            <h2 className="mt-3 text-[30px] font-semibold leading-[1.1] tracking-[-0.042em]">Sign in</h2>
-                                            <p className="mt-2.5 text-[14px] leading-6 text-[var(--crm-muted)]">
+                                            <h2 className="mt-3 text-[29px] font-semibold leading-[1.1] tracking-[-0.042em]">Sign in</h2>
+                                            <p className="mt-2.5 text-[13px] leading-6 text-[var(--crm-muted)]">
                                                 Use your ARCHI LBO company account.
                                             </p>
                                         </div>
@@ -219,7 +219,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                     />
 
                                     <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 py-3">
-                                        <span className="flex items-center gap-3 text-[13px] font-medium tracking-[-0.01em]">
+                                        <span className="flex items-center gap-3 text-[12px] font-medium tracking-[-0.01em]">
                                             <input
                                                 type="checkbox"
                                                 checked={form.remember}
@@ -238,7 +238,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                 </form>
 
                                 <div className="border-t border-[var(--crm-border)] bg-black/10 px-6 py-4 sm:px-7">
-                                    <div className="flex items-center gap-2 text-[11px] leading-4 text-[var(--crm-muted)]">
+                                    <div className="flex items-center gap-2 text-[10px] leading-4 text-[var(--crm-muted)]">
                                         <Mail size={14} />
                                         Local account password is configured in `.env`.
                                     </div>

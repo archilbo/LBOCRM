@@ -83,7 +83,7 @@ export function ConfirmActionModal({
         >
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
                 {description && (
-                    <p className="text-[13px] text-[var(--text-muted)]">{description}</p>
+                    <p className="text-[12px] text-[var(--text-muted)]">{description}</p>
                 )}
                 {showDateField && (
                     <DateField

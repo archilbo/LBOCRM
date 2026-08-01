@@ -53,7 +53,7 @@ function SortHeader({ label, sortKey, sort, onSortChange }: { label: string; sor
             else if (dir === 'asc') onSortChange(`${sortKey}:desc`);
             else onSortChange(undefined);
         }}
-            className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-white/50 hover:text-white/80 select-none whitespace-nowrap">
+            className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-white/50 hover:text-white/80 select-none whitespace-nowrap">
             {label}
             {active ? (dir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />) : <ArrowUpDown size={11} className="opacity-30" />}
         </button>
@@ -64,7 +64,7 @@ function LocationBreadcrumbs({ record }: { record: ArchiveRecordRow }) {
     const parts = [record.room, record.shelf, record.box].filter(Boolean);
     if (parts.length === 0) return <span className="text-white/60">-</span>;
     return (
-        <span className="text-[12px] text-white/60 font-mono whitespace-nowrap">
+        <span className="text-[11px] text-white/60 font-mono whitespace-nowrap">
             {parts.map((p, i) => (
                 <span key={i}>
                     {i > 0 && <span className="text-white/20 mx-1">/</span>}
@@ -133,14 +133,14 @@ export function ArchiveTable({
             accessorKey: 'archiveNumber',
             header: () => <SortHeader label="ARC" sortKey="archive_number" sort={sort} onSortChange={onSortChange} />,
             cell: ({ row }) => (
-                <span className="font-mono text-[13px] text-white whitespace-nowrap">{row.original.archiveNumber}</span>
+                <span className="font-mono text-[12px] text-white whitespace-nowrap">{row.original.archiveNumber}</span>
             ),
             meta: { width: 128 },
         },
         {
             id: 'project',
             accessorKey: 'projectObject',
-            header: () => <span className="text-[11px] uppercase tracking-wide text-white/50">Project</span>,
+            header: () => <span className="text-[10px] uppercase tracking-wide text-white/50">Project</span>,
             cell: ({ row }) => (
                 <span className="truncate text-white block">{row.original.projectObject}</span>
             ),
@@ -149,7 +149,7 @@ export function ArchiveTable({
         {
             id: 'city',
             accessorKey: 'city',
-            header: () => <span className="text-[11px] uppercase tracking-wide text-white/50">City</span>,
+            header: () => <span className="text-[10px] uppercase tracking-wide text-white/50">City</span>,
             cell: ({ row }) => (
                 row.original.city ? (
                     <span className="inline-flex items-center gap-1.5">
@@ -168,7 +168,7 @@ export function ArchiveTable({
         {
             id: 'location',
             accessorKey: 'locationLabel',
-            header: () => <span className="text-[11px] uppercase tracking-wide text-white/50">Location</span>,
+            header: () => <span className="text-[10px] uppercase tracking-wide text-white/50">Location</span>,
             cell: ({ row }) => <LocationBreadcrumbs record={row.original} />,
             meta: { width: 156 },
             enableSorting: false,
@@ -185,7 +185,7 @@ export function ArchiveTable({
         {
             id: 'requester',
             accessorKey: 'requestedBy',
-            header: () => <span className="text-[11px] uppercase tracking-wide text-white/50">Requester</span>,
+            header: () => <span className="text-[10px] uppercase tracking-wide text-white/50">Requester</span>,
             cell: ({ row }) => (
                 <span className="truncate text-white/70 block">{row.original.requestedBy || '-'}</span>
             ),
@@ -307,7 +307,7 @@ export function ArchiveTable({
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <td key={cell.id}
-                                            className="h-11 px-3 text-[13px] leading-none"
+                                            className="h-11 px-3 text-[12px] leading-none"
                                             style={{ width: (cell.column.columnDef.meta as { width?: number })?.width ?? 'auto' }}
                                             onClick={cell.column.id === 'select' ? (e) => e.stopPropagation() : undefined}
                                         >

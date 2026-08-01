@@ -52,7 +52,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/finance/settings/logo', [CompanyLogoController::class, 'destroy'])->name('finance.settings.logo.destroy')->middleware('permission.route');
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard')->middleware('permission.route');
 
-    Route::get('/global-search', [GlobalSearchController::class, 'index'])->name('global-search.index')->middleware('permission.route');
+    Route::get('/global-search', [GlobalSearchController::class, 'index'])->name('global-search.index')->middleware(['permission.route', 'throttle:30,1']);
 
     Route::resource('clients', ClientController::class)->only([
         'index',
