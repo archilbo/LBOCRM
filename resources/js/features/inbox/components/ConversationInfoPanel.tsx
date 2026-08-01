@@ -1,12 +1,12 @@
-import { Avatar, Button, Chip, ScrollShadow } from '@heroui/react';
-import { Archive, ArchiveRestore, Bell, BellOff, BriefcaseBusiness, FileText, FolderKanban, Image as ImageIcon, Info, ListChecks, MailOpen, PanelRightClose, PanelRightOpen, Pin, PinOff, ReceiptText, Users } from 'lucide-react';
+import { Avatar, Button, Card, Chip, ScrollShadow, Switch } from '@heroui/react';
+import { Archive, ArchiveRestore, Bell, BellOff, BriefcaseBusiness, FileText, FolderKanban, Image as ImageIcon, ImageOff, Info, ListChecks, MailOpen, MessageSquare, PanelRightClose, PanelRightOpen, Pin, PinOff, ReceiptText, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { ConversationRow, MessageAttachmentRow, MessageRow } from '@/features/chat/types';
 import { conversationInitial, conversationName, conversationStatus } from '@/features/chat/helpers';
 import { inboxApi } from '@/features/inbox/api';
 import { InboxIconButton } from '@/features/inbox/components/InboxIconButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
-import { isImageAttachment } from '@/features/inbox/utils/fileFormatters';
+import { getAttachmentPreviewUrl, isImageAttachment } from '@/features/inbox/utils/fileFormatters';
 
 type Props = {
     conversation: ConversationRow | null;
@@ -25,144 +25,100 @@ function isOnline(lastSeenAt?: string | null, explicit?: boolean): boolean {
     return Boolean(explicit || (lastSeenAt && Date.now() - new Date(lastSeenAt).getTime() < 300000));
 }
 
+function InfoSection({ icon: Icon, title, children }: { icon: typeof Users; title: string; children: React.ReactNode }) {
+    return <section><div className="mb-2 flex items-center gap-2"><Icon size={13} className="text-[var(--accent)]" /><h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{title}</h3></div>{children}</section>;
+}
+
+function MediaThumbnail({ attachment }: { attachment: MessageAttachmentRow }) {
+    const [failed, setFailed] = useState(false);
+    const source = getAttachmentPreviewUrl(attachment);
+
+    return source && !failed
+        ? <img src={source} alt={attachment.originalFilename} loading="lazy" onError={() => setFailed(true)} className="aspect-square w-full rounded-lg object-cover" />
+        : <div className="flex aspect-square items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]"><ImageOff size={15} /></div>;
+}
+
 export function ConversationInfoPanel({ conversation, messages, currentUserId, onArchiveToggle, collapsed, onToggleCollapsed, mobileOpen = false, onMobileClose, onPreference, onMarkUnread }: Props) {
     const [attachments, setAttachments] = useState<MessageAttachmentRow[]>([]);
 
     useEffect(() => {
-        if (!conversation) { setAttachments([]); return; }
+        if (!conversation) {
+            setAttachments([]);
+            return;
+        }
+
         const controller = new AbortController();
         inboxApi.attachments(conversation.id, 1, controller.signal)
             .then((result) => setAttachments(result.attachments))
             .catch(() => undefined);
+
         return () => controller.abort();
     }, [conversation?.id]);
 
     const panel = useMemo(() => {
         if (!conversation) return null;
+
         const participants = Array.isArray(conversation.participants) ? conversation.participants : [];
         const availableAttachments = attachments.length > 0 ? attachments : messages.flatMap((message) => message.attachments || []);
-        const images = availableAttachments.filter((a) => isImageAttachment(a)).slice(0, 9);
-        const files = availableAttachments.filter((a) => !isImageAttachment(a)).slice(0, 6);
+        const images = availableAttachments.filter(isImageAttachment).slice(0, 6);
+        const files = availableAttachments.filter((attachment) => !isImageAttachment(attachment)).slice(0, 5);
         const onlineCount = participants.filter((participant) => isOnline(participant.user?.lastSeenAt, participant.user?.isOnline)).length;
+        const name = conversationName(conversation, currentUserId);
         const status = conversationStatus(conversation, currentUserId) || 'Details de la conversation';
 
         return (
-            <div className="flex h-full min-h-0 flex-col bg-[var(--surface)] text-[var(--text)]">
-                <header className="border-b border-[var(--border)] px-5 py-4 text-center">
-                    <Avatar size="lg" name={conversationName(conversation, currentUserId)} className="mx-auto bg-[var(--accent-soft)] font-bold text-[var(--accent)]">
-                        {conversation.type === 'group' ? <Users size={22} /> : conversationInitial(conversation, currentUserId)}
-                    </Avatar>
-                    <h2 className="mt-3 truncate text-base font-semibold">{conversationName(conversation, currentUserId)}</h2>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">
-                        {conversation.type === 'group' ? `${participants.length} membres` : 'Conversation directe'}
-                    </p>
-                    <Chip size="sm" variant="flat" color={onlineCount > 0 ? 'success' : 'default'} className="mt-3">
-                        {conversation.type === 'group' ? `${onlineCount} en ligne` : status}
-                    </Chip>
+            <div className="flex h-full min-h-0 flex-col bg-[var(--surface)] text-[var(--foreground)]">
+                <header className="flex h-[68px] shrink-0 items-center border-b border-[var(--border)] px-4 pr-12">
+                    <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Informations</p><p className="mt-0.5 text-[9px] text-[var(--text-muted)]">Details de la discussion</p></div>
                 </header>
 
-                <ScrollShadow className="min-h-0 flex-1 space-y-5 px-4 py-4">
-                    <section aria-labelledby="members-heading">
-                        <h3 id="members-heading" className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><Users size={14} /> Membres</h3>
-                        <div>
+                <ScrollShadow className="min-h-0 flex-1 space-y-4 px-4 py-4">
+                    <section className="text-center">
+                        <Avatar size="lg" name={name} className="mx-auto size-16 bg-[var(--accent-soft)] text-lg font-bold text-[var(--accent)]">
+                            {conversation.type === 'group' ? <Users size={23} /> : conversationInitial(conversation, currentUserId)}
+                        </Avatar>
+                        <h2 className="mt-2 truncate text-sm font-semibold">{name}</h2>
+                        <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{conversation.type === 'group' ? `${participants.length} membres, ${onlineCount} en ligne` : status}</p>
+                    </section>
+
+                    <Card className="flex-row items-center gap-3 border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 shadow-none">
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">{conversation.isMuted ? <BellOff size={14} /> : <Bell size={14} />}</div>
+                        <div className="min-w-0 flex-1"><p className="text-[11px] font-medium">Notifications</p><p className="text-[9px] text-[var(--text-muted)]">{conversation.isMuted ? 'Conversation en sourdine' : 'Alertes actives'}</p></div>
+                        <Switch size="sm" isSelected={!conversation.isMuted} onChange={(selected) => onPreference?.(conversation, 'muted', !selected)} aria-label="Notifications de la conversation"><Switch.Content><Switch.Control><Switch.Thumb /></Switch.Control></Switch.Content></Switch>
+                    </Card>
+                    <Card className="grid grid-cols-3 divide-x divide-[var(--border)] border border-[var(--border)] bg-[var(--surface-2)] p-0 shadow-none">
+                        <div className="px-2 py-2.5 text-center"><p className="text-sm font-semibold">{participants.length}</p><p className="mt-0.5 text-[9px] text-[var(--text-muted)]">Membres</p></div>
+                        <div className="px-2 py-2.5 text-center"><p className="text-sm font-semibold">{messages.length}</p><p className="mt-0.5 text-[9px] text-[var(--text-muted)]">Messages</p></div>
+                        <div className="px-2 py-2.5 text-center"><p className="text-sm font-semibold">{availableAttachments.length}</p><p className="mt-0.5 text-[9px] text-[var(--text-muted)]">Fichiers</p></div>
+                    </Card>
+
+                    <InfoSection icon={Users} title="Membres">
+                        <div className="space-y-1">
                             {participants.map((participant) => {
                                 const user = participant.user ?? participant;
-                                const name = user?.name || 'Utilisateur';
                                 const online = isOnline(user?.lastSeenAt, user?.isOnline);
-                                return (
-                                    <div key={participant.id} className="flex items-center gap-2.5 border-b border-[color-mix(in_srgb,var(--border)_60%,transparent)] px-1 py-2.5 last:border-0">
-                                        <div className="relative">
-                                            <Avatar size="sm" name={name} />
-                                            {online ? <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--surface-2)] bg-emerald-400" /> : null}
-                                        </div>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block truncate text-xs font-semibold">{name}</span>
-                                            <span className="block truncate text-[9px] text-[var(--text-muted)]">{online ? 'En ligne' : user?.email || 'Hors ligne'}</span>
-                                        </span>
-                                        {participant.role && participant.role !== 'member' ? <Chip size="sm" variant="soft">{participant.role}</Chip> : null}
-                                    </div>
-                                );
+                                return <div key={participant.id} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-[var(--surface-2)]"><div className="relative"><Avatar size="sm" name={user?.name || 'Utilisateur'} />{online ? <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--surface)] bg-emerald-400" /> : null}</div><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{user?.name || 'Utilisateur'}</span><span className="block truncate text-[10px] text-[var(--text-muted)]">{online ? 'En ligne' : user?.email || 'Hors ligne'}</span></span>{participant.role && participant.role !== 'member' ? <Chip size="sm" variant="soft" className="h-5 text-[9px]">{participant.role}</Chip> : null}</div>;
                             })}
                         </div>
-                    </section>
+                    </InfoSection>
 
-                    <section aria-labelledby="images-heading">
-                        <h3 id="images-heading" className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><ImageIcon size={14} /> Images partagees</h3>
-                        {images.length > 0 ? (
-                            <div className="grid grid-cols-3 gap-1.5">
-                                {images.map((image) => <img key={image.id} src={image.thumbnailUrl || image.url || ''} alt={image.originalFilename} loading="lazy" className="aspect-square rounded-lg object-cover" />)}
-                            </div>
-                        ) : <div className="rounded-lg border border-dashed border-[var(--border)] p-4 text-center text-xs text-[var(--text-muted)]">Aucune image partagee.</div>}
-                    </section>
+                    <InfoSection icon={ImageIcon} title={`Medias partages${images.length ? ` (${images.length})` : ''}`}>
+                        {images.length > 0 ? <div className="grid grid-cols-3 gap-1.5">{images.map((image) => <MediaThumbnail key={image.id} attachment={image} />)}</div> : <Card className="border border-dashed border-[var(--border)] bg-transparent px-3 py-4 text-center text-xs text-[var(--text-muted)] shadow-none">Aucun media partage.</Card>}
+                    </InfoSection>
 
-                    {files.length > 0 ? (
-                        <section aria-labelledby="files-heading">
-                            <h3 id="files-heading" className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"><FileText size={14} /> Fichiers</h3>
-                            <div className="space-y-1.5">
-                                {files.map((file) => (
-                                    <Button key={file.id} href={file.downloadUrl || file.url || '#'} variant="secondary" size="sm" className="w-full justify-start">
-                                        <FileText size={13} className="text-[var(--accent)]" /><span className="truncate">{file.originalFilename}</span>
-                                    </Button>
-                                ))}
-                            </div>
-                        </section>
-                    ) : null}
+                    {files.length > 0 ? <InfoSection icon={FileText} title="Fichiers"><div className="space-y-1.5">{files.map((file) => <Button key={file.id} href={file.downloadUrl || file.url || '#'} variant="ghost" size="sm" className="h-10 w-full justify-start rounded-xl bg-[var(--surface-2)] px-2.5 text-xs"><FileText size={14} className="shrink-0 text-[var(--accent)]" /><span className="truncate">{file.originalFilename}</span></Button>)}</div></InfoSection> : null}
 
-                    {conversation.context && Object.values(conversation.context).some(Boolean) ? (
-                        <section aria-labelledby="context-heading">
-                            <h3 id="context-heading" className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Contexte lie</h3>
-                            <div className="grid grid-cols-2 gap-1.5">
-                                {conversation.context.clientId ? <Button size="sm" variant="secondary" href={`/clients/${conversation.context.clientId}`}><BriefcaseBusiness size={13} />Client</Button> : null}
-                                {conversation.context.dossierId ? <Button size="sm" variant="secondary" href={`/dossiers/${conversation.context.dossierId}`}><FolderKanban size={13} />Dossier</Button> : null}
-                                {conversation.context.taskId ? <Button size="sm" variant="secondary" href={`/tasks?task=${conversation.context.taskId}`}><ListChecks size={13} />Tache</Button> : null}
-                                {conversation.context.financeDocumentId ? <Button size="sm" variant="secondary" href={`/finance/documents/${conversation.context.financeDocumentId}`}><ReceiptText size={13} />Finance</Button> : null}
-                            </div>
-                        </section>
-                    ) : null}
+                    {conversation.context && Object.values(conversation.context).some(Boolean) ? <InfoSection icon={BriefcaseBusiness} title="Contexte lie"><div className="grid grid-cols-2 gap-1.5">{conversation.context.clientId ? <Button size="sm" variant="ghost" href={`/clients/${conversation.context.clientId}`} className="justify-start bg-[var(--surface-2)] text-xs"><BriefcaseBusiness size={13} />Client</Button> : null}{conversation.context.dossierId ? <Button size="sm" variant="ghost" href={`/dossiers/${conversation.context.dossierId}`} className="justify-start bg-[var(--surface-2)] text-xs"><FolderKanban size={13} />Dossier</Button> : null}{conversation.context.taskId ? <Button size="sm" variant="ghost" href={`/tasks?task=${conversation.context.taskId}`} className="justify-start bg-[var(--surface-2)] text-xs"><ListChecks size={13} />Tache</Button> : null}{conversation.context.financeDocumentId ? <Button size="sm" variant="ghost" href={`/finance/documents/${conversation.context.financeDocumentId}`} className="justify-start bg-[var(--surface-2)] text-xs"><ReceiptText size={13} />Finance</Button> : null}</div></InfoSection> : null}
                 </ScrollShadow>
 
-                <footer className="border-t border-[var(--border)] p-4">
-                    <div className="mb-2 grid grid-cols-3 gap-1.5">
-                        <InboxIconButton label={conversation.isPinned ? 'Desepingler' : 'Epingler'} tone="accent" onPress={() => onPreference?.(conversation, 'pinned', !conversation.isPinned)} className="w-full border border-[var(--border)]">{conversation.isPinned ? <PinOff size={14} /> : <Pin size={14} />}</InboxIconButton>
-                        <InboxIconButton label={conversation.isMuted ? 'Reactiver les notifications' : 'Mettre en sourdine'} tone="accent" onPress={() => onPreference?.(conversation, 'muted', !conversation.isMuted)} className="w-full border border-[var(--border)]">{conversation.isMuted ? <Bell size={14} /> : <BellOff size={14} />}</InboxIconButton>
-                        <InboxIconButton label="Marquer non lu" tone="accent" onPress={() => onMarkUnread?.(conversation)} className="w-full border border-[var(--border)]"><MailOpen size={14} /></InboxIconButton>
-                    </div>
-                    <Button variant="secondary" onPress={() => onArchiveToggle(conversation)} className="w-full">
-                        {conversation.archivedAt ? <ArchiveRestore size={15} /> : <Archive size={15} />}
-                        {conversation.archivedAt ? 'Restaurer la conversation' : 'Archiver la conversation'}
-                    </Button>
+                <footer className="border-t border-[var(--border)] px-4 py-3">
+                    <div className="grid grid-cols-3 gap-1.5"><InboxIconButton label={conversation.isPinned ? 'Desepingler' : 'Epingler'} tone="accent" onPress={() => onPreference?.(conversation, 'pinned', !conversation.isPinned)} className="w-full border border-[var(--border)]">{conversation.isPinned ? <PinOff size={14} /> : <Pin size={14} />}</InboxIconButton><InboxIconButton label={conversation.isMuted ? 'Reactiver les notifications' : 'Mettre en sourdine'} tone="accent" onPress={() => onPreference?.(conversation, 'muted', !conversation.isMuted)} className="w-full border border-[var(--border)]">{conversation.isMuted ? <Bell size={14} /> : <BellOff size={14} />}</InboxIconButton><InboxIconButton label="Marquer non lu" tone="accent" onPress={() => onMarkUnread?.(conversation)} className="w-full border border-[var(--border)]"><MailOpen size={14} /></InboxIconButton></div>
+                    <Button variant="ghost" onPress={() => onArchiveToggle(conversation)} className="mt-2 h-9 w-full rounded-xl border border-[var(--border)] text-xs">{conversation.archivedAt ? <ArchiveRestore size={14} /> : <Archive size={14} />}{conversation.archivedAt ? 'Restaurer' : 'Archiver'}</Button>
                     <p className="mt-2 flex items-center justify-center gap-1 text-[9px] text-[var(--text-muted)]"><Info size={11} /> L archivage est personnel.</p>
                 </footer>
             </div>
         );
     }, [attachments, conversation, currentUserId, messages, onArchiveToggle, onMarkUnread, onPreference]);
 
-    return (
-        <>
-            <aside className={`hidden shrink-0 border-l border-[var(--border)] bg-[var(--surface)] xl:flex ${collapsed ? 'w-12 items-start justify-center' : 'w-[292px]'}`}>
-                {collapsed ? (
-                    <div className="space-y-3 py-3">
-                        <InboxIconButton label="Afficher les details" tone="accent" onPress={onToggleCollapsed} className="border border-[var(--border)]"><PanelRightOpen size={15} /></InboxIconButton>
-                        {conversation ? <Avatar size="sm" name={conversationName(conversation, currentUserId)}>{conversationInitial(conversation, currentUserId)}</Avatar> : null}
-                    </div>
-                ) : (
-                    <div className="relative h-full min-h-0 w-full">
-                        <InboxIconButton label="Masquer les details" onPress={onToggleCollapsed} className="absolute right-3 top-3 z-10 border border-[var(--border)] bg-[var(--surface)]"><PanelRightClose size={15} /></InboxIconButton>
-                        {panel || <div className="flex h-full items-center justify-center p-8 text-center text-sm text-[var(--text-muted)]">Selectionnez une conversation.</div>}
-                    </div>
-                )}
-            </aside>
-
-            <AppDrawer
-                isOpen={mobileOpen}
-                onOpenChange={(open) => { if (!open) onMobileClose?.(); }}
-                hideHeader
-                isDismissable
-                panelClassName="xl:hidden !w-[min(100vw,384px)]"
-                contentClassName="!p-0"
-            >
-                {panel}
-            </AppDrawer>
-        </>
-    );
+    return <><aside className={`hidden shrink-0 border-l border-[var(--border)] bg-[var(--surface)] xl:flex ${collapsed ? 'w-12 items-start justify-center' : 'w-[288px]'}`}>{collapsed ? <div className="space-y-3 py-3"><InboxIconButton label="Afficher les details" tone="accent" onPress={onToggleCollapsed} className="border border-[var(--border)]"><PanelRightOpen size={15} /></InboxIconButton>{conversation ? <Avatar size="sm" name={conversationName(conversation, currentUserId)}>{conversationInitial(conversation, currentUserId)}</Avatar> : null}</div> : <div className="relative h-full min-h-0 w-full"><InboxIconButton label="Masquer les details" onPress={onToggleCollapsed} className="absolute right-3 top-3 z-10 border border-[var(--border)] bg-[var(--surface)]"><PanelRightClose size={15} /></InboxIconButton>{panel || <div className="flex h-full items-center justify-center p-8 text-center text-sm text-[var(--text-muted)]">Selectionnez une conversation.</div>}</div>}</aside><AppDrawer isOpen={mobileOpen} onOpenChange={(open) => { if (!open) onMobileClose?.(); }} hideHeader isDismissable panelClassName="xl:hidden !w-[min(100vw,384px)]" contentClassName="!p-0">{panel}</AppDrawer></>;
 }

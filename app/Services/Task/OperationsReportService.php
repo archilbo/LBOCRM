@@ -27,6 +27,14 @@ class OperationsReportService
                 ->where('due_date', '<', now())
                 ->whereNotIn('status', ['completed', 'cancelled'])
                 ->count(),
+            'dueThisWeek' => (clone $base)
+                ->whereBetween('due_date', [now()->startOfDay(), now()->endOfWeek()])
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->count(),
+            'unassignedTasks' => (clone $base)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->doesntHave('assignees')
+                ->count(),
             'byModule' => (clone $base)
                 ->selectRaw('category, count(*) as total')
                 ->groupBy('category')

@@ -15,7 +15,10 @@ class UploadCompanyLogoRequest extends FormRequest
         }
 
         if (method_exists($user, 'can')) {
-            return $user->can('manage finance') || $user->can('manage users') || $user->hasRole('admin');
+            return $user->can('finance.settings.update')
+                || $user->can('manage finance')
+                || $user->can('manage users')
+                || $user->hasRole('admin');
         }
 
         return true;

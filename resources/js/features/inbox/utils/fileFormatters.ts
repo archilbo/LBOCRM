@@ -39,6 +39,10 @@ export function isImageAttachment(attachment: { mimeType?: string | null; thumbn
     return !!attachment.mimeType?.startsWith('image/');
 }
 
+export function getAttachmentPreviewUrl(attachment: { id: number; url?: string | null }): string {
+    return `/inbox/attachments/${attachment.id}/view`;
+}
+
 export function isPdfAttachment(attachment: { mimeType?: string | null }): boolean {
     return attachment.mimeType === 'application/pdf';
 }

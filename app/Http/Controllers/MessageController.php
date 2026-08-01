@@ -115,6 +115,7 @@ class MessageController extends Controller
     {
         $this->authorize('view', $conversation);
         $this->authorize('view', $message);
+        $this->authorize('create', Message::class);
         abort_unless($message->conversation_id === $conversation->id, 404);
 
         $data = $request->validate([
@@ -142,6 +143,7 @@ class MessageController extends Controller
     public function typing(Request $request, Conversation $conversation): JsonResponse
     {
         $this->authorize('view', $conversation);
+        $this->authorize('create', Message::class);
         $participant = $conversation->participants()
             ->where('user_id', $request->user()->id)
             ->first();

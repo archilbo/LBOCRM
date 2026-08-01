@@ -27,10 +27,12 @@ return new class extends Migration {
                 ->delete();
         }
 
-        // ── 2. Drop old unique(period, city_id), drop city_id FK, then drop column ──
+        // ── 2. Drop city_id FK first (MySQL 1553: the composite unique index is
+        //       needed by the FK, so the FK must go before the index/column) ──
         Schema::table('dossier_number_sequences', function (Blueprint $table) {
+            $table->dropForeign(['city_id']);
             $table->dropUnique(['city_id', 'period']);
-            $table->dropConstrainedForeignId('city_id');
+            $table->dropColumn('city_id');
             $table->unique('period');
         });
     }

@@ -1,9 +1,9 @@
 import { usePage } from '@inertiajs/react';
 import { useTyping } from '@/features/inbox/components/useTyping';
 import { toast } from 'sonner';
-import { Check, CheckCheck, ChevronLeft, ChevronDown, ChevronUp, FileText, Info, MessageSquare, Paperclip, Search, Send, Settings, Trash2, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { Check, CheckCheck, ChevronLeft, ChevronDown, ChevronUp, FileText, ImageOff, Info, MessageSquare, Paperclip, Search, Send, Settings, Trash2, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import { Avatar, Button, Card, Chip, Input, ListBox, Modal, ScrollShadow, SearchField, Select, Spinner, TextArea } from '@heroui/react';
-import { isImageAttachment } from '@/features/inbox/utils/fileFormatters';
+import { getAttachmentPreviewUrl, isImageAttachment } from '@/features/inbox/utils/fileFormatters';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ConversationRow, MessageAttachmentRow, MessageRow } from '@/features/chat/types';
 import { getAvatarTone, getCategoryMeta, getConversationDisplayName, getConversationInitials, getLastMessagePreview, highlightSearchMatch, formatConversationTime } from '@/features/inbox/utils';
@@ -51,12 +51,12 @@ function ImageGrid({ attachments, onImageClick }: { attachments: MessageAttachme
     const images = attachments.filter((a) => isImageAttachment(a));
     if (attachments.length === 0) return null;
     return (
-        <div className="space-y-1.5 p-1.5">
+        <div className="space-y-1">
             {images.length > 0 ? (
-                <div className={`grid gap-1 overflow-hidden rounded-lg ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                <div className={`grid gap-1.5 overflow-hidden rounded-xl ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {images.slice(0, 4).map((image, index) => (
-                        <Button key={image.id} isIconOnly variant="ghost" aria-label={`Ouvrir ${image.originalFilename}`} onPress={() => onImageClick?.(index)} className="relative h-36 w-full min-w-0 overflow-hidden rounded-lg p-0">
-                            <img src={image.thumbnailUrl || image.url || ''} alt={image.originalFilename} loading="lazy" className="h-36 w-full object-cover transition hover:brightness-90" />
+                        <Button key={image.id} isIconOnly variant="ghost" aria-label={`Ouvrir ${image.originalFilename}`} onPress={() => onImageClick?.(index)} className={`relative w-full min-w-0 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-0 ${images.length === 1 ? 'aspect-[4/3] max-h-64 min-h-44' : 'aspect-square'}`}>
+                            <AttachmentImage attachment={image} />
                             {index === 3 && images.length > 4 ? <span className="absolute inset-0 flex items-center justify-center bg-black/60 text-sm font-bold text-white">+{images.length - 4}</span> : null}
                         </Button>
                     ))}
@@ -66,8 +66,16 @@ function ImageGrid({ attachments, onImageClick }: { attachments: MessageAttachme
     );
 }
 
+function AttachmentImage({ attachment }: { attachment: MessageAttachmentRow }) {
+    const [failed, setFailed] = useState(false);
+    const source = getAttachmentPreviewUrl(attachment);
 
+    if (!source || failed) {
+        return <span className="flex h-full w-full flex-col items-center justify-center gap-2 px-3 text-[var(--text-muted)]"><ImageOff size={20} /><span className="max-w-full truncate text-[9px]">{attachment.originalFilename}</span></span>;
+    }
 
+    return <img src={source} alt={attachment.originalFilename} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover transition hover:brightness-90" />;
+}
 
 
 function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, onForward: onForwardMsg, onImageClick, onEdit, onDelete, onRetry, searchQuery, onReplyClick, onFilePreview }: {
@@ -88,10 +96,12 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
     };
     const images = msg.attachments?.filter((a) => isImageAttachment(a)) || [];
     const files = msg.attachments?.filter((a) => !isImageAttachment(a)) || [];
+    const hasBody = Boolean(msg.body?.trim());
+    const isMediaOnly = images.length > 0 && !hasBody && files.length === 0;
     return (
-        <div className={`group/message mb-0.5 flex items-end gap-1.5 ${isMine ? 'justify-end' : 'justify-start'} ${grouped ? '' : 'mt-2'}`}>
+        <div className={`group/message mb-1 flex items-start gap-2.5 ${isMine ? 'justify-end' : 'justify-start'} ${grouped ? '' : 'mt-3'}`}>
             {!isMine ? (
-                <div className="w-7 shrink-0 self-end">
+                <div className="w-8 shrink-0 pt-4">
                     {!grouped ? <Avatar size="sm" name={msg.user?.name || msg.userName || ''} className={`${avatarTone.bg} ${avatarTone.text}`} /> : null}
                 </div>
             ) : null}
@@ -100,15 +110,13 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
                     <MessageActionToolbar isMine={isMine} body={msg.body} onReply={() => onReply(msg)} onForward={() => onForwardMsg(msg)} onEdit={() => onEdit?.(msg)} onDelete={() => onDelete?.(msg)} />
                 </div>
             ) : null}
-            <div className="min-w-0 max-w-[72%] sm:max-w-[68%]">
-                {isGroup && !isMine && !grouped ? (
-                    <p className={`mb-1 px-1 text-[9px] font-semibold ${avatarTone.text}`}>{msg.user?.name || msg.userName || 'Utilisateur'}</p>
-                ) : null}
+            <div className="min-w-0 max-w-[82%] sm:max-w-[68%]">
+                {!grouped ? <div className={`mb-1 flex items-center gap-2 px-1 ${isMine ? 'justify-end' : 'justify-start'}`}><p className={`text-[10px] font-semibold ${isMine ? 'text-[var(--foreground)]' : avatarTone.text}`}>{isMine ? 'Vous' : msg.user?.name || msg.userName || 'Utilisateur'}</p><span className="text-[8px] text-[var(--text-muted)]">{formatTime(msg.createdAt)}</span>{isGroup && !isMine ? <Chip size="sm" variant="soft" className="h-4 px-1 text-[7px]">Membre</Chip> : null}</div> : null}
                 {msg.isForwarded ? <p className={`mb-0.5 text-[9px] text-[var(--crm-muted)] ${isMine ? 'text-right' : 'text-left'}`}>Transféré</p> : null}
                 {msg.replyTo ? (
                     <ReplyPreview replyTo={msg.replyTo} isMine={isMine} onClick={() => onReplyClick?.(msg.replyTo!.id)} />
                 ) : null}
-                <Card className={`overflow-hidden shadow-sm ${isMine ? 'rounded-2xl rounded-br-md border-transparent bg-[var(--accent)] text-black' : 'rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]'}`}>
+                <Card className={`overflow-hidden ${isMediaOnly ? 'rounded-xl border-0 bg-transparent text-[var(--text)] shadow-none' : isMine ? 'rounded-2xl rounded-br-md border-transparent bg-[var(--accent)] text-black shadow-[0_8px_20px_rgb(0_0_0_/_0.10)]' : 'rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] shadow-[0_8px_20px_rgb(0_0_0_/_0.10)]'}`}>
                     {msg.attachments && msg.attachments.length > 0 ? (
                         <div className={`${msg.body ? 'rounded-t-xl' : 'rounded-xl'} overflow-hidden`}>
                             {images.length > 0 ? <ImageGrid attachments={images} onImageClick={(imgIdx) => onImageClick(msg.attachments || [], imgIdx)} /> : null}
@@ -119,8 +127,8 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
                             ) : null}
                         </div>
                     ) : null}
-                    {msg.body ? (
-                        <div className={`px-3 py-2 text-xs whitespace-pre-wrap break-words ${msg.attachments && msg.attachments.length > 0 ? 'border-t border-black/10' : ''}`}>
+                    {hasBody ? (
+                        <div className={`whitespace-pre-wrap break-words px-3.5 py-2.5 text-[11px] leading-5 ${msg.attachments && msg.attachments.length > 0 ? 'border-t border-black/10' : ''}`}>
                             {highlight(msg.body)}
                         </div>
                     ) : null}
@@ -129,6 +137,7 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
                     <MessageDeliveryStatus createdAt={msg.createdAt} isMine={isMine} readBy={msg.readBy} isEdited={msg.isEdited} isFailed={msg.isFailed} onRetry={() => onRetry?.(msg)} />
                 </div>
             </div>
+            {isMine ? (!grouped ? <Avatar size="sm" name="Vous" className="mt-4 shrink-0 bg-[var(--accent-soft)] text-[var(--accent)]">V</Avatar> : <div className="w-8 shrink-0" />) : null}
             {!isMine ? (
                 <div className="self-start pt-[10px]">
                     <MessageActionToolbar isMine={isMine} body={msg.body} onReply={() => onReply(msg)} onForward={() => onForwardMsg(msg)} onEdit={() => onEdit?.(msg)} onDelete={() => onDelete?.(msg)} />
@@ -399,16 +408,16 @@ export function MessageThread({ conversation, conversations, messages, loading, 
     return (
         <div className="flex flex-1 flex-col min-h-0">
             {/* Header */}
-            <div className="flex h-[62px] shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 sm:px-5">
+            <div className="flex h-[68px] shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 sm:px-5">
                 <InboxIconButton label="Retour aux conversations" onPress={onBack} className="lg:hidden"><ChevronLeft size={18} /></InboxIconButton>
-                <div className="relative shrink-0">
+                {!isGroup ? <div className="relative shrink-0">
                     <Avatar size="md" name={otherName} className={`${avatarTone.bg} ${avatarTone.text}`}>
-                        {isGroup ? <Users size={16} /> : getConversationInitials(conversation, currentUserId)}
+                        {getConversationInitials(conversation, currentUserId)}
                     </Avatar>
-                    {!isGroup && others.length === 1 && statusLine === 'En ligne' ? (
+                    {others.length === 1 && statusLine === 'En ligne' ? (
                         <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--crm-surface)] bg-emerald-400" />
                     ) : null}
-                </div>
+                </div> : null}
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                         <p className="truncate text-sm font-semibold text-[var(--text)]">{otherName}</p>
@@ -416,7 +425,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                             <Chip size="sm" variant="flat" className={`${catMeta.tone.bg} ${catMeta.tone.text}`}>{catMeta.label}</Chip>
                         ) : null}
                     </div>
-                    {statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
+                    {isGroup ? <div className="mt-1 flex items-center gap-2"><div className="flex -space-x-1.5">{parts.slice(0, 5).map((participant) => <Avatar key={participant.id} size="sm" name={participant.user?.name || 'Utilisateur'} className="size-5 border border-[var(--surface)] text-[7px]" />)}{parts.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{parts.length - 5}</span> : null}</div>{canManageGroup ? <Button variant="ghost" size="sm" onPress={openGroupSettings} className="h-5 rounded-md px-1.5 text-[8px] text-[var(--accent)]"><UserPlus size={10} />Nouveau membre</Button> : null}</div> : statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
                 </div>
                 {searchOpen ? (
                     <div className="flex items-center gap-1">
@@ -440,8 +449,8 @@ export function MessageThread({ conversation, conversations, messages, loading, 
             <div className="flex flex-1 min-h-0">
                 {/* Messages area */}
                 <div className="flex-1 flex flex-col min-w-0">
-                    <div className="flex-1 overflow-y-auto bg-[color-mix(in_srgb,var(--surface-2)_58%,var(--surface))] scrollbar-none" onScroll={onScroll}>
-                        <div className="mx-auto min-h-full w-full max-w-4xl px-3 py-4 sm:px-6">
+                    <div className="flex-1 overflow-y-auto bg-[color-mix(in_srgb,var(--surface-2)_45%,var(--surface))] scrollbar-none" onScroll={onScroll}>
+                        <div className="mx-auto min-h-full w-full max-w-[56rem] px-3 py-5 sm:px-7">
                         {loading ? (
                             <div className="flex items-center justify-center py-8"><Spinner color="warning" /></div>
                         ) : messages.length === 0 ? (
@@ -559,8 +568,8 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                     ) : null}
 
                     {/* Composer */}
-                    <div className="shrink-0 bg-[color-mix(in_srgb,var(--surface-2)_58%,var(--surface))] px-3 pb-3 pt-2 sm:px-5">
-                        <Card className="mx-auto flex w-full max-w-4xl flex-row items-end gap-1.5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
+                    <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-3 pb-3 pt-2.5 sm:px-5">
+                        <Card className="mx-auto flex w-full max-w-[62rem] flex-row items-end gap-1.5 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.14)]">
                             {!editingMsg ? <InboxIconButton label="Joindre un fichier" tone="accent" onPress={() => fileInputRef.current?.click()} className="shrink-0 rounded-full"><Paperclip size={17} /></InboxIconButton> : <div className="size-9 shrink-0" />}
                             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.zip" multiple className="hidden" onChange={handleImageSelect} />
                             <TextArea ref={textareaRef} value={text} onChange={(event) => { setText(event.target.value); sendTyping(); event.target.style.height = 'auto'; event.target.style.height = `${Math.min(event.target.scrollHeight, 120)}px`; }} onKeyDown={handleKeyDown}

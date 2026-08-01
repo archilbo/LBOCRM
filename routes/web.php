@@ -3,7 +3,9 @@
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminUserInvitationController;
+use App\Http\Controllers\Admin\AdminUserPasswordResetController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Api\ClientController as ApiClientController;
 use App\Http\Controllers\BackendQaController;
 use App\Http\Controllers\CalendarController;
@@ -37,8 +39,10 @@ use Inertia\Inertia;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
-    Route::get('/accept-invitation/{token}', [AdminUserInvitationController::class, 'accept'])->name('invitation.accept');
-    Route::post('/accept-invitation/{token}', [AdminUserInvitationController::class, 'complete'])->name('invitation.complete');
+    Route::get('/accept-invitation/{token}', [AdminUserInvitationController::class, 'accept'])->name('invitation.accept')->middleware('throttle:10,1');
+    Route::post('/accept-invitation/{token}', [AdminUserInvitationController::class, 'complete'])->name('invitation.complete')->middleware('throttle:10,1');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'create'])->name('password.reset')->middleware('throttle:10,1');
+    Route::post('/reset-password', [PasswordResetController::class, 'store'])->name('password.update')->middleware('throttle:10,1');
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
@@ -243,7 +247,7 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('FrontendQa/Index');
     })->name('frontend-qa.index')->middleware('permission.route');
     Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index')->middleware('permission.route');
-    Route::post('/admin/users', [AdminUserController::class, 'store'])->name('admin.users.store')->middleware('permission.route');
+    Route::post('/admin/users', [AdminUserInvitationController::class, 'store'])->name('admin.users.store')->middleware('permission.route');
     Route::put('/admin/users/bulk/role', [AdminUserController::class, 'bulkUpdateRole'])->name('admin.users.bulk.role')->middleware('permission.route');
     Route::put('/admin/users/bulk/suspend', [AdminUserController::class, 'bulkSuspend'])->name('admin.users.bulk.suspend')->middleware('permission.route');
     Route::post('/admin/users/bulk/delete', [AdminUserController::class, 'bulkDestroy'])->name('admin.users.bulk.destroy')->middleware('permission.route');
@@ -252,6 +256,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy')->middleware('permission.route');
     Route::put('/admin/users/{user}/permissions', [AdminUserController::class, 'updatePermissions'])->name('admin.users.permissions')->middleware('permission.route');
     Route::post('/admin/users/invite', [AdminUserInvitationController::class, 'store'])->name('admin.users.invite')->middleware('permission.route');
+    Route::post('/admin/users/{user}/invite/resend', [AdminUserInvitationController::class, 'resend'])->name('admin.users.invite.resend')->middleware('permission.route');
+    Route::post('/admin/users/{user}/password-reset', [AdminUserPasswordResetController::class, 'store'])->name('admin.users.password-reset')->middleware(['permission.route', 'throttle:5,1']);
     Route::post('/admin/users/invite/bulk/validate', [AdminUserInvitationController::class, 'bulkValidate'])->name('admin.users.invite.bulk.validate')->middleware('permission.route');
     Route::post('/admin/users/invite/bulk', [AdminUserInvitationController::class, 'bulkStore'])->name('admin.users.invite.bulk')->middleware('permission.route');
     Route::get('/admin/users/audit-logs', [AdminUserController::class, 'auditLogs'])->name('admin.users.audit-logs')->middleware('permission.route');

@@ -7038,3 +7038,230 @@ The local baseline seeder reads `LOCAL_BASELINE_PASSWORD` from `.env` when prese
 - Added `CollaborationPermissionScopeTest` coverage for denied cross-company task and calendar access.
 - Verification: `php artisan test tests/Feature/CollaborationPermissionScopeTest.php tests/Feature/RoleAccessMatrixTest.php tests/Feature/GranularClientPermissionTest.php tests/Feature/AdminUserAccessTest.php` passed (9 tests, 53 assertions). `php artisan db:seed --class=RolesAndPermissionsSeeder`, `php artisan optimize:clear`, `npm.cmd run build`, and `git diff --check` passed. Vite still reports only the existing large-chunk advisory.
 - Known documentation gap: `docs/ARCHITECTURE.md` is not present in this repository. Current task/calendar tenancy is enforced through their creator while those tables lack direct company/branch columns; adding indexed tenant keys is a future schema optimisation, not a current security gap.
+
+### Finance Parameters Workspace Redesign
+
+- Redesigned the Finance Parameters tab into a compact three-section workspace: financial rules, company identity, and bank details.
+- Added a responsive category rail, a live document-impact summary, French labels, focused section rendering, and a single finance-specific page header.
+- Preserved the existing backend settings service and routes for save, reset, logo upload/removal, and template access; no mock data was added.
+- Finance settings now respect granular permissions in the UI: view-only users see disabled fields and no write actions, while users with `finance.settings.update` can save. The form-request authorization now recognizes that granular permission too.
+- Files modified: `resources/js/features/finance/components/FinanceSettingsForm.tsx`, `resources/js/pages/Admin/Settings.tsx`, `app/Http/Controllers/CityController.php`, `app/Http/Requests/Finance/UpdateFinanceSettingsRequest.php`.
+- Verification: PHP lint, `git diff --check`, and `npm.cmd run build` passed. Vite reports only the existing large-chunk advisory.
+
+### Finance Parameters Density Refinement
+
+- Removed the unused reset and template actions from the Finance Parameters header.
+- Replaced the remaining save action and logo actions with compact shared icon buttons and accessible tooltips.
+- Tightened form controls, category navigation, section padding, preview tiles, and the desktop grid while retaining the responsive layout and backend behavior.
+- Consolidated the document impact, legal mentions, and bank summary into one shared stacked reference card.
+- Moved ICE, TVA, Patente, and CNSS inputs into the bank/reference section while preserving their company setting keys and document rendering behavior.
+- Removed the editable logo-path field. Logo replacement now stores a new managed filename first, updates the setting, then deletes the previous managed logo only after the update succeeds; a failed setting update removes the newly uploaded orphan file.
+- Uploading or removing the logo refreshes only the logo state in the form, preserving any unrelated unsaved settings edits.
+- Verification: PHP lint and `git diff --check` passed. `npm.cmd run build` passed. Full `php artisan test --compact` currently reports 112 passing tests, 45 failures, and 1 error in existing permission-fixture, project-design, inbox relation, template-fixture, and external Gemini diagnostics; none exercise the company-logo replacement path.
+
+### Finance Parameters Logo Workflow And Autosave
+
+- Reworked the company-logo setting into an asset panel with a large preview surface, drag-and-drop upload, file-picker upload, in-page preview, replacement, and deletion controls.
+- Logo replacement remains protected by the existing upload request and managed-storage controller flow. The old managed asset is removed only after the new asset and setting update succeed.
+- Added debounced autosave for finance/company/bank settings through the existing authorized settings endpoint. The update request carries a dedicated autosave header so normal success notifications do not appear after every keystroke.
+- Kept `Ctrl/Cmd + S` as an immediate manual save shortcut and retained form-request validation for every autosave request.
+- Files modified: `resources/js/features/finance/components/FinanceSettingsForm.tsx`, `app/Http/Controllers/Finance/FinanceSettingsController.php`.
+- Verification: PHP lint and `git diff --check` passed; `npm.cmd run build` passed. Vite reports only the existing large-chunk advisory.
+
+### Finance Parameters Preview And Validation Hardening
+
+- Corrected company-logo URLs to be relative to the active host and only returned when the managed file exists, avoiding the `localhost` versus `127.0.0.1` preview mismatch and stale-file broken images.
+- Added a client-side image failure fallback that switches the panel to the recoverable replacement state instead of showing a broken image icon.
+- Added immediate client validation and matching server validation for finance numbers, three-letter currency codes, company email, phone numbers, and bank RIB values. Invalid input pauses autosave and displays field-level feedback.
+- Numeric finance values now accept only numeric input; currency is normalized to uppercase letters; phone and RIB input are normalized to their permitted character sets.
+- Files modified: `app/Services/Finance/FinanceSettingsService.php`, `app/Http/Requests/Finance/UpdateFinanceSettingsRequest.php`, `resources/js/features/finance/components/FinanceSettingsForm.tsx`.
+- Verification: PHP lint, `git diff --check`, and `npm.cmd run build` passed. Vite reports only the existing large-chunk advisory.
+
+### Unified Parameters Layout
+
+- Moved the Settings page title and contextual subtitle into one shared parent header used by both the `Villes` and `Finance` tabs.
+- Aligned both settings areas on the same responsive page width, tab workspace, dark/gold visual language, and administration context.
+- Added an optional compact-header mode to the Finance settings form, retaining the autosave status without duplicating the page heading when it is rendered inside Settings.
+- Files modified: `resources/js/pages/Admin/Settings.tsx`, `resources/js/features/finance/components/FinanceSettingsForm.tsx`.
+- Verification: `git diff --check` and `npm.cmd run build` passed. Vite reports only the existing large-chunk advisory.
+
+### Separate Enterprise Settings Tab
+
+- Split Settings into `Villes`, `Entreprise`, and `Finance` tabs within the shared Parameters workspace.
+- Moved company identity, logo management, legal references, and bank details to `Entreprise`.
+- Kept Finance focused on financial defaults only: TVA, currency, payment terms, quotation validity, unit price, and architect rate.
+- Reused the same validated, permission-aware autosave form and backend endpoint; no duplicated settings persistence logic or routes were introduced.
+- Files modified: `resources/js/pages/Admin/Settings.tsx`, `resources/js/features/finance/components/FinanceSettingsForm.tsx`.
+- Verification: `git diff --check` and `npm.cmd run build` passed. Vite reports only the existing large-chunk advisory.
+
+### Cities Settings Reliability And UX
+
+- Reworked the `Villes` tab into a compact, searchable and filterable administration table with the same dark/gold Settings workspace pattern.
+- Added permission-aware UI states: users with `archive.view` can inspect cities, `archive.update` users can create, edit, and activate/deactivate them, and only `archive.delete` users can remove unused cities.
+- Added `UpsertCityRequest` for normalized city names, uppercase codes, unique validated codes/colors, and boolean availability validation.
+- Locked city-code changes after a dossier exists, while preserving safe updates to the city name, colour, and availability. Deletion remains blocked for referenced cities.
+- Existing dossier/project selectors already load active cities only, so disabling a city hides it from new selections without breaking historical dossiers.
+- Files modified: `app/Http/Controllers/CityController.php`, `app/Http/Requests/Settings/UpsertCityRequest.php`, `resources/js/pages/Admin/Settings.tsx`.
+- Verification: PHP lint, `php artisan route:list --name=settings.cities`, `git diff --check`, and `npm.cmd run build` passed. Vite reports only the existing large-chunk advisory.
+
+### Cities Validation And HeroUI Pagination
+
+- Added a normalized city-name key and migration-level unique index so `Marrakech`, `MARRAKECH`, and equivalent whitespace/case variants cannot coexist.
+- Added matching immediate form feedback and server-side validation; duplicate names and duplicate codes return French field errors.
+- Limited city codes to 2-8 uppercase letters only, with clear examples such as `MAR`, `MAD`, and `FES`.
+- Replaced the Cities list with HeroUI `Table`, `Switch`, `Chip`, and `Pagination` primitives. The list now has compact active/inactive counts, text/status filtering, and eight-row pagination.
+- Files modified: `app/Models/City.php`, `app/Http/Requests/Settings/UpsertCityRequest.php`, `database/migrations/2026_08_01_090000_add_normalized_name_to_cities_table.php`, `resources/js/pages/Admin/Settings.tsx`.
+- Verification: PHP lint, `git diff --check`, and `npm.cmd run build` passed. The full `npm.cmd run typecheck` still reports pre-existing unrelated errors in HeroUI/Inertia migration work across finance, inbox, and drawer components; `Admin/Settings.tsx` has no typecheck error.
+- Known issue: the city migration is pending because an earlier pending migration, `2026_07_30_000001_make_dossier_number_sequences_global`, changes dossier numbering data. The request/model logic remains backward-compatible and still validates names case-insensitively before that migration; running `php artisan migrate` will add the final database constraint but applies both migrations and needs explicit confirmation.
+
+### Cities Toolbar And Users Operations Workspace
+
+- Refined the Cities toolbar with a compact fully rounded HeroUI search field, compact text, accent search icon, and colored all/active/inactive filter pills. The HeroUI city table surface no longer adds an outer border.
+- Moved Charge de travail and Rapport d'activité into permission-gated tabs within Utilisateurs. The reports use focused `resources/js/features/users/components` components, shared KPI cards, real tenant-scoped data, searchable workload rows, priority/module distributions, completion rate, due-this-week count, and unassigned-task visibility.
+- Report-only users can open the Users workspace but only receive the tabs and backend payloads allowed by `reports.workload.view` and/or `reports.operations.view`; user records and audit data stay server-side behind `users.view`.
+- Kept `/workload` and `/operations/reports` as secure backwards-compatible redirects to their corresponding Users tabs after their original permission check. The sidebar now presents these tools under Utilisateurs rather than as duplicate Follow-up entries.
+- Files added: `resources/js/features/users/components/UserWorkloadTab.tsx`, `resources/js/features/users/components/UserOperationsReportTab.tsx`.
+- Files modified: `app/Http/Controllers/Admin/AdminUserController.php`, `app/Http/Controllers/WorkloadController.php`, `app/Http/Controllers/OperationsReportController.php`, `app/Services/Task/OperationsReportService.php`, `config/archilbo_permissions.php`, `resources/js/lib/appRoutes.ts`, `resources/js/components/layout/AppSidebar.tsx`, `resources/js/pages/Admin/Users/Index.tsx`, `resources/js/pages/Admin/Settings.tsx`, `resources/js/pages/Tasks/Index.tsx`, `docs/ROLES_AND_PERMISSIONS.md`.
+- Verification: PHP lint, `git diff --check`, and `php artisan optimize:clear` passed. `php artisan test tests/Feature/UsersOperationsWorkspaceTest.php tests/Feature/AdminUserAccessTest.php tests/Feature/RoleAccessMatrixTest.php --compact` passed (6 tests, 42 assertions), and `php artisan archilbo:operations-foundation-qa` passed. `npm.cmd run build` passed. PHPUnit only warned that the local `.phpunit.result.cache` could not be written by this environment. Vite reports the pre-existing large-chunk advisory.
+
+### Users Shared Table Consolidation
+
+- Converted the Charge de travail and Sécurité et audit lists to `AppWorkspaceTable`.
+- The Users workspace now uses the same shared table contract for its user list, workload list, and audit list: unified toolbar, responsive overflow, reorderable saved columns, empty states, and footer treatment.
+- Verification: `npm.cmd run build` and `git diff --check` passed. Vite reports only the existing large-chunk advisory.
+
+### Users Table Pagination
+
+- Added the shared compact 10-row pagination pattern to Charge de travail and Securite et audit, including accurate visible-row counts and icon-only previous/next controls.
+- User Details already used this pagination pattern, so every data table in the Utilisateurs workspace now paginates consistently.
+- Files modified: `resources/js/features/users/components/UserWorkloadTab.tsx`, `resources/js/pages/Admin/Users/Index.tsx`.
+- Verification: `git diff --check` and `npm.cmd run build` passed. Vite reports only the existing large-chunk advisory.
+
+### Users Security And Permission Editor Hardening
+
+- Replaced the Users workspace's hardcoded frontend role defaults and module matrix with configuration-driven data from `PermissionRegistry`. The editor now supports every configured access module without silently drifting from backend permissions.
+- Added strict request validation for permission module keys, access levels, and scopes. Unsupported modules are rejected and the previously exposed `assigned_only` scope is no longer persisted because dossier assignment scoping is not implemented yet.
+- Hardened every managed-user mutation with `CompanyContext::owns`, so a branch-scoped administrator cannot change, deactivate, delete, or edit permissions for an account in another branch.
+- Added focused tests for cross-branch mutation denial and invalid permission-matrix payloads.
+- Reworked the permission editor into a searchable HeroUI module matrix with clear access levels, per-module summaries, role defaults, restore, full-access, and revoke actions. The account dialog now has role-first creation, normalized email input, strong password guidance, and confirmation feedback.
+- Made mutation UI permission-aware: create, role editing, access switches, destructive actions, and bulk actions appear only when the signed-in user has the corresponding backend permission. Protected accounts remain protected in both UI and controller logic.
+- Files modified: `app/Services/PermissionRegistry.php`, `app/Http/Controllers/Admin/AdminUserController.php`, `app/Http/Requests/Admin/StoreUserRequest.php`, `app/Http/Requests/Admin/UpdateUserPermissionsRequest.php`, `resources/js/pages/Admin/Users/Index.tsx`, `tests/Feature/AdminUserAccessTest.php`.
+- Verification: PHP lint passed. `php artisan test tests/Feature/AdminUserAccessTest.php tests/Feature/RoleAccessMatrixTest.php tests/Feature/UsersOperationsWorkspaceTest.php --compact` passed (8 tests, 48 assertions). `npm.cmd run build` and `git diff --check` passed. PHPUnit could not write its local result-cache file due to environment permissions only; this did not affect tests. Vite reports only the existing large-chunk advisory.
+- Follow-up: the audit feed is still a bounded recent-result view. A later focused pass can add server-side audit filters and pagination without changing the authorization model.
+
+### Secure User Invitation And Password Recovery
+
+- Replaced immediate password-based user creation with a single invitation workflow. Every new account is now pending until the recipient follows the email link and chooses their own strong password.
+- Invitation tokens are hashed in the database, expire after 72 hours by default, and are invalidated after acceptance. The migration safely hashes outstanding legacy tokens and assigns their expiry time.
+- Added a lifecycle status to the Users resource and table: `Pending invitation`, `Accepted`, or `Blocked`. Presence remains separate, so an offline accepted user is not shown as blocked.
+- Added a secure reinvitation action for pending accounts and a password-reset action for Admin/Super Admin only. Passwords cannot be displayed or recovered because they are intentionally stored as one-way hashes; the reset action sends a time-limited link instead.
+- Added route throttling to invitation acceptance and password reset endpoints, branch/company ownership checks for reinvites and resets, protected Super Admin reset rules, and audit logging for reset and reinvitation events.
+- Added a dark-theme password reset page and branded reset email. The account creation modal now explains the email activation step and no longer asks an administrator to handle the recipient's password.
+- Files created: `app/Services/Users/UserInvitationService.php`, `app/Http/Controllers/Auth/PasswordResetController.php`, `app/Http/Controllers/Admin/AdminUserPasswordResetController.php`, `app/Mail/UserPasswordReset.php`, `resources/views/emails/user-password-reset.blade.php`, `resources/js/pages/Auth/ResetPassword.tsx`, `database/migrations/2026_08_01_130000_secure_user_invitation_tokens.php`, `tests/Feature/UserInvitationLifecycleTest.php`.
+- Files modified: `app/Http/Controllers/Admin/AdminUserInvitationController.php`, `app/Http/Controllers/Admin/AdminUserController.php`, `app/Http/Requests/Admin/InviteUserRequest.php`, `app/Http/Resources/UserResource.php`, `app/Models/User.php`, `resources/js/pages/Admin/Users/Index.tsx`, `resources/js/features/users/types.ts`, `routes/web.php`, `config/auth_security.php`, `config/archilbo_permissions.php`, `tests/Feature/RoleAccessMatrixTest.php`.
+- Commands run: focused migration `php artisan migrate --path=database/migrations/2026_08_01_130000_secure_user_invitation_tokens.php --force`, `php artisan db:seed --class=RolesAndPermissionsSeeder --force`, `php artisan optimize:clear`, PHP lint, `npm.cmd run build`, and `git diff --check`.
+- Verification: `php artisan test tests/Feature/UserInvitationLifecycleTest.php tests/Feature/AdminUserAccessTest.php tests/Feature/RoleAccessMatrixTest.php tests/Feature/UsersOperationsWorkspaceTest.php --compact` passed (10 tests, 62 assertions). PHPUnit only warned that the local result cache is not writable in this environment. Vite reports only the existing large-chunk advisory.
+
+### Permission Editor Usability Refinement
+
+- Redesigned the Users permission editor around a clearer flow: account context, reference role, access summary, then one HeroUI access selector per module.
+- Removed the cramped four-button module matrix and repeated per-row scope chip. Company and branch scope remain enforced by the existing backend and are now explained once in the module section.
+- Preserved the existing permission payload, access levels, role defaults, restore action, bulk actions, unsaved-change warning, and authorization checks.
+- File modified: `resources/js/pages/Admin/Users/Index.tsx`.
+- Verification: `git diff --check`, `npm.cmd run build`, and `php artisan test tests/Feature/AdminUserAccessTest.php tests/Feature/RoleAccessMatrixTest.php tests/Feature/UsersOperationsWorkspaceTest.php --compact` passed (8 tests, 48 assertions). PHPUnit only warned that its local result-cache file is not writable in this environment. Vite reports the existing large-chunk advisory.
+
+### Permission Matrix Redesign
+
+- Expanded the permission modal to the HeroUI `2xl` size and replaced the per-module select list with a compact access matrix: modules on the left and icon-led access levels across the top.
+- Added a real customized-only filter, clear selected cells with tooltips, per-module effective-access descriptions, and a contained horizontal-scroll strategy for narrow screens.
+- Kept the configured module list, role defaults, custom overrides, restore/default, bulk access, save flow, and backend authorization contract unchanged.
+- Design research used modular matrix and role-assignment patterns from current roles-and-permissions SaaS references, adapted to the existing dark/gold ARCHI LBO theme rather than copying their styling.
+- File modified: `resources/js/pages/Admin/Users/Index.tsx`.
+- Verification: `git diff --check`, `npm.cmd run build`, and `php artisan test tests/Feature/AdminUserAccessTest.php tests/Feature/RoleAccessMatrixTest.php tests/Feature/UsersOperationsWorkspaceTest.php --compact` passed (8 tests, 48 assertions). PHPUnit only warned that its local result-cache file is not writable in this environment. Vite reports the existing large-chunk advisory.
+
+### Compact Permission Matrix Layout
+
+- Consolidated the permission modal's user context, role selection, and permission distribution into one compact header bar.
+- Reduced matrix header, row, footer, and control spacing while preserving readable labels and HeroUI touch targets.
+- Kept the wider `2xl` modal and the permission matrix as the main visual focus; no permission behavior or API payload changed.
+- File modified: `resources/js/pages/Admin/Users/Index.tsx`.
+- Verification: `git diff --check` and `npm.cmd run build` passed. Vite reports the existing large-chunk advisory.
+
+### Permission Matrix Focused Scrolling
+
+- Changed the access editor into a fixed-height modal workspace: the user/role bar and Save/Cancel actions remain visible while only the permission matrix scrolls.
+- This keeps the editing context and primary action in view for all modules, while retaining contained horizontal overflow only for the matrix on narrow screens.
+- File modified: `resources/js/pages/Admin/Users/Index.tsx`.
+- Verification: `git diff --check` and `npm.cmd run build` passed. Vite reports the existing large-chunk advisory.
+
+### Permission Modal Width Adjustment
+
+- Reduced the permission editor from HeroUI `2xl` to `xl` width, keeping the matrix readable without presenting it as a near-fullscreen sheet.
+- File modified: `resources/js/pages/Admin/Users/Index.tsx`.
+- Verification: `git diff --check` and `npm.cmd run build` passed. Vite reports the existing large-chunk advisory.
+
+### Explicit Permission Modal Width Constraint
+
+- Added an optional HeroUI modal-container class hook to the shared `AppModal` wrapper.
+- Applied it only to the user permission editor, with a responsive viewport width and an explicit `68rem` maximum. The access matrix remains scrollable inside the modal on smaller screens.
+- Files modified: `resources/js/components/ui/AppModal.tsx`, `resources/js/pages/Admin/Users/Index.tsx`.
+- Verification: `git diff --check` and `npm.cmd run build` passed. Vite reports only the existing large-chunk advisory.
+
+### Permission Matrix Compact Actions
+
+- Replaced the permission matrix footer's text actions with small shared HeroUI icon buttons for restore, grant-all, and revoke-all.
+- Added accessible French labels and hover tooltips while retaining the reference-role explanation and existing permission behavior.
+- File modified: `resources/js/pages/Admin/Users/Index.tsx`.
+
+### Inbox Reliability And Conversation List Refresh
+
+- Fixed a production attachment-upload failure by adding the missing `company` and `branch` relations to `Conversation`; private chat storage can now resolve the scoped ARCHI LBO folder without an Eloquent relation error.
+- Hardened direct-conversation creation with a branch-scope guard, and required `inbox.manage` through the existing message policy before a user can forward a message or publish typing state. Read-only inbox users remain able to read but cannot mutate a conversation.
+- Updated the focused Inbox architecture tests for the current private storage structure and added coverage proving view-only members cannot forward or send typing events.
+- Rebuilt the conversation list with HeroUI primitives: compact searchable header, realtime connection state, online avatar stack, icon-led no-wrap tabs, group-category filtering, readable conversation previews, visible pinned-conversation priority, archive actions, and incremental server-pagination loading.
+- Files modified: `app/Models/Conversation.php`, `app/Services/Chat/ChatService.php`, `app/Http/Controllers/MessageController.php`, `resources/js/features/inbox/components/ConversationList.tsx`, `tests/Feature/InboxArchitectureTest.php`.
+- Verification: `php artisan test tests/Feature/InboxArchitectureTest.php --compact` passed (30 tests, 87 assertions); PHP lint and `git diff --check` passed; `npm.cmd run build` passed. Vite reports only the existing large-chunk advisory.
+- Next recommended step: refresh the new-conversation and forwarding surfaces with the same HeroUI compact workflow, then complete a browser pass with Reverb enabled to verify presence and typing against a live websocket server.
+
+### Inbox Three-Pane Product Redesign
+
+- Rebuilt the Inbox around the reference product pattern while retaining the ARCHI LBO dark/gold theme and all live Laravel-backed behavior: a compact people-and-conversations column, a calm message canvas, and a context-rich group-information panel.
+- Conversation rows now use avatar-led cards, clear unread priority, online indicators, pinned/all grouping, category chips, live status, and a contained archive action.
+- The message workspace now gives the conversation a thinner identity header, a wider readable message stream, softer incoming message cards, and a focused composer surface.
+- Redesigned the details panel around actual data only: members and online state, counts for members/messages/files, shared media, secure file links, linked CRM context, and existing pin/mute/unread/archive actions.
+- Files modified: `resources/js/pages/Inbox/Index.tsx`, `resources/js/features/inbox/components/ConversationList.tsx`, `resources/js/features/inbox/components/MessageThread.tsx`, `resources/js/features/inbox/components/ConversationInfoPanel.tsx`.
+- Verification: `npm.cmd run build` and `git diff --check` passed. Vite reports only the existing large-chunk advisory.
+# 2026-08-01 - Inbox reference-aligned layout and secure media previews
+
+## Step Completed
+
+Refined the Inbox three-pane workspace to follow the supplied modern chat reference while preserving the ARCHI LBO dark/gold theme.
+
+## What Was Built
+
+- Replaced the wrapping conversation tab strip with a compact HeroUI filter menu.
+- Reduced conversation-row height and added pinned/all-message hierarchy, presence, unread counts, and dense previews.
+- Added real group-member context and a member-management shortcut to the chat header.
+- Reworked the information rail around profile, notification preference, statistics, members, media, files, and linked CRM records.
+- Added graceful image fallbacks so inaccessible media never produces oversized broken message cards.
+- Changed private chat attachment view/download URLs to same-origin relative routes, preserving authenticated access across local and deployed hostnames.
+
+## Files Modified
+
+- resources/js/features/inbox/components/ConversationList.tsx
+- resources/js/features/inbox/components/MessageThread.tsx
+- resources/js/features/inbox/components/ConversationInfoPanel.tsx
+- app/Models/MessageAttachment.php
+- app/Http/Resources/MessageAttachmentResource.php
+- tests/Feature/InboxArchitectureTest.php
+
+## Commands Run
+
+- npm.cmd run build
+- php artisan test tests/Feature/InboxArchitectureTest.php
+
+## Verification
+
+- Production build passed.
+- Inbox feature suite passed: 30 tests, 89 assertions.
+- Browser automation was unavailable in the current session; final visual comparison remains a browser QA step.

@@ -33,14 +33,16 @@ class FinanceSettingsController extends Controller
         CompanySetting::setValue('company', 'company_tva', $company['company_tva'] ?? '', 'string', 'TVA');
         CompanySetting::setValue('company', 'company_patente', $company['company_patente'] ?? '', 'string', 'Patente');
         CompanySetting::setValue('company', 'company_cnss', $company['company_cnss'] ?? '', 'string', 'CNSS');
-        CompanySetting::setValue('company', 'company_logo_path', $company['company_logo_path'] ?? '', 'string', 'Logo path');
-
         CompanySetting::setValue('bank', 'bank_name', $bank['bank_name'] ?? '', 'string', 'Bank name');
         CompanySetting::setValue('bank', 'bank_rib', $bank['bank_rib'] ?? '', 'string', 'Bank RIB');
 
-        return redirect()
-            ->back(302, [], route('settings.index', ['tab' => 'finance']))
-            ->with('success', 'Finance settings updated successfully.');
+        $redirect = redirect()->back(302, [], route('settings.index', ['tab' => 'finance']));
+
+        if ($request->header('X-Archilbo-Autosave') !== '1') {
+            $redirect->with('success', 'Finance settings updated successfully.');
+        }
+
+        return $redirect;
     }
 
     public function reset(): RedirectResponse

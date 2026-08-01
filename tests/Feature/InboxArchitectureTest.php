@@ -130,7 +130,8 @@ class InboxArchitectureTest extends TestCase
         foreach ($attachments as $attachment) {
             $this->assertSame('local', $attachment->disk);
             Storage::disk('local')->assertExists($attachment->storage_path);
-            $this->assertStringContainsString('chat/company-'.$conversation->company_id.'/conversation-'.$conversation->id.'/message-'.$messageId, $attachment->storage_path);
+            $this->assertStringStartsWith('archilbo/', $attachment->storage_path);
+            $this->assertStringContainsString('/chat/conversation-'.$conversation->id.'/message-'.$messageId, $attachment->storage_path);
         }
     }
 
@@ -286,6 +287,12 @@ class InboxArchitectureTest extends TestCase
         $this->assertNotNull($attachment['url']);
         $this->assertNotNull($attachment['thumbnailUrl']);
         $this->assertNotNull($attachment['downloadUrl']);
+        $this->assertStringStartsWith('/inbox/attachments/', $attachment['url']);
+        $this->assertStringStartsWith('/inbox/attachments/', $attachment['downloadUrl']);
+        $this->actingAs($this->owner)
+            ->get($attachment['url'])
+            ->assertOk()
+            ->assertHeader('content-type', 'image/jpeg');
     }
 
     public function test_send_message_updates_last_message_at(): void
@@ -333,6 +340,24 @@ class InboxArchitectureTest extends TestCase
 
         $this->actingAs($outsider)->get(route('inbox.attachments.download', $attachment))->assertForbidden();
         $this->actingAs($outsider)->get(route('inbox.attachments.view', $attachment))->assertForbidden();
+    }
+
+    public function test_view_only_member_cannot_forward_or_publish_typing_state(): void
+    {
+        $conversation = $this->conversation();
+        $message = Message::create([
+            'conversation_id' => $conversation->id,
+            'user_id' => $this->owner->id,
+            'body' => 'Message protege',
+        ]);
+
+        $this->actingAs($this->member)
+            ->postJson("/inbox/{$conversation->id}/messages/{$message->id}/forward", ['conversation_ids' => [$conversation->id]])
+            ->assertForbidden();
+
+        $this->actingAs($this->member)
+            ->postJson("/inbox/{$conversation->id}/typing")
+            ->assertForbidden();
     }
 
     public function test_send_message_with_reply_to_and_files(): void
@@ -427,6 +452,8 @@ class InboxArchitectureTest extends TestCase
         Storage::fake('local');
         $conversation = $this->conversation();
         $otherConv = $this->conversation();
+        app(\Spatie\Permission\Models\Permission::class)::findOrCreate('manage inbox', 'web');
+        $this->member->givePermissionTo('manage inbox');
 
         $clientId = 'shared-client-id';
 

@@ -15,6 +15,8 @@ export type AdminUserRow = {
     lastSeenAt: string | null;
     isOnline: boolean;
     isSuspended: boolean;
+    accountStatus: 'pending' | 'accepted' | 'blocked';
+    invitationExpiresAt: string | null;
     createdAt: string | null;
     updatedAt: string | null;
 };

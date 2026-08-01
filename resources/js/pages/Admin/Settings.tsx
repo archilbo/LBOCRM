@@ -1,18 +1,18 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Building2, MapPin, Palette, Pencil, Plus, Power, Settings, Settings2, Trash2 } from 'lucide-react';
-import { Button, Input, Switch } from '@heroui/react';
+import { Building2, CircleCheck, CircleDot, CircleOff, MapPin, Palette, Pencil, Plus, Power, Search, Settings2, Trash2 } from 'lucide-react';
+import { Button, Chip, Input, Pagination, Switch, Table } from '@heroui/react';
 import { TabPanel } from 'react-aria-components';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppCard } from '@/components/ui/AppCard';
+import { AppPageHeader } from '@/components/ui/AppPageHeader';
 import { AppWorkspaceTabs, type AppWorkspaceTab } from '@/components/ui/AppWorkspaceTabs';
 import { FinanceSettingsForm, type FinanceSettingsFormProps } from '@/features/finance/components/FinanceSettingsForm';
 import { DrawerSection, DrawerField, drawerStyles } from '@/components/drawers';
-import { cn } from '@/lib/cn';
 import type { FormErrors } from '@/lib/formErrors';
 
 type CityRow = {
@@ -27,61 +27,91 @@ type CityRow = {
 type PageProps = {
     cities: CityRow[];
     usedColors: string[];
+    canViewCities?: boolean;
+    canManageCities?: boolean;
+    canDeleteCities?: boolean;
     canViewFinanceSettings?: boolean;
+    canManageFinanceSettings?: boolean;
     financeSettings?: FinanceSettingsFormProps | null;
 };
 
 const SWATCHES = ['#E08D3C', '#4A90D9', '#7EB36A', '#C0392B', '#8E44AD', '#2C3E50', '#D35400', '#16A085', '#F39C12', '#2980B9'];
+const CITIES_PAGE_SIZE = 8;
 
 const BASE_TABS: AppWorkspaceTab[] = [
-    { id: 'cities', label: 'Cities', icon: MapPin },
+    { id: 'cities', label: 'Villes', icon: MapPin },
 ];
 
-export default function AdminSettings({ cities, usedColors, canViewFinanceSettings = false, financeSettings }: PageProps) {
+function visiblePageNumbers(currentPage: number, totalPages: number): number[] {
+    const count = Math.min(5, totalPages);
+    const start = Math.max(1, Math.min(currentPage - 2, totalPages - count + 1));
+
+    return Array.from({ length: count }, (_, index) => start + index);
+}
+
+export default function AdminSettings({ cities, usedColors, canViewCities = false, canManageCities = false, canDeleteCities = false, canViewFinanceSettings = false, canManageFinanceSettings = false, financeSettings }: PageProps) {
     const { url } = usePage();
 
-    const tabs: AppWorkspaceTab[] = canViewFinanceSettings
-        ? [...BASE_TABS, { id: 'finance', label: 'Finance', icon: Settings2 }]
-        : BASE_TABS;
+    const tabs: AppWorkspaceTab[] = [
+        ...(canViewCities ? BASE_TABS : []),
+        ...(canViewFinanceSettings ? [{ id: 'company', label: 'Entreprise', icon: Building2 }, { id: 'finance', label: 'Finance', icon: Settings2 }] : []),
+    ];
 
-    const [activeTab, setActiveTab] = useState(() => {
+    const [activeTab, setActiveTab] = useState<string>(() => {
         const tab = new URL(url, window.location.origin).searchParams.get('tab');
-        return tab === 'finance' && canViewFinanceSettings ? 'finance' : 'cities';
+        if (tab && ['company', 'finance'].includes(tab) && canViewFinanceSettings) {
+            return tab;
+        }
+
+        return canViewCities ? 'cities' : 'company';
     });
 
     return (
         <>
-            <Head title="Settings" />
+            <Head title="Paramètres" />
             <AppShell fullBleed>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-                    <div className={cn(
-                        'mx-auto w-full px-4 py-6 sm:px-6 lg:px-8',
-                        activeTab === 'finance' ? 'max-w-[1540px]' : 'max-w-[1000px]',
-                    )}>
-                        <AppCard className="p-5">
-                            <div className="flex items-start gap-3">
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-                                    <Settings size={18} />
-                                </div>
-                                <div className="min-w-0">
-                                    <h1 className="text-lg font-semibold text-[var(--text)]">Settings</h1>
-                                    <p className="mt-1 text-xs text-[var(--text-muted)]">Manage application settings and archive organization.</p>
-                                </div>
-                            </div>
-                        </AppCard>
+                    <div className="mx-auto w-full max-w-[1540px] px-4 py-6 sm:px-6 lg:px-8">
+                        <AppPageHeader
+                            eyebrow="Administration"
+                            title="Paramètres"
+                            subtitle={activeTab === 'finance'
+                                ? 'Centralisez les valeurs appliquées aux devis, factures, reçus et documents.'
+                                : activeTab === 'company'
+                                    ? 'Gérez l’identité, le logo, les mentions légales et les coordonnées bancaires.'
+                                    : 'Gérez les villes utilisées pour l’organisation des dossiers et archives.'}
+                        />
 
                         <AppWorkspaceTabs tabs={tabs} selectedKey={activeTab} onSelectionChange={setActiveTab}>
+                            {canViewCities ? (
                             <TabPanel id="cities">
                                 <CitiesTabContent
                                     cities={cities}
                                     usedColors={usedColors}
+                                    canManage={canManageCities}
+                                    canDelete={canDeleteCities}
                                 />
                             </TabPanel>
+                            ) : null}
+                            {canViewFinanceSettings && financeSettings ? (
+                                <TabPanel id="company">
+                                    <FinanceSettingsForm
+                                        settings={financeSettings.settings}
+                                        routes={financeSettings.routes}
+                                        canManage={canManageFinanceSettings}
+                                        showHeader={false}
+                                        visibleSections={['company', 'bank']}
+                                    />
+                                </TabPanel>
+                            ) : null}
                             {canViewFinanceSettings && financeSettings ? (
                                 <TabPanel id="finance">
                                     <FinanceSettingsForm
                                         settings={financeSettings.settings}
                                         routes={financeSettings.routes}
+                                        canManage={canManageFinanceSettings}
+                                        showHeader={false}
+                                        visibleSections={['finance']}
                                     />
                                 </TabPanel>
                             ) : null}
@@ -93,19 +123,46 @@ export default function AdminSettings({ cities, usedColors, canViewFinanceSettin
     );
 }
 
-function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColors: string[] }) {
+function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities: CityRow[]; usedColors: string[]; canManage: boolean; canDelete: boolean }) {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editCity, setEditCity] = useState<CityRow | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<CityRow | null>(null);
     const [form, setForm] = useState({ name: '', code: '', color: '#64748B', is_active: true });
     const [errors, setErrors] = useState<FormErrors>({});
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+    const [page, setPage] = useState(1);
+
+    const filteredCities = useMemo(() => {
+        const normalizedSearch = search.trim().toLowerCase();
+
+        return cities.filter((city) => {
+            const matchesSearch = !normalizedSearch
+                || city.name.toLowerCase().includes(normalizedSearch)
+                || city.code.toLowerCase().includes(normalizedSearch);
+            const matchesStatus = statusFilter === 'all'
+                || (statusFilter === 'active' && city.isActive)
+                || (statusFilter === 'inactive' && !city.isActive);
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [cities, search, statusFilter]);
 
     const availableSwatches = SWATCHES.filter((s) => {
         if (s === form.color) return true;
         return !usedColors.includes(s);
     });
+    const isCodeLocked = Boolean(editCity && editCity.dossiersCount > 0);
+    const activeCitiesCount = cities.filter((city) => city.isActive).length;
+    const inactiveCitiesCount = cities.length - activeCitiesCount;
+    const totalPages = Math.max(1, Math.ceil(filteredCities.length / CITIES_PAGE_SIZE));
+    const currentPage = Math.min(page, totalPages);
+    const paginatedCities = filteredCities.slice((currentPage - 1) * CITIES_PAGE_SIZE, currentPage * CITIES_PAGE_SIZE);
+    const firstResult = filteredCities.length === 0 ? 0 : (currentPage - 1) * CITIES_PAGE_SIZE + 1;
+    const lastResult = Math.min(currentPage * CITIES_PAGE_SIZE, filteredCities.length);
 
     function openCreate() {
+        if (!canManage) return;
         setEditCity(null);
         setForm({ name: '', code: '', color: '#64748B', is_active: true });
         setErrors({});
@@ -113,6 +170,7 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
     }
 
     function openEdit(city: CityRow) {
+        if (!canManage) return;
         setEditCity(city);
         setForm({ name: city.name, code: city.code, color: city.color, is_active: city.isActive });
         setErrors({});
@@ -121,121 +179,211 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (!form.name.trim() || !form.code.trim()) {
-            const newErrors: FormErrors = {};
-            if (!form.name.trim()) newErrors.name = 'Required';
-            if (!form.code.trim()) newErrors.code = 'Required';
+        const normalizedCode = form.code.trim().toUpperCase();
+        const normalizedName = form.name.trim().replace(/\s+/g, ' ');
+        const normalizedNameKey = normalizedName.toLocaleLowerCase('fr-FR');
+        const newErrors: FormErrors = {};
+
+        if (!normalizedName) {
+            newErrors.name = 'Le nom est obligatoire.';
+        }
+        if (!/^[A-Z]{2,8}$/.test(normalizedCode)) {
+            newErrors.code = 'Utilisez 2 à 8 lettres, par exemple MAR, MAD ou FES.';
+        }
+        if (!/^#[0-9A-Fa-f]{6}$/.test(form.color)) {
+            newErrors.color = 'Choisissez une couleur valide.';
+        }
+
+        if (cities.some((city) => city.id !== editCity?.id && city.name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr-FR') === normalizedNameKey)) {
+            newErrors.name = 'Cette ville existe déjà.';
+        }
+        if (cities.some((city) => city.id !== editCity?.id && city.code.toUpperCase() === normalizedCode)) {
+            newErrors.code = 'Ce code de ville existe déjà.';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
         }
-        const payload = { ...form, code: form.code.toUpperCase() };
+
+        if (editCity && editCity.dossiersCount > 0 && normalizedCode !== editCity.code) {
+            setErrors({ code: 'Le code est verrouillé car des dossiers utilisent cette ville.' });
+            return;
+        }
+
+        if (!canManage) {
+            return;
+        }
+
+        const payload = { ...form, name: normalizedName, code: normalizedCode };
         if (editCity) {
             router.put(`/settings/cities/${editCity.id}`, payload, {
                 preserveScroll: true,
-                onSuccess: () => { setDrawerOpen(false); toast.success('City updated.'); },
+                onSuccess: () => { setDrawerOpen(false); toast.success('Ville mise à jour.'); },
                 onError: (err) => setErrors(err as FormErrors),
             });
         } else {
             router.post('/settings/cities', payload, {
                 preserveScroll: true,
-                onSuccess: () => { setDrawerOpen(false); toast.success('City created.'); },
+                onSuccess: () => { setDrawerOpen(false); toast.success('Ville créée.'); },
                 onError: (err) => setErrors(err as FormErrors),
             });
         }
     }
 
     function confirmDelete() {
-        if (!deleteTarget) return;
+        if (!deleteTarget || !canDelete) return;
         router.delete(`/settings/cities/${deleteTarget.id}`, {
             preserveScroll: true,
-            onSuccess: () => { setDeleteTarget(null); toast.success('Deleted.'); },
-            onError: () => toast.error('Cannot delete city with dossiers.'),
+            onSuccess: () => { setDeleteTarget(null); toast.success('Ville supprimée.'); },
+            onError: () => toast.error('Impossible de supprimer cette ville.'),
+        });
+    }
+
+    function updateAvailability(city: CityRow, isActive: boolean) {
+        if (!canManage || city.isActive === isActive) return;
+
+        router.put(`/settings/cities/${city.id}`, {
+            name: city.name,
+            code: city.code,
+            color: city.color,
+            is_active: isActive,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => toast.success(isActive ? 'Ville activée.' : 'Ville désactivée.'),
+            onError: () => toast.error('Impossible de mettre à jour la disponibilité de cette ville.'),
         });
     }
 
     return (
         <>
             <AppCard className="overflow-hidden p-0">
-                <div className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-4">
+                <div className="flex flex-wrap items-start gap-3 border-b border-[var(--border)] px-5 py-4">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-                        <Building2 size={18} />
+                        <MapPin size={18} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h2 className="text-sm font-semibold text-[var(--text)]">Cities Management</h2>
-                        <p className="mt-1 text-xs text-[var(--text-muted)]">Create and manage city codes with folder colors for archive organization.</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="text-sm font-semibold text-[var(--text)]">Villes</h2>
+                            <Chip size="sm" variant="soft">{cities.length} villes</Chip>
+                            <Chip size="sm" variant="soft" color="success">{activeCitiesCount} actives</Chip>
+                            {inactiveCitiesCount > 0 ? <Chip size="sm" variant="soft">{inactiveCitiesCount} inactives</Chip> : null}
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">Codes et couleurs utilisés pour classer les dossiers et archives.</p>
                     </div>
-                    <AppButton variant="primary" compact isIconOnly onPress={openCreate} tooltip="Add city" aria-label="Add city">
+                    {canManage ? <AppButton variant="primary" compact isIconOnly onPress={openCreate} tooltip="Ajouter une ville" aria-label="Ajouter une ville">
                         <Plus size={16} />
-                    </AppButton>
+                    </AppButton> : null}
                 </div>
                 <div className="p-5">
-                    {/* Table */}
-                    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-[var(--border)]">
-                                    {['Code', 'Name', 'Color', 'Status', 'Dossiers', ''].map((label) => (
-                                        <th key={label} className="h-9 px-3 text-left text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                                            {label}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[var(--border)]">
-                                {cities.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-3 py-10 text-center text-sm text-[var(--text-muted)]">
-                                            No cities yet
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    cities.map((city) => (
-                                        <tr key={city.id} className="group transition hover:bg-[var(--surface-2)]">
-                                            <td className="px-3 py-2.5">
-                                                <span className="font-mono text-[12px] font-bold text-[var(--text)]">{city.code}</span>
-                                            </td>
-                                            <td className="px-3 py-2.5">
-                                                <span className="text-[12px] text-[var(--text)]">{city.name}</span>
-                                            </td>
-                                            <td className="px-3 py-2.5">
+                    <div className="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="relative w-full sm:max-w-sm">
+                            <Search size={13} className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[var(--accent)]" />
+                            <Input
+                                aria-label="Rechercher une ville"
+                                value={search}
+                                onChange={(event) => {
+                                    setSearch(event.target.value);
+                                    setPage(1);
+                                }}
+                                placeholder="Rechercher une ville ou un code"
+                                classNames={{
+                                    input: 'text-[11px]',
+                                    inputWrapper: 'h-8 min-h-8 rounded-full border border-[var(--border)] bg-[var(--surface-2)]/60 pl-9 shadow-none transition hover:border-[var(--border-strong)] focus-within:border-[var(--accent)] focus-within:bg-[var(--surface)]',
+                                }}
+                            />
+                        </div>
+                        <div className="flex items-center gap-1 rounded-full bg-[var(--surface-2)] p-1">
+                            {([
+                                ['all', 'Toutes', CircleDot, 'text-[var(--accent)]'],
+                                ['active', 'Actives', CircleCheck, 'text-[var(--crm-success)]'],
+                                ['inactive', 'Inactives', CircleOff, 'text-[var(--text-muted)]'],
+                            ] as const).map(([value, label, Icon, colorClassName]) => (
+                                <AppButton
+                                    key={value}
+                                    variant={statusFilter === value ? 'secondary' : 'quiet'}
+                                    compact
+                                    className="h-7 rounded-full px-2.5 text-[10px]"
+                                    onPress={() => {
+                                        setStatusFilter(value);
+                                        setPage(1);
+                                    }}
+                                >
+                                    <Icon size={12} className={colorClassName} />
+                                    {label}
+                                </AppButton>
+                            ))}
+                        </div>
+                    </div>
+
+                    <Table.Root className="overflow-hidden rounded-2xl bg-[var(--surface)]">
+                        <Table.ScrollContainer>
+                            <Table.Content aria-label="Liste des villes">
+                                <Table.Header>
+                                    <Table.Column isRowHeader>Code</Table.Column>
+                                    <Table.Column>Ville</Table.Column>
+                                    <Table.Column>Couleur</Table.Column>
+                                    <Table.Column>Statut</Table.Column>
+                                    <Table.Column>Dossiers</Table.Column>
+                                    {canManage || canDelete ? <Table.Column>Actions</Table.Column> : null}
+                                </Table.Header>
+                                <Table.Body
+                                    items={paginatedCities}
+                                    renderEmptyState={() => (
+                                        <div className="px-3 py-10 text-center text-sm text-[var(--text-muted)]">
+                                            {cities.length === 0 ? 'Aucune ville configurée.' : 'Aucune ville ne correspond aux filtres.'}
+                                        </div>
+                                    )}
+                                >
+                                    {(city) => (
+                                        <Table.Row id={city.id} className="group transition hover:bg-[var(--surface-2)]">
+                                            <Table.Cell><span className="font-mono text-[12px] font-bold text-[var(--text)]">{city.code}</span></Table.Cell>
+                                            <Table.Cell><span className="text-[12px] font-medium text-[var(--text)]">{city.name}</span></Table.Cell>
+                                            <Table.Cell>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="size-4 rounded-md ring-1 ring-black/10 shrink-0" style={{ backgroundColor: city.color }} />
+                                                    <span className="size-4 shrink-0 rounded-md ring-1 ring-black/10" style={{ backgroundColor: city.color }} />
                                                     <span className="font-mono text-[10px] text-[var(--text-muted)]">{city.color}</span>
                                                 </div>
-                                            </td>
-                                            <td className="px-3 py-2.5">
-                                                <span className={cn(
-                                                    'inline-flex items-center gap-1.5 rounded-full px-2 py-[2px] text-[9px] font-medium',
-                                                    city.isActive
-                                                        ? 'bg-emerald-500/10 text-emerald-400'
-                                                        : 'bg-[var(--surface-2)] text-[var(--text-muted)]',
-                                                )}>
-                                                    <span className={cn('size-1.5 rounded-full', city.isActive ? 'bg-emerald-400' : 'bg-[var(--text-muted)]')} />
-                                                    {city.isActive ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 py-2.5">
-                                                <span className="text-[12px] tabular-nums text-[var(--text-muted)]">{city.dossiersCount}</span>
-                                            </td>
-                                            <td className="px-3 py-2.5">
-                                                <div className="flex items-center gap-1">
-                                                    <button type="button" onClick={() => openEdit(city)}
-                                                        className="flex size-7 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition">
-                                                        <Pencil size={12} />
-                                                    </button>
-                                                    <button type="button" onClick={() => setDeleteTarget(city)}
-                                                        className="flex size-7 items-center justify-center rounded text-[var(--text-muted)] hover:text-red-400 hover:bg-[var(--surface-2)] transition"
-                                                        disabled={city.dossiersCount > 0}>
-                                                        <Trash2 size={12} />
-                                                    </button>
+                                            </Table.Cell>
+                                            <Table.Cell>
+                                                <div className="flex items-center gap-2">
+                                                    <Chip size="sm" variant="soft" color={city.isActive ? 'success' : 'default'}>{city.isActive ? 'Active' : 'Inactive'}</Chip>
+                                                    {canManage ? <Switch size="sm" isSelected={city.isActive} onChange={(isActive) => updateAvailability(city, isActive)} aria-label={`${city.isActive ? 'Désactiver' : 'Activer'} ${city.name}`}>
+                                                        <Switch.Content><Switch.Control><Switch.Thumb /></Switch.Control></Switch.Content>
+                                                    </Switch> : null}
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                            </Table.Cell>
+                                            <Table.Cell><span className="text-[12px] tabular-nums text-[var(--text-muted)]">{city.dossiersCount}</span></Table.Cell>
+                                            {canManage || canDelete ? <Table.Cell>
+                                                <div className="flex items-center gap-1">
+                                                    {canManage ? <AppButton variant="quiet" compact isIconOnly tooltip="Modifier la ville" aria-label="Modifier la ville" onPress={() => openEdit(city)}><Pencil size={13} /></AppButton> : null}
+                                                    {canDelete ? <AppButton variant="danger-soft" compact isIconOnly tooltip={city.dossiersCount > 0 ? 'Suppression impossible : des dossiers utilisent cette ville' : 'Supprimer la ville'} aria-label="Supprimer la ville" onPress={() => setDeleteTarget(city)} isDisabled={city.dossiersCount > 0}><Trash2 size={13} /></AppButton> : null}
+                                                </div>
+                                            </Table.Cell> : null}
+                                        </Table.Row>
+                                    )}
+                                </Table.Body>
+                            </Table.Content>
+                        </Table.ScrollContainer>
+                        <Table.Footer>
+                            <Pagination size="sm" aria-label="Pagination des villes">
+                                <Pagination.Summary>{firstResult}-{lastResult} sur {filteredCities.length}</Pagination.Summary>
+                                <Pagination.Content>
+                                    <Pagination.Item>
+                                        <Pagination.Previous isDisabled={currentPage === 1} onPress={() => setPage(currentPage - 1)} aria-label="Page précédente"><Pagination.PreviousIcon /></Pagination.Previous>
+                                    </Pagination.Item>
+                                    {visiblePageNumbers(currentPage, totalPages).map((pageNumber) => (
+                                        <Pagination.Item key={pageNumber}>
+                                            <Pagination.Link isActive={pageNumber === currentPage} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link>
+                                        </Pagination.Item>
+                                    ))}
+                                    <Pagination.Item>
+                                        <Pagination.Next isDisabled={currentPage === totalPages} onPress={() => setPage(currentPage + 1)} aria-label="Page suivante"><Pagination.NextIcon /></Pagination.Next>
+                                    </Pagination.Item>
+                                </Pagination.Content>
+                            </Pagination>
+                        </Table.Footer>
+                    </Table.Root>
                 </div>
             </AppCard>
 
@@ -243,45 +391,48 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
             <AppDrawer
                 isOpen={drawerOpen}
                 onOpenChange={setDrawerOpen}
-                title={editCity ? 'Edit city' : 'Add city'}
-                description="Manage city codes and folder colors."
+                title={editCity ? 'Modifier la ville' : 'Ajouter une ville'}
+                description="Code, couleur de classement et disponibilité de la ville."
                 size="sm"
             >
                 <form onSubmit={handleSubmit} className="flex h-full flex-col">
                     <div className="flex-1 space-y-5 px-5 pb-4">
-                        {/* Section: Identity */}
-                        <DrawerSection icon={<Building2 size={12} />} title="Identity">
+                        <DrawerSection icon={<Building2 size={12} />} title="Identification">
                             <div className="grid gap-2">
-                                <DrawerField label="Name" error={errors.name}>
+                                <DrawerField label="Nom de la ville" error={errors.name}>
                                     <Input
                                         type="text"
                                         value={form.name}
                                         onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        placeholder="e.g. Marrakech"
+                                        placeholder="Ex. Marrakech"
+                                        maxLength={255}
                                         className={drawerStyles.input}
                                     />
                                 </DrawerField>
-                                <DrawerField label="Code" error={errors.code}>
+                                <DrawerField label="Code de la ville" error={errors.code}>
                                     <Input
                                         type="text"
                                         value={form.code}
-                                        onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-                                        placeholder="e.g. MRK"
+                                        onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })}
+                                        placeholder="Ex. MRK"
                                         maxLength={8}
+                                        disabled={isCodeLocked}
                                         className={drawerStyles.input}
                                     />
                                 </DrawerField>
+                                <p className="text-[10px] leading-4 text-[var(--text-muted)]">2 à 8 lettres en majuscules, par exemple MAR, MAD ou FES.</p>
+                                {isCodeLocked ? <p className="text-[10px] leading-4 text-[var(--text-muted)]">Le code est verrouillé pour préserver les numéros de dossiers existants.</p> : null}
                             </div>
                         </DrawerSection>
 
-                        {/* Section: Color */}
-                        <DrawerSection icon={<Palette size={12} />} title="Folder color">
-                            <DrawerField label="Color" error={errors.color}>
+                        <DrawerSection icon={<Palette size={12} />} title="Couleur des dossiers">
+                            <DrawerField label="Couleur" error={errors.color}>
                                 <div className="flex items-center gap-3">
-                                    <input
+                                    <Input
                                         type="color"
                                         value={form.color}
                                         onChange={(e) => setForm({ ...form, color: e.target.value })}
+                                        aria-label="Choisir une couleur personnalisée"
                                         className="size-9 shrink-0 cursor-pointer rounded-[var(--radius-md)] border border-[var(--border)] bg-transparent p-0.5"
                                     />
                                     <span className="font-mono text-xs text-[var(--text-muted)]">{form.color}</span>
@@ -289,18 +440,16 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
                             </DrawerField>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                                 {availableSwatches.length === 0 ? (
-                                    <span className="text-[10px] italic text-[var(--text-muted)]">All preset colors are taken</span>
+                                    <span className="text-[10px] italic text-[var(--text-muted)]">Toutes les couleurs prédéfinies sont utilisées.</span>
                                 ) : (
                                     availableSwatches.map((s) => (
-                                        <button
+                                        <Button
                                             key={s}
                                             type="button"
+                                            isIconOnly
                                             onClick={() => setForm({ ...form, color: s })}
-                                            aria-label={`Select color ${s}`}
-                                            className={cn(
-                                                'size-6 rounded-md ring-1 ring-inset transition hover:scale-110',
-                                                form.color === s ? 'scale-110 ring-2 ring-[var(--accent)]' : 'ring-[var(--border)]',
-                                            )}
+                                            aria-label={`Sélectionner la couleur ${s}`}
+                                            className={`size-6 min-w-6 rounded-md ring-1 ring-inset transition hover:scale-110 ${form.color === s ? 'scale-110 ring-2 ring-[var(--accent)]' : 'ring-[var(--border)]'}`}
                                             style={{ backgroundColor: s }}
                                         />
                                     ))
@@ -308,14 +457,13 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
                             </div>
                         </DrawerSection>
 
-                        {/* Section: Status */}
-                        <DrawerSection icon={<Power size={12} />} title="Status">
+                        <DrawerSection icon={<Power size={12} />} title="Disponibilité">
                             <div className="flex items-center gap-3">
                                 <Switch
                                     size="sm"
                                     isSelected={form.is_active}
                                     onChange={(isActive) => setForm({ ...form, is_active: isActive })}
-                                    aria-label="Active city"
+                                    aria-label="Ville active"
                                 >
                                     <Switch.Content>
                                         <Switch.Control>
@@ -324,8 +472,8 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
                                     </Switch.Content>
                                 </Switch>
                                 <div className="flex flex-col">
-                                    <span className="text-xs font-medium text-[var(--text)]">Active</span>
-                                    <span className="text-[9px] text-[var(--text-muted)]">City appears in filters and dropdowns</span>
+                                    <span className="text-xs font-medium text-[var(--text)]">Ville active</span>
+                                    <span className="text-[9px] text-[var(--text-muted)]">Disponible dans les filtres et nouvelles sélections.</span>
                                 </div>
                             </div>
                         </DrawerSection>
@@ -334,26 +482,25 @@ function CitiesTabContent({ cities, usedColors }: { cities: CityRow[]; usedColor
                     {/* Footer */}
                     <div className="shrink-0 border-t border-[var(--border)] px-5 py-4">
                         <div className="flex items-center justify-between gap-2">
-                            <Button variant="ghost" size="sm" onPress={() => setDrawerOpen(false)}>Cancel</Button>
+                            <Button variant="ghost" size="sm" onPress={() => setDrawerOpen(false)}>Annuler</Button>
                             <Button variant="primary" size="sm" type="submit">
-                                {editCity ? 'Update city' : 'Create city'}
+                                {editCity ? 'Enregistrer' : 'Créer la ville'}
                             </Button>
                         </div>
                     </div>
                 </form>
             </AppDrawer>
 
-            {/* Delete modal */}
-            <AppModal isOpen={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }} title="Delete city?" size="sm">
+            <AppModal isOpen={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }} title="Supprimer la ville ?" size="sm">
                 <p className="mb-4 text-sm text-[var(--text)]">
                     {deleteTarget && deleteTarget.dossiersCount > 0
-                        ? `Cannot delete "${deleteTarget.name}" — it has ${deleteTarget.dossiersCount} dossier(s).`
-                        : `Delete "${deleteTarget?.name}"? This cannot be undone.`}
+                        ? `Impossible de supprimer « ${deleteTarget.name} » : ${deleteTarget.dossiersCount} dossier(s) utilisent cette ville.`
+                        : `Supprimer « ${deleteTarget?.name} » ? Cette action est définitive.`}
                 </p>
                 <div className="flex justify-end gap-2">
-                    <AppButton variant="bordered" size="sm" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
+                    <AppButton variant="bordered" size="sm" onPress={() => setDeleteTarget(null)}>Annuler</AppButton>
                     {deleteTarget && deleteTarget.dossiersCount === 0 ? (
-                        <AppButton color="danger" variant="solid" size="sm" onPress={confirmDelete}>Delete</AppButton>
+                        <AppButton color="danger" variant="solid" size="sm" onPress={confirmDelete}>Supprimer</AppButton>
                     ) : null}
                 </div>
             </AppModal>

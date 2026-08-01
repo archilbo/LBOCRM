@@ -17,7 +17,7 @@ class MessageAttachmentResource extends JsonResource
             'size' => $this->size,
             'url' => $this->url,
             'thumbnailUrl' => $this->thumbnail_url,
-            'downloadUrl' => route('inbox.attachments.download', $this->resource),
+            'downloadUrl' => route('inbox.attachments.download', $this->resource, false),
             'createdAt' => $this->created_at?->toISOString(),
         ];
     }

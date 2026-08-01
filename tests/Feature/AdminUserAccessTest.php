@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\Branch;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -56,6 +58,53 @@ class AdminUserAccessTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseHas('users', ['id' => $admin->id, 'suspended_at' => null]);
+    }
+
+    public function test_a_branch_user_cannot_change_an_account_from_another_branch(): void
+    {
+        $company = Company::factory()->create();
+        $branchA = Branch::query()->create(['company_id' => $company->id, 'name' => 'Marrakech', 'code' => 'RAK', 'is_active' => true]);
+        $branchB = Branch::query()->create(['company_id' => $company->id, 'name' => 'Rabat', 'code' => 'RAB', 'is_active' => true]);
+        $manager = $this->managerFor($company);
+        $manager->update(['branch_id' => $branchA->id]);
+        $foreignBranchUser = User::factory()->create(['company_id' => $company->id, 'branch_id' => $branchB->id]);
+
+        $this->actingAs($manager)
+            ->put(route('admin.users.access.update', $foreignBranchUser), ['is_active' => false])
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('users', ['id' => $foreignBranchUser->id, 'suspended_at' => null]);
+    }
+
+    public function test_permission_editor_rejects_unknown_modules_and_unimplemented_assignment_scope(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $company = Company::factory()->create();
+        $role = Role::findOrCreate('permission_editor', 'web');
+        $role->syncPermissions([Permission::findByName('users.roles.manage', 'web')]);
+        $actor = tap(User::factory()->create(['company_id' => $company->id]), fn (User $user) => $user->assignRole($role));
+        $target = User::factory()->create(['company_id' => $company->id]);
+
+        $this->actingAs($actor)
+            ->put(route('admin.users.permissions', $target), [
+                'role' => 'viewer',
+                'isCustom' => true,
+                'permissions' => [
+                    'Unknown module' => ['access' => 'delete', 'scope' => 'all'],
+                ],
+            ])
+            ->assertSessionHasErrors('permissions');
+
+        $this->actingAs($actor)
+            ->put(route('admin.users.permissions', $target), [
+                'role' => 'viewer',
+                'isCustom' => true,
+                'permissions' => [
+                    'Clients' => ['access' => 'view', 'scope' => 'assigned_only'],
+                ],
+            ])
+            ->assertSessionHasErrors('permissions.Clients.scope');
     }
 
     private function managerFor(Company $company): User

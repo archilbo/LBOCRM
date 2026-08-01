@@ -327,7 +327,14 @@ class FinanceSettingsService
             return $path;
         }
 
-        return Storage::disk('public')->url($path);
+        if (!Storage::disk('public')->exists($path)) {
+            return '';
+        }
+
+        $url = Storage::disk('public')->url($path);
+        $relativeUrl = parse_url($url, PHP_URL_PATH);
+
+        return is_string($relativeUrl) && $relativeUrl !== '' ? $relativeUrl : $url;
     }
 
     public static function getCompanyLogoDataUri(): string

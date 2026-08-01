@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -37,6 +38,7 @@ class RoleAccessMatrixTest extends TestCase
     public function test_only_super_admin_can_create_a_super_admin_account(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
+        Mail::fake();
 
         $company = Company::factory()->create();
         $superAdmin = tap(User::factory()->create(['company_id' => $company->id]), fn (User $user) => $user->assignRole('super_admin'));
@@ -46,8 +48,6 @@ class RoleAccessMatrixTest extends TestCase
             'name' => 'New Super Admin',
             'email' => 'new.super.admin@example.test',
             'role' => 'super_admin',
-            'password' => 'StrongPassword!2026',
-            'password_confirmation' => 'StrongPassword!2026',
         ];
 
         $this->actingAs($manager)

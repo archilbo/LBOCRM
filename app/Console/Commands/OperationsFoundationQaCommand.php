@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\Task\OperationsReportService;
 use App\Services\Task\WorkloadService;
+use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -86,7 +87,8 @@ class OperationsFoundationQaCommand extends Command
             return self::FAILURE;
         }
 
-        if (! is_array($workload->summary()) || ! is_array($reports->summary())) {
+        $sampleUser = User::query()->first();
+        if ($sampleUser && (! is_array($workload->summary($sampleUser)) || ! is_array($reports->summary($sampleUser)))) {
             $this->error('Operations services did not return arrays.');
             return self::FAILURE;
         }

@@ -3,7 +3,7 @@ import { Download, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import type { MessageAttachmentRow } from '@/features/chat/types';
 import { FileTypeIcon } from '@/features/inbox/components/FileTypeIcon';
-import { formatFileSize, getFileTypeAppearance, getAttachmentDisplayName, isImageAttachment, isPdfAttachment } from '@/features/inbox/utils/fileFormatters';
+import { formatFileSize, getFileTypeAppearance, getAttachmentDisplayName, getAttachmentPreviewUrl, isImageAttachment, isPdfAttachment } from '@/features/inbox/utils/fileFormatters';
 
 type Props = {
     attachments: MessageAttachmentRow[];
@@ -78,9 +78,9 @@ export function FilePreviewModal({ attachments, initialIndex, onClose }: Props) 
                 ) : null}
 
                 {isImage ? (
-                    <img src={current.url || ''} alt={current.originalFilename} className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl" />
+                    <img src={getAttachmentPreviewUrl(current)} alt={current.originalFilename} className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl" />
                 ) : isPdf ? (
-                    <iframe src={current.url || ''} title={current.originalFilename} className="h-[85vh] w-full max-w-4xl rounded-xl bg-white" />
+                    <iframe src={getAttachmentPreviewUrl(current)} title={current.originalFilename} className="h-[85vh] w-full max-w-4xl rounded-xl bg-white" />
                 ) : null}
 
                 {hasNext ? (

@@ -12,6 +12,9 @@ class UserResource extends JsonResource
         $customConfiguration = is_array($this->module_permissions) && ($this->module_permissions['is_custom'] ?? false)
             ? $this->module_permissions
             : null;
+        $accountStatus = $this->suspended_at
+            ? 'blocked'
+            : ($this->invitation_token && ! $this->accepted_at ? 'pending' : 'accepted');
 
         return [
             'id' => $this->id,
@@ -26,6 +29,8 @@ class UserResource extends JsonResource
             'createdAt' => optional($this->created_at)->format('Y-m-d'),
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
             'isSuspended' => !is_null($this->suspended_at),
+            'accountStatus' => $accountStatus,
+            'invitationExpiresAt' => optional($this->invitation_expires_at)->toISOString(),
         ];
     }
 }

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['company_id', 'branch_id', 'name', 'email', 'password', 'invitation_token', 'invited_at', 'accepted_at', 'invited_by', 'last_seen_at', 'module_permissions', 'suspended_at'])]
+#[Fillable(['company_id', 'branch_id', 'name', 'email', 'password', 'invitation_token', 'invited_at', 'invitation_expires_at', 'accepted_at', 'invited_by', 'last_seen_at', 'module_permissions', 'suspended_at'])]
 #[Hidden(['password', 'remember_token', 'invitation_token'])]
 class User extends Authenticatable
 {
@@ -50,6 +50,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'invited_at' => 'datetime',
+            'invitation_expires_at' => 'datetime',
             'accepted_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'suspended_at' => 'datetime',

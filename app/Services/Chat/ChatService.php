@@ -26,6 +26,13 @@ class ChatService
     public function findOrCreateDirectConversation(User $user1, User $user2): Conversation
     {
         abort_unless((int) $user1->company_id === (int) $user2->company_id, 422, 'Destinataire non disponible.');
+        abort_unless(
+            $user1->branch_id === null
+                || $user2->branch_id === null
+                || (int) $user1->branch_id === (int) $user2->branch_id,
+            422,
+            'Destinataire non disponible.'
+        );
         $directKey = collect([$user1->id, $user2->id])->sort()->implode(':');
 
         try {

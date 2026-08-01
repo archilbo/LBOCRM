@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Settings\UpsertCityRequest;
 use App\Models\City;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\PermissionRegistry;
@@ -30,26 +31,31 @@ class CityController extends Controller
     public function settings(Request $request): Response
     {
         $user = $request->user();
+        $canViewCities = $user && $this->permissions->allows($user, 'archive.view');
+        $canManageCities = $user && $this->permissions->allows($user, 'archive.update');
+        $canDeleteCities = $user && $this->permissions->allows($user, 'archive.delete');
         $canViewFinance = $user && $this->permissions->allows($user, 'finance.settings.view');
+        $canManageFinance = $user && $this->permissions->allows($user, 'finance.settings.update');
 
         abort_unless(
-            $user && ($this->permissions->allows($user, 'archive.view') || $canViewFinance),
+            $user && ($canViewCities || $canViewFinance),
             403
         );
 
-        [$cities, $usedColors] = $this->cityData();
+        [$cities, $usedColors] = $canViewCities ? $this->cityData() : [[], []];
 
         return Inertia::render('Admin/Settings', [
             'cities' => $cities,
             'usedColors' => $usedColors,
+            'canViewCities' => $canViewCities,
+            'canManageCities' => $canManageCities,
+            'canDeleteCities' => $canDeleteCities,
             'canViewFinanceSettings' => $canViewFinance,
+            'canManageFinanceSettings' => $canManageFinance,
             'financeSettings' => $canViewFinance ? [
                 'settings' => app(FinanceSettingsService::class)->allGrouped(),
                 'routes' => [
                     'update' => route('finance.settings.update'),
-                    'reset' => route('finance.settings.reset'),
-                    'templates' => route('finance.templates.index'),
-                    'finance' => route('finance.index'),
                     'uploadLogo' => route('finance.settings.logo.store'),
                     'deleteLogo' => route('finance.settings.logo.destroy'),
                 ],
@@ -80,30 +86,26 @@ class CityController extends Controller
         return [$cities, $usedColors];
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(UpsertCityRequest $request): RedirectResponse
     {
         $this->authorizeArchive($request, 'archive.update');
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:cities,name'],
-            'code' => ['required', 'string', 'max:8', 'unique:cities,code', 'uppercase'],
-            'color' => ['required', 'string', 'max:9', 'regex:/^#[0-9A-Fa-f]{6}$/', 'unique:cities,color'],
-            'is_active' => ['boolean'],
-        ]);
+        $data = $request->validated();
 
         City::create($data);
 
         return redirect()->route($this->backRoute($request))->with('success', 'City created.');
     }
 
-    public function update(Request $request, City $city): RedirectResponse
+    public function update(UpsertCityRequest $request, City $city): RedirectResponse
     {
         $this->authorizeArchive($request, 'archive.update');
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:cities,name,' . $city->id],
-            'code' => ['required', 'string', 'max:8', 'unique:cities,code,' . $city->id, 'uppercase'],
-            'color' => ['required', 'string', 'max:9', 'regex:/^#[0-9A-Fa-f]{6}$/', 'unique:cities,color,' . $city->id],
-            'is_active' => ['boolean'],
-        ]);
+        $data = $request->validated();
+
+        if ($city->dossiers()->exists() && $data['code'] !== $city->code) {
+            return back()->withErrors([
+                'code' => 'Le code ne peut plus être modifié après la création de dossiers.',
+            ]);
+        }
 
         $city->update($data);
 

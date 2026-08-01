@@ -4,18 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\InviteUserRequest;
-use App\Http\Resources\UserResource;
-use App\Mail\UserInvitation;
-use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\CompanyContext;
 use App\Traits\AuditsActions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use App\Services\PermissionRegistry;
+use App\Services\Users\UserInvitationService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,43 +20,19 @@ class AdminUserInvitationController extends Controller
 {
     use AuditsActions;
 
-    public function __construct(private readonly PermissionRegistry $permissions)
+    public function __construct(
+        private readonly PermissionRegistry $permissions,
+        private readonly CompanyContext $companyContext,
+        private readonly UserInvitationService $invitations,
+    )
     {
     }
     public function store(InviteUserRequest $request): RedirectResponse
     {
         $validated = $request->validated();
 
-        if (app()->environment('local', 'development', 'testing')) {
-            $user = User::create([
-                'company_id' => $request->user()->company_id,
-                'branch_id' => $request->user()->branch_id,
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => bcrypt('password'),
-                'invitation_token' => null,
-                'invited_at' => now(),
-                'accepted_at' => now(),
-                'invited_by' => $request->user()->id,
-            ]);
-            $user->assignRole($validated['role']);
-            $message = "User {$user->email} created with password 'password'.";
-        } else {
-            $user = User::create([
-                'company_id' => $request->user()->company_id,
-                'branch_id' => $request->user()->branch_id,
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => bcrypt(Str::password(16)),
-                'invitation_token' => Str::random(60),
-                'invited_at' => now(),
-                'invited_by' => $request->user()->id,
-            ]);
-            $user->assignRole($validated['role']);
-            $acceptUrl = route('invitation.accept', ['token' => $user->invitation_token]);
-            Mail::to($user)->send(new UserInvitation($user, $acceptUrl));
-            $message = 'Invitation sent to ' . $user->email;
-        }
+        $user = $this->invitations->create($request->user(), $validated);
+        $message = 'Invitation sent to '.$user->email;
 
         $this->audit($request, 'user.invited', $message, [
             'user_id' => $user->id,
@@ -69,6 +42,33 @@ class AdminUserInvitationController extends Controller
 
         return redirect()->route('admin.users.index')
             ->with('success', $message);
+    }
+
+    public function resend(Request $request, User $user): RedirectResponse
+    {
+        abort_unless(
+            $this->permissions->allows($request->user(), 'users.create')
+            && $this->permissions->allows($request->user(), 'users.roles.manage'),
+            403,
+        );
+        abort_unless($this->companyContext->owns($request->user(), $user), 404);
+
+        if ($user->hasRole(config('archilbo_roles.super_admin_role')) && ! $request->user()->hasRole(config('archilbo_roles.super_admin_role'))) {
+            abort(403);
+        }
+
+        if ($user->accepted_at) {
+            return back()->with('error', 'Only pending accounts can receive a new invitation.');
+        }
+
+        $this->invitations->reissue($user, $request->user());
+
+        $this->audit($request, 'user.invitation.resent', "Resent invitation to {$user->email}", [
+            'user_id' => $user->id,
+            'email' => $user->email,
+        ]);
+
+        return back()->with('success', "A new invitation link was sent to {$user->email}.");
     }
 
     public function bulkValidate(Request $request): JsonResponse
@@ -136,24 +136,7 @@ class AdminUserInvitationController extends Controller
                         continue;
                     }
 
-                    $isLocal = app()->environment('local', 'development', 'testing');
-                    $user = User::create([
-                        'company_id' => $request->user()->company_id,
-                        'branch_id' => $request->user()->branch_id,
-                        'name' => $entry['name'],
-                        'email' => $entry['email'],
-                        'password' => bcrypt($isLocal ? 'password' : Str::password(16)),
-                        'invitation_token' => $isLocal ? null : Str::random(60),
-                        'accepted_at' => $isLocal ? now() : null,
-                        'invited_at' => now(),
-                        'invited_by' => $request->user()->id,
-                    ]);
-                    $user->assignRole($entry['role']);
-
-                    if (!$isLocal) {
-                        $acceptUrl = route('invitation.accept', ['token' => $user->invitation_token]);
-                        Mail::to($user)->send(new UserInvitation($user, $acceptUrl));
-                    }
+                    $this->invitations->create($request->user(), $entry);
                     $created++;
                 } catch (\Exception $e) {
                     $errors[] = $entry['email'] . ': ' . $e->getMessage();
@@ -188,7 +171,7 @@ class AdminUserInvitationController extends Controller
 
     public function accept(string $token): Response|RedirectResponse
     {
-        $user = User::where('invitation_token', $token)->whereNull('accepted_at')->first();
+        $user = $this->invitations->findPending($token);
 
         if (! $user) {
             return redirect()->route('login')->with('error', 'This invitation link is invalid or has already been used.');
@@ -203,7 +186,7 @@ class AdminUserInvitationController extends Controller
 
     public function complete(Request $request, string $token): RedirectResponse
     {
-        $user = User::where('invitation_token', $token)->whereNull('accepted_at')->first();
+        $user = $this->invitations->findPending($token);
 
         if (! $user) {
             return redirect()->route('login')->with('error', 'This invitation link is invalid or has already been used.');
@@ -211,13 +194,14 @@ class AdminUserInvitationController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::min(12)->mixedCase()->numbers()->symbols()],
         ]);
 
         $user->fill([
             'name' => $validated['name'],
             'password' => bcrypt($validated['password']),
             'invitation_token' => null,
+            'invitation_expires_at' => null,
             'accepted_at' => now(),
         ])->save();
 

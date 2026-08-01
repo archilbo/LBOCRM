@@ -5,9 +5,18 @@ namespace App\Http\Requests\Admin;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use App\Services\PermissionRegistry;
+use Illuminate\Support\Str;
 
 class InviteUserRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'name' => trim((string) $this->input('name')),
+            'email' => Str::lower(trim((string) $this->input('email'))),
+        ]);
+    }
+
     public function authorize(): bool
     {
         if (! $this->user()

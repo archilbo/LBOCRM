@@ -268,7 +268,7 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
                                     </span>
                                 ))}
                             </div>
-                            <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => router.visit('/workload')}>Workload</AppButton>
+                            <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => router.visit('/admin/users?tab=workload')}>Workload</AppButton>
                             <AppButton size="sm" variant="ghost" className="h-8 bg-[var(--accent)] px-2.5 text-black hover:bg-[var(--accent-hover)]" onPress={() => { setFormErrors({}); setCreateOpen(true); }}><Plus size={14} /> New task</AppButton>
                         </div>
                     </section>

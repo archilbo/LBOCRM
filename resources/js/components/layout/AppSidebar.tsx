@@ -28,8 +28,6 @@ const followUpItems: { key: string }[] = [
     { key: 'archives' },
     { key: 'tasks' },
     { key: 'calendar' },
-    { key: 'workload' },
-    { key: 'operationsReports' },
 ];
 
 const financeChildren: { key: string; labelKey?: string }[] = [
@@ -43,7 +41,7 @@ const financeChildren: { key: string; labelKey?: string }[] = [
 /* ── Group keys for collapsed rail popovers ── */
 const operationsGroupKeys = [
     'documents', 'contracts', 'tasks',
-    'calendar', 'workload', 'operationsReports',
+    'calendar',
 ] as const;
 
 const financeGroupKeys = [
@@ -162,6 +160,10 @@ export function AppSidebar() {
     }, [currentPath]);
 
     const canView = useCallback((route: AppRoute) => {
+        if (route.requiredAnyPermissions?.length) {
+            return route.requiredAnyPermissions.some((permission) => authUser.permissions?.includes(permission) === true);
+        }
+
         return !route.requiredPermission || authUser.permissions?.includes(route.requiredPermission) === true;
     }, [authUser.permissions]);
 

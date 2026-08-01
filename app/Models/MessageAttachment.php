@@ -17,7 +17,7 @@ class MessageAttachment extends Model
 
     public function getUrlAttribute(): ?string
     {
-        return route('inbox.attachments.view', $this);
+        return route('inbox.attachments.view', $this, false);
     }
 
     public function getThumbnailUrlAttribute(): ?string

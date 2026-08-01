@@ -603,9 +603,9 @@ export default function InboxIndex({ conversations: _conversations, users, curre
         <>
             <Head title="Messages" />
             <AppShell fullBleed hideMobileNav={selectedConv !== null}>
-                <div className="flex h-full min-h-0 w-full overflow-hidden">
+                <div className="flex h-full min-h-0 w-full overflow-hidden bg-[var(--surface-2)]">
                     {/* Conversation sidebar — mobile: full width when list, hidden when chat; md+: fixed width */}
-                    <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} h-full min-w-0 w-full flex-col border-r border-[var(--border)] bg-[var(--surface)] lg:flex lg:w-[340px] xl:w-[350px] ${mobileView === 'list' ? 'app-safe-bottom lg:pb-0' : ''}`}>
+                    <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} h-full min-w-0 w-full flex-col border-r border-[var(--border)] bg-[var(--surface)] lg:flex lg:w-[310px] xl:w-[324px] ${mobileView === 'list' ? 'app-safe-bottom lg:pb-0' : ''}`}>
                         <ConversationList
                             conversations={filteredConvs}
                             selectedConvId={selectedConv?.id ?? null}

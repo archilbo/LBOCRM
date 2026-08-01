@@ -18,6 +18,8 @@ class Conversation extends Model
 
     public function participants(): HasMany { return $this->hasMany(ConversationParticipant::class); }
     public function messages(): HasMany { return $this->hasMany(Message::class); }
+    public function company(): BelongsTo { return $this->belongsTo(Company::class); }
+    public function branch(): BelongsTo { return $this->belongsTo(Branch::class); }
     public function task(): BelongsTo { return $this->belongsTo(Task::class); }
     public function dossier(): BelongsTo { return $this->belongsTo(Dossier::class); }
     public function client(): BelongsTo { return $this->belongsTo(Client::class); }

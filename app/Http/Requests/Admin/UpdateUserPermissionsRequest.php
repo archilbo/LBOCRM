@@ -20,6 +20,8 @@ class UpdateUserPermissionsRequest extends FormRequest
 
     public function rules(): array
     {
+        $moduleKeys = array_keys(config('archilbo_permissions.access_modules', []));
+
         return [
             'role' => [
                 'required',
@@ -27,9 +29,9 @@ class UpdateUserPermissionsRequest extends FormRequest
                 Rule::in($this->allowedRoles()),
             ],
             'isCustom' => 'required|boolean',
-            'permissions' => 'required|array',
+            'permissions' => ['required', 'array:'.implode(',', $moduleKeys)],
             'permissions.*.access' => ['required', Rule::in(['none', 'view', 'edit', 'delete'])],
-            'permissions.*.scope' => ['required', Rule::in(['none', 'all', 'assigned_only'])],
+            'permissions.*.scope' => ['required', Rule::in(['none', 'all'])],
         ];
     }
 

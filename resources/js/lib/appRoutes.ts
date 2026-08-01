@@ -54,6 +54,7 @@ export type AppRoute = {
     group: AppRouteGroup;
     badgeKey?: string;
     requiredPermission?: string;
+    requiredAnyPermissions?: string[];
     shortcut?: string;
 };
 
@@ -210,28 +211,6 @@ export const appRoutes: AppRoute[] = [
         shortcut: 'Alt+L',
     },
     {
-        key: 'workload',
-        labelKey: 'nav.workload',
-        href: '/workload',
-        icon: Users,
-        enabled: true,
-        searchable: true,
-        group: 'followUp',
-        requiredPermission: 'reports.workload.view',
-        shortcut: 'Alt+W',
-    },
-    {
-        key: 'operationsReports',
-        labelKey: 'nav.operationsReports',
-        href: '/operations/reports',
-        icon: CalendarDays,
-        enabled: true,
-        searchable: true,
-        group: 'followUp',
-        requiredPermission: 'reports.operations.view',
-        shortcut: 'Alt+R',
-    },
-    {
         key: 'inbox',
         labelKey: 'nav.inbox',
         href: '/inbox',
@@ -261,7 +240,7 @@ export const appRoutes: AppRoute[] = [
         enabled: true,
         searchable: true,
         group: 'administration',
-        requiredPermission: 'users.view',
+        requiredAnyPermissions: ['users.view', 'reports.workload.view', 'reports.operations.view'],
         shortcut: 'Alt+U',
     },
     {

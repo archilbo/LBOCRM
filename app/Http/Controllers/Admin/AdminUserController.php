@@ -5,16 +5,17 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateUserPermissionsRequest;
 use App\Http\Requests\Admin\UpdateUserRoleRequest;
-use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\PermissionRegistry;
+use App\Services\CompanyContext;
+use App\Services\Task\OperationsReportService;
+use App\Services\Task\WorkloadService;
 use App\Traits\AuditsActions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,61 +25,56 @@ class AdminUserController extends Controller
 {
     use AuditsActions;
 
-    public function __construct(private readonly PermissionRegistry $permissions)
+    public function __construct(
+        private readonly PermissionRegistry $permissions,
+        private readonly CompanyContext $companyContext,
+    )
     {
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request, WorkloadService $workload, OperationsReportService $operationsReports): Response
     {
-        $this->ensurePermission($request, 'users.view');
+        $user = $request->user();
+        $canViewUsers = $this->permissions->allows($user, 'users.view');
+        $canViewWorkload = $this->permissions->allows($user, 'reports.workload.view');
+        $canViewOperationsReports = $this->permissions->allows($user, 'reports.operations.view');
 
-        $users = $this->companyUsers($request)
+        abort_unless($canViewUsers || $canViewWorkload || $canViewOperationsReports, 403);
+
+        $users = $canViewUsers ? $this->companyUsers($request)
             ->with('roles', 'permissions')
             ->latest()
-            ->get();
+            ->get() : collect();
 
-        $assignableRoleNames = $this->assignableRoles($request);
-        $filterRoleNames = $users
-            ->flatMap(fn (User $user) => $user->getRoleNames())
+        $assignableRoleNames = $canViewUsers ? $this->assignableRoles($request) : [];
+        $filterRoleNames = $canViewUsers ? $users
+            ->flatMap(fn (User $candidate) => $candidate->getRoleNames())
             ->merge($assignableRoleNames)
             ->unique()
             ->values()
-            ->all();
+            ->all() : [];
+        $roleMatrixNames = array_values(array_unique([...$assignableRoleNames, ...$filterRoleNames]));
 
         return Inertia::render('Admin/Users/Index', [
             'users' => UserResource::collection($users)->resolve(),
-            'currentUserId' => $request->user()->id,
+            'currentUserId' => $user->id,
             'roles' => $this->roleOptions($assignableRoleNames),
             'filterRoles' => $this->roleOptions($filterRoleNames),
+            'permissionModules' => $canViewUsers ? $this->permissions->editorModules() : [],
+            'rolePermissionDefaults' => $canViewUsers ? $this->permissions->rolePermissionMatrices($roleMatrixNames) : [],
+            'canViewUsers' => $canViewUsers,
+            'canCreateUsers' => $canViewUsers && $this->permissions->allows($user, 'users.create') && $this->permissions->allows($user, 'users.roles.manage'),
+            'canManageRoles' => $canViewUsers && $this->permissions->allows($user, 'users.roles.manage'),
+            'canManageAccess' => $canViewUsers && $this->permissions->allows($user, 'users.access.manage'),
+            'canDeleteUsers' => $canViewUsers && $this->permissions->allows($user, 'users.delete'),
+            'canManageProtectedUsers' => $user->hasRole(config('archilbo_roles.super_admin_role')),
+            'canResetUserPasswords' => $canViewUsers && $user->hasAnyRole(['admin', config('archilbo_roles.super_admin_role')]),
+            'canViewWorkload' => $canViewWorkload,
+            'canViewOperationsReports' => $canViewOperationsReports,
+            'workload' => $canViewWorkload ? $workload->summary($user) : [],
+            'operationsReport' => $canViewOperationsReports ? $operationsReports->summary($user) : null,
+            'reportedAt' => now()->toIso8601String(),
         ]);
-    }
-
-    public function store(StoreUserRequest $request): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        $user = User::query()->create([
-            'company_id' => $request->user()->company_id,
-            'branch_id' => $request->user()->branch_id,
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'invitation_token' => null,
-            'invited_at' => now(),
-            'accepted_at' => now(),
-            'invited_by' => $request->user()->id,
-        ]);
-        $user->assignRole($validated['role']);
-
-        $this->audit($request, 'user.created', "Created {$user->name} with the {$validated['role']} role", [
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'role' => $validated['role'],
-        ]);
-
-        return redirect()
-            ->route('admin.users.index')
-            ->with('success', 'User account created successfully.');
     }
 
     public function updateRole(UpdateUserRoleRequest $request, User $user): RedirectResponse
@@ -173,7 +169,8 @@ class AdminUserController extends Controller
         $validated = $request->validated();
 
         $oldRole = $user->getRoleNames()->first() ?? 'none';
-        $customPermissions = $this->permissions->permissionsForModuleLevels($validated['permissions']);
+        $moduleConfiguration = $this->permissions->normalizeModuleConfiguration($validated['permissions']);
+        $customPermissions = $this->permissions->permissionsForModuleLevels($moduleConfiguration);
 
         if ($validated['isCustom']) {
             $user->syncRoles(['custom']);
@@ -181,7 +178,7 @@ class AdminUserController extends Controller
             $user->module_permissions = [
                 'base_role' => $validated['role'],
                 'is_custom' => true,
-                'modules' => $validated['permissions'],
+                'modules' => $moduleConfiguration,
             ];
         } else {
             $user->syncRoles([$validated['role']]);
@@ -326,7 +323,7 @@ class AdminUserController extends Controller
         $this->ensurePermission($request, 'users.view');
 
         $logs = AuditLog::with('user')
-            ->whereHas('user', fn ($query) => $query->where('company_id', $request->user()->company_id))
+            ->whereHas('user', fn ($query) => $this->companyContext->applyTo($query, $request->user()))
             ->latest('created_at')
             ->take(100)
             ->get()
@@ -343,7 +340,7 @@ class AdminUserController extends Controller
 
     private function companyUsers(Request $request)
     {
-        return User::query()->where('company_id', $request->user()->company_id);
+        return $this->companyContext->applyTo(User::query(), $request->user());
     }
 
     private function assignableRoles(Request $request): array
@@ -373,7 +370,7 @@ class AdminUserController extends Controller
 
     private function ensureManagedUser(Request $request, User $user): void
     {
-        abort_unless((int) $user->company_id === (int) $request->user()->company_id, 404);
+        abort_unless($this->companyContext->owns($request->user(), $user), 404);
 
         if ($user->hasAnyRole(config('archilbo_roles.protected'))) {
             abort_unless(
