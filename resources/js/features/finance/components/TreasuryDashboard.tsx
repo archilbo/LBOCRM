@@ -11,7 +11,8 @@ import {
     Pie,
     Cell,
 } from 'recharts';
-import { BarChart3, Layers } from 'lucide-react';
+import { IconChartBar, IconLayersLinked } from '@tabler/icons-react';
+
 import type { FinanceMonthSummary } from '@/features/finance/types';
 import { formatMoney, formatCompactMoney, formatFullMoney } from '@/features/finance/utils/calculations';
 
@@ -235,7 +236,7 @@ export function TreasuryDashboard({ months, currency }: TreasuryDashboardProps) 
     if (!months.length) {
         return (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)]/50 py-16 text-center">
-                <BarChart3 size={40} className="mb-3 text-[var(--text-muted)]" />
+                <IconChartBar size={40} className="mb-3 text-[var(--text-muted)]" />
                 <p className="text-sm font-semibold text-[var(--text-muted)]">Aucune donnée de trésorerie</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">Les données mensuelles apparaîtront ici une fois les documents créés.</p>
             </div>
@@ -360,7 +361,7 @@ export function TreasuryDashboard({ months, currency }: TreasuryDashboardProps) 
 
                     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
                         <div className="mb-2 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-                            <Layers size={12} />
+                            <IconLayersLinked size={12} />
                             Répartition dépenses
                         </div>
                         <div className="space-y-2">

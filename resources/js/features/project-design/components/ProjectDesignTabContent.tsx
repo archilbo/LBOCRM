@@ -1,18 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-    FileWarning,
-    FolderOpen,
-    Loader2,
-    NotebookTabs,
-    PanelLeft,
-    PanelRight,
-    CircleHelp,
-    Save,
-    AlertTriangle,
-    Undo2,
-} from 'lucide-react';
+import { IconFileAlert, IconFolderOpen, IconLoader2, IconNotebook, IconLayoutSidebarLeftExpand, IconLayoutSidebarRightExpand, IconHelpCircle, IconDeviceFloppy, IconAlertTriangle, IconArrowBackUp } from '@tabler/icons-react';
+
 import { Button, Chip, Modal, Tooltip } from '@heroui/react';
 import { toast } from 'sonner';
 import { ProjectDesignFileBrowser } from './ProjectDesignFileBrowser';
@@ -123,7 +113,7 @@ export function ProjectDesignTabContent({
             {workspaceState.fileId && mode === 'files' ? (
                 loadingFile ? (
                     <div className="flex flex-1 items-center justify-center bg-[var(--surface-2)]/30">
-                        <Loader2 size={20} className="animate-spin text-[var(--accent)]" />
+                        <IconLoader2 size={20} className="animate-spin text-[var(--accent)]" />
                     </div>
                 ) : selectedFile ? (
                     <EditorWorkspace
@@ -136,7 +126,7 @@ export function ProjectDesignTabContent({
                 ) : (
                     <div className="flex flex-1 items-center justify-center p-8 text-center">
                         <div>
-                            <FileWarning size={30} className="mx-auto text-amber-400" />
+                            <IconFileAlert size={30} className="mx-auto text-amber-400" />
                             <p className="mt-3 text-sm font-medium text-[var(--foreground)]">Design file not found</p>
                             <Button
                                 size="sm"
@@ -155,7 +145,7 @@ export function ProjectDesignTabContent({
                         <div className="min-w-0">
                             <span className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
                                 <span className="flex size-8 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
-                                    <NotebookTabs size={15} />
+                                    <IconNotebook size={15} />
                                 </span>
                                 Project Design
                             </span>
@@ -502,7 +492,7 @@ function EditorWorkspace({
     if (workspaceState.versionId && loadingVersions && !requestedVersion) {
         return (
             <div className="flex flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-                <Loader2 size={20} className="animate-spin text-[var(--accent)]" />
+                <IconLoader2 size={20} className="animate-spin text-[var(--accent)]" />
             </div>
         );
     }
@@ -524,7 +514,7 @@ function EditorWorkspace({
 
         return (
             <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center">
-                <FileWarning size={34} className="text-amber-400" />
+                <IconFileAlert size={34} className="text-amber-400" />
                 <p className="mt-3 text-sm font-medium text-[var(--foreground)]">No assets available</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">{description}</p>
                 <Button
@@ -533,7 +523,7 @@ function EditorWorkspace({
                     className="mt-4 h-8 text-[10px]"
                     onPress={() => navigate({ file: '', version: '', asset: '', page: '', remark: '', mode: 'files' })}
                 >
-                    <Undo2 size={13} />
+                    <IconArrowBackUp size={13} />
                     Back to files
                 </Button>
             </div>
@@ -562,12 +552,12 @@ function EditorWorkspace({
                         label={layoutControls.browserAvailable ? 'Toggle file browser' : 'Open file browser'}
                         onPress={layoutControls.browserAvailable ? layoutControls.toggleBrowser : layoutControls.openBrowser}
                     >
-                        <PanelLeft size={15} />
+                        <IconLayoutSidebarLeftExpand size={15} />
                     </IconControl>
 
                     <div className="hidden min-w-0 max-w-[220px] shrink-0 items-center gap-2 border-r border-[var(--border)] pr-2 md:flex">
                         <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
-                            <FolderOpen size={13} />
+                            <IconFolderOpen size={13} />
                         </span>
                         <div className="min-w-0">
                             <p className="truncate text-[10px] font-semibold text-[var(--foreground)]">{selectedFile.name}</p>
@@ -586,7 +576,7 @@ function EditorWorkspace({
                         label={layoutControls.inspectorAvailable ? 'Toggle inspector' : 'Open inspector'}
                         onPress={layoutControls.inspectorAvailable ? layoutControls.toggleInspector : layoutControls.openInspector}
                     >
-                        <PanelRight size={15} />
+                        <IconLayoutSidebarRightExpand size={15} />
                     </IconControl>
                 </div>
 
@@ -691,9 +681,9 @@ function EditorWorkspace({
                         <Modal.Dialog aria-label="Unsaved markup" className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-2xl">
                             <Modal.Header className="border-b border-[var(--border)] px-5 py-4 pr-12">
                                 <div className="flex items-center gap-3">
-                                    <span className="flex size-9 items-center justify-center rounded-xl bg-amber-400/12 text-amber-300"><AlertTriangle size={17} /></span>
+                                    <span className="flex size-9 items-center justify-center rounded-xl bg-amber-400/12 text-amber-300"><IconAlertTriangle size={17} /></span>
                                     <div>
-                                        <Modal.Heading className="text-sm font-semibold">Save your markup?</Modal.Heading>
+                                        <Modal.Heading className="text-sm font-semibold">IconDeviceFloppy your markup?</Modal.Heading>
                                         <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Changing the drawing context will discard unsaved annotations.</p>
                                     </div>
                                 </div>
@@ -703,7 +693,7 @@ function EditorWorkspace({
                                 <Button size="sm" variant="ghost" onPress={() => setPendingNavigation(null)} isDisabled={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[9px]">Keep</Button>
                                 <Button size="sm" variant="secondary" onPress={discardAndContinue} isDisabled={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[9px]">Discard</Button>
                                 <Button size="sm" variant="primary" onPress={() => void continueWithPendingNavigation()} isPending={annotationCommands.saving} className="h-8 shrink-0 whitespace-nowrap px-2 text-[9px]">
-                                    <Save size={13} /> Save & continue
+                                    <IconDeviceFloppy size={13} /> IconDeviceFloppy & continue
                                 </Button>
                             </Modal.Footer>
                         </Modal.Dialog>
@@ -718,7 +708,7 @@ function EditorWorkspace({
 
 function EditorShortcutsDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (open: boolean) => void }) {
     const shortcuts = [
-        ['Ctrl / Cmd + S', 'Save unsaved markup'],
+        ['Ctrl / Cmd + S', 'IconDeviceFloppy unsaved markup'],
         ['V', 'Select annotation'],
         ['H or Space', 'Pan the drawing'],
         ['Page Up / Page Down', 'Previous or next page'],
@@ -736,7 +726,7 @@ function EditorShortcutsDialog({ isOpen, onOpenChange }: { isOpen: boolean; onOp
                     <Modal.Dialog aria-label="Editor shortcuts" className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-2xl">
                         <Modal.Header className="border-b border-[var(--border)] px-5 py-4 pr-12">
                             <div className="flex items-center gap-3">
-                                <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--accent)]/12 text-[var(--accent)]"><CircleHelp size={17} /></span>
+                                <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--accent)]/12 text-[var(--accent)]"><IconHelpCircle size={17} /></span>
                                 <div><Modal.Heading className="text-sm font-semibold">Editor shortcuts</Modal.Heading><p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Use these while the drawing workspace is active.</p></div>
                             </div>
                             <Modal.CloseTrigger aria-label="Close shortcuts" />
@@ -762,7 +752,7 @@ function StaleEditorContext({
 }) {
     return (
         <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center">
-            <FileWarning size={34} className="text-amber-400" />
+            <IconFileAlert size={34} className="text-amber-400" />
             <p className="mt-3 text-sm font-medium text-[var(--foreground)]">{title}</p>
             <p className="mt-1 max-w-md text-xs text-[var(--text-muted)]">{description}</p>
             <Button size="sm" variant="secondary" className="mt-4" onPress={onReset}>

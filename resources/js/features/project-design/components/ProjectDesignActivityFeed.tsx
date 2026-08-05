@@ -1,5 +1,6 @@
 import { Card, Spinner } from '@heroui/react';
-import { Activity, Clock } from 'lucide-react';
+import { IconActivity, IconClock } from '@tabler/icons-react';
+
 import { useActivity } from '../hooks/useProjectDesignQueries';
 import { formatProjectDesignDate } from '../utils/projectDesignFormatters';
 
@@ -33,7 +34,7 @@ export function ProjectDesignActivityFeed({ dossierId }: { dossierId: number }) 
             <Card variant="secondary" className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)]/25">
                 <Card.Content className="flex min-h-52 flex-col items-center justify-center p-6 text-center">
                     <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
-                        <Activity size={17} />
+                        <IconActivity size={17} />
                     </span>
                     <p className="mt-2 text-[11px] font-medium text-[var(--foreground)]">No recent activity</p>
                     <p className="mt-1 max-w-72 text-[9px] leading-4 text-[var(--text-muted)]">
@@ -50,7 +51,7 @@ export function ProjectDesignActivityFeed({ dossierId }: { dossierId: number }) 
                 <Card key={item.id} variant="secondary" className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
                     <Card.Content className="flex items-start gap-3 px-3 py-2.5">
                         <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]">
-                            <Clock size={13} />
+                            <IconClock size={13} />
                         </span>
                         <div className="min-w-0 flex-1">
                             <p className="text-[10px] font-medium leading-4 text-[var(--foreground)]">

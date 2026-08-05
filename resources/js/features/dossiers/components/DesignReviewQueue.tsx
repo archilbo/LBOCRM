@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Card, Chip, Input, Spinner, Tooltip } from '@heroui/react';
-import { ClipboardCheck, Eye, Play, Search } from 'lucide-react';
+import { IconClipboardCheck, IconEye, IconPlayerPlay, IconSearch } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 import { DesignReviewDecisionDialog } from './DesignReviewDecisionDialog';
 import { DesignViewerTabs } from './DesignViewerTabs';
@@ -38,12 +39,12 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
         <div className="space-y-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <div className="relative min-w-0 flex-1">
-                    <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--text-subtle)]" />
+                    <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--text-subtle)]" />
                     <Input
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Search reviews"
-                        aria-label="Search reviews"
+                        placeholder="IconSearch reviews"
+                        aria-label="IconSearch reviews"
                         variant="secondary"
                         fullWidth
                         className="h-8 pl-8 text-[10px]"
@@ -62,7 +63,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
             ) : filtered.length === 0 ? (
                 <Card variant="secondary" className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)]/25">
                     <Card.Content className="flex min-h-52 flex-col items-center justify-center p-6 text-center">
-                        <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]"><ClipboardCheck size={17} /></span>
+                        <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]"><IconClipboardCheck size={17} /></span>
                         <p className="mt-2 text-[11px] font-medium text-[var(--foreground)]">Review queue is empty</p>
                         <p className="mt-1 text-[9px] text-[var(--text-muted)]">{search ? 'No reviews match your search.' : 'No designs are currently waiting for review.'}</p>
                     </Card.Content>
@@ -99,7 +100,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
                                                         className="h-8 w-8 min-w-0"
                                                         aria-label={`Preview ${review.file?.name ?? 'design'}`}
                                                     >
-                                                        <Eye size={13} />
+                                                        <IconEye size={13} />
                                                     </Button>
                                                 </Tooltip.Trigger>
                                                 <Tooltip.Content>Preview revision</Tooltip.Content>
@@ -113,7 +114,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
                                                 isPending={startReview.isPending}
                                                 className="h-8 text-[9px]"
                                             >
-                                                <Play size={12} />
+                                                <IconPlayerPlay size={12} />
                                                 Start
                                             </Button>
                                         ) : null}
@@ -127,7 +128,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
                                                 }}
                                                 className="h-8 text-[9px]"
                                             >
-                                                <ClipboardCheck size={12} />
+                                                <IconClipboardCheck size={12} />
                                                 Decide
                                             </Button>
                                         ) : null}

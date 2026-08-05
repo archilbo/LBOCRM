@@ -1,4 +1,5 @@
-import { Wifi, WifiOff } from 'lucide-react';
+import { IconWifi, IconWifiOff } from '@tabler/icons-react';
+
 import { useEffect, useState } from 'react';
 
 export function UploadConnectionStatus() {
@@ -19,7 +20,7 @@ export function UploadConnectionStatus() {
 
     return (
         <div className="fixed bottom-20 right-4 z-50 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 shadow-lg backdrop-blur-sm">
-            <WifiOff size={14} />
+            <IconWifiOff size={14} />
             <span>No internet connection. Uploads will resume when connected.</span>
         </div>
     );

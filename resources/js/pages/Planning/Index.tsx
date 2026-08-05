@@ -1,16 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import {
-    AlertTriangle,
-    CalendarCheck,
-    CheckCircle2,
-    Download,
-    Eye,
-    Pencil,
-    Plus,
-    Square,
-    UserRound,
-} from 'lucide-react';
+import { IconAlertTriangle, IconCalendarCheck, IconCircleCheck, IconDownload, IconEye, IconPencil, IconPlus, IconSquare, IconUserCircle } from '@tabler/icons-react';
+
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
@@ -100,7 +91,7 @@ export default function PlanningIndex() {
                     <div className="app-table-primary-cell">
                         <div className="flex items-center gap-2">
                             <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                                <CalendarCheck size={15} />
+                                <IconCalendarCheck size={15} />
                             </div>
 
                             <div className="min-w-0">
@@ -134,7 +125,7 @@ export default function PlanningIndex() {
                 header: t('planningWorkspace.table.assignee'),
                 cell: ({ row }) => (
                     <AppBadge tone="violet">
-                        <UserRound size={10} />
+                        <IconUserCircle size={10} />
                         {row.original.assignee}
                     </AppBadge>
                 ),
@@ -185,7 +176,7 @@ export default function PlanningIndex() {
                             tone="view"
                             onPress={() => setSelectedTask(row.original)}
                         >
-                            <Eye size={15} />
+                            <IconEye size={15} />
                         </AppTableActionButton>
 
                         <AppTableActionButton
@@ -193,7 +184,7 @@ export default function PlanningIndex() {
                             tone="edit"
                             onPress={() => toast.info(t('planningWorkspace.toast.edit'))}
                         >
-                            <Pencil size={15} />
+                            <IconPencil size={15} />
                         </AppTableActionButton>
 
                         <AppTableActionButton
@@ -201,7 +192,7 @@ export default function PlanningIndex() {
                             tone="create"
                             onPress={() => toast.success(t('planningWorkspace.toast.done'))}
                         >
-                            <CheckCircle2 size={15} />
+                            <IconCircleCheck size={15} />
                         </AppTableActionButton>
 
                         <AppTableActionButton
@@ -209,7 +200,7 @@ export default function PlanningIndex() {
                             tone="delete"
                             onPress={() => toast.error(t('planningWorkspace.toast.block'))}
                         >
-                            <Square size={15} />
+                            <IconSquare size={15} />
                         </AppTableActionButton>
                     </AppTableActions>
                 ),
@@ -222,22 +213,22 @@ export default function PlanningIndex() {
         {
             label: t('planningWorkspace.metrics.total'),
             value: metrics.total,
-            icon: CalendarCheck,
+            icon: IconCalendarCheck,
         },
         {
             label: t('planningWorkspace.metrics.active'),
             value: metrics.active,
-            icon: Eye,
+            icon: IconEye,
         },
         {
             label: t('planningWorkspace.metrics.overdue'),
             value: metrics.overdue,
-            icon: AlertTriangle,
+            icon: IconAlertTriangle,
         },
         {
             label: t('planningWorkspace.metrics.completed'),
             value: metrics.completed,
-            icon: CheckCircle2,
+            icon: IconCircleCheck,
         },
     ];
 
@@ -255,7 +246,7 @@ export default function PlanningIndex() {
                             variant="secondary"
                             onPress={() => toast.info(t('planningWorkspace.toast.export'))}
                         >
-                            <Download size={16} />
+                            <IconDownload size={16} />
                             {t('planningWorkspace.exportList')}
                         </AppButton>
 
@@ -263,7 +254,7 @@ export default function PlanningIndex() {
                             variant="primary"
                             onPress={() => toast.success(t('planningWorkspace.toast.newTask'))}
                         >
-                            <Plus size={16} />
+                            <IconPlus size={16} />
                             {t('planningWorkspace.newTask')}
                         </AppButton>
                     </div>
@@ -308,7 +299,7 @@ export default function PlanningIndex() {
                                     variant="primary"
                                     onPress={() => toast.success(t('planningWorkspace.toast.done'))}
                                 >
-                                    <CheckCircle2 size={16} />
+                                    <IconCircleCheck size={16} />
                                     {t('planningWorkspace.markDone')}
                                 </AppButton>
 
@@ -316,7 +307,7 @@ export default function PlanningIndex() {
                                     variant="secondary"
                                     onPress={() => selectedTask ? router.visit(`/dossiers/${selectedTask.id}`) : null}
                                 >
-                                    <CalendarCheck size={16} />
+                                    <IconCalendarCheck size={16} />
                                     {t('actions.view')}
                                 </AppButton>
                             </div>

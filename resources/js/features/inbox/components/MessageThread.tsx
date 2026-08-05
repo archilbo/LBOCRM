@@ -1,7 +1,8 @@
 import { usePage } from '@inertiajs/react';
 import { useTyping } from '@/features/inbox/components/useTyping';
 import { toast } from 'sonner';
-import { Check, CheckCheck, ChevronLeft, ChevronDown, ChevronUp, FileText, ImageOff, Info, MessageSquare, Paperclip, Search, Send, Settings, Trash2, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { IconCheck, IconChecks, IconChevronLeft, IconChevronDown, IconChevronUp, IconFileText, IconPhotoOff, IconInfoCircle, IconMessage2, IconPaperclip, IconSearch, IconSend, IconSettings, IconTrash, IconUserMinus, IconUserPlus, IconUsers, IconX } from '@tabler/icons-react';
+
 import { Avatar, Button, Card, Chip, Input, ListBox, Modal, ScrollShadow, SearchField, Select, Spinner, TextArea } from '@heroui/react';
 import { getAttachmentPreviewUrl, isImageAttachment } from '@/features/inbox/utils/fileFormatters';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -71,7 +72,7 @@ function AttachmentImage({ attachment }: { attachment: MessageAttachmentRow }) {
     const source = getAttachmentPreviewUrl(attachment);
 
     if (!source || failed) {
-        return <span className="flex h-full w-full flex-col items-center justify-center gap-2 px-3 text-[var(--text-muted)]"><ImageOff size={20} /><span className="max-w-full truncate text-[9px]">{attachment.originalFilename}</span></span>;
+        return <span className="flex h-full w-full flex-col items-center justify-center gap-2 px-3 text-[var(--text-muted)]"><IconPhotoOff size={20} /><span className="max-w-full truncate text-[9px]">{attachment.originalFilename}</span></span>;
     }
 
     return <img src={source} alt={attachment.originalFilename} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover transition hover:brightness-90" />;
@@ -409,7 +410,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
         <div className="flex flex-1 flex-col min-h-0">
             {/* Header */}
             <div className="flex h-[68px] shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 sm:px-5">
-                <InboxIconButton label="Retour aux conversations" onPress={onBack} className="lg:hidden"><ChevronLeft size={18} /></InboxIconButton>
+                <InboxIconButton label="Retour aux conversations" onPress={onBack} className="lg:hidden"><IconChevronLeft size={18} /></InboxIconButton>
                 {!isGroup ? <div className="relative shrink-0">
                     <Avatar size="md" name={otherName} className={`${avatarTone.bg} ${avatarTone.text}`}>
                         {getConversationInitials(conversation, currentUserId)}
@@ -425,23 +426,23 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                             <Chip size="sm" variant="flat" className={`${catMeta.tone.bg} ${catMeta.tone.text}`}>{catMeta.label}</Chip>
                         ) : null}
                     </div>
-                    {isGroup ? <div className="mt-1 flex items-center gap-2"><div className="flex -space-x-1.5">{parts.slice(0, 5).map((participant) => <Avatar key={participant.id} size="sm" name={participant.user?.name || 'Utilisateur'} className="size-5 border border-[var(--surface)] text-[7px]" />)}{parts.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{parts.length - 5}</span> : null}</div>{canManageGroup ? <Button variant="ghost" size="sm" onPress={openGroupSettings} className="h-5 rounded-md px-1.5 text-[8px] text-[var(--accent)]"><UserPlus size={10} />Nouveau membre</Button> : null}</div> : statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
+                    {isGroup ? <div className="mt-1 flex items-center gap-2"><div className="flex -space-x-1.5">{parts.slice(0, 5).map((participant) => <Avatar key={participant.id} size="sm" name={participant.user?.name || 'Utilisateur'} className="size-5 border border-[var(--surface)] text-[7px]" />)}{parts.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{parts.length - 5}</span> : null}</div>{canManageGroup ? <Button variant="ghost" size="sm" onPress={openGroupSettings} className="h-5 rounded-md px-1.5 text-[8px] text-[var(--accent)]"><IconUserPlus size={10} />Nouveau membre</Button> : null}</div> : statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
                 </div>
                 {searchOpen ? (
                     <div className="flex items-center gap-1">
                         <SearchField value={searchQuery} onChange={setSearchQuery} aria-label="Rechercher dans les messages" variant="secondary" className="w-48">
-                            <Search size={13} /><SearchField.Input ref={searchInputRef} placeholder="Rechercher..." autoFocus /><SearchField.ClearButton />
+                            <IconSearch size={13} /><SearchField.Input ref={searchInputRef} placeholder="Rechercher..." autoFocus /><SearchField.ClearButton />
                         </SearchField>
                         {searchResults.length > 0 ? <span className="text-[9px] text-[var(--crm-text-muted)] shrink-0">{searchIndex + 1}/{searchResults.length}</span> : null}
-                        <InboxIconButton size="sm" label="Resultat precedent" isDisabled={searchResults.length === 0} onPress={() => setSearchIndex((index) => Math.min(index + 1, searchResults.length - 1))}><ChevronUp size={12} /></InboxIconButton>
-                        <InboxIconButton size="sm" label="Resultat suivant" isDisabled={searchResults.length === 0} onPress={() => setSearchIndex((index) => Math.max(index - 1, 0))}><ChevronDown size={12} /></InboxIconButton>
-                        <InboxIconButton size="sm" label="Fermer la recherche" onPress={() => { setSearchOpen(false); setSearchQuery(''); setSearchResults([]); }}><X size={12} /></InboxIconButton>
+                        <InboxIconButton size="sm" label="Resultat precedent" isDisabled={searchResults.length === 0} onPress={() => setSearchIndex((index) => Math.min(index + 1, searchResults.length - 1))}><IconChevronUp size={12} /></InboxIconButton>
+                        <InboxIconButton size="sm" label="Resultat suivant" isDisabled={searchResults.length === 0} onPress={() => setSearchIndex((index) => Math.max(index - 1, 0))}><IconChevronDown size={12} /></InboxIconButton>
+                        <InboxIconButton size="sm" label="Fermer la recherche" onPress={() => { setSearchOpen(false); setSearchQuery(''); setSearchResults([]); }}><IconX size={12} /></InboxIconButton>
                     </div>
                 ) : (
                     <div className="flex items-center gap-1">
-                        <InboxIconButton label="Rechercher" tone="accent" onPress={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}><Search size={14} /></InboxIconButton>
-                        <InboxIconButton label="Informations" tone="accent" onPress={onOpenInfo} className="xl:hidden"><Info size={14} /></InboxIconButton>
-                        {isGroup && canManageGroup ? <InboxIconButton label="Parametres du groupe" tone="accent" onPress={openGroupSettings}><Settings size={14} /></InboxIconButton> : null}
+                        <InboxIconButton label="Rechercher" tone="accent" onPress={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}><IconSearch size={14} /></InboxIconButton>
+                        <InboxIconButton label="Informations" tone="accent" onPress={onOpenInfo} className="xl:hidden"><IconInfoCircle size={14} /></InboxIconButton>
+                        {isGroup && canManageGroup ? <InboxIconButton label="Parametres du groupe" tone="accent" onPress={openGroupSettings}><IconSettings size={14} /></InboxIconButton> : null}
                     </div>
                 )}
             </div>
@@ -455,7 +456,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                             <div className="flex items-center justify-center py-8"><Spinner color="warning" /></div>
                         ) : messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12">
-                                <MessageSquare size={32} className="text-[var(--crm-muted)]" />
+                                <IconMessage2 size={32} className="text-[var(--crm-muted)]" />
                                 <p className="mt-2 text-xs text-[var(--crm-text-muted)]">Aucun message</p>
                                 <p className="mt-0.5 text-[9px] text-[var(--crm-muted)]">Envoyez un message pour demarrer la conversation.</p>
                             </div>
@@ -506,7 +507,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                 <p className="text-[9px] font-semibold text-[var(--crm-gold)]">Reponse a {replyTo.userName || 'un message'}</p>
                                 <p className="truncate text-[9px] text-[var(--crm-text-muted)]">{replyTo.body || (replyTo.attachments && replyTo.attachments.length > 0 ? 'Photo' : '')}</p>
                             </div>
-                            <InboxIconButton size="sm" label="Annuler la reponse" onPress={() => setReplyTo(null)}><X size={14} /></InboxIconButton>
+                            <InboxIconButton size="sm" label="Annuler la reponse" onPress={() => setReplyTo(null)}><IconX size={14} /></InboxIconButton>
                         </div>
                     ) : null}
 
@@ -518,7 +519,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                 <p className="text-[9px] font-semibold text-emerald-400">Modification du message</p>
                                 <p className="truncate text-[9px] text-[var(--crm-text-muted)]">{editingMsg.body || ''}</p>
                             </div>
-                            <InboxIconButton size="sm" label="Annuler la modification" onPress={() => { setEditingMsg(null); setText(''); if (textareaRef.current) textareaRef.current.style.height = 'auto'; }}><X size={14} /></InboxIconButton>
+                            <InboxIconButton size="sm" label="Annuler la modification" onPress={() => { setEditingMsg(null); setText(''); if (textareaRef.current) textareaRef.current.style.height = 'auto'; }}><IconX size={14} /></InboxIconButton>
                         </div>
                     ) : null}
 
@@ -529,11 +530,11 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                 <div key={i} className="relative shrink-0">
                                     {url ? <img src={url} alt="" className="size-14 rounded-lg object-cover border border-[var(--crm-border)]" /> : (
                                         <div className="flex h-14 w-40 items-center gap-2 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface-2)] px-2">
-                                            <FileText size={16} className="shrink-0 text-[var(--crm-gold)]" />
+                                            <IconFileText size={16} className="shrink-0 text-[var(--crm-gold)]" />
                                             <span className="truncate text-[9px] text-[var(--crm-text)]">{file.name}</span>
                                         </div>
                                     )}
-                                    <InboxIconButton size="sm" label={`Retirer ${file.name}`} tone="danger" onPress={() => removeImage(i)} className="absolute -right-2 -top-2 size-6 min-w-6 bg-red-500 text-white"><X size={10} /></InboxIconButton>
+                                    <InboxIconButton size="sm" label={`Retirer ${file.name}`} tone="danger" onPress={() => removeImage(i)} className="absolute -right-2 -top-2 size-6 min-w-6 bg-red-500 text-white"><IconX size={10} /></InboxIconButton>
                                 </div>
                             ))}
                         </div>
@@ -570,13 +571,13 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                     {/* Composer */}
                     <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-3 pb-3 pt-2.5 sm:px-5">
                         <Card className="mx-auto flex w-full max-w-[62rem] flex-row items-end gap-1.5 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.14)]">
-                            {!editingMsg ? <InboxIconButton label="Joindre un fichier" tone="accent" onPress={() => fileInputRef.current?.click()} className="shrink-0 rounded-full"><Paperclip size={17} /></InboxIconButton> : <div className="size-9 shrink-0" />}
+                            {!editingMsg ? <InboxIconButton label="Joindre un fichier" tone="accent" onPress={() => fileInputRef.current?.click()} className="shrink-0 rounded-full"><IconPaperclip size={17} /></InboxIconButton> : <div className="size-9 shrink-0" />}
                             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.zip" multiple className="hidden" onChange={handleImageSelect} />
                             <TextArea ref={textareaRef} value={text} onChange={(event) => { setText(event.target.value); sendTyping(); event.target.style.height = 'auto'; event.target.style.height = `${Math.min(event.target.scrollHeight, 120)}px`; }} onKeyDown={handleKeyDown}
                                 aria-label="Message" placeholder="Ecrire un message..." rows={1}
                                 className="min-h-9 flex-1 resize-none rounded-lg border-0 bg-transparent px-2 py-2 text-xs text-[var(--text)] outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_15%,transparent)]" />
                             <Button isIconOnly variant="primary" size="sm" aria-label={editingMsg ? 'Enregistrer la modification' : 'Envoyer'} onPress={editingMsg ? handleUpdate : handleSend} isDisabled={!canSend || sending} className="shrink-0 rounded-full">
-                                {sending ? <Spinner size="sm" color="current" /> : editingMsg ? <Check size={16} /> : <Send size={16} />}
+                                {sending ? <Spinner size="sm" color="current" /> : editingMsg ? <IconCheck size={16} /> : <IconSend size={16} />}
                             </Button>
                         </Card>
                     </div>
@@ -592,7 +593,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                         <Modal.Dialog className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">
                             <Modal.Header><Modal.Heading>Supprimer ce message ?</Modal.Heading><Modal.CloseTrigger /></Modal.Header>
                             <Modal.Body><p className="text-sm text-[var(--text-muted)]">Cette action retirera le message de la conversation.</p></Modal.Body>
-                            <Modal.Footer><Button variant="ghost" onPress={() => setDeleteConfirmId(null)}>Annuler</Button><Button variant="danger" onPress={confirmDelete}><Trash2 size={14} /> Supprimer</Button></Modal.Footer>
+                            <Modal.Footer><Button variant="ghost" onPress={() => setDeleteConfirmId(null)}>Annuler</Button><Button variant="danger" onPress={confirmDelete}><IconTrash size={14} /> Supprimer</Button></Modal.Footer>
                         </Modal.Dialog>
                     </Modal.Container>
                 </Modal.Backdrop>
@@ -618,7 +619,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                             <Card key={participant.id} className="flex-row items-center gap-3 border-0 bg-[var(--surface-2)] px-3 py-2 shadow-none">
                                                 <Avatar size="sm" name={participant.user?.name || ''} />
                                                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{participant.user?.name}</span>
-                                                <InboxIconButton label={`Retirer ${participant.user?.name || 'ce participant'}`} tone="danger" onPress={() => handleRemoveParticipant(participant.user!.id)}><UserMinus size={14} /></InboxIconButton>
+                                                <InboxIconButton label={`Retirer ${participant.user?.name || 'ce participant'}`} tone="danger" onPress={() => handleRemoveParticipant(participant.user!.id)}><IconUserMinus size={14} /></InboxIconButton>
                                             </Card>
                                         ))}
                                     </ScrollShadow>
@@ -628,7 +629,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                     <Select selectedKey={addUserId || null} onSelectionChange={(key) => setAddUserId(key ? String(key) : '')} aria-label="Ajouter un participant" className="flex-1">
                                         <Select.Trigger className="h-10 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm">
                                             <Select.Value className="flex-1 truncate text-left" placeholder="Choisir un utilisateur" />
-                                            <Select.Indicator><ChevronDown size={14} /></Select.Indicator>
+                                            <Select.Indicator><IconChevronDown size={14} /></Select.Indicator>
                                         </Select.Trigger>
                                         <Select.Popover isNonModal className="z-[100] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
                                             <ListBox className="outline-none">
@@ -636,7 +637,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                             </ListBox>
                                         </Select.Popover>
                                     </Select>
-                                    <Button variant="secondary" onPress={handleAddParticipant} isDisabled={!addUserId}><UserPlus size={14} /> Ajouter</Button>
+                                    <Button variant="secondary" onPress={handleAddParticipant} isDisabled={!addUserId}><IconUserPlus size={14} /> Ajouter</Button>
                                 </div>
                             </Modal.Body>
                         </Modal.Dialog>

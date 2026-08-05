@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Card } from '@heroui/react';
-import { AlertTriangle, User } from 'lucide-react';
+import { IconAlertTriangle, IconUser } from '@tabler/icons-react';
+
 import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import type { ClientOption, DossierOption } from '@/features/finance/types';
 
@@ -44,7 +45,7 @@ export function FinanceClientDossierFields({
 
     return (
             <Card className="p-3 space-y-3">
-            <div className="flex items-center gap-1.5 mb-2"><User size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Client & dossier</p></div>
+            <div className="flex items-center gap-1.5 mb-2"><IconUser size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Client & dossier</p></div>
             <div className="grid gap-2 lg:grid-cols-2">
                 <div className="flex min-w-0 flex-col gap-1">
                     <label className={labelCls}>Client</label>
@@ -71,14 +72,14 @@ export function FinanceClientDossierFields({
             {hasNoDossiers ? (
                 <Card className="border border-amber-400/30 bg-amber-400/10 p-3 shadow-none">
                     <div className="flex items-start gap-2">
-                        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-400" />
+                        <IconAlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-400" />
                         <p className="text-xs text-amber-100">Ce client n&apos;a aucun dossier. Créez d&apos;abord un dossier avant de créer un document financier.</p>
                     </div>
                 </Card>
             ) : isDossierRestricted ? (
                 <Card className="border border-red-400/30 bg-red-400/10 p-3 shadow-none">
                     <div className="flex items-start gap-2">
-                        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-400" />
+                        <IconAlertTriangle size={14} className="mt-0.5 shrink-0 text-red-400" />
                         <p className="text-xs text-red-100">Ce dossier a déjà un devis ou une facture. Un seul document financier par dossier est autorisé.</p>
                     </div>
                 </Card>

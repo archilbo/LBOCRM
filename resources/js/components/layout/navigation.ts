@@ -1,4 +1,4 @@
-import { BadgeDollarSign } from 'lucide-react';
+import { IconCoin } from '@tabler/icons-react';
 import { appRoutes } from '@/config/navigation';
 import type { AppRoute, AppRouteKey } from '@/config/navigation';
 
@@ -31,7 +31,7 @@ const financeParent: NavigationItem = {
     key: 'financeParent',
     labelKey: 'nav.finance',
     href: '/finance',
-    icon: BadgeDollarSign,
+    icon: IconCoin,
     enabled: true,
     children: [
         { ...routeByKey('finance'), labelKey: 'nav.financeOverview' },

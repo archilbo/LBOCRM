@@ -1,28 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-    ArrowUpRight,
-    ChevronLeft,
-    ChevronRight,
-    Circle,
-    CircleHelp,
-    Cloud,
-    Columns3,
-    Download,
-    Hand,
-    Highlighter,
-    Maximize,
-    Minimize,
-    Minus,
-    MousePointer2,
-    Pencil,
-    Pin,
-    RotateCw,
-    Save,
-    Scan,
-    Square,
-    ZoomIn,
-    ZoomOut,
-} from 'lucide-react';
+import { IconArrowUpRight, IconChevronLeft, IconChevronRight, IconCircle, IconHelpCircle, IconCloud, IconColumns3, IconDownload, IconHandStop, IconHighlight, IconMaximize, IconMinimize, IconMinus, IconPointer, IconPencil, IconPinned, IconRotateClockwise, IconDeviceFloppy, IconScan, IconSquare, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
+
 import { Button, Input, Tooltip } from '@heroui/react';
 import { cn } from '@/lib/cn';
 import type { ViewerViewport } from '@/features/project-design/viewer/useProjectDesignViewerController';
@@ -80,25 +58,25 @@ export interface ProjectDesignEditorToolbarState {
     onShortcutHelp?: () => void;
 }
 
-const NAVIGATION_TOOLS: { id: AnnotationTool; icon: typeof Pin; label: string; hint: string }[] = [
-    { id: 'select', icon: MousePointer2, label: 'Select annotation', hint: 'V' },
-    { id: 'pan', icon: Hand, label: 'Pan drawing', hint: 'H / Space' },
+const NAVIGATION_TOOLS: { id: AnnotationTool; icon: typeof IconPinned; label: string; hint: string }[] = [
+    { id: 'select', icon: IconPointer, label: 'Select annotation', hint: 'V' },
+    { id: 'pan', icon: IconHandStop, label: 'Pan drawing', hint: 'H / Space' },
 ];
 
-const MARKUP_TOOLS: { id: AnnotationTool; icon: typeof Pin; label: string; hint?: string }[] = [
-    { id: 'pin', icon: Pin, label: 'Place pin' },
-    { id: 'rectangle', icon: Square, label: 'Rectangle' },
-    { id: 'ellipse', icon: Circle, label: 'Ellipse' },
-    { id: 'arrow', icon: ArrowUpRight, label: 'Arrow' },
-    { id: 'line', icon: Minus, label: 'Line' },
-    { id: 'cloud', icon: Cloud, label: 'Revision cloud' },
-    { id: 'freehand', icon: Pencil, label: 'Freehand' },
-    { id: 'highlight', icon: Highlighter, label: 'Highlight' },
+const MARKUP_TOOLS: { id: AnnotationTool; icon: typeof IconPinned; label: string; hint?: string }[] = [
+    { id: 'pin', icon: IconPinned, label: 'Place pin' },
+    { id: 'rectangle', icon: IconSquare, label: 'Rectangle' },
+    { id: 'ellipse', icon: IconCircle, label: 'Ellipse' },
+    { id: 'arrow', icon: IconArrowUpRight, label: 'Arrow' },
+    { id: 'line', icon: IconMinus, label: 'Line' },
+    { id: 'cloud', icon: IconCloud, label: 'Revision cloud' },
+    { id: 'freehand', icon: IconPencil, label: 'Freehand' },
+    { id: 'highlight', icon: IconHighlight, label: 'Highlight' },
 ];
 
 type ToolButtonProps = {
     active?: boolean;
-    icon: typeof Pin;
+    icon: typeof IconPinned;
     label: string;
     hint?: string;
     onPress: () => void;
@@ -244,8 +222,8 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
 
                     <ToolbarGroup label="Annotation actions" className="border-l border-[var(--border)]/75 pl-1.5">
                         <ToolButton
-                            icon={Save}
-                            label={saving ? 'Saving annotations' : 'Save annotations'}
+                            icon={IconDeviceFloppy}
+                            label={saving ? 'Saving annotations' : 'IconDeviceFloppy annotations'}
                             hint="Ctrl+S"
                             onPress={() => onSave?.()}
                             isDisabled={!hasUnsaved || saving || !onSave}
@@ -253,7 +231,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                             statusDot={Boolean(hasUnsaved && !saving)}
                         />
                         <ToolButton
-                            icon={Columns3}
+                            icon={IconColumns3}
                             label="Add or edit remark"
                             onPress={() => onRemark?.()}
                             isDisabled={!canRemark || !onRemark}
@@ -265,7 +243,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
             <div className="ml-auto flex items-center gap-1.5">
                 <ToolbarGroup label="Page navigation">
                     <ToolButton
-                        icon={ChevronLeft}
+                        icon={IconChevronLeft}
                         label="Previous page"
                         hint="Page Up"
                         onPress={() => onPageChange(Math.max(1, safePage - 1))}
@@ -288,7 +266,7 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                         <strong className="font-semibold text-[var(--foreground)]">{safeTotal}</strong>
                     </span>
                     <ToolButton
-                        icon={ChevronRight}
+                        icon={IconChevronRight}
                         label="Next page"
                         hint="Page Down"
                         onPress={() => onPageChange(Math.min(safeTotal, safePage + 1))}
@@ -297,10 +275,10 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                 </ToolbarGroup>
 
                 <ToolbarGroup label="View controls" className="border-l border-[var(--border)]/75 pl-1.5">
-                    <ToolButton icon={Scan} label="Fit page" hint="0" onPress={onFitPage} />
-                    <ToolButton icon={Columns3} label="Fit width" hint="W" onPress={onFitWidth} />
+                    <ToolButton icon={IconScan} label="Fit page" hint="0" onPress={onFitPage} />
+                    <ToolButton icon={IconColumns3} label="Fit width" hint="W" onPress={onFitWidth} />
                     <ToolButton
-                        icon={ZoomOut}
+                        icon={IconZoomOut}
                         label="Zoom out"
                         hint="-"
                         onPress={() => onZoomChange(Math.max(0.1, zoom - 0.1))}
@@ -309,31 +287,31 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                         {Math.round(zoom * 100)}%
                     </span>
                     <ToolButton
-                        icon={ZoomIn}
+                        icon={IconZoomIn}
                         label="Zoom in"
                         hint="+"
                         onPress={() => onZoomChange(Math.min(10, zoom + 0.1))}
                     />
-                    <ToolButton icon={RotateCw} label="Rotate clockwise" hint="R" onPress={onRotate} />
+                    <ToolButton icon={IconRotateClockwise} label="Rotate clockwise" hint="R" onPress={onRotate} />
                 </ToolbarGroup>
 
                 <ToolbarGroup label="Editor actions" className="border-l border-[var(--border)]/75 pl-1.5">
                     <ToolButton
-                        icon={fullscreen ? Minimize : Maximize}
+                        icon={fullscreen ? IconMinimize : IconMaximize}
                         label={fullscreen ? 'Exit fullscreen' : 'Fullscreen editor'}
                         hint="F"
                         onPress={onFullscreenToggle}
                     />
                     {downloadUrl ? (
                         <ToolButton
-                            icon={Download}
-                            label="Download current asset"
+                            icon={IconDownload}
+                            label="IconDownload current asset"
                             onPress={() => window.open(downloadUrl, '_blank', 'noopener,noreferrer')}
                         />
                     ) : null}
                     {onShortcutHelp ? (
                         <ToolButton
-                            icon={CircleHelp}
+                            icon={IconHelpCircle}
                             label="Editor shortcuts"
                             hint="?"
                             onPress={onShortcutHelp}

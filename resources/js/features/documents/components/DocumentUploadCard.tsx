@@ -1,6 +1,7 @@
-﻿import { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { FileTrigger } from 'react-aria-components';
-import { Upload } from 'lucide-react';
+import { IconUpload } from '@tabler/icons-react';
+
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 
@@ -25,7 +26,7 @@ export function DocumentUploadCard({
         <AppCard className="p-4">
             <div className="flex items-start gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                    {icon ?? <Upload size={18} />}
+                    {icon ?? <IconUpload size={18} />}
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -54,7 +55,7 @@ export function DocumentUploadCard({
                             }}
                         >
                             <AppButton size="sm" variant="primary">
-                                <Upload size={15} />
+                                <IconUpload size={15} />
                                 {chooseLabel}
                             </AppButton>
                         </FileTrigger>

@@ -1,6 +1,7 @@
 import type { Key } from 'react';
 import { useMemo } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { IconChevronDown } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 
 export type AppSelectOption = {
@@ -91,7 +92,7 @@ export function AppSelect({
                     ))}
                 </select>
 
-                <ChevronDown
+                <IconChevronDown
                     size={16}
                     className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
                 />

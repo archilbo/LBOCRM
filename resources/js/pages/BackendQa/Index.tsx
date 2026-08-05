@@ -1,12 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    CheckCircle2,
-    Database,
-    ExternalLink,
-    Route,
-    Table2,
-    TriangleAlert,
-} from 'lucide-react';
+import { IconCircleCheck, IconDatabase, IconExternalLink, IconRoute, IconTable, IconAlertTriangle } from '@tabler/icons-react';
+
 import { AppShell } from '@/components/layout/AppShell';
 import { AppBadge } from '@/components/ui/AppBadge';
 import { AppButton } from '@/components/ui/AppButton';
@@ -68,14 +62,14 @@ export default function BackendQaIndex({
                 subtitleKey="frontendQa.subtitle"
                 action={
                     <AppButton variant="secondary" onPress={() => router.visit('/')}>
-                        <ExternalLink size={16} />
+                        <IconExternalLink size={16} />
                         Dashboard
                     </AppButton>
                 }
             >
                 <section className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">
                     <AppCard className="p-4">
-                        <p className="text-sm text-[var(--text-muted)]">Database</p>
+                        <p className="text-sm text-[var(--text-muted)]">IconDatabase</p>
                         <p className="mt-3 truncate text-2xl font-semibold">{database.database}</p>
                         <p className="mt-1 text-xs text-[var(--text-muted)]">{database.connection}</p>
                     </AppCard>
@@ -104,9 +98,9 @@ export default function BackendQaIndex({
                 <section className="grid min-w-0 gap-5 xl:grid-cols-2">
                     <AppCard className="p-5">
                         <div className="mb-4 flex items-center gap-3">
-                            <Table2 size={18} className="text-[var(--accent)]" />
+                            <IconTable size={18} className="text-[var(--accent)]" />
                             <div>
-                                <h2 className="text-sm font-semibold">Database tables</h2>
+                                <h2 className="text-sm font-semibold">IconDatabase tables</h2>
                                 <p className="mt-1 text-sm text-[var(--text-muted)]">
                                     Core MERISE backend tables.
                                 </p>
@@ -136,9 +130,9 @@ export default function BackendQaIndex({
 
                     <AppCard className="p-5">
                         <div className="mb-4 flex items-center gap-3">
-                            <Route size={18} className="text-[var(--accent)]" />
+                            <IconRoute size={18} className="text-[var(--accent)]" />
                             <div>
-                                <h2 className="text-sm font-semibold">Route checks</h2>
+                                <h2 className="text-sm font-semibold">IconRoute checks</h2>
                                 <p className="mt-1 text-sm text-[var(--text-muted)]">
                                     Active app routes registered in Laravel.
                                 </p>
@@ -159,9 +153,9 @@ export default function BackendQaIndex({
                                     </div>
 
                                     {route.exists ? (
-                                        <CheckCircle2 size={17} className="text-[var(--success)]" />
+                                        <IconCircleCheck size={17} className="text-[var(--success)]" />
                                     ) : (
-                                        <TriangleAlert size={17} className="text-[var(--warning)]" />
+                                        <IconAlertTriangle size={17} className="text-[var(--warning)]" />
                                     )}
                                 </button>
                             ))}
@@ -172,7 +166,7 @@ export default function BackendQaIndex({
                 <section className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
                     <AppCard className="p-5">
                         <div className="mb-4 flex items-center gap-3">
-                            <Database size={18} className="text-[var(--accent)]" />
+                            <IconDatabase size={18} className="text-[var(--accent)]" />
                             <div>
                                 <h2 className="text-sm font-semibold">Relation checks</h2>
                                 <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -190,9 +184,9 @@ export default function BackendQaIndex({
                                     <div className="mb-3 flex items-center justify-between">
                                         <p className="text-sm font-semibold">{relation.label}</p>
                                         {relation.status === 'ok' ? (
-                                            <CheckCircle2 size={17} className="text-[var(--success)]" />
+                                            <IconCircleCheck size={17} className="text-[var(--success)]" />
                                         ) : (
-                                            <TriangleAlert size={17} className="text-[var(--warning)]" />
+                                            <IconAlertTriangle size={17} className="text-[var(--warning)]" />
                                         )}
                                     </div>
 

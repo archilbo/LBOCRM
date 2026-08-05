@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
-import { AlertTriangle, CheckCircle2, Clock3, ListTodo, TimerOff } from 'lucide-react';
+import { IconAlertTriangle, IconCircleCheck, IconClockHour3, IconListCheck, IconClockOff } from '@tabler/icons-react';
+
 import { AppShell } from '@/components/layout/AppShell';
 import { AppKpiCard } from '@/components/ui/AppKpiCard';
 
@@ -43,11 +44,11 @@ export default function OperationsReports({ report }: { report: ReportPayload })
                     {/* KPI row */}
                     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                         {[
-                            { label: 'Total tasks', value: report.totalTasks, icon: ListTodo, color: 'text-blue-400' },
-                            { label: 'Open tasks', value: report.openTasks, icon: Clock3, color: 'text-amber-400' },
-                            { label: 'Completed', value: report.completedTasks, icon: CheckCircle2, color: 'text-emerald-400' },
-                            { label: 'Blocked', value: report.blockedTasks, icon: AlertTriangle, color: 'text-red-400' },
-                            { label: 'Overdue', value: report.overdueTasks, icon: TimerOff, color: 'text-rose-400' },
+                            { label: 'Total tasks', value: report.totalTasks, icon: IconListCheck, color: 'text-blue-400' },
+                            { label: 'Open tasks', value: report.openTasks, icon: IconClockHour3, color: 'text-amber-400' },
+                            { label: 'Completed', value: report.completedTasks, icon: IconCircleCheck, color: 'text-emerald-400' },
+                            { label: 'Blocked', value: report.blockedTasks, icon: IconAlertTriangle, color: 'text-red-400' },
+                            { label: 'Overdue', value: report.overdueTasks, icon: IconClockOff, color: 'text-rose-400' },
                         ].map((stat) => (
                             <AppKpiCard key={stat.label} label={stat.label} value={stat.value} icon={<stat.icon size={15} className={stat.color} />} />
                         ))}

@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { Archive, ExternalLink } from 'lucide-react';
+import { IconArchive, IconExternalLink } from '@tabler/icons-react';
+
 import { AppButton } from '@/components/ui/AppButton';
 import type { ClientSelectedProjectWorkspace } from '@/features/clients/types';
 import { useTranslation } from '@/lib/i18n';
@@ -19,7 +20,7 @@ export function ClientArchivesCard({ project }: Props) {
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Archive size={16} className="text-[var(--accent)]" />
+                    <IconArchive size={16} className="text-[var(--accent)]" />
                     <span className="text-sm font-semibold text-[var(--foreground)]">{t('clients.archives.title')}</span>
                 </div>
             </div>
@@ -35,11 +36,11 @@ export function ClientArchivesCard({ project }: Props) {
             <div className="mt-3 flex justify-end">
                 {archive ? (
                     <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.archives.view')} aria-label={t('clients.archives.view')} onPress={() => router.visit(`/archives/${archive.id}`)}>
-                        <ExternalLink size={14} />
+                        <IconExternalLink size={14} />
                     </AppButton>
                 ) : (
                     <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.archives.create')} aria-label={t('clients.archives.create')} onPress={() => router.visit('/archives')}>
-                        <ExternalLink size={14} />
+                        <IconExternalLink size={14} />
                     </AppButton>
                 )}
             </div>

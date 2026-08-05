@@ -9,20 +9,8 @@ import {
     Spinner,
     Tooltip,
 } from '@heroui/react';
-import {
-    ChevronsDownUp,
-    ChevronsUpDown,
-    ChevronDown ,
-    ChevronLeft,
-    ChevronRight,
-    Filter,
-    FolderPlus,
-    MoreHorizontal,
-    RefreshCw,
-    Search,
-    Upload,
-    X,
-} from 'lucide-react';
+import { IconArrowsSort, IconChevronDown, IconChevronLeft, IconChevronRight, IconFilter, IconFolderPlus, IconDots, IconRefresh, IconSearch, IconUpload, IconX } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 import { useFolders, useFiles } from '../hooks/useProjectDesignQueries';
 import { projectDesignApi } from '../api/projectDesignApi';
@@ -227,27 +215,27 @@ export function ProjectDesignFileBrowser({
                     Explorer
                 </span>
                 <ExplorerAction label="New folder" onPress={() => setNewFolderOpen(true)}>
-                    <FolderPlus size={13} />
+                    <IconFolderPlus size={13} />
                 </ExplorerAction>
-                <ExplorerAction label="Upload file" onPress={() => setUploadOpen(true)}>
-                    <Upload size={13} />
+                <ExplorerAction label="IconUpload file" onPress={() => setUploadOpen(true)}>
+                    <IconUpload size={13} />
                 </ExplorerAction>
                 <ExplorerAction label="Refresh explorer" onPress={() => void Promise.all([refetchFolders(), refetchFiles()])}>
-                    <RefreshCw size={13} className={cn(refreshing && 'animate-spin')} />
+                    <IconRefresh size={13} className={cn(refreshing && 'animate-spin')} />
                 </ExplorerAction>
                 <Popover>
                     <Popover.Trigger>
                         <Button isIconOnly size="sm" variant="ghost" aria-label="More explorer actions" className="h-7 w-7 min-w-0 rounded-md text-[var(--text-muted)]">
-                            <MoreHorizontal size={14} />
+                            <IconDots size={14} />
                         </Button>
                     </Popover.Trigger>
                     <Popover.Content placement="bottom end" offset={6} className="z-[190] w-44 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
                         <Popover.Dialog className="space-y-0.5">
                             <Button size="sm" variant="ghost" fullWidth onPress={() => issueTreeCommand('expand-all')} className="h-8 justify-start gap-2 rounded-lg px-2 text-[10px]">
-                                <ChevronsUpDown size={13} /> Expand all
+                                <IconArrowsSort size={13} /> Expand all
                             </Button>
                             <Button size="sm" variant="ghost" fullWidth onPress={() => issueTreeCommand('collapse-all')} className="h-8 justify-start gap-2 rounded-lg px-2 text-[10px]">
-                                <ChevronsDownUp size={13} /> Collapse all
+                                <IconArrowsSort size={13} /> Collapse all
                             </Button>
                         </Popover.Dialog>
                     </Popover.Content>
@@ -257,19 +245,19 @@ export function ProjectDesignFileBrowser({
             <div className="shrink-0 border-b border-[var(--border)] p-1.5">
                 <div className="flex items-center gap-1">
                     <div className="relative min-w-0 flex-1">
-                        <Search size={12} className="pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2 text-[var(--text-subtle)]" />
+                        <IconSearch size={12} className="pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2 text-[var(--text-subtle)]" />
                         <Input
                             value={search}
                             onChange={(event) => { setSearch(event.target.value); setPage(1); }}
-                            placeholder="Filter files"
-                            aria-label="Filter project design files"
+                            placeholder="IconFilter files"
+                            aria-label="IconFilter project design files"
                             variant="secondary"
                             fullWidth
                             className="h-7 rounded-md pl-7 pr-7 text-[9px]"
                         />
                         {search ? (
                             <Button isIconOnly size="sm" variant="ghost" aria-label="Clear file filter" onPress={() => { setSearch(''); setPage(1); }} className="absolute right-0 top-0 z-10 h-7 w-7 min-w-0 rounded-md text-[var(--text-muted)]">
-                                <X size={11} />
+                                <IconX size={11} />
                             </Button>
                         ) : null}
                     </div>
@@ -279,22 +267,22 @@ export function ProjectDesignFileBrowser({
                                 isIconOnly
                                 size="sm"
                                 variant="ghost"
-                                aria-label="Filter explorer"
+                                aria-label="IconFilter explorer"
                                 className={cn('relative h-7 w-7 min-w-0 rounded-md text-[var(--text-muted)]', hasFilters && 'bg-[var(--accent)]/12 text-[var(--accent)]')}
                             >
-                                <Filter size={12} />
+                                <IconFilter size={12} />
                                 {hasFilters ? <span className="absolute right-1 top-1 size-1 rounded-full bg-[var(--accent)]" /> : null}
                             </Button>
                         </Popover.Trigger>
                         <Popover.Content placement="bottom end" offset={6} className="z-[190] w-60 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
                             <Popover.Dialog className="space-y-2 p-3">
-                                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Filter & sort</p>
+                                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">IconFilter & sort</p>
                                 <FilterSelect label="Disciplines" value={discipline} options={DISCIPLINE_OPTIONS} onChange={(value) => { setDiscipline(value); setPage(1); }} />
                                 <FilterSelect label="Statuses" value={status} options={STATUS_OPTIONS} onChange={(value) => { setStatus(value); setPage(1); }} />
                                 <FilterSelect label="Sort" value={sort} options={SORT_OPTIONS} onChange={(value) => { setSort(value || 'name'); setPage(1); }} />
                                 {hasFilters ? (
                                     <Button size="sm" variant="ghost" fullWidth onPress={resetFilters} className="h-8 text-[10px]">
-                                        <X size={12} /> Clear filters
+                                        <IconX size={12} /> Clear filters
                                     </Button>
                                 ) : null}
                             </Popover.Dialog>
@@ -304,7 +292,7 @@ export function ProjectDesignFileBrowser({
             </div>
 
             <div className="flex h-7 shrink-0 items-center border-b border-[var(--border)] bg-[var(--surface-2)]/35 px-2">
-                <ChevronDown size={12} className="mr-1 text-[var(--text-subtle)]" />
+                <IconChevronDown size={12} className="mr-1 text-[var(--text-subtle)]" />
                 <span className="min-w-0 flex-1 truncate text-[9px] font-semibold uppercase tracking-[0.09em] text-[var(--foreground)]">Project design</span>
                 <span className="text-[9px] tabular-nums text-[var(--text-subtle)]">{meta.total}</span>
             </div>
@@ -335,10 +323,10 @@ export function ProjectDesignFileBrowser({
                 {meta.lastPage > 1 ? (
                     <div className="flex items-center">
                         <ExplorerAction label="Previous file page" isDisabled={meta.currentPage <= 1} onPress={() => setPage((current) => Math.max(1, current - 1))}>
-                            <ChevronLeft size={12} />
+                            <IconChevronLeft size={12} />
                         </ExplorerAction>
                         <ExplorerAction label="Next file page" isDisabled={meta.currentPage >= meta.lastPage} onPress={() => setPage((current) => Math.min(meta.lastPage, current + 1))}>
-                            <ChevronRight size={12} />
+                            <IconChevronRight size={12} />
                         </ExplorerAction>
                     </div>
                 ) : null}

@@ -1,16 +1,6 @@
 import { Dropdown } from '@heroui/react';
-import {
-    Copy,
-    History,
-    LoaderCircle,
-    MoreHorizontal,
-    Pencil,
-    Plus,
-    Save,
-    Star,
-    Trash2,
-    X,
-} from 'lucide-react';
+import { IconCopy, IconHistory, IconLoader2, IconDots, IconPencil, IconPlus, IconDeviceFloppy, IconStar, IconTrash, IconX } from '@tabler/icons-react';
+
 import { AppButton } from '@/components/ui/AppButton';
 import type { FinanceDocumentType } from '@/features/finance/types';
 
@@ -98,7 +88,7 @@ export function TemplateToolbar({
                 {draftName ? (
                     <>
                         <AppButton size="sm" variant="outline" onPress={onNew} className="h-8 px-2.5 text-xs">
-                            <Plus size={14} />
+                            <IconPlus size={14} />
                             <span className="hidden sm:inline">Nouveau</span>
                         </AppButton>
 
@@ -110,7 +100,7 @@ export function TemplateToolbar({
                             className="h-8 px-2.5 text-xs"
                             aria-label="Enregistrer le template (Ctrl+S)"
                         >
-                            {saving ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />}
+                            {saving ? <IconLoader2 size={14} className="animate-spin" /> : <IconDeviceFloppy size={14} />}
                             <span className="hidden sm:inline">{saving ? 'Enregistrement...' : 'Enregistrer'}</span>
                         </AppButton>
 
@@ -119,7 +109,7 @@ export function TemplateToolbar({
                                 className="flex size-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] outline-none transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] data-[open]:border-[var(--accent)] data-[open]:text-[var(--accent)]"
                                 aria-label="Actions du template"
                             >
-                                <MoreHorizontal size={14} />
+                                <IconDots size={14} />
                             </Dropdown.Trigger>
                             <Dropdown.Popover placement="bottom end" className="min-w-48 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                                 <Dropdown.Menu
@@ -128,20 +118,20 @@ export function TemplateToolbar({
                                     className="outline-none"
                                 >
                                     <Dropdown.Item id="versions" isDisabled={!onVersions} textValue="Versions" className="rounded-md px-2.5 py-2 text-xs font-medium text-[var(--text)] outline-none data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40">
-                                        <div className="flex items-center gap-2"><History size={14} /><span>Versions</span></div>
+                                        <div className="flex items-center gap-2"><IconHistory size={14} /><span>Versions</span></div>
                                     </Dropdown.Item>
                                     <Dropdown.Item id="default" textValue="Definir par defaut" className="rounded-md px-2.5 py-2 text-xs font-medium text-[var(--text)] outline-none data-[hover]:bg-[var(--surface-2)]">
-                                        <div className="flex items-center gap-2"><Star size={14} /><span>Definir par defaut</span></div>
+                                        <div className="flex items-center gap-2"><IconStar size={14} /><span>Definir par defaut</span></div>
                                     </Dropdown.Item>
                                     <Dropdown.Item id="rename" textValue="Renommer" className="rounded-md px-2.5 py-2 text-xs font-medium text-[var(--text)] outline-none data-[hover]:bg-[var(--surface-2)]">
-                                        <div className="flex items-center gap-2"><Pencil size={14} /><span>Renommer</span></div>
+                                        <div className="flex items-center gap-2"><IconPencil size={14} /><span>Renommer</span></div>
                                     </Dropdown.Item>
                                     <Dropdown.Item id="duplicate" textValue="Dupliquer" className="rounded-md px-2.5 py-2 text-xs font-medium text-[var(--text)] outline-none data-[hover]:bg-[var(--surface-2)]">
-                                        <div className="flex items-center gap-2"><Copy size={14} /><span>Dupliquer</span></div>
+                                        <div className="flex items-center gap-2"><IconCopy size={14} /><span>Dupliquer</span></div>
                                     </Dropdown.Item>
                                     <Dropdown.Section className="mt-1 border-t border-[var(--border)] pt-1">
                                         <Dropdown.Item id="delete" textValue="Supprimer" className="rounded-md px-2.5 py-2 text-xs font-medium text-[var(--danger)] outline-none data-[hover]:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]">
-                                            <div className="flex items-center gap-2"><Trash2 size={14} /><span>Supprimer</span></div>
+                                            <div className="flex items-center gap-2"><IconTrash size={14} /><span>Supprimer</span></div>
                                         </Dropdown.Item>
                                     </Dropdown.Section>
                                 </Dropdown.Menu>
@@ -157,7 +147,7 @@ export function TemplateToolbar({
                     </>
                 ) : (
                     <AppButton size="sm" variant="primary" onPress={onNew} className="h-8 px-3 text-xs">
-                        <Plus size={14} /> Nouveau template
+                        <IconPlus size={14} /> Nouveau template
                     </AppButton>
                 )}
 
@@ -169,7 +159,7 @@ export function TemplateToolbar({
                     className="size-8 min-w-0 text-[var(--text-muted)]"
                     aria-label="Fermer l editeur de templates"
                 >
-                    <X size={15} />
+                    <IconX size={15} />
                 </AppButton>
             </div>
         </div>

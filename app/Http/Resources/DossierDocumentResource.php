@@ -102,6 +102,14 @@ class DossierDocumentResource extends JsonResource
                     $this->id
                 )
                 : null,
+            'contentUrl' => $files->canPreviewText(
+                $this->resource
+            )
+                ? route(
+                    'documents.content',
+                    $this->id
+                )
+                : null,
             'printUrl' => $canPreview
                 ? route(
                     'documents.print',

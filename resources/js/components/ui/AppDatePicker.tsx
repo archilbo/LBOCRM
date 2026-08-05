@@ -13,7 +13,8 @@ import {
     DatePicker,
 } from '@heroui/react';
 import { I18nProvider } from 'react-aria-components';
-import { X } from 'lucide-react';
+import { IconX } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 
 /* ──── Helpers (no Date / toISOString) ──── */
@@ -170,7 +171,7 @@ export function AppDatePicker({
                                     className="flex size-5 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                                     aria-label="Effacer"
                                 >
-                                    <X size={13} />
+                                    <IconX size={13} />
                                 </button>
                             ) : null}
 

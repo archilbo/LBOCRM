@@ -1,4 +1,5 @@
-import { Plus } from 'lucide-react';
+import { IconPlus } from '@tabler/icons-react';
+
 import {
     useCallback,
     useEffect,
@@ -290,7 +291,7 @@ export function TaskBoard({
                                             'focus-visible:ring-[var(--crm-gold)]/40',
                                         ].join(' ')}
                                     >
-                                        <Plus
+                                        <IconPlus
                                             size={15}
                                             strokeWidth={2}
                                             aria-hidden="true"

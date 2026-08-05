@@ -1,4 +1,5 @@
-import { CheckCircle2, ClipboardList } from 'lucide-react';
+import { IconCircleCheck, IconClipboardList } from '@tabler/icons-react';
+
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -58,7 +59,7 @@ export function PlanningFocusPanel({ task }: PlanningFocusPanelProps) {
                 <div className="space-y-4">
                     <div className="flex items-start gap-3">
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                            <ClipboardList size={18} />
+                            <IconClipboardList size={18} />
                         </div>
                         <div className="min-w-0">
                             <p className="line-clamp-2 text-sm font-semibold">{task.title}</p>
@@ -125,7 +126,7 @@ export function PlanningFocusPanel({ task }: PlanningFocusPanelProps) {
                             variant="primary"
                             onPress={() => toast.success(t('planningWorkspace.toast.done'))}
                         >
-                            <CheckCircle2 size={16} />
+                            <IconCircleCheck size={16} />
                             {t('planningWorkspace.markDone')}
                         </AppButton>
                         <AppButton
@@ -139,7 +140,7 @@ export function PlanningFocusPanel({ task }: PlanningFocusPanelProps) {
             ) : (
                 <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed bg-[var(--surface-2)]">
                     <div className="px-6 text-center">
-                        <ClipboardList className="mx-auto text-[var(--text-muted)]" size={34} />
+                        <IconClipboardList className="mx-auto text-[var(--text-muted)]" size={34} />
                         <p className="mt-3 text-sm font-semibold">{t('planningWorkspace.focus.noTask')}</p>
                         <p className="mt-1 max-w-sm text-sm text-[var(--text-muted)]">
                             {t('planningWorkspace.focus.selectTask')}

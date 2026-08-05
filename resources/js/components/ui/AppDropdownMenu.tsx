@@ -1,4 +1,4 @@
-﻿import { Key, ReactNode } from 'react';
+import { Key, ReactNode } from 'react';
 import {
     Button,
     Menu,
@@ -6,7 +6,8 @@ import {
     MenuTrigger,
     Popover,
 } from 'react-aria-components';
-import { MoreHorizontal } from 'lucide-react';
+import { IconDots } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 
 export type AppDropdownMenuItem = {
@@ -37,7 +38,7 @@ export function AppDropdownMenu({ ariaLabel, items }: AppDropdownMenuProps) {
     return (
         <MenuTrigger>
             <Button aria-label={ariaLabel} className="react-aria-Button size-8 px-0">
-                <MoreHorizontal size={16} />
+                <IconDots size={16} />
             </Button>
 
             <Popover className="react-aria-Popover min-w-48">

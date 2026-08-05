@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { ChevronRight, Download, FileSpreadsheet, FileText, FileDown, Files, Receipt, Search, Wallet, X } from 'lucide-react';
+import { IconChevronRight, IconDownload, IconFileSpreadsheet, IconFileText, IconFileDownload, IconFiles, IconReceipt, IconSearch, IconWallet, IconX } from '@tabler/icons-react';
+
 import { useEffect, useMemo, useState } from 'react';
 import { Popover } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
@@ -188,11 +189,11 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
     }, [rows]);
 
     const typeFilters = [
-        { id: 'all', label: 'Tous', icon: Files, color: 'text-[var(--text)]', activeColor: 'text-[var(--accent)]', bg: 'bg-[var(--surface-2)]' },
-        { id: 'quote', label: 'Devis', icon: FileText, color: 'text-sky-300', activeColor: 'text-sky-300', bg: 'bg-sky-400/10' },
-        { id: 'invoice', label: 'Factures', icon: Receipt, color: 'text-violet-300', activeColor: 'text-violet-300', bg: 'bg-violet-400/10' },
-        { id: 'receipt', label: 'Recus', icon: FileText, color: 'text-emerald-300', activeColor: 'text-emerald-300', bg: 'bg-emerald-400/10' },
-        { id: 'payment', label: 'Paiements', icon: Wallet, color: 'text-amber-300', activeColor: 'text-amber-300', bg: 'bg-amber-400/10' },
+        { id: 'all', label: 'Tous', icon: IconFiles, color: 'text-[var(--text)]', activeColor: 'text-[var(--accent)]', bg: 'bg-[var(--surface-2)]' },
+        { id: 'quote', label: 'Devis', icon: IconFileText, color: 'text-sky-300', activeColor: 'text-sky-300', bg: 'bg-sky-400/10' },
+        { id: 'invoice', label: 'Factures', icon: IconReceipt, color: 'text-violet-300', activeColor: 'text-violet-300', bg: 'bg-violet-400/10' },
+        { id: 'receipt', label: 'Recus', icon: IconFileText, color: 'text-emerald-300', activeColor: 'text-emerald-300', bg: 'bg-emerald-400/10' },
+        { id: 'payment', label: 'Paiements', icon: IconWallet, color: 'text-amber-300', activeColor: 'text-amber-300', bg: 'bg-amber-400/10' },
     ];
     const activeFilter = typeFilters.find((f) => f.id === typeFilter)!;
     const exportLabel = activeFilter.id === 'all' ? 'Tous les types' : activeFilter.label;
@@ -247,7 +248,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                     <button type="button"
                         className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-[10px] font-medium text-[var(--text)] transition hover:border-[var(--accent)]">
                         <span>{selectedKeys.size} mois selectionne(s)</span>
-                        <ChevronRight size={12} className="text-[var(--text-muted)]" />
+                        <IconChevronRight size={12} className="text-[var(--text-muted)]" />
                     </button>
                 </Popover.Trigger>
                 <Popover.Content placement="bottom start" className="w-64 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
@@ -272,7 +273,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                         <button type="button" onClick={() => toggleYear(year)}
                                             className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-[10px] font-semibold text-[var(--text)] transition hover:bg-[var(--surface-2)] rounded-md">
                                             <span className={`transition-transform duration-150 ${isOpen ? 'rotate-90' : ''}`}>
-                                                <ChevronRight size={12} />
+                                                <IconChevronRight size={12} />
                                             </span>
                                             {year}
                                             <span className="ml-auto text-[9px] font-normal text-[var(--text-muted)]">
@@ -351,14 +352,14 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                             <Popover.Trigger>
                                 <AppButton size="sm" variant="ghost"
                                     className="h-7 min-w-0 gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-[10px] font-medium text-[var(--text)] transition hover:border-[var(--accent)]">
-                                    <Download size={12} />
+                                    <IconDownload size={12} />
                                     Exporter
                                 </AppButton>
                             </Popover.Trigger>
                             <Popover.Content placement="bottom end" className="min-w-44 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                                 <button type="button" onClick={exportPdf}
                                     className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[10px] font-medium text-rose-400 transition hover:bg-rose-500/10">
-                                    <FileText size={14} />
+                                    <IconFileText size={14} />
                                     <span className="flex flex-col items-start leading-tight">
                                         <span>PDF</span>
                                         <span className="text-[9px] font-normal text-[var(--text-muted)]">{exportLabel}</span>
@@ -366,7 +367,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                 </button>
                                 <button type="button" onClick={exportExcel}
                                     className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[10px] font-medium text-emerald-400 transition hover:bg-emerald-500/10">
-                                    <FileSpreadsheet size={14} />
+                                    <IconFileSpreadsheet size={14} />
                                     <span className="flex flex-col items-start leading-tight">
                                         <span>Excel</span>
                                         <span className="text-[9px] font-normal text-[var(--text-muted)]">{exportLabel}</span>
@@ -374,7 +375,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                 </button>
                                 <button type="button" onClick={exportCsv}
                                     className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[10px] font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
-                                    <FileDown size={14} />
+                                    <IconFileDownload size={14} />
                                     <span className="flex flex-col items-start leading-tight">
                                         <span>CSV</span>
                                         <span className="text-[9px] font-normal text-[var(--text-muted)]">{exportLabel}</span>
@@ -383,7 +384,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                             </Popover.Content>
                         </Popover>
                         <div className="relative max-w-[180px]">
-                            <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                            <IconSearch size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Rechercher..."
                                 className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[10px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
@@ -391,7 +392,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                             {searchQuery ? (
                                 <button type="button" onClick={() => setSearchQuery('')}
                                     className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]">
-                                    <X size={12} />
+                                    <IconX size={12} />
                                 </button>
                             ) : null}
                         </div>

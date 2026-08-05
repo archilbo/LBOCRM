@@ -1,16 +1,17 @@
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
-import { ClipboardList, FileText, FolderKanban, Handshake, Plus, UserPlus } from 'lucide-react';
+import { IconClipboardList, IconFileText, IconFolder, IconHeartHandshake, IconPlus, IconUserPlus } from '@tabler/icons-react';
+
 import { MessagePopover } from '@/features/inbox/components/MessagePopover';
 import { NotificationPopover } from '@/features/notifications/components/NotificationPopover';
 import { AppGlobalSearch } from '@/components/layout/AppGlobalSearch';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
 const QUICK_ACTIONS = [
-    { label: 'New Project', icon: FolderKanban, href: '/projects/create' },
-    { label: 'New Client', icon: UserPlus, href: '/clients/create' },
-    { label: 'Log Expense', icon: FileText, href: '/finance/expenses/create' },
-    { label: 'Create Task', icon: ClipboardList, href: '/tasks/create' },
+    { label: 'New Project', icon: IconFolder, href: '/projects/create' },
+    { label: 'New Client', icon: IconUserPlus, href: '/clients/create' },
+    { label: 'Log Expense', icon: IconFileText, href: '/finance/expenses/create' },
+    { label: 'Create Task', icon: IconClipboardList, href: '/tasks/create' },
 ];
 
 export function AppTopbar() {
@@ -30,7 +31,7 @@ export function AppTopbar() {
                             onClick={() => setNewOpen((o) => !o)}
                             className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] max-sm:hidden"
                         >
-                            <Plus size={14} strokeWidth={2.5} />
+                            <IconPlus size={14} strokeWidth={2.5} />
                             <span className="hidden lg:inline">New</span>
                         </button>
                         {newOpen && (

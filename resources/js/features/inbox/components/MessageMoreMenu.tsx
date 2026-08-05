@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { IconPencil, IconTrash } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 
 export type MoreAction = 'edit' | 'delete';
@@ -46,8 +47,8 @@ export function MessageMoreMenu({ isOpen, onClose, anchorRef, isMine, hasBody, o
     if (!isOpen) return null;
 
     const items: { id: MoreAction; label: string; icon: React.ReactNode; danger?: boolean }[] = [];
-    if (isMine && hasBody) items.push({ id: 'edit', label: 'Modifier', icon: <Pencil size={15} /> });
-    if (isMine) items.push({ id: 'delete', label: 'Supprimer', icon: <Trash2 size={15} />, danger: true });
+    if (isMine && hasBody) items.push({ id: 'edit', label: 'Modifier', icon: <IconPencil size={15} /> });
+    if (isMine) items.push({ id: 'delete', label: 'Supprimer', icon: <IconTrash size={15} />, danger: true });
 
     if (items.length === 0) return null;
 

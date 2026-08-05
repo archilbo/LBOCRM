@@ -1,4 +1,5 @@
-import { Check, CheckCheck } from 'lucide-react';
+import { IconCheck, IconChecks } from '@tabler/icons-react';
+
 
 type Props = {
     createdAt?: string | null;
@@ -33,9 +34,9 @@ export function MessageDeliveryStatus({ createdAt, isMine, readBy, isEdited, isF
             {time ? <span className="text-[9px] text-[var(--text-muted)]">{time}</span> : null}
             {isMine ? (
                 readBy && readBy.length > 0 ? (
-                    <CheckCheck size={11} className="text-emerald-400" />
+                    <IconChecks size={11} className="text-emerald-400" />
                 ) : (
-                    <Check size={11} className="text-[var(--text-muted)]" />
+                    <IconCheck size={11} className="text-[var(--text-muted)]" />
                 )
             ) : null}
         </div>

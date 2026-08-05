@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+
 import { useMemo } from 'react';
 
 type Props = {
@@ -40,13 +41,13 @@ export function MiniCalendar({ currentDate, onDateChange, onDayClick }: Props) {
         <div className="select-none">
             <div className="mb-3 flex items-center justify-between">
                 <button type="button" onClick={prev} className="flex size-6 items-center justify-center rounded text-[var(--crm-muted)] hover:bg-white/5 hover:text-white">
-                    <ChevronLeft size={13} />
+                    <IconChevronLeft size={13} />
                 </button>
                 <span className="text-xs font-semibold">
                     {new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate)}
                 </span>
                 <button type="button" onClick={next} className="flex size-6 items-center justify-center rounded text-[var(--crm-muted)] hover:bg-white/5 hover:text-white">
-                    <ChevronRight size={13} />
+                    <IconChevronRight size={13} />
                 </button>
             </div>
             <div className="grid grid-cols-7 gap-0 text-center">

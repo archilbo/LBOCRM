@@ -1,4 +1,5 @@
-import { CheckCircle2, Download, Eye, FileSpreadsheet, FileText, Pencil, Printer, RefreshCw, Trash2, WalletCards, XCircle } from 'lucide-react';
+import { IconCircleCheck, IconDownload, IconEye, IconFileSpreadsheet, IconFileText, IconPencil, IconPrinter, IconRefresh, IconTrash, IconWallet, IconCircleX } from '@tabler/icons-react';
+
 import { FinanceRowActions, type FinanceRowAction } from '@/features/finance/components/FinanceRowActions';
 import type { FinanceDocument } from '@/features/finance/types';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -26,20 +27,20 @@ export function createFinanceDocumentActions(
     can: (permission: string) => boolean = () => true,
 ): FinanceRowAction[] {
     return [
-        can('finance.view') && { id: 'open', label: 'Open document', icon: <Eye size={13} />, onPress: () => handlers.onOpen(document) },
-        can('finance.documents.update') && { id: 'edit', label: 'Edit', icon: <Pencil size={13} />, onPress: () => handlers.onEdit(document) },
-        can('finance.view') && { id: 'preview', label: 'Preview', icon: <FileText size={13} />, onPress: () => handlers.onPreview(document), dividerBefore: true },
-        can('finance.view') && { id: 'print', label: 'Print', icon: <Printer size={13} />, onPress: () => handlers.onPrint(document) },
-        can('finance.view') && document.hasPdf && { id: 'download-pdf', label: 'Download PDF', icon: <Download size={13} />, onPress: () => handlers.onDownloadPdf(document) },
-        can('finance.view') && document.hasExcel && { id: 'download-excel', label: 'Download Excel', icon: <FileSpreadsheet size={13} />, onPress: () => handlers.onDownloadExcel(document) },
-        can('finance.documents.update') && { id: 'generate-pdf', label: document.hasPdf ? 'Regenerate PDF' : 'Generate PDF', icon: <FileText size={13} />, onPress: () => handlers.onGeneratePdf(document), tone: 'accent', dividerBefore: true },
-        can('finance.documents.update') && { id: 'generate-excel', label: document.hasExcel ? 'Regenerate Excel' : 'Generate Excel', icon: <FileSpreadsheet size={13} />, onPress: () => handlers.onGenerateExcel(document), tone: 'accent' },
-        can('finance.documents.issue') && document.type === 'quote' && { id: 'accept', label: 'Accept quote', icon: <CheckCircle2 size={13} />, onPress: () => handlers.onAccept(document), tone: 'success', dividerBefore: true },
-        can('finance.documents.create') && document.type === 'quote' && { id: 'convert', label: 'Convert to invoice', icon: <RefreshCw size={13} />, onPress: () => handlers.onConvert(document), tone: 'accent' },
-        can('finance.documents.issue') && document.type === 'quote' && { id: 'reject', label: 'Reject quote', icon: <XCircle size={13} />, onPress: () => handlers.onReject(document), tone: 'danger' },
-        can('finance.payments.create') && document.type === 'invoice' && { id: 'payment', label: 'Register payment', icon: <WalletCards size={13} />, onPress: () => handlers.onPayment(document), tone: 'success', dividerBefore: true },
-        can('finance.documents.cancel') && { id: 'cancel', label: 'Cancel document', icon: <XCircle size={13} />, onPress: () => handlers.onCancel(document), tone: 'danger', dividerBefore: document.type !== 'quote' },
-        can('finance.documents.delete') && { id: 'delete', label: 'Delete', icon: <Trash2 size={13} />, onPress: () => handlers.onDelete(document), tone: 'danger' },
+        can('finance.view') && { id: 'open', label: 'Open document', icon: <IconEye size={13} />, onPress: () => handlers.onOpen(document) },
+        can('finance.documents.update') && { id: 'edit', label: 'Edit', icon: <IconPencil size={13} />, onPress: () => handlers.onEdit(document) },
+        can('finance.view') && { id: 'preview', label: 'Preview', icon: <IconFileText size={13} />, onPress: () => handlers.onPreview(document), dividerBefore: true },
+        can('finance.view') && { id: 'print', label: 'Print', icon: <IconPrinter size={13} />, onPress: () => handlers.onPrint(document) },
+        can('finance.view') && document.hasPdf && { id: 'download-pdf', label: 'IconDownload PDF', icon: <IconDownload size={13} />, onPress: () => handlers.onDownloadPdf(document) },
+        can('finance.view') && document.hasExcel && { id: 'download-excel', label: 'IconDownload Excel', icon: <IconFileSpreadsheet size={13} />, onPress: () => handlers.onDownloadExcel(document) },
+        can('finance.documents.update') && { id: 'generate-pdf', label: document.hasPdf ? 'Regenerate PDF' : 'Generate PDF', icon: <IconFileText size={13} />, onPress: () => handlers.onGeneratePdf(document), tone: 'accent', dividerBefore: true },
+        can('finance.documents.update') && { id: 'generate-excel', label: document.hasExcel ? 'Regenerate Excel' : 'Generate Excel', icon: <IconFileSpreadsheet size={13} />, onPress: () => handlers.onGenerateExcel(document), tone: 'accent' },
+        can('finance.documents.issue') && document.type === 'quote' && { id: 'accept', label: 'Accept quote', icon: <IconCircleCheck size={13} />, onPress: () => handlers.onAccept(document), tone: 'success', dividerBefore: true },
+        can('finance.documents.create') && document.type === 'quote' && { id: 'convert', label: 'Convert to invoice', icon: <IconRefresh size={13} />, onPress: () => handlers.onConvert(document), tone: 'accent' },
+        can('finance.documents.issue') && document.type === 'quote' && { id: 'reject', label: 'Reject quote', icon: <IconCircleX size={13} />, onPress: () => handlers.onReject(document), tone: 'danger' },
+        can('finance.payments.create') && document.type === 'invoice' && { id: 'payment', label: 'Register payment', icon: <IconWallet size={13} />, onPress: () => handlers.onPayment(document), tone: 'success', dividerBefore: true },
+        can('finance.documents.cancel') && { id: 'cancel', label: 'Cancel document', icon: <IconCircleX size={13} />, onPress: () => handlers.onCancel(document), tone: 'danger', dividerBefore: document.type !== 'quote' },
+        can('finance.documents.delete') && { id: 'delete', label: 'Delete', icon: <IconTrash size={13} />, onPress: () => handlers.onDelete(document), tone: 'danger' },
     ].filter((action): action is FinanceRowAction => Boolean(action));
 }
 

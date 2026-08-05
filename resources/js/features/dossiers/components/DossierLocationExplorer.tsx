@@ -1,19 +1,6 @@
 import { router } from '@inertiajs/react';
-import {
-    BadgeDollarSign,
-    Building2,
-    ChevronRight,
-    Eye,
-    FileCheck2,
-    FileText,
-    FolderKanban,
-    Globe,
-    MapPinned,
-    MoreHorizontal,
-    Pencil,
-    Search,
-    X,
-} from 'lucide-react';
+import { IconCoin, IconBuilding, IconChevronRight, IconEye, IconFileCheck, IconFileText, IconFolder, IconGlobe, IconMapPin, IconDots, IconPencil, IconSearch, IconX } from '@tabler/icons-react';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
@@ -134,11 +121,11 @@ export function DossierLocationExplorer({ groups }: Props) {
         const activeCommunes = groups.reduce((s, g) =>
             s + g.communes.filter((c) => c.stats.projectsCount > 0).length, 0);
         return [
-            { label: 'Provinces', value: totalProvinces, icon: Globe, color: 'text-violet-400', bgClass: 'bg-violet-400/10' },
-            { label: 'Communes', value: totalCommunes, icon: Building2, color: 'text-amber-400', bgClass: 'bg-amber-400/10' },
-            { label: 'Projects', value: totalProjects, icon: FolderKanban, color: 'text-sky-400', bgClass: 'bg-sky-400/10' },
-            { label: 'Documents', value: totalDocuments, icon: FileText, color: 'text-emerald-400', bgClass: 'bg-emerald-400/10' },
-            { label: 'Actives', value: activeCommunes, icon: MapPinned, color: activeCommunes > 0 ? 'text-rose-400' : 'text-[var(--text-muted)]', bgClass: activeCommunes > 0 ? 'bg-rose-400/10' : 'bg-[var(--surface-2)]' },
+            { label: 'Provinces', value: totalProvinces, icon: IconGlobe, color: 'text-violet-400', bgClass: 'bg-violet-400/10' },
+            { label: 'Communes', value: totalCommunes, icon: IconBuilding, color: 'text-amber-400', bgClass: 'bg-amber-400/10' },
+            { label: 'Projects', value: totalProjects, icon: IconFolder, color: 'text-sky-400', bgClass: 'bg-sky-400/10' },
+            { label: 'Documents', value: totalDocuments, icon: IconFileText, color: 'text-emerald-400', bgClass: 'bg-emerald-400/10' },
+            { label: 'Actives', value: activeCommunes, icon: IconMapPin, color: activeCommunes > 0 ? 'text-rose-400' : 'text-[var(--text-muted)]', bgClass: activeCommunes > 0 ? 'bg-rose-400/10' : 'bg-[var(--surface-2)]' },
         ];
     }, [groups]);
 
@@ -203,7 +190,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                                     <p className="text-sm font-semibold text-[var(--foreground)]">{group.province}</p>
                                     <p className="text-xs text-[var(--text-muted)]">{group.communes.length} communes · {group.stats.projectsCount} projects</p>
                                 </div>
-                                <ChevronRight size={16} className="shrink-0 text-[var(--text-muted)]" />
+                                <IconChevronRight size={16} className="shrink-0 text-[var(--text-muted)]" />
                             </button>
                         ))}
                     </div>
@@ -215,7 +202,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                 <div className="block xl:hidden">
                     <button type="button" onClick={() => setMobileStep('provinces')}
                         className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--accent)] hover:underline">
-                        <ChevronRight size={14} className="rotate-180" />
+                        <IconChevronRight size={14} className="rotate-180" />
                         Back to provinces
                     </button>
                     <div className="mb-3">
@@ -230,7 +217,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                                     <p className="text-sm font-semibold text-[var(--foreground)]">{commune.commune}</p>
                                     <p className="text-xs text-[var(--text-muted)]">{commune.stats.projectsCount} projects · {commune.stats.documentsCount} docs</p>
                                 </div>
-                                <ChevronRight size={16} className="shrink-0 text-[var(--text-muted)]" />
+                                <IconChevronRight size={16} className="shrink-0 text-[var(--text-muted)]" />
                             </button>
                         ))}
                     </div>
@@ -242,7 +229,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                 <div className="block xl:hidden">
                     <button type="button" onClick={() => setMobileStep('communes')}
                         className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--accent)] hover:underline">
-                        <ChevronRight size={14} className="rotate-180" />
+                        <IconChevronRight size={14} className="rotate-180" />
                         Back to communes
                     </button>
                     <div className="mb-3">
@@ -273,7 +260,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                 <aside className="border-r border-[var(--border)]">
                     <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3">
                         <div className="flex items-center gap-2">
-                            <MapPinned size={15} className="text-[var(--accent)]" />
+                            <IconMapPin size={15} className="text-[var(--accent)]" />
                             <div>
                                 <p className="text-[11px] font-semibold text-[var(--foreground)]">Provinces</p>
                                 <p className="text-[9px] text-[var(--text-muted)]">{groups.length} total</p>
@@ -323,7 +310,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                 <aside className="border-r border-[var(--border)]">
                     <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3">
                         <div className="flex items-center gap-2">
-                            <Building2 size={15} className="text-[var(--accent)]" />
+                            <IconBuilding size={15} className="text-[var(--accent)]" />
                             <div>
                                 <p className="text-[11px] font-semibold text-[var(--foreground)]">Communes</p>
                                 <p className="text-[9px] text-[var(--text-muted)]">{selectedProvinceGroup?.province || 'Select a province'}</p>
@@ -371,7 +358,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                             })
                         ) : (
                             <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
-                                <Building2 size={28} className="text-[var(--text-muted)]/40" />
+                                <IconBuilding size={28} className="text-[var(--text-muted)]/40" />
                                 <p className="text-[12px] font-medium text-[var(--foreground)]">Select a province</p>
                                 <p className="text-[10px] text-[var(--text-muted)]">to view communes</p>
                             </div>
@@ -404,14 +391,14 @@ export function DossierLocationExplorer({ groups }: Props) {
                                 ))
                             ) : (
                                 <div className="flex flex-col items-center gap-2 py-16 text-center">
-                                    <FolderKanban size={32} className="text-[var(--text-muted)]/30" />
+                                    <IconFolder size={32} className="text-[var(--text-muted)]/30" />
                                     <p className="text-[12px] font-medium text-[var(--foreground)]">No projects found</p>
                                     <p className="text-[10px] text-[var(--text-muted)]">Choose another commune or clear search.</p>
                                 </div>
                             )
                         ) : (
                             <div className="flex flex-col items-center gap-2 py-16 text-center">
-                                <Building2 size={32} className="text-[var(--text-muted)]/30" />
+                                <IconBuilding size={32} className="text-[var(--text-muted)]/30" />
                                 <p className="text-[12px] font-medium text-[var(--foreground)]">Select a commune</p>
                                 <p className="text-[10px] text-[var(--text-muted)]">to view projects</p>
                             </div>
@@ -428,19 +415,19 @@ function ProjectSearchBar({ query, setQuery, searchRef, compact }: {
 }) {
     return (
         <div className={cn('relative', compact ? 'w-[200px]' : 'w-full')}>
-            <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+            <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input
                 ref={searchRef}
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search projects..."
+                placeholder="IconSearch projects..."
                 className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-8 pr-7 text-[11px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
             />
             {query ? (
                 <button type="button" onClick={() => setQuery('')}
                     className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--foreground)]">
-                    <X size={11} />
+                    <IconX size={11} />
                 </button>
             ) : null}
         </div>
@@ -461,17 +448,17 @@ function RowMenu({ project, isOpen, onToggle }: {
     };
 
     const items = [
-        { id: 'open', label: 'Open', icon: <Eye size={14} />, action: () => router.visit(`/dossiers/${project.id}`) },
-        { id: 'edit', label: 'Edit', icon: <Pencil size={14} />, action: () => router.visit(`/dossiers/${project.id}`) },
-        { id: 'documents', label: 'Documents', icon: <FileCheck2 size={14} />, action: () => router.visit(`/documents?dossier_id=${project.id}`) },
-        { id: 'finance', label: 'Finance', icon: <BadgeDollarSign size={14} />, action: () => router.visit(`/finance/documents?dossier_id=${project.id}`) },
+        { id: 'open', label: 'Open', icon: <IconEye size={14} />, action: () => router.visit(`/dossiers/${project.id}`) },
+        { id: 'edit', label: 'Edit', icon: <IconPencil size={14} />, action: () => router.visit(`/dossiers/${project.id}`) },
+        { id: 'documents', label: 'Documents', icon: <IconFileCheck size={14} />, action: () => router.visit(`/documents?dossier_id=${project.id}`) },
+        { id: 'finance', label: 'Finance', icon: <IconCoin size={14} />, action: () => router.visit(`/finance/documents?dossier_id=${project.id}`) },
     ];
 
     return (
         <div className="relative inline-flex" data-row-menu>
             <button type="button" onClick={(e) => { e.stopPropagation(); onToggle(); }}
                 className="flex size-7 items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
-                <MoreHorizontal size={14} />
+                <IconDots size={14} />
             </button>
             {isOpen ? (
                 <div className="absolute right-0 top-full z-50 mt-1 min-w-[150px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl"
@@ -497,7 +484,7 @@ function ProjectCard({ project, openMenuId, setOpenMenuId }: {
             <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2.5">
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                        <FolderKanban size={14} />
+                        <IconFolder size={14} />
                     </span>
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5">

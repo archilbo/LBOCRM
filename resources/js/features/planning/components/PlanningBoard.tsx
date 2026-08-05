@@ -1,4 +1,5 @@
-import { CalendarDays } from 'lucide-react';
+import { IconCalendarMonth } from '@tabler/icons-react';
+
 import { AppCard } from '@/components/ui/AppCard';
 import { AppBadge } from '@/components/ui/AppBadge';
 import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
@@ -25,7 +26,7 @@ export function PlanningBoard({ tasks, onSelectTask }: PlanningBoardProps) {
         <AppCard className="min-w-0 p-4">
             <div className="mb-4 flex items-start gap-3">
                 <div className="flex size-9 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                    <CalendarDays size={17} />
+                    <IconCalendarMonth size={17} />
                 </div>
                 <div className="min-w-0">
                     <h2 className="text-sm font-semibold">{t('planningWorkspace.board.title')}</h2>

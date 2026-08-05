@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
+
 import { useState } from 'react';
 import type { TaskRow, TaskStatus } from '@/features/tasks/types';
 import { COLUMNS, PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS, STATUS_DOT_COLORS, STATUS_LABELS } from '@/features/tasks/types';
@@ -28,7 +29,7 @@ export function TaskListView({ columns, onTaskClick, onStatusChange }: Props) {
                 return (
                     <div key={status} className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] overflow-hidden">
                         <button type="button" onClick={() => toggle(status)} className="flex w-full items-center gap-2 px-4 py-3 text-left transition hover:bg-[var(--crm-surface)]">
-                            {isCollapsed ? <ChevronRight size={14} className="text-[var(--crm-muted)]" /> : <ChevronDown size={14} className="text-[var(--crm-muted)]" />}
+                            {isCollapsed ? <IconChevronRight size={14} className="text-[var(--crm-muted)]" /> : <IconChevronDown size={14} className="text-[var(--crm-muted)]" />}
                             <span className={`size-2 rounded-full ${STATUS_DOT_COLORS[status]}`} />
                             <span className="text-sm font-semibold text-[var(--crm-text)]">{STATUS_LABELS[status]}</span>
                             <span className="flex h-5 min-w-[20px] items-center justify-center rounded-md bg-[var(--crm-surface-3)] px-1.5 text-[9px] font-bold text-[var(--crm-text-muted)]">{tasks.length}</span>
@@ -80,7 +81,7 @@ function QuickStatus({ task, onStatusChange }: { task: TaskRow; onStatusChange: 
         <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setOpen(!open)}
                 className="flex h-7 items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)]">
-                <ChevronDown size={11} /> Move
+                <IconChevronDown size={11} /> Move
             </button>
             {open ? (
                 <div className="absolute right-0 top-8 z-50 w-40 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-1 shadow-2xl shadow-black/40">

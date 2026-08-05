@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
-import { AlertCircle, ArrowLeft, ArrowRight, Check, Circle, CircleDot, ExternalLink } from 'lucide-react';
+import { IconAlertCircle, IconArrowLeft, IconArrowRight, IconCheck, IconCircle, IconCircleDot, IconExternalLink } from '@tabler/icons-react';
+
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
 import { AppModal } from '@/components/ui/AppModal';
@@ -28,7 +29,7 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
     if (!workflow || workflow.steps.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-                <CircleDot size={32} className="mb-3 text-[var(--text-subtle)]" />
+                <IconCircleDot size={32} className="mb-3 text-[var(--text-subtle)]" />
                 <p className="text-sm font-medium text-[var(--foreground)]">Aucun workflow defini</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">Ce projet n'a pas de workflow configure.</p>
             </div>
@@ -43,9 +44,9 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
     }
 
     function StepIcon({ status }: { status: string }) {
-        if (status === 'completed') return <Check size={14} strokeWidth={3} />;
-        if (status === 'blocked') return <AlertCircle size={14} />;
-        return <Circle size={14} />;
+        if (status === 'completed') return <IconCheck size={14} strokeWidth={3} />;
+        if (status === 'blocked') return <IconAlertCircle size={14} />;
+        return <IconCircle size={14} />;
     }
 
     function openAction(url: string | null | undefined, isUpload: boolean = false, reqKey?: string, stepKey?: string, label?: string | null) {
@@ -236,7 +237,7 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                         ? 'bg-emerald-400/15 text-emerald-400'
                                                         : 'border border-[var(--border)] text-[var(--text-subtle)]',
                                                 )}>
-                                                    {req.done ? <Check size={11} strokeWidth={3} /> : <Circle size={10} />}
+                                                    {req.done ? <IconCheck size={11} strokeWidth={3} /> : <IconCircle size={10} />}
                                                 </span>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between gap-2">
@@ -257,7 +258,7 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                                             ? 'border-red-400/30 text-red-400 hover:bg-red-400/8'
                                                                             : 'border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/8',
                                                                     )}>
-                                                                    <Check size={12} />
+                                                                    <IconCheck size={12} />
                                                                     {req.done ? 'Annuler' : 'Fait'}
                                                                 </button>
                                                             )}
@@ -289,7 +290,7 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                     {prevStep && (
                                         <button type="button" onClick={() => onSelectStep(prevStep.key)}
                                             className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
-                                            <ArrowLeft size={14} />
+                                            <IconArrowLeft size={14} />
                                             Precedent
                                         </button>
                                     )}
@@ -299,19 +300,19 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                         <button type="button" onClick={() => onSelectStep(nextStep.key)}
                                             className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-[11px] font-semibold text-[var(--accent-foreground)] transition hover:brightness-110">
                                             Suivante
-                                            <ArrowRight size={14} />
+                                            <IconArrowRight size={14} />
                                         </button>
                                     ) : null}
                                     {activeStep.primaryActionUrl && activeStep.key === 'archive' && onOpenArchive ? (
                                         <button type="button" onClick={onOpenArchive}
                                             className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                                            <ExternalLink size={13} />
+                                            <IconExternalLink size={13} />
                                             {activeStep.primaryActionLabel || 'Ouvrir'}
                                         </button>
                                     ) : activeStep.primaryActionUrl ? (
                                         <button type="button" onClick={() => openAction(activeStep.primaryActionUrl)}
                                             className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                                            <ExternalLink size={13} />
+                                            <IconExternalLink size={13} />
                                             {activeStep.primaryActionLabel || 'Ouvrir'}
                                         </button>
                                     ) : null}

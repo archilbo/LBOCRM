@@ -1,4 +1,5 @@
-import { FileText, Pencil, ReceiptText, Search, Settings2, Star, WalletCards, X } from 'lucide-react';
+import { IconFileText, IconPencil, IconReceipt2, IconSearch, IconSettings2, IconStar, IconWallet, IconX } from '@tabler/icons-react';
+
 import { useMemo, useState } from 'react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
@@ -21,9 +22,9 @@ const templateTypes: Array<{ id: 'all' | FinanceDocumentType; label: string }> =
 ];
 
 function typeMeta(type: string) {
-    if (type === 'quote') return { label: 'Devis', icon: FileText, tone: 'text-sky-300 bg-sky-400/10' };
-    if (type === 'invoice') return { label: 'Facture', icon: ReceiptText, tone: 'text-violet-300 bg-violet-400/10' };
-    return { label: 'Recu', icon: WalletCards, tone: 'text-emerald-300 bg-emerald-400/10' };
+    if (type === 'quote') return { label: 'Devis', icon: IconFileText, tone: 'text-sky-300 bg-sky-400/10' };
+    if (type === 'invoice') return { label: 'Facture', icon: IconReceipt2, tone: 'text-violet-300 bg-violet-400/10' };
+    return { label: 'Recu', icon: IconWallet, tone: 'text-emerald-300 bg-emerald-400/10' };
 }
 
 export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onRename, canManage = false }: Props) {
@@ -60,7 +61,7 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                 </div>
                 {canManage ? (
                     <AppButton size="sm" variant="ghost" className="bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]" onPress={() => onOpenEditor(editorUrl)}>
-                        <Settings2 size={14} />
+                        <IconSettings2 size={14} />
                         Ouvrir l editeur
                     </AppButton>
                 ) : null}
@@ -69,7 +70,7 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
             <div className="flex flex-col gap-2 border-b border-[var(--border)] px-3 py-2.5 sm:flex-row sm:items-center">
                 <div className="flex min-w-0 items-center gap-1.5">
                     <div className="relative min-w-0 flex-1 sm:w-[260px] sm:flex-none">
-                        <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                        <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
@@ -78,7 +79,7 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                         />
                         {query ? (
                             <button type="button" onClick={() => setQuery('')} className="absolute right-0.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]" aria-label="Effacer la recherche">
-                                <X size={11} />
+                                <IconX size={11} />
                             </button>
                         ) : null}
                     </div>
@@ -93,7 +94,7 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                         aria-expanded={showFilters}
                         aria-label="Afficher les filtres"
                     >
-                        <Settings2 size={11} />
+                        <IconSettings2 size={11} />
                         {type !== 'all' ? <span className="ml-0.5 size-1.5 rounded-full bg-[var(--accent)]" /> : null}
                     </button>
                 </div>
@@ -126,13 +127,13 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-1.5">
                                             <p className="truncate text-sm font-semibold text-[var(--text)]">{template.label}</p>
-                                            {template.isDefault ? <Star size={12} className="shrink-0 fill-[var(--accent)] text-[var(--accent)]" /> : null}
+                                            {template.isDefault ? <IconStar size={12} className="shrink-0 fill-[var(--accent)] text-[var(--accent)]" /> : null}
                                         </div>
                                         <p className="mt-0.5 truncate font-mono text-[9px] text-[var(--text-muted)]">{template.slug || '-'}</p>
                                     </div>
                                     {canManage ? (
                                         <button type="button" onClick={() => onRename(template)} className="flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-3)] hover:text-[var(--accent)]" title="Renommer">
-                                            <Pencil size={13} />
+                                            <IconPencil size={13} />
                                         </button>
                                     ) : null}
                                 </div>

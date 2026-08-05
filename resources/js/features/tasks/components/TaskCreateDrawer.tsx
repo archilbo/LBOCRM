@@ -1,4 +1,5 @@
-import { X } from 'lucide-react';
+import { IconX } from '@tabler/icons-react';
+
 import { FormEvent } from 'react';
 import { Input, TextArea } from '@heroui/react';
 import { AppDrawer } from '@/components/ui/AppDrawer';
@@ -93,7 +94,7 @@ export function TaskCreateDrawer({ isOpen, users, form, formErrors, onOpenChange
                                             <span key={id} className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-2 py-0.5 text-xs">
                                                 <span className="flex size-4 items-center justify-center rounded-full bg-[var(--crm-gold)] text-[7px] font-bold text-black">{u.name.charAt(0)}</span>
                                                 {u.name}
-                                                <button type="button" onClick={() => onFormChange({ ...form, assignee_ids: form.assignee_ids.filter((x) => x !== id) })} className="text-[var(--crm-muted)] hover:text-red-400"><X size={12} /></button>
+                                                <button type="button" onClick={() => onFormChange({ ...form, assignee_ids: form.assignee_ids.filter((x) => x !== id) })} className="text-[var(--crm-muted)] hover:text-red-400"><IconX size={12} /></button>
                                             </span>
                                         ) : null;
                                     })}
@@ -114,7 +115,7 @@ export function TaskCreateDrawer({ isOpen, users, form, formErrors, onOpenChange
                                         return u ? (
                                             <span key={id} className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-2 py-0.5 text-xs text-[var(--crm-text-muted)]">
                                                 {u.name}
-                                                <button type="button" onClick={() => onFormChange({ ...form, watcher_ids: form.watcher_ids.filter((x) => x !== id) })} className="text-[var(--crm-muted)] hover:text-red-400"><X size={12} /></button>
+                                                <button type="button" onClick={() => onFormChange({ ...form, watcher_ids: form.watcher_ids.filter((x) => x !== id) })} className="text-[var(--crm-muted)] hover:text-red-400"><IconX size={12} /></button>
                                             </span>
                                         ) : null;
                                     })}

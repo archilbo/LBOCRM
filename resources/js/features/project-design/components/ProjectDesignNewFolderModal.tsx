@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Input, Modal } from '@heroui/react';
-import { FolderPlus } from 'lucide-react';
+import { IconFolderPlus } from '@tabler/icons-react';
+
 import { useCreateFolder } from '../hooks/useProjectDesignMutations';
 
 export function NewFolderModal({
@@ -53,7 +54,7 @@ export function NewFolderModal({
                         <Modal.Header className="border-b border-[var(--border)] px-5 py-4 pr-12">
                             <div className="flex items-center gap-3">
                                 <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--accent)]/12 text-[var(--accent)]">
-                                    <FolderPlus size={17} />
+                                    <IconFolderPlus size={17} />
                                 </span>
                                 <div>
                                     <Modal.Heading className="text-sm font-semibold text-[var(--foreground)]">

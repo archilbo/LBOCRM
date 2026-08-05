@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Download, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { IconDownload, IconX, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+
 import { toast } from 'sonner';
 import type { MessageAttachmentRow } from '@/features/chat/types';
 import { FileTypeIcon } from '@/features/inbox/components/FileTypeIcon';
@@ -67,14 +68,14 @@ export function FilePreviewModal({ attachments, initialIndex, onClose }: Props) 
             <header className="flex items-center justify-between px-4 py-3">
                 <p className="truncate text-sm font-medium text-white/80">{getAttachmentDisplayName(current)}</p>
                 <div className="flex items-center gap-2">
-                    <button type="button" onClick={handleDownload} className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition" title="Télécharger"><Download size={18} /></button>
-                    <button type="button" onClick={onClose} className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition" title="Fermer"><X size={18} /></button>
+                    <button type="button" onClick={handleDownload} className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition" title="Télécharger"><IconDownload size={18} /></button>
+                    <button type="button" onClick={onClose} className="flex size-9 items-center justify-center rounded-xl bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition" title="Fermer"><IconX size={18} /></button>
                 </div>
             </header>
 
             <div className="flex flex-1 items-center justify-center overflow-hidden px-4 pb-4">
                 {hasPrev ? (
-                    <button type="button" onClick={() => setIndex((i) => i - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition"><ChevronLeft size={22} /></button>
+                    <button type="button" onClick={() => setIndex((i) => i - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition"><IconChevronLeft size={22} /></button>
                 ) : null}
 
                 {isImage ? (
@@ -84,7 +85,7 @@ export function FilePreviewModal({ attachments, initialIndex, onClose }: Props) 
                 ) : null}
 
                 {hasNext ? (
-                    <button type="button" onClick={() => setIndex((i) => i + 1)} className="absolute right-4 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition"><ChevronRight size={22} /></button>
+                    <button type="button" onClick={() => setIndex((i) => i + 1)} className="absolute right-4 top-1/2 -translate-y-1/2 flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition"><IconChevronRight size={22} /></button>
                 ) : null}
             </div>
 

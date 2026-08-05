@@ -1,4 +1,5 @@
-import { Plus, Search, X, AlertTriangle, CalendarDays } from 'lucide-react';
+import { IconPlus, IconSearch, IconX, IconAlertTriangle, IconCalendarMonth } from '@tabler/icons-react';
+
 import type { CalendarEventRow, CalendarEventType } from '@/features/calendar/types';
 import { EVENT_TYPE_LABELS, EVENT_TYPE_CLASSES } from '@/features/calendar/types';
 import { MiniCalendar } from '@/features/calendar/components/MiniCalendar';
@@ -48,16 +49,16 @@ export function CalendarSidebar({
                     type="button"
                     onClick={onCreateClick}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--crm-gold)] px-3 py-2 text-xs font-semibold text-black transition hover:brightness-110">
-                    <Plus size={14} /> New event
+                    <IconPlus size={14} /> New event
                 </button>
 
-                {/* Search */}
+                {/* IconSearch */}
                 <div className="relative mt-3">
-                    <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]" />
+                    <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]" />
                     <input
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        placeholder="Search events..."
+                        placeholder="IconSearch events..."
                         className="h-8 w-full rounded-lg border border-white/8 bg-white/5 pl-8 pr-8 text-xs text-white placeholder-[var(--crm-text-muted)] outline-none transition focus:border-[var(--crm-gold)]/40 focus:ring-2 focus:ring-[var(--crm-gold)]/20"
                     />
                     {search ? (
@@ -65,7 +66,7 @@ export function CalendarSidebar({
                             type="button"
                             onClick={() => onSearchChange('')}
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]">
-                            <X size={12} />
+                            <IconX size={12} />
                         </button>
                     ) : null}
                 </div>
@@ -79,7 +80,7 @@ export function CalendarSidebar({
                 {/* Overdue badge */}
                 {overdueCount > 0 && (
                     <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/8 px-3 py-2">
-                        <AlertTriangle size={13} className="text-red-400" />
+                        <IconAlertTriangle size={13} className="text-red-400" />
                         <span className="text-xs font-semibold text-red-400">{overdueCount} overdue</span>
                     </div>
                 )}

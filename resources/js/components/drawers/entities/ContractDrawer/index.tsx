@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState, useCallback } from 'react';
 import { Card, Input, TextArea } from '@heroui/react';
-import { Check, ChevronLeft, ChevronRight, TriangleAlert, AlertCircle } from 'lucide-react';
+import { IconCheck, IconChevronLeft, IconChevronRight, IconAlertTriangle, IconAlertCircle } from '@tabler/icons-react';
+
 import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
@@ -103,7 +104,7 @@ function FormErrorSummary({ errors }: { errors?: Record<string, string> }) {
         <Card className="border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] p-4 shadow-none">
             <div className="flex items-start gap-3">
                 <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] text-[var(--danger)]">
-                    <TriangleAlert size={16} />
+                    <IconAlertTriangle size={16} />
                 </div>
                 <div className="min-w-0">
                     <p className="text-sm font-semibold text-[var(--danger)]">Veuillez verifier le formulaire</p>
@@ -384,17 +385,17 @@ function DrawerFooter({ mode, step, isSubmitting, stepValid, onOpenChange, onBac
         <div className="flex w-full items-center justify-between gap-2">
             {step > 0 ? (
                 <AppButton variant="light" onPress={onBack} isDisabled={isSubmitting}>
-                    <ChevronLeft size={14} /> Retour
+                    <IconChevronLeft size={14} /> Retour
                 </AppButton>
             ) : <div />}
             {step === createSteps.length - 1 ? (
                 <AppButton variant="solid" color="primary" type="submit" form="contract-form" isLoading={isSubmitting}>
-                    <Check size={14} /> {isSubmitting ? 'Creation...' : 'Creer le contrat'}
+                    <IconCheck size={14} /> {isSubmitting ? 'Creation...' : 'Creer le contrat'}
                 </AppButton>
             ) : (
                 <AppButton variant="solid" color="primary" onPress={onNext}
                     isDisabled={isSubmitting || !stepValid}>
-                    Suivant <ChevronRight size={14} />
+                    Suivant <IconChevronRight size={14} />
                 </AppButton>
             )}
         </div>
@@ -627,7 +628,7 @@ export function ContractDrawer({
                                             isCurrent && 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)] shadow-lg shadow-[var(--accent)]/20',
                                             isPending && 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]',
                                         )}>
-                                            {isCompleted ? <Check size={14} strokeWidth={3} /> : <span>{i + 1}</span>}
+                                            {isCompleted ? <IconCheck size={14} strokeWidth={3} /> : <span>{i + 1}</span>}
                                         </span>
                                         <span className={cn(
                                             'text-[10px] font-medium text-center leading-tight max-w-[80px] truncate',
@@ -658,7 +659,7 @@ export function ContractDrawer({
                 {mode === 'create' && stepHints.length > 0 ? (
                     <Card className="border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-none">
                         <div className="flex items-start gap-2">
-                            <AlertCircle size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+                            <IconAlertCircle size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
                             <div>
                                 <p className="text-xs font-medium text-[var(--foreground)]">Champs requis pour continuer :</p>
                                 <ul className="mt-1 space-y-0.5">

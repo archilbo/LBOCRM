@@ -1,5 +1,6 @@
-﻿import { useMemo, useState } from 'react';
-import { Calculator, Lock, RotateCcw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { IconCalculator, IconLock, IconArrowRotaryFirstLeft } from '@tabler/icons-react';
+
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -46,7 +47,7 @@ export function ContractCalculationPanel() {
                 <div>
                     <div className="flex items-center gap-2">
                         <div className="flex size-9 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                            <Calculator size={17} />
+                            <IconCalculator size={17} />
                         </div>
                         <h2 className="text-sm font-semibold">{t('contractsWorkspace.calculator.title')}</h2>
                     </div>
@@ -67,7 +68,7 @@ export function ContractCalculationPanel() {
                             toast.info(t('contractsWorkspace.toast.reset'));
                         }}
                     >
-                        <RotateCcw size={15} />
+                        <IconArrowRotaryFirstLeft size={15} />
                         {t('contractsWorkspace.calculator.reset')}
                     </AppButton>
 
@@ -76,7 +77,7 @@ export function ContractCalculationPanel() {
                         variant="primary"
                         onPress={() => toast.success(t('contractsWorkspace.toast.lock'))}
                     >
-                        <Lock size={15} />
+                        <IconLock size={15} />
                         {t('contractsWorkspace.calculator.lock')}
                     </AppButton>
                 </div>

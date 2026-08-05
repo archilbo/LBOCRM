@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { CalendarDate } from '@internationalized/date';
 import { Calendar, CalendarYearPicker, Button, Popover } from '@heroui/react';
-import { Calendar as CalendarIcon, X } from 'lucide-react';
+import { IconCalendar, IconX } from '@tabler/icons-react';
+
 import { format } from 'date-fns';
 import { cn } from '@/lib/cn';
 import { toCalendarDate, fromCalendarDate } from '@/lib/dateUtils';
@@ -36,7 +37,7 @@ export function DateField({
                     'flex h-8 w-full items-center gap-2 rounded-[var(--radius-md)] border px-2.5 text-xs',
                     'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]',
                 )}>
-                    <CalendarIcon size={14} className="shrink-0 text-[var(--text-subtle)]" />
+                    <IconCalendar size={14} className="shrink-0 text-[var(--text-subtle)]" />
                     <span>{value ? format(value, 'dd MMM yyyy') : '—'}</span>
                 </div>
                 {error ? <p className="text-[9px] font-medium text-[var(--danger)]">{error}</p> : null}
@@ -62,7 +63,7 @@ export function DateField({
                             !value && 'text-[var(--text-subtle)]',
                         )}
                     >
-                        <CalendarIcon size={14} className="shrink-0 text-[var(--text-muted)]" />
+                        <IconCalendar size={14} className="shrink-0 text-[var(--text-muted)]" />
                         <span className="flex-1 text-left">
                             {value ? format(value, 'dd MMM yyyy') : placeholder}
                         </span>
@@ -77,7 +78,7 @@ export function DateField({
                                 className="flex size-5 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                                 aria-label="Effacer"
                             >
-                                <X size={13} />
+                                <IconX size={13} />
                             </button>
                         ) : null}
                     </Button>

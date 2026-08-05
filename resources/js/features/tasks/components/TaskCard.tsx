@@ -1,4 +1,5 @@
-import { AlertTriangle, CalendarDays, CheckCircle2, CheckSquare, Link2, MessageSquare, MoreHorizontal, Paperclip } from 'lucide-react';
+import { IconAlertTriangle, IconCalendarMonth, IconCircleCheck, IconSquareCheck, IconLink, IconMessage2, IconDots, IconPaperclip } from '@tabler/icons-react';
+
 import { useState } from 'react';
 import type { TaskRow, TaskStatus } from '@/features/tasks/types';
 import {
@@ -34,7 +35,7 @@ export function TaskCard({ task, onClick }: { task: TaskRow; onClick: () => void
                     <div className="relative shrink-0">
                         <button type="button" onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
                             className="flex size-6 items-center justify-center rounded-md text-[var(--crm-text-muted)] opacity-0 transition group-hover:opacity-100 hover:bg-[var(--crm-surface-3)]">
-                            <MoreHorizontal size={14} />
+                            <IconDots size={14} />
                         </button>
                         {menuOpen ? (
                             <div className="absolute right-0 top-7 z-50 w-44 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[var(--surface)] p-1 shadow-2xl shadow-black/40"
@@ -60,7 +61,7 @@ export function TaskCard({ task, onClick }: { task: TaskRow; onClick: () => void
 
                 {linkedRecord ? (
                     <div className="mt-1.5 inline-flex items-center gap-1 rounded bg-black/10 px-1.5 py-0.5 text-[9px] text-[var(--crm-muted)]">
-                        <Link2 size={10} />
+                        <IconLink size={10} />
                         <span className="truncate max-w-[140px]">{linkedRecord}</span>
                     </div>
                 ) : null}
@@ -81,26 +82,26 @@ export function TaskCard({ task, onClick }: { task: TaskRow; onClick: () => void
                     <div className="flex items-center gap-2 text-[9px] text-[var(--crm-text-muted)]">
                         {task.dueDate ? (
                             <span className={`inline-flex items-center gap-1 ${overdue ? 'font-semibold text-red-400' : ''}`}>
-                                <CalendarDays size={11} />
+                                <IconCalendarMonth size={11} />
                                 {task.dueDate}
                             </span>
                         ) : null}
-                        {checklistTotal > 0 ? <span className="inline-flex items-center gap-1"><CheckSquare size={11} />{checklistDone}/{checklistTotal}</span> : null}
-                        {task.commentsCount > 0 ? <span className="inline-flex items-center gap-1"><MessageSquare size={11} />{task.commentsCount}</span> : null}
-                        {task.attachmentsCount > 0 ? <span className="inline-flex items-center gap-1"><Paperclip size={11} />{task.attachmentsCount}</span> : null}
+                        {checklistTotal > 0 ? <span className="inline-flex items-center gap-1"><IconSquareCheck size={11} />{checklistDone}/{checklistTotal}</span> : null}
+                        {task.commentsCount > 0 ? <span className="inline-flex items-center gap-1"><IconMessage2 size={11} />{task.commentsCount}</span> : null}
+                        {task.attachmentsCount > 0 ? <span className="inline-flex items-center gap-1"><IconPaperclip size={11} />{task.attachmentsCount}</span> : null}
                     </div>
                 </div>
 
                 {task.status === 'blocked' && task.blockedReason ? (
                     <div className="mt-2 flex gap-1.5 rounded-lg border border-red-400/15 bg-red-400/5 p-2 text-[9px] leading-4 text-red-200">
-                        <AlertTriangle size={11} className="mt-0.5 shrink-0" />
+                        <IconAlertTriangle size={11} className="mt-0.5 shrink-0" />
                         <span className="line-clamp-1">{task.blockedReason}</span>
                     </div>
                 ) : null}
 
                 {isCompleted ? (
                     <div className="mt-2 flex items-center gap-1 text-[9px] font-semibold text-emerald-400">
-                        <CheckCircle2 size={11} /> Completed
+                        <IconCircleCheck size={11} /> Completed
                     </div>
                 ) : null}
             </button>

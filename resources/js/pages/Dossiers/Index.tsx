@@ -1,9 +1,6 @@
 import { router } from '@inertiajs/react';
-import {
-    AlertTriangle, CheckCircle2, ChevronDown, ChevronsUpDown, ChevronUp,
-    Eye, FolderKanban, ListFilter, MapPin, MoreHorizontal,
-    Pencil, Plus, RefreshCw, Search, SlidersHorizontal, Trash2, X,
-} from 'lucide-react';
+import { IconAlertTriangle, IconCircleCheck, IconChevronDown, IconArrowsSort, IconChevronUp, IconEye, IconFolder, IconFilter, IconMapPin, IconDots, IconPencil, IconPlus, IconRefresh, IconSearch, IconAdjustmentsHorizontal, IconTrash, IconX } from '@tabler/icons-react';
+
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar, Button, Card, Chip, Dropdown } from '@heroui/react';
@@ -103,10 +100,10 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
     const pageDossiers = filteredDossiers.slice(page * pageSize, (page + 1) * pageSize);
 
     const metricCards = [
-        { label: 'Total projets', value: metrics.total, icon: FolderKanban, color: 'text-[var(--text-muted)]', bgClass: 'bg-[var(--surface-2)]' },
-        { label: 'Actifs', value: metrics.active, icon: CheckCircle2, color: metrics.active > 0 ? 'text-emerald-400' : 'text-[var(--text-muted)]', bgClass: metrics.active > 0 ? 'bg-emerald-400/10' : 'bg-[var(--surface-2)]' },
-        { label: 'Ouverts', value: metrics.opened, icon: AlertTriangle, color: 'text-[var(--accent)]', bgClass: 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]' },
-        { label: 'Fermes', value: metrics.closed, icon: CheckCircle2, color: metrics.closed > 0 ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]', bgClass: 'bg-[var(--surface-2)]' },
+        { label: 'Total projets', value: metrics.total, icon: IconFolder, color: 'text-[var(--text-muted)]', bgClass: 'bg-[var(--surface-2)]' },
+        { label: 'Actifs', value: metrics.active, icon: IconCircleCheck, color: metrics.active > 0 ? 'text-emerald-400' : 'text-[var(--text-muted)]', bgClass: metrics.active > 0 ? 'bg-emerald-400/10' : 'bg-[var(--surface-2)]' },
+        { label: 'Ouverts', value: metrics.opened, icon: IconAlertTriangle, color: 'text-[var(--accent)]', bgClass: 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]' },
+        { label: 'Fermes', value: metrics.closed, icon: IconCircleCheck, color: metrics.closed > 0 ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]', bgClass: 'bg-[var(--surface-2)]' },
     ];
 
     function toggleSort(field: SortField) {
@@ -115,8 +112,8 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
     }
 
     function SortIcon({ col }: { col: SortField }) {
-        if (sortField !== col) return <ChevronsUpDown size={11} className="text-[var(--text-muted)]" />;
-        return sortDir === 'asc' ? <ChevronUp size={11} className="text-[var(--accent)]" /> : <ChevronDown size={11} className="text-[var(--accent)]" />;
+        if (sortField !== col) return <IconArrowsSort size={11} className="text-[var(--text-muted)]" />;
+        return sortDir === 'asc' ? <IconChevronUp size={11} className="text-[var(--accent)]" /> : <IconChevronDown size={11} className="text-[var(--accent)]" />;
     }
 
     function openCreateDrawer() {
@@ -187,15 +184,15 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
             <div className="flex items-center gap-0.5">
                 <button type="button" onClick={() => setPreviewDossier(dossier)}
                     className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Apercu">
-                    <Eye size={12} />
+                    <IconEye size={12} />
                 </button>
                 {can('dossiers.update') ? <button type="button" onClick={() => openEditDrawer(dossier)}
                     className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Modifier">
-                    <Pencil size={12} />
+                    <IconPencil size={12} />
                 </button> : null}
                 {hasMenuActions ? <Dropdown>
                     <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]">
-                        <span className="contents"><MoreHorizontal size={12} /></span>
+                        <span className="contents"><IconDots size={12} /></span>
                     </Dropdown.Trigger>
                     <Dropdown.Popover placement="bottom end"
                         className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0.5 shadow-xl">
@@ -206,25 +203,25 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                             }}>
                             <Dropdown.Item key="open" id="open" className="text-[var(--text)]">
                                 <div className="flex items-center gap-2">
-                                    <Eye size={13} className="text-[var(--accent)] shrink-0" />
+                                    <IconEye size={13} className="text-[var(--accent)] shrink-0" />
                                     <span>View project</span>
                                 </div>
                             </Dropdown.Item>
                             {can('documents.view') ? <Dropdown.Item key="documents" id="documents" className="text-[var(--text)]">
                                 <div className="flex items-center gap-2">
-                                    <FolderKanban size={13} className="text-sky-400 shrink-0" />
+                                    <IconFolder size={13} className="text-sky-400 shrink-0" />
                                     <span>Documents</span>
                                 </div>
                             </Dropdown.Item> : null}
                             {can('finance.view') ? <Dropdown.Item key="finance" id="finance" className="text-[var(--text)]">
                                 <div className="flex items-center gap-2">
-                                    <SlidersHorizontal size={13} className="text-amber-400 shrink-0" />
+                                    <IconAdjustmentsHorizontal size={13} className="text-amber-400 shrink-0" />
                                     <span>Finance</span>
                                 </div>
                             </Dropdown.Item> : null}
                             {can('archive.view') ? <Dropdown.Item key="archive" id="archive" className="text-[var(--text)]">
                                 <div className="flex items-center gap-2">
-                                    <Trash2 size={13} className="text-[var(--text-muted)] shrink-0" />
+                                    <IconTrash size={13} className="text-[var(--text-muted)] shrink-0" />
                                     <span>Archiver</span>
                                 </div>
                             </Dropdown.Item> : null}
@@ -232,7 +229,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                 classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
                                 <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
                                     <div className="flex items-center gap-2">
-                                        <Trash2 size={13} className="shrink-0 text-red-400" />
+                                        <IconTrash size={13} className="shrink-0 text-red-400" />
                                         <span>Supprimer</span>
                                     </div>
                                 </Dropdown.Item>
@@ -264,7 +261,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                         </p>
                     </div>
                     {can('dossiers.create') ? <Button variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={openCreateDrawer}>
-                        <Plus size={15} /> Nouveau projet
+                        <IconPlus size={15} /> Nouveau projet
                     </Button> : null}
                 </header>
 
@@ -316,7 +313,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                             toolbar={
                                 <div className="flex flex-wrap items-center gap-2 px-3 py-2">
                                 <div className="relative max-w-[220px] flex-1">
-                                    <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                                    <IconSearch size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                                     <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }}
                                         placeholder="Rechercher par projet, client..."
                                         className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[10px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
@@ -324,7 +321,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                     {query ? (
                                         <button type="button" onClick={() => setQuery('')}
                                             className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]">
-                                            <X size={12} />
+                                            <IconX size={12} />
                                         </button>
                                     ) : null}
                                 </div>
@@ -332,7 +329,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                     <Dropdown>
                                         <Dropdown.Trigger className={cn("inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-medium transition hover:border-[var(--accent)]/30", workflowFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
                                             <span className="contents">
-                                                <ListFilter size={12} />
+                                                <IconFilter size={12} />
                                                 {workflowFilter === 'all' ? 'Tous' : statusOptions.find((o) => o.id === workflowFilter)?.label}
                                                 <span className="rounded bg-[var(--surface-2)] px-1 py-px text-[9px] font-semibold text-[var(--text-muted)]">
                                                     {statusOptions.find((o) => o.id === workflowFilter)?.count ?? dossiers.length}
@@ -348,14 +345,14 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                                     base: 'rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40',
                                                 }}>
                                                 {statusOptions.map((opt) => {
-                                                    const Icon = opt.id === 'all' ? ListFilter : AlertTriangle;
+                                                    const Icon = opt.id === 'all' ? IconFilter : IconAlertTriangle;
                                                     return (
                                                         <Dropdown.Item key={opt.id}
                                                             id={opt.id}
                                                             textValue={opt.label}>
                                                             <div className="flex w-full items-center gap-2">
                                                                 <Dropdown.ItemIndicator>
-                                                                    <CheckCircle2 size={14} className="text-[var(--accent)]" />
+                                                                    <IconCircleCheck size={14} className="text-[var(--accent)]" />
                                                                 </Dropdown.ItemIndicator>
                                                                 <Icon size={14} className="shrink-0" />
                                                                 <span className="flex-1">{opt.label}</span>
@@ -368,7 +365,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                         </Dropdown.Popover>
                                     </Dropdown>
                                     <Button variant="light" size="sm" isIconOnly className="h-7 w-7 min-w-0 text-[var(--text-muted)]" onPress={() => router.reload({ preserveScroll: true })}>
-                                        <RefreshCw size={12} />
+                                        <IconRefresh size={12} />
                                     </Button>
                                 </div>
                                 </div>
@@ -414,7 +411,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                                 onClick={() => setPreviewDossier(dossier)}>
                                                 <td className="px-3 py-2">
                                                     <span className="flex size-5 items-center justify-center rounded bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[9px] font-bold text-[var(--accent)]">
-                                                        <FolderKanban size={10} />
+                                                        <IconFolder size={10} />
                                                     </span>
                                                 </td>
                                                 <td className="px-3 py-2">
@@ -513,7 +510,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                             size="sm"
                         >
                             <p className="mb-5 flex items-start gap-2 text-sm text-[var(--text-muted)]">
-                                <Trash2 size={16} className="mt-0.5 shrink-0 text-red-400" />
+                                <IconTrash size={16} className="mt-0.5 shrink-0 text-red-400" />
                                 <span>Confirmez la suppression de <strong>{deleteTarget?.dossierNumber}</strong>. Cette action est <span className="font-semibold text-red-400">irreversible</span>.</span>
                             </p>
                             <div className="flex justify-end gap-2">
@@ -554,7 +551,7 @@ function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDel
         <div className="space-y-5 pb-8">
             <div className="flex items-center gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-                    <FolderKanban size={18} />
+                    <IconFolder size={18} />
                 </span>
                 <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
@@ -627,16 +624,16 @@ function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDel
 
             <div className="grid grid-cols-1 gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-sm sm:grid-cols-2">
                 <Button variant="solid" color="primary" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
-                    <Eye size={13} /> View project
+                    <IconEye size={13} /> View project
                 </Button>
                 {canEdit ? <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => onEdit(dossier)}>
-                    <Pencil size={13} /> Modifier
+                    <IconPencil size={13} /> Modifier
                 </Button> : null}
                 {canArchive ? <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => router.visit('/archives')}>
-                    <Trash2 size={13} /> Archiver
+                    <IconTrash size={13} /> Archiver
                 </Button> : null}
                 {canDelete ? <Button variant="light" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap text-red-400" onPress={() => onDelete(dossier)}>
-                    <Trash2 size={13} /> Supprimer
+                    <IconTrash size={13} /> Supprimer
                 </Button> : null}
             </div>
         </div>

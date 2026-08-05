@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { FolderKanban } from 'lucide-react';
+import { IconFolder } from '@tabler/icons-react';
+
 import type { ClientProjectSummary } from '@/features/clients/types';
 
 const FORCE_CLIENT_PROJECTS_PANEL_53JC = true;
@@ -51,7 +52,7 @@ export function ClientProjectsPanel({
                     >
                         <div className="flex items-start gap-3">
                             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-[var(--crm-accent)]">
-                                <FolderKanban size={16} />
+                                <IconFolder size={16} />
                             </div>
 
                             <div className="min-w-0 flex-1">

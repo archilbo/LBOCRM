@@ -1,11 +1,16 @@
-import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { Tab, TabList, Tabs } from 'react-aria-components';
+
+/**
+ * Any icon component accepting `size`/`className` — supports both Lucide
+ * (project default) and Tabler (`@tabler/icons-react`) glyphs.
+ */
+export type WorkspaceTabIcon = ComponentType<{ size?: number; className?: string }>;
 
 export type AppWorkspaceTab = {
     id: string;
     label: string;
-    icon: LucideIcon;
+    icon: WorkspaceTabIcon;
 };
 
 type AppWorkspaceTabsProps = {

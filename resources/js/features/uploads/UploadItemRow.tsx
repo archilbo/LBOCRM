@@ -1,4 +1,5 @@
-import { Upload, Pause, Play, RotateCcw, X, Loader2, FileWarning, CheckCircle2 } from 'lucide-react';
+import { IconUpload, IconPlayerPause, IconPlayerPlay, IconArrowRotaryFirstLeft, IconX, IconLoader2, IconFileAlert, IconCircleCheck } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 import { formatBytes, formatSpeed, formatEta, formatPercent } from './uploadFormatters';
 import type { UploadSessionFile } from './uploadTypes';
@@ -27,13 +28,13 @@ export function UploadItemRow({ file, onPause, onResume, onRetry, onCancel, isUp
             <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
                     {isDone ? (
-                        <CheckCircle2 size={14} className="shrink-0 text-green-500" />
+                        <IconCircleCheck size={14} className="shrink-0 text-green-500" />
                     ) : isFailed ? (
-                        <FileWarning size={14} className="shrink-0 text-red-500" />
+                        <IconFileAlert size={14} className="shrink-0 text-red-500" />
                     ) : isProcessing ? (
-                        <Loader2 size={14} className="shrink-0 animate-spin text-amber-500" />
+                        <IconLoader2 size={14} className="shrink-0 animate-spin text-amber-500" />
                     ) : (
-                        <Upload size={14} className="shrink-0 text-[var(--accent)]" />
+                        <IconUpload size={14} className="shrink-0 text-[var(--accent)]" />
                     )}
                     <span className="truncate font-medium text-[var(--foreground)]">{file.originalFilename}</span>
                 </div>
@@ -64,23 +65,23 @@ export function UploadItemRow({ file, onPause, onResume, onRetry, onCancel, isUp
 
                 <div className="flex items-center gap-1">
                     {isActive && (
-                        <button onClick={onPause} className="rounded p-0.5 hover:bg-[var(--surface-2)]" aria-label="Pause">
-                            <Pause size={12} />
+                        <button onClick={onPause} className="rounded p-0.5 hover:bg-[var(--surface-2)]" aria-label="IconPlayerPause">
+                            <IconPlayerPause size={12} />
                         </button>
                     )}
                     {isPaused && (
                         <button onClick={onResume} className="rounded p-0.5 hover:bg-[var(--surface-2)]" aria-label="Resume">
-                            <Play size={12} />
+                            <IconPlayerPlay size={12} />
                         </button>
                     )}
                     {isFailed && (
                         <button onClick={onRetry} className="rounded p-0.5 hover:bg-[var(--surface-2)]" aria-label="Retry">
-                            <RotateCcw size={12} />
+                            <IconArrowRotaryFirstLeft size={12} />
                         </button>
                     )}
                     {!isDone && (
                         <button onClick={onCancel} className="rounded p-0.5 hover:bg-[var(--surface-2)]" aria-label="Cancel">
-                            <X size={12} />
+                            <IconX size={12} />
                         </button>
                     )}
                 </div>

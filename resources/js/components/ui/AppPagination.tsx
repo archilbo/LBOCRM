@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+
 
 type AppPaginationProps = {
     page: number;
@@ -30,7 +31,7 @@ export function AppPagination({ page, pageSize, total, onChange, variant = 'defa
                     disabled={page <= 1}
                     onClick={() => onChange(page - 1)}
                 >
-                    <ChevronLeft size={13} />
+                    <IconChevronLeft size={13} />
                     Precedent
                 </button>
                 <span className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-[10px] font-semibold text-[var(--text)]">
@@ -43,7 +44,7 @@ export function AppPagination({ page, pageSize, total, onChange, variant = 'defa
                     onClick={() => onChange(page + 1)}
                 >
                     Suivant
-                    <ChevronRight size={13} />
+                    <IconChevronRight size={13} />
                 </button>
             </div>
         </div>

@@ -1,17 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowRight,
-    BadgeDollarSign,
-    Building2,
-    CheckCircle2,
-    Eye,
-    EyeOff,
-    FileCheck2,
-    FolderKanban,
-    LockKeyhole,
-    Mail,
-    ShieldCheck,
-} from 'lucide-react';
+import { IconArrowRight, IconCoin, IconBuilding, IconCircleCheck, IconEye, IconEyeOff, IconFileCheck, IconFolder, IconLock, IconMail, IconShieldCheck } from '@tabler/icons-react';
+
 import { FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
@@ -31,10 +20,10 @@ type PageProps = {
 };
 
 const modules = [
-    { label: 'Clients', value: 'Identity and contacts', icon: Building2 },
-    { label: 'Projects', value: 'Architecture workflow', icon: FolderKanban },
-    { label: 'Documents', value: 'Files and missing pieces', icon: FileCheck2 },
-    { label: 'Finance', value: 'Quotes, invoices, receipts', icon: BadgeDollarSign },
+    { label: 'Clients', value: 'Identity and contacts', icon: IconBuilding },
+    { label: 'Projects', value: 'Architecture workflow', icon: IconFolder },
+    { label: 'Documents', value: 'Files and missing pieces', icon: IconFileCheck },
+    { label: 'Finance', value: 'Quotes, invoices, receipts', icon: IconCoin },
 ];
 
 const checks = [
@@ -101,7 +90,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                         <div className="relative z-10 flex h-full flex-col">
                             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 backdrop-blur-sm">
                                 <div className="flex size-11 items-center justify-center rounded-xl bg-[var(--crm-accent)] text-black shadow-[0_10px_24px_rgba(234,179,8,0.18)]">
-                                    <Building2 size={24} />
+                                    <IconBuilding size={24} />
                                 </div>
                                 <div>
                                     <p className="text-[16px] font-semibold tracking-[-0.03em]">ARCHI LBO <span className="text-[var(--crm-accent)]">OS</span></p>
@@ -141,7 +130,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                 <div className="mt-6 flex flex-wrap gap-2">
                                     {checks.map((check) => (
                                         <span key={check} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-medium tracking-[-0.01em] text-[var(--crm-text-muted)]">
-                                            <CheckCircle2 size={14} className="text-emerald-300" />
+                                            <IconCircleCheck size={14} className="text-emerald-300" />
                                             {check}
                                         </span>
                                     ))}
@@ -154,7 +143,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                         <div className="w-full max-w-lg py-4">
                             <div className="mb-8 flex items-center gap-3 lg:hidden">
                                 <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--crm-accent)] text-black">
-                                    <Building2 size={22} />
+                                    <IconBuilding size={22} />
                                 </div>
                                 <div>
                                     <p className="text-[16px] font-semibold tracking-[-0.03em]">ARCHI LBO <span className="text-[var(--crm-accent)]">OS</span></p>
@@ -173,7 +162,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                             </p>
                                         </div>
                                         <div className="flex size-11 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-[var(--crm-accent)]">
-                                            <LockKeyhole size={20} />
+                                            <IconLock size={20} />
                                         </div>
                                     </div>
 
@@ -213,7 +202,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                                 className="size-8 min-w-0 text-[var(--crm-muted)] hover:bg-[var(--crm-elevated)] hover:text-[var(--crm-accent)]"
                                                 onPress={() => setIsPasswordVisible((visible) => !visible)}
                                             >
-                                                {isPasswordVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                {isPasswordVisible ? <IconEyeOff size={16} /> : <IconEye size={16} />}
                                             </AppButton>
                                         }
                                     />
@@ -228,18 +217,18 @@ export default function Login({ errors = {}, status }: PageProps) {
                                             />
                                             Remember session
                                         </span>
-                                        <ShieldCheck size={16} className="text-[var(--crm-muted)]" />
+                                        <IconShieldCheck size={16} className="text-[var(--crm-muted)]" />
                                     </label>
 
                                     <AppButton variant="primary" type="submit" isDisabled={processing}>
                                         {processing ? 'Signing in...' : 'Enter workspace'}
-                                        <ArrowRight size={16} />
+                                        <IconArrowRight size={16} />
                                     </AppButton>
                                 </form>
 
                                 <div className="border-t border-[var(--crm-border)] bg-black/10 px-6 py-4 sm:px-7">
                                     <div className="flex items-center gap-2 text-[10px] leading-4 text-[var(--crm-muted)]">
-                                        <Mail size={14} />
+                                        <IconMail size={14} />
                                         Local account password is configured in `.env`.
                                     </div>
                                 </div>

@@ -1,28 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowDownToLine,
-    ArrowUpDown,
-    Check,
-    CheckCircle2,
-    CircleDollarSign,
-    Download,
-    Eye,
-    FileSpreadsheet,
-    FileText,
-    Pencil,
-    Printer,
-    RefreshCw,
-    ReceiptText,
-    Search,
-    Settings2,
-    ShoppingCart,
-    Timer,
-    Trash2,
-    WalletCards,
-    WandSparkles,
-    X,
-    XCircle,
-} from 'lucide-react';
+import { IconArrowDownToArc, IconArrowsSort, IconCheck, IconCircleCheck, IconCurrencyDollar, IconDownload, IconEye, IconFileSpreadsheet, IconFileText, IconPencil, IconPrinter, IconRefresh, IconReceipt2, IconSearch, IconSettings2, IconShoppingCart, IconStopwatch, IconTrash, IconWallet, IconWand, IconX, IconCircleX } from '@tabler/icons-react';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { TabPanel } from 'react-aria-components';
 import { toast } from 'sonner';
@@ -286,23 +264,23 @@ function FinanceDocumentDetailPanel({
                 <div className="space-y-1.5">
                     <div className="grid grid-cols-2 gap-1.5">
                         <AppButton variant="flat" size="sm" onPress={() => actions.onView(document)}>
-                            <Eye size={13} /> View
+                            <IconEye size={13} /> View
                         </AppButton>
                         <AppButton variant="flat" size="sm" onPress={() => actions.onPrint(document)}>
-                            <Printer size={13} /> Print
+                            <IconPrinter size={13} /> Print
                         </AppButton>
                     </div>
                     {can('finance.documents.update') ? <AppButton variant="primary" className="w-full" size="sm" onPress={() => actions.onGeneratePdf(document)}>
-                        <FileText size={13} />
+                        <IconFileText size={13} />
                         Generate PDF
                     </AppButton> : null}
                     {can('finance.documents.update') ? <div className="grid grid-cols-2 gap-1.5">
                         <AppButton variant="flat" size="sm" onPress={() => actions.onGenerateExcel(document)}>
-                            <FileSpreadsheet size={13} />
+                            <IconFileSpreadsheet size={13} />
                             Excel
                         </AppButton>
                         <AppButton variant="flat" size="sm" onPress={() => actions.onEdit(document)}>
-                            <Pencil size={13} />
+                            <IconPencil size={13} />
                             Edit
                         </AppButton>
                     </div> : null}
@@ -310,11 +288,11 @@ function FinanceDocumentDetailPanel({
                     {can('finance.documents.issue') && document.type === 'quote' ? (
                         <div className="grid grid-cols-2 gap-1.5">
                             <AppButton variant="flat" className="border-emerald-500/20 text-emerald-400" size="sm" onPress={() => actions.onAccept(document)}>
-                                <CheckCircle2 size={13} />
+                                <IconCircleCheck size={13} />
                                 Accept
                             </AppButton>
                             {can('finance.documents.create') ? <AppButton variant="flat" className="border-[var(--accent)]/20 text-[var(--accent)]" size="sm" onPress={() => actions.onConvert(document)}>
-                                <ReceiptText size={13} />
+                                <IconReceipt2 size={13} />
                                 Invoice
                             </AppButton> : null}
                         </div>
@@ -322,13 +300,13 @@ function FinanceDocumentDetailPanel({
 
                     {can('finance.payments.create') && document.type === 'invoice' ? (
                         <AppButton variant="flat" className="w-full" size="sm" onPress={() => actions.onPayment(document)}>
-                            <WalletCards size={13} />
+                            <IconWallet size={13} />
                             Register payment
                         </AppButton>
                     ) : null}
 
                     {can('finance.documents.delete') ? <AppButton variant="danger" className="w-full" size="sm" onPress={() => actions.onDelete(document)}>
-                        <Trash2 size={13} />
+                        <IconTrash size={13} />
                         Delete
                     </AppButton> : null}
                 </div>
@@ -448,7 +426,7 @@ function FinanceDocumentWorkspace({
                         : 'border-[var(--border)] bg-transparent hover:border-[var(--accent)]'
                 }`}
             >
-                {checked ? <Check size={11} strokeWidth={3} /> : null}
+                {checked ? <IconCheck size={11} strokeWidth={3} /> : null}
             </button>
         );
     }
@@ -459,7 +437,7 @@ function FinanceDocumentWorkspace({
             <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center">
                 <div className="flex min-w-0 items-center gap-1.5">
                     <div className="relative min-w-0 flex-1 sm:w-[260px] sm:flex-none">
-                        <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                        <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
@@ -476,14 +454,14 @@ function FinanceDocumentWorkspace({
                                 }}
                                 className="absolute right-0.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                             >
-                                <X size={11} />
+                                <IconX size={11} />
                             </button>
                         ) : null}
                     </div>
                     <button type="button" className={`flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2 text-[10px] font-medium transition hover:bg-[var(--surface-2)] ${
                         isRefreshing ? 'bg-[var(--surface)] text-[var(--accent)]' : 'bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)]'
                     }`} disabled={isRefreshing} onClick={() => { setIsRefreshing(true); router.reload({ only: ['documents'], onFinish: () => setIsRefreshing(false) }); }}>
-                        <RefreshCw size={11} className={isRefreshing ? 'animate-spin' : ''} />
+                        <IconRefresh size={11} className={isRefreshing ? 'animate-spin' : ''} />
                         {isRefreshing ? '...' : null}
                     </button>
                     <button type="button" className={`flex h-7 items-center gap-1 rounded-lg border px-2 text-[10px] font-medium transition ${
@@ -491,7 +469,7 @@ function FinanceDocumentWorkspace({
                             ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
                             : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
                     }`} onClick={() => setShowFilters((v) => !v)}>
-                        <Settings2 size={11} />
+                        <IconSettings2 size={11} />
                         {statusFilter !== 'all' || typeFilter !== 'all' ? (
                             <span className="ml-0.5 flex size-3.5 items-center justify-center rounded-full bg-[var(--accent)] text-[8px] font-bold text-black">!</span>
                         ) : null}
@@ -535,14 +513,14 @@ function FinanceDocumentWorkspace({
                     <span className="text-xs font-semibold text-[var(--accent)]">{selectedRows.length} selected</span>
                     <div className="ml-auto flex items-center gap-1">
                         <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGeneratePdf(doc); }); }}>
-                            <FileText size={12} /> PDF
+                            <IconFileText size={12} /> PDF
                         </button>
                         <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGenerateExcel(doc); }); }}>
-                            <FileSpreadsheet size={12} /> Excel
+                            <IconFileSpreadsheet size={12} /> Excel
                         </button>
                         <div className="mx-1 h-5 w-px bg-[var(--border)]" />
                         <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => setSelectedRows([])}>
-                            <X size={12} /> Clear
+                            <IconX size={12} /> Clear
                         </button>
                     </div>
                 </div>
@@ -556,11 +534,11 @@ function FinanceDocumentWorkspace({
                             <th className="w-10 px-3 py-2">
                                 <Checkbox checked={allPageRowsSelected} onChange={togglePageRows} label="Select all visible" />
                             </th>
-                            <FinanceSortableHeader column="number" label={<><ReceiptText size={11} /> Document</>} sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="number" label={<><IconReceipt2 size={11} /> Document</>} sort={sort} direction={direction} onSort={changeSort} />
                             <FinanceSortableHeader column="type" label="Type" sort={sort} direction={direction} onSort={changeSort} />
                             <th className="px-3 py-2">
                                 <span className="inline-flex items-center gap-1.5">
-                                    <FileText size={11} />
+                                    <IconFileText size={11} />
                                     Client / Dossier
                                 </span>
                             </th>
@@ -593,7 +571,7 @@ function FinanceDocumentWorkspace({
                                         <td className="px-3 py-2">
                                             <div className="flex items-center gap-2">
                                                 <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                                                    <ReceiptText size={12} />
+                                                    <IconReceipt2 size={12} />
                                                 </div>
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-1">
@@ -630,7 +608,7 @@ function FinanceDocumentWorkspace({
                             <tr>
                                 <td colSpan={9} className="p-6 text-center">
                                     <div className="flex flex-col items-center gap-1.5">
-                                        <FileText size={24} className="text-[var(--text-muted)]" />
+                                        <IconFileText size={24} className="text-[var(--text-muted)]" />
                                         <p className="text-xs font-semibold text-[var(--text)]">No finance documents found</p>
                                         <p className="text-[10px] text-[var(--text-muted)]">Change search or create a new document.</p>
                                     </div>
@@ -648,7 +626,7 @@ function FinanceDocumentWorkspace({
                         <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                                 <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                                    <ReceiptText size={12} />
+                                    <IconReceipt2 size={12} />
                                 </div>
                                 <div className="min-w-0">
                                     <p className="truncate text-xs font-semibold">{document.number}</p>
@@ -717,9 +695,9 @@ function PaymentWorkspace({
 
     function paymentActionsFor(payment: Payment): FinanceRowAction[] {
         return [
-            can('finance.payments.view') && payment.receipt?.urls?.show && { id: 'view-receipt', label: 'Voir le recu', icon: <Eye size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.show) },
-            can('finance.payments.view') && payment.receipt?.urls?.pdf && { id: 'download-pdf', label: 'Telecharger PDF', icon: <FileText size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.pdf), tone: 'accent' },
-            can('finance.payments.view') && payment.receipt?.urls?.excel && { id: 'download-excel', label: 'Telecharger Excel', icon: <FileSpreadsheet size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.excel), tone: 'accent' },
+            can('finance.payments.view') && payment.receipt?.urls?.show && { id: 'view-receipt', label: 'Voir le recu', icon: <IconEye size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.show) },
+            can('finance.payments.view') && payment.receipt?.urls?.pdf && { id: 'download-pdf', label: 'Telecharger PDF', icon: <IconFileText size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.pdf), tone: 'accent' },
+            can('finance.payments.view') && payment.receipt?.urls?.excel && { id: 'download-excel', label: 'Telecharger Excel', icon: <IconFileSpreadsheet size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.excel), tone: 'accent' },
         ].filter((action): action is FinanceRowAction => Boolean(action));
     }
 
@@ -729,7 +707,7 @@ function PaymentWorkspace({
             <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center">
                 <div className="flex min-w-0 items-center gap-1.5">
                     <div className="relative min-w-0 flex-1 sm:w-[280px] sm:flex-none">
-                        <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                        <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                         <input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
@@ -746,7 +724,7 @@ function PaymentWorkspace({
                                 }}
                                 className="absolute right-0.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                             >
-                                <X size={11} />
+                                <IconX size={11} />
                             </button>
                         )}
                     </div>
@@ -762,10 +740,10 @@ function PaymentWorkspace({
                 <table className="finance-table min-w-[720px] text-sm">
                     <thead>
                         <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                            <FinanceSortableHeader column="payment_number" label={<><CircleDollarSign size={11} /> Paiement</>} sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="payment_number" label={<><IconCurrencyDollar size={11} /> Paiement</>} sort={sort} direction={direction} onSort={changeSort} />
                             <th className="px-3 py-2">
                                 <span className="inline-flex items-center gap-1.5">
-                                    <ReceiptText size={11} />
+                                    <IconReceipt2 size={11} />
                                     Facture / Client
                                 </span>
                             </th>
@@ -781,7 +759,7 @@ function PaymentWorkspace({
                                     <td className="px-3 py-2">
                                         <div className="flex items-center gap-2">
                                             <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                                                <CircleDollarSign size={12} />
+                                                <IconCurrencyDollar size={12} />
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-xs font-semibold text-[var(--text)]">{payment.paymentNumber}</p>
@@ -816,7 +794,7 @@ function PaymentWorkspace({
                             <tr>
                                 <td colSpan={5} className="p-6 text-center">
                                     <div className="flex flex-col items-center gap-1.5">
-                                        <WalletCards size={24} className="text-[var(--text-muted)]" />
+                                        <IconWallet size={24} className="text-[var(--text-muted)]" />
                                         <p className="text-xs font-semibold text-[var(--text)]">Aucun paiement trouvé</p>
                                         <p className="text-[10px] text-[var(--text-muted)]">Enregistrez un paiement depuis une facture.</p>
                                     </div>
@@ -835,7 +813,7 @@ function PaymentWorkspace({
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]">
-                                        <CircleDollarSign size={12} />
+                                        <IconCurrencyDollar size={12} />
                                     </div>
                                     <div className="min-w-0">
                                         <p className="truncate text-xs font-semibold text-[var(--text)]">{payment.paymentNumber}</p>
@@ -853,7 +831,7 @@ function PaymentWorkspace({
                     ))
                 ) : (
                     <div className="flex flex-col items-center gap-1.5 px-4 py-12 text-center">
-                        <WalletCards size={24} className="text-[var(--text-muted)]" />
+                        <IconWallet size={24} className="text-[var(--text-muted)]" />
                         <p className="text-xs font-semibold text-[var(--text)]">Aucun paiement trouvé</p>
                         <p className="text-[10px] text-[var(--text-muted)]">Enregistrez un paiement depuis une facture.</p>
                     </div>
@@ -908,7 +886,7 @@ function OverviewWorkspace({
         <section className="space-y-4">
             <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
                 <AppKpiCard
-                    icon={<FileText size={16} className="text-sky-400" />}
+                    icon={<IconFileText size={16} className="text-sky-400" />}
                     label="Quotes"
                     value={formatCompactMoney(metrics.totalQuotes, currency)}
                     sparklineData={sparklines.quotes}
@@ -918,7 +896,7 @@ function OverviewWorkspace({
                     currency={currency}
                 />
                 <AppKpiCard
-                    icon={<ReceiptText size={16} className="text-violet-400" />}
+                    icon={<IconReceipt2 size={16} className="text-violet-400" />}
                     label="Invoices"
                     value={formatCompactMoney(metrics.totalInvoices, currency)}
                     sparklineData={sparklines.invoices}
@@ -928,7 +906,7 @@ function OverviewWorkspace({
                     currency={currency}
                 />
                 <AppKpiCard
-                    icon={<CircleDollarSign size={16} className="text-amber-400" />}
+                    icon={<IconCurrencyDollar size={16} className="text-amber-400" />}
                     label="Remaining"
                     value={formatCompactMoney(metrics.remainingTotal, currency)}
                     sparklineData={sparklines.remaining}
@@ -938,7 +916,7 @@ function OverviewWorkspace({
                     currency={currency}
                 />
                 <AppKpiCard
-                    icon={<Timer size={16} className="text-rose-400" />}
+                    icon={<IconStopwatch size={16} className="text-rose-400" />}
                     label="Overdue"
                     value={formatCompactMoney(metrics.overdueTotal, currency)}
                     sparklineData={sparklines.overdue}
@@ -948,7 +926,7 @@ function OverviewWorkspace({
                     currency={currency}
                 />
                 <AppKpiCard
-                    icon={<ArrowDownToLine size={16} className="text-emerald-400" />}
+                    icon={<IconArrowDownToArc size={16} className="text-emerald-400" />}
                     label="Encaisse"
                     value={formatCompactMoney(metrics.paidTotal, currency)}
                     sparklineData={sparklines.paid}
@@ -958,7 +936,7 @@ function OverviewWorkspace({
                     currency={currency}
                 />
                 <AppKpiCard
-                    icon={<ShoppingCart size={16} className="text-orange-400" />}
+                    icon={<IconShoppingCart size={16} className="text-orange-400" />}
                     label="Dépenses"
                     value={formatCompactMoney(metrics.totalExpenses ?? 0, currency)}
                     sparklineData={sparklines.expenses}
@@ -1353,7 +1331,7 @@ export default function FinanceDocumentsIndex({
                             selected={selectedDocument}
                             onSelect={setSelectedDocument}
                             actions={commonActions}
-                            searchPlaceholder="Search quotes, clients, dossiers..."
+                            searchPlaceholder="IconSearch quotes, clients, dossiers..."
                             pagination={documentPagination}
                             filters={filters}
                             activeTab={activeTab}
@@ -1367,7 +1345,7 @@ export default function FinanceDocumentsIndex({
                             selected={selectedDocument}
                             onSelect={setSelectedDocument}
                             actions={commonActions}
-                            searchPlaceholder="Search invoices, clients, dossiers..."
+                            searchPlaceholder="IconSearch invoices, clients, dossiers..."
                             pagination={documentPagination}
                             filters={filters}
                             activeTab={activeTab}

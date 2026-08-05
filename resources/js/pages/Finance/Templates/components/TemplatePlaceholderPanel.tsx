@@ -1,5 +1,6 @@
 import { Input } from '@heroui/react';
-import { Search, Variable } from 'lucide-react';
+import { IconSearch, IconVariable } from '@tabler/icons-react';
+
 import { useMemo, useRef, useState } from 'react';
 
 type TemplatePlaceholderPanelProps = {
@@ -34,7 +35,7 @@ export function TemplatePlaceholderPanel({ placeholders, onInsert }: TemplatePla
     return (
         <div className="relative h-10 shrink-0 border-t border-[var(--border)]">
             <div className="flex h-full items-center gap-2 px-3">
-                <Variable size={14} className="shrink-0 text-[var(--text-muted)]" />
+                <IconVariable size={14} className="shrink-0 text-[var(--text-muted)]" />
                 <Input
                     ref={inputRef}
                     type="text"

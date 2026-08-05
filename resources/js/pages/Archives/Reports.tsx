@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { AlertCircle, ArrowLeft, Calendar, TrendingUp, TriangleAlert } from 'lucide-react';
+import { IconAlertCircle, IconArrowLeft, IconCalendar, IconTrendingUp, IconAlertTriangle } from '@tabler/icons-react';
+
 import { AppShell } from '@/components/layout/AppShell';
 import { AppKpiCard } from '@/components/ui/AppKpiCard';
 
@@ -44,21 +45,21 @@ export default function ArchivesReports({ overdue, monthly, lost, kpis }: PagePr
                     <div className="flex items-center gap-3">
                         <button type="button" onClick={() => router.visit('/archives')}
                             className="flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/5">
-                            <ArrowLeft size={14} />
+                            <IconArrowLeft size={14} />
                         </button>
                         <h1 className="text-2xl font-semibold text-white">Reports</h1>
                     </div>
 
                     <div className="grid grid-cols-3 gap-3">
-                        <AppKpiCard label="Overdue" value={kpis.totalOverdue} detail={`Avg ${kpis.avgOverdueDays} days overdue`} icon={<AlertCircle size={16} className="text-red-400" />} valueClassName="text-red-300" />
-                        <AppKpiCard label="Monthly" value={monthly.reduce((sum, row) => sum + row.total, 0)} detail="Archives in last 12 months" icon={<Calendar size={16} className="text-amber-400" />} />
-                        <AppKpiCard label="Lost" value={kpis.totalLost} detail="Missing archives" icon={<TriangleAlert size={16} className="text-orange-400" />} valueClassName="text-orange-300" />
+                        <AppKpiCard label="Overdue" value={kpis.totalOverdue} detail={`Avg ${kpis.avgOverdueDays} days overdue`} icon={<IconAlertCircle size={16} className="text-red-400" />} valueClassName="text-red-300" />
+                        <AppKpiCard label="Monthly" value={monthly.reduce((sum, row) => sum + row.total, 0)} detail="Archives in last 12 months" icon={<IconCalendar size={16} className="text-amber-400" />} />
+                        <AppKpiCard label="Lost" value={kpis.totalLost} detail="Missing archives" icon={<IconAlertTriangle size={16} className="text-orange-400" />} valueClassName="text-orange-300" />
                     </div>
 
                     <div className="grid gap-6 lg:grid-cols-2">
                         <section className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
                             <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
-                                <TrendingUp size={14} className="text-amber-400" /> Monthly creation
+                                <IconTrendingUp size={14} className="text-amber-400" /> Monthly creation
                             </h2>
                             <div className="space-y-2">
                                 {monthly.map((row) => {
@@ -79,7 +80,7 @@ export default function ArchivesReports({ overdue, monthly, lost, kpis }: PagePr
 
                         <section className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
                             <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
-                                <AlertCircle size={14} className="text-red-400" /> Overdue archives
+                                <IconAlertCircle size={14} className="text-red-400" /> Overdue archives
                             </h2>
                             {overdue.length > 0 ? (
                                 <div className="space-y-2 max-h-80 overflow-y-auto">
@@ -106,7 +107,7 @@ export default function ArchivesReports({ overdue, monthly, lost, kpis }: PagePr
 
                     <section className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
                         <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
-                            <TriangleAlert size={14} className="text-orange-400" /> Lost register
+                            <IconAlertTriangle size={14} className="text-orange-400" /> Lost register
                         </h2>
                         {lost.length > 0 ? (
                             <table className="w-full">

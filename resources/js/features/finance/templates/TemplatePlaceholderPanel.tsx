@@ -1,4 +1,5 @@
-import { Search } from 'lucide-react';
+import { IconSearch } from '@tabler/icons-react';
+
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppCard } from '@/components/ui/AppCard';
@@ -21,7 +22,7 @@ export function TemplatePlaceholderPanel({ placeholders }: { placeholders: Templ
                 <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Placeholders</h2>
                 <span className="rounded-md bg-[var(--surface-2)] px-1.5 py-0.5 text-[9px] text-[var(--text-muted)]">{total}</span>
             </div>
-            <AppTextField label="Search" value={search} onChange={setSearch} icon={<Search size={14} />} placeholder="company, total..." />
+            <AppTextField label="IconSearch" value={search} onChange={setSearch} icon={<IconSearch size={14} />} placeholder="company, total..." />
             <div className="mt-2 max-h-44 space-y-2 overflow-auto pr-1">
                 {filtered.map((group) => (
                     <div key={group.group}>

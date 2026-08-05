@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
-import { X, Info } from 'lucide-react';
+import { IconX, IconInfoCircle } from '@tabler/icons-react';
+
 import { CalendarDateTime, type DateValue } from '@internationalized/date';
 import { Calendar, Checkbox, DateField, DatePicker, Input, TextArea } from '@heroui/react';
 import { AppDrawer } from '@/components/ui/AppDrawer';
@@ -177,7 +178,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
 
                         {typeHint && (
                             <div className="flex items-start gap-2 rounded-lg border border-[var(--crm-gold)]/20 bg-[var(--crm-gold)]/8 px-3 py-2">
-                                <Info size={13} className="mt-0.5 shrink-0 text-[var(--crm-gold)]" />
+                                <IconInfoCircle size={13} className="mt-0.5 shrink-0 text-[var(--crm-gold)]" />
                                 <p className="text-[10px] text-[var(--crm-text-muted)]">{typeHint}</p>
                             </div>
                         )}
@@ -377,7 +378,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                                 type="button"
                                                 onClick={() => setForm((p) => ({ ...p, participantIds: p.participantIds.filter((x) => x !== id) }))}
                                                 className="text-[var(--crm-muted)] hover:text-red-400">
-                                                <X size={12} />
+                                                <IconX size={12} />
                                             </button>
                                         </span>
                                     ) : null;

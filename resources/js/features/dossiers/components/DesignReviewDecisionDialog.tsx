@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Modal, TextArea } from '@heroui/react';
-import { CheckCircle2, RefreshCw, XCircle } from 'lucide-react';
+import { IconCircleCheck, IconRefresh, IconCircleX } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 
 const DECISIONS = [
-    { id: 'approved', label: 'Approve', icon: CheckCircle2, tone: 'border-emerald-500/35 bg-emerald-500/10 text-emerald-300' },
-    { id: 'changes_requested', label: 'Request changes', icon: RefreshCw, tone: 'border-amber-500/35 bg-amber-500/10 text-amber-300' },
-    { id: 'rejected', label: 'Reject', icon: XCircle, tone: 'border-red-500/35 bg-red-500/10 text-red-300' },
+    { id: 'approved', label: 'Approve', icon: IconCircleCheck, tone: 'border-emerald-500/35 bg-emerald-500/10 text-emerald-300' },
+    { id: 'changes_requested', label: 'Request changes', icon: IconRefresh, tone: 'border-amber-500/35 bg-amber-500/10 text-amber-300' },
+    { id: 'rejected', label: 'Reject', icon: IconCircleX, tone: 'border-red-500/35 bg-red-500/10 text-red-300' },
 ] as const;
 
 export function DesignReviewDecisionDialog({

@@ -1,4 +1,5 @@
-import { AlertTriangle, CalendarDays, CheckCircle2, Clock3, ListTodo, ShieldAlert } from 'lucide-react';
+import { IconAlertTriangle, IconCalendarMonth, IconCircleCheck, IconClockHour3, IconListCheck, IconShieldExclamation } from '@tabler/icons-react';
+
 import { useMemo } from 'react';
 import { Card } from '@heroui/react';
 import { AppKpiCard } from '@/components/ui/AppKpiCard';
@@ -114,11 +115,11 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
         <div className="space-y-4">
             {/* KPI Row */}
             <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <AppKpiCard icon={<ListTodo size={16} className="text-sky-400" />} label="Open" value={metrics.open.length} detail="Active operational work" sparklineData={metrics.openSeries} accentColor="#38bdf8" showAutoTrend={false} />
-                <AppKpiCard icon={<CheckCircle2 size={16} className="text-emerald-400" />} label="Completed" value={metrics.completed.length} detail="Finished tasks" sparklineData={metrics.completedSeries} accentColor="#34d399" showAutoTrend={false} />
-                <AppKpiCard icon={<Clock3 size={16} className="text-amber-400" />} label="Pending" value={metrics.pending.length} detail="Not yet started" sparklineData={metrics.pendingSeries} accentColor="#fbbf24" showAutoTrend={false} />
-                <AppKpiCard icon={<CalendarDays size={16} className="text-violet-400" />} label="Upcoming" value={metrics.dueThisWeek.length} detail="Due within 7 days" sparklineData={metrics.upcomingSeries} accentColor="#a78bfa" showAutoTrend={false} />
-                <AppKpiCard icon={<AlertTriangle size={16} className={metrics.overdueT.length ? 'text-rose-400' : 'text-emerald-400'} />} label="Overdue" value={metrics.overdueT.length} detail={metrics.overdueT.length ? 'Past due date' : 'All on track'} sparklineData={metrics.overdueSeries} accentColor={metrics.overdueT.length ? '#fb7185' : '#34d399'} showAutoTrend={false} />
+                <AppKpiCard icon={<IconListCheck size={16} className="text-sky-400" />} label="Open" value={metrics.open.length} detail="Active operational work" sparklineData={metrics.openSeries} accentColor="#38bdf8" showAutoTrend={false} />
+                <AppKpiCard icon={<IconCircleCheck size={16} className="text-emerald-400" />} label="Completed" value={metrics.completed.length} detail="Finished tasks" sparklineData={metrics.completedSeries} accentColor="#34d399" showAutoTrend={false} />
+                <AppKpiCard icon={<IconClockHour3 size={16} className="text-amber-400" />} label="Pending" value={metrics.pending.length} detail="Not yet started" sparklineData={metrics.pendingSeries} accentColor="#fbbf24" showAutoTrend={false} />
+                <AppKpiCard icon={<IconCalendarMonth size={16} className="text-violet-400" />} label="Upcoming" value={metrics.dueThisWeek.length} detail="Due within 7 days" sparklineData={metrics.upcomingSeries} accentColor="#a78bfa" showAutoTrend={false} />
+                <AppKpiCard icon={<IconAlertTriangle size={16} className={metrics.overdueT.length ? 'text-rose-400' : 'text-emerald-400'} />} label="Overdue" value={metrics.overdueT.length} detail={metrics.overdueT.length ? 'Past due date' : 'All on track'} sparklineData={metrics.overdueSeries} accentColor={metrics.overdueT.length ? '#fb7185' : '#34d399'} showAutoTrend={false} />
             </div>
 
             <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
@@ -197,7 +198,7 @@ export function TaskOverview({ tasks, onTaskClick, userId }: Props) {
             {attentionTasks.length > 0 ? (
                 <div className="rounded-xl border border-red-400/15 bg-red-400/3 p-4">
                     <div className="mb-3 flex items-center gap-2">
-                        <ShieldAlert size={14} className="text-red-400" />
+                        <IconShieldExclamation size={14} className="text-red-400" />
                         <p className="text-xs font-bold uppercase tracking-[0.1em] text-red-300">Needs attention</p>
                         <span className="text-[9px] text-[var(--crm-muted)]">({attentionTasks.length})</span>
                     </div>

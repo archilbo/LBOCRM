@@ -4,17 +4,8 @@ import {
     useRef,
     useState,
 } from 'react';
-import {
-    AlertTriangle,
-    CheckCircle2,
-    ImageUp,
-    RefreshCcw,
-    RotateCcw,
-    RotateCw,
-    ScanLine,
-    ShieldCheck,
-    X,
-} from 'lucide-react';
+import { IconAlertTriangle, IconCircleCheck, IconPhotoUp, IconRefresh, IconArrowRotaryFirstLeft, IconRotateClockwise, IconScan, IconShieldCheck, IconX } from '@tabler/icons-react';
+
 import { AppButton } from '@/components/ui/AppButton';
 import { cn } from '@/lib/cn';
 import {
@@ -127,7 +118,7 @@ function ImageSlot({
                             disabled={isDisabled}
                             className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] shadow-sm transition hover:text-[var(--danger)] disabled:opacity-50"
                         >
-                            <X size={13} />
+                            <IconX size={13} />
                         </button>
                     </div>
 
@@ -144,7 +135,7 @@ function ImageSlot({
                                 disabled={isDisabled}
                                 className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] disabled:opacity-50"
                             >
-                                <RotateCcw size={13} />
+                                <IconArrowRotaryFirstLeft size={13} />
                             </button>
 
                             <button
@@ -154,7 +145,7 @@ function ImageSlot({
                                 disabled={isDisabled}
                                 className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] disabled:opacity-50"
                             >
-                                <RotateCw size={13} />
+                                <IconRotateClockwise size={13} />
                             </button>
 
                             <label
@@ -178,7 +169,7 @@ function ImageSlot({
                     )}
                 >
                     <div className="flex size-11 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
-                        <ImageUp size={20} />
+                        <IconPhotoUp size={20} />
                     </div>
 
                     <span className="mt-2 text-xs font-medium text-[var(--foreground)]">
@@ -216,7 +207,7 @@ function ImageSlot({
                     key={`${side}-${warning}`}
                     className="flex items-center gap-1.5 text-[9px] text-amber-500"
                 >
-                    <AlertTriangle size={11} />
+                    <IconAlertTriangle size={11} />
                     {warning}
                 </p>
             ))}
@@ -236,7 +227,7 @@ function FieldStatus({ field }: { field: CinScannedField }) {
     if (field.status === 'verified') {
         return (
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[9px] font-medium text-emerald-500">
-                <CheckCircle2 size={11} />
+                <IconCircleCheck size={11} />
                 Vérifié · {percentage}%
             </span>
         );
@@ -245,7 +236,7 @@ function FieldStatus({ field }: { field: CinScannedField }) {
     if (field.status === 'review') {
         return (
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-1 text-[9px] font-medium text-amber-500">
-                <AlertTriangle size={11} />
+                <IconAlertTriangle size={11} />
                 À vérifier · {percentage}%
             </span>
         );
@@ -403,7 +394,7 @@ export function CinScannerPanel({
             const response = await fetch('/clients/scan-cin', {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': (
+                    'IconX-CSRF-TOKEN': (
                         document.querySelector(
                             'meta[name="csrf-token"]',
                         ) as HTMLMetaElement | null
@@ -477,7 +468,7 @@ export function CinScannerPanel({
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
                     <div className="flex items-start gap-3">
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
-                            <ShieldCheck size={18} />
+                            <IconShieldCheck size={18} />
                         </div>
 
                         <div className="min-w-0 flex-1">
@@ -499,7 +490,7 @@ export function CinScannerPanel({
 
                     {result.document.imagesSwapped ? (
                         <p className="mt-3 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-[10px] text-amber-500">
-                            <AlertTriangle size={13} />
+                            <IconAlertTriangle size={13} />
                             Les images recto et verso semblent inversées. Les données ont été réorganisées automatiquement.
                         </p>
                     ) : null}
@@ -552,7 +543,7 @@ export function CinScannerPanel({
                         variant="bordered"
                         onPress={reset}
                     >
-                        <RefreshCcw size={14} />
+                        <IconRefresh size={14} />
                         Reprendre les images
                     </AppButton>
 
@@ -561,7 +552,7 @@ export function CinScannerPanel({
                         color="primary"
                         onPress={onContinue}
                     >
-                        <CheckCircle2 size={14} />
+                        <IconCircleCheck size={14} />
                         Continuer avec les données
                     </AppButton>
                 </div>
@@ -600,7 +591,7 @@ export function CinScannerPanel({
             {isScanning ? (
                 <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-3">
                     <div className="flex items-center gap-3">
-                        <ScanLine
+                        <IconScan
                             size={18}
                             className="animate-pulse text-[var(--accent)]"
                         />
@@ -623,7 +614,7 @@ export function CinScannerPanel({
 
             {requestError ? (
                 <p className="flex items-start gap-2 rounded-lg bg-[var(--danger)]/10 px-3 py-2 text-[10px] text-[var(--danger)]">
-                    <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                    <IconAlertTriangle size={13} className="mt-0.5 shrink-0" />
                     {requestError}
                 </p>
             ) : null}
@@ -644,9 +635,9 @@ export function CinScannerPanel({
                     isDisabled={! canScan || isScanning}
                 >
                     {isScanning ? (
-                        <ScanLine size={14} className="animate-pulse" />
+                        <IconScan size={14} className="animate-pulse" />
                     ) : (
-                        <ScanLine size={14} />
+                        <IconScan size={14} />
                     )}
                     Analyser la CNI
                 </AppButton>

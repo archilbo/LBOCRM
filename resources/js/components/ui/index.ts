@@ -3,6 +3,7 @@ export { AppButton } from './AppButton';
 export { AppCard } from './AppCard';
 export { AppEmptyState } from './AppEmptyState';
 export { AppInput } from './AppInput';
+export { AppSearchInput } from './AppSearchInput';
 export { AppSelect } from './AppSelect';
 export { AvatarPill } from './AvatarPill';
 export { LoadingState } from './LoadingState';

@@ -1,36 +1,9 @@
 import { Head, router } from '@inertiajs/react';
 import { Input } from '@heroui/react';
-import {
-    Activity,
-    ArrowLeft,
-    BarChart3,
-    Building2,
-    CalendarDays,
-    CheckCircle2,
-    ChevronLeft,
-    ChevronRight,
-    ChevronsUpDown,
-    ChevronDown,
-    ChevronUp,
-    CircleDot,
-    ContactRound,
-    Eye,
-    FolderKanban,
-    History,
-    IdCard,
-    Mail,
-    MapPin,
-    Pencil,
-    Phone,
-    RefreshCw,
-    Search,
-    Trash2,
-    UserCheck,
-    UserRound,
-    Users,
-    X,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { IconActivity, IconArrowLeft, IconChartBar, IconBuilding, IconCalendarMonth, IconCircleCheck, IconChevronLeft, IconChevronRight, IconArrowsSort, IconChevronDown, IconChevronUp, IconCircleDot, IconUserCircle, IconEye, IconFolder, IconHistory, IconIdBadge, IconMail, IconMapPin, IconPencil, IconPhone, IconRefresh, IconSearch, IconTrash, IconUserCheck, IconUsers, IconX } from '@tabler/icons-react';
+import type { Icon } from '@tabler/icons-react';
+
+
 import { useMemo, useState, type ReactNode } from 'react';
 import { TabPanel } from 'react-aria-components';
 import { toast } from 'sonner';
@@ -135,7 +108,7 @@ function ColumnHeader({
     onPress,
 }: {
     label: string;
-    icon: LucideIcon;
+    icon: Icon;
     active?: boolean;
     direction?: SortDirection;
     onPress?: () => void;
@@ -146,8 +119,8 @@ function ColumnHeader({
             <span>{label}</span>
             {onPress ? (
                 active ? (
-                    direction === 'asc' ? <ChevronUp size={11} className="text-[var(--accent)]" /> : <ChevronDown size={11} className="text-[var(--accent)]" />
-                ) : <ChevronsUpDown size={11} className="text-[var(--text-muted)]" />
+                    direction === 'asc' ? <IconChevronUp size={11} className="text-[var(--accent)]" /> : <IconChevronDown size={11} className="text-[var(--accent)]" />
+                ) : <IconArrowsSort size={11} className="text-[var(--text-muted)]" />
             ) : null}
         </>
     );
@@ -185,11 +158,11 @@ function PaginationFooter({
             <span className="text-[9px] text-[var(--text-muted)]">{resultLabel}</span>
             <div className="flex items-center gap-1.5">
                 <AppButton isIconOnly compact size="sm" variant="quiet" tooltip={previousLabel} aria-label={previousLabel} isDisabled={page === 0} onPress={onPrevious}>
-                    <ChevronLeft size={14} />
+                    <IconChevronLeft size={14} />
                 </AppButton>
                 <span className="min-w-20 text-center text-[9px] font-semibold tabular-nums text-[var(--text-muted)]">{pageLabel}</span>
                 <AppButton isIconOnly compact size="sm" variant="quiet" tooltip={nextLabel} aria-label={nextLabel} isDisabled={page >= pageCount - 1} onPress={onNext}>
-                    <ChevronRight size={14} />
+                    <IconChevronRight size={14} />
                 </AppButton>
             </div>
         </div>
@@ -197,11 +170,11 @@ function PaginationFooter({
 }
 
 function activityIcon(type: IntermediaryActivityType): ReactNode {
-    if (type === 'client_created') return <UserCheck size={14} />;
-    if (type === 'client_updated') return <UserRound size={14} />;
-    if (type === 'project_created') return <FolderKanban size={14} />;
-    if (type === 'project_updated') return <RefreshCw size={14} />;
-    return <Pencil size={14} />;
+    if (type === 'client_created') return <IconUserCheck size={14} />;
+    if (type === 'client_updated') return <IconUserCircle size={14} />;
+    if (type === 'project_created') return <IconFolder size={14} />;
+    if (type === 'project_updated') return <IconRefresh size={14} />;
+    return <IconPencil size={14} />;
 }
 
 export default function IntermediaryShow({
@@ -236,11 +209,11 @@ export default function IntermediaryShow({
     const [activityPage, setActivityPage] = useState(0);
 
     const tabs = useMemo(() => [
-        { id: 'overview', label: t('intermediaries.overview'), icon: ContactRound },
-        { id: 'clients', label: t('intermediaries.clients'), icon: Users },
-        { id: 'projects', label: t('intermediaries.projects'), icon: FolderKanban },
-        { id: 'analytics', label: t('intermediaries.analytics'), icon: BarChart3 },
-        { id: 'activity', label: t('intermediaries.activity'), icon: History },
+        { id: 'overview', label: t('intermediaries.overview'), icon: IconUserCircle },
+        { id: 'clients', label: t('intermediaries.clients'), icon: IconUsers },
+        { id: 'projects', label: t('intermediaries.projects'), icon: IconFolder },
+        { id: 'analytics', label: t('intermediaries.analytics'), icon: IconChartBar },
+        { id: 'activity', label: t('intermediaries.activity'), icon: IconHistory },
     ], [t]);
 
     function typeLabel(type: string): string {
@@ -400,32 +373,32 @@ export default function IntermediaryShow({
         },
         {
             id: 'client',
-            label: <ColumnHeader label={t('intermediaries.show.client')} icon={UserRound} active={clientSortField === 'fullName'} direction={clientSortDirection} onPress={() => toggleClientSort('fullName')} />,
+            label: <ColumnHeader label={t('intermediaries.show.client')} icon={IconUserCircle} active={clientSortField === 'fullName'} direction={clientSortDirection} onPress={() => toggleClientSort('fullName')} />,
             render: (client) => <div className="min-w-0"><p className="max-w-[190px] truncate font-medium text-[var(--text)]">{client.fullName}</p><p className="text-[10px] text-[var(--text-muted)]">{client.clientNumber}</p></div>,
         },
         {
             id: 'cin',
-            label: <ColumnHeader label={t('intermediaries.show.cin')} icon={IdCard} active={clientSortField === 'cin'} direction={clientSortDirection} onPress={() => toggleClientSort('cin')} />,
+            label: <ColumnHeader label={t('intermediaries.show.cin')} icon={IconIdBadge} active={clientSortField === 'cin'} direction={clientSortDirection} onPress={() => toggleClientSort('cin')} />,
             render: (client) => <span className="whitespace-nowrap text-[var(--text-muted)]">{client.cin || '-'}</span>,
         },
         {
             id: 'contact',
-            label: <ColumnHeader label={t('intermediaries.show.contact')} icon={Phone} />,
+            label: <ColumnHeader label={t('intermediaries.show.contact')} icon={IconPhone} />,
             render: (client) => <div className="grid gap-0.5"><span className="text-[var(--text)]">{formatContact(client.phone)}</span><span className="max-w-[180px] truncate text-[10px] text-[var(--text-muted)]">{formatContact(client.email)}</span></div>,
         },
         {
             id: 'projects',
-            label: <ColumnHeader label={t('intermediaries.show.projectsCount')} icon={FolderKanban} active={clientSortField === 'projectsCount'} direction={clientSortDirection} onPress={() => toggleClientSort('projectsCount')} />,
+            label: <ColumnHeader label={t('intermediaries.show.projectsCount')} icon={IconFolder} active={clientSortField === 'projectsCount'} direction={clientSortDirection} onPress={() => toggleClientSort('projectsCount')} />,
             render: (client) => <AppBadge tone="blue">{client.projectsCount}</AppBadge>,
         },
         {
             id: 'status',
-            label: <ColumnHeader label={t('intermediaries.status')} icon={CircleDot} active={clientSortField === 'status'} direction={clientSortDirection} onPress={() => toggleClientSort('status')} />,
+            label: <ColumnHeader label={t('intermediaries.status')} icon={IconCircleDot} active={clientSortField === 'status'} direction={clientSortDirection} onPress={() => toggleClientSort('status')} />,
             render: (client) => <StatusPill label={statusLabel(client.status)} color={statusColor(client.status)} size="sm" />,
         },
         {
             id: 'created',
-            label: <ColumnHeader label={t('intermediaries.show.created')} icon={CalendarDays} active={clientSortField === 'createdAt'} direction={clientSortDirection} onPress={() => toggleClientSort('createdAt')} />,
+            label: <ColumnHeader label={t('intermediaries.show.created')} icon={IconCalendarMonth} active={clientSortField === 'createdAt'} direction={clientSortDirection} onPress={() => toggleClientSort('createdAt')} />,
             render: (client) => <span className="whitespace-nowrap text-[var(--text-muted)]">{client.createdAt || '-'}</span>,
         },
         {
@@ -433,34 +406,34 @@ export default function IntermediaryShow({
             label: '',
             headerClassName: 'w-10',
             reorderable: false,
-            render: (client) => <div onClick={(event) => event.stopPropagation()}><AppButton isIconOnly compact variant="quiet" size="sm" tooltip={t('intermediaries.show.openClient')} aria-label={t('intermediaries.show.openClient')} onPress={() => router.visit(`/clients/${client.id}`)}><Eye size={13} /></AppButton></div>,
+            render: (client) => <div onClick={(event) => event.stopPropagation()}><AppButton isIconOnly compact variant="quiet" size="sm" tooltip={t('intermediaries.show.openClient')} aria-label={t('intermediaries.show.openClient')} onPress={() => router.visit(`/clients/${client.id}`)}><IconEye size={13} /></AppButton></div>,
         },
     ];
 
     const projectColumns: AppWorkspaceTableColumn<ProjectBrief>[] = [
         {
             id: 'project',
-            label: <ColumnHeader label={t('intermediaries.show.project')} icon={Building2} active={projectSortField === 'projectObject'} direction={projectSortDirection} onPress={() => toggleProjectSort('projectObject')} />,
+            label: <ColumnHeader label={t('intermediaries.show.project')} icon={IconBuilding} active={projectSortField === 'projectObject'} direction={projectSortDirection} onPress={() => toggleProjectSort('projectObject')} />,
             render: (project) => <div className="min-w-0"><p className="max-w-[220px] truncate font-medium text-[var(--text)]">{project.projectObject || project.dossierNumber}</p><p className="text-[10px] text-[var(--text-muted)]">{project.dossierNumber}</p></div>,
         },
         {
             id: 'client',
-            label: <ColumnHeader label={t('intermediaries.show.clientName')} icon={UserRound} active={projectSortField === 'clientName'} direction={projectSortDirection} onPress={() => toggleProjectSort('clientName')} />,
+            label: <ColumnHeader label={t('intermediaries.show.clientName')} icon={IconUserCircle} active={projectSortField === 'clientName'} direction={projectSortDirection} onPress={() => toggleProjectSort('clientName')} />,
             render: (project) => <span className="max-w-[180px] truncate text-[var(--text-muted)]">{project.clientName || '-'}</span>,
         },
         {
             id: 'commune',
-            label: <ColumnHeader label={t('intermediaries.show.commune')} icon={MapPin} active={projectSortField === 'commune'} direction={projectSortDirection} onPress={() => toggleProjectSort('commune')} />,
+            label: <ColumnHeader label={t('intermediaries.show.commune')} icon={IconMapPin} active={projectSortField === 'commune'} direction={projectSortDirection} onPress={() => toggleProjectSort('commune')} />,
             render: (project) => <span className="text-[var(--text-muted)]">{project.commune || '-'}</span>,
         },
         {
             id: 'status',
-            label: <ColumnHeader label={t('intermediaries.status')} icon={CircleDot} active={projectSortField === 'status'} direction={projectSortDirection} onPress={() => toggleProjectSort('status')} />,
+            label: <ColumnHeader label={t('intermediaries.status')} icon={IconCircleDot} active={projectSortField === 'status'} direction={projectSortDirection} onPress={() => toggleProjectSort('status')} />,
             render: (project) => <StatusPill label={statusLabel(project.status)} color={statusColor(project.status)} size="sm" />,
         },
         {
             id: 'created',
-            label: <ColumnHeader label={t('intermediaries.show.created')} icon={CalendarDays} active={projectSortField === 'createdAt'} direction={projectSortDirection} onPress={() => toggleProjectSort('createdAt')} />,
+            label: <ColumnHeader label={t('intermediaries.show.created')} icon={IconCalendarMonth} active={projectSortField === 'createdAt'} direction={projectSortDirection} onPress={() => toggleProjectSort('createdAt')} />,
             render: (project) => <span className="whitespace-nowrap text-[var(--text-muted)]">{project.createdAt || '-'}</span>,
         },
         {
@@ -468,15 +441,15 @@ export default function IntermediaryShow({
             label: '',
             headerClassName: 'w-10',
             reorderable: false,
-            render: (project) => <div onClick={(event) => event.stopPropagation()}><AppButton isIconOnly compact variant="quiet" size="sm" tooltip={t('intermediaries.show.openProject')} aria-label={t('intermediaries.show.openProject')} onPress={() => router.visit(`/dossiers/${project.id}`)}><Eye size={13} /></AppButton></div>,
+            render: (project) => <div onClick={(event) => event.stopPropagation()}><AppButton isIconOnly compact variant="quiet" size="sm" tooltip={t('intermediaries.show.openProject')} aria-label={t('intermediaries.show.openProject')} onPress={() => router.visit(`/dossiers/${project.id}`)}><IconEye size={13} /></AppButton></div>,
         },
     ];
 
     const metricCards = [
-        { label: t('intermediaries.totalClients'), value: metrics.totalClients, detail: `${metrics.activeClients} ${t('intermediaries.activeClients').toLowerCase()}`, icon: <Users size={16} />, accentColor: '#38bdf8', valueClassName: 'text-sky-300' },
-        { label: t('intermediaries.activeClients'), value: metrics.activeClients, detail: `${metrics.inactiveClients} ${t('intermediaries.inactiveClients').toLowerCase()}`, icon: <UserCheck size={16} />, accentColor: '#34d399', valueClassName: 'text-emerald-300' },
-        { label: t('intermediaries.totalProjects'), value: metrics.totalProjects, detail: `${metrics.archivedProjects} ${t('intermediaries.show.archivedProjects').toLowerCase()}`, icon: <FolderKanban size={16} />, accentColor: '#60a5fa', valueClassName: 'text-blue-300' },
-        { label: t('intermediaries.show.activeProjects'), value: metrics.activeProjects, detail: `${metrics.blockedProjects} ${t('intermediaries.show.blockedProjects').toLowerCase()}`, icon: <CheckCircle2 size={16} />, accentColor: '#a78bfa', valueClassName: 'text-violet-300' },
+        { label: t('intermediaries.totalClients'), value: metrics.totalClients, detail: `${metrics.activeClients} ${t('intermediaries.activeClients').toLowerCase()}`, icon: <IconUsers size={16} />, accentColor: '#38bdf8', valueClassName: 'text-sky-300' },
+        { label: t('intermediaries.activeClients'), value: metrics.activeClients, detail: `${metrics.inactiveClients} ${t('intermediaries.inactiveClients').toLowerCase()}`, icon: <IconUserCheck size={16} />, accentColor: '#34d399', valueClassName: 'text-emerald-300' },
+        { label: t('intermediaries.totalProjects'), value: metrics.totalProjects, detail: `${metrics.archivedProjects} ${t('intermediaries.show.archivedProjects').toLowerCase()}`, icon: <IconFolder size={16} />, accentColor: '#60a5fa', valueClassName: 'text-blue-300' },
+        { label: t('intermediaries.show.activeProjects'), value: metrics.activeProjects, detail: `${metrics.blockedProjects} ${t('intermediaries.show.blockedProjects').toLowerCase()}`, icon: <IconCircleCheck size={16} />, accentColor: '#a78bfa', valueClassName: 'text-violet-300' },
     ];
 
     return (
@@ -486,7 +459,7 @@ export default function IntermediaryShow({
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex min-w-0 items-start gap-2.5">
                         <AppButton isIconOnly compact variant="quiet" tooltip={t('intermediaries.show.backToList')} aria-label={t('intermediaries.show.backToList')} onPress={() => router.visit('/intermediaries')}>
-                            <ArrowLeft size={15} />
+                            <IconArrowLeft size={15} />
                         </AppButton>
                         <div className="min-w-0">
                             <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">{t('intermediaries.eyebrow')}</p>
@@ -499,8 +472,8 @@ export default function IntermediaryShow({
                         </div>
                     </div>
                     <div className="flex items-center gap-1.5 self-end sm:self-auto">
-                        <AppButton isIconOnly compact variant="quiet" tooltip={t('intermediaries.editIntermediary')} aria-label={t('intermediaries.editIntermediary')} onPress={openEditDrawer}><Pencil size={14} /></AppButton>
-                        <AppButton isIconOnly compact variant="light" color="danger" tooltip={t('intermediaries.deleteIntermediary')} aria-label={t('intermediaries.deleteIntermediary')} onPress={() => setDeleteTarget(intermediary)}><Trash2 size={14} /></AppButton>
+                        <AppButton isIconOnly compact variant="quiet" tooltip={t('intermediaries.editIntermediary')} aria-label={t('intermediaries.editIntermediary')} onPress={openEditDrawer}><IconPencil size={14} /></AppButton>
+                        <AppButton isIconOnly compact variant="light" color="danger" tooltip={t('intermediaries.deleteIntermediary')} aria-label={t('intermediaries.deleteIntermediary')} onPress={() => setDeleteTarget(intermediary)}><IconTrash size={14} /></AppButton>
                     </div>
                 </div>
 
@@ -534,7 +507,7 @@ export default function IntermediaryShow({
                             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm lg:col-span-2">
                                 <div className="mb-3 flex items-center justify-between gap-3">
                                     <div><h2 className="text-sm font-semibold text-[var(--foreground)]">{t('intermediaries.show.summary')}</h2><p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{t('intermediaries.relationshipOverview')}</p></div>
-                                    <Activity size={15} className="text-[var(--accent)]" />
+                                    <IconActivity size={15} className="text-[var(--accent)]" />
                                 </div>
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/45 p-3"><p className="text-[10px] text-[var(--text-muted)]">{t('intermediaries.linkedClients')}</p><p className="mt-1 text-2xl font-bold text-[var(--foreground)]">{metrics.totalClients}</p><p className="mt-1 text-[10px] text-emerald-400">{metrics.activeClients} {t('intermediaries.activeClients').toLowerCase()}</p></div>
@@ -545,7 +518,7 @@ export default function IntermediaryShow({
                             <div className="space-y-4">
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
                                     <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('intermediaries.show.contactDetails')}</h2>
-                                    <div className="mt-3 space-y-2.5 text-xs"><p className="flex items-center gap-2 text-[var(--foreground)]"><Phone size={13} className="text-[var(--text-muted)]" />{intermediary.phone || '-'}</p><p className="flex items-center gap-2 text-[var(--foreground)]"><Mail size={13} className="text-[var(--text-muted)]" />{intermediary.email || '-'}</p></div>
+                                    <div className="mt-3 space-y-2.5 text-xs"><p className="flex items-center gap-2 text-[var(--foreground)]"><IconPhone size={13} className="text-[var(--text-muted)]" />{intermediary.phone || '-'}</p><p className="flex items-center gap-2 text-[var(--foreground)]"><IconMail size={13} className="text-[var(--text-muted)]" />{intermediary.email || '-'}</p></div>
                                 </div>
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
                                     <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('intermediaries.show.notes')}</h2>
@@ -575,7 +548,7 @@ export default function IntermediaryShow({
                                 minTableWidthClassName="min-w-[840px]"
                                 onRowPress={(client) => router.visit(`/clients/${client.id}`)}
                                 emptyContent={<AppEmptyState title={t('intermediaries.noClients')} description={t('intermediaries.show.noClientData')} />}
-                                toolbar={<div className="flex flex-wrap items-center gap-2 px-3 py-2"><div className="relative min-w-[200px] flex-1"><Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" /><Input value={clientQuery} onChange={(event) => { setClientQuery(event.target.value); setClientPage(0); }} placeholder={t('intermediaries.show.searchClients')} className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-7 text-[10px] text-[var(--text)] outline-none" />{clientQuery ? <AppButton isIconOnly compact variant="quiet" size="sm" aria-label={t('intermediaries.resetFilters')} onPress={() => { setClientQuery(''); setClientPage(0); }} className="absolute right-0 top-1/2 -translate-y-1/2"><X size={11} /></AppButton> : null}</div><div className="flex flex-wrap items-center gap-1">{clientStatuses.map((status) => <AppButton key={status} compact size="sm" variant={clientStatus === status ? 'accent' : 'quiet'} onPress={() => { setClientStatus(status); setClientPage(0); }}>{status === 'all' ? t('intermediaries.show.allStatuses') : statusLabel(status)}</AppButton>)}</div></div>}
+                                toolbar={<div className="flex flex-wrap items-center gap-2 px-3 py-2"><div className="relative min-w-[200px] flex-1"><IconSearch size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" /><Input value={clientQuery} onChange={(event) => { setClientQuery(event.target.value); setClientPage(0); }} placeholder={t('intermediaries.show.searchClients')} className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-7 text-[10px] text-[var(--text)] outline-none" />{clientQuery ? <AppButton isIconOnly compact variant="quiet" size="sm" aria-label={t('intermediaries.resetFilters')} onPress={() => { setClientQuery(''); setClientPage(0); }} className="absolute right-0 top-1/2 -translate-y-1/2"><IconX size={11} /></AppButton> : null}</div><div className="flex flex-wrap items-center gap-1">{clientStatuses.map((status) => <AppButton key={status} compact size="sm" variant={clientStatus === status ? 'accent' : 'quiet'} onPress={() => { setClientStatus(status); setClientPage(0); }}>{status === 'all' ? t('intermediaries.show.allStatuses') : statusLabel(status)}</AppButton>)}</div></div>}
                                 renderMobileRow={(client) => <div className="flex items-start gap-2 p-3"><span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold', avatarColor(client.id))}>{client.fullName.charAt(0)}</span><AppButton variant="quiet" size="sm" onPress={() => router.visit(`/clients/${client.id}`)} className="h-auto min-w-0 flex-1 justify-start p-0 text-left"><span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate text-[12px] font-semibold text-[var(--foreground)]">{client.fullName}</span><StatusPill label={statusLabel(client.status)} color={statusColor(client.status)} size="sm" /></span><span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">{client.cin || client.clientNumber} · {client.projectsCount} {t('intermediaries.projects').toLowerCase()}</span></span></AppButton></div>}
                                 footer={<PaginationFooter page={resolvedClientPage} pageCount={clientPageCount} onPrevious={() => setClientPage(Math.max(0, resolvedClientPage - 1))} onNext={() => setClientPage(Math.min(clientPageCount - 1, resolvedClientPage + 1))} resultLabel={t('intermediaries.show.resultCount', { count: filteredClients.length })} pageLabel={t('intermediaries.show.pageStatus', { current: resolvedClientPage + 1, total: clientPageCount })} previousLabel={t('intermediaries.pagination.previous')} nextLabel={t('intermediaries.pagination.next')} />}
                             />
@@ -595,8 +568,8 @@ export default function IntermediaryShow({
                                 minTableWidthClassName="min-w-[760px]"
                                 onRowPress={(project) => router.visit(`/dossiers/${project.id}`)}
                                 emptyContent={<AppEmptyState title={t('intermediaries.noProjects')} description={t('intermediaries.show.noProjectData')} />}
-                                toolbar={<div className="flex flex-wrap items-center gap-2 px-3 py-2"><div className="relative min-w-[200px] flex-1"><Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" /><Input value={projectQuery} onChange={(event) => { setProjectQuery(event.target.value); setProjectPage(0); }} placeholder={t('intermediaries.show.searchProjects')} className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-7 text-[10px] text-[var(--text)] outline-none" />{projectQuery ? <AppButton isIconOnly compact variant="quiet" size="sm" aria-label={t('intermediaries.resetFilters')} onPress={() => { setProjectQuery(''); setProjectPage(0); }} className="absolute right-0 top-1/2 -translate-y-1/2"><X size={11} /></AppButton> : null}</div><div className="flex flex-wrap items-center gap-1">{projectStatuses.map((status) => <AppButton key={status} compact size="sm" variant={projectStatus === status ? 'accent' : 'quiet'} onPress={() => { setProjectStatus(status); setProjectPage(0); }}>{status === 'all' ? t('intermediaries.show.allStatuses') : statusLabel(status)}</AppButton>)}</div></div>}
-                                renderMobileRow={(project) => <div className="flex items-start gap-2 p-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-400"><FolderKanban size={15} /></span><AppButton variant="quiet" size="sm" onPress={() => router.visit(`/dossiers/${project.id}`)} className="h-auto min-w-0 flex-1 justify-start p-0 text-left"><span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate text-[12px] font-semibold text-[var(--foreground)]">{project.projectObject || project.dossierNumber}</span><StatusPill label={statusLabel(project.status)} color={statusColor(project.status)} size="sm" /></span><span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">{project.clientName || '-'} · {project.commune || '-'}</span></span></AppButton></div>}
+                                toolbar={<div className="flex flex-wrap items-center gap-2 px-3 py-2"><div className="relative min-w-[200px] flex-1"><IconSearch size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" /><Input value={projectQuery} onChange={(event) => { setProjectQuery(event.target.value); setProjectPage(0); }} placeholder={t('intermediaries.show.searchProjects')} className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-7 text-[10px] text-[var(--text)] outline-none" />{projectQuery ? <AppButton isIconOnly compact variant="quiet" size="sm" aria-label={t('intermediaries.resetFilters')} onPress={() => { setProjectQuery(''); setProjectPage(0); }} className="absolute right-0 top-1/2 -translate-y-1/2"><IconX size={11} /></AppButton> : null}</div><div className="flex flex-wrap items-center gap-1">{projectStatuses.map((status) => <AppButton key={status} compact size="sm" variant={projectStatus === status ? 'accent' : 'quiet'} onPress={() => { setProjectStatus(status); setProjectPage(0); }}>{status === 'all' ? t('intermediaries.show.allStatuses') : statusLabel(status)}</AppButton>)}</div></div>}
+                                renderMobileRow={(project) => <div className="flex items-start gap-2 p-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-400"><IconFolder size={15} /></span><AppButton variant="quiet" size="sm" onPress={() => router.visit(`/dossiers/${project.id}`)} className="h-auto min-w-0 flex-1 justify-start p-0 text-left"><span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate text-[12px] font-semibold text-[var(--foreground)]">{project.projectObject || project.dossierNumber}</span><StatusPill label={statusLabel(project.status)} color={statusColor(project.status)} size="sm" /></span><span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">{project.clientName || '-'} · {project.commune || '-'}</span></span></AppButton></div>}
                                 footer={<PaginationFooter page={resolvedProjectPage} pageCount={projectPageCount} onPrevious={() => setProjectPage(Math.max(0, resolvedProjectPage - 1))} onNext={() => setProjectPage(Math.min(projectPageCount - 1, resolvedProjectPage + 1))} resultLabel={t('intermediaries.show.resultCount', { count: filteredProjects.length })} pageLabel={t('intermediaries.show.pageStatus', { current: resolvedProjectPage + 1, total: projectPageCount })} previousLabel={t('intermediaries.pagination.previous')} nextLabel={t('intermediaries.pagination.next')} />}
                             />
                         </div>
@@ -609,7 +582,7 @@ export default function IntermediaryShow({
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"><div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold text-[var(--foreground)]">{t('intermediaries.monthlyClients')}</h2><span className="text-lg font-bold text-[var(--accent)]">{metrics.totalClients}</span></div><MiniLineChart data={monthlyClients} height={220} /></div>
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"><div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold text-[var(--foreground)]">{t('intermediaries.monthlyProjects')}</h2><span className="text-lg font-bold text-blue-400">{metrics.totalProjects}</span></div><MiniLineChart data={monthlyProjects} color="#60a5fa" height={220} /></div>
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"><h2 className="mb-3 text-sm font-semibold text-[var(--foreground)]">{t('intermediaries.clientDistribution')}</h2><div className="flex flex-wrap items-center gap-6"><DonutChart data={clientStatusBreakdown} colorMap={{ active: '#34d399', inactive: '#fbbf24', archived: '#a78bfa' }} size={130} /><div className="space-y-2">{clientStatusBreakdown.map((item) => <div key={item.status} className="flex items-center gap-2 text-xs"><span className={cn('size-2.5 rounded-full', item.status === 'active' ? 'bg-emerald-400' : item.status === 'inactive' ? 'bg-amber-400' : 'bg-violet-400')} /><span className="text-[var(--text-muted)]">{statusLabel(item.status)}</span><span className="font-semibold text-[var(--foreground)]">{item.count}</span></div>)}</div></div></div>
-                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"><h2 className="mb-3 text-sm font-semibold text-[var(--foreground)]">{t('intermediaries.projectDistribution')}</h2>{projectStatusBreakdown.length > 0 ? <div className="flex flex-wrap items-center gap-6"><DonutChart data={projectStatusBreakdown} colorMap={{ active: '#34d399', opened: '#60a5fa', closed: '#94a3b8', archived: '#a78bfa', blocked: '#f87171', new: '#38bdf8' }} size={130} /><div className="space-y-2">{projectStatusBreakdown.map((item) => <div key={item.status} className="flex items-center gap-2 text-xs"><CircleDot size={10} className="text-[var(--accent)]" /><span className="text-[var(--text-muted)]">{statusLabel(item.status)}</span><span className="font-semibold text-[var(--foreground)]">{item.count}</span></div>)}</div></div> : <AppEmptyState title={t('intermediaries.show.noAnalyticsData')} />}</div>
+                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"><h2 className="mb-3 text-sm font-semibold text-[var(--foreground)]">{t('intermediaries.projectDistribution')}</h2>{projectStatusBreakdown.length > 0 ? <div className="flex flex-wrap items-center gap-6"><DonutChart data={projectStatusBreakdown} colorMap={{ active: '#34d399', opened: '#60a5fa', closed: '#94a3b8', archived: '#a78bfa', blocked: '#f87171', new: '#38bdf8' }} size={130} /><div className="space-y-2">{projectStatusBreakdown.map((item) => <div key={item.status} className="flex items-center gap-2 text-xs"><IconCircleDot size={10} className="text-[var(--accent)]" /><span className="text-[var(--text-muted)]">{statusLabel(item.status)}</span><span className="font-semibold text-[var(--foreground)]">{item.count}</span></div>)}</div></div> : <AppEmptyState title={t('intermediaries.show.noAnalyticsData')} />}</div>
                             </div>
                         </div>
                     </TabPanel>

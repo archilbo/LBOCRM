@@ -1,6 +1,8 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, CircleDollarSign, FileText, Landmark, LockKeyhole, Percent, ReceiptText } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { IconArrowLeft, IconCurrencyDollar, IconFileText, IconBuildingBank, IconLock, IconPercentage, IconReceipt2 } from '@tabler/icons-react';
+import type { Icon } from '@tabler/icons-react';
+
+
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
@@ -50,18 +52,18 @@ function statusClass(status: string | undefined | null) {
     return 'border-blue-500/25 bg-blue-500/10 text-blue-300';
 }
 
-function typeIcon(type: string | undefined | null): LucideIcon {
-    if (type === 'invoice') return Landmark;
-    if (type === 'receipt') return ReceiptText;
-    if (type === 'quote') return FileText;
-    return FileText;
+function typeIcon(type: string | undefined | null): Icon {
+    if (type === 'invoice') return IconBuildingBank;
+    if (type === 'receipt') return IconReceipt2;
+    if (type === 'quote') return IconFileText;
+    return IconFileText;
 }
 
 const FINANCE_DOCUMENT_KPI_TONES = {
-    subtotal: { icon: <ReceiptText size={16} className="text-zinc-400" />, accentColor: '#a1a1aa', valueClassName: 'text-zinc-300' },
-    tax: { icon: <Percent size={16} className="text-blue-400" />, accentColor: '#60a5fa', valueClassName: 'text-blue-300' },
-    total: { icon: <CircleDollarSign size={16} className="text-emerald-400" />, accentColor: '#34d399', valueClassName: 'text-emerald-300' },
-    remaining: { icon: <Landmark size={16} className="text-amber-400" />, accentColor: '#fbbf24', valueClassName: 'text-amber-300' },
+    subtotal: { icon: <IconReceipt2 size={16} className="text-zinc-400" />, accentColor: '#a1a1aa', valueClassName: 'text-zinc-300' },
+    tax: { icon: <IconPercentage size={16} className="text-blue-400" />, accentColor: '#60a5fa', valueClassName: 'text-blue-300' },
+    total: { icon: <IconCurrencyDollar size={16} className="text-emerald-400" />, accentColor: '#34d399', valueClassName: 'text-emerald-300' },
+    remaining: { icon: <IconBuildingBank size={16} className="text-amber-400" />, accentColor: '#fbbf24', valueClassName: 'text-amber-300' },
 } as const;
 
 function EmptyState({ label }: { label: string }) {
@@ -145,7 +147,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                 subtitleKey="dashboardHome.subtitle"
                 action={
                     <AppButton variant="bordered" size="sm" onPress={() => router.visit(`/finance/documents?tab=${fromTab}`)}>
-                        <ArrowLeft size={14} />
+                        <IconArrowLeft size={14} />
                         Back
                     </AppButton>
                 }
@@ -174,7 +176,7 @@ export default function FinanceDocumentShow({ document }: PageProps) {
                                         </span>
                                         {locked ? (
                                             <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
-                                                <LockKeyhole size={11} />
+                                                <IconLock size={11} />
                                                 Locked
                                             </span>
                                         ) : null}

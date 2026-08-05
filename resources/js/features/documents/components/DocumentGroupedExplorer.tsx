@@ -1,8 +1,6 @@
 import { router } from '@inertiajs/react';
-import {
-    Building2, CheckCircle2, ChevronRight, Download, Eye, FileCheck2, FileText,
-    FolderKanban, MapPinned, MoreHorizontal, Search, Trash2, UserRound, X, XCircle,
-} from 'lucide-react';
+import { IconBuilding, IconCircleCheck, IconChevronRight, IconDownload, IconEye, IconFileCheck, IconFileText, IconFolder, IconMapPin, IconDots, IconSearch, IconTrash, IconUserCircle, IconX, IconCircleX } from '@tabler/icons-react';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
@@ -75,36 +73,36 @@ function RowMenu({ doc, onPreview }: { doc: DocumentGroupRow; onPreview?: (d: Do
                         ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                         : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
                 )}>
-                <MoreHorizontal size={13} />
+                <IconDots size={13} />
             </button>
             {open && (
                 <div ref={menuRef} className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
                     <button type="button" onClick={() => { setOpen(false); onPreview?.(doc); }}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                        <Eye size={14} /> Preview
+                        <IconEye size={14} /> Preview
                     </button>
                     {doc.status !== 'verified' && (
                         <button type="button" onClick={() => { router.put(`/documents/${doc.id}/status`, { status: 'verified' }, { preserveScroll: true, onSuccess: () => toast.success('Document verified.'), onError: () => toast.error('Could not update status.') }); setOpen(false); }}
                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                            <CheckCircle2 size={14} /> Mark verified
+                            <IconCircleCheck size={14} /> Mark verified
                         </button>
                     )}
                     <button type="button" onClick={() => { window.open(`/documents/${doc.id}/download`, '_blank'); setOpen(false); }}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                        <Download size={14} /> Download
+                        <IconDownload size={14} /> IconDownload
                     </button>
                     <button type="button" onClick={() => { router.visit(`/dossiers/${doc.dossierId}`); setOpen(false); }}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                        <FolderKanban size={14} /> Open project
+                        <IconFolder size={14} /> Open project
                     </button>
                     <button type="button" onClick={() => { router.put(`/documents/${doc.id}/status`, { status: 'missing' }, { preserveScroll: true, onSuccess: () => toast.success('Marked as missing.'), onError: () => toast.error('Could not update.') }); setOpen(false); }}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-amber-400 transition hover:bg-amber-400/10">
-                        <XCircle size={14} /> Mark missing
+                        <IconCircleX size={14} /> Mark missing
                     </button>
                     <div className="my-1 border-t border-[var(--border)]" />
                     <button type="button" onClick={() => { if (confirm('Delete this document? This cannot be undone.')) { router.delete(`/documents/${doc.id}`, { preserveScroll: true, onSuccess: () => toast.success('Document deleted.'), onError: () => toast.error('Could not delete.') }); } setOpen(false); }}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--danger)] transition hover:bg-[var(--danger)]/10">
-                        <Trash2 size={14} /> Delete
+                        <IconTrash size={14} /> Delete
                     </button>
                 </div>
             )}
@@ -118,7 +116,7 @@ function CollapsibleSection({ label, count, children }: { label: string; count: 
         <div>
             <button type="button" onClick={() => setOpen(!open)}
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)] transition hover:text-[var(--foreground)]">
-                <ChevronRight size={11} className={cn('transition shrink-0', open && 'rotate-90')} />
+                <IconChevronRight size={11} className={cn('transition shrink-0', open && 'rotate-90')} />
                 {label}
                 <span className="ml-auto text-[9px] text-[var(--text-muted)]">{count}</span>
             </button>
@@ -135,7 +133,7 @@ function DocumentBrowserCard({ doc, onPreview }: { doc: DocumentGroupRow; onPrev
             <div className="flex items-start justify-between gap-1.5">
                 <div className="flex min-w-0 items-center gap-2">
                     <span className={cn('flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--accent)]', mimeColor)}>
-                        <FileText size={13} />
+                        <IconFileText size={13} />
                     </span>
                     <div className="min-w-0">
                         <p className="truncate text-[11px] font-medium text-[var(--foreground)]">
@@ -298,7 +296,7 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                     <p className={cn('truncate text-[11px] font-medium', active ? 'text-[var(--accent)]' : 'text-[var(--foreground)]')}>{title}</p>
                     <p className="truncate text-[9px] text-[var(--text-muted)]">{subtitle}</p>
                 </div>
-                <ChevronRight size={13} className="shrink-0 text-[var(--text-subtle)]" />
+                <IconChevronRight size={13} className="shrink-0 text-[var(--text-subtle)]" />
             </button>
         );
     }
@@ -320,7 +318,7 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
             {summary && (
                 <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm">
                     <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
-                        <MapPinned size={13} className="text-[var(--accent)]" />
+                        <IconMapPin size={13} className="text-[var(--accent)]" />
                         <span className="font-medium text-[var(--foreground)]">{selectedProvinceGroup?.province}</span>
                         <span>/</span>
                         <span className="font-medium text-[var(--accent)]">{selectedCommuneGroup?.commune || '-'}</span>
@@ -333,7 +331,7 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
             <div className="hidden xl:grid xl:grid-cols-[220px_240px_260px_minmax(0,1fr)] xl:rounded-xl xl:border xl:border-[var(--border)] xl:bg-[var(--surface)] xl:shadow-sm xl:overflow-hidden" style={{ maxHeight: 'calc(100vh - 240px)' }}>
                 {/* Province */}
                 <aside className="border-r border-[var(--border)] flex flex-col">
-                    <PaneHeader icon={<MapPinned size={14} />} label="Provinces" subtitle={`${groups.length} total`} />
+                    <PaneHeader icon={<IconMapPin size={14} />} label="Provinces" subtitle={`${groups.length} total`} />
                     <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                         {groups.length > 0 ? groups.map((group) => (
                             <PaneRow key={group.province}
@@ -343,13 +341,13 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                 subtitle={`${group.communes.length} communes · ${group.stats.documentsCount} docs`}
                                 onClick={() => chooseProvince(group)}
                             />
-                        )) : <EmptyPane icon={<MapPinned size={24} />} title="No provinces" description="No document data available." />}
+                        )) : <EmptyPane icon={<IconMapPin size={24} />} title="No provinces" description="No document data available." />}
                     </div>
                 </aside>
 
                 {/* Commune */}
                 <aside className="border-r border-[var(--border)] flex flex-col">
-                    <PaneHeader icon={<Building2 size={14} />} label="Communes" subtitle={selectedProvinceGroup?.province || 'Select a province'} />
+                    <PaneHeader icon={<IconBuilding size={14} />} label="Communes" subtitle={selectedProvinceGroup?.province || 'Select a province'} />
                     <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                         {selectedProvinceGroup ? (
                             selectedProvinceGroup.communes.map((commune) => (
@@ -361,13 +359,13 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                     onClick={() => chooseCommune(commune)}
                                 />
                             ))
-                        ) : <EmptyPane icon={<Building2 size={24} />} title="Select a province" description="to view communes" />}
+                        ) : <EmptyPane icon={<IconBuilding size={24} />} title="Select a province" description="to view communes" />}
                     </div>
                 </aside>
 
                 {/* Scope */}
                 <aside className="border-r border-[var(--border)] flex flex-col">
-                    <PaneHeader icon={<FileCheck2 size={14} />} label="Scope" subtitle="Client / project / type" />
+                    <PaneHeader icon={<IconFileCheck size={14} />} label="Scope" subtitle="Client / project / type" />
                     <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                         {selectedCommuneGroup ? (
                             <>
@@ -375,7 +373,7 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                     {selectedCommuneGroup.clients.map((client) => (
                                         <PaneRow key={client.clientName}
                                             active={level === 'clients' && activeClient?.clientName === client.clientName}
-                                            icon={<UserRound size={12} />}
+                                            icon={<IconUserCircle size={12} />}
                                             title={client.clientName}
                                             subtitle={`${client.projects.length} projects · ${client.stats.documentsCount} docs`}
                                             onClick={() => chooseClient(client)}
@@ -387,7 +385,7 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                         {activeClient.projects.map((project) => (
                                             <PaneRow key={project.dossierNumber}
                                                 active={level === 'projects' && activeProject?.dossierNumber === project.dossierNumber}
-                                                icon={<FolderKanban size={12} />}
+                                                icon={<IconFolder size={12} />}
                                                 title={project.projectObject || project.dossierNumber}
                                                 subtitle={`${project.types.length} types · ${project.stats.documentsCount} docs`}
                                                 onClick={() => chooseProject(project)}
@@ -400,7 +398,7 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                         {activeProject.types.map((type) => (
                                             <PaneRow key={type.type}
                                                 active={level === 'types' && activeType?.type === type.type}
-                                                icon={<FileText size={12} />}
+                                                icon={<IconFileText size={12} />}
                                                 title={type.type}
                                                 subtitle={`${type.stats.documentsCount} docs`}
                                                 onClick={() => chooseType(type)}
@@ -409,7 +407,7 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                     </CollapsibleSection>
                                 )}
                             </>
-                        ) : <EmptyPane icon={<FileCheck2 size={24} />} title="Select a commune" description="to browse documents by scope" />}
+                        ) : <EmptyPane icon={<IconFileCheck size={24} />} title="Select a commune" description="to browse documents by scope" />}
                     </div>
                 </aside>
 
@@ -426,14 +424,14 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                 </p>
                             </div>
                             <div className="relative w-[180px] shrink-0">
-                                <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                                <IconSearch size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                                 <input ref={searchRef} type="text" value={query} onChange={(e) => setQuery(e.target.value)}
-                                    placeholder="Search documents..."
+                                    placeholder="IconSearch documents..."
                                     className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-[10px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]" />
                                 {query ? (
                                     <button type="button" onClick={() => setQuery('')}
                                         className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--foreground)]">
-                                        <X size={10} />
+                                        <IconX size={10} />
                                     </button>
                                 ) : null}
                             </div>
@@ -447,14 +445,14 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                 ))
                             ) : (
                                 <div className="flex flex-col items-center gap-2 py-16 text-center">
-                                    <FileText size={28} className="text-[var(--text-muted)]/30" />
+                                    <IconFileText size={28} className="text-[var(--text-muted)]/30" />
                                     <p className="text-[11px] font-medium text-[var(--foreground)]">No documents found</p>
                                     <p className="text-[9px] text-[var(--text-muted)]">Choose another scope or clear search.</p>
                                 </div>
                             )
                         ) : (
                             <div className="flex flex-col items-center gap-2 py-16 text-center">
-                                <Building2 size={28} className="text-[var(--text-muted)]/30" />
+                                <IconBuilding size={28} className="text-[var(--text-muted)]/30" />
                                 <p className="text-[11px] font-medium text-[var(--foreground)]">Select a commune</p>
                                 <p className="text-[9px] text-[var(--text-muted)]">to browse documents</p>
                             </div>

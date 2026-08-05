@@ -1,5 +1,6 @@
 import { Dropdown } from '@heroui/react';
-import { MoreHorizontal } from 'lucide-react';
+import { IconDots } from '@tabler/icons-react';
+
 import type { ReactNode } from 'react';
 import { AppTableActionButton } from '@/components/ui/AppTableActionButton';
 import { AppTableActions } from '@/components/ui/AppTableActions';
@@ -68,7 +69,7 @@ export function FinanceRowActions({ actions, visibleCount = 2, className, button
                             aria-label="Plus d actions"
                             className={cn('inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] outline-none transition hover:border-[color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:bg-[var(--surface-2)] hover:text-[var(--accent)] data-[open]:border-[var(--accent)] data-[open]:text-[var(--accent)]', buttonClassName)}
                         >
-                            <MoreHorizontal size={14} />
+                            <IconDots size={14} />
                         </Dropdown.Trigger>
                         <Dropdown.Popover placement="bottom end" className="min-w-52 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                             <Dropdown.Menu aria-label="Actions finance" onAction={(key) => runAction(String(key))} className="outline-none">

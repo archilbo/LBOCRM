@@ -1,8 +1,6 @@
 import { router } from '@inertiajs/react';
-import {
-    AlertCircle, Archive, ArrowLeft, ArrowRight, BadgeCheck, Check, Circle, ExternalLink,
-    FilePlus, FileUp, RefreshCw, Wand,
-} from 'lucide-react';
+import { IconAlertCircle, IconArchive, IconArrowLeft, IconArrowRight, IconCircleCheck, IconCheck, IconCircle, IconExternalLink, IconFilePlus, IconFileUpload, IconRefresh, IconWand } from '@tabler/icons-react';
+
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { DossierWorkflowProgress, DossierWorkflowRequirement, DossierWorkflowStep } from '@/features/clients/types';
@@ -56,10 +54,10 @@ function openAction(url: string | null | undefined) {
 }
 
 function StepIcon({ status }: { status: string }) {
-    if (status === 'completed') return <Check size={14} strokeWidth={3} />;
-    if (status === 'in_progress') return <Circle size={14} />;
-    if (status === 'blocked') return <AlertCircle size={14} />;
-    return <Circle size={14} />;
+    if (status === 'completed') return <IconCheck size={14} strokeWidth={3} />;
+    if (status === 'in_progress') return <IconCircle size={14} />;
+    if (status === 'blocked') return <IconAlertCircle size={14} />;
+    return <IconCircle size={14} />;
 }
 
 function StepConnector({ status }: { status: string }) {
@@ -126,12 +124,12 @@ function VerticalStepItem({
 }
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
-    upload_document: <FileUp size={12} />,
-    create_contract: <FilePlus size={12} />,
-    generate_contract: <Wand size={12} />,
-    mark_signed: <BadgeCheck size={12} />,
-    mark_done: <Check size={12} />,
-    open_module: <ExternalLink size={12} />,
+    upload_document: <IconFileUpload size={12} />,
+    create_contract: <IconFilePlus size={12} />,
+    generate_contract: <IconWand size={12} />,
+    mark_signed: <IconCircleCheck size={12} />,
+    mark_done: <IconCheck size={12} />,
+    open_module: <IconExternalLink size={12} />,
     no_action: null,
 };
 
@@ -165,7 +163,7 @@ function RequirementRow({
                     ? 'bg-emerald-400/15 text-emerald-400'
                     : 'border border-[var(--border)] text-[var(--text-subtle)]',
             )}>
-                {requirement.done ? <Check size={11} strokeWidth={3} /> : <Circle size={10} />}
+                {requirement.done ? <IconCheck size={11} strokeWidth={3} /> : <IconCircle size={10} />}
             </span>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
@@ -189,7 +187,7 @@ function RequirementRow({
                                         ? 'border-red-400/30 text-red-400 hover:bg-red-400/8'
                                         : 'border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/8',
                                 )}>
-                                <Check size={12} />
+                                <IconCheck size={12} />
                                 {requirement.done ? 'Undo' : 'Done'}
                             </button>
                         )}
@@ -367,7 +365,7 @@ export function AppWorkflowStepper({
                                     {prevStep && (
                                         <button type="button" onClick={() => setActiveStepKey(prevStep.key)}
                                             className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
-                                            <ArrowLeft size={14} />
+                                            <IconArrowLeft size={14} />
                                             Back
                                         </button>
                                     )}
@@ -377,7 +375,7 @@ export function AppWorkflowStepper({
                                         <button type="button" onClick={() => setActiveStepKey(nextStep.key)}
                                             className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-[11px] font-semibold text-[var(--accent-foreground)] transition hover:brightness-110">
                                             Next step
-                                            <ArrowRight size={14} />
+                                            <IconArrowRight size={14} />
                                         </button>
                                     ) : null}
                                     {activeStep.primaryActionUrl && (
@@ -389,7 +387,7 @@ export function AppWorkflowStepper({
                                             className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
                                             {ACTION_ICONS.open_module}
                                             {activeStep.primaryActionLabel || 'Open'}
-                                            <ExternalLink size={13} />
+                                            <IconExternalLink size={13} />
                                         </button>
                                     )}
                                 </div>

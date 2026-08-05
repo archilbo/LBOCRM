@@ -1,5 +1,6 @@
-﻿import { type ReactNode } from 'react';
-import { Inbox } from 'lucide-react';
+import { type ReactNode } from 'react';
+import { IconInbox } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 
 type AppEmptyStateProps = {
@@ -19,7 +20,7 @@ export function AppEmptyState({ title, description, icon, action, className }: A
             )}
         >
             <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-muted)]">
-                {icon ?? <Inbox size={20} />}
+                {icon ?? <IconInbox size={20} />}
             </div>
 
             <h3 className="mt-4 text-sm font-semibold text-[var(--foreground)]">{title}</h3>

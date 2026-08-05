@@ -1,4 +1,5 @@
-import { AlertTriangle, Archive, CheckCircle2, FolderOpen, Plus, RotateCcw, Undo2 } from 'lucide-react';
+import { IconAlertTriangle, IconArchive, IconCircleCheck, IconFolderOpen, IconPlus, IconArrowRotaryFirstLeft, IconArrowBackUp } from '@tabler/icons-react';
+
 import type { ArchiveEventRow } from '@/features/archives/types';
 import { ARCHIVE_STATUS } from '@/config/statuses';
 import { cn } from '@/lib/cn';
@@ -7,15 +8,15 @@ type FlowTimelineProps = {
     events: ArchiveEventRow[];
 };
 
-const EVENT_ICONS: Record<string, typeof Plus> = {
-    ready: Plus,
-    stored: Archive,
-    checked_out: FolderOpen,
-    returned: Undo2,
-    moved: RotateCcw,
-    lost: AlertTriangle,
-    restored: CheckCircle2,
-    note: Plus,
+const EVENT_ICONS: Record<string, typeof IconPlus> = {
+    ready: IconPlus,
+    stored: IconArchive,
+    checked_out: IconFolderOpen,
+    returned: IconArrowBackUp,
+    moved: IconArrowRotaryFirstLeft,
+    lost: IconAlertTriangle,
+    restored: IconCircleCheck,
+    note: IconPlus,
 };
 
 function eventColor(type: string): string {
@@ -40,7 +41,7 @@ export function FlowTimeline({ events }: FlowTimelineProps) {
     return (
         <div className="space-y-0">
             {events.map((event, idx) => {
-                const Icon = EVENT_ICONS[event.type] || Plus;
+                const Icon = EVENT_ICONS[event.type] || IconPlus;
                 const color = eventColor(event.type);
 
                 return (

@@ -1,4 +1,5 @@
-import { CalendarDays, ChevronDown, Columns3, LayoutDashboard, List, Search, Table2, Timeline, X } from 'lucide-react';
+import { IconCalendarMonth, IconChevronDown, IconColumns3, IconLayoutDashboard, IconList, IconSearch, IconTable, IconTimeline, IconX } from '@tabler/icons-react';
+
 import { useRef, useState } from 'react';
 import type { ViewMode } from '@/features/tasks/types';
 
@@ -32,13 +33,13 @@ const PRIORITY_OPTIONS = [
     { id: 'low', label: 'Low' },
 ];
 
-const VIEW_TABS: { id: ViewMode; label: string; icon: typeof LayoutDashboard }[] = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'board', label: 'Board', icon: Columns3 },
-    { id: 'list', label: 'List', icon: List },
-    { id: 'table', label: 'Table', icon: Table2 },
-    { id: 'timeline', label: 'Timeline', icon: Timeline },
-    { id: 'calendar', label: 'Calendar', icon: CalendarDays },
+const VIEW_TABS: { id: ViewMode; label: string; icon: typeof IconLayoutDashboard }[] = [
+    { id: 'overview', label: 'Overview', icon: IconLayoutDashboard },
+    { id: 'board', label: 'Board', icon: IconColumns3 },
+    { id: 'list', label: 'IconList', icon: IconList },
+    { id: 'table', label: 'Table', icon: IconTable },
+    { id: 'timeline', label: 'IconTimeline', icon: IconTimeline },
+    { id: 'calendar', label: 'Calendar', icon: IconCalendarMonth },
 ];
 
 type Props = {
@@ -75,10 +76,10 @@ export function TaskFilters({ filter, category, priorityFilter, query, viewMode,
         <section className="overflow-visible rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)]">
             <div className="flex flex-wrap items-center gap-2 p-2.5">
                 <div className="relative min-w-[200px] flex-1">
-                    <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]" />
-                    <input value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder="Search tasks, clients, projects..."
+                    <IconSearch size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]" />
+                    <input value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder="IconSearch tasks, clients, projects..."
                         className="h-9 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] pl-8 pr-8 text-xs text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
-                    {query ? <button type="button" onClick={() => onQueryChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--crm-muted)] hover:text-[var(--crm-gold)]"><X size={14} /></button> : null}
+                    {query ? <button type="button" onClick={() => onQueryChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--crm-muted)] hover:text-[var(--crm-gold)]"><IconX size={14} /></button> : null}
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center gap-1.5">
@@ -120,7 +121,7 @@ export function TaskFilters({ filter, category, priorityFilter, query, viewMode,
 
                 <button type="button" onClick={() => { onFilterChange('all'); onCategoryChange('all'); onPriorityFilterChange('all'); onQueryChange(''); }}
                     className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--crm-border)] text-[var(--crm-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)]">
-                    <X size={13} />
+                    <IconX size={13} />
                 </button>
             </div>
 
@@ -140,7 +141,7 @@ function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
     return (
         <span className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2 py-0.5 text-[9px] font-semibold text-[var(--crm-text)]">
             {label}
-            <button type="button" onClick={onRemove} className="text-[var(--crm-muted)] hover:text-red-400"><X size={10} /></button>
+            <button type="button" onClick={onRemove} className="text-[var(--crm-muted)] hover:text-red-400"><IconX size={10} /></button>
         </span>
     );
 }
@@ -159,7 +160,7 @@ const DropdownSelect = ({ ref, isOpen, onToggle, onClose, label, width, children
             className="inline-flex h-8 items-center justify-between gap-2 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2.5 text-xs font-semibold text-[var(--crm-text)] transition hover:border-[var(--crm-gold)]"
             style={{ width }}>
             <span className="truncate">{label}</span>
-            <ChevronDown size={12} className={`shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} />
+            <IconChevronDown size={12} className={`shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} />
         </button>
         {isOpen ? (
             <div className="absolute left-0 top-9 z-50 min-w-[180px] rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-1 shadow-2xl shadow-black/40">

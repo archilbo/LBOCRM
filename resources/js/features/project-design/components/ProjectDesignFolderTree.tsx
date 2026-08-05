@@ -1,17 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { Button, Chip, Dropdown, Input, Tooltip } from '@heroui/react';
-import {
-    ChevronDown,
-    ChevronRight,
-    FileText,
-    Folder,
-    FolderOpen,
-    FolderInput,
-    GripVertical,
-    MessageSquareText,
-    MoreHorizontal,
-    PencilLine,
-} from 'lucide-react';
+import { IconChevronDown, IconChevronRight, IconFileText, IconFolder, IconFolderOpen, IconFolderUp, IconGripVertical, IconMessage2, IconDots, IconPencil } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 import { toast } from 'sonner';
 import type { ProjectDesignFile, ProjectDesignFolder } from '../types/projectDesign';
@@ -324,17 +314,17 @@ export function ProjectDesignFolderTree({
                     aria-label={`Actions for ${label}`}
                     className="flex size-6 items-center justify-center rounded-md text-[var(--text-subtle)] outline-none transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] data-[open]:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]"
                 >
-                    <MoreHorizontal size={13} />
+                    <IconDots size={13} />
                 </Dropdown.Trigger>
                 <Dropdown.Popover placement="bottom end" className="z-[180] min-w-48 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
                     <Dropdown.Menu aria-label={`Actions for ${label}`} onAction={(key) => runAction(String(key))} className="outline-none">
-                        <Dropdown.Item key="rename"><PencilLine size={13} /><span>Rename</span></Dropdown.Item>
-                        {currentFolderId !== null ? <Dropdown.Item key="root"><FolderInput size={13} /><span>Move to project root</span></Dropdown.Item> : null}
+                        <Dropdown.Item key="rename"><IconPencil size={13} /><span>Rename</span></Dropdown.Item>
+                        {currentFolderId !== null ? <Dropdown.Item key="root"><IconFolderUp size={13} /><span>Move to project root</span></Dropdown.Item> : null}
                         {destinations
                             .filter((folder) => folder.id !== currentFolderId)
                             .map((folder) => (
                                 <Dropdown.Item key={`move:${folder.id}`} id={`move:${folder.id}`}>
-                                    <Folder size={13} /><span className="truncate">Move to {folder.name}</span>
+                                    <IconFolder size={13} /><span className="truncate">Move to {folder.name}</span>
                                 </Dropdown.Item>
                             ))}
                     </Dropdown.Menu>
@@ -386,13 +376,13 @@ export function ProjectDesignFolderTree({
                             )}
                             style={{ paddingLeft: `${10 + depth * 13}px` }}
                         >
-                            <GripVertical size={10} className="shrink-0 text-[var(--text-subtle)] opacity-0 transition group-hover:opacity-70" />
-                            <FileText size={13} className={cn('shrink-0', selected ? 'text-[var(--accent)]' : 'text-sky-400/75')} />
+                            <IconGripVertical size={10} className="shrink-0 text-[var(--text-subtle)] opacity-0 transition group-hover:opacity-70" />
+                            <IconFileText size={13} className={cn('shrink-0', selected ? 'text-[var(--accent)]' : 'text-sky-400/75')} />
                             <span className="min-w-0 flex-1 truncate" onDoubleClick={(event) => { event.stopPropagation(); startRename({ kind: 'file', id: file.id, value: file.name }); }}>
                                 {file.name}
                             </span>
                             {file.openRemarksCount > 0 ? (
-                                <span className="flex shrink-0 items-center gap-0.5 text-[9px] text-amber-300"><MessageSquareText size={10} />{file.openRemarksCount}</span>
+                                <span className="flex shrink-0 items-center gap-0.5 text-[9px] text-amber-300"><IconMessage2 size={10} />{file.openRemarksCount}</span>
                             ) : null}
                         </Button>
                         <div className="absolute right-1 top-0.5 opacity-100 transition md:opacity-0 md:group-hover:opacity-100" onPointerDown={(event) => event.stopPropagation()}>
@@ -414,7 +404,7 @@ export function ProjectDesignFolderTree({
         const folderFiles = filesByFolder.get(folder.id) ?? [];
         const hasChildren = children.length > 0 || folderFiles.length > 0;
         const isExpanded = expanded.has(folder.id);
-        const FolderIcon = isExpanded ? FolderOpen : Folder;
+        const FolderIcon = isExpanded ? IconFolderOpen : IconFolder;
 
         return (
             <div key={folder.id}>
@@ -444,7 +434,7 @@ export function ProjectDesignFolderTree({
                                 onPress={() => { clearPendingInteractions(); toggleFolder(folder.id); }}
                                 className="h-7 w-5 min-w-5 rounded-none text-[var(--text-subtle)] disabled:opacity-30"
                             >
-                                {hasChildren ? (isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />) : <span className="size-3" />}
+                                {hasChildren ? (isExpanded ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />) : <span className="size-3" />}
                             </Button>
                         </Tooltip.Trigger>
                         <Tooltip.Content>{isExpanded ? 'Collapse' : 'Expand'}</Tooltip.Content>
@@ -471,7 +461,7 @@ export function ProjectDesignFolderTree({
                             onPress={() => hasChildren && queueFolderToggle(folder.id)}
                             className="h-7 min-w-0 flex-1 justify-start gap-1.5 rounded-none px-0.5 text-left text-[10px] font-normal text-[var(--foreground)]"
                         >
-                            <GripVertical size={10} className="shrink-0 text-[var(--text-subtle)] opacity-0 transition group-hover:opacity-70" />
+                            <IconGripVertical size={10} className="shrink-0 text-[var(--text-subtle)] opacity-0 transition group-hover:opacity-70" />
                             <FolderIcon size={13} className="shrink-0 text-amber-300/85" />
                             <span className="min-w-0 flex-1 truncate" onDoubleClick={(event) => { event.stopPropagation(); startRename({ kind: 'folder', id: folder.id, value: folder.name }); }}>
                                 {folder.name}

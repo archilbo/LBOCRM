@@ -1,11 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
-import {
-    Bell,
-    CheckCheck,
-    ExternalLink,
-    MailOpen,
-    Settings,
-} from 'lucide-react';
+import { IconBell, IconChecks, IconExternalLink, IconMailOpened, IconSettings } from '@tabler/icons-react';
+
 import { useCallback, useMemo, useState } from 'react';
 import { Button, Dialog, DialogTrigger, Popover } from 'react-aria-components';
 import { toast } from 'sonner';
@@ -33,7 +28,7 @@ function MarkAsReadBtn({ id, size = 14 }: { id: string; size?: number }) {
     return (
         <button type="button" onClick={(e) => { e.stopPropagation(); router.post(`/notifications/${id}/read`, {}, { preserveScroll: true, onSuccess: () => toast.success('Marked as read.') }); }}
             className="flex size-6 items-center justify-center rounded-md text-[var(--crm-text-muted)] opacity-0 transition group-hover:opacity-100 hover:bg-[var(--crm-surface-2)] hover:text-[var(--crm-gold)]">
-            <CheckCheck size={size} />
+            <IconChecks size={size} />
         </button>
     );
 }
@@ -131,7 +126,7 @@ export function NotificationPopover() {
     return (
         <DialogTrigger>
             <Button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] transition hover:bg-white/5 hover:text-[var(--crm-text)]" aria-label="Notifications">
-                <Bell size={15} />
+                <IconBell size={15} />
                 {unreadCount > 0 ? (
                     <span className="absolute -right-1.5 -top-1 flex min-w-[18px] items-center justify-center rounded-md bg-red-500 px-1 py-[1px] text-[9px] font-bold leading-tight text-white shadow-sm shadow-red-500/30">
                         {unreadCount > 99 ? '99+' : unreadCount}
@@ -153,13 +148,13 @@ export function NotificationPopover() {
                                     {unreadCount > 0 ? (
                                         <button type="button" onClick={handleMarkAllRead}
                                             className="flex h-7 items-center gap-1 rounded-md px-2 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface)] hover:text-[var(--crm-gold)]">
-                                            <CheckCheck size={12} />
+                                            <IconChecks size={12} />
                                             <span className="hidden sm:inline">Mark all read</span>
                                         </button>
                                     ) : null}
                                     <button type="button" onClick={() => { router.visit('/notifications'); close(); }}
                                         className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface)] hover:text-[var(--crm-gold)]">
-                                        <Settings size={13} />
+                                        <IconSettings size={13} />
                                     </button>
                                 </div>
                             </div>
@@ -185,7 +180,7 @@ export function NotificationPopover() {
                             <div className="flex-1 overflow-y-auto">
                                 {filtered.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-                                        <Bell size={24} className="text-[var(--crm-text-muted)]/40" />
+                                        <IconBell size={24} className="text-[var(--crm-text-muted)]/40" />
                                         <p className="mt-2 text-xs font-semibold text-[var(--crm-text-muted)]">No notifications right now</p>
                                         <p className="mt-1 text-[9px] text-[var(--crm-text-muted)]/60">Important task, request and system updates will appear here.</p>
                                     </div>
@@ -202,13 +197,13 @@ export function NotificationPopover() {
                                 {unreadCount > 0 ? (
                                     <button type="button" onClick={handleMarkAllRead}
                                         className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface)] hover:text-[var(--crm-gold)]">
-                                        <MailOpen size={12} />
+                                        <IconMailOpened size={12} />
                                         Mark all read
                                     </button>
                                 ) : <div />}
                                 <button type="button" onClick={() => { router.visit('/notifications'); close(); }}
                                     className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface)] hover:text-[var(--crm-gold)]">
-                                    <ExternalLink size={12} />
+                                    <IconExternalLink size={12} />
                                     View all
                                 </button>
                             </div>

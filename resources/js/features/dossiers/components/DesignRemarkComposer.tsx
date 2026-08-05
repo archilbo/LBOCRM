@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Input, TextArea, Tooltip } from '@heroui/react';
-import { Check, MessageSquarePlus, Pencil, X } from 'lucide-react';
+import { IconCheck, IconMessage2Plus, IconPencil, IconX } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 
 export type DesignRemarkDraft = {
@@ -57,7 +58,7 @@ export function DesignRemarkComposer({
             <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2">
                     <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--accent)]/12 text-[var(--accent)]">
-                        {mode === 'edit' ? <Pencil size={12} /> : <MessageSquarePlus size={12} />}
+                        {mode === 'edit' ? <IconPencil size={12} /> : <IconMessage2Plus size={12} />}
                     </span>
                     <div className="min-w-0">
                         <p className="truncate text-[10px] font-semibold text-[var(--foreground)]">
@@ -77,7 +78,7 @@ export function DesignRemarkComposer({
                             className="h-7 w-7 min-w-0 text-[var(--text-muted)]"
                             aria-label="Close remark editor"
                         >
-                            <X size={12} />
+                            <IconX size={12} />
                         </Button>
                     </Tooltip.Trigger>
                     <Tooltip.Content>Close</Tooltip.Content>
@@ -155,7 +156,7 @@ export function DesignRemarkComposer({
                     isPending={saving}
                     className="h-7 min-w-0 gap-1.5 px-2.5 text-[9px]"
                 >
-                    {!saving ? <Check size={11} /> : null}
+                    {!saving ? <IconCheck size={11} /> : null}
                     {mode === 'edit' ? 'Save changes' : 'Add remark'}
                 </Button>
             </div>

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { CornerUpLeft, Forward, Copy, Ellipsis } from 'lucide-react';
+import { IconCornerUpLeft, IconPlayerSkipForward, IconCopy, IconDots } from '@tabler/icons-react';
+
 import { toast } from 'sonner';
 import { MessageMoreMenu, type MoreAction } from '@/features/inbox/components/MessageMoreMenu';
 import { cn } from '@/lib/cn';
@@ -48,7 +49,7 @@ export function MessageActionToolbar({ isMine, body, onReply, onForward, onEdit,
                     aria-label="Répondre"
                     title="Répondre"
                 >
-                    <CornerUpLeft size={14} />
+                    <IconCornerUpLeft size={14} />
                 </button>
                 <button
                     onClick={onForward}
@@ -56,7 +57,7 @@ export function MessageActionToolbar({ isMine, body, onReply, onForward, onEdit,
                     aria-label="Transférer"
                     title="Transférer"
                 >
-                    <Forward size={14} />
+                    <IconPlayerSkipForward size={14} />
                 </button>
                 {body ? (
                     <button
@@ -65,7 +66,7 @@ export function MessageActionToolbar({ isMine, body, onReply, onForward, onEdit,
                         aria-label="Copier"
                         title="Copier"
                     >
-                        <Copy size={14} />
+                        <IconCopy size={14} />
                     </button>
                 ) : null}
                 <button
@@ -75,7 +76,7 @@ export function MessageActionToolbar({ isMine, body, onReply, onForward, onEdit,
                     aria-label="Plus d'actions"
                     title="Plus d'actions"
                 >
-                    <Ellipsis size={14} />
+                    <IconDots size={14} />
                 </button>
             </div>
 

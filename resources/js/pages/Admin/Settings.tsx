@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { Building2, CircleCheck, CircleDot, CircleOff, MapPin, Palette, Pencil, Plus, Power, Search, Settings2, Trash2 } from 'lucide-react';
+import { IconBuilding, IconCircleCheck, IconCircleDot, IconCircleOff, IconMapPin, IconPalette, IconPencil, IconPlus, IconPower, IconSettings2, IconTrash } from '@tabler/icons-react';
+
 import { Button, Chip, Input, Pagination, Switch, Table } from '@heroui/react';
 import { TabPanel } from 'react-aria-components';
 import { useMemo, useState } from 'react';
@@ -11,6 +12,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppPageHeader } from '@/components/ui/AppPageHeader';
 import { AppWorkspaceTabs, type AppWorkspaceTab } from '@/components/ui/AppWorkspaceTabs';
+import { AppSearchInput } from '@/components/ui/AppSearchInput';
 import { FinanceSettingsForm, type FinanceSettingsFormProps } from '@/features/finance/components/FinanceSettingsForm';
 import { DrawerSection, DrawerField, drawerStyles } from '@/components/drawers';
 import type { FormErrors } from '@/lib/formErrors';
@@ -39,7 +41,7 @@ const SWATCHES = ['#E08D3C', '#4A90D9', '#7EB36A', '#C0392B', '#8E44AD', '#2C3E5
 const CITIES_PAGE_SIZE = 8;
 
 const BASE_TABS: AppWorkspaceTab[] = [
-    { id: 'cities', label: 'Villes', icon: MapPin },
+    { id: 'cities', label: 'Villes', icon: IconMapPin },
 ];
 
 function visiblePageNumbers(currentPage: number, totalPages: number): number[] {
@@ -54,7 +56,7 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
 
     const tabs: AppWorkspaceTab[] = [
         ...(canViewCities ? BASE_TABS : []),
-        ...(canViewFinanceSettings ? [{ id: 'company', label: 'Entreprise', icon: Building2 }, { id: 'finance', label: 'Finance', icon: Settings2 }] : []),
+        ...(canViewFinanceSettings ? [{ id: 'company', label: 'Entreprise', icon: IconBuilding }, { id: 'finance', label: 'Finance', icon: IconSettings2 }] : []),
     ];
 
     const [activeTab, setActiveTab] = useState<string>(() => {
@@ -260,7 +262,7 @@ function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities
             <AppCard className="overflow-hidden p-0">
                 <div className="flex flex-wrap items-start gap-3 border-b border-[var(--border)] px-5 py-4">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-                        <MapPin size={18} />
+                        <IconMapPin size={18} />
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
@@ -272,32 +274,25 @@ function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities
                         <p className="mt-1 text-xs text-[var(--text-muted)]">Codes et couleurs utilisés pour classer les dossiers et archives.</p>
                     </div>
                     {canManage ? <AppButton variant="primary" compact isIconOnly onPress={openCreate} tooltip="Ajouter une ville" aria-label="Ajouter une ville">
-                        <Plus size={16} />
+                        <IconPlus size={16} />
                     </AppButton> : null}
                 </div>
                 <div className="p-5">
                     <div className="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="relative w-full sm:max-w-sm">
-                            <Search size={13} className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[var(--accent)]" />
-                            <Input
-                                aria-label="Rechercher une ville"
-                                value={search}
-                                onChange={(event) => {
-                                    setSearch(event.target.value);
-                                    setPage(1);
-                                }}
-                                placeholder="Rechercher une ville ou un code"
-                                classNames={{
-                                    input: 'text-[11px]',
-                                    inputWrapper: 'h-8 min-h-8 rounded-full border border-[var(--border)] bg-[var(--surface-2)]/60 pl-9 shadow-none transition hover:border-[var(--border-strong)] focus-within:border-[var(--accent)] focus-within:bg-[var(--surface)]',
-                                }}
-                            />
-                        </div>
+                        <AppSearchInput
+                            value={search}
+                            onChange={(value) => {
+                                setSearch(value);
+                                setPage(1);
+                            }}
+                            placeholder="Rechercher une ville ou un code"
+                            ariaLabel="Rechercher une ville"
+                        />
                         <div className="flex items-center gap-1 rounded-full bg-[var(--surface-2)] p-1">
                             {([
-                                ['all', 'Toutes', CircleDot, 'text-[var(--accent)]'],
-                                ['active', 'Actives', CircleCheck, 'text-[var(--crm-success)]'],
-                                ['inactive', 'Inactives', CircleOff, 'text-[var(--text-muted)]'],
+                                ['all', 'Toutes', IconCircleDot, 'text-[var(--accent)]'],
+                                ['active', 'Actives', IconCircleCheck, 'text-[var(--crm-success)]'],
+                                ['inactive', 'Inactives', IconCircleOff, 'text-[var(--text-muted)]'],
                             ] as const).map(([value, label, Icon, colorClassName]) => (
                                 <AppButton
                                     key={value}
@@ -356,8 +351,8 @@ function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities
                                             <Table.Cell><span className="text-[12px] tabular-nums text-[var(--text-muted)]">{city.dossiersCount}</span></Table.Cell>
                                             {canManage || canDelete ? <Table.Cell>
                                                 <div className="flex items-center gap-1">
-                                                    {canManage ? <AppButton variant="quiet" compact isIconOnly tooltip="Modifier la ville" aria-label="Modifier la ville" onPress={() => openEdit(city)}><Pencil size={13} /></AppButton> : null}
-                                                    {canDelete ? <AppButton variant="danger-soft" compact isIconOnly tooltip={city.dossiersCount > 0 ? 'Suppression impossible : des dossiers utilisent cette ville' : 'Supprimer la ville'} aria-label="Supprimer la ville" onPress={() => setDeleteTarget(city)} isDisabled={city.dossiersCount > 0}><Trash2 size={13} /></AppButton> : null}
+                                                    {canManage ? <AppButton variant="quiet" compact isIconOnly tooltip="Modifier la ville" aria-label="Modifier la ville" onPress={() => openEdit(city)}><IconPencil size={13} /></AppButton> : null}
+                                                    {canDelete ? <AppButton variant="danger-soft" compact isIconOnly tooltip={city.dossiersCount > 0 ? 'Suppression impossible : des dossiers utilisent cette ville' : 'Supprimer la ville'} aria-label="Supprimer la ville" onPress={() => setDeleteTarget(city)} isDisabled={city.dossiersCount > 0}><IconTrash size={13} /></AppButton> : null}
                                                 </div>
                                             </Table.Cell> : null}
                                         </Table.Row>
@@ -397,7 +392,7 @@ function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities
             >
                 <form onSubmit={handleSubmit} className="flex h-full flex-col">
                     <div className="flex-1 space-y-5 px-5 pb-4">
-                        <DrawerSection icon={<Building2 size={12} />} title="Identification">
+                        <DrawerSection icon={<IconBuilding size={12} />} title="Identification">
                             <div className="grid gap-2">
                                 <DrawerField label="Nom de la ville" error={errors.name}>
                                     <Input
@@ -425,7 +420,7 @@ function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities
                             </div>
                         </DrawerSection>
 
-                        <DrawerSection icon={<Palette size={12} />} title="Couleur des dossiers">
+                        <DrawerSection icon={<IconPalette size={12} />} title="Couleur des dossiers">
                             <DrawerField label="Couleur" error={errors.color}>
                                 <div className="flex items-center gap-3">
                                     <Input
@@ -457,7 +452,7 @@ function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities
                             </div>
                         </DrawerSection>
 
-                        <DrawerSection icon={<Power size={12} />} title="Disponibilité">
+                        <DrawerSection icon={<IconPower size={12} />} title="Disponibilité">
                             <div className="flex items-center gap-3">
                                 <Switch
                                     size="sm"

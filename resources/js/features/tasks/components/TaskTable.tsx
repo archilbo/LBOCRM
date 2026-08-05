@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react';
+import { IconChevronDown, IconChevronUp, IconArrowsSort } from '@tabler/icons-react';
+
 import { useMemo, useState } from 'react';
 import type { TaskRow, TaskStatus } from '@/features/tasks/types';
 import { COLUMNS, IMPACT_COLORS, IMPACT_LABELS, PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS, STATUS_DOT_COLORS, STATUS_LABELS, TYPE_LABELS } from '@/features/tasks/types';
@@ -49,9 +50,9 @@ export function TaskTable({ tasks, onTaskClick, onStatusChange }: Props) {
                     className="inline-flex items-center gap-1 transition hover:text-[var(--crm-text)]">
                     {label}
                     {active ? (
-                        sortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
+                        sortDir === 'asc' ? <IconChevronUp size={10} /> : <IconChevronDown size={10} />
                     ) : (
-                        <ChevronsUpDown size={10} className="opacity-30" />
+                        <IconArrowsSort size={10} className="opacity-30" />
                     )}
                 </button>
             </th>
@@ -141,7 +142,7 @@ function StatusMenu({ task, onStatusChange }: { task: TaskRow; onStatusChange: (
         <div className="relative inline-flex" onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setOpen(!open)}
                 className="flex h-7 items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)]">
-                <ChevronDown size={11} /> Move
+                <IconChevronDown size={11} /> Move
             </button>
             {open ? (
                 <div className="absolute right-0 top-8 z-50 w-40 overflow-hidden rounded-xl border border-[var(--crm-border)] bg-[#11100d] p-1 shadow-2xl shadow-black/80 ring-1 ring-black/60">

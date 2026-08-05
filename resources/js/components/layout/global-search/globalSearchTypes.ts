@@ -1,12 +1,6 @@
-import {
-    Archive,
-    FileSignature,
-    FileText,
-    FolderKanban,
-    ReceiptText,
-    UserRound,
-    type LucideIcon,
-} from 'lucide-react';
+import { IconArchive, IconSignature, IconFileText, IconFolder, IconReceipt2, IconUserCircle } from '@tabler/icons-react';
+import type { Icon } from '@tabler/icons-react';
+
 
 export type BackendSearchResult = {
     id: string;
@@ -43,13 +37,13 @@ export const SEARCH_CATEGORIES: ReadonlyArray<{
     { id: 'archive', label: 'Archives', labelKey: 'nav.archives' },
 ];
 
-export const TYPE_ICONS: Record<string, LucideIcon> = {
-    Client: UserRound,
-    Project: FolderKanban,
-    Document: FileText,
-    Contract: FileSignature,
-    Finance: ReceiptText,
-    Archive: Archive,
+export const TYPE_ICONS: Record<string, Icon> = {
+    Client: IconUserCircle,
+    Project: IconFolder,
+    Document: IconFileText,
+    Contract: IconSignature,
+    Finance: IconReceipt2,
+    IconArchive: IconArchive,
 };
 
 /**

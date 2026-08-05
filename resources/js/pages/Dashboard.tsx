@@ -1,23 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { Button, Card, Chip, Tooltip } from '@heroui/react';
-import {
-    AlertTriangle,
-    ArrowRight,
-    CalendarDays,
-    CheckCircle2,
-    ChevronRight,
-    Clock3,
-    FileCheck2,
-    FolderKanban,
-    ListChecks,
-    MessageSquare,
-    Plus,
-    ReceiptText,
-    RefreshCw,
-    UploadCloud,
-    UserRound,
-    WalletCards,
-} from 'lucide-react';
+import { IconAlertTriangle, IconArrowRight, IconCalendarMonth, IconCircleCheck, IconChevronRight, IconClockHour3, IconFileCheck, IconFolder, IconListCheck, IconMessage2, IconPlus, IconReceipt2, IconRefresh, IconCloudUpload, IconUserCircle, IconWallet } from '@tabler/icons-react';
+
 import { useState, type ComponentType, type ReactNode } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
@@ -33,16 +17,16 @@ type PageProps = { commandCenter: DashboardCommandCenter };
 type ChipColor = 'default' | 'accent' | 'success' | 'warning' | 'danger';
 
 const iconMap: Record<DashboardIconKey, ComponentType<{ size?: number; className?: string }>> = {
-    projects: FolderKanban,
-    documents: FileCheck2,
-    invoices: ReceiptText,
-    payments: WalletCards,
-    tasks: ListChecks,
-    chat: MessageSquare,
-    upload: UploadCloud,
-    clients: UserRound,
-    clock: Clock3,
-    check: CheckCircle2,
+    projects: IconFolder,
+    documents: IconFileCheck,
+    invoices: IconReceipt2,
+    payments: IconWallet,
+    tasks: IconListCheck,
+    chat: IconMessage2,
+    upload: IconCloudUpload,
+    clients: IconUserCircle,
+    clock: IconClockHour3,
+    check: IconCircleCheck,
 };
 
 const tones: Record<DashboardTone, { icon: string; text: string; dot: string; chip: ChipColor }> = {
@@ -59,7 +43,7 @@ function navigate(href: string) {
 }
 
 function DashboardIcon({ icon, tone, size = 16, className = '' }: { icon: DashboardIconKey; tone: DashboardTone; size?: number; className?: string }) {
-    const Icon = iconMap[icon] ?? FolderKanban;
+    const Icon = iconMap[icon] ?? IconFolder;
 
     return <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${tones[tone].icon} ${className}`}><Icon size={size} /></span>;
 }
@@ -117,7 +101,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                 <section className="space-y-3">
                     <header className="flex flex-col gap-3 px-1 py-1 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]"><FolderKanban size={18} /></span>
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]"><IconFolder size={18} /></span>
                             <div className="min-w-0">
                                 <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">{t('dashboard.hero.eyebrow')}</p>
                                 <div className="flex min-w-0 items-center gap-3">
@@ -140,7 +124,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                             <span className="mt-1 block truncate text-base font-semibold text-[var(--foreground)]">{t(`dashboard.nextActions.${focusAction.kind}.title`)}</span>
                                             <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">{focusAction.context ?? t(`dashboard.nextActions.${focusAction.kind}.detail`)}</span>
                                         </span>
-                                        <ArrowRight size={17} className="shrink-0 text-[var(--accent)]" />
+                                        <IconArrowRight size={17} className="shrink-0 text-[var(--accent)]" />
                                     </span>
                                 </AppButton>
 
@@ -156,7 +140,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                         <span className="px-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('dashboard.sections.quickActions')}</span>
                                         <div className="flex items-center gap-1">
                                             {quickLinks.map((link) => {
-                                                const Icon = iconMap[link.icon] ?? FolderKanban;
+                                                const Icon = iconMap[link.icon] ?? IconFolder;
 
                                                 return (
                                                     <Tooltip key={link.key} delay={450}>
@@ -174,7 +158,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
 
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
                         {primaryKpis.map((kpi) => {
-                            const Icon = iconMap[kpi.icon] ?? FolderKanban;
+                            const Icon = iconMap[kpi.icon] ?? IconFolder;
                             const helperValues = kpi.helperValues ? { ...kpi.helperValues, ...(kpi.helperValues.amount !== undefined ? { amount: formatCompactMoney(kpi.helperValues.amount) } : {}) } : undefined;
 
                             return <AppKpiCard key={kpi.key} label={t(`dashboard.kpis.${kpi.key}`)} value={typeof kpi.value === 'number' ? formatCompactMoney(kpi.value) : kpi.value} detail={t(`dashboard.kpiHelpers.${kpi.helperKey}`, helperValues)} icon={<Icon size={14} className={tones[kpi.tone].text} />} valueClassName={tones[kpi.tone].text} onPress={() => navigate(kpi.href)} />;
@@ -183,14 +167,14 @@ export default function Dashboard({ commandCenter }: PageProps) {
 
                     <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)] xl:grid-cols-[minmax(0,1.8fr)_minmax(380px,0.9fr)]">
                         <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-                            <PanelTitle icon={<ReceiptText size={15} />} title={t('dashboard.sections.financeTrend')} detail={t('dashboard.sections.financeTrendDetail')} action={<AppButton size="sm" compact variant="quiet" onPress={() => navigate('/finance/documents?tab=monthly')}>{t('dashboard.actions.monthly')}</AppButton>} />
+                            <PanelTitle icon={<IconReceipt2 size={15} />} title={t('dashboard.sections.financeTrend')} detail={t('dashboard.sections.financeTrendDetail')} action={<AppButton size="sm" compact variant="quiet" onPress={() => navigate('/finance/documents?tab=monthly')}>{t('dashboard.actions.monthly')}</AppButton>} />
                             <Card.Content className="p-0">
                                 <DashboardFinanceTrend points={financeTrend} />
                             </Card.Content>
                         </Card>
 
                         <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-                            <PanelTitle icon={<FolderKanban size={15} />} title={t('dashboard.sections.workflow')} detail={t('dashboard.sections.workflowDetail')} action={<FolderKanban size={15} className="text-[var(--accent)]" />} />
+                            <PanelTitle icon={<IconFolder size={15} />} title={t('dashboard.sections.workflow')} detail={t('dashboard.sections.workflowDetail')} action={<IconFolder size={15} className="text-[var(--accent)]" />} />
                             <Card.Content className="p-0">
                                 <DashboardWorkflowDonut steps={workflowDistribution} />
                             </Card.Content>
@@ -201,7 +185,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                         <Card className="gap-0 overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm xl:order-1">
                             <div className="flex min-w-0 items-center justify-between gap-3 px-2 py-2">
                                 <div className="flex min-w-0 items-center gap-2.5">
-                                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><FolderKanban size={15} /></span>
+                                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><IconFolder size={15} /></span>
                                     <div className="min-w-0">
                                         <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('dashboard.sections.projects')}</h2>
                                         <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{t('dashboard.sections.projectsDetail')}</p>
@@ -217,7 +201,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                         className="h-auto w-full justify-start py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px]"
                                         onPress={() => navigate(project.href)}
                                     >
-                                        <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><span className="min-w-0"><span className="truncate text-xs font-semibold text-[var(--foreground)]">{project.project}</span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{project.dossierNumber} / {project.client}</span></span><span className="flex shrink-0 items-center gap-2"><Chip size="sm" variant="soft" color={project.missingDocs > 0 ? 'warning' : 'success'}>{project.missingDocs} {t('dashboard.states.documents')}</Chip><ChevronRight size={14} className="text-[var(--text-muted)]" /></span></span>
+                                        <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><span className="min-w-0"><span className="truncate text-xs font-semibold text-[var(--foreground)]">{project.project}</span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{project.dossierNumber} / {project.client}</span></span><span className="flex shrink-0 items-center gap-2"><Chip size="sm" variant="soft" color={project.missingDocs > 0 ? 'warning' : 'success'}>{project.missingDocs} {t('dashboard.states.documents')}</Chip><IconChevronRight size={14} className="text-[var(--text-muted)]" /></span></span>
                                     </Button>
                                 )) : <div className="px-4 py-9 text-center text-sm text-[var(--text-muted)]">{t('dashboard.states.noRecentProject')}</div>}
                             </Card.Content>
@@ -227,13 +211,13 @@ export default function Dashboard({ commandCenter }: PageProps) {
                             <Card className="gap-0 self-start overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
                                 <div className="flex min-w-0 items-center justify-between gap-3 px-2 py-2">
                                     <div className="flex min-w-0 items-center gap-2.5">
-                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><ListChecks size={15} /></span>
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><IconListCheck size={15} /></span>
                                         <div className="min-w-0">
                                             <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('dashboard.sections.actionQueue')}</h2>
                                             <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{t('dashboard.sections.actionQueueDetail')}</p>
                                         </div>
                                     </div>
-                                    <ListChecks size={15} className="text-[var(--accent)]" />
+                                    <IconListCheck size={15} className="text-[var(--accent)]" />
                                 </div>
                                 <Card.Content className="px-2 py-0">
                                     {queuedActions.map((action) => (
@@ -252,13 +236,13 @@ export default function Dashboard({ commandCenter }: PageProps) {
                             <Card className="gap-0 self-start overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-sm">
                                 <div className="flex min-w-0 items-center justify-between gap-3 px-2 py-2">
                                     <div className="flex min-w-0 items-center gap-2.5">
-                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]">{blockedDossiers.length > 0 || urgentTaskList.length > 0 ? <AlertTriangle size={15} className="text-[var(--danger)]" /> : <CheckCircle2 size={15} className="text-[var(--success)]" />}</span>
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]">{blockedDossiers.length > 0 || urgentTaskList.length > 0 ? <IconAlertTriangle size={15} className="text-[var(--danger)]" /> : <IconCircleCheck size={15} className="text-[var(--success)]" />}</span>
                                         <div className="min-w-0">
                                             <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('dashboard.sections.vigilance')}</h2>
                                             <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{t('dashboard.sections.vigilanceDetail')}</p>
                                         </div>
                                     </div>
-                                    {blockedDossiers.length > 0 || urgentTaskList.length > 0 ? <AlertTriangle size={15} className="text-[var(--danger)]" /> : <CheckCircle2 size={15} className="text-[var(--success)]" />}
+                                    {blockedDossiers.length > 0 || urgentTaskList.length > 0 ? <IconAlertTriangle size={15} className="text-[var(--danger)]" /> : <IconCircleCheck size={15} className="text-[var(--success)]" />}
                                 </div>
                                 <Card.Content className="px-2 py-0">
                                     {blockedDossiers.slice(0, 2).map((dossier) => (
@@ -281,7 +265,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                             <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-2"><span className="min-w-0"><span className="block truncate text-xs font-semibold text-[var(--foreground)]">{task.title}</span><span className="block truncate text-[9px] text-[var(--text-muted)]">{task.taskNumber}</span></span><Chip size="sm" variant="soft" color={task.isOverdue ? 'danger' : 'warning'}>{task.isOverdue ? t('dashboard.states.overdue') : t('dashboard.states.urgent')}</Chip></span>
                                         </Button>
                                     ))}
-                                    {blockedDossiers.length === 0 && urgentTaskList.length === 0 ? <div className="flex items-center gap-2 px-3 py-7 text-sm text-[var(--text-muted)]"><CheckCircle2 size={17} className="text-[var(--success)]" /> {t('dashboard.states.allStable')}</div> : null}
+                                    {blockedDossiers.length === 0 && urgentTaskList.length === 0 ? <div className="flex items-center gap-2 px-3 py-7 text-sm text-[var(--text-muted)]"><IconCircleCheck size={17} className="text-[var(--success)]" /> {t('dashboard.states.allStable')}</div> : null}
                                 </Card.Content>
                             </Card>
                         </div>
@@ -292,13 +276,13 @@ export default function Dashboard({ commandCenter }: PageProps) {
                             <section className="min-w-0">
                                 <div className="flex min-w-0 items-center justify-between gap-3 px-2 py-2">
                                     <div className="flex min-w-0 items-center gap-2.5">
-                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><ReceiptText size={15} /></span>
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><IconReceipt2 size={15} /></span>
                                         <div className="min-w-0">
                                             <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('dashboard.sections.finance')}</h2>
                                             <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{t('dashboard.sections.financeDetail')}</p>
                                         </div>
                                     </div>
-                                    <ReceiptText size={15} className="text-[var(--accent)]" />
+                                    <IconReceipt2 size={15} className="text-[var(--accent)]" />
                                 </div>
                                 <div className="flex flex-col gap-2 px-2 py-0">
                                     {financeAlerts.map((alert) => (
@@ -317,7 +301,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                             <section className="min-w-0">
                                 <div className="flex min-w-0 items-center justify-between gap-3 px-2 py-2">
                                     <div className="flex min-w-0 items-center gap-2.5">
-                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><MessageSquare size={15} /></span>
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--accent)]"><IconMessage2 size={15} /></span>
                                         <div className="min-w-0">
                                             <h2 className="text-sm font-semibold text-[var(--foreground)]">{t('dashboard.sections.updates')}</h2>
                                             <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{t('dashboard.sections.updatesDetail')}</p>

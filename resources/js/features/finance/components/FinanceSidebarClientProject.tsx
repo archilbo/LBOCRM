@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { FileText, UserRound } from 'lucide-react';
+import { IconFileText, IconUserCircle } from '@tabler/icons-react';
+
 import type { FinanceDocument } from '@/features/finance/types';
 
 type FinanceSidebarClientProjectProps = {
@@ -10,7 +11,7 @@ export function FinanceSidebarClientProject({ document }: FinanceSidebarClientPr
     return (
         <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
-                <UserRound size={14} className="text-[var(--text-muted)]" />
+                <IconUserCircle size={14} className="text-[var(--text-muted)]" />
                 <h2 className="text-xs font-semibold text-[var(--foreground)]">Client &amp; project</h2>
             </div>
 
@@ -49,7 +50,7 @@ export function FinanceSidebarClientProject({ document }: FinanceSidebarClientPr
                     onClick={() => document.client?.id ? router.visit(`/clients/${document.client.id}`) : router.visit('/clients')}
                     className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-xs text-[var(--text-muted)] transition-all hover:border-zinc-700 hover:text-amber-500"
                 >
-                    <UserRound size={13} />
+                    <IconUserCircle size={13} />
                     View Client
                 </button>
                 <button
@@ -57,7 +58,7 @@ export function FinanceSidebarClientProject({ document }: FinanceSidebarClientPr
                     onClick={() => document.dossier?.id ? router.visit(`/dossiers/${document.dossier.id}`) : router.visit('/dossiers')}
                     className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-black/10 px-3 py-2 text-xs text-[var(--text-muted)] transition-all hover:border-zinc-700 hover:text-amber-500"
                 >
-                    <FileText size={13} />
+                    <IconFileText size={13} />
                     View Project
                 </button>
             </div>

@@ -1,7 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowLeft, CheckCircle2, Download, ExternalLink, Eye, FileText, FolderKanban, FolderOpen, History, LayoutDashboard, ListChecks, Mail, MapPin, Phone, Pencil, Plus, Printer, ReceiptText, Trash2, Upload,
-} from 'lucide-react';
+
+import { IconContract, IconFileTypeDoc, IconFileTypePdf, IconFiles, IconHistory, IconLayoutDashboard, IconLayoutKanban, IconListCheck, IconNotes, IconReceipt2, IconArrowLeft, IconExternalLink, IconEye, IconFileText, IconFolder, IconMail, IconMapPin, IconPhone, IconPencil, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
 import { TabPanel } from 'react-aria-components';
 import { toast } from 'sonner';
@@ -32,6 +31,7 @@ import type { ContractFormPayload, ContractClientOption, ContractDossierOption }
 import { formatDate } from '@/lib/formatters';
 import { formatMoney } from '@/lib/currency';
 import { ClientArchivesCard } from '@/features/clients/components/ClientArchivesCard';
+import { ClientDocumentsTab } from '@/features/documents/client/ClientDocumentsTab';
 import { ClientFinanceTab } from '@/features/clients/components/ClientFinanceTab';
 import { ConfirmActionModal } from '@/features/clients/components/ConfirmActionModal';
 import { DossierTimeline } from '@/features/clients/components/DossierTimeline';
@@ -150,14 +150,14 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
     const canViewFinance = can('finance.view');
 
     const tabs = useMemo(() => [
-        { id: 'overview', label: t('clients.show.overview'), icon: LayoutDashboard },
-        { id: 'projects', label: t('clients.show.projects'), icon: FolderKanban },
-        { id: 'contracts', label: t('clients.show.contracts'), icon: FileText },
-        { id: 'workflow', label: t('clients.show.workflow'), icon: ListChecks },
-        { id: 'documents', label: t('clients.show.documents'), icon: FileText },
-        ...(canViewFinance ? [{ id: 'finance', label: t('clients.show.finance'), icon: ReceiptText }] : []),
-        { id: 'notes', label: t('clients.show.notes'), icon: Pencil },
-        { id: 'activity', label: t('clients.show.activity'), icon: History },
+        { id: 'overview', label: t('clients.show.overview'), icon: IconLayoutDashboard },
+        { id: 'projects', label: t('clients.show.projects'), icon: IconLayoutKanban },
+        { id: 'contracts', label: t('clients.show.contracts'), icon: IconContract },
+        { id: 'workflow', label: t('clients.show.workflow'), icon: IconListCheck },
+        { id: 'documents', label: t('clients.show.documents'), icon: IconFiles },
+        ...(canViewFinance ? [{ id: 'finance', label: t('clients.show.finance'), icon: IconReceipt2 }] : []),
+        { id: 'notes', label: t('clients.show.notes'), icon: IconNotes },
+        { id: 'activity', label: t('clients.show.activity'), icon: IconHistory },
     ], [canViewFinance, t]);
 
     useEffect(() => {
@@ -212,13 +212,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
             return;
         }
 
-        const link = window.document.createElement('a');
-        link.href = url;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        window.document.body.append(link);
-        link.click();
-        link.remove();
+        window.open(url, '_blank', 'noopener,noreferrer');
     }
 
     function openEditDrawer() {
@@ -610,7 +604,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                 <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                 <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.backToClients')} aria-label={t('clients.show.backToClients')} onPress={() => router.visit('/clients')}>
-                            <ArrowLeft size={15} />
+                            <IconArrowLeft size={15} />
                         </AppButton>
                         <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -626,10 +620,10 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     </div>
                     <div className="flex items-center justify-end gap-1.5">
                         <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.edit')} aria-label={t('clients.edit')} onPress={openEditDrawer}>
-                            <Pencil size={14} />
+                            <IconPencil size={14} />
                         </AppButton>
                         <AppButton isIconOnly compact color="danger" variant="light" tooltip={t('clients.delete')} aria-label={t('clients.delete')} onPress={() => setDeleteTarget(client)}>
-                            <Trash2 size={14} />
+                            <IconTrash size={14} />
                         </AppButton>
                     </div>
                 </div>
@@ -706,19 +700,19 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                         <div className="space-y-4">
                             <div className="flex flex-wrap justify-end gap-1.5">
                         <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.newProject')} aria-label={t('clients.show.newProject')} onPress={() => { setProjectDrawerOpen(true); }}>
-                                    <FolderKanban size={15} />
+                                    <IconFolder size={15} />
                                 </AppButton>
                                 {projects.length > 0 ? (
                         <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.newContract')} aria-label={t('clients.show.newContract')} onPress={() => { openContractDrawer(); }}>
-                                        <FileText size={15} />
+                                        <IconFileText size={15} />
                                     </AppButton>
                                 ) : null}
                                 {can('finance.documents.create') ? <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.newQuote')} aria-label={t('clients.show.newQuote')} onPress={() => openFinanceCreate('quote')}>
-                                    <ReceiptText size={15} />
+                                    <IconReceipt2 size={15} />
                                 </AppButton> : null}
                                 {projects.length > 0 ? (
                         <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.uploadDocument')} aria-label={t('clients.show.uploadDocument')} onPress={() => { setStandaloneUploadOpen(true); }}>
-                                        <Upload size={15} />
+                                        <IconUpload size={15} />
                                     </AppButton>
                                 ) : null}
                             </div>
@@ -740,22 +734,22 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                 </div>
                                 <div className="mt-4 space-y-2.5">
                                     <div className="flex items-center gap-3 text-[11px]">
-                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[var(--accent)]"><FileText size={12} /></span>
+                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[var(--accent)]"><IconFileText size={12} /></span>
                                         <span className="text-[var(--text-muted)]">CIN:</span>
                                         <span className="font-medium text-[var(--foreground)]">{client.cin || '-'}</span>
                                     </div>
                                     <div className="flex items-center gap-3 text-[11px]">
-                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><Phone size={12} /></span>
+                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><IconPhone size={12} /></span>
                                         <span className="text-[var(--text-muted)]">{t('clients.form.phone')}:</span>
                                         <span className="font-medium text-[var(--foreground)]">{client.phone || '-'}</span>
                                     </div>
                                     <div className="flex items-center gap-3 text-[11px]">
-                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><Mail size={12} /></span>
+                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><IconMail size={12} /></span>
                                         <span className="text-[var(--text-muted)]">{t('clients.form.email')}:</span>
                                         <span className="truncate font-medium text-[var(--foreground)]">{client.email || '-'}</span>
                                     </div>
                                     <div className="flex items-center gap-3 text-[11px]">
-                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><MapPin size={12} /></span>
+                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><IconMapPin size={12} /></span>
                                         <span className="text-[var(--text-muted)]">{t('clients.form.address')}:</span>
                                         <span className="font-medium text-[var(--foreground)]">{client.address || '-'}</span>
                                     </div>
@@ -861,7 +855,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                         'flex size-8 shrink-0 items-center justify-center rounded-lg text-xs',
                                                         isSelected ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-[var(--surface-3)] text-[var(--text-muted)]',
                                                     )}>
-                                                        <FolderKanban size={14} />
+                                                        <IconFolder size={14} />
                                                     </span>
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex items-center gap-2">
@@ -895,7 +889,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                 <p className="mb-4 text-[10px] text-[var(--text-muted)]">{t('clients.show.sharedDocumentsDesc')}</p>
                                 <div className="flex flex-wrap gap-3">
                                     <div className="flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5 min-w-0">
-                                        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[var(--accent)]"><FileText size={12} /></span>
+                                        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--accent)]/10 text-[var(--accent)]"><IconFileText size={12} /></span>
                                         <div className="min-w-0">
                                             <p className="text-[11px] font-medium text-[var(--foreground)]">CIN</p>
                                             <p className="text-[9px] text-[var(--text-muted)]">{client.cin || t('common.notAvailable')}</p>
@@ -903,7 +897,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                         <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-1.5 py-0.5 text-[9px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
                                     </div>
                                     <div className="flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5 min-w-0">
-                                        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><Phone size={12} /></span>
+                                        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><IconPhone size={12} /></span>
                                         <div className="min-w-0">
                                             <p className="text-[11px] font-medium text-[var(--foreground)]">{t('clients.form.phone')}</p>
                                             <p className="text-[9px] text-[var(--text-muted)]">{client.phone || t('common.notAvailable')}</p>
@@ -911,7 +905,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                         <span className="shrink-0 rounded-full bg-[var(--surface-3)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--text-subtle)]">{t('clients.show.reusedFromClient')}</span>
                                     </div>
                                     <div className="flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5 min-w-0">
-                                        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><Mail size={12} /></span>
+                                        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]"><IconMail size={12} /></span>
                                         <div className="min-w-0">
                                             <p className="text-[11px] font-medium text-[var(--foreground)]">{t('clients.form.email')}</p>
                                             <p className="truncate text-[9px] text-[var(--text-muted)]">{client.email || t('common.notAvailable')}</p>
@@ -939,7 +933,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                     {projects.length} {t('clients.show.projects').toLowerCase()}
                                 </p>
                             <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.newProject')} aria-label={t('clients.show.newProject')} onPress={() => { setProjectDrawerOpen(true); }}>
-                                    <FolderKanban size={15} />
+                                    <IconFolder size={15} />
                                 </AppButton>
                             </div>
                             {projects.length > 0 ? (
@@ -968,12 +962,12 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                             </div>
                                             {project.projectAddress && (
                                                 <p className="mt-1.5 flex items-center gap-1 text-[10px] text-[var(--text-subtle)]">
-                                                    <MapPin size={11} /> {project.projectAddress}
+                                                    <IconMapPin size={11} /> {project.projectAddress}
                                                 </p>
                                             )}
                                             <div className="mt-2.5 flex items-center gap-3 text-[10px] text-[var(--text-muted)]">
                                                 <span className="flex items-center gap-1">
-                                                    <FileText size={12} /> {project.documentsCount} {t('clients.show.documents').toLowerCase()}
+                                                    <IconFileText size={12} /> {project.documentsCount} {t('clients.show.documents').toLowerCase()}
                                                 </span>
                                                 <span>{project.workflowStep}</span>
                                             </div>
@@ -996,10 +990,10 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                             )}
                                             <div className="mt-3 flex justify-end gap-1.5">
                                                 <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.openProject')} aria-label={t('clients.show.openProject')} onPress={() => router.visit(`/dossiers/${project.id}`)}>
-                                                    <ExternalLink size={14} />
+                                                    <IconExternalLink size={14} />
                                                 </AppButton>
                                                 <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.openWorkflow')} aria-label={t('clients.show.openWorkflow')} onPress={() => openProjectWorkflow(project.id)}>
-                                                    <ListChecks size={14} />
+                                                    <IconListCheck size={14} />
                                                 </AppButton>
                                             </div>
                                         </div>
@@ -1022,7 +1016,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                 </p>
                                 {projects.length > 0 ? (
                                     <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.newContract')} aria-label={t('clients.show.newContract')} onPress={() => { openContractTabCreateDrawer(); }}>
-                                        <FileText size={15} />
+                                        <IconFileText size={15} />
                                     </AppButton>
                                 ) : null}
                             </div>
@@ -1103,7 +1097,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                             setConfirmActionOpen(true);
                                                         }}
                                                     >
-                                                        <FileText size={14} />
+                                                        <IconFileText size={14} />
                                                     </AppTableActionButton>
                                                 ) : null}
                                                 {contract.hasGeneratedDocument ? (
@@ -1112,7 +1106,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                         tone="documents"
                                                         onPress={() => openDocumentWindow(contract.generatedDocumentDownloadUrl, 'Document non disponible')}
                                                     >
-                                                        <Download size={14} />
+                                                        <IconFileTypeDoc size={14} />
                                                     </AppTableActionButton>
                                                 ) : null}
                                                 {contract.hasPdf ? (
@@ -1122,14 +1116,14 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                             tone="documents"
                                                             onPress={() => openDocumentWindow(contract.pdfDownloadUrl, 'PDF non disponible')}
                                                         >
-                                                            <Download size={14} />
+                                                            <IconFileTypePdf size={14} />
                                                         </AppTableActionButton>
                                                         <AppTableActionButton
                                                             label="Aperçu PDF"
                                                             tone="view"
                                                             onPress={() => openDocumentWindow(contract.pdfPublicUrl, 'Aperçu non disponible')}
                                                         >
-                                                            <Eye size={14} />
+                                                            <IconEye size={14} />
                                                         </AppTableActionButton>
                                                     </>
                                                 ) : null}
@@ -1203,7 +1197,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                     <AppEmptyState title={t('clients.show.noProjectWorkflow')} description={t('clients.show.noProjectWorkflowDesc')} />
                                     <div className="mt-4 flex justify-center">
                                 <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.createProject')} aria-label={t('clients.show.createProject')} onPress={() => { setProjectDrawerOpen(true); }}>
-                                            <FolderKanban size={15} />
+                                            <IconFolder size={15} />
                                         </AppButton>
                                     </div>
                                 </div>
@@ -1216,147 +1210,17 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     </TabPanel>
 
                     <TabPanel id="documents" className="outline-none">
-                        <div className="space-y-5">
-                            <div className="flex items-center justify-between">
-                                <p className="text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.documents')}</p>
-                                {projects.length > 0 ? (
-                            <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.show.uploadDocument')} aria-label={t('clients.show.uploadDocument')} onPress={() => { setStandaloneUploadOpen(true); }}>
-                                        <Upload size={15} />
-                                    </AppButton>
-                                ) : null}
-                            </div>
-                            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-                                <h3 className="mb-3 text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.sharedDocuments')}</h3>
-                                <p className="mb-4 text-[10px] text-[var(--text-muted)]">{t('clients.show.sharedDocumentsDesc')}</p>
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5">
-                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
-                                            <FileText size={14} />
-                                        </span>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-[12px] font-medium text-[var(--foreground)]">CIN</p>
-                                            <p className="text-[10px] text-[var(--text-muted)]">{client.cin || t('common.notAvailable')}</p>
-                                        </div>
-                                        <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5">
-                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
-                                            <FileText size={14} />
-                                        </span>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-[12px] font-medium text-[var(--foreground)]">{t('clients.form.phone')}</p>
-                                            <p className="text-[10px] text-[var(--text-muted)]">{client.phone || t('common.notAvailable')}</p>
-                                        </div>
-                                        <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-2.5">
-                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
-                                            <FileText size={14} />
-                                        </span>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-[12px] font-medium text-[var(--foreground)]">{t('clients.form.email')}</p>
-                                            <p className="text-[10px] text-[var(--text-muted)]">{client.email || t('common.notAvailable')}</p>
-                                        </div>
-                                        <span className="shrink-0 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">{t('clients.show.reusedFromClient')}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {selectedProject && selectedProject.documents.length > 0 ? (
-                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-                                    <h3 className="mb-3 text-[12px] font-semibold text-[var(--foreground)]">
-                                        {t('clients.show.projectDocuments')} &mdash; {selectedProject.projectObject || selectedProject.dossierNumber}
-                                    </h3>
-                                    <p className="mb-4 text-[10px] text-[var(--text-muted)]">{t('clients.show.projectDocumentsDesc')}</p>
-                                    <div className="space-y-2">
-                                        {selectedProject.documents.map((doc) => (
-                                            <div key={doc.id} className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 px-3 py-3 sm:flex-row sm:items-center">
-                                                <span className={cn(
-                                                    'flex size-8 shrink-0 items-center justify-center rounded-lg',
-                                                    doc.status === 'verified' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-[var(--surface-3)] text-[var(--text-subtle)]',
-                                                )}>
-                                                    {doc.status === 'verified' ? <CheckCircle2 size={14} /> : <FileText size={14} />}
-                                                </span>
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="text-[12px] font-medium text-[var(--foreground)]">{doc.name}</p>
-                                                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--text-muted)]">
-                                                        {doc.documentNumber && <span>{doc.documentNumber}</span>}
-                                                        {doc.uploadedAt && <span>{doc.uploadedAt}</span>}
-                                                        {doc.sizeLabel && doc.sizeLabel !== '-' && <span>{doc.sizeLabel}</span>}
-                                                        {doc.storageLocation && (
-                                                            <span className="inline-flex items-center gap-1 text-[var(--text-subtle)]" title={doc.storageLocation}>
-                                                                <FolderOpen size={12} /> {t('clients.show.storageLocation')}: {doc.storageLocation}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-                                                    <span className={cn(
-                                                        'rounded-full px-2 py-0.5 text-[9px] font-medium',
-                                                        doc.status === 'verified' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-[var(--surface-3)] text-[var(--text-subtle)]',
-                                                    )}>
-                                                        {doc.status}
-                                                    </span>
-                                                    <span className="rounded-full bg-[var(--surface-3)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-subtle)]">{t('clients.show.projectDocumentLabel')}</span>
-                                                    <div className="flex items-center gap-1 border-l border-[var(--border)] pl-2">
-                                                        <AppTableActionButton
-                                                            label={t('actions.view')}
-                                                            tone="view"
-                                                            isDisabled={!doc.canPreview}
-                                                            onPress={() => openDocumentWindow(doc.viewUrl, t('clients.show.previewUnavailable'))}
-                                                        >
-                                                            <Eye size={14} />
-                                                        </AppTableActionButton>
-                                                        <AppTableActionButton
-                                                            label={t('actions.print')}
-                                                            tone="view"
-                                                            isDisabled={!doc.canPreview}
-                                                            onPress={() => openDocumentWindow(doc.printUrl, t('clients.show.previewUnavailable'))}
-                                                        >
-                                                            <Printer size={14} />
-                                                        </AppTableActionButton>
-                                                        <AppTableActionButton
-                                                            label={t('actions.download')}
-                                                            tone="documents"
-                                                            isDisabled={!doc.hasFile}
-                                                            onPress={() => openDocumentWindow(doc.downloadUrl, t('clients.show.fileUnavailable'))}
-                                                        >
-                                                            <Download size={14} />
-                                                        </AppTableActionButton>
-                                                        <AppTableActionButton
-                                                            label={t('clients.show.replaceDocument')}
-                                                            tone="edit"
-                                                            onPress={() => setReplaceTarget(doc)}
-                                                        >
-                                                            <Pencil size={14} />
-                                                        </AppTableActionButton>
-                                                        <AppTableActionButton
-                                                            label={t('clients.show.deleteDocument')}
-                                                            tone="delete"
-                                                            onPress={() => setDocumentDeleteTarget(doc)}
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </AppTableActionButton>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : null}
-
-                            {projects.length === 0 && (
-                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
-                                    <AppEmptyState title={t('clients.show.noDocuments')} description={t('clients.show.noDocumentsDesc')} />
-                                </div>
-                            )}
-
-                            {projects.length > 0 && !selectedProject?.documents?.length && (
-                                <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
-                                    <AppEmptyState title={t('clients.show.noDocuments')} description={t('clients.show.noDocumentsDesc')} />
-                                </div>
-                            )}
-                        </div>
+                        <ClientDocumentsTab
+                            client={client}
+                            projects={projects}
+                            selectedProject={selectedProject}
+                            onUpload={() => setStandaloneUploadOpen(true)}
+                            onPreview={(document) => openDocumentWindow(document.viewUrl, t('clients.show.previewUnavailable'))}
+                            onPrint={(document) => openDocumentWindow(document.printUrl, t('clients.show.previewUnavailable'))}
+                            onDownload={(document) => openDocumentWindow(document.downloadUrl, t('clients.show.fileUnavailable'))}
+                            onReplace={setReplaceTarget}
+                            onDelete={setDocumentDeleteTarget}
+                        />
                     </TabPanel>
 
                     {canViewFinance ? <TabPanel id="finance" className="outline-none">
@@ -1381,7 +1245,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <h3 className="text-[12px] font-semibold text-[var(--foreground)]">{t('clients.show.notes')}</h3>
                                 <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.edit')} aria-label={t('clients.edit')} onPress={openEditDrawer}>
-                                    <Pencil size={14} />
+                                    <IconPencil size={14} />
                                 </AppButton>
                             </div>
                             <p className="text-[12px] leading-6 text-[var(--text-muted)]">
@@ -1420,7 +1284,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     errors={formErrors}
                 />
 
-                {/* ── Upload document drawer ── */}
+                {/* ── IconUpload document drawer ── */}
                 <DocumentDrawer
                     isOpen={uploadDrawerOpen}
                     clients={[{ id: String(client.id), label: client.fullName }]}

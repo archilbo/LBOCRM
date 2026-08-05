@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useRef, useState } from 'react';
 import { Avatar } from '@heroui/react';
-import { Check, MessageCircle, Search, UserPlus, Users, X } from 'lucide-react';
+import { IconCheck, IconMessageCircle, IconSearch, IconUserPlus, IconUsers, IconX } from '@tabler/icons-react';
+
 import { AppBadge } from '@/components/ui/AppBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
@@ -59,7 +60,7 @@ function ConversationModeToggle({
                                 : 'text-[var(--text-muted)] hover:text-[var(--text)]',
                         )}
                     >
-                        {value === 'direct' ? <MessageCircle size={14} /> : <Users size={14} />}
+                        {value === 'direct' ? <IconMessageCircle size={14} /> : <IconUsers size={14} />}
                         {value === 'direct' ? 'Direct' : 'Groupe'}
                     </button>
                 );
@@ -93,7 +94,7 @@ function SelectedRecipients({
                             className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
                             aria-label={`Retirer ${user.name}`}
                         >
-                            <X size={10} />
+                            <IconX size={10} />
                         </button>
                     </span>
                 );
@@ -142,7 +143,7 @@ function ConversationUserRow({
                         : 'border-[var(--border)] bg-[var(--surface-2)]',
                 )}
             >
-                {selected ? <Check size={12} /> : null}
+                {selected ? <IconCheck size={12} /> : null}
             </div>
             <Avatar size="sm" name={user.name} className={`shrink-0 ${t.bg} ${t.text}`} />
             <div className="min-w-0 flex-1">
@@ -275,7 +276,7 @@ export function NewConversationDrawer({
             isOpen={isOpen}
             onOpenChange={handleOpenChange}
             title="Nouvelle conversation"
-            headerIcon={<UserPlus size={18} />}
+            headerIcon={<IconUserPlus size={18} />}
             panelClassName="max-w-[430px]"
             contentClassName="[scrollbar-width:none]"
             footer={
@@ -340,7 +341,7 @@ export function NewConversationDrawer({
                     </div>
 
                     <div className="relative">
-                        <Search
+                        <IconSearch
                             size={14}
                             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
                         />

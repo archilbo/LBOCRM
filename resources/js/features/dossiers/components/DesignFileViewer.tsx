@@ -8,19 +8,8 @@ import {
     useRef,
     useState,
 } from 'react';
-import {
-    AlignCenter,
-    AlignStartVertical,
-    Download,
-    FileWarning,
-    Loader2,
-    Maximize,
-    MessageSquare,
-    Minimize,
-    RotateCw,
-    ZoomIn,
-    ZoomOut,
-} from 'lucide-react';
+import { IconAlignCenter, IconAlignLeft, IconDownload, IconFileAlert, IconLoader2, IconMaximize, IconMessage2, IconMinimize, IconRotateClockwise, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
+
 import { Button, Tooltip } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -227,7 +216,7 @@ function mapProjectDesignRemark(remark: ProjectDesignRemark): NonNullable<Annota
 function ViewerLoading() {
     return (
         <div className="flex h-full flex-col items-center justify-center gap-2 bg-[#101214]">
-            <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
+            <IconLoader2 size={24} className="animate-spin text-[var(--accent)]" />
             <p className="text-[11px] text-[var(--text-muted)]">Loading design viewer…</p>
         </div>
     );
@@ -236,7 +225,7 @@ function ViewerLoading() {
 function UnsupportedViewer({ filename }: { filename: string }) {
     return (
         <div className="flex h-full flex-col items-center justify-center gap-3 bg-[var(--surface-2)]/35 p-8 text-center">
-            <FileWarning size={34} className="text-amber-400" />
+            <IconFileAlert size={34} className="text-amber-400" />
             <div>
                 <p className="text-sm font-medium text-[var(--foreground)]">Preview not available</p>
                 <p className="mt-1 max-w-md text-[11px] text-[var(--text-muted)]">
@@ -1159,7 +1148,7 @@ export function DesignFileViewer({
                 <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
                     {suppressAnnotations ? (
                         <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
-                            <FileWarning size={12} className="text-amber-400" />
+                            <IconFileAlert size={12} className="text-amber-400" />
                             <span>Source file · annotations disabled</span>
                         </div>
                     ) : (
@@ -1174,10 +1163,10 @@ export function DesignFileViewer({
 
                     <div className="flex items-center gap-1">
                         <Button isIconOnly size="sm" variant="ghost" onPress={handleFitWidth} aria-label="Fit width">
-                            <AlignStartVertical size={13} />
+                            <IconAlignLeft size={13} />
                         </Button>
                         <Button isIconOnly size="sm" variant="ghost" onPress={handleFitPage} aria-label="Fit page">
-                            <AlignCenter size={13} />
+                            <IconAlignCenter size={13} />
                         </Button>
                         <Button
                             isIconOnly
@@ -1186,7 +1175,7 @@ export function DesignFileViewer({
                             onPress={() => applyViewport({ zoom: Math.max(0.1, localZoom - 0.1), panX: localPanX, panY: localPanY })}
                             aria-label="Zoom out"
                         >
-                            <ZoomOut size={13} />
+                            <IconZoomOut size={13} />
                         </Button>
                         <span className="min-w-[42px] text-center text-[10px] tabular-nums text-[var(--text-muted)]">
                             {Math.round(localZoom * 100)}%
@@ -1198,7 +1187,7 @@ export function DesignFileViewer({
                             onPress={() => applyViewport({ zoom: Math.min(10, localZoom + 0.1), panX: localPanX, panY: localPanY })}
                             aria-label="Zoom in"
                         >
-                            <ZoomIn size={13} />
+                            <IconZoomIn size={13} />
                         </Button>
                         <Button
                             isIconOnly
@@ -1207,7 +1196,7 @@ export function DesignFileViewer({
                             onPress={() => setLocalRotation((current) => (current + 90) % 360)}
                             aria-label="Rotate"
                         >
-                            <RotateCw size={13} />
+                            <IconRotateClockwise size={13} />
                         </Button>
                         <Button
                             isIconOnly
@@ -1216,7 +1205,7 @@ export function DesignFileViewer({
                             onPress={() => void toggleStandaloneFullscreen()}
                             aria-label={resolvedFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
                         >
-                            {resolvedFullscreen ? <Minimize size={13} /> : <Maximize size={13} />}
+                            {resolvedFullscreen ? <IconMinimize size={13} /> : <IconMaximize size={13} />}
                         </Button>
                         {canRemark ? (
                             <Tooltip delay={350}>
@@ -1229,7 +1218,7 @@ export function DesignFileViewer({
                                         className="h-7 w-7 min-w-0"
                                         aria-label="Add or edit remark"
                                     >
-                                        <MessageSquare size={13} />
+                                        <IconMessage2 size={13} />
                                     </Button>
                                 </Tooltip.Trigger>
                                 <Tooltip.Content>Add or edit remark</Tooltip.Content>
@@ -1243,12 +1232,12 @@ export function DesignFileViewer({
                                     variant="ghost"
                                     onPress={() => window.open(downloadUrl, '_blank', 'noopener,noreferrer')}
                                     className="h-7 w-7 min-w-0"
-                                    aria-label="Download current asset"
+                                    aria-label="IconDownload current asset"
                                 >
-                                    <Download size={13} />
+                                    <IconDownload size={13} />
                                 </Button>
                             </Tooltip.Trigger>
-                            <Tooltip.Content>Download current asset</Tooltip.Content>
+                            <Tooltip.Content>IconDownload current asset</Tooltip.Content>
                         </Tooltip>
                     </div>
                 </div>
@@ -1268,7 +1257,7 @@ export function DesignFileViewer({
 
                 {suppressAnnotations ? (
                     <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded-lg border border-amber-400/20 bg-[var(--surface)]/92 px-2.5 py-1.5 text-[9px] text-[var(--text-muted)] shadow-lg backdrop-blur">
-                        <FileWarning size={11} className="text-amber-400" />
+                        <IconFileAlert size={11} className="text-amber-400" />
                         Source asset · open a review derivative to annotate
                     </div>
                 ) : null}

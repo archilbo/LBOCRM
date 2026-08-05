@@ -1,4 +1,5 @@
-import { AlertTriangle, CheckCircle2, Circle, Clock, FileText, ShieldAlert, UploadCloud } from 'lucide-react';
+import { IconAlertTriangle, IconCircleCheck, IconCircle, IconClock, IconFileText, IconShieldExclamation, IconCloudUpload } from '@tabler/icons-react';
+
 import { useMemo } from 'react';
 import type { ClientProjectDocument, DossierWorkflowProgress } from '@/features/clients/types';
 
@@ -169,7 +170,7 @@ export function DocumentIntelligenceChecklist({
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                     <div className="flex items-center gap-2">
-                        <FileText size={15} className="text-[var(--crm-accent)]" />
+                        <IconFileText size={15} className="text-[var(--crm-accent)]" />
                         <h3 className="text-sm font-black uppercase tracking-[0.14em] text-[var(--crm-muted)]">Document checklist</h3>
                     </div>
                     <p className="mt-2 text-xs text-[var(--crm-muted)]">
@@ -182,12 +183,12 @@ export function DocumentIntelligenceChecklist({
                 <div className="flex items-center gap-3">
                     {totals.expired > 0 ? (
                         <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-1 text-[10px] font-bold text-red-300">
-                            <AlertTriangle size={12} />
+                            <IconAlertTriangle size={12} />
                             {totals.expired} expired
                         </span>
                     ) : null}
                     <button type="button" className="crm-action-button border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_14%,transparent)] text-[var(--crm-accent)]" onClick={onUploadDocument}>
-                        <UploadCloud size={13} />
+                        <IconCloudUpload size={13} />
                         Upload missing
                     </button>
                 </div>
@@ -209,18 +210,18 @@ export function DocumentIntelligenceChecklist({
                                 <div key={req.key} className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--crm-border)] bg-black/10 px-3 py-2 md:flex-nowrap md:justify-between">
                                     <div className="flex min-w-0 items-center gap-2">
                                         {req.isExpired ? (
-                                            <ShieldAlert size={14} className="shrink-0 text-red-400" />
+                                            <IconShieldExclamation size={14} className="shrink-0 text-red-400" />
                                         ) : req.done ? (
-                                            <CheckCircle2 size={14} className="shrink-0 text-emerald-400" />
+                                            <IconCircleCheck size={14} className="shrink-0 text-emerald-400" />
                                         ) : (
-                                            <Circle size={14} className="shrink-0 text-[var(--crm-muted)]" />
+                                            <IconCircle size={14} className="shrink-0 text-[var(--crm-muted)]" />
                                         )}
                                         <span className="truncate text-xs font-bold text-[var(--crm-text)]">{req.label}</span>
                                         {req.isExpired ? (
                                             <span className="shrink-0 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-bold text-red-300">Expired</span>
                                         ) : req.isExpiringSoon ? (
                                             <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
-                                                <Clock size={10} className="inline" /> Soon
+                                                <IconClock size={10} className="inline" /> Soon
                                             </span>
                                         ) : null}
                                     </div>

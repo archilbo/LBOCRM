@@ -1,4 +1,5 @@
-import { Building2, CalendarClock, Landmark, Percent, Settings2 } from 'lucide-react';
+import { IconBuilding, IconCalendarClock, IconBuildingBank, IconPercentage, IconSettings2 } from '@tabler/icons-react';
+
 import { AppButton } from '@/components/ui/AppButton';
 import type { FinanceSettings } from '@/features/finance/types';
 
@@ -11,10 +12,10 @@ type Props = {
 
 export function FinanceSettingsSummary({ settings, settingsUrl, onOpen, canManage = false }: Props) {
     const items = [
-        { label: 'Devise', value: settings.defaultCurrency, icon: Landmark },
-        { label: 'TVA par defaut', value: `${settings.defaultTvaRate}%`, icon: Percent },
-        { label: 'Delai de paiement', value: `${settings.defaultPaymentTermsDays} jours`, icon: CalendarClock },
-        { label: 'Validite des devis', value: `${settings.defaultQuoteValidityDays} jours`, icon: Building2 },
+        { label: 'Devise', value: settings.defaultCurrency, icon: IconBuildingBank },
+        { label: 'TVA par defaut', value: `${settings.defaultTvaRate}%`, icon: IconPercentage },
+        { label: 'Delai de paiement', value: `${settings.defaultPaymentTermsDays} jours`, icon: IconCalendarClock },
+        { label: 'Validite des devis', value: `${settings.defaultQuoteValidityDays} jours`, icon: IconBuilding },
     ];
 
     return (
@@ -26,7 +27,7 @@ export function FinanceSettingsSummary({ settings, settingsUrl, onOpen, canManag
                 </div>
                 {canManage ? (
                     <AppButton size="sm" variant="ghost" className="bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]" onPress={() => onOpen(settingsUrl)}>
-                        <Settings2 size={14} />
+                        <IconSettings2 size={14} />
                         Configurer
                     </AppButton>
                 ) : null}

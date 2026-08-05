@@ -14,7 +14,12 @@ class ReplaceDossierDocumentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'max:20480'],
+            'file' => [
+                'required',
+                'file',
+                'max:'.config('documents.max_upload_kb'),
+                'mimes:pdf,jpg,jpeg,png,webp,doc,docx',
+            ],
             'status' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'return_to' => ['nullable', 'string', 'max:2048', 'starts_with:/'],

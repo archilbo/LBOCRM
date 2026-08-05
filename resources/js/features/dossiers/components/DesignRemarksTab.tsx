@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, Chip, Input, ListBox, Select, Spinner } from '@heroui/react';
-import { Calendar, MessageSquareText, Search, User } from 'lucide-react';
+import { IconCalendar, IconMessage2, IconSearch, IconUser } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 import { useRemarks } from '@/features/project-design/hooks/useProjectDesignQueries';
 import {
@@ -69,12 +70,12 @@ export function DesignRemarksTab({ dossierId }: { dossierId: number }) {
         <div className="space-y-3">
             <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
                 <div className="relative min-w-0 flex-1">
-                    <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--text-subtle)]" />
+                    <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--text-subtle)]" />
                     <Input
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Search remarks"
-                        aria-label="Search remarks"
+                        placeholder="IconSearch remarks"
+                        aria-label="IconSearch remarks"
                         variant="secondary"
                         fullWidth
                         className="h-8 pl-8 text-[10px]"
@@ -91,7 +92,7 @@ export function DesignRemarksTab({ dossierId }: { dossierId: number }) {
             ) : remarks.length === 0 ? (
                 <Card variant="secondary" className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)]/25">
                     <Card.Content className="flex min-h-52 flex-col items-center justify-center p-6 text-center">
-                        <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]"><MessageSquareText size={17} /></span>
+                        <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]"><IconMessage2 size={17} /></span>
                         <p className="mt-2 text-[11px] font-medium text-[var(--foreground)]">No remarks found</p>
                         <p className="mt-1 text-[9px] text-[var(--text-muted)]">Remarks appear after a design annotation is reviewed.</p>
                     </Card.Content>
@@ -113,8 +114,8 @@ export function DesignRemarksTab({ dossierId }: { dossierId: number }) {
                                 </div>
                                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border)] pt-2 text-[8px] text-[var(--text-subtle)]">
                                     {remark.file ? <span>{remark.file.name}{remark.versionNumber ? ` · v${remark.versionNumber}` : ''}</span> : null}
-                                    {remark.createdBy ? <span className="flex items-center gap-1"><User size={9} />{remark.createdBy.name}</span> : null}
-                                    {remark.dueDate ? <span className="flex items-center gap-1"><Calendar size={9} />{formatProjectDesignDate(remark.dueDate)}</span> : null}
+                                    {remark.createdBy ? <span className="flex items-center gap-1"><IconUser size={9} />{remark.createdBy.name}</span> : null}
+                                    {remark.dueDate ? <span className="flex items-center gap-1"><IconCalendar size={9} />{formatProjectDesignDate(remark.dueDate)}</span> : null}
                                 </div>
                             </Card.Content>
                         </Card>

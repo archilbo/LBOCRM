@@ -1,4 +1,5 @@
-import { CalendarDays, ListTodo, StickyNote, Bell, AlertTriangle, Plus } from 'lucide-react';
+import { IconCalendarMonth, IconListCheck, IconNotes, IconBell, IconAlertTriangle, IconPlus } from '@tabler/icons-react';
+
 import type { CalendarEventRow } from '@/features/calendar/types';
 import { EVENT_TYPE_CLASSES, EVENT_TYPE_COLORS } from '@/features/calendar/types';
 
@@ -29,7 +30,7 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
             {/* Today focus */}
             <div className="rounded-xl border border-white/8 bg-[color-mix(in_srgb,var(--crm-elevated)_70%,#000)] p-[14px]">
                 <div className="mb-3 flex items-center gap-2">
-                    <CalendarDays size={14} className="text-[var(--crm-gold)]" />
+                    <IconCalendarMonth size={14} className="text-[var(--crm-gold)]" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-[var(--crm-gold)]">Today</span>
                     <span className="ml-auto text-[9px] text-[var(--crm-text-muted)]">{dateLabel}</span>
                 </div>
@@ -59,7 +60,7 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
             {/* Upcoming reminders */}
             <div className="rounded-xl border border-white/8 bg-[color-mix(in_srgb,var(--crm-elevated)_70%,#000)] p-[14px]">
                 <div className="mb-3 flex items-center gap-2">
-                    <Bell size={14} className="text-purple-400" />
+                    <IconBell size={14} className="text-purple-400" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-purple-400">Reminders</span>
                     <span className="ml-auto text-[9px] text-[var(--crm-text-muted)]">{reminders.length}</span>
                 </div>
@@ -73,7 +74,7 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                                 type="button"
                                 onClick={() => onEventClick(e)}
                                 className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition hover:bg-white/5">
-                                <Bell size={12} className="shrink-0 text-purple-400/60" />
+                                <IconBell size={12} className="shrink-0 text-purple-400/60" />
                                 <span className="min-w-0 flex-1 truncate text-[10px] font-medium">{e.title}</span>
                             </button>
                         ))}
@@ -84,7 +85,7 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
             {/* Overdue */}
             <div className="rounded-xl border border-white/8 bg-[color-mix(in_srgb,var(--crm-elevated)_70%,#000)] p-[14px]">
                 <div className="mb-3 flex items-center gap-2">
-                    <AlertTriangle size={14} className="text-red-400" />
+                    <IconAlertTriangle size={14} className="text-red-400" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-red-400">Overdue</span>
                     <span className="ml-auto text-[9px] text-[var(--crm-text-muted)]">{overdue.length}</span>
                 </div>
@@ -112,7 +113,7 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
             {/* Quick actions */}
             <div className="rounded-xl border border-white/8 bg-[color-mix(in_srgb,var(--crm-elevated)_70%,#000)] p-[14px]">
                 <div className="mb-3 flex items-center gap-2">
-                    <ListTodo size={14} className="text-[var(--crm-text-muted)]" />
+                    <IconListCheck size={14} className="text-[var(--crm-text-muted)]" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">Quick actions</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -120,13 +121,13 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                         type="button"
                         onClick={onCreateEvent}
                         className="flex items-center gap-2 rounded-lg border border-white/8 px-3 py-2.5 text-[10px] font-medium transition hover:bg-white/5">
-                        <CalendarDays size={13} className="text-[var(--crm-gold)]" /> New event
+                        <IconCalendarMonth size={13} className="text-[var(--crm-gold)]" /> New event
                     </button>
                     <button
                         type="button"
                         onClick={onCreateEvent}
                         className="flex items-center gap-2 rounded-lg border border-white/8 px-3 py-2.5 text-[10px] font-medium transition hover:bg-white/5">
-                        <Plus size={13} className="text-blue-400" /> New note
+                        <IconPlus size={13} className="text-blue-400" /> New note
                     </button>
                 </div>
             </div>

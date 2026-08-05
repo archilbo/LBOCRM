@@ -1,4 +1,5 @@
-﻿import { Circle, CheckCircle2, Clock3, AlertTriangle, Archive } from 'lucide-react';
+import { IconCircle, IconCircleCheck, IconClockHour3, IconAlertTriangle, IconArchive } from '@tabler/icons-react';
+
 import { AppBadge } from '@/components/ui/AppBadge';
 
 type StatusTone = 'neutral' | 'blue' | 'green' | 'amber' | 'red' | 'violet';
@@ -10,11 +11,11 @@ type AppStatusBadgeProps = {
 };
 
 const icons = {
-    dot: Circle,
-    check: CheckCircle2,
-    clock: Clock3,
-    warning: AlertTriangle,
-    archive: Archive,
+    dot: IconCircle,
+    check: IconCircleCheck,
+    clock: IconClockHour3,
+    warning: IconAlertTriangle,
+    archive: IconArchive,
 };
 
 export function AppStatusBadge({

@@ -1,4 +1,5 @@
-import { Copy, FileText, Plus, Trash2 } from 'lucide-react';
+import { IconCopy, IconFileText, IconPlus, IconTrash } from '@tabler/icons-react';
+
 import { Button } from '@heroui/react';
 import { AppInput } from '@/components/ui/AppInput';
 import type { FinanceDocumentItem } from '@/features/finance/types';
@@ -62,11 +63,11 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
         <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
                 <div>
-                    <div className="flex items-center gap-1.5 mb-2"><FileText size={13} className="text-[var(--text-subtle)]" /><p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Lignes du document</p></div>
+                    <div className="flex items-center gap-1.5 mb-2"><IconFileText size={13} className="text-[var(--text-subtle)]" /><p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Lignes du document</p></div>
                     <p className="text-xs text-[var(--text-muted)]">Les totaux sont recalcules en direct.</p>
                 </div>
                 <Button variant="secondary" size="sm" onPress={addItem} isDisabled={disabled}>
-                    <Plus size={14} />
+                    <IconPlus size={14} />
                     Ajouter
                 </Button>
             </div>
@@ -109,8 +110,8 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
                                 </td>
                                 <td className="px-3 py-2 w-16">
                                     <FinanceRowActions actions={[
-                                        { id: `duplicate-${index}`, label: 'Dupliquer la ligne', icon: <Copy size={13} />, onPress: () => duplicateItem(index), isDisabled: disabled },
-                                        { id: `delete-${index}`, label: 'Supprimer la ligne', icon: <Trash2 size={13} />, onPress: () => deleteItem(index), isDisabled: disabled || items.length === 1, tone: 'danger' },
+                                        { id: `duplicate-${index}`, label: 'Dupliquer la ligne', icon: <IconCopy size={13} />, onPress: () => duplicateItem(index), isDisabled: disabled },
+                                        { id: `delete-${index}`, label: 'Supprimer la ligne', icon: <IconTrash size={13} />, onPress: () => deleteItem(index), isDisabled: disabled || items.length === 1, tone: 'danger' },
                                     ]} />
                                 </td>
                             </tr>

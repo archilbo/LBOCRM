@@ -1,29 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Button, Card, Chip, Input, Tabs, Tooltip } from '@heroui/react';
-import {
-    Activity,
-    CalendarClock,
-    CheckCircle2,
-    ChevronDown,
-    ChevronLeft,
-    ChevronRight,
-    ChevronUp,
-    CircleDot,
-    Clock,
-    Download,
-    ExternalLink,
-    FileText,
-    Focus,
-    GitBranch,
-    HardDrive,
-    Info,
-    MessageSquareText,
-    Package,
-    RotateCcw,
-    Shield,
-    User,
-    UserRoundCheck,
-} from 'lucide-react';
+import { IconActivity, IconCalendarClock, IconCircleCheck, IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconCircleDot, IconClock, IconDownload, IconExternalLink, IconFileText, IconFocus, IconGitBranch, IconDatabase, IconInfoCircle, IconMessage2, IconPackage, IconArrowRotaryFirstLeft, IconShield, IconUser, IconUserCheck } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 import { formatDate, formatFileSize } from '@/lib/formatters';
 import {
@@ -69,11 +47,11 @@ type RemarkCapabilities = {
     reopen: boolean;
 };
 
-const TABS: { id: DesignInspectorTab; label: string; icon: typeof Info }[] = [
-    { id: 'details', label: 'Details', icon: Info },
-    { id: 'remarks', label: 'Remarks', icon: MessageSquareText },
-    { id: 'versions', label: 'Versions', icon: GitBranch },
-    { id: 'activity', label: 'Activity', icon: Activity },
+const TABS: { id: DesignInspectorTab; label: string; icon: typeof IconInfoCircle }[] = [
+    { id: 'details', label: 'Details', icon: IconInfoCircle },
+    { id: 'remarks', label: 'Remarks', icon: IconMessage2 },
+    { id: 'versions', label: 'Versions', icon: IconGitBranch },
+    { id: 'activity', label: 'IconActivity', icon: IconActivity },
 ];
 
 const STATUS_TONES: Record<string, string> = {
@@ -242,32 +220,32 @@ function DetailsPanel({
         <div className="space-y-2.5">
             {file ? (
                 <Section title="Design file">
-                    <DetailRow icon={<FileText size={11} />} label="Name" value={file.name} />
-                    {file.code ? <DetailRow icon={<Info size={11} />} label="Code" value={file.code} /> : null}
-                    {file.discipline ? <DetailRow icon={<HardDrive size={11} />} label="Discipline" value={file.discipline} /> : null}
-                    {file.category ? <DetailRow icon={<Package size={11} />} label="Category" value={file.category} /> : null}
-                    {file.responsibleUser ? <DetailRow icon={<User size={11} />} label="Responsible" value={file.responsibleUser.name} /> : null}
-                    {file.reviewer ? <DetailRow icon={<User size={11} />} label="Reviewer" value={file.reviewer.name} /> : null}
+                    <DetailRow icon={<IconFileText size={11} />} label="Name" value={file.name} />
+                    {file.code ? <DetailRow icon={<IconInfoCircle size={11} />} label="Code" value={file.code} /> : null}
+                    {file.discipline ? <DetailRow icon={<IconDatabase size={11} />} label="Discipline" value={file.discipline} /> : null}
+                    {file.category ? <DetailRow icon={<IconPackage size={11} />} label="Category" value={file.category} /> : null}
+                    {file.responsibleUser ? <DetailRow icon={<IconUser size={11} />} label="Responsible" value={file.responsibleUser.name} /> : null}
+                    {file.reviewer ? <DetailRow icon={<IconUser size={11} />} label="Reviewer" value={file.reviewer.name} /> : null}
                 </Section>
             ) : null}
 
             {activeVersion ? (
                 <Section title="Version">
-                    <DetailRow icon={<GitBranch size={11} />} label="Revision" value={activeVersion.label} />
-                    <DetailRow icon={<Shield size={11} />} label="Status" value={<StatusBadge value={activeVersion.status} />} />
-                    {activeVersion.revisionCode ? <DetailRow icon={<Info size={11} />} label="Code" value={activeVersion.revisionCode} /> : null}
-                    {activeVersion.uploadedBy ? <DetailRow icon={<User size={11} />} label="Uploaded by" value={activeVersion.uploadedBy.name} /> : null}
-                    {activeVersion.createdAt ? <DetailRow icon={<Clock size={11} />} label="Created" value={formatDate(activeVersion.createdAt)} /> : null}
+                    <DetailRow icon={<IconGitBranch size={11} />} label="Revision" value={activeVersion.label} />
+                    <DetailRow icon={<IconShield size={11} />} label="Status" value={<StatusBadge value={activeVersion.status} />} />
+                    {activeVersion.revisionCode ? <DetailRow icon={<IconInfoCircle size={11} />} label="Code" value={activeVersion.revisionCode} /> : null}
+                    {activeVersion.uploadedBy ? <DetailRow icon={<IconUser size={11} />} label="Uploaded by" value={activeVersion.uploadedBy.name} /> : null}
+                    {activeVersion.createdAt ? <DetailRow icon={<IconClock size={11} />} label="Created" value={formatDate(activeVersion.createdAt)} /> : null}
                 </Section>
             ) : null}
 
             {activeAsset ? (
                 <Section title="Active asset">
-                    <DetailRow icon={<FileText size={11} />} label="Filename" value={activeAsset.originalFilename} />
-                    <DetailRow icon={<HardDrive size={11} />} label="Format" value={activeAsset.extension.toUpperCase()} />
-                    <DetailRow icon={<HardDrive size={11} />} label="Size" value={formatFileSize(activeAsset.sizeBytes)} />
-                    <DetailRow icon={<Shield size={11} />} label="Scan" value={<StatusBadge value={activeAsset.scanStatus} />} />
-                    {activeAsset.formatCapability?.application ? <DetailRow icon={<Package size={11} />} label="Application" value={activeAsset.formatCapability.application} /> : null}
+                    <DetailRow icon={<IconFileText size={11} />} label="Filename" value={activeAsset.originalFilename} />
+                    <DetailRow icon={<IconDatabase size={11} />} label="Format" value={activeAsset.extension.toUpperCase()} />
+                    <DetailRow icon={<IconDatabase size={11} />} label="Size" value={formatFileSize(activeAsset.sizeBytes)} />
+                    <DetailRow icon={<IconShield size={11} />} label="Scan" value={<StatusBadge value={activeAsset.scanStatus} />} />
+                    {activeAsset.formatCapability?.application ? <DetailRow icon={<IconPackage size={11} />} label="Application" value={activeAsset.formatCapability.application} /> : null}
                     {activeAsset.downloadUrl ? (
                         <div className="py-2.5">
                             <Button
@@ -277,8 +255,8 @@ function DetailsPanel({
                                 onPress={() => window.open(activeAsset.downloadUrl ?? '', '_blank', 'noopener,noreferrer')}
                                 className="h-8 text-[9px]"
                             >
-                                <Download size={11} />
-                                Download asset
+                                <IconDownload size={11} />
+                                IconDownload asset
                             </Button>
                         </div>
                     ) : null}
@@ -305,7 +283,7 @@ function DetailsPanel({
                                             className="h-7 w-7 min-w-0 text-[var(--text-muted)]"
                                             aria-label={`Open ${asset.originalFilename}`}
                                         >
-                                            <ExternalLink size={11} />
+                                            <IconExternalLink size={11} />
                                         </Button>
                                     </Tooltip.Trigger>
                                     <Tooltip.Content>Open asset</Tooltip.Content>
@@ -348,7 +326,7 @@ function RemarksPanel({
     );
 
     if (!remarkList.length) {
-        return <EmptyInspectorState icon={<MessageSquareText size={16} />} title="No remarks" description="Remarks for this revision will appear here." />;
+        return <EmptyInspectorState icon={<IconMessage2 size={16} />} title="No remarks" description="Remarks for this revision will appear here." />;
     }
 
     const openCount = openRemarks.length;
@@ -378,13 +356,13 @@ function RemarksPanel({
         <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <div className="flex h-11 items-center justify-between gap-3 border-b border-[var(--border)] px-3">
                 <div className="flex min-w-0 items-center gap-2">
-                    <MessageSquareText size={14} className="shrink-0 text-[var(--accent)]" />
+                    <IconMessage2 size={14} className="shrink-0 text-[var(--accent)]" />
                     <span className="text-[11px] font-semibold text-[var(--foreground)]">Remarks</span>
                     <span className="text-[9px] text-[var(--text-muted)]">{remarkList.length} total</span>
                 </div>
                 <div className="flex shrink-0 items-center gap-2 text-[9px] tabular-nums">
-                    <span className="inline-flex items-center gap-1 text-amber-300"><CircleDot size={10} /> {openCount}</span>
-                    <span className="inline-flex items-center gap-1 text-emerald-300"><CheckCircle2 size={10} /> {resolvedCount}</span>
+                    <span className="inline-flex items-center gap-1 text-amber-300"><IconCircleDot size={10} /> {openCount}</span>
+                    <span className="inline-flex items-center gap-1 text-emerald-300"><IconCircleCheck size={10} /> {resolvedCount}</span>
                     <span className="ml-1 flex items-center gap-0.5 border-l border-[var(--border)] pl-1.5">
                         <Button
                             isIconOnly
@@ -395,7 +373,7 @@ function RemarksPanel({
                             className="size-6 min-w-0 rounded-md"
                             aria-label="Previous open remark"
                         >
-                            <ChevronLeft size={13} />
+                            <IconChevronLeft size={13} />
                         </Button>
                         <Button
                             isIconOnly
@@ -406,7 +384,7 @@ function RemarksPanel({
                             className="size-6 min-w-0 rounded-md"
                             aria-label="Next open remark"
                         >
-                            <ChevronRight size={13} />
+                            <IconChevronRight size={13} />
                         </Button>
                     </span>
                 </div>
@@ -465,7 +443,7 @@ function RemarksPanel({
                                     fullWidth
                                     onPress={() => onRemarkFocus?.(remark)}
                                     className="h-auto min-h-0 flex-1 justify-start rounded-lg px-1 py-0.5 text-left"
-                                    aria-label={`Focus remark ${remark.title}`}
+                                    aria-label={`IconFocus remark ${remark.title}`}
                                 >
                                     <span className="flex min-w-0 flex-1 items-center gap-2.5">
                                         <span className={cn(
@@ -486,7 +464,7 @@ function RemarksPanel({
                                             </span>
                                         </span>
                                     </span>
-                                    <Focus size={13} className={cn('shrink-0', isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-subtle)]')} />
+                                    <IconFocus size={13} className={cn('shrink-0', isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-subtle)]')} />
                                 </Button>
                                 {canExpand ? (
                                     <Button
@@ -498,7 +476,7 @@ function RemarksPanel({
                                         aria-label={isExpanded ? `Collapse remark ${remark.title}` : `Expand remark ${remark.title}`}
                                         aria-expanded={isExpanded}
                                     >
-                                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                        {isExpanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
                                     </Button>
                                 ) : null}
                             </div>
@@ -512,17 +490,17 @@ function RemarksPanel({
                                     )}
                                     <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[9px] text-[var(--text-muted)]">
                                         <span className="inline-flex min-w-0 items-center gap-1.5">
-                                            <FileText size={11} className="shrink-0 text-[var(--text-subtle)]" />
+                                            <IconFileText size={11} className="shrink-0 text-[var(--text-subtle)]" />
                                             <span className="truncate">{remark.file?.name ?? 'Current drawing'}{remark.versionNumber ? ` / v${remark.versionNumber}` : ''}</span>
                                         </span>
                                         {remark.pageNumber ? (
                                             <span className="inline-flex items-center gap-1.5 text-[var(--accent)]">
-                                                <CircleDot size={11} /> Page {remark.pageNumber}
+                                                <IconCircleDot size={11} /> Page {remark.pageNumber}
                                             </span>
                                         ) : null}
                                         {remark.dueDate ? (
                                             <span className="inline-flex items-center gap-1.5 text-amber-300">
-                                                <CalendarClock size={11} /> Due {formatDate(remark.dueDate)}
+                                                <IconCalendarClock size={11} /> Due {formatDate(remark.dueDate)}
                                             </span>
                                         ) : null}
                                     </div>
@@ -597,7 +575,7 @@ function RemarkWorkflowActions({
                         isDisabled={isSaving}
                         className="h-7 min-w-0 rounded-md px-2 text-[9px]"
                     >
-                        <UserRoundCheck size={12} />
+                        <IconUserCheck size={12} />
                         Assign to me
                     </Button>
                 ) : null}
@@ -609,7 +587,7 @@ function RemarkWorkflowActions({
                         isDisabled={isSaving}
                         className="h-7 min-w-0 rounded-md px-2 text-[9px]"
                     >
-                        {workflowAction.status === 'reopened' ? <RotateCcw size={12} /> : <CheckCircle2 size={12} />}
+                        {workflowAction.status === 'reopened' ? <IconArrowRotaryFirstLeft size={12} /> : <IconCircleCheck size={12} />}
                         {workflowAction.label}
                     </Button>
                 ) : null}
@@ -643,7 +621,7 @@ function VersionsPanel({
     const [comparisonVersionId, setComparisonVersionId] = useState<number | null>(null);
 
     if (!versions.length) {
-        return <EmptyInspectorState icon={<GitBranch size={16} />} title="No versions" description="Uploaded revisions will appear here." />;
+        return <EmptyInspectorState icon={<IconGitBranch size={16} />} title="No versions" description="Uploaded revisions will appear here." />;
     }
 
     const currentVersion = versions.find((version) => version.id === currentVersionId) ?? versions[0];
@@ -658,7 +636,7 @@ function VersionsPanel({
                             <Card.Title className="text-[9px] font-semibold text-[var(--foreground)]">Revision comparison</Card.Title>
                             <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{comparisonVersion.label} to {currentVersion.label}</p>
                         </div>
-                        <Button isIconOnly size="sm" variant="ghost" onPress={() => setComparisonVersionId(null)} className="size-7 min-w-0" aria-label="Close revision comparison"><ChevronUp size={13} /></Button>
+                        <Button isIconOnly size="sm" variant="ghost" onPress={() => setComparisonVersionId(null)} className="size-7 min-w-0" aria-label="Close revision comparison"><IconChevronUp size={13} /></Button>
                     </Card.Header>
                     <Card.Content className="space-y-2.5 px-3 py-3">
                         <div className="grid grid-cols-2 gap-2 text-[9px]">
@@ -720,7 +698,7 @@ function VersionsPanel({
                                         className="size-7 min-w-0 rounded-md text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--accent)]"
                                         aria-label={`Compare ${version.label} with ${currentVersion.label}`}
                                     >
-                                        <GitBranch size={12} />
+                                        <IconGitBranch size={12} />
                                     </Button>
                                 </Tooltip.Trigger>
                                 <Tooltip.Content>Compare with current revision</Tooltip.Content>
@@ -744,7 +722,7 @@ function ComparisonValue({ label, value, accent = false }: { label: string; valu
 
 function ActivityPanel({ activities }: { activities: ProjectDesignActivity[] | null }) {
     if (!activities?.length) {
-        return <EmptyInspectorState icon={<Activity size={16} />} title="No activity" description="Project Design events will appear here." />;
+        return <EmptyInspectorState icon={<IconActivity size={16} />} title="No activity" description="Project Design events will appear here." />;
     }
 
     return (

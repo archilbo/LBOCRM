@@ -1,5 +1,6 @@
 import { Input } from '@heroui/react';
-import { Search, ChevronLeft, ChevronRight, Star, FileText, Pencil } from 'lucide-react';
+import { IconSearch, IconChevronLeft, IconChevronRight, IconStar, IconFileText, IconPencil } from '@tabler/icons-react';
+
 import { useMemo, useState } from 'react';
 import type { DocumentTemplate } from '@/features/finance/types';
 
@@ -39,7 +40,7 @@ export function TemplateList({
                     className="flex size-5 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]"
                     title="Afficher la liste"
                 >
-                    <ChevronRight size={14} />
+                    <IconChevronRight size={14} />
                 </button>
             </div>
         );
@@ -48,7 +49,7 @@ export function TemplateList({
     return (
         <aside className="flex w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)]">
             <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-2">
-                <Search size={14} className="shrink-0 text-[var(--text-muted)]" />
+                <IconSearch size={14} className="shrink-0 text-[var(--text-muted)]" />
                 <Input
                     type="text"
                     value={search}
@@ -62,14 +63,14 @@ export function TemplateList({
                     className="flex size-5 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]"
                     title="Reduire la liste"
                 >
-                    <ChevronLeft size={14} />
+                    <IconChevronLeft size={14} />
                 </button>
             </div>
 
             <div className="flex-1 overflow-y-auto min-h-0">
                 {filtered.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
-                        <FileText size={20} className="text-[var(--text-muted)]" />
+                        <IconFileText size={20} className="text-[var(--text-muted)]" />
                         <p className="mt-2 text-xs text-[var(--text-muted)]">
                             {search ? 'Aucun resultat' : 'Aucun template'}
                         </p>
@@ -100,7 +101,7 @@ export function TemplateList({
                                             {template.name}
                                         </p>
                                         {template.isDefault ? (
-                                            <Star size={12} className="shrink-0 fill-[var(--accent)] text-[var(--accent)]" />
+                                            <IconStar size={12} className="shrink-0 fill-[var(--accent)] text-[var(--accent)]" />
                                         ) : null}
                                     </div>
                                     <p className="truncate text-[10px] text-[var(--text-muted)]">
@@ -115,7 +116,7 @@ export function TemplateList({
                                     title="Renommer le template"
                                     aria-label={`Renommer ${template.name}`}
                                 >
-                                    <Pencil size={13} />
+                                    <IconPencil size={13} />
                                 </button>
                             </div>
                         );

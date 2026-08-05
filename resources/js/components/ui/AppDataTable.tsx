@@ -1,4 +1,4 @@
-﻿import { type ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import {
     flexRender,
     getCoreRowModel,
@@ -9,19 +9,11 @@ import {
     type ColumnDef,
     type SortingState,
 } from '@tanstack/react-table';
-import { Button, Input, SearchField } from 'react-aria-components';
-import {
-    ChevronDown,
-    ChevronLeft,
-    ChevronRight,
-    ChevronsUpDown,
-    ChevronUp,
-    RefreshCw,
-    Search,
-    SlidersHorizontal,
-    X,
-} from 'lucide-react';
+import { Button, ScrollShadow } from '@heroui/react';
+import { IconChevronDown, IconChevronLeft, IconChevronRight, IconArrowsSort, IconChevronUp, IconRefresh, IconAdjustmentsHorizontal } from '@tabler/icons-react';
+
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
+import { AppSearchInput } from '@/components/ui/AppSearchInput';
 import { cn } from '@/lib/cn';
 
 type AppDataTableProps<TData extends object> = {
@@ -82,50 +74,32 @@ export function AppDataTable<TData extends object>({
     return (
         <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <div className={cn('flex flex-wrap items-center justify-between gap-3', compact ? 'px-3 py-2' : 'px-4 py-3')}>
-                {searchPlaceholder ? (
-                    <SearchField
-                        aria-label="Search"
-                        value={globalFilter}
-                        onChange={setGlobalFilter}
-                        className="relative w-full max-w-[280px]"
-                    >
-                        <Search
-                            size={14}
-                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-                        />
-                        <Input
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {searchPlaceholder ? (
+                        <AppSearchInput
+                            value={globalFilter}
+                            onChange={setGlobalFilter}
                             placeholder={searchPlaceholder}
-                            className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-8 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
+                            ariaLabel="Search"
+                            maxWidth="max-w-full sm:max-w-[280px]"
                         />
-                        {globalFilter ? (
-                            <Button
-                                className="absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
-                                onPress={() => setGlobalFilter('')}
-                            >
-                                <X size={14} />
-                            </Button>
-                        ) : null}
-                    </SearchField>
-                ) : null}
+                    ) : null}
+                </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 ml-auto">
                     {onRefresh ? (
                         <button type="button" onClick={onRefresh} className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
-                            <RefreshCw size={13} />
+                            <IconRefresh size={13} />
                             Update
                         </button>
                     ) : null}
                     {filterControls ? (
                         <button type="button" onClick={() => setShowFilters((v) => !v)} className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)]">
-                            <SlidersHorizontal size={13} />
+                            <IconAdjustmentsHorizontal size={13} />
                             Filter
                         </button>
                     ) : null}
                     {toolbarActions}
-                </div>
-
-                <div className="hidden text-xs font-medium text-[var(--text-muted)] md:block">
-                    {filteredCount} record(s)
                 </div>
             </div>
 
@@ -135,16 +109,22 @@ export function AppDataTable<TData extends object>({
                 </div>
             ) : null}
 
-            <div>
+            <ScrollShadow orientation="horizontal" className="w-full">
                 <table className={cn('w-full', compact ? 'text-xs' : 'text-sm')}>
                     <thead>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id} className="border-b border-[var(--border)] bg-[var(--surface-2)]">
                                 {headerGroup.headers.map((header) => {
                                     const sorted = header.column.getIsSorted();
+                                    const meta = header.column.columnDef.meta as { hideOnMobile?: boolean; hideOnTablet?: boolean } | undefined;
 
                                     return (
-                                        <th key={header.id} className={cn('text-left text-xs font-medium text-[var(--text-muted)]', compact ? 'px-3 py-2' : 'px-4 py-3')}>
+                                        <th key={header.id} className={cn(
+                                            'text-left text-xs font-medium text-[var(--text-muted)]',
+                                            compact ? 'px-3 py-2' : 'px-4 py-3',
+                                            meta?.hideOnMobile && 'hidden md:table-cell',
+                                            meta?.hideOnTablet && 'hidden lg:table-cell'
+                                        )}>
                                             {header.isPlaceholder ? null : (
                                                 <button
                                                     type="button"
@@ -158,11 +138,11 @@ export function AppDataTable<TData extends object>({
 
                                                     {header.column.getCanSort() ? (
                                                         sorted === 'asc' ? (
-                                                            <ChevronUp size={11} className="text-[var(--accent)]" />
+                                                            <IconChevronUp size={11} className="text-[var(--accent)]" />
                                                         ) : sorted === 'desc' ? (
-                                                            <ChevronDown size={11} className="text-[var(--accent)]" />
+                                                            <IconChevronDown size={11} className="text-[var(--accent)]" />
                                                         ) : (
-                                                            <ChevronsUpDown size={11} className="text-[var(--text-muted)]" />
+                                                            <IconArrowsSort size={11} className="text-[var(--text-muted)]" />
                                                         )
                                                     ) : null}
                                                 </button>
@@ -182,14 +162,21 @@ export function AppDataTable<TData extends object>({
                                     className={`border-b border-[var(--border)] transition last:border-0 ${onRowClick ? 'cursor-pointer hover:bg-[var(--surface-2)]' : ''}`}
                                     onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                                 >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <td key={cell.id} className={compact ? 'px-3 py-2' : 'px-4 py-3'}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext(),
-                                            )}
-                                        </td>
-                                    ))}
+                                    {row.getVisibleCells().map((cell) => {
+                                        const meta = cell.column.columnDef.meta as { hideOnMobile?: boolean; hideOnTablet?: boolean } | undefined;
+                                        return (
+                                            <td key={cell.id} className={cn(
+                                                compact ? 'px-3 py-2' : 'px-4 py-3',
+                                                meta?.hideOnMobile && 'hidden md:table-cell',
+                                                meta?.hideOnTablet && 'hidden lg:table-cell'
+                                            )}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext(),
+                                                )}
+                                            </td>
+                                        );
+                                    })}
                                 </tr>
                             ))
                         ) : (
@@ -204,32 +191,62 @@ export function AppDataTable<TData extends object>({
                         )}
                     </tbody>
                 </table>
-            </div>
+            </ScrollShadow>
 
-            <div className={cn('flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)]', compact ? 'px-3 py-2' : 'px-4 py-3')}>
-                <p className="text-xs text-[var(--text-muted)]">
-                    Page {pageIndex + 1} of {Math.max(pageCount, 1)}
-                </p>
-
+            <div className={cn('flex items-center justify-end gap-3 border-t border-[var(--border)]', compact ? 'px-3 py-2' : 'px-4 py-3')}>
                 <div className="flex items-center gap-1.5">
                     <button
                         type="button"
-                        className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40"
+                        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
                         disabled={!table.getCanPreviousPage()}
                         onClick={() => table.previousPage()}
+                        aria-label="Previous page"
                     >
-                        <ChevronLeft size={14} />
-                        Previous
+                        <IconChevronLeft size={14} />
                     </button>
+
+                    <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(pageCount, 5) }, (_, i) => {
+                            let pageNum;
+                            if (pageCount <= 5) {
+                                pageNum = i + 1;
+                            } else if (pageIndex < 3) {
+                                pageNum = i + 1;
+                            } else if (pageIndex >= pageCount - 3) {
+                                pageNum = pageCount - 4 + i;
+                            } else {
+                                pageNum = pageIndex - 1 + i;
+                            }
+
+                            const isCurrentPage = pageNum === pageIndex + 1;
+                            return (
+                                <button
+                                    key={pageNum}
+                                    type="button"
+                                    className={cn(
+                                        'flex h-6 min-w-6 cursor-pointer items-center justify-center rounded-lg text-[10px] font-medium transition disabled:cursor-not-allowed',
+                                        isCurrentPage
+                                            ? 'bg-[var(--accent)] text-white'
+                                            : 'border border-[var(--border)] bg-gray-800 text-white hover:bg-gray-700'
+                                    )}
+                                    onClick={() => table.setPageIndex(pageNum - 1)}
+                                    aria-label={`Go to page ${pageNum}`}
+                                    aria-current={isCurrentPage ? 'page' : undefined}
+                                >
+                                    {pageNum}
+                                </button>
+                            );
+                        })}
+                    </div>
 
                     <button
                         type="button"
-                        className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40"
+                        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
                         disabled={!table.getCanNextPage()}
                         onClick={() => table.nextPage()}
+                        aria-label="Next page"
                     >
-                        Next
-                        <ChevronRight size={14} />
+                        <IconChevronRight size={14} />
                     </button>
                 </div>
             </div>

@@ -1,37 +1,8 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    AlertCircle,
-    Archive,
-    ArrowLeft,
-    ArrowRight,
-    BadgeDollarSign,
-    Building2,
-    Calculator,
-    Calendar,
-    Check,
-    CheckCircle2,
-    Circle,
-    CircleDot,
-    Download,
-    ExternalLink,
-    FileCheck2,
-    FileDown,
-    FileText,
-    FileUp,
-    FolderKanban,
-    Landmark,
-    MapPin,
-    MoreHorizontal,
-    Pencil,
-    Percent,
-    Printer,
-    ReceiptText,
-    Ruler,
-    ScrollText,
-    Trash2,
-    UserRound,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { IconAlertCircle, IconArchive, IconArrowLeft, IconArrowRight, IconCoin, IconBuilding, IconCalculator, IconCalendar, IconCheck, IconCircleCheck, IconCircle, IconCircleDot, IconDownload, IconExternalLink, IconFileCheck, IconFileDownload, IconFileText, IconFileUpload, IconFolder, IconBuildingBank, IconMapPin, IconDots, IconPencil, IconPercentage, IconPrinter, IconReceipt2, IconRuler, IconTrash, IconUserCircle } from '@tabler/icons-react';
+import type { Icon } from '@tabler/icons-react';
+
+
 import { Button, Dropdown } from '@heroui/react';
 import { AppModal } from '@/components/ui/AppModal';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -146,7 +117,7 @@ function workflowLabel(value: string) {
         rokhas: 'Rokhas',
         bureau_etude: "Bureau d'etude",
         permis_habiter: "Permis d'habiter",
-        archive: 'Archive',
+        archive: 'IconArchive',
     };
     return labels[value] ?? value;
 }
@@ -268,7 +239,7 @@ export default function DossierShow({
         router.post('/archives', { ...payload, dossier_id: payload.dossierId, return_to: window.location.pathname }, {
             preserveScroll: true,
             preserveState: true,
-            onSuccess: () => { setArchiveDrawerOpen(false); toast.success('Archive record created.'); },
+            onSuccess: () => { setArchiveDrawerOpen(false); toast.success('IconArchive record created.'); },
             onError: () => { toast.error('Could not create archive record.'); },
         });
     }
@@ -461,11 +432,11 @@ export default function DossierShow({
     }
 
     const quickActions = [
-        { label: 'Open client', icon: <UserRound size={14} />, action: () => router.visit(`/clients/${dossier.clientId}`) },
-        { label: 'Edit', icon: <Pencil size={14} />, action: () => setEditDrawerOpen(true) },
-        { label: 'Documents', icon: <FileCheck2 size={14} />, action: () => setDocumentDrawerOpen(true) },
-        { label: 'Contract', icon: <FileText size={14} />, action: () => { setEditContract(null); setContractDrawerOpen(true); } },
-        { label: 'Finance', icon: <BadgeDollarSign size={14} />, action: () => setFinanceDrawerOpen(true) },
+        { label: 'Open client', icon: <IconUserCircle size={14} />, action: () => router.visit(`/clients/${dossier.clientId}`) },
+        { label: 'Edit', icon: <IconPencil size={14} />, action: () => setEditDrawerOpen(true) },
+        { label: 'Documents', icon: <IconFileCheck size={14} />, action: () => setDocumentDrawerOpen(true) },
+        { label: 'Contract', icon: <IconFileText size={14} />, action: () => { setEditContract(null); setContractDrawerOpen(true); } },
+        { label: 'Finance', icon: <IconCoin size={14} />, action: () => setFinanceDrawerOpen(true) },
     ];
     return (
         <>
@@ -479,7 +450,7 @@ export default function DossierShow({
                         <div>
                             <button type="button" onClick={() => router.visit('/dossiers')}
                                 className="mb-2 inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-muted)] hover:text-[var(--foreground)]">
-                                <ArrowLeft size={13} />
+                                <IconArrowLeft size={13} />
                                 Back to Projects
                             </button>
                             <h1 className="text-2xl font-bold tracking-[-0.02em] text-[var(--foreground)]">
@@ -497,7 +468,7 @@ export default function DossierShow({
                         <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
                             <div className="flex min-w-0 items-start gap-3.5">
                                 <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]">
-                                    <FolderKanban size={20} />
+                                    <IconFolder size={20} />
                                 </div>
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-1.5">
@@ -518,16 +489,16 @@ export default function DossierShow({
                         </div>
                         <div className="flex flex-wrap gap-1.5 border-t border-[var(--border)] px-4 py-2.5">
                             <AppButton variant="bordered" size="sm" className="h-7 text-[10px]" onPress={() => router.visit(`/clients/${dossier.clientId}`)}>
-                                <UserRound size={13} /> Open client
+                                <IconUserCircle size={13} /> Open client
                             </AppButton>
                             <AppButton variant="bordered" size="sm" className="h-7 text-[10px]" onPress={() => setEditDrawerOpen(true)}>
-                                <Pencil size={13} /> Edit
+                                <IconPencil size={13} /> Edit
                             </AppButton>
                             <AppButton variant="bordered" size="sm" className="h-7 text-[10px]" onPress={() => { setEditContract(null); setContractDrawerOpen(true); }}>
-                                <FileText size={13} /> Contract
+                                <IconFileText size={13} /> Contract
                             </AppButton>
                             <AppButton variant="bordered" size="sm" className="h-7 text-[10px]" onPress={() => setDocumentDrawerOpen(true)}>
-                                <FileCheck2 size={13} /> Documents
+                                <IconFileCheck size={13} /> Documents
                             </AppButton>
                         </div>
                     </div>
@@ -547,11 +518,11 @@ export default function DossierShow({
 
                     {/* ── Metrics row ── */}
                     <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                        <MetricCard label="Documents" value={documents.length} hint="Linked files" icon={FileCheck2} />
-                        <MetricCard label="Finance total" value={money(totalFinance)} hint="All records" icon={BadgeDollarSign} color="text-[var(--foreground)]" />
-                        <MetricCard label="Paid" value={money(paidFinance)} hint="Collected" icon={ReceiptText} color="text-emerald-500" />
-                        <MetricCard label="Remaining" value={money(remainingFinance)} hint="Still due" icon={Landmark} color="text-amber-500" />
-                        <MetricCard label="Contract" value={contract ? contractStatusLabels[resolvedContractStatus] || contract.status : 'Aucun'} hint={contract ? `${money(contract.ttc)}` : '-'} icon={FileText} color={contract ? (contractStatusColors[resolvedContractStatus] || '') : ''} />
+                        <MetricCard label="Documents" value={documents.length} hint="Linked files" icon={IconFileCheck} />
+                        <MetricCard label="Finance total" value={money(totalFinance)} hint="All records" icon={IconCoin} color="text-[var(--foreground)]" />
+                        <MetricCard label="Paid" value={money(paidFinance)} hint="Collected" icon={IconReceipt2} color="text-emerald-500" />
+                        <MetricCard label="Remaining" value={money(remainingFinance)} hint="Still due" icon={IconBuildingBank} color="text-amber-500" />
+                        <MetricCard label="Contract" value={contract ? contractStatusLabels[resolvedContractStatus] || contract.status : 'Aucun'} hint={contract ? `${money(contract.ttc)}` : '-'} icon={IconFileText} color={contract ? (contractStatusColors[resolvedContractStatus] || '') : ''} />
                     </div>
                 </div>
 
@@ -660,7 +631,7 @@ export default function DossierShow({
 }
 
 function MetricCard({ label, value, hint, icon: Icon, color = 'text-[var(--foreground)]' }: {
-    label: string; value: string | number; hint: string; icon: LucideIcon; color?: string;
+    label: string; value: string | number; hint: string; icon: Icon; color?: string;
 }) {
     return (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
@@ -688,7 +659,7 @@ function InfoField({ label, value }: { label: string; value: string | number | n
 }
 
 function SideCard({ icon: Icon, title, children, color = 'text-[var(--accent)]' }: {
-    icon: LucideIcon; title: string; children: React.ReactNode; color?: string;
+    icon: Icon; title: string; children: React.ReactNode; color?: string;
 }) {
     return (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3.5">
@@ -701,7 +672,7 @@ function SideCard({ icon: Icon, title, children, color = 'text-[var(--accent)]' 
     );
 }
 
-function CompactEmpty({ icon: Icon, title, description }: { icon: LucideIcon; title: string; description: string }) {
+function CompactEmpty({ icon: Icon, title, description }: { icon: Icon; title: string; description: string }) {
     return (
         <div className="flex flex-col items-center gap-1.5 py-6 text-center">
             <Icon size={20} className="text-[var(--text-muted)]/40" />
@@ -736,7 +707,7 @@ function OverviewTab({ dossier, workflow, contract, archiveRecord }: {
                 </div>
             </div>
             <div className="grid gap-3 content-start">
-                <SideCard icon={FileText} title="Contract">
+                <SideCard icon={IconFileText} title="Contract">
                     {contract ? (
                         <div>
                             <p className="text-[12px] font-semibold text-[var(--foreground)]">{contract.contractNumber}</p>
@@ -744,7 +715,7 @@ function OverviewTab({ dossier, workflow, contract, archiveRecord }: {
                         </div>
                     ) : <p className="text-[11px] text-[var(--text-muted)]">No contract yet.</p>}
                 </SideCard>
-                <SideCard icon={Archive} title="Archive" color="text-violet-500">
+                <SideCard icon={IconArchive} title="IconArchive" color="text-violet-500">
                     {archiveRecord ? (
                         <div>
                             <p className="text-[12px] font-semibold text-[var(--foreground)]">{archiveRecord.archiveNumber}</p>
@@ -752,16 +723,16 @@ function OverviewTab({ dossier, workflow, contract, archiveRecord }: {
                         </div>
                     ) : <p className="text-[11px] text-[var(--text-muted)]">Not archived yet.</p>}
                 </SideCard>
-                <SideCard icon={ArrowLeft} title="Quick navigation">
+                <SideCard icon={IconArrowLeft} title="Quick navigation">
                     <div className="grid gap-1.5">
                         <AppButton variant="bordered" size="sm" className="justify-start h-8 text-[10px]" onPress={() => router.visit('/documents')}>
-                            <FileCheck2 size={13} /> Documents
+                            <IconFileCheck size={13} /> Documents
                         </AppButton>
                         <AppButton variant="bordered" size="sm" className="justify-start h-8 text-[10px]" onPress={() => router.visit('/finance')}>
-                            <BadgeDollarSign size={13} /> Finance
+                            <IconCoin size={13} /> Finance
                         </AppButton>
                         <AppButton variant="bordered" size="sm" className="justify-start h-8 text-[10px]" onPress={() => router.visit('/dossiers')}>
-                            <ArrowLeft size={13} /> Back to projects
+                            <IconArrowLeft size={13} /> Back to projects
                         </AppButton>
                     </div>
                 </SideCard>
@@ -775,17 +746,17 @@ function OverviewTab({ dossier, workflow, contract, archiveRecord }: {
 function DocumentsTab({ documents, dossierNumber, contract }: { documents: DocSummary[]; dossierNumber: string; contract: ContractSummary }) {
     const [deleteTarget, setDeleteTarget] = useState<DocSummary | null>(null);
 
-    const contractDocs: { id: string; label: string; icon: LucideIcon; downloadUrl: string; date: string | null }[] = [];
+    const contractDocs: { id: string; label: string; icon: Icon; downloadUrl: string; date: string | null }[] = [];
     if (contract) {
         if (contract.hasGeneratedDoc) {
             contractDocs.push({
-                id: 'contract-docx', label: `${contract.contractNumber} - Contrat DOCX`, icon: FileText,
+                id: 'contract-docx', label: `${contract.contractNumber} - Contrat DOCX`, icon: IconFileText,
                 downloadUrl: `/contracts/${contract.id}/download/generated`, date: contract.generatedAt,
             });
         }
         if (contract.hasPdf) {
             contractDocs.push({
-                id: 'contract-pdf', label: `${contract.contractNumber} - Contrat PDF`, icon: FileText,
+                id: 'contract-pdf', label: `${contract.contractNumber} - Contrat PDF`, icon: IconFileText,
                 downloadUrl: `/contracts/${contract.id}/download/pdf`, date: contract.generatedAt,
             });
         }
@@ -793,7 +764,7 @@ function DocumentsTab({ documents, dossierNumber, contract }: { documents: DocSu
     const totalDocs = documents.length + contractDocs.length;
 
     function DocCard({ icon: Icon, name, fileName, date, status, downloadUrl, onDelete }: {
-        icon: LucideIcon; name: string; fileName?: string | null; date?: string | null; status: string;
+        icon: Icon; name: string; fileName?: string | null; date?: string | null; status: string;
         downloadUrl?: string | null; onDelete?: () => void;
     }) {
         return (
@@ -809,12 +780,12 @@ function DocumentsTab({ documents, dossierNumber, contract }: { documents: DocSu
                 <div className="flex items-center gap-0.5 shrink-0">
                     {downloadUrl ? (
                         <a href={downloadUrl} target="_blank" rel="noopener noreferrer" className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--accent)]" title="Telecharger">
-                            <Download size={13} />
+                            <IconDownload size={13} />
                         </a>
                     ) : null}
                     {onDelete ? (
                         <button type="button" onClick={onDelete} className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-red-400/10 hover:text-red-400" title="Supprimer">
-                            <Trash2 size={13} />
+                            <IconTrash size={13} />
                         </button>
                     ) : null}
                 </div>
@@ -830,14 +801,14 @@ function DocumentsTab({ documents, dossierNumber, contract }: { documents: DocSu
                     <p className="text-xs text-[var(--text-muted)]">{totalDocs} document(s)</p>
                 </div>
                 <AppButton variant="bordered" size="sm" onPress={() => router.visit(`/documents?search=${encodeURIComponent(dossierNumber)}`)}>
-                    <FileCheck2 size={14} /> Open documents
+                    <IconFileCheck size={14} /> Open documents
                 </AppButton>
             </div>
             {documents.length > 0 ? (
                 <div className="grid gap-2">
                     {documents.map((doc) => (
                         <DocCard
-                            key={doc.id} icon={FileCheck2} name={doc.name} fileName={doc.fileName}
+                            key={doc.id} icon={IconFileCheck} name={doc.name} fileName={doc.fileName}
                             date={doc.uploadedAt} status={doc.status}
                             downloadUrl={`/documents/${doc.id}/download`}
                             onDelete={() => setDeleteTarget(doc)}
@@ -845,7 +816,7 @@ function DocumentsTab({ documents, dossierNumber, contract }: { documents: DocSu
                     ))}
                 </div>
             ) : contractDocs.length === 0 ? (
-                <CompactEmpty icon={FileCheck2} title="No documents yet" description="Upload documents to track project requirements." />
+                <CompactEmpty icon={IconFileCheck} title="No documents yet" description="Upload documents to track project requirements." />
             ) : null}
             {contractDocs.length > 0 ? (
                 <div className={documents.length > 0 ? 'mt-4' : ''}>
@@ -868,7 +839,7 @@ function DocumentsTab({ documents, dossierNumber, contract }: { documents: DocSu
                 size="sm"
             >
                 <p className="mb-5 flex items-start gap-2 text-sm text-[var(--text-muted)]">
-                    <Trash2 size={16} className="mt-0.5 shrink-0 text-red-400" />
+                    <IconTrash size={16} className="mt-0.5 shrink-0 text-red-400" />
                     <span>
                         Confirmez la suppression de <strong>{deleteTarget?.name}</strong> ?
                     </span>
@@ -997,24 +968,24 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                         <p className="text-xs text-[var(--text-muted)]">Contract status and actions</p>
                     </div>
                 </div>
-                <CompactEmpty icon={FileText} title="No contract yet" description="Create a contract to start tracking." />
+                <CompactEmpty icon={IconFileText} title="No contract yet" description="Create a contract to start tracking." />
             </div>
         );
     }
 
     const isForfait = contract.calculationMode === 'forfait';
-    const detailRows: { icon: LucideIcon; label: string; value: string }[] = [];
+    const detailRows: { icon: Icon; label: string; value: string }[] = [];
     if (isForfait) {
         detailRows.push(
-            { icon: Calculator, label: 'Mode', value: 'Forfait' },
-            { icon: BadgeDollarSign, label: 'Forfait TTC', value: money(contract.forfaitTtc) },
+            { icon: IconCalculator, label: 'Mode', value: 'Forfait' },
+            { icon: IconCoin, label: 'Forfait TTC', value: money(contract.forfaitTtc) },
         );
     } else {
         detailRows.push(
-            { icon: Calculator, label: 'Mode', value: 'Pourcentage' },
-            { icon: Percent, label: 'Taux', value: `${contract.feeRatePercent}%` },
-            { icon: Ruler, label: 'Surface', value: contract.surface ? `${contract.surface} m²` : '-' },
-            { icon: BadgeDollarSign, label: 'Prix / m2', value: contract.pricePerSquareMeter ? money(contract.pricePerSquareMeter) : '-' },
+            { icon: IconCalculator, label: 'Mode', value: 'Pourcentage' },
+            { icon: IconPercentage, label: 'Taux', value: `${contract.feeRatePercent}%` },
+            { icon: IconRuler, label: 'Surface', value: contract.surface ? `${contract.surface} m²` : '-' },
+            { icon: IconCoin, label: 'Prix / m2', value: contract.pricePerSquareMeter ? money(contract.pricePerSquareMeter) : '-' },
         );
     }
 
@@ -1024,10 +995,10 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
         { label: 'TTC', value: money(contract.ttc), highlight: true },
     ];
 
-    const timelineRows: { icon: LucideIcon; label: string; value: string }[] = [];
-    if (contract.createdAt) timelineRows.push({ icon: Calendar, label: 'Cree le', value: contract.createdAt });
-    if (contract.generatedAt) timelineRows.push({ icon: ScrollText, label: 'Genere le', value: contract.generatedAt });
-    if (contract.signedAt) timelineRows.push({ icon: Check, label: 'Signe le', value: contract.signedAt });
+    const timelineRows: { icon: Icon; label: string; value: string }[] = [];
+    if (contract.createdAt) timelineRows.push({ icon: IconCalendar, label: 'Cree le', value: contract.createdAt });
+    if (contract.generatedAt) timelineRows.push({ icon: IconFileText, label: 'Genere le', value: contract.generatedAt });
+    if (contract.signedAt) timelineRows.push({ icon: IconCheck, label: 'Signe le', value: contract.signedAt });
 
     return (
         <div>
@@ -1039,12 +1010,12 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                 <div className="flex items-center gap-1.5">
                     {resolvedStatus !== 'signed' && (
                         <Button variant="light" size="sm" isIconOnly className="size-6 min-w-0 text-[var(--text-muted)]" onPress={() => onEdit(contract)}>
-                            <Pencil size={10} />
+                            <IconPencil size={10} />
                         </Button>
                     )}
                     <Dropdown>
                         <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]">
-                            <MoreHorizontal size={12} />
+                            <IconDots size={12} />
                         </Dropdown.Trigger>
                     <Dropdown.Popover placement="bottom end" className="min-w-40 z-[80] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-lg">
                         <Dropdown.Menu
@@ -1058,48 +1029,48 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                             <Dropdown.Section title="Document">
                                 {contract.hasGeneratedDoc ? (
                                     <Dropdown.Item key="download-docx" id="download-docx">
-                                        <FileDown size={13} className="text-emerald-400" />
+                                        <IconFileDownload size={13} className="text-emerald-400" />
                                         <span>Telecharger DOCX</span>
                                     </Dropdown.Item>
                                 ) : (
                                     <Dropdown.Item key="generate-docx" id="generate-docx">
-                                        <FileUp size={13} className="text-blue-400" />
+                                        <IconFileUpload size={13} className="text-blue-400" />
                                         <span>{generatingId === contract.id ? 'Generation...' : 'Generer DOCX'}</span>
                                     </Dropdown.Item>
                                 )}
                                 {contract.hasPdf ? (
                                     <Dropdown.Item key="download-pdf" id="download-pdf">
-                                        <Download size={13} className="text-emerald-400" />
+                                        <IconDownload size={13} className="text-emerald-400" />
                                         <span>Telecharger PDF</span>
                                     </Dropdown.Item>
                                 ) : contract.hasGeneratedDoc ? (
                                     <Dropdown.Item key="generate-pdf" id="generate-pdf">
-                                        <FileText size={13} className="text-violet-400" />
+                                        <IconFileText size={13} className="text-violet-400" />
                                         <span>{generatingId === contract.id ? 'Generation...' : 'Generer PDF'}</span>
                                     </Dropdown.Item>
                                 ) : null}
                             </Dropdown.Section>
 
                             <Dropdown.Item key="print" id="print">
-                                <Printer size={13} className="text-amber-400" />
+                                <IconPrinter size={13} className="text-amber-400" />
                                 <span>Imprimer</span>
                             </Dropdown.Item>
 
                             <Dropdown.Item key="documents" id="documents">
-                                <FileText size={13} className="text-sky-400" />
+                                <IconFileText size={13} className="text-sky-400" />
                                 <span>Documents</span>
                             </Dropdown.Item>
 
                             {resolvedStatus !== 'signed' && (
                                 <Dropdown.Item key="mark-signed" id="mark-signed">
-                                    <CheckCircle2 size={13} className="text-emerald-400" />
+                                    <IconCircleCheck size={13} className="text-emerald-400" />
                                     <span>Marquer signe</span>
                                 </Dropdown.Item>
                             )}
 
                             <Dropdown.Section title="Danger">
                                 <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
-                                    <Trash2 size={13} className="shrink-0 text-red-400" />
+                                    <IconTrash size={13} className="shrink-0 text-red-400" />
                                     <span>Supprimer</span>
                                 </Dropdown.Item>
                             </Dropdown.Section>
@@ -1113,7 +1084,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                 {/* Header */}
                 <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
                     <div className="flex items-center gap-2.5">
-                        <FileText size={18} className="text-[var(--accent)]" />
+                        <IconFileText size={18} className="text-[var(--accent)]" />
                         <div>
                             <p className="text-sm font-semibold text-[var(--foreground)]">{contract.contractNumber}</p>
                             {contract.notes ? (
@@ -1138,7 +1109,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                                 b.color,
                                 i > 0 && 'ml-0.5',
                             )}>
-                                {b.key === 'draft' ? <Circle size={8} /> : <Check size={10} />} {b.label}
+                                {b.key === 'draft' ? <IconCircle size={8} /> : <IconCheck size={10} />} {b.label}
                             </span>
                         ))}
                     </div>
@@ -1175,16 +1146,16 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                     <p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Chronologie</p>
                     <div className="flex items-center gap-0">
                         {[
-                            { key: 'created', icon: Calendar, label: 'Cree', date: contract.createdAt, done: true },
-                            { key: 'generated', icon: ScrollText, label: 'Genere', date: contract.generatedAt, done: !!contract.generatedAt },
-                            { key: 'signed', icon: CheckCircle2, label: 'Signe', date: contract.signedAt, done: resolvedStatus === 'signed' },
+                            { key: 'created', icon: IconCalendar, label: 'Cree', date: contract.createdAt, done: true },
+                            { key: 'generated', icon: IconFileText, label: 'Genere', date: contract.generatedAt, done: !!contract.generatedAt },
+                            { key: 'signed', icon: IconCircleCheck, label: 'Signe', date: contract.signedAt, done: resolvedStatus === 'signed' },
                         ].map((step, idx) => (
                             <div key={step.key} className="flex-1 flex flex-col items-center relative min-w-0">
                                 <div className={cn(
                                     'flex size-7 items-center justify-center rounded-full border-2 shrink-0',
                                     step.done ? 'border-emerald-400 bg-emerald-400/10 text-emerald-400' : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]',
                                 )}>
-                                    {step.key === 'created' ? <Calendar size={12} /> : step.key === 'generated' && step.done ? <Check size={12} /> : step.key === 'generated' ? <ScrollText size={12} /> : step.done ? <Check size={12} /> : <Circle size={12} />}
+                                    {step.key === 'created' ? <IconCalendar size={12} /> : step.key === 'generated' && step.done ? <IconCheck size={12} /> : step.key === 'generated' ? <IconFileText size={12} /> : step.done ? <IconCheck size={12} /> : <IconCircle size={12} />}
                                 </div>
                                 <p className={cn('mt-1 text-[9px] font-medium text-center leading-tight', step.done ? 'text-emerald-400' : 'text-[var(--text-muted)]')}>{step.label}</p>
                                 {step.date ? <p className="text-[9px] text-[var(--text-muted)] text-center leading-tight">{step.date}</p> : null}
@@ -1214,7 +1185,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                 size="sm"
             >
                 <p className="mb-5 flex items-start gap-2 text-sm text-[var(--text-muted)]">
-                    <Trash2 size={16} className="mt-0.5 shrink-0 text-red-400" />
+                    <IconTrash size={16} className="mt-0.5 shrink-0 text-red-400" />
                     <span>
                         Confirmez la suppression de <strong>{deleteTarget?.contractNumber}</strong>.
                         Cette action est <span className="font-semibold text-red-400">irreversible</span>.
@@ -1245,7 +1216,7 @@ function FinanceTab({ records, total, paid, remaining }: {
                     <p className="text-xs text-[var(--text-muted)]">{records.length} record(s)</p>
                 </div>
                 <AppButton variant="bordered" size="sm" onPress={() => router.visit('/finance')}>
-                    <BadgeDollarSign size={14} /> Open finance
+                    <IconCoin size={14} /> Open finance
                 </AppButton>
             </div>
             <div className="mb-4 grid gap-3 sm:grid-cols-3">
@@ -1266,7 +1237,7 @@ function FinanceTab({ records, total, paid, remaining }: {
                     ))}
                 </div>
             ) : (
-                <CompactEmpty icon={BadgeDollarSign} title="No finance records" description="Create finance records to track payments." />
+                <CompactEmpty icon={IconCoin} title="No finance records" description="Create finance records to track payments." />
             )}
         </div>
     );
@@ -1288,6 +1259,6 @@ function NotesTab({ dossier }: { dossier: DossierRow }) {
 /* ── Activity tab ── */
 function ActivityTab() {
     return (
-        <CompactEmpty icon={CircleDot} title="No recent activity" description="Activity will appear as the project progresses." />
+        <CompactEmpty icon={IconCircleDot} title="No recent activity" description="Activity will appear as the project progresses." />
     );
 }

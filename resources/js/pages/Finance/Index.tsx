@@ -1,21 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import {
-    AlertCircle,
-    BadgeDollarSign,
-    CheckCircle2,
-    Download,
-    Eye,
-    FileSpreadsheet,
-    FileText,
-    Landmark,
-    Pencil,
-    Plus,
-    Receipt,
-    TrendingUp,
-    Trash2,
-    WandSparkles,
-} from 'lucide-react';
+import { IconAlertCircle, IconCoin, IconCircleCheck, IconDownload, IconEye, IconFileSpreadsheet, IconFileText, IconBuildingBank, IconPencil, IconPlus, IconReceipt, IconTrendingUp, IconTrash, IconWand } from '@tabler/icons-react';
+
 import { useMemo, useState } from 'react';
 import type { FormErrors } from '@/lib/formErrors';
 import { toast } from 'sonner';
@@ -273,7 +259,7 @@ export default function FinanceIndex({
                     <div className="app-table-primary-cell">
                         <div className="flex items-center gap-2">
                             <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                                <BadgeDollarSign size={15} />
+                                <IconCoin size={15} />
                             </div>
 
                             <div className="min-w-0">
@@ -354,14 +340,14 @@ export default function FinanceIndex({
                 header: 'Actions',
                 cell: ({ row }) => (
                     <FinanceRowActions actions={[
-                        { id: 'preview', label: 'Apercu', icon: <Eye size={14} />, onPress: () => setSelectedRecord(row.original) },
-                        { id: 'edit', label: 'Modifier', icon: <Pencil size={14} />, onPress: () => openEditDrawer(row.original) },
-                        { id: 'generate', label: 'Generer', icon: <WandSparkles size={14} />, onPress: () => generateRecord(row.original), tone: 'accent', dividerBefore: true },
-                        { id: 'download-excel', label: 'Telecharger Excel', icon: <FileSpreadsheet size={14} />, onPress: () => downloadRecord(row.original), tone: 'accent' },
-                        { id: 'export-pdf', label: 'Exporter PDF', icon: <FileText size={14} />, onPress: () => exportPdf(row.original), tone: 'accent' },
-                        { id: 'download-pdf', label: 'Telecharger PDF', icon: <Download size={14} />, onPress: () => downloadPdf(row.original), tone: 'accent' },
-                        { id: 'mark-paid', label: 'Marquer paye', icon: <CheckCircle2 size={14} />, onPress: () => markPaid(row.original), tone: 'success', dividerBefore: true },
-                        { id: 'delete', label: 'Supprimer', icon: <Trash2 size={14} />, onPress: () => setDeleteTarget(row.original), tone: 'danger', dividerBefore: true },
+                        { id: 'preview', label: 'Apercu', icon: <IconEye size={14} />, onPress: () => setSelectedRecord(row.original) },
+                        { id: 'edit', label: 'Modifier', icon: <IconPencil size={14} />, onPress: () => openEditDrawer(row.original) },
+                        { id: 'generate', label: 'Generer', icon: <IconWand size={14} />, onPress: () => generateRecord(row.original), tone: 'accent', dividerBefore: true },
+                        { id: 'download-excel', label: 'Telecharger Excel', icon: <IconFileSpreadsheet size={14} />, onPress: () => downloadRecord(row.original), tone: 'accent' },
+                        { id: 'export-pdf', label: 'Exporter PDF', icon: <IconFileText size={14} />, onPress: () => exportPdf(row.original), tone: 'accent' },
+                        { id: 'download-pdf', label: 'Telecharger PDF', icon: <IconDownload size={14} />, onPress: () => downloadPdf(row.original), tone: 'accent' },
+                        { id: 'mark-paid', label: 'Marquer paye', icon: <IconCircleCheck size={14} />, onPress: () => markPaid(row.original), tone: 'success', dividerBefore: true },
+                        { id: 'delete', label: 'Supprimer', icon: <IconTrash size={14} />, onPress: () => setDeleteTarget(row.original), tone: 'danger', dividerBefore: true },
                     ]} />
                 ),
             },
@@ -377,25 +363,25 @@ export default function FinanceIndex({
         {
             label: 'Total TTC',
             value: formatCompactMoney(metrics.totalTtc),
-            icon: Receipt,
+            icon: IconReceipt,
             accent: 'var(--accent)',
         },
         {
             label: 'Paid',
             value: formatCompactMoney(metrics.paid),
-            icon: CheckCircle2,
+            icon: IconCircleCheck,
             accent: '#22c55e',
         },
         {
             label: 'Remaining',
             value: formatCompactMoney(metrics.remaining),
-            icon: TrendingUp,
+            icon: IconTrendingUp,
             accent: '#f59e0b',
         },
         {
             label: 'Overdue',
             value: formatCompactMoney(metrics.overdue),
-            icon: AlertCircle,
+            icon: IconAlertCircle,
             accent: '#ef4444',
         },
     ];
@@ -410,7 +396,7 @@ export default function FinanceIndex({
                 subtitleKey="finance.subtitle"
                 action={
                     <AppButton variant="primary" onPress={openCreateDrawer}>
-                        <Plus size={16} />
+                        <IconPlus size={16} />
                         New finance record
                     </AppButton>
                 }
@@ -440,7 +426,7 @@ export default function FinanceIndex({
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-start gap-3">
                             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                                <Landmark size={18} />
+                                <IconBuildingBank size={18} />
                             </div>
                             <div>
                                 <p className="text-sm font-semibold">Collection rate</p>
@@ -476,7 +462,7 @@ export default function FinanceIndex({
                         <AppCard className="p-5">
                             <div className="mb-5 flex items-start gap-3">
                                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                                    <BadgeDollarSign size={18} />
+                                    <IconCoin size={18} />
                                 </div>
 
                                 <div className="min-w-0">
@@ -554,7 +540,7 @@ export default function FinanceIndex({
                                             variant="primary"
                                             onPress={() => generateRecord(selectedRecord)}
                                         >
-                                            <WandSparkles size={16} />
+                                            <IconWand size={16} />
                                             Generate
                                         </AppButton>
 
@@ -563,7 +549,7 @@ export default function FinanceIndex({
                                                 variant="secondary"
                                                 onPress={() => downloadRecord(selectedRecord)}
                                             >
-                                                <FileSpreadsheet size={16} />
+                                                <IconFileSpreadsheet size={16} />
                                                 Excel
                                             </AppButton>
 
@@ -571,7 +557,7 @@ export default function FinanceIndex({
                                                 variant="secondary"
                                                 onPress={() => exportPdf(selectedRecord)}
                                             >
-                                                <FileText size={16} />
+                                                <IconFileText size={16} />
                                                 PDF
                                             </AppButton>
                                         </div>
@@ -581,8 +567,8 @@ export default function FinanceIndex({
                                                 variant="secondary"
                                                 onPress={() => downloadPdf(selectedRecord)}
                                             >
-                                                <Download size={16} />
-                                                Download PDF
+                                                <IconDownload size={16} />
+                                                IconDownload PDF
                                             </AppButton>
                                         )}
 
@@ -590,7 +576,7 @@ export default function FinanceIndex({
                                             variant="secondary"
                                             onPress={() => markPaid(selectedRecord)}
                                         >
-                                            <CheckCircle2 size={16} />
+                                            <IconCircleCheck size={16} />
                                             Mark paid
                                         </AppButton>
                                     </div>

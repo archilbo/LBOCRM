@@ -1,13 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowUpRight,
-    CheckCircle2,
-    Download,
-    FileSearch,
-    Play,
-    Route,
-    Search,
-} from 'lucide-react';
+import { IconArrowUpRight, IconCircleCheck, IconDownload, IconFileSearch, IconPlayerPlay, IconRoute, IconSearch } from '@tabler/icons-react';
+
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppBadge } from '@/components/ui/AppBadge';
@@ -89,7 +82,7 @@ This will be replaced by backend document generation.`,
                     </AppCard>
 
                     <AppCard className="p-4">
-                        <p className="text-sm text-[var(--text-muted)]">Search tests</p>
+                        <p className="text-sm text-[var(--text-muted)]">IconSearch tests</p>
                         <p className="mt-2 text-2xl font-semibold">{qaSearchQueries.length}</p>
                     </AppCard>
 
@@ -136,7 +129,7 @@ This will be replaced by backend document generation.`,
                                         className="mt-4 w-full"
                                         onPress={() => openRoute(route.href)}
                                     >
-                                        <Route size={15} />
+                                        <IconRoute size={15} />
                                         {t('frontendQa.open')}
                                     </AppButton>
                                 </div>
@@ -157,7 +150,7 @@ This will be replaced by backend document generation.`,
                             return (
                                 <div key={query} className="rounded-2xl border bg-[var(--surface)] p-4">
                                     <div className="mb-3 flex items-center justify-between gap-3">
-                                        <Search size={17} className="text-[var(--accent)]" />
+                                        <IconSearch size={17} className="text-[var(--accent)]" />
                                         <AppBadge tone={first ? 'green' : 'red'}>
                                             {first ? t('frontendQa.searchOk') : t('frontendQa.noResult')}
                                         </AppBadge>
@@ -180,7 +173,7 @@ This will be replaced by backend document generation.`,
                                             }
                                         }}
                                     >
-                                        <FileSearch size={15} />
+                                        <IconFileSearch size={15} />
                                         {t('frontendQa.test')}
                                     </AppButton>
                                 </div>
@@ -198,7 +191,7 @@ This will be replaced by backend document generation.`,
                             <div key={project.id} className="rounded-2xl border bg-[var(--surface)] p-4">
                                 <div className="mb-3 flex items-center justify-between gap-3">
                                     <AppBadge tone="violet">{project.dossierNumber}</AppBadge>
-                                    <CheckCircle2 size={17} className="text-[var(--success)]" />
+                                    <IconCircleCheck size={17} className="text-[var(--success)]" />
                                 </div>
 
                                 <p className="text-sm font-semibold">{project.title}</p>
@@ -217,7 +210,7 @@ This will be replaced by backend document generation.`,
                                     className="mt-4 w-full"
                                     onPress={() => openRoute(project.href)}
                                 >
-                                    <ArrowUpRight size={15} />
+                                    <IconArrowUpRight size={15} />
                                     {t('frontendQa.open')}
                                 </AppButton>
                             </div>
@@ -237,9 +230,9 @@ This will be replaced by backend document generation.`,
                                         {action.type}
                                     </AppBadge>
                                     {action.type === 'download' ? (
-                                        <Download size={17} className="text-[var(--accent)]" />
+                                        <IconDownload size={17} className="text-[var(--accent)]" />
                                     ) : (
-                                        <Play size={17} className="text-[var(--accent)]" />
+                                        <IconPlayerPlay size={17} className="text-[var(--accent)]" />
                                     )}
                                 </div>
 
@@ -252,7 +245,7 @@ This will be replaced by backend document generation.`,
                                     className="mt-4 w-full"
                                     onPress={() => runAction(action)}
                                 >
-                                    <Play size={15} />
+                                    <IconPlayerPlay size={15} />
                                     {t('frontendQa.runAction')}
                                 </AppButton>
                             </div>

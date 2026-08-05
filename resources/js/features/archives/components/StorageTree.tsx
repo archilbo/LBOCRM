@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, MapPin, Package, Rows3 } from 'lucide-react';
+import { IconChevronDown, IconChevronRight, IconMapPin, IconPackage, IconLayoutRows } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 import type { TreeNode } from '@/features/archives/types';
 
@@ -68,8 +69,8 @@ export function StorageTree({
                                 isRoomSelected ? 'bg-[var(--surface-2)] text-[var(--foreground)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
                             )}
                         >
-                            {isRoomOpen ? <ChevronDown size={12} className="shrink-0" /> : <ChevronRight size={12} className="shrink-0" />}
-                            <MapPin size={12} className="shrink-0" />
+                            {isRoomOpen ? <IconChevronDown size={12} className="shrink-0" /> : <IconChevronRight size={12} className="shrink-0" />}
+                            <IconMapPin size={12} className="shrink-0" />
                             <span className="truncate">{room.code}</span>
                             <span className="text-[var(--text-muted)] ml-auto tabular-nums">{room.name}</span>
                         </button>
@@ -92,9 +93,9 @@ export function StorageTree({
                                                 )}
                                             >
                                                 {shelf.boxes?.length ? (
-                                                    isShelfOpen ? <ChevronDown size={12} className="shrink-0" /> : <ChevronRight size={12} className="shrink-0" />
+                                                    isShelfOpen ? <IconChevronDown size={12} className="shrink-0" /> : <IconChevronRight size={12} className="shrink-0" />
                                                 ) : <span className="w-3 shrink-0" />}
-                                                <Rows3 size={12} className="shrink-0" />
+                                                <IconLayoutRows size={12} className="shrink-0" />
                                                 <span className="truncate">{shelf.code}</span>
                                                 <div className="ml-auto w-12">
                                                     <CapacityBar fill={maxFill} />
@@ -115,7 +116,7 @@ export function StorageTree({
                                                                     isBoxSelected ? 'bg-[var(--surface-2)] text-[var(--foreground)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
                                                                 )}
                                                             >
-                                                                <Package size={12} className="shrink-0" />
+                                                                <IconPackage size={12} className="shrink-0" />
                                                                 <span className="truncate">{box.code}</span>
                                                                 <span className="ml-auto tabular-nums text-xs">{box.count}/{box.capacity}</span>
                                                             </button>

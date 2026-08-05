@@ -1,4 +1,5 @@
-import { Upload, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { IconUpload, IconChevronDown, IconChevronUp, IconExternalLink } from '@tabler/icons-react';
+
 import { useState } from 'react';
 import { cn } from '@/lib/cn';
 import { useGlobalUploads } from './useGlobalUploads';
@@ -26,7 +27,7 @@ export function GlobalUploadDock() {
                     aria-label={minimized ? 'Expand upload progress' : 'Collapse upload progress'}
                 >
                     <div className="flex size-8 items-center justify-center rounded-lg bg-[var(--accent)]/10 text-[var(--accent)]">
-                        <Upload size={16} />
+                        <IconUpload size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -53,9 +54,9 @@ export function GlobalUploadDock() {
                         className="rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/10"
                         aria-label="Open upload center"
                     >
-                        <ExternalLink size={14} />
+                        <IconExternalLink size={14} />
                     </button>
-                    {minimized ? <ChevronUp size={16} className="text-[var(--text-muted)]" /> : <ChevronDown size={16} className="text-[var(--text-muted)]" />}
+                    {minimized ? <IconChevronUp size={16} className="text-[var(--text-muted)]" /> : <IconChevronDown size={16} className="text-[var(--text-muted)]" />}
                 </button>
 
                 {!minimized && (

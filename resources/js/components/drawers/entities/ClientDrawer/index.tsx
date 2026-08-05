@@ -4,11 +4,8 @@ import {
     useState,
 } from 'react';
 import type { Key } from 'react-aria-components';
-import {
-    CheckCircle2,
-    ScanLine,
-    Upload,
-} from 'lucide-react';
+import { IconCircleCheck, IconScan, IconUpload } from '@tabler/icons-react';
+
 import { Input, TextArea } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
@@ -151,7 +148,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
                   ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                   : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)]',
               )}>
-              <Upload size={14} /> {t('clients.drawer.manualEntry')}
+              <IconUpload size={14} /> {t('clients.drawer.manualEntry')}
             </button>
             <button type="button" onClick={() => setInputMode('scan')}
               className={cn(
@@ -160,7 +157,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
                   ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                   : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)]',
               )}>
-              <ScanLine size={14} /> {t('clients.drawer.scanCin')}
+              <IconScan size={14} /> {t('clients.drawer.scanCin')}
             </button>
           </div>
         )}
@@ -181,7 +178,7 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
           <>
             {lastScan ? (
               <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5">
-                <CheckCircle2
+                <IconCircleCheck
                   size={15}
                   className="mt-0.5 shrink-0 text-emerald-500"
                 />

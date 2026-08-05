@@ -1,4 +1,5 @@
-import { Check, X } from 'lucide-react';
+import { IconCheck, IconX } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 
 export type AppFilterTabOption = {
@@ -43,7 +44,7 @@ export function AppFilterTabs({
                             onClick={() => onChange(allValue)}
                             className="inline-flex items-center gap-1 text-[9px] font-medium text-[var(--text-muted)] transition hover:text-[var(--accent)]"
                         >
-                            <X size={10} />
+                            <IconX size={10} />
                             Effacer
                         </button>
                     ) : null}
@@ -81,7 +82,7 @@ export function AppFilterTabs({
                                     : 'text-[var(--text-muted)] hover:bg-[var(--surface-3)] hover:text-[var(--text)]',
                             )}
                         >
-                            {isActive ? <Check size={11} strokeWidth={2.5} /> : null}
+                            {isActive ? <IconCheck size={11} strokeWidth={2.5} /> : null}
                             <span>{option.label}</span>
                             {typeof option.count === 'number' ? (
                                 <span

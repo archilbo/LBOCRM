@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { Code, FileText } from 'lucide-react';
+import { IconCode, IconFileText } from '@tabler/icons-react';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
@@ -453,7 +454,7 @@ export default function FinanceTemplatesIndex({
         return (
             <div className="flex min-h-0 flex-1 items-center justify-center text-center">
                 <div>
-                    <FileText className="mx-auto text-[var(--accent)]" size={28} />
+                    <IconFileText className="mx-auto text-[var(--accent)]" size={28} />
                     <h2 className="mt-2 text-sm font-semibold text-[var(--text)]">No template selected</h2>
                     <p className="mt-1 text-xs text-[var(--text-muted)]">Create or reset a default template.</p>
                 </div>
@@ -659,7 +660,7 @@ export default function FinanceTemplatesIndex({
                                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left transition hover:border-[var(--accent)]"
                             >
                                 <div className="mb-2 flex size-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                                    <Code size={18} />
+                                    <IconCode size={18} />
                                 </div>
                                 <h3 className="font-semibold text-[var(--text)]">{starter.name}</h3>
                                 <p className="mt-1 text-xs text-[var(--text-muted)]">{starter.description}</p>

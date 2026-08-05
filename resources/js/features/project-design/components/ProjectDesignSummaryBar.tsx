@@ -1,15 +1,16 @@
-import { Activity, CheckCircle2, Clock3, FolderKanban, HardDrive, Layers, MessageSquareWarning } from 'lucide-react';
+import { IconActivity, IconCircleCheck, IconClockHour3, IconFolder, IconDatabase, IconLayersLinked, IconMessage2Exclamation } from '@tabler/icons-react';
+
 import type { ProjectDesignSummary } from '../types/projectDesign';
 
 export function ProjectDesignSummaryBar({ summary }: { summary: ProjectDesignSummary | null }) {
     const items = [
-        { label: 'Folders', value: summary?.folders ?? 0, icon: FolderKanban },
-        { label: 'Files', value: summary?.files ?? 0, icon: HardDrive },
-        { label: 'Awaiting Review', value: summary?.awaitingReview ?? 0, icon: Layers },
-        { label: 'Open Remarks', value: summary?.openRemarks ?? 0, icon: MessageSquareWarning },
-        { label: 'Overdue', value: summary?.overdueRemarks ?? 0, icon: Clock3 },
-        { label: 'Approved', value: summary?.approvedFiles ?? 0, icon: CheckCircle2 },
-        { label: 'Activity', value: summary?.activities ?? 0, icon: Activity },
+        { label: 'Folders', value: summary?.folders ?? 0, icon: IconFolder },
+        { label: 'Files', value: summary?.files ?? 0, icon: IconDatabase },
+        { label: 'Awaiting Review', value: summary?.awaitingReview ?? 0, icon: IconLayersLinked },
+        { label: 'Open Remarks', value: summary?.openRemarks ?? 0, icon: IconMessage2Exclamation },
+        { label: 'Overdue', value: summary?.overdueRemarks ?? 0, icon: IconClockHour3 },
+        { label: 'Approved', value: summary?.approvedFiles ?? 0, icon: IconCircleCheck },
+        { label: 'IconActivity', value: summary?.activities ?? 0, icon: IconActivity },
     ];
 
     const approvalProgress = Math.max(0, Math.min(100, summary?.approvalProgress ?? 0));

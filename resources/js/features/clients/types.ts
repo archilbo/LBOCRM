@@ -91,6 +91,7 @@ export type ClientProjectDocument = {
     hasFile: boolean;
     canPreview: boolean;
     viewUrl: string | null;
+    contentUrl: string | null;
     printUrl: string | null;
     downloadUrl: string | null;
 };

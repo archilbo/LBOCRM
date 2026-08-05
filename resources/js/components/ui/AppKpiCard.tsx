@@ -1,5 +1,6 @@
 import { type ReactNode, useId, useMemo } from 'react';
-import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { IconArrowDownRight, IconArrowUpRight } from '@tabler/icons-react';
+
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/cn';
 import { formatFullMoney } from '@/lib/currency';
@@ -90,12 +91,12 @@ export function AppKpiCard({
                         {trailing}
                         {trend ? (
                             <span className={cn('inline-flex items-center gap-0.5 text-[10px] font-medium', isFavorableTrend ? 'text-emerald-400' : 'text-rose-400')}>
-                                {trend.isUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+                                {trend.isUp ? <IconArrowUpRight size={11} /> : <IconArrowDownRight size={11} />}
                                 {trend.label}
                             </span>
                         ) : showAutoTrend && sparklineData && trendPct !== 0 ? (
                             <span className={cn('inline-flex items-center gap-0.5 text-[10px] font-medium', isFavorableTrend ? 'text-emerald-400' : 'text-rose-400')}>
-                                {trendPct >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+                                {trendPct >= 0 ? <IconArrowUpRight size={11} /> : <IconArrowDownRight size={11} />}
                                 {Math.abs(trendPct).toFixed(1)}%
                             </span>
                         ) : null}

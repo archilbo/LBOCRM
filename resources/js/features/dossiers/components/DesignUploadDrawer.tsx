@@ -11,19 +11,8 @@ import {
     Tooltip,
 } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-    AlertCircle,
-    Check,
-    ChevronLeft,
-    ChevronRight,
-    FileText,
-    Loader2,
-    RefreshCw,
-    Save,
-    Send,
-    Upload,
-    X,
-} from 'lucide-react';
+import { IconAlertCircle, IconCheck, IconChevronLeft, IconChevronRight, IconFileText, IconLoader2, IconRefresh, IconDeviceFloppy, IconSend, IconUpload, IconX } from '@tabler/icons-react';
+
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
 import { projectDesignKeys } from '@/features/project-design/api/projectDesignKeys';
@@ -124,10 +113,10 @@ function QueueRow({
                                 ? 'bg-red-500/10 text-red-300'
                                 : 'bg-[var(--surface-2)] text-[var(--text-muted)]',
                     )}>
-                        {item.status === 'uploading' ? <Loader2 size={14} className="animate-spin" /> : null}
-                        {item.status === 'done' ? <Check size={14} /> : null}
-                        {item.status === 'error' ? <AlertCircle size={14} /> : null}
-                        {item.status === 'pending' ? <FileText size={14} /> : null}
+                        {item.status === 'uploading' ? <IconLoader2 size={14} className="animate-spin" /> : null}
+                        {item.status === 'done' ? <IconCheck size={14} /> : null}
+                        {item.status === 'error' ? <IconAlertCircle size={14} /> : null}
+                        {item.status === 'pending' ? <IconFileText size={14} /> : null}
                     </span>
 
                     <div className="min-w-0 flex-1">
@@ -146,12 +135,12 @@ function QueueRow({
 
                             {item.status === 'error' ? (
                                 <IconAction label="Retry upload" onPress={onRetry}>
-                                    <RefreshCw size={12} />
+                                    <IconRefresh size={12} />
                                 </IconAction>
                             ) : null}
                             {item.status !== 'uploading' && item.status !== 'done' ? (
                                 <IconAction label="Remove file" onPress={onRemove} tone="danger">
-                                    <X size={12} />
+                                    <IconX size={12} />
                                 </IconAction>
                             ) : null}
                         </div>
@@ -285,7 +274,7 @@ export function DesignUploadDrawer({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': token,
+                    'IconX-CSRF-TOKEN': token,
                     Accept: 'application/json',
                 },
                 body: JSON.stringify({
@@ -330,7 +319,7 @@ export function DesignUploadDrawer({
             await new Promise<void>((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', `${baseUrl}/files/${fileId}/versions`);
-                xhr.setRequestHeader('X-CSRF-TOKEN', token);
+                xhr.setRequestHeader('IconX-CSRF-TOKEN', token);
                 xhr.setRequestHeader('Accept', 'application/json');
                 xhr.upload.addEventListener('progress', (event) => {
                     if (!event.lengthComputable) return;
@@ -346,7 +335,7 @@ export function DesignUploadDrawer({
                         return;
                     }
 
-                    let message = 'Upload failed';
+                    let message = 'IconUpload failed';
                     try {
                         const body = JSON.parse(xhr.responseText) as { message?: string };
                         message = body.message ?? message;
@@ -365,7 +354,7 @@ export function DesignUploadDrawer({
             onOpenChange(false);
             onComplete();
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Upload failed.';
+            const message = error instanceof Error ? error.message : 'IconUpload failed.';
             setQueue((current) => current.map((item) => (
                 item.status === 'uploading'
                     ? { ...item, status: 'error', error: message }
@@ -391,16 +380,16 @@ export function DesignUploadDrawer({
             >
                 <Drawer.Content placement="right" className="z-[181] p-0">
                     <Drawer.Dialog
-                        aria-label="Upload design file"
+                        aria-label="IconUpload design file"
                         className="flex h-dvh w-screen max-w-[620px] flex-col overflow-hidden rounded-none border-l border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-[-24px_0_70px_rgb(0_0_0_/_0.4)]"
                     >
                         <Drawer.Header className="relative shrink-0 border-b border-[var(--border)] px-5 py-4 pr-14">
                             <div className="flex items-center gap-3">
                                 <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--accent)]/12 text-[var(--accent)]">
-                                    <Upload size={17} />
+                                    <IconUpload size={17} />
                                 </span>
                                 <div className="min-w-0">
-                                    <Drawer.Heading className="text-sm font-semibold text-[var(--foreground)]">Upload design file</Drawer.Heading>
+                                    <Drawer.Heading className="text-sm font-semibold text-[var(--foreground)]">IconUpload design file</Drawer.Heading>
                                     <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">Create the file record and upload its first revision.</p>
                                 </div>
                             </div>
@@ -408,7 +397,7 @@ export function DesignUploadDrawer({
                                 aria-label="Close upload drawer"
                                 className="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg text-[var(--text-muted)] outline-none transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                             >
-                                <X size={15} />
+                                <IconX size={15} />
                             </Drawer.CloseTrigger>
                         </Drawer.Header>
 
@@ -506,7 +495,7 @@ export function DesignUploadDrawer({
                                         onPress={() => inputRef.current?.click()}
                                         className="h-auto min-h-32 flex-col gap-2 rounded-2xl border-2 border-dashed border-[var(--border)] py-6 hover:border-[var(--accent)]/50 hover:bg-[var(--surface-2)]/45"
                                     >
-                                        <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]"><Upload size={18} /></span>
+                                        <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]"><IconUpload size={18} /></span>
                                         <span className="text-[10px] font-medium text-[var(--foreground)]">Select design files</span>
                                         <span className="max-w-80 text-center text-[9px] leading-4 text-[var(--text-muted)]">DWG, PDF, PNG, JPG, DXF, RVT, IFC and supporting files</span>
                                     </Button>
@@ -540,15 +529,15 @@ export function DesignUploadDrawer({
                                                 onPress={() => setSubmitAction('draft')}
                                                 className={cn('h-10 text-[10px]', submitAction === 'draft' && 'border-[var(--accent)]/35 text-[var(--accent)]')}
                                             >
-                                                <Save size={13} />
-                                                Save draft
+                                                <IconDeviceFloppy size={13} />
+                                                IconDeviceFloppy draft
                                             </Button>
                                             <Button
                                                 variant={submitAction === 'submit' ? 'secondary' : 'outline'}
                                                 onPress={() => setSubmitAction('submit')}
                                                 className={cn('h-10 text-[10px]', submitAction === 'submit' && 'border-[var(--accent)]/35 text-[var(--accent)]')}
                                             >
-                                                <Send size={13} />
+                                                <IconSend size={13} />
                                                 Submit for review
                                             </Button>
                                         </div>
@@ -570,7 +559,7 @@ export function DesignUploadDrawer({
                                             <div className="space-y-1.5">
                                                 {queue.map((item) => (
                                                     <div key={item.id} className="flex items-center gap-2 rounded-lg bg-[var(--surface)]/55 px-2.5 py-2">
-                                                        <FileText size={12} className="shrink-0 text-[var(--text-muted)]" />
+                                                        <IconFileText size={12} className="shrink-0 text-[var(--text-muted)]" />
                                                         <span className="min-w-0 flex-1 truncate text-[9px] text-[var(--foreground)]">{item.file.name}</span>
                                                         <Chip size="sm" variant="soft" className={cn('h-4 px-1 text-[8px] capitalize', assetTone(item.assetType))}>{item.assetType.replace(/_/g, ' ')}</Chip>
                                                     </div>
@@ -590,7 +579,7 @@ export function DesignUploadDrawer({
                                 isDisabled={step === 0 || submitting}
                                 className="h-8 text-[10px]"
                             >
-                                <ChevronLeft size={13} />
+                                <IconChevronLeft size={13} />
                                 Back
                             </Button>
 
@@ -603,7 +592,7 @@ export function DesignUploadDrawer({
                                     className="h-8 text-[10px]"
                                 >
                                     Next
-                                    <ChevronRight size={13} />
+                                    <IconChevronRight size={13} />
                                 </Button>
                             ) : (
                                 <Button
@@ -614,8 +603,8 @@ export function DesignUploadDrawer({
                                     isPending={submitting}
                                     className="h-8 text-[10px]"
                                 >
-                                    {!submitting ? (submitAction === 'draft' ? <Save size={13} /> : <Send size={13} />) : null}
-                                    {submitAction === 'draft' ? 'Save draft' : 'Upload & submit'}
+                                    {!submitting ? (submitAction === 'draft' ? <IconDeviceFloppy size={13} /> : <IconSend size={13} />) : null}
+                                    {submitAction === 'draft' ? 'IconDeviceFloppy draft' : 'IconUpload & submit'}
                                 </Button>
                             )}
                         </Drawer.Footer>

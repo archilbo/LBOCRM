@@ -1,4 +1,5 @@
-﻿import { CheckCircle2, Circle, Clock3 } from 'lucide-react';
+import { IconCircleCheck, IconCircle, IconClockHour3 } from '@tabler/icons-react';
+
 import { AppCard } from '@/components/ui/AppCard';
 import { AppBadge } from '@/components/ui/AppBadge';
 import { useTranslation } from '@/lib/i18n';
@@ -54,11 +55,11 @@ export function ContractWorkflow() {
                         <div key={step.key} className="flex items-center gap-3 rounded-2xl border bg-[var(--surface)] p-3">
                             <div className="flex size-8 items-center justify-center rounded-full bg-[var(--surface-2)]">
                                 {step.done ? (
-                                    <CheckCircle2 size={16} className="text-[var(--success)]" />
+                                    <IconCircleCheck size={16} className="text-[var(--success)]" />
                                 ) : active ? (
-                                    <Clock3 size={16} className="text-[var(--warning)]" />
+                                    <IconClockHour3 size={16} className="text-[var(--warning)]" />
                                 ) : (
-                                    <Circle size={16} className="text-[var(--text-muted)]" />
+                                    <IconCircle size={16} className="text-[var(--text-muted)]" />
                                 )}
                             </div>
 

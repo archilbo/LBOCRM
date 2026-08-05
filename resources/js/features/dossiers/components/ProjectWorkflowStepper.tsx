@@ -1,4 +1,5 @@
-import { Check } from 'lucide-react';
+import { IconCheck } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 
 interface WorkflowStepData {
@@ -75,7 +76,7 @@ export function ProjectWorkflowStepper({ steps, currentStep, completed, total, o
                                     !isCompleted && !isActive && !isBlocked && 'border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.06)] text-[var(--text-muted)]',
                                 )}>
                                     {isCompleted
-                                        ? <Check size={16} strokeWidth={3} />
+                                        ? <IconCheck size={16} strokeWidth={3} />
                                         : <span>{step.order}</span>
                                     }
                                 </span>

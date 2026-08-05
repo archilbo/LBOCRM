@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Arrow, Circle, Ellipse, Group, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import type Konva from 'konva';
-import { AlertTriangle, Clock, MessageSquarePlus, Pencil, Trash2, User, X } from 'lucide-react';
+import { IconAlertTriangle, IconClock, IconMessage2Plus, IconPencil, IconTrash, IconUser, IconX } from '@tabler/icons-react';
+
 import { Button, Card, Chip, Tooltip } from '@heroui/react';
 import type { AnnotationTool } from '@/features/project-design/components/ProjectDesignEditorToolbar';
 import { DesignRemarkComposer } from './DesignRemarkComposer';
@@ -311,7 +312,7 @@ function AnnotationInfoPopup({
                                         className="h-7 w-7 min-w-0 shrink-0 text-[var(--text-muted)]"
                                         aria-label="Close annotation popup"
                                     >
-                                        <X size={12} />
+                                        <IconX size={12} />
                                     </Button>
                                 </Tooltip.Trigger>
                                 <Tooltip.Content>Close</Tooltip.Content>
@@ -326,18 +327,18 @@ function AnnotationInfoPopup({
 
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border)] pt-2 text-[9px] text-[var(--text-subtle)]">
                             <span className="flex items-center gap-1">
-                                <User size={9} />
+                                <IconUser size={9} />
                                 {remark?.createdBy?.name ?? annotation.authoredBy?.name ?? annotation.createdBy?.name ?? 'Unknown'}
                             </span>
                             {remark?.createdAt ?? annotation.createdAt ? (
                                 <span className="flex items-center gap-1">
-                                    <Clock size={9} />
+                                    <IconClock size={9} />
                                     {formatDate(remark?.createdAt ?? annotation.createdAt)}
                                 </span>
                             ) : null}
                             {remark?.createdBy ? (
                                 <span className="flex items-center gap-1">
-                                    <AlertTriangle size={9} />
+                                    <IconAlertTriangle size={9} />
                                     linked remark
                                 </span>
                             ) : null}
@@ -363,7 +364,7 @@ function AnnotationInfoPopup({
                                     onPress={() => setConfirmingDelete(true)}
                                     className="h-7 w-7 min-w-0 text-[var(--text-muted)] hover:bg-red-500/10 hover:text-red-300"
                                 >
-                                    <Trash2 size={12} />
+                                    <IconTrash size={12} />
                                 </Button>
                             )}
                             <Button
@@ -372,7 +373,7 @@ function AnnotationInfoPopup({
                                 onPress={remark ? onEdit : onCreate}
                                 className="ml-auto h-7 min-w-0 gap-1.5 bg-[var(--accent)]/12 px-2.5 text-[9px] font-semibold text-[var(--accent)]"
                             >
-                                {remark ? <Pencil size={11} /> : <MessageSquarePlus size={11} />}
+                                {remark ? <IconPencil size={11} /> : <IconMessage2Plus size={11} />}
                                 {remark ? 'Edit' : 'Add remark'}
                             </Button>
                         </div>

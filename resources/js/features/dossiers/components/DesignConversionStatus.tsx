@@ -1,16 +1,17 @@
-import { Loader2, FileWarning, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { IconLoader2, IconFileAlert, IconRefresh, IconCircleCheck, IconCircleX } from '@tabler/icons-react';
+
 import { Button } from '@heroui/react';
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode; tip: string }> = {
-    'uploaded': { label: 'Uploaded', color: 'text-blue-500', icon: <Loader2 size={20} className="animate-spin" />, tip: 'The file has been received and is waiting to be processed.' },
-    'queued': { label: 'Queued', color: 'text-blue-500', icon: <Loader2 size={20} className="animate-spin" />, tip: 'The file is in queue for conversion processing.' },
-    'validating': { label: 'Validating', color: 'text-blue-500', icon: <Loader2 size={20} className="animate-spin" />, tip: 'The file is being validated for conversion.' },
-    'converting': { label: 'Converting', color: 'text-amber-500', icon: <Loader2 size={20} className="animate-spin" />, tip: 'The file is being converted to a browser-compatible format.' },
-    'extracting_metadata': { label: 'Extracting metadata', color: 'text-amber-500', icon: <Loader2 size={20} className="animate-spin" />, tip: 'Metadata is being extracted from the source file.' },
-    'generating_thumbnails': { label: 'Generating thumbnails', color: 'text-amber-500', icon: <Loader2 size={20} className="animate-spin" />, tip: 'Preview thumbnails are being generated.' },
-    'ready': { label: 'Ready', color: 'text-green-500', icon: <CheckCircle2 size={20} />, tip: 'This file has been processed and is ready for review.' },
-    'failed': { label: 'Failed', color: 'text-red-500', icon: <XCircle size={20} />, tip: 'Conversion failed. The file may be corrupted or in an unsupported format.' },
-    'unsupported': { label: 'Unsupported', color: 'text-red-500', icon: <FileWarning size={20} />, tip: 'This file format is not supported for browser preview.' },
+    'uploaded': { label: 'Uploaded', color: 'text-blue-500', icon: <IconLoader2 size={20} className="animate-spin" />, tip: 'The file has been received and is waiting to be processed.' },
+    'queued': { label: 'Queued', color: 'text-blue-500', icon: <IconLoader2 size={20} className="animate-spin" />, tip: 'The file is in queue for conversion processing.' },
+    'validating': { label: 'Validating', color: 'text-blue-500', icon: <IconLoader2 size={20} className="animate-spin" />, tip: 'The file is being validated for conversion.' },
+    'converting': { label: 'Converting', color: 'text-amber-500', icon: <IconLoader2 size={20} className="animate-spin" />, tip: 'The file is being converted to a browser-compatible format.' },
+    'extracting_metadata': { label: 'Extracting metadata', color: 'text-amber-500', icon: <IconLoader2 size={20} className="animate-spin" />, tip: 'Metadata is being extracted from the source file.' },
+    'generating_thumbnails': { label: 'Generating thumbnails', color: 'text-amber-500', icon: <IconLoader2 size={20} className="animate-spin" />, tip: 'Preview thumbnails are being generated.' },
+    'ready': { label: 'Ready', color: 'text-green-500', icon: <IconCircleCheck size={20} />, tip: 'This file has been processed and is ready for review.' },
+    'failed': { label: 'Failed', color: 'text-red-500', icon: <IconCircleX size={20} />, tip: 'Conversion failed. The file may be corrupted or in an unsupported format.' },
+    'unsupported': { label: 'Unsupported', color: 'text-red-500', icon: <IconFileAlert size={20} />, tip: 'This file format is not supported for browser preview.' },
 };
 
 export function DesignConversionStatus({ conversionStatus, filename, onRetry }: {
@@ -43,7 +44,7 @@ export function DesignConversionStatus({ conversionStatus, filename, onRetry }: 
 
                 {conversionStatus === 'failed' && onRetry && (
                     <div className="mt-4">
-                        <Button size="sm" variant="bordered" startContent={<RefreshCw size={14} />} onPress={onRetry}>
+                        <Button size="sm" variant="bordered" startContent={<IconRefresh size={14} />} onPress={onRetry}>
                             Retry Conversion
                         </Button>
                     </div>

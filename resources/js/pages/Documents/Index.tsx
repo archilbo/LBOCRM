@@ -1,9 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import type { ColumnDef } from '@tanstack/react-table';
-import {
-    AlertTriangle, CheckCircle2, Copy, Download, Eye, FileText, FolderKanban,
-    MoreHorizontal, Search, Trash2, UploadCloud, X, XCircle,
-} from 'lucide-react';
+import { IconAlertTriangle, IconCircleCheck, IconCopy, IconDownload, IconEye, IconFileText, IconFolder, IconDots, IconSearch, IconTrash, IconCloudUpload, IconX, IconCircleX } from '@tabler/icons-react';
+
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, Chip, Dropdown } from '@heroui/react';
@@ -33,11 +31,11 @@ type PageProps = {
 };
 
 const DOCUMENT_KPI_TONES = {
-    total: { icon: <FileText size={16} className="text-zinc-400" />, accentColor: '#a1a1aa', valueClassName: 'text-zinc-300' },
-    uploaded: { icon: <UploadCloud size={16} className="text-sky-400" />, accentColor: '#38bdf8', valueClassName: 'text-sky-300' },
-    verified: { icon: <CheckCircle2 size={16} className="text-emerald-400" />, accentColor: '#34d399', valueClassName: 'text-emerald-300' },
-    missing: { icon: <AlertTriangle size={16} className="text-amber-400" />, accentColor: '#fbbf24', valueClassName: 'text-amber-300' },
-    templates: { icon: <Copy size={16} className="text-violet-400" />, accentColor: '#a78bfa', valueClassName: 'text-violet-300' },
+    total: { icon: <IconFileText size={16} className="text-zinc-400" />, accentColor: '#a1a1aa', valueClassName: 'text-zinc-300' },
+    uploaded: { icon: <IconCloudUpload size={16} className="text-sky-400" />, accentColor: '#38bdf8', valueClassName: 'text-sky-300' },
+    verified: { icon: <IconCircleCheck size={16} className="text-emerald-400" />, accentColor: '#34d399', valueClassName: 'text-emerald-300' },
+    missing: { icon: <IconAlertTriangle size={16} className="text-amber-400" />, accentColor: '#fbbf24', valueClassName: 'text-amber-300' },
+    templates: { icon: <IconCopy size={16} className="text-violet-400" />, accentColor: '#a78bfa', valueClassName: 'text-violet-300' },
 } as const;
 
 type ViewMode = 'workspace' | 'grouped';
@@ -159,7 +157,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
         return (
             <Dropdown>
                 <Dropdown.Trigger className="flex size-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]">
-                    <MoreHorizontal size={15} />
+                    <IconDots size={15} />
                 </Dropdown.Trigger>
                 <Dropdown.Popover placement="bottom end" className="min-w-44 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0.5 shadow-xl">
                     <Dropdown.Menu
@@ -177,14 +175,14 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                     >
                         <Dropdown.Item key="preview" id="preview">
                             <div className="flex items-center gap-2">
-                                <Eye size={14} className="shrink-0 text-sky-400" />
+                                <IconEye size={14} className="shrink-0 text-sky-400" />
                                 <span>Preview</span>
                             </div>
                         </Dropdown.Item>
                         {can('documents.update') && doc.status !== 'verified' && (
                             <Dropdown.Item key="verify" id="verify">
                                 <div className="flex items-center gap-2">
-                                    <CheckCircle2 size={14} className="shrink-0 text-emerald-400" />
+                                    <IconCircleCheck size={14} className="shrink-0 text-emerald-400" />
                                     <span>Mark verified</span>
                                 </div>
                             </Dropdown.Item>
@@ -192,27 +190,27 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                         {can('documents.download') && doc.hasFile && doc.downloadUrl && (
                             <Dropdown.Item key="download" id="download">
                                 <div className="flex items-center gap-2">
-                                    <Download size={14} className="shrink-0 text-blue-400" />
-                                    <span>Download</span>
+                                    <IconDownload size={14} className="shrink-0 text-blue-400" />
+                                    <span>IconDownload</span>
                                 </div>
                             </Dropdown.Item>
                         )}
                         <Dropdown.Item key="project" id="project">
                             <div className="flex items-center gap-2">
-                                <FolderKanban size={14} className="shrink-0 text-violet-400" />
+                                <IconFolder size={14} className="shrink-0 text-violet-400" />
                                 <span>Open project</span>
                             </div>
                         </Dropdown.Item>
                         {can('documents.update') ? <Dropdown.Item key="missing" id="missing">
                             <div className="flex items-center gap-2">
-                                <XCircle size={14} className="shrink-0 text-amber-400" />
+                                <IconCircleX size={14} className="shrink-0 text-amber-400" />
                                 <span>Mark missing</span>
                             </div>
                         </Dropdown.Item> : null}
                         {can('documents.delete') ? <Dropdown.Section title="Danger" classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
                             <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
                                 <div className="flex items-center gap-2">
-                                    <Trash2 size={14} className="shrink-0 text-red-400" />
+                                    <IconTrash size={14} className="shrink-0 text-red-400" />
                                     <span>Delete</span>
                                 </div>
                             </Dropdown.Item>
@@ -248,7 +246,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                 isCurrent && step.key === 'uploaded' && 'ring-sky-500/40',
                                 isCurrent && step.key === 'missing' && 'ring-amber-500/40',
                             )}>
-                                {isDone ? <CheckCircle2 size={12} /> : idx + 1}
+                                {isDone ? <IconCircleCheck size={12} /> : idx + 1}
                             </span>
                             <span className={cn(
                                 'text-[10px]',
@@ -273,7 +271,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                 return (
                     <div className="flex items-center gap-2">
                         <span className={cn('flex size-7 shrink-0 items-center justify-center rounded-md', badge.color)}>
-                            <FileText size={13} />
+                            <IconFileText size={13} />
                         </span>
                         <div className="min-w-0">
                             <p className="max-w-[200px] truncate text-xs font-medium text-[var(--foreground)]">
@@ -292,7 +290,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
             header: 'Project',
             cell: ({ row }) => (
                 <div className="flex items-center gap-1.5">
-                    <FolderKanban size={12} className="shrink-0 text-[var(--text-subtle)]" />
+                    <IconFolder size={12} className="shrink-0 text-[var(--text-subtle)]" />
                     <div className="min-w-0">
                         <p className="max-w-[160px] truncate text-xs font-medium text-[var(--foreground)]">{row.original.dossierNumber || '-'}</p>
                         <p className="max-w-[160px] truncate text-[9px] text-[var(--text-muted)]">{row.original.projectObject || '-'}</p>
@@ -369,7 +367,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                         </p>
                     </div>
                     {can('documents.create') ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('documents.upload')} aria-label={t('documents.upload')} onPress={() => setDrawerOpen(true)}>
-                        <UploadCloud size={16} />
+                        <IconCloudUpload size={16} />
                     </AppButton> : null}
                 </header>
 
@@ -411,14 +409,14 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                     {topMissing.map((doc) => (
                                         <button key={doc.id} type="button" onClick={() => router.visit(`/dossiers/${doc.dossierId}`)}
                                             className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
-                                            <AlertTriangle size={12} className="shrink-0 text-amber-400" />
+                                            <IconAlertTriangle size={12} className="shrink-0 text-amber-400" />
                                             <span className="truncate">{doc.dossierNumber} — {doc.templateName || doc.originalFilename}</span>
                                         </button>
                                     ))}
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2 rounded-lg bg-emerald-500/8 px-3 py-2">
-                                    <CheckCircle2 size={14} className="text-emerald-400" />
+                                    <IconCircleCheck size={14} className="text-emerald-400" />
                                     <p className="text-[11px] text-emerald-400">All documents accounted for</p>
                                 </div>
                             )}
@@ -458,15 +456,15 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                 toolbarActions={
                                     <div className="flex items-center gap-2">
                                         <div className="relative w-44">
-                                            <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                                            <IconSearch size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                                             <input value={query} onChange={(e) => setQuery(e.target.value)}
-                                                placeholder="Search..."
+                                                placeholder="IconSearch..."
                                                 className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[10px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                                             />
                                             {query ? (
                                                 <button type="button" onClick={() => setQuery('')}
                                                     className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]">
-                                                    <X size={12} />
+                                                    <IconX size={12} />
                                                 </button>
                                             ) : null}
                                         </div>
@@ -491,7 +489,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                         <Dropdown.Item key={opt.id} id={opt.id} textValue={opt.label}>
                                                             <div className="flex w-full items-center gap-2">
                                                                 <Dropdown.ItemIndicator>
-                                                                    <CheckCircle2 size={13} className="text-[var(--accent)]" />
+                                                                    <IconCircleCheck size={13} className="text-[var(--accent)]" />
                                                                 </Dropdown.ItemIndicator>
                                                                 <span className="flex-1">{opt.label}</span>
                                                                 <span className="rounded bg-[var(--surface-2)] px-1.5 py-px text-[9px] font-semibold text-[var(--text-muted)]">{opt.count}</span>
@@ -515,7 +513,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                             return (
                                                 <div key={doc.id} className="flex items-center gap-3 p-3 transition hover:bg-[var(--surface-2)]">
                                                     <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg', badge.color)}>
-                                                        <FileText size={13} />
+                                                        <IconFileText size={13} />
                                                     </span>
                                                     <div className="min-w-0 flex-1">
                                                         <p className="truncate text-xs font-medium text-[var(--foreground)]">
@@ -531,7 +529,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                     </div>
                                                     <Dropdown>
                                                         <Dropdown.Trigger className="flex size-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)]">
-                                                            <MoreHorizontal size={14} />
+                                                            <IconDots size={14} />
                                                         </Dropdown.Trigger>
                                                         <Dropdown.Popover placement="bottom end" className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0.5 shadow-xl">
                                                             <Dropdown.Menu
@@ -545,15 +543,15 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                                     base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]',
                                                                 }}
                                                             >
-                                                                <Dropdown.Item key="preview"><div className="flex items-center gap-2"><Eye size={14} className="shrink-0 text-sky-400" /><span>Preview</span></div></Dropdown.Item>
+                                                                <Dropdown.Item key="preview"><div className="flex items-center gap-2"><IconEye size={14} className="shrink-0 text-sky-400" /><span>Preview</span></div></Dropdown.Item>
                                                                 {doc.status !== 'verified' && (
-                                                                    <Dropdown.Item key="verify"><div className="flex items-center gap-2"><CheckCircle2 size={14} className="shrink-0 text-emerald-400" /><span>Verify</span></div></Dropdown.Item>
+                                                                    <Dropdown.Item key="verify"><div className="flex items-center gap-2"><IconCircleCheck size={14} className="shrink-0 text-emerald-400" /><span>Verify</span></div></Dropdown.Item>
                                                                 )}
                                                                 {doc.hasFile && doc.downloadUrl && (
-                                                                    <Dropdown.Item key="download"><div className="flex items-center gap-2"><Download size={14} className="shrink-0 text-blue-400" /><span>Download</span></div></Dropdown.Item>
+                                                                    <Dropdown.Item key="download"><div className="flex items-center gap-2"><IconDownload size={14} className="shrink-0 text-blue-400" /><span>IconDownload</span></div></Dropdown.Item>
                                                                 )}
                                                                 <Dropdown.Section title="Danger" classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
-                                                                    <Dropdown.Item key="delete" className="text-red-400 data-[hover]:bg-red-400/10"><div className="flex items-center gap-2"><Trash2 size={14} className="shrink-0 text-red-400" /><span>Delete</span></div></Dropdown.Item>
+                                                                    <Dropdown.Item key="delete" className="text-red-400 data-[hover]:bg-red-400/10"><div className="flex items-center gap-2"><IconTrash size={14} className="shrink-0 text-red-400" /><span>Delete</span></div></Dropdown.Item>
                                                                 </Dropdown.Section>
                                                             </Dropdown.Menu>
                                                         </Dropdown.Popover>
@@ -592,7 +590,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                         <div className="space-y-5 pb-8">
                             <div className="flex items-center gap-3">
                                 <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)] ring-1 ring-[var(--border)]">
-                                    <FileText size={18} />
+                                    <IconFileText size={18} />
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <p className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
@@ -614,7 +612,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                     ) : (
                                         <div className="flex h-32 items-center justify-center bg-[var(--surface-2)]">
                                             <div className="text-center">
-                                                <FileText size={32} className="mx-auto text-[var(--text-muted)]" />
+                                                <IconFileText size={32} className="mx-auto text-[var(--text-muted)]" />
                                                 <p className="mt-1.5 text-[10px] font-medium text-[var(--text-muted)]">{previewDoc.originalFilename || 'No preview'}</p>
                                                 <p className="text-[9px] text-[var(--text-subtle)]">{previewDoc.sizeLabel || ''}</p>
                                             </div>
@@ -662,28 +660,28 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                             <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 shadow-sm">
                                 {previewDoc.status !== 'verified' && (
                                     <AppButton size="sm" variant="solid" color="primary" className="min-w-0 h-8 text-[10px]" onPress={() => { updateStatus(previewDoc, 'verified'); }}>
-                                        <CheckCircle2 size={13} /> Verify
+                                        <IconCircleCheck size={13} /> Verify
                                     </AppButton>
                                 )}
                                 {previewDoc.hasFile && previewDoc.downloadUrl && (
                                     <>
                                         {previewDoc.status !== 'verified' && <span className="h-5 w-px bg-[var(--border)]" />}
                                         <AppButton size="sm" variant="bordered" className="min-w-0 h-8 text-[10px]" onPress={() => { window.location.href = previewDoc.downloadUrl!; }}>
-                                            <Download size={13} /> Download
+                                            <IconDownload size={13} /> IconDownload
                                         </AppButton>
                                     </>
                                 )}
                                 <span className="h-5 w-px bg-[var(--border)]" />
                                 <AppButton size="sm" variant="bordered" className="min-w-0 h-8 text-[10px]" onPress={() => { router.visit(`/dossiers/${previewDoc.dossierId}`); }}>
-                                    <FolderKanban size={13} /> Project
+                                    <IconFolder size={13} /> Project
                                 </AppButton>
                                 <span className="h-5 w-px bg-[var(--border)]" />
                                 <AppButton size="sm" variant="bordered" className="min-w-0 h-8 text-[10px]" onPress={() => { updateStatus(previewDoc, 'missing'); }}>
-                                    <XCircle size={13} /> Missing
+                                    <IconCircleX size={13} /> Missing
                                 </AppButton>
                                 <span className="h-5 w-px bg-[var(--border)]" />
                                 <AppButton size="sm" variant="light" className="min-w-0 h-8 px-2 text-[10px] text-red-400" onPress={() => { setDeleteTarget(previewDoc); setPreviewDoc(null); }}>
-                                    <Trash2 size={13} /> Delete
+                                    <IconTrash size={13} /> Delete
                                 </AppButton>
                             </div>
                         </div>
@@ -697,7 +695,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                     size="sm"
                 >
                     <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 mb-4">
-                        <AlertTriangle size={18} className="shrink-0 text-red-400" />
+                        <IconAlertTriangle size={18} className="shrink-0 text-red-400" />
                         <p className="text-xs text-[var(--text-muted)]">
                             Cette action est <span className="font-semibold text-red-400">irreversible</span>.
                         </p>

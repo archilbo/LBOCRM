@@ -1,31 +1,20 @@
-import {
-    ArrowUpRight,
-    Circle,
-    Cloud,
-    Hand,
-    Highlighter,
-    Minus,
-    MousePointer2,
-    Pencil,
-    Pin,
-    Save,
-    Square,
-} from 'lucide-react';
+import { IconArrowUpRight, IconCircle, IconCloud, IconHandStop, IconHighlight, IconMinus, IconPointer, IconPencil, IconPinned, IconDeviceFloppy, IconSquare } from '@tabler/icons-react';
+
 import { Button, Tooltip } from '@heroui/react';
 import { cn } from '@/lib/cn';
 import type { AnnotationTool } from '@/features/project-design/components/ProjectDesignEditorToolbar';
 
-const TOOLS: { id: AnnotationTool; icon: typeof Pin; label: string }[] = [
-    { id: 'select', icon: MousePointer2, label: 'Select annotation' },
-    { id: 'pan', icon: Hand, label: 'Pan drawing' },
-    { id: 'pin', icon: Pin, label: 'Place pin' },
-    { id: 'rectangle', icon: Square, label: 'Rectangle' },
-    { id: 'ellipse', icon: Circle, label: 'Ellipse' },
-    { id: 'arrow', icon: ArrowUpRight, label: 'Arrow' },
-    { id: 'line', icon: Minus, label: 'Line' },
-    { id: 'cloud', icon: Cloud, label: 'Revision cloud' },
-    { id: 'freehand', icon: Pencil, label: 'Freehand' },
-    { id: 'highlight', icon: Highlighter, label: 'Highlight' },
+const TOOLS: { id: AnnotationTool; icon: typeof IconPinned; label: string }[] = [
+    { id: 'select', icon: IconPointer, label: 'Select annotation' },
+    { id: 'pan', icon: IconHandStop, label: 'Pan drawing' },
+    { id: 'pin', icon: IconPinned, label: 'Place pin' },
+    { id: 'rectangle', icon: IconSquare, label: 'Rectangle' },
+    { id: 'ellipse', icon: IconCircle, label: 'Ellipse' },
+    { id: 'arrow', icon: IconArrowUpRight, label: 'Arrow' },
+    { id: 'line', icon: IconMinus, label: 'Line' },
+    { id: 'cloud', icon: IconCloud, label: 'Revision cloud' },
+    { id: 'freehand', icon: IconPencil, label: 'Freehand' },
+    { id: 'highlight', icon: IconHighlight, label: 'Highlight' },
 ];
 
 function ToolbarButton({
@@ -101,13 +90,13 @@ export function DesignAnnotationToolbar({
                 ))}
             </div>
             <ToolbarButton
-                label={saving ? 'Saving annotations' : 'Save annotations'}
+                label={saving ? 'Saving annotations' : 'IconDeviceFloppy annotations'}
                 onPress={onSave}
                 isDisabled={!hasUnsaved || saving}
                 isPending={saving}
                 statusDot={hasUnsaved && !saving}
             >
-                <Save size={13} />
+                <IconDeviceFloppy size={13} />
             </ToolbarButton>
         </div>
     );

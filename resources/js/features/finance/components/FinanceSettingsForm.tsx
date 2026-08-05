@@ -1,21 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
-import {
-    Banknote,
-    Building2,
-    Calculator,
-    CheckCircle2,
-    ChevronRight,
-    FileText,
-    ImageIcon,
-    Landmark,
-    LoaderCircle,
-    Maximize2,
-    Save,
-    ScrollText,
-    Settings,
-    Trash2,
-    Upload,
-} from 'lucide-react';
+import { IconCashBanknote, IconBuilding, IconCalculator, IconCircleCheck, IconChevronRight, IconFileText, IconPhoto, IconBuildingBank, IconLoader2, IconMaximize, IconDeviceFloppy, IconSettings, IconTrash, IconUpload } from '@tabler/icons-react';
+
 import { type ChangeEvent, type DragEvent, type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Chip, Description, FieldError, Input, Label, TextArea, TextField } from '@heroui/react';
@@ -263,7 +248,7 @@ function Section({
     description,
     children,
 }: {
-    icon: typeof Settings;
+    icon: typeof IconSettings;
     title: string;
     description: string;
     children: ReactNode;
@@ -299,11 +284,11 @@ const SETTINGS_SECTIONS: Array<{
     id: SettingsSection;
     label: string;
     description: string;
-    icon: typeof Settings;
+    icon: typeof IconSettings;
 }> = [
-    { id: 'finance', label: 'Règles financières', description: 'TVA, devise et calculs', icon: Calculator },
-    { id: 'company', label: 'Entreprise', description: 'Identité et mentions légales', icon: Building2 },
-    { id: 'bank', label: 'Coordonnées bancaires', description: 'Informations de paiement', icon: Landmark },
+    { id: 'finance', label: 'Règles financières', description: 'TVA, devise et calculs', icon: IconCalculator },
+    { id: 'company', label: 'Entreprise', description: 'Identité et mentions légales', icon: IconBuilding },
+    { id: 'bank', label: 'Coordonnées bancaires', description: 'Informations de paiement', icon: IconBuildingBank },
 ];
 
 export function FinanceSettingsForm({ settings, routes, canManage = false, showHeader = true, visibleSections }: FinanceSettingsFormProps) {
@@ -340,7 +325,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
     const showsCompanySettings = availableSections.some((section) => section.id !== 'finance');
     const autosaveStatus = (
         <Chip size="sm" variant="soft" color={autoSaveState === 'error' ? 'danger' : (isDirty || autoSaveState === 'saving' ? 'warning' : 'success')}>
-            {autoSaveState === 'saving' ? <LoaderCircle size={12} className="animate-spin" /> : <Save size={12} />}
+            {autoSaveState === 'saving' ? <IconLoader2 size={12} className="animate-spin" /> : <IconDeviceFloppy size={12} />}
             {autoSaveState === 'saving' ? 'Enregistrement...' : (autoSaveState === 'error' ? 'À corriger' : (isDirty ? 'Enregistrement auto' : 'Enregistré'))}
         </Chip>
     );
@@ -523,7 +508,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
 
                 {!canManage ? (
                     <div className="flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--accent)_30%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] px-3 py-2 text-xs text-[var(--text-muted)]">
-                        <CheckCircle2 size={15} className="shrink-0 text-[var(--accent)]" />
+                        <IconCircleCheck size={15} className="shrink-0 text-[var(--accent)]" />
                         Consultation uniquement : vous n’avez pas l’autorisation de modifier ces paramètres.
                     </div>
                 ) : null}
@@ -551,7 +536,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                                                 <span className="block text-[11px] font-semibold text-[var(--text)]">{section.label}</span>
                                                 <span className="mt-0.5 block truncate text-[10px] font-normal text-[var(--text-muted)]">{section.description}</span>
                                             </span>
-                                            <ChevronRight size={14} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />
+                                            <IconChevronRight size={14} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />
                                         </AppButton>
                                     );
                                 })}
@@ -563,7 +548,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                     <main className="min-w-0">
                         {selectedSection === 'finance' ? (
                             <Section
-                                icon={Calculator}
+                                icon={IconCalculator}
                                 title="Règles financières"
                                 description="Valeurs par défaut appliquées aux nouveaux documents et calculs automatiques."
                             >
@@ -580,7 +565,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
 
                         {selectedSection === 'company' ? (
                             <Section
-                                icon={Building2}
+                                icon={IconBuilding}
                                 title="Informations de l’entreprise"
                                 description="Informations affichées dans les en-têtes, pieds de page et documents générés."
                             >
@@ -592,7 +577,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                                     <div className="flex flex-wrap items-center justify-between gap-3">
                                         <div className="flex items-start gap-3">
                                             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-                                                <ImageIcon size={18} />
+                                                <IconPhoto size={18} />
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold text-[var(--text)]">Logo de l’entreprise</p>
@@ -628,7 +613,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                                                         }))}
                                                     />
                                                 ) : (
-                                                    <ImageIcon size={24} className="text-[var(--text-muted)]" />
+                                                    <IconPhoto size={24} className="text-[var(--text-muted)]" />
                                                 )}
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -639,17 +624,17 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                                                 <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">Glissez un fichier ici ou utilisez l’import. PNG, JPG, WEBP ou SVG, jusqu’à 4 Mo.</p>
                                                 <div className="mt-3 flex flex-wrap items-center gap-2">
                                                     <AppButton variant="secondary" compact onPress={() => fileInputRef.current?.click()} isDisabled={!canManage || isLogoUploading}>
-                                                        {isLogoUploading ? <LoaderCircle size={15} className="animate-spin" /> : <Upload size={15} />}
+                                                        {isLogoUploading ? <IconLoader2 size={15} className="animate-spin" /> : <IconUpload size={15} />}
                                                         {hasStoredLogo ? 'Remplacer' : 'Importer'}
                                                     </AppButton>
                                                     {form.company.companyLogoUrl ? (
                                                         <AppButton variant="quiet" compact isIconOnly tooltip="Aperçu du logo" aria-label="Aperçu du logo" onPress={() => setShowLogoPreview(true)}>
-                                                            <Maximize2 size={15} />
+                                                            <IconMaximize size={15} />
                                                         </AppButton>
                                                     ) : null}
                                                     {hasStoredLogo ? (
                                                         <AppButton variant="danger-soft" compact isIconOnly tooltip="Supprimer le logo" aria-label="Supprimer le logo" onPress={deleteLogo} isDisabled={!canManage || isLogoUploading}>
-                                                            <Trash2 size={15} />
+                                                            <IconTrash size={15} />
                                                         </AppButton>
                                                     ) : null}
                                                 </div>
@@ -677,7 +662,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
 
                         {selectedSection === 'bank' ? (
                             <Section
-                                icon={Banknote}
+                                icon={IconCashBanknote}
                                 title="Coordonnées bancaires"
                                 description="Informations de règlement et références administratives utilisées dans les documents."
                             >
@@ -699,7 +684,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                             <section className="p-4">
                             <div className="mb-3 flex items-center gap-3">
                                 <div className="flex size-9 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-                                    <FileText size={16} />
+                                    <IconFileText size={16} />
                                 </div>
                                 <div>
                                     <h2 className="text-sm font-semibold text-[var(--text)]">Règles appliquées</h2>
@@ -722,7 +707,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                             <section className="p-4">
                             <div className="flex items-start gap-3">
                                 <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-                                    <ScrollText size={16} />
+                                    <IconFileText size={16} />
                                 </div>
                                 <div className="min-w-0">
                                     <h2 className="text-sm font-semibold text-[var(--text)]">Mentions légales</h2>
@@ -736,7 +721,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                             <section className="p-4">
                             <div className="flex items-start gap-3">
                                 <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-                                    <Landmark size={16} />
+                                    <IconBuildingBank size={16} />
                                 </div>
                                 <div className="min-w-0">
                                     <h2 className="text-sm font-semibold text-[var(--text)]">Banque</h2>

@@ -1,5 +1,6 @@
 import { Input, ListBox, Select } from '@heroui/react';
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Circle } from 'lucide-react';
+import { IconAlertTriangle, IconCircleCheck, IconChevronDown, IconChevronRight, IconCircle } from '@tabler/icons-react';
+
 import { useMemo, useRef, useState } from 'react';
 import type { DocumentTemplate, TemplatePlaceholder } from '@/features/finance/types';
 import { validateTemplateContent } from '@/features/finance/templates/templateValidation';
@@ -43,7 +44,7 @@ function EditorSelect<T extends string>({ label, value, options, onChange }: {
             <Select selectedKey={value} onSelectionChange={(key) => onChange(String(key) as T)} aria-label={label}>
                 <Select.Trigger className={compactField}>
                     <Select.Value className="flex-1 truncate text-left" />
-                    <Select.Indicator><ChevronDown size={13} className="text-[var(--text-muted)]" /></Select.Indicator>
+                    <Select.Indicator><IconChevronDown size={13} className="text-[var(--text-muted)]" /></Select.Indicator>
                 </Select.Trigger>
                 <Select.Popover isNonModal className={selectPopover}>
                     <ListBox className="outline-none">
@@ -102,7 +103,7 @@ export function TemplateEditorForm({
                     onClick={() => setMetaOpen((v) => !v)}
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
                 >
-                    {metaOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                    {metaOpen ? <IconChevronDown size={12} /> : <IconChevronRight size={12} />}
                     <span className="truncate">{metaOpen ? 'Details' : metaSummary}</span>
                 </button>
 
@@ -156,9 +157,9 @@ export function TemplateEditorForm({
                             }`}
                         >
                             {hasContent(tab.key) ? (
-                                <Circle size={6} className="fill-current" />
+                                <IconCircle size={6} className="fill-current" />
                             ) : (
-                                <Circle size={6} className="text-[var(--text-muted)]" />
+                                <IconCircle size={6} className="text-[var(--text-muted)]" />
                             )}
                             {tab.label}
                         </button>
@@ -167,15 +168,15 @@ export function TemplateEditorForm({
                 <div className="ml-auto flex min-w-0 items-center gap-2 pl-2">
                     {validation.errors.length > 0 ? (
                         <span className="flex items-center gap-1 text-[9px] font-medium text-[var(--danger)]" title={validationMessage}>
-                            <AlertTriangle size={11} /> {validation.errors.length} erreur(s)
+                            <IconAlertTriangle size={11} /> {validation.errors.length} erreur(s)
                         </span>
                     ) : validation.warnings.length > 0 ? (
                         <span className="flex items-center gap-1 text-[9px] font-medium text-[var(--warning)]" title={validationMessage}>
-                            <AlertTriangle size={11} /> {validation.warnings.length} alerte(s)
+                            <IconAlertTriangle size={11} /> {validation.warnings.length} alerte(s)
                         </span>
                     ) : (
                         <span className="flex items-center gap-1 text-[9px] font-medium text-[var(--success)]">
-                            <CheckCircle2 size={11} /> Valide
+                            <IconCircleCheck size={11} /> Valide
                         </span>
                     )}
                     <span className="hidden truncate text-[9px] text-[var(--text-muted)] sm:inline">{activeSection.replace('Html', '.html').replace('css', '.css')}</span>

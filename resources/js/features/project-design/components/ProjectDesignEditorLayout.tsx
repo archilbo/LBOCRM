@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Group, Panel, Separator, useGroupRef, usePanelCallbackRef } from 'react-resizable-panels';
-import { Maximize2, Minimize2, Monitor, Settings2, X } from 'lucide-react';
+import { IconMaximize, IconMinimize, IconDeviceDesktop, IconSettings2, IconX } from '@tabler/icons-react';
+
 import { Drawer, Dropdown } from '@heroui/react';
 import { cn } from '@/lib/cn';
 import { useMediaQuery } from '@/lib/useMediaQuery';
@@ -146,7 +147,7 @@ function ResponsiveDrawer({
                                 aria-label={`Close ${title}`}
                                 className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-lg text-[var(--text-muted)] outline-none transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                             >
-                                <X size={15} />
+                                <IconX size={15} />
                             </Drawer.CloseTrigger>
                         </Drawer.Header>
                         <Drawer.Body className="min-h-0 flex-1 overflow-hidden p-0">
@@ -410,7 +411,7 @@ export function ProjectDesignEditorLayout({
                         className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)]/95 text-[var(--text-muted)] shadow-sm backdrop-blur transition hover:border-[var(--accent)]/30 hover:text-[var(--foreground)]"
                         aria-label="Editor layout settings"
                     >
-                        <Settings2 size={13} />
+                        <IconSettings2 size={13} />
                     </Dropdown.Trigger>
                     <Dropdown.Popover
                         placement="bottom end"
@@ -424,11 +425,11 @@ export function ProjectDesignEditorLayout({
                             }}
                         >
                             <Dropdown.Item key="reset">
-                                <Monitor size={13} />
+                                <IconDeviceDesktop size={13} />
                                 <span>Reset panel layout</span>
                             </Dropdown.Item>
                             <Dropdown.Item key="fullscreen">
-                                {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                                {fullscreen ? <IconMinimize size={13} /> : <IconMaximize size={13} />}
                                 <span>{fullscreen ? 'Exit fullscreen' : 'Fullscreen editor'}</span>
                             </Dropdown.Item>
                         </Dropdown.Menu>

@@ -11,24 +11,8 @@ import {
     Surface,
     Tooltip,
 } from '@heroui/react';
-import {
-    ArrowDown,
-    ArrowLeft,
-    ArrowRight,
-    ArrowUp,
-    Building2,
-    CalendarDays,
-    ClipboardList,
-    CornerDownLeft,
-    FileSignature,
-    FileText,
-    FolderKanban,
-    ReceiptText,
-    Search,
-    SearchX,
-    Settings as SettingsIcon,
-    UserRound,
-} from 'lucide-react';
+import { IconArrowDown, IconArrowLeft, IconArrowRight, IconArrowUp, IconBuilding, IconCalendarMonth, IconClipboardList, IconCornerDownLeft, IconSignature, IconFileText, IconFolder, IconReceipt2, IconSearch, IconSearchOff, IconSettings, IconUserCircle } from '@tabler/icons-react';
+
 import {
     useCallback,
     useEffect,
@@ -61,15 +45,15 @@ const CACHE_TTL_MS = 45_000;
 const CACHE_MAX_ENTRIES = 20;
 
 const QUICK_ACTIONS: QuickAction[] = [
-    { id: 'action:clients', labelKey: 'nav.clients', icon: UserRound, href: '/clients', color: '#3b82f6' },
-    { id: 'action:intermediaries', labelKey: 'nav.intermediaries', icon: Building2, href: '/intermediaries', color: '#14b8a6' },
-    { id: 'action:dossiers', labelKey: 'nav.dossiers', icon: FolderKanban, href: '/dossiers', color: '#8b5cf6' },
-    { id: 'action:documents', labelKey: 'nav.documents', icon: FileText, href: '/documents', color: '#f59e0b' },
-    { id: 'action:contracts', labelKey: 'nav.contracts', icon: FileSignature, href: '/contracts', color: '#f43f5e' },
-    { id: 'action:finance', labelKey: 'nav.finance', icon: ReceiptText, href: '/finance', color: '#10b981' },
-    { id: 'action:calendar', labelKey: 'nav.calendar', icon: CalendarDays, href: '/calendar', color: '#0ea5e9' },
-    { id: 'action:tasks', labelKey: 'nav.tasks', icon: ClipboardList, href: '/tasks', color: '#f97316' },
-    { id: 'action:settings', labelKey: 'nav.settings', icon: SettingsIcon, href: '/settings', color: '#64748b' },
+    { id: 'action:clients', labelKey: 'nav.clients', icon: IconUserCircle, href: '/clients', color: '#3b82f6' },
+    { id: 'action:intermediaries', labelKey: 'nav.intermediaries', icon: IconBuilding, href: '/intermediaries', color: '#14b8a6' },
+    { id: 'action:dossiers', labelKey: 'nav.dossiers', icon: IconFolder, href: '/dossiers', color: '#8b5cf6' },
+    { id: 'action:documents', labelKey: 'nav.documents', icon: IconFileText, href: '/documents', color: '#f59e0b' },
+    { id: 'action:contracts', labelKey: 'nav.contracts', icon: IconSignature, href: '/contracts', color: '#f43f5e' },
+    { id: 'action:finance', labelKey: 'nav.finance', icon: IconReceipt2, href: '/finance', color: '#10b981' },
+    { id: 'action:calendar', labelKey: 'nav.calendar', icon: IconCalendarMonth, href: '/calendar', color: '#0ea5e9' },
+    { id: 'action:tasks', labelKey: 'nav.tasks', icon: IconClipboardList, href: '/tasks', color: '#f97316' },
+    { id: 'action:settings', labelKey: 'nav.settings', icon: IconSettings, href: '/settings', color: '#64748b' },
 ];
 
 const SHORTCUT_LABEL = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform) ? '⌘K' : 'Ctrl K';
@@ -284,7 +268,7 @@ export function AppGlobalSearch() {
             })
                 .then((response) => {
                     if (!response.ok) {
-                        throw new Error('Search request failed.');
+                        throw new Error('IconSearch request failed.');
                     }
 
                     return response.json();
@@ -316,7 +300,7 @@ export function AppGlobalSearch() {
                         return;
                     }
 
-                    setError('Search is temporarily unavailable.');
+                    setError('IconSearch is temporarily unavailable.');
                 })
                 .finally(() => {
                     if (!controller.signal.aborted) {
@@ -447,11 +431,11 @@ export function AppGlobalSearch() {
      * printable characters return focus to the search input (and bypass RAC's typeahead).
      */
     function handleListKeyDownCapture(event: ReactKeyboardEvent) {
-        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        if (event.key === 'IconArrowLeft' || event.key === 'IconArrowRight') {
             if (tabs.length > 1) {
                 event.preventDefault();
                 event.stopPropagation();
-                cycleCategory(event.key === 'ArrowRight' ? 1 : -1);
+                cycleCategory(event.key === 'IconArrowRight' ? 1 : -1);
                 focusListBoundary('first');
             }
 
@@ -478,16 +462,16 @@ export function AppGlobalSearch() {
             return;
         }
 
-        if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && isOpen && tabs.length > 1) {
+        if ((event.key === 'IconArrowLeft' || event.key === 'IconArrowRight') && isOpen && tabs.length > 1) {
             event.preventDefault();
-            cycleCategory(event.key === 'ArrowRight' ? 1 : -1);
+            cycleCategory(event.key === 'IconArrowRight' ? 1 : -1);
 
             return;
         }
 
-        if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && isOpen) {
+        if ((event.key === 'IconArrowDown' || event.key === 'IconArrowUp') && isOpen) {
             event.preventDefault();
-            focusListBoundary(event.key === 'ArrowDown' ? 'first' : 'last');
+            focusListBoundary(event.key === 'IconArrowDown' ? 'first' : 'last');
         }
     }
 
@@ -550,7 +534,7 @@ export function AppGlobalSearch() {
             return (
                 <div className="flex flex-col items-center gap-3 px-5 py-8 text-center">
                     <span className="flex size-9 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] text-[var(--danger)]" aria-hidden="true">
-                        <SearchX size={16} />
+                        <IconSearchOff size={16} />
                     </span>
                     <p className="text-sm font-medium text-[var(--text)]">{t('globalSearch.errorTitle')}</p>
                     <p className="max-w-sm text-xs leading-5 text-[var(--text-muted)]">{t('globalSearch.errorDescription')}</p>
@@ -604,7 +588,7 @@ export function AppGlobalSearch() {
             return (
                 <div className="flex flex-col items-center gap-3 px-5 py-8 text-center">
                     <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]" aria-hidden="true">
-                        <SearchX size={16} />
+                        <IconSearchOff size={16} />
                     </span>
                     <p className="text-sm font-semibold text-[var(--text)]">{t('globalSearch.noResults', { query: trimmedQuery })}</p>
                     <ul className="max-w-sm space-y-1 text-xs text-[var(--text-muted)]">
@@ -695,7 +679,7 @@ export function AppGlobalSearch() {
                         onPress={openPalette}
                         className="size-9 rounded-[10px] text-[var(--text-muted)]"
                     >
-                        <Search aria-hidden="true" size={17} />
+                        <IconSearch aria-hidden="true" size={17} />
                     </Button>
                 </Tooltip.Trigger>
                 <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">
@@ -731,7 +715,7 @@ export function AppGlobalSearch() {
                   >
                       <SearchField.Group className="h-9 rounded-xl pl-2 pr-2 [--field-background:transparent] [--field-border-focus:transparent] [--field-shadow:none] [--focus:transparent]">
                           <SearchField.SearchIcon className="ml-0">
-                              <Search size={14} aria-hidden="true" />
+                              <IconSearch size={14} aria-hidden="true" />
                           </SearchField.SearchIcon>
                           <SearchField.Input
                               ref={inputRef}
@@ -758,25 +742,25 @@ export function AppGlobalSearch() {
                               <div className="flex h-8 shrink-0 items-center justify-between gap-3 px-3">
                                   <span className="flex items-center gap-1.5 text-[9.5px] text-[var(--text-muted)]">
                                       <Kbd>
-                                          <ArrowUp size={9} strokeWidth={2.5} aria-hidden="true" />
+                                          <IconArrowUp size={9} strokeWidth={2.5} aria-hidden="true" />
                                       </Kbd>
                                       <Kbd>
-                                          <ArrowDown size={9} strokeWidth={2.5} aria-hidden="true" />
+                                          <IconArrowDown size={9} strokeWidth={2.5} aria-hidden="true" />
                                       </Kbd>
                                       {t('globalSearch.footerNavigate')}
                                   </span>
                                   <span className="hidden items-center gap-1.5 text-[9px] text-[var(--text-muted)] sm:flex">
                                       <Kbd>
-                                          <ArrowLeft size={9} strokeWidth={2.5} aria-hidden="true" />
+                                          <IconArrowLeft size={9} strokeWidth={2.5} aria-hidden="true" />
                                       </Kbd>
                                       <Kbd>
-                                          <ArrowRight size={9} strokeWidth={2.5} aria-hidden="true" />
+                                          <IconArrowRight size={9} strokeWidth={2.5} aria-hidden="true" />
                                       </Kbd>
                                       {t('globalSearch.footerCategory')}
                                   </span>
                                   <span className="hidden items-center gap-1.5 text-[9px] text-[var(--text-muted)] sm:flex">
                                       <Kbd>
-                                          <CornerDownLeft size={9} strokeWidth={2.5} aria-hidden="true" />
+                                          <IconCornerDownLeft size={9} strokeWidth={2.5} aria-hidden="true" />
                                       </Kbd>
                                       {t('globalSearch.footerOpen')}
                                   </span>

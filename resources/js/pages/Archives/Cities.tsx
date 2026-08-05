@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Building2, Palette, Pencil, Plus, Power, Trash2 } from 'lucide-react';
+import { IconArrowLeft, IconBuilding, IconPalette, IconPencil, IconPlus, IconPower, IconTrash } from '@tabler/icons-react';
+
 import { Button, Input, Switch } from '@heroui/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -97,7 +98,7 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                         <div className="flex items-center gap-3">
                             <button type="button" onClick={() => router.visit('/archives')}
                                 className="flex size-7 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/5 transition">
-                                <ArrowLeft size={13} />
+                                <IconArrowLeft size={13} />
                             </button>
                             <h1 className="text-lg font-semibold text-white/90">Cities</h1>
                             <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-white/40">{cities.length}</span>
@@ -109,7 +110,7 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                                 'hover:bg-amber-500/25 hover:border-amber-500/40',
                                 'active:bg-amber-500/30',
                             )}>
-                            <Plus size={14} strokeWidth={2.5} />
+                            <IconPlus size={14} strokeWidth={2.5} />
                             Add city
                         </button>
                     </div>
@@ -166,12 +167,12 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                                                 <div className="flex items-center gap-1">
                                                     <button type="button" onClick={() => openEdit(city)}
                                                         className="flex size-7 items-center justify-center rounded text-white/40 hover:text-white/80 hover:bg-white/5 transition">
-                                                        <Pencil size={12} />
+                                                        <IconPencil size={12} />
                                                     </button>
                                                     <button type="button" onClick={() => setDeleteTarget(city)}
                                                         className="flex size-7 items-center justify-center rounded text-white/40 hover:text-red-400 hover:bg-white/5 transition"
                                                         disabled={city.dossiersCount > 0}>
-                                                        <Trash2 size={12} />
+                                                        <IconTrash size={12} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -194,7 +195,7 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                     <form onSubmit={handleSubmit} className="flex h-full flex-col">
                         <div className="flex-1 space-y-5 px-5 pb-4">
                             {/* Section: Identity */}
-                            <DrawerSection icon={<Building2 size={12} />} title="Identity">
+                            <DrawerSection icon={<IconBuilding size={12} />} title="Identity">
                                 <div className="grid gap-2">
                                     <DrawerField label="Name" error={errors.name}>
                                         <Input
@@ -219,7 +220,7 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                             </DrawerSection>
 
                             {/* Section: Color */}
-                            <DrawerSection icon={<Palette size={12} />} title="Folder color">
+                            <DrawerSection icon={<IconPalette size={12} />} title="Folder color">
                                 <DrawerField label="Color" error={errors.color}>
                                     <div className="flex items-center gap-3">
                                         <input
@@ -253,7 +254,7 @@ export default function ArchivesCities({ cities, usedColors }: PageProps) {
                             </DrawerSection>
 
                             {/* Section: Status */}
-                            <DrawerSection icon={<Power size={12} />} title="Status">
+                            <DrawerSection icon={<IconPower size={12} />} title="Status">
                                 <div className="flex items-center gap-3">
                                     <Switch
                                         size="sm"

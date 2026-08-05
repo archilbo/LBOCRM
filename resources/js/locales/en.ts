@@ -917,6 +917,171 @@ export const en = {
         },
     },
 
+    documentsExplorer: {
+        title: 'Documents',
+
+        locations: {
+            all: 'All documents',
+            shared: 'Client shared files',
+            projects: 'Projects',
+        },
+
+        search: {
+            placeholder: 'Search for a file…',
+            noResults: 'No document matches your search.',
+        },
+
+        filters: {
+            type: 'Type',
+            status: 'Status',
+            allTypes: 'All types',
+            allStatuses: 'All statuses',
+            clear: 'Clear filters',
+        },
+
+        sort: {
+            label: 'Sort',
+            name: 'Name',
+            updatedAt: 'Last modified',
+            uploadedAt: 'Date added',
+            size: 'Size',
+            type: 'Type',
+            status: 'Status',
+            ascending: 'Ascending',
+            descending: 'Descending',
+        },
+
+        view: {
+            grid: 'Grid view',
+            list: 'List view',
+        },
+
+        thumbnail: {
+            loading: 'Loading thumbnail…',
+            previewUnavailable: 'Preview unavailable',
+        },
+
+        metadata: {
+            unknownSize: 'Unknown size',
+            unknownDate: 'Unknown date',
+            sharedFile: 'Shared file',
+        },
+
+        list: {
+            ariaLabel: 'Documents as a list',
+        },
+
+        grid: {
+            ariaLabel: 'Documents as a grid',
+        },
+
+        fileTypes: {
+            image: 'Image',
+            pdf: 'PDF',
+            docx: 'Word document',
+            markdown: 'Markdown',
+            text: 'Text',
+            archive: 'Archive',
+            spreadsheet: 'Spreadsheet',
+            other: 'Other file',
+            unsupported: 'Other file',
+        },
+
+        actions: {
+            open: 'Open',
+            preview: 'Preview',
+            download: 'Download',
+            print: 'Print',
+            replace: 'Replace file',
+            updateStatus: 'Update status',
+            details: 'View details',
+            delete: 'Delete',
+            more: 'More actions',
+            upload: 'Upload a document',
+        },
+
+        viewer: {
+            title: 'Document preview',
+            previewUnavailable: 'Preview unavailable',
+            previewFailed: 'Unable to display this document.',
+            retry: 'Retry',
+            downloadOriginal: 'Download file',
+            close: 'Close',
+            previous: 'Previous document',
+            next: 'Next document',
+            invalid: 'This document could not be found or is not accessible.',
+            position: '{current} / {total}',
+            details: 'Details',
+            hideDetails: 'Hide details',
+            zoomIn: 'Zoom in',
+            zoomOut: 'Zoom out',
+            actualSize: 'Actual size',
+            fitViewport: 'Fit to viewport',
+            fitWidth: 'Fit width',
+            fitPage: 'Fit page',
+            rotateLeft: 'Rotate left',
+            rotateRight: 'Rotate right',
+            reset: 'Reset view',
+            previousPage: 'Previous page',
+            nextPage: 'Next page',
+            pageNumber: 'Page number',
+            loadingPdf: 'Loading PDF…',
+            loadingImage: 'Loading image…',
+            pdfPasswordRequired: 'This PDF is password-protected.',
+            pdfLoadFailed: 'Unable to display this PDF.',
+            imageLoadFailed: 'Unable to display this image.',
+            text: {
+                loading: 'Loading content…',
+                search: 'Search in document',
+                noMatches: 'No matches',
+                previousMatch: 'Previous match',
+                nextMatch: 'Next match',
+                matchPosition: '{current} / {total}',
+                wrapLines: 'Wrap lines',
+                doNotWrapLines: 'Do not wrap lines',
+                copy: 'Copy',
+                copied: 'Copied',
+                copyFailed: 'Copy failed',
+                truncated: 'Preview truncated — the file exceeds the display limit.',
+                encodingError: 'Unsupported encoding.',
+                unsupported: 'This content type cannot be displayed.',
+                binary: 'Binary content cannot be displayed.',
+                loadFailed: 'Failed to load content.',
+                accessDenied: 'Access to the content was denied.',
+                notFound: 'The file could not be found.',
+            },
+            metadata: {
+                name: 'Name',
+                originalFilename: 'Original filename',
+                type: 'Type',
+                size: 'Size',
+                documentNumber: 'Document number',
+                status: 'Status',
+                project: 'Project',
+                uploadedAt: 'Upload date',
+                updatedAt: 'Last modified',
+                uploadedBy: 'Uploaded by',
+                notes: 'Notes',
+            },
+        },
+
+        empty: {
+            title: 'No documents',
+            description:
+                'Add the first required document for this project.',
+        },
+
+        sharedInformation: {
+            title: 'Reused client information',
+            description:
+                'Client information available for projects.',
+        },
+
+        sharedFiles: {
+            title: 'Client shared files',
+        },
+    },
+
     documentsWorkspace: {
         eyebrow: 'Required documents',
         title: 'Documents',

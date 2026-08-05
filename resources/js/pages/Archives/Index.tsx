@@ -1,21 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    Archive,
-    ChevronLeft,
-    ChevronRight,
-    BarChart3,
-    Building2,
-    FileText,
-    Layers,
-    List,
-    Map,
-    Plus,
-    RefreshCw,
-    ScanLine,
-    Search,
-    SlidersHorizontal,
-    X,
-} from 'lucide-react';
+import { IconArchive, IconChevronLeft, IconChevronRight, IconChartBar, IconBuilding, IconFileText, IconLayersLinked, IconList, IconMap, IconPlus, IconRefresh, IconScan, IconSearch, IconAdjustmentsHorizontal, IconX } from '@tabler/icons-react';
+
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Input, TextArea } from '@heroui/react';
@@ -287,10 +272,10 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                         {can('archive.create') ? (
                             <div className="flex items-center gap-2">
                                 <AppButton variant="ghost" compact isIconOnly onPress={() => setRoomModalOpen(true)} tooltip="Créer salle">
-                                    <Building2 size={16} />
+                                    <IconBuilding size={16} />
                                 </AppButton>
                                 <AppButton variant="primary" compact isIconOnly onPress={openCreateDrawer} tooltip="Nouvelle archive">
-                                    <Archive size={16} />
+                                    <IconArchive size={16} />
                                 </AppButton>
                             </div>
                         ) : null}
@@ -300,7 +285,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
 
                     <div className="flex flex-wrap items-center gap-2 shrink-0">
                         <div className="relative w-64">
-                            <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
+                            <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
                             <input
                                 ref={searchRef}
                                 type="text"
@@ -312,7 +297,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                             {query ? (
                                 <button type="button" onClick={() => { setQuery(''); debouncedPatch({ q: undefined }); }}
                                     className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded text-white/40 hover:text-white/80">
-                                    <X size={12} />
+                                    <IconX size={12} />
                                 </button>
                             ) : null}
                         </div>
@@ -321,27 +306,27 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                             <button type="button" onClick={() => setFilterDrawerOpen(true)}
                                 className={cn('flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/5', activeCount > 0 && 'text-amber-400')}
                                 aria-label="Filters">
-                                <SlidersHorizontal size={14} />
+                                <IconAdjustmentsHorizontal size={14} />
                             </button>
                         </AppTooltip>
 
                         <div className="h-5 w-px bg-white/10" />
 
-                        <AppTooltip label="List view">
+                        <AppTooltip label="IconList view">
                             <button type="button" onClick={() => patch({ viewMode: 'list' })}
                                 className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'list' ? 'bg-amber-500/10 text-amber-400' : 'text-white/40 hover:text-white/80 hover:bg-white/5')}
-                                aria-label="List view"><List size={14} /></button>
+                                aria-label="IconList view"><IconList size={14} /></button>
                         </AppTooltip>
-                        <AppTooltip label="Map view">
+                        <AppTooltip label="IconMap view">
                             <button type="button" onClick={() => patch({ viewMode: 'map' })}
                                 className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'map' ? 'bg-amber-500/10 text-amber-400' : 'text-white/40 hover:text-white/80 hover:bg-white/5')}
-                                aria-label="Map view"><Map size={14} /></button>
+                                aria-label="IconMap view"><IconMap size={14} /></button>
                         </AppTooltip>
 
                         <AppTooltip label="Refresh">
                             <button type="button" onClick={() => router.reload({ only: ['archives', 'kpis', 'tree', 'cells'] })}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Refresh">
-                                <RefreshCw size={14} />
+                                <IconRefresh size={14} />
                             </button>
                         </AppTooltip>
 
@@ -350,20 +335,20 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                         <AppTooltip label="Reports">
                             <button type="button" onClick={() => router.visit('/archives/reports')}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Reports">
-                                <BarChart3 size={14} />
+                                <IconChartBar size={14} />
                             </button>
                         </AppTooltip>
                         <AppTooltip label="Cities">
                             <button type="button" onClick={() => router.visit('/archives/cities')}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Cities">
-                                <Building2 size={14} />
+                                <IconBuilding size={14} />
                             </button>
                         </AppTooltip>
 
                         <AppTooltip label="Scan QR code">
                             <button type="button" onClick={() => setScanModalOpen(true)}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Scan QR code">
-                                <ScanLine size={14} />
+                                <IconScan size={14} />
                             </button>
                         </AppTooltip>
 
@@ -372,7 +357,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                 {activeChips.map((chip) => (
                                     <span key={chip.key} className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-xs text-white/60">
                                         {chip.label}
-                                        <button type="button" onClick={chip.onRemove} className="ml-0.5 text-white/40 hover:text-white/80"><X size={12} /></button>
+                                        <button type="button" onClick={chip.onRemove} className="ml-0.5 text-white/40 hover:text-white/80"><IconX size={12} /></button>
                                     </span>
                                 ))}
                                 <button type="button" onClick={reset} className="text-xs text-white/50 hover:text-white/80">Clear all</button>
@@ -458,7 +443,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                                 disabled={currentPage <= 1}
                                                 onClick={() => handlePageChange(currentPage - 1)}
                                                 className="flex h-7 w-7 items-center justify-center rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-20 disabled:pointer-events-none transition">
-                                                <ChevronLeft size={14} />
+                                                <IconChevronLeft size={14} />
                                             </button>
                                             {pages.map((p, i) =>
                                                 p === 'ellipsis' ? (
@@ -479,7 +464,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                                 disabled={currentPage >= lastPage}
                                                 onClick={() => handlePageChange(currentPage + 1)}
                                                 className="flex h-7 w-7 items-center justify-center rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-20 disabled:pointer-events-none transition">
-                                                <ChevronRight size={14} />
+                                                <IconChevronRight size={14} />
                                             </button>
                                         </div>
                                     </div>
@@ -671,7 +656,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
 
                 <AppModal isOpen={roomModalOpen} onOpenChange={setRoomModalOpen} title="Créer salle" size="sm">
                     <div className="flex flex-col gap-3">
-                        <DrawerSection icon={<Building2 size={12} />} title="Salle">
+                        <DrawerSection icon={<IconBuilding size={12} />} title="Salle">
                             <DrawerField label="Nom" error={roomErrors.name}>
                                 <Input
                                     type="text"
@@ -683,7 +668,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                             </DrawerField>
                         </DrawerSection>
 
-                        <DrawerSection icon={<Layers size={12} />} title="Étagères">
+                        <DrawerSection icon={<IconLayersLinked size={12} />} title="Étagères">
                             <div className="grid grid-cols-2 gap-2">
                                 <DrawerField label="Nombre" error={roomErrors.shelves_count}>
                                     <Input
@@ -712,7 +697,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                             </div>
                         </DrawerSection>
 
-                        <DrawerSection icon={<FileText size={12} />} title="Description">
+                        <DrawerSection icon={<IconFileText size={12} />} title="Description">
                             <DrawerField label="Description (optionnelle)" error={roomErrors.description}>
                                 <TextArea
                                     value={roomDescription}

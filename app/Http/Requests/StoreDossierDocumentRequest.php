@@ -59,22 +59,27 @@ class StoreDossierDocumentRequest extends FormRequest
             'file' => [
                 'nullable',
                 'file',
-                'max:20480',
+                'max:'.config('documents.max_upload_kb'),
                 'mimes:pdf,jpg,jpeg,png,webp,doc,docx',
             ],
 
             'file_front' => [
                 'nullable',
                 'file',
-                'max:20480',
+                'max:'.config('documents.max_upload_kb'),
                 'mimes:pdf,jpg,jpeg,png,webp',
+                // Content-based check: the real file MIME must be a supported
+                // image or PDF. Extension-only `mimes` is never trusted alone
+                // (a renamed executable or an SVG would otherwise pass).
+                'mimetypes:application/pdf,image/jpeg,image/png,image/webp',
             ],
 
             'file_back' => [
                 'nullable',
                 'file',
-                'max:20480',
+                'max:'.config('documents.max_upload_kb'),
                 'mimes:pdf,jpg,jpeg,png,webp',
+                'mimetypes:application/pdf,image/jpeg,image/png,image/webp',
             ],
 
             'workflow_step_key' => [

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
-import { AlertTriangle, FileDown, FileSpreadsheet, FileText, Printer, ReceiptText } from 'lucide-react';
+import { IconAlertTriangle, IconFileDownload, IconFileSpreadsheet, IconFileText, IconPrinter, IconReceipt2 } from '@tabler/icons-react';
+
 import { Button, Card, Input, ListBox, Select, TextArea } from '@heroui/react';
 import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { toast } from 'sonner';
@@ -143,7 +144,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
             >
                 <div className="space-y-3">
                     <Card className="p-3 space-y-3">
-                        <div className="flex items-center gap-1.5 mb-2"><ReceiptText size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Paiement</p></div>
+                        <div className="flex items-center gap-1.5 mb-2"><IconReceipt2 size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Paiement</p></div>
                         {clients.length > 0 ? (
                             <div className="flex min-w-0 flex-col gap-1">
                                 <label className={labelCls}>Client</label>
@@ -196,7 +197,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                             </Select>
                             {selectedClientId && filteredInvoices.length === 0 && !canRecordAdvance ? (
                                 <p className="flex items-start gap-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
-                                    <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-400" />
+                                    <IconAlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-400" />
                                     {settledInvoiceCount > 0
                                         ? "Les factures de ce client sont deja reglees. Creez une nouvelle facture ou corrigez un paiement existant avant d'enregistrer un autre reglement."
                                         : 'Aucune facture active a regler pour ce client.'}
@@ -214,7 +215,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
 
                     {activeInvoice ? (
                         <Card className="p-3">
-                            <div className="flex items-center gap-2 text-xs font-semibold"><ReceiptText size={14} />{activeInvoice.number}</div>
+                            <div className="flex items-center gap-2 text-xs font-semibold"><IconReceipt2 size={14} />{activeInvoice.number}</div>
                             <div className="mt-2 grid gap-2 text-[10px] sm:grid-cols-3">
                                 <p>Total TTC: <strong>{formatCompactMoney(activeInvoice.totalTtc, activeInvoice.currency)}</strong></p>
                                 <p>Paye: <strong>{formatCompactMoney(activeInvoice.paidTotal, activeInvoice.currency)}</strong></p>
@@ -259,7 +260,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                     {activeInvoice ? (
                         <Card className={`p-3 ${isOverpayment ? 'border-red-300' : ''}`}>
                             <div className="flex items-center gap-2 text-xs font-semibold">
-                                {isOverpayment ? <AlertTriangle size={14} className="text-red-500" /> : null}
+                                {isOverpayment ? <IconAlertTriangle size={14} className="text-red-500" /> : null}
                                 Resultat apres paiement
                             </div>
                             <div className="mt-2 grid gap-2 text-[10px] sm:grid-cols-3">
@@ -283,17 +284,17 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                         {({ close }) => (
                             <div className="p-5">
                                 <div className="flex gap-4">
-                                    <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"><ReceiptText size={20} /></div>
+                                    <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"><IconReceipt2 size={20} /></div>
                                     <div className="min-w-0">
                                         <Heading slot="title" className="text-base font-semibold">Recu cree: {receiptPrompt?.number}</Heading>
                                         <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">Paiement {receiptPrompt?.paymentNumber} enregistre. Voulez-vous ouvrir, imprimer ou sauvegarder le recu ?</p>
                                     </div>
                                 </div>
                                 <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                                    <Button color="warning" size="sm" onPress={() => openUrl(receiptPrompt?.showUrl)}><Printer size={14} /> Ouvrir / imprimer</Button>
-                                    <Button variant="flat" size="sm" onPress={() => generateReceiptFile(receiptPrompt?.generatePdfUrl, 'Generation PDF')}><FileText size={14} /> Generer PDF</Button>
-                                    <Button variant="flat" size="sm" onPress={() => openUrl(receiptPrompt?.pdfDownloadUrl, 'PDF non genere.')}><FileDown size={14} /> Telecharger PDF</Button>
-                                    <Button variant="flat" size="sm" onPress={() => receiptPrompt?.excelDownloadUrl ? openUrl(receiptPrompt.excelDownloadUrl) : generateReceiptFile(receiptPrompt?.generateExcelUrl, 'Generation Excel')}><FileSpreadsheet size={14} /> Excel</Button>
+                                    <Button color="warning" size="sm" onPress={() => openUrl(receiptPrompt?.showUrl)}><IconPrinter size={14} /> Ouvrir / imprimer</Button>
+                                    <Button variant="flat" size="sm" onPress={() => generateReceiptFile(receiptPrompt?.generatePdfUrl, 'Generation PDF')}><IconFileText size={14} /> Generer PDF</Button>
+                                    <Button variant="flat" size="sm" onPress={() => openUrl(receiptPrompt?.pdfDownloadUrl, 'PDF non genere.')}><IconFileDownload size={14} /> Telecharger PDF</Button>
+                                    <Button variant="flat" size="sm" onPress={() => receiptPrompt?.excelDownloadUrl ? openUrl(receiptPrompt.excelDownloadUrl) : generateReceiptFile(receiptPrompt?.generateExcelUrl, 'Generation Excel')}><IconFileSpreadsheet size={14} /> Excel</Button>
                                 </div>
                                 <div className="mt-5 flex justify-end"><Button variant="light" size="sm" onPress={close}>Plus tard</Button></div>
                             </div>

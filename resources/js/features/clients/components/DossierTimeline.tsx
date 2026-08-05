@@ -1,13 +1,14 @@
-import { Archive, FileText, Handshake, Landmark, ReceiptText } from 'lucide-react';
+import { IconArchive, IconFileText, IconHeartHandshake, IconBuildingBank, IconReceipt2 } from '@tabler/icons-react';
+
 import { type DossierTimelineEvent } from '@/features/clients/types';
 import { useTranslation } from '@/lib/i18n';
 
-const typeConfig: Record<string, { icon: typeof FileText; color: string }> = {
-    document: { icon: FileText, color: 'border-blue-500/30 bg-blue-500/10 text-blue-300' },
-    contract: { icon: Handshake, color: 'border-violet-500/30 bg-violet-500/10 text-violet-300' },
-    finance: { icon: ReceiptText, color: 'border-amber-500/30 bg-amber-500/10 text-amber-300' },
-    payment: { icon: Landmark, color: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' },
-    archive: { icon: Archive, color: 'border-rose-500/30 bg-rose-500/10 text-rose-300' },
+const typeConfig: Record<string, { icon: typeof IconFileText; color: string }> = {
+    document: { icon: IconFileText, color: 'border-blue-500/30 bg-blue-500/10 text-blue-300' },
+    contract: { icon: IconHeartHandshake, color: 'border-violet-500/30 bg-violet-500/10 text-violet-300' },
+    finance: { icon: IconReceipt2, color: 'border-amber-500/30 bg-amber-500/10 text-amber-300' },
+    payment: { icon: IconBuildingBank, color: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' },
+    archive: { icon: IconArchive, color: 'border-rose-500/30 bg-rose-500/10 text-rose-300' },
 };
 
 function formatDate(date: string | null) {

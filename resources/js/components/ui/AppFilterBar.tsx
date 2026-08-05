@@ -1,4 +1,5 @@
-import { X } from 'lucide-react';
+import { IconX } from '@tabler/icons-react';
+
 
 export type AppFilterOption = {
     id: string;
@@ -30,7 +31,7 @@ export function AppFilterBar({
                         onClick={() => onChange('all')}
                         className="inline-flex h-8 items-center gap-1 rounded-xl px-2 text-xs font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
                     >
-                        <X size={13} />
+                        <IconX size={13} />
                         Clear
                     </button>
                 ) : null}

@@ -1,4 +1,5 @@
-import { ChevronDown, Map } from 'lucide-react';
+import { IconChevronDown, IconMap } from '@tabler/icons-react';
+
 import { useState } from 'react';
 import type { DossierLocationGroup } from '@/features/dossiers/types';
 import { DossierCommuneGroup } from './DossierCommuneGroup';
@@ -20,7 +21,7 @@ export function DossierProvinceGroup({ group }: Props) {
             >
                 <span className="flex min-w-0 items-center gap-3">
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
-                        <Map size={18} />
+                        <IconMap size={18} />
                     </span>
 
                     <span className="min-w-0">
@@ -31,7 +32,7 @@ export function DossierProvinceGroup({ group }: Props) {
                     </span>
                 </span>
 
-                <ChevronDown size={18} className={open ? 'shrink-0 transition' : 'shrink-0 -rotate-90 transition'} />
+                <IconChevronDown size={18} className={open ? 'shrink-0 transition' : 'shrink-0 -rotate-90 transition'} />
             </button>
 
             {open ? (

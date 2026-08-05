@@ -1,14 +1,6 @@
-import {
-    Archive,
-    Bell,
-    CalendarCheck,
-    ClipboardList,
-    CreditCard,
-    FileText,
-    Handshake,
-    type LucideIcon,
-    UserPlus,
-} from 'lucide-react';
+import { IconArchive, IconBell, IconCalendarCheck, IconClipboardList, IconCreditCard, IconFileText, IconHeartHandshake, IconUserPlus } from '@tabler/icons-react';
+import type { Icon } from '@tabler/icons-react';
+
 import type { EnrichedNotification, NotificationModule, NotificationRow, NotificationSeverity } from './types';
 
 export const MODULE_ORDER: NotificationModule[] = ['tasks', 'requests', 'documents', 'contracts', 'finance', 'archives', 'calendar', 'system'];
@@ -141,7 +133,7 @@ export function getNotificationText(n: NotificationRow): { title: string; body: 
 
     if (type === 'ArchiveOverdueNotification') {
         return {
-            title: actionTitle || 'Archive update',
+            title: actionTitle || 'IconArchive update',
             body: description || null,
         };
     }
@@ -181,16 +173,16 @@ export function getNotificationEntity(n: NotificationRow): { label: string | nul
     return { label: null, type: null, id: null };
 }
 
-export function getNotificationIcon(module: NotificationModule): LucideIcon {
-    const icons: Record<NotificationModule, LucideIcon> = {
-        tasks: ClipboardList,
-        requests: UserPlus,
-        documents: FileText,
-        contracts: Handshake,
-        finance: CreditCard,
-        archives: Archive,
-        calendar: CalendarCheck,
-        system: Bell,
+export function getNotificationIcon(module: NotificationModule): Icon {
+    const icons: Record<NotificationModule, Icon> = {
+        tasks: IconClipboardList,
+        requests: IconUserPlus,
+        documents: IconFileText,
+        contracts: IconHeartHandshake,
+        finance: IconCreditCard,
+        archives: IconArchive,
+        calendar: IconCalendarCheck,
+        system: IconBell,
     };
     return icons[module];
 }

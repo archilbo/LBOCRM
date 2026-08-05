@@ -1,4 +1,5 @@
-import { Upload, X } from 'lucide-react';
+import { IconUpload, IconX } from '@tabler/icons-react';
+
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { useGlobalUploads } from './useGlobalUploads';
 import { UploadItemRow } from './UploadItemRow';
@@ -98,7 +99,7 @@ export function GlobalUploadCenterDrawer({ isOpen, onOpenChange }: GlobalUploadC
 
                 {batches.length === 0 && (
                     <div className="flex flex-col items-center gap-2 py-12 text-center">
-                        <Upload size={32} className="text-[var(--text-muted)]" />
+                        <IconUpload size={32} className="text-[var(--text-muted)]" />
                         <p className="text-sm text-[var(--text-muted)]">No uploads yet</p>
                     </div>
                 )}

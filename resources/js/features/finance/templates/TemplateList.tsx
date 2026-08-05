@@ -1,4 +1,5 @@
-import { Copy, Star, Trash2 } from 'lucide-react';
+import { IconCopy, IconStar, IconTrash } from '@tabler/icons-react';
+
 import { AppBadge } from '@/components/ui/AppBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -31,9 +32,9 @@ export function TemplateList({ templates, selectedId, onSelect, onDuplicate, onS
                             <p className="truncate font-mono text-[9px] text-[var(--text-muted)]">{template.slug}</p>
                         </button>
                         <div className="mt-1 flex gap-1">
-                            <AppButton size="sm" variant="ghost" onPress={() => onDuplicate(template)}><Copy size={12} /></AppButton>
-                            <AppButton size="sm" variant="ghost" onPress={() => onSetDefault(template)} isDisabled={template.isDefault}><Star size={12} /></AppButton>
-                            <AppButton size="sm" variant="ghost" onPress={() => onDelete(template)}><Trash2 size={12} /></AppButton>
+                            <AppButton size="sm" variant="ghost" onPress={() => onDuplicate(template)}><IconCopy size={12} /></AppButton>
+                            <AppButton size="sm" variant="ghost" onPress={() => onSetDefault(template)} isDisabled={template.isDefault}><IconStar size={12} /></AppButton>
+                            <AppButton size="sm" variant="ghost" onPress={() => onDelete(template)}><IconTrash size={12} /></AppButton>
                         </div>
                     </div>
                 ))}

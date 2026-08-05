@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import {
-    FileText, MapPin, MessageSquareText, Ruler, Users,
-} from 'lucide-react';
+import { IconFileText, IconMapPin, IconMessage2, IconRuler, IconUsers } from '@tabler/icons-react';
+
 import { Input, TextArea } from '@heroui/react';
 import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { AppButton } from '@/components/ui/AppButton';
@@ -132,7 +131,7 @@ export function ProjectDrawer({
                 className="min-w-0 space-y-4"
                 onSubmit={handleSubmit}
             >
-                <DrawerSection icon={<Users size={12} />} title="Client & workflow">
+                <DrawerSection icon={<IconUsers size={12} />} title="Client & workflow">
                     <div className="flex flex-col gap-2">
                         <DrawerField label="Client" error={firstError(errors, 'client_id')}>
                             <AppAutocomplete
@@ -172,7 +171,7 @@ export function ProjectDrawer({
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<FileText size={12} />} title="Informations projet">
+                <DrawerSection icon={<IconFileText size={12} />} title="Informations projet">
                     <div className="flex flex-col gap-2">
                         <DrawerField label="Objet du projet" error={firstError(errors, 'project_object')}>
                             <Input type="text" value={form.projectObject} onChange={(e) => updateField('projectObject', e.target.value)}
@@ -185,7 +184,7 @@ export function ProjectDrawer({
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<MapPin size={12} />} title="Localisation">
+                <DrawerSection icon={<IconMapPin size={12} />} title="Localisation">
                     <div className="flex flex-col gap-2">
                         <DrawerField label="Adresse du projet" error={firstError(errors, 'project_address', 'address')}>
                             <Input type="text" value={form.projectAddress} onChange={(e) => updateField('projectAddress', e.target.value)}
@@ -204,7 +203,7 @@ export function ProjectDrawer({
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<Ruler size={12} />} title="Terrain & superficie">
+                <DrawerSection icon={<IconRuler size={12} />} title="Terrain & superficie">
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <DrawerField label="N° titre foncier" error={firstError(errors, 'land_title_number')}>
                             <Input type="text" value={form.landTitleNumber} onChange={(e) => updateField('landTitleNumber', e.target.value)}
@@ -221,7 +220,7 @@ export function ProjectDrawer({
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<MessageSquareText size={12} />} title="Notes">
+                <DrawerSection icon={<IconMessage2 size={12} />} title="Notes">
                     <DrawerField label="Notes" error={firstError(errors, 'notes')}>
                         <TextArea value={form.notes} onChange={(e) => updateField('notes', e.target.value)}
                             placeholder="Notes internes" className={drawerStyles.textarea} />

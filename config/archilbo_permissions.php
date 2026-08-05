@@ -244,6 +244,7 @@ return [
         'documents.view' => 'documents.view',
         'documents.print' => 'documents.print',
         'documents.download' => 'documents.download',
+        'documents.content' => 'documents.view',
         'contracts.index' => 'contracts.view',
         'contracts.store' => 'contracts.create',
         'contracts.update' => 'contracts.update',

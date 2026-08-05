@@ -1,4 +1,5 @@
-import { TriangleAlert } from 'lucide-react';
+import { IconAlertTriangle } from '@tabler/icons-react';
+
 import type { FormErrors } from '@/lib/formErrors';
 import { hasErrors } from '@/lib/formErrors';
 
@@ -17,7 +18,7 @@ export function AppFormErrorSummary({ errors }: AppFormErrorSummaryProps) {
         <div className="rounded-2xl border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] p-4">
             <div className="flex items-start gap-3">
                 <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] text-[var(--danger)]">
-                    <TriangleAlert size={16} />
+                    <IconAlertTriangle size={16} />
                 </div>
 
                 <div className="min-w-0">

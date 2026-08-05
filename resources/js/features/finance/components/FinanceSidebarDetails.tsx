@@ -1,4 +1,5 @@
-import { ReceiptText } from 'lucide-react';
+import { IconReceipt2 } from '@tabler/icons-react';
+
 import type { FinanceDocument } from '@/features/finance/types';
 
 type FinanceSidebarDetailsProps = {
@@ -67,7 +68,7 @@ export function FinanceSidebarDetails({ document }: FinanceSidebarDetailsProps) 
     return (
         <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
-                <ReceiptText size={14} className="text-[var(--text-muted)]" />
+                <IconReceipt2 size={14} className="text-[var(--text-muted)]" />
                 <h2 className="text-xs font-semibold text-[var(--foreground)]">Details</h2>
             </div>
             <div className="divide-y divide-[var(--border)] text-xs">

@@ -1,15 +1,7 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
-import {
-    BadgeDollarSign,
-    Eye,
-    Pencil,
-    RefreshCw,
-    Search,
-    Settings2,
-    Trash2,
-    X,
-} from 'lucide-react';
+import { IconCoin, IconEye, IconPencil, IconRefresh, IconSearch, IconSettings2, IconTrash, IconX } from '@tabler/icons-react';
+
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
@@ -114,7 +106,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
         <section className="min-w-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
             <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative w-full sm:max-w-[300px]">
-                    <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                     <input
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
@@ -131,14 +123,14 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                             }}
                             className="absolute right-1 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                         >
-                            <X size={12} />
+                            <IconX size={12} />
                         </button>
                     ) : null}
                 </div>
 
                 <div className="flex items-center gap-1.5">
                     <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => router.reload({ only: ['expenses'] })}>
-                        <RefreshCw size={12} />
+                        <IconRefresh size={12} />
                         Actualiser
                     </button>
                     <button type="button" className={`flex h-7 items-center gap-1.5 rounded-lg border px-2 text-[10px] font-medium transition ${
@@ -146,7 +138,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                             ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
                             : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
                     }`} onClick={() => setShowFilters((v) => !v)}>
-                        <Settings2 size={12} />
+                        <IconSettings2 size={12} />
                         Filtres
                     </button>
                 </div>
@@ -174,7 +166,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                 <table className="finance-table min-w-[820px] text-xs">
                     <thead>
                         <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                            <FinanceSortableHeader column="expense_date" label={<><BadgeDollarSign size={11} /> Date</>} sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="expense_date" label={<><IconCoin size={11} /> Date</>} sort={sort} direction={direction} onSort={changeSort} />
                             <FinanceSortableHeader column="category" label="Categorie" sort={sort} direction={direction} onSort={changeSort} />
                             <FinanceSortableHeader column="vendor" label="Fournisseur" sort={sort} direction={direction} onSort={changeSort} />
                             <th className="px-3 py-2">Dossier</th>
@@ -205,9 +197,9 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                                     <td className="px-3 py-2 text-[var(--text-muted)]">{expense.paymentMethod || <span className="text-[var(--text-muted)]">-</span>}</td>
                                     <td className="px-3 py-2">
                                         <FinanceRowActions actions={[
-                                            { id: 'view', label: 'Voir', icon: <Eye size={13} />, onPress: () => onView(expense) },
-                                            canEdit && { id: 'edit', label: 'Modifier', icon: <Pencil size={13} />, onPress: () => onEdit(expense) },
-                                            canDelete && { id: 'delete', label: 'Supprimer', icon: <Trash2 size={13} />, onPress: () => setDeleteTarget(expense), tone: 'danger', dividerBefore: true },
+                                            { id: 'view', label: 'Voir', icon: <IconEye size={13} />, onPress: () => onView(expense) },
+                                            canEdit && { id: 'edit', label: 'Modifier', icon: <IconPencil size={13} />, onPress: () => onEdit(expense) },
+                                            canDelete && { id: 'delete', label: 'Supprimer', icon: <IconTrash size={13} />, onPress: () => setDeleteTarget(expense), tone: 'danger', dividerBefore: true },
                                         ].filter(Boolean) as Parameters<typeof FinanceRowActions>[0]['actions']} />
                                     </td>
                                 </tr>
@@ -248,13 +240,13 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                         </div>
                         <div className={`grid gap-1.5 ${canEdit && canDelete ? 'grid-cols-3' : canEdit || canDelete ? 'grid-cols-2' : 'grid-cols-1'}`}>
                             <AppButton size="sm" variant="outline" className="h-8 text-[10px]" onPress={() => onView(expense)}>
-                                <Eye size={12} /> Voir
+                                <IconEye size={12} /> Voir
                             </AppButton>
                             {canEdit ? <AppButton size="sm" variant="outline" className="h-8 text-[10px]" onPress={() => onEdit(expense)}>
-                                <Pencil size={12} /> Modifier
+                                <IconPencil size={12} /> Modifier
                             </AppButton> : null}
                             {canDelete ? <AppButton size="sm" variant="danger-soft" className="h-8 text-[10px]" onPress={() => setDeleteTarget(expense)}>
-                                <Trash2 size={12} /> Supprimer
+                                <IconTrash size={12} /> Supprimer
                             </AppButton> : null}
                         </div>
                     </article>

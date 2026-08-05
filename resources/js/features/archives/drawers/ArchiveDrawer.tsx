@@ -2,7 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { MapPin, Archive, Calendar, User } from 'lucide-react';
+import { IconMapPin, IconArchive, IconCalendar, IconUser } from '@tabler/icons-react';
+
 import { Input, TextArea } from '@heroui/react';
 import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { AppButton } from '@/components/ui/AppButton';
@@ -212,7 +213,7 @@ export function ArchiveDrawer({
             }
         >
             <form id="archive-form" className="flex flex-col gap-3" onSubmit={handleSubmit(handleFormSubmit)}>
-                <DrawerSection icon={<Archive size={12} />} title="Client et projet">
+                <DrawerSection icon={<IconArchive size={12} />} title="Client et projet">
                     <div className="flex flex-col gap-2">
                         <DrawerField label="Client" error={errors.client_id?.message}>
                             <AppAutocomplete
@@ -251,7 +252,7 @@ export function ArchiveDrawer({
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<MapPin size={12} />} title="Emplacement physique">
+                <DrawerSection icon={<IconMapPin size={12} />} title="Emplacement physique">
                     <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                         <DrawerField label="Salle">
                             <Controller
@@ -309,7 +310,7 @@ export function ArchiveDrawer({
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<Calendar size={12} />} title="Dates de mouvement">
+                <DrawerSection icon={<IconCalendar size={12} />} title="Dates de mouvement">
                     <div className="grid gap-2 sm:grid-cols-3">
                         <DateField
                             label="Date d entree"
@@ -332,7 +333,7 @@ export function ArchiveDrawer({
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<User size={12} />} title="Infos supplementaires">
+                <DrawerSection icon={<IconUser size={12} />} title="Infos supplementaires">
                     <div className="flex flex-col gap-2">
                         <DrawerField label="Demande par">
                             <Controller

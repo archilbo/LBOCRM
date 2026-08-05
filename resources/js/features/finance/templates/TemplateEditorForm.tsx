@@ -1,17 +1,5 @@
-import {
-    AlertTriangle,
-    CheckCircle2,
-    Code2,
-    Copy,
-    FileCode2,
-    FileText,
-    Layout,
-    Palette,
-    RotateCcw,
-    Save,
-    Search,
-    Sparkles,
-} from 'lucide-react';
+import { IconAlertTriangle, IconCircleCheck, IconCode, IconCopy, IconFileCode2, IconFileText, IconLayout, IconPalette, IconArrowRotaryFirstLeft, IconDeviceFloppy, IconSearch, IconSparkles } from '@tabler/icons-react';
+
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { DocumentTemplate, TemplatePlaceholder } from '@/features/finance/types';
@@ -34,35 +22,35 @@ type Warning = {
 const tabConfig: Array<{
     id: EditorTab;
     label: string;
-    icon: typeof FileText;
+    icon: typeof IconFileText;
     language: string;
     help: string;
 }> = [
     {
         id: 'body',
         label: 'Body',
-        icon: FileText,
+        icon: IconFileText,
         language: 'HTML',
         help: 'Main document content. For Devis/Facture, keep {{items_table}}.',
     },
     {
         id: 'header',
         label: 'Header',
-        icon: Layout,
+        icon: IconLayout,
         language: 'HTML',
         help: 'Top section of the A4 document. Recommended logo placeholder: {{company.logo_html}}.',
     },
     {
         id: 'footer',
         label: 'Footer',
-        icon: FileCode2,
+        icon: IconFileCode2,
         language: 'HTML',
         help: 'Legal footer, company identifiers, contact and final closing tags.',
     },
     {
         id: 'css',
         label: 'CSS',
-        icon: Palette,
+        icon: IconPalette,
         language: 'CSS',
         help: 'Visual design for PDF and preview. Keep DomPDF-compatible CSS.',
     },
@@ -245,7 +233,7 @@ function WarningBox({ warnings }: { warnings: Warning[] }) {
     if (!warnings.length) {
         return (
             <div className="flex items-start gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-500">
-                <CheckCircle2 size={15} className="mt-0.5 shrink-0" />
+                <IconCircleCheck size={15} className="mt-0.5 shrink-0" />
                 <div>
                     <p className="font-semibold">Template looks healthy.</p>
                     <p className="mt-1 opacity-80">No major structure issues detected.</p>
@@ -266,7 +254,7 @@ function WarningBox({ warnings }: { warnings: Warning[] }) {
 
                 return (
                     <div key={`${warning.message}-${index}`} className={`flex items-start gap-2 rounded-2xl border p-3 text-xs ${tone}`}>
-                        <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+                        <IconAlertTriangle size={15} className="mt-0.5 shrink-0" />
                         <p>{warning.message}</p>
                     </div>
                 );
@@ -351,7 +339,7 @@ export function TemplateEditorForm({
             <div className="flex flex-wrap items-center justify-between gap-3 border-b px-3 py-2">
                 <div className="flex min-w-0 items-center gap-2">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]">
-                        <Code2 size={17} />
+                        <IconCode size={17} />
                     </div>
 
                     <div className="min-w-0">
@@ -377,7 +365,7 @@ export function TemplateEditorForm({
                         onClick={onReset}
                         className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border bg-[var(--surface)] px-3 text-xs font-semibold text-[var(--text-muted)] transition hover:border-amber-500 hover:text-amber-500"
                     >
-                        <RotateCcw size={14} />
+                        <IconArrowRotaryFirstLeft size={14} />
                         Reset
                     </button>
 
@@ -386,8 +374,8 @@ export function TemplateEditorForm({
                         onClick={onSave}
                         className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-xs font-semibold text-white transition hover:opacity-90"
                     >
-                        <Save size={14} />
-                        Save
+                        <IconDeviceFloppy size={14} />
+                        IconDeviceFloppy
                     </button>
                 </div>
             </div>
@@ -497,7 +485,7 @@ export function TemplateEditorForm({
                                     onClick={beautifyCode}
                                     className="inline-flex h-8 items-center justify-center gap-1.5 rounded-xl border bg-[var(--surface)] px-2.5 text-xs font-semibold text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
                                 >
-                                    <Sparkles size={13} />
+                                    <IconSparkles size={13} />
                                     Clean
                                 </button>
 
@@ -506,8 +494,8 @@ export function TemplateEditorForm({
                                     onClick={() => void copyCurrentCode()}
                                     className="inline-flex h-8 items-center justify-center gap-1.5 rounded-xl border bg-[var(--surface)] px-2.5 text-xs font-semibold text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
                                 >
-                                    <Copy size={13} />
-                                    Copy
+                                    <IconCopy size={13} />
+                                    IconCopy
                                 </button>
                             </div>
                         </div>
@@ -547,11 +535,11 @@ export function TemplateEditorForm({
                             </p>
 
                             <label className="mt-2 flex h-10 items-center gap-2 rounded-2xl border bg-[var(--surface)] px-3">
-                                <Search size={14} className="text-[var(--text-muted)]" />
+                                <IconSearch size={14} className="text-[var(--text-muted)]" />
                                 <input
                                     value={placeholderSearch}
                                     onChange={(event) => setPlaceholderSearch(event.target.value)}
-                                    placeholder="Search company, total..."
+                                    placeholder="IconSearch company, total..."
                                     className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)]"
                                 />
                             </label>

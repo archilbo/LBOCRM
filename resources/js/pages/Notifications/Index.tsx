@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { Bell, CheckCheck } from 'lucide-react';
+import { IconBell, IconChecks } from '@tabler/icons-react';
+
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
@@ -54,7 +55,7 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <div className="flex size-9 items-center justify-center rounded-lg bg-white/[0.04]">
-                                <Bell size={16} className="text-white/45" />
+                                <IconBell size={16} className="text-white/45" />
                             </div>
                             <div>
                                 <h1 className="text-base font-semibold text-white/90">Notifications</h1>
@@ -65,7 +66,7 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                             {unreadCount > 0 ? (
                                 <button type="button" onClick={markAllAsRead}
                                     className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-[10px] font-semibold text-white/40 transition hover:bg-white/5 hover:text-white/70">
-                                    <CheckCheck size={13} />
+                                    <IconChecks size={13} />
                                     Mark all read
                                 </button>
                             ) : null}
@@ -173,7 +174,7 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                                                     {!n.isRead ? (
                                                         <button type="button" onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
                                                             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md self-start mt-1 text-white/25 transition hover:bg-white/5 hover:text-emerald-400" title="Mark as read">
-                                                            <CheckCheck size={13} />
+                                                            <IconChecks size={13} />
                                                         </button>
                                                     ) : null}
                                                 </div>
@@ -186,7 +187,7 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                         {enriched.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-24">
                                 <div className="flex size-14 items-center justify-center rounded-xl bg-white/[0.03]">
-                                    <Bell size={24} className="text-white/15" />
+                                    <IconBell size={24} className="text-white/15" />
                                 </div>
                                 <p className="mt-4 text-sm font-medium text-white/35">No notifications</p>
                                 <p className="mt-1.5 text-xs text-white/25">You're all caught up.</p>

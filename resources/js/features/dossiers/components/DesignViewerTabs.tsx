@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Button, Chip, Tooltip } from '@heroui/react';
-import { Box, FileText, HardDrive, Loader2, XCircle } from 'lucide-react';
+import { IconBox, IconFileText, IconDatabase, IconLoader2, IconCircleX } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 import { DesignFileViewer } from './DesignFileViewer';
 import type {
@@ -82,7 +83,7 @@ export function DesignViewerTabs({
     if (!viewer) {
         return (
             <div className="flex h-full flex-col items-center justify-center gap-3 bg-[#101214] p-8 text-center">
-                <HardDrive size={34} className="text-[var(--text-muted)]" />
+                <IconDatabase size={34} className="text-[var(--text-muted)]" />
                 <div>
                     <p className="text-sm font-medium text-[var(--foreground)]">No design assets</p>
                     <p className="mt-1 text-[11px] text-[var(--text-muted)]">Upload a source file or review derivative to open the editor.</p>
@@ -132,7 +133,7 @@ export function DesignViewerTabs({
             case 'failed':
                 return (
                     <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-                        <XCircle size={40} className="text-red-400" />
+                        <IconCircleX size={40} className="text-red-400" />
                         <p className="text-sm font-medium text-[var(--foreground)]">Conversion failed</p>
                         <p className="text-[11px] text-[var(--text-muted)]">{resolvedViewer.asset.originalFilename}</p>
                     </div>
@@ -157,7 +158,7 @@ export function DesignViewerTabs({
     if (selectedAssetMissing) {
         return (
             <div className="flex h-full flex-col items-center justify-center gap-3 bg-[#101214] p-8 text-center">
-                <XCircle size={34} className="text-amber-400" />
+                <IconCircleX size={34} className="text-amber-400" />
                 <div>
                     <p className="text-sm font-medium text-[var(--foreground)]">Selected asset is no longer available</p>
                     <p className="mt-1 text-[11px] text-[var(--text-muted)]">Open an available asset to repair the editor link.</p>
@@ -208,8 +209,8 @@ export function DesignViewerTabs({
                                                 >
                                                     <TabIcon group={group} />
                                                     <span className="truncate">{tab.asset.originalFilename}</span>
-                                                    {tab.group === 'Processing' ? <Loader2 size={10} className="animate-spin text-amber-400" /> : null}
-                                                    {tab.group === 'Failed' ? <XCircle size={10} className="text-red-400" /> : null}
+                                                    {tab.group === 'Processing' ? <IconLoader2 size={10} className="animate-spin text-amber-400" /> : null}
+                                                    {tab.group === 'Failed' ? <IconCircleX size={10} className="text-red-400" /> : null}
                                                 </Button>
                                             </Tooltip.Trigger>
                                             <Tooltip.Content>{tab.asset.originalFilename}</Tooltip.Content>
@@ -231,10 +232,10 @@ export function DesignViewerTabs({
 
 function TabIcon({ group }: { group: string }) {
     switch (group) {
-        case 'Review': return <FileText size={12} />;
-        case '3D': return <Box size={12} />;
-        case 'Processing': return <Loader2 size={12} className="animate-spin text-amber-400" />;
-        case 'Failed': return <XCircle size={12} className="text-red-400" />;
-        default: return <HardDrive size={12} />;
+        case 'Review': return <IconFileText size={12} />;
+        case '3D': return <IconBox size={12} />;
+        case 'Processing': return <IconLoader2 size={12} className="animate-spin text-amber-400" />;
+        case 'Failed': return <IconCircleX size={12} className="text-red-400" />;
+        default: return <IconDatabase size={12} />;
     }
 }

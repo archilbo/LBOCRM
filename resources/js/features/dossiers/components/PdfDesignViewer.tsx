@@ -8,7 +8,8 @@ import {
 } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
-import { ChevronLeft, ChevronRight, Download, FileWarning, Loader2 } from 'lucide-react';
+import { IconChevronLeft, IconChevronRight, IconDownload, IconFileAlert, IconLoader2 } from '@tabler/icons-react';
+
 import { Button, Input, Tooltip } from '@heroui/react';
 import type { ViewerFrame } from './DesignAnnotationLayer';
 
@@ -390,7 +391,7 @@ export default function PdfDesignViewer({
                                     className="h-7 w-7 min-w-0"
                                     aria-label="Previous page"
                                 >
-                                    <ChevronLeft size={13} />
+                                    <IconChevronLeft size={13} />
                                 </Button>
                             </Tooltip.Trigger>
                             <Tooltip.Content>Previous page</Tooltip.Content>
@@ -424,7 +425,7 @@ export default function PdfDesignViewer({
                                     className="h-7 w-7 min-w-0"
                                     aria-label="Next page"
                                 >
-                                    <ChevronRight size={13} />
+                                    <IconChevronRight size={13} />
                                 </Button>
                             </Tooltip.Trigger>
                             <Tooltip.Content>Next page</Tooltip.Content>
@@ -437,12 +438,12 @@ export default function PdfDesignViewer({
                                     variant="ghost"
                                     onPress={() => window.open(downloadUrl, '_blank', 'noopener,noreferrer')}
                                     className="ml-1 h-7 w-7 min-w-0"
-                                    aria-label="Download PDF"
+                                    aria-label="IconDownload PDF"
                                 >
-                                    <Download size={13} />
+                                    <IconDownload size={13} />
                                 </Button>
                             </Tooltip.Trigger>
-                            <Tooltip.Content>Download PDF</Tooltip.Content>
+                            <Tooltip.Content>IconDownload PDF</Tooltip.Content>
                         </Tooltip>
                     </div>
                 </div>
@@ -465,7 +466,7 @@ export default function PdfDesignViewer({
                     onProgress={handleLoadProgress}
                     loading={(
                         <div className="flex h-full flex-col items-center justify-center gap-2 py-20">
-                            <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
+                            <IconLoader2 size={24} className="animate-spin text-[var(--accent)]" />
                             <p className="text-[11px] text-[var(--text-muted)]">
                                 Loading PDF{loadingProgress > 0 ? ` · ${loadingProgress}%` : '…'}
                             </p>
@@ -473,7 +474,7 @@ export default function PdfDesignViewer({
                     )}
                     error={(
                         <div className="flex h-full flex-col items-center justify-center gap-2 py-20">
-                            <FileWarning size={24} className="text-amber-400" />
+                            <IconFileAlert size={24} className="text-amber-400" />
                             <p className="text-[12px] text-[var(--text-muted)]">Could not load this PDF.</p>
                             <Button
                                 size="sm"

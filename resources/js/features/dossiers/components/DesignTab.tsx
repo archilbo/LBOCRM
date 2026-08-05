@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { Layers } from 'lucide-react';
+import { IconLayersLinked } from '@tabler/icons-react';
+
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { ProjectDesignTabContent } from '@/features/project-design/components/ProjectDesignTabContent';
 import { parseWorkspaceState } from '@/features/project-design/hooks/useProjectDesignWorkspace';
@@ -35,7 +36,7 @@ function DesignTab({ dossierId, canDesign, urlState, onNavigate }: {
     dossierId: number; canDesign?: boolean; urlState?: { mode: string; file: string; version: string; asset?: string; page?: string; remark: string; inspector?: string }; onNavigate?: (updates: { mode?: string; file?: string; version?: string; asset?: string; page?: string; remark?: string; inspector?: string }) => void;
 }) {
     if (canDesign === false) {
-        return <AppEmptyState icon={<Layers size={15} />} title="Access restricted" description="You do not have permission to view project designs." />;
+        return <AppEmptyState icon={<IconLayersLinked size={15} />} title="Access restricted" description="You do not have permission to view project designs." />;
     }
 
     return <DesignTabContent dossierId={dossierId} urlState={urlState} onNavigate={onNavigate} />;

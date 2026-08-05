@@ -1,4 +1,5 @@
-import { FileText, FileImage } from 'lucide-react';
+import { IconFileText, IconPhoto } from '@tabler/icons-react';
+
 import type { MessageReplyPreview } from '@/features/chat/types';
 
 type Props = {
@@ -32,7 +33,7 @@ export function ReplyPreview({ replyTo, isMine, onClick }: Props) {
                 </p>
                 <p className="line-clamp-2 text-[9px] text-[var(--text-muted)]/80">
                     {replyTo.body || (replyTo.attachmentsCount > 0 ? (
-                        <span className="flex items-center gap-1">{replyTo.attachmentsCount > 1 ? <FileText size={10} /> : <FileImage size={10} />}{replyLabel(replyTo)}</span>
+                        <span className="flex items-center gap-1">{replyTo.attachmentsCount > 1 ? <IconFileText size={10} /> : <IconPhoto size={10} />}{replyLabel(replyTo)}</span>
                     ) : '')}
                 </p>
             </div>

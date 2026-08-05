@@ -1,47 +1,22 @@
 import { Head, router } from '@inertiajs/react';
-import { type ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, FormEvent, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-    AlertTriangle,
-    ChevronDown,
-    CalendarDays,
-    Check,
-    ChevronLeft,
-    ChevronRight,
-    Clock3,
-    History,
-    KeyRound,
-    Download,
-    EllipsisVertical,
-    Eye,
-    Mail,
-    PenLine,
-    Plus,
-    Power,
-    RotateCcw,
-    Save,
-    Search,
-    ShieldAlert,
-    ShieldCheck,
-    SlidersHorizontal,
-    Trash2,
-    UserCheck,
-    UserCog,
-    UserMinus,
-    Users,
-    Upload,
-    X,
-} from 'lucide-react';
+    type ColumnDef,
+} from '@tanstack/react-table';
+import { IconAlertTriangle, IconChevronDown, IconCalendarMonth, IconCheck, IconChevronLeft, IconChevronRight, IconClockHour3, IconHistory, IconKey, IconDownload, IconDotsVertical, IconEye, IconMail, IconPencil, IconPlus, IconPower, IconArrowRotaryFirstLeft, IconDeviceFloppy, IconSearch, IconShieldExclamation, IconShieldCheck, IconAdjustmentsHorizontal, IconTrash, IconUserCheck, IconUserCog, IconUserMinus, IconUsers, IconUpload, IconX } from '@tabler/icons-react';
+
 import { Accordion, Button, Checkbox, Chip, Dropdown, Input, ListBox, Select, Switch } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppDataTable } from '@/components/ui/AppDataTable';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppTextField } from '@/components/ui/AppTextField';
 import { AppModal } from '@/components/ui/AppModal';
-import { AppWorkspaceTable, type AppWorkspaceTableColumn } from '@/components/ui/AppWorkspaceTable';
 import { AppWorkspaceTabs } from '@/components/ui/AppWorkspaceTabs';
+import { AppTooltip } from '@/components/ui/AppTooltip';
 import { UserWorkloadTab, type UserWorkloadRow } from '@/features/users/components/UserWorkloadTab';
 import { UserOperationsReportTab, type OperationsReport } from '@/features/users/components/UserOperationsReportTab';
 import { TabPanel } from 'react-aria-components';
@@ -118,9 +93,9 @@ function normalizePermissionMatrix(source: PermissionsState | undefined, fallbac
 const TABLE_PAGE_SIZE = 10;
 
 function roleIcon(role: string) {
-    if (role === 'admin' || role === 'super_admin') return ShieldAlert;
-    if (role === 'manager') return ShieldCheck;
-    return UserCog;
+    if (role === 'admin' || role === 'super_admin') return IconShieldExclamation;
+    if (role === 'manager') return IconShieldCheck;
+    return IconUserCog;
 }
 
 function isProtectedAdministrator(role: string) {
@@ -193,10 +168,10 @@ function PermissionsMatrix({
     const [query, setQuery] = useState('');
     const [onlyCustomized, setOnlyCustomized] = useState(false);
     const levels = [
-        { key: 'none' as PermissionLevel, label: 'Aucun', description: 'Module masque', icon: X, tone: 'text-[var(--text-muted)]' },
-        { key: 'view' as PermissionLevel, label: 'Voir', description: 'Consultation', icon: Eye, tone: 'text-[var(--accent)]' },
-        { key: 'edit' as PermissionLevel, label: 'Modifier', description: 'Creer et modifier', icon: PenLine, tone: 'text-[var(--success)]' },
-        { key: 'delete' as PermissionLevel, label: 'Complet', description: 'Gestion complete', icon: KeyRound, tone: 'text-[var(--danger)]' },
+        { key: 'none' as PermissionLevel, label: 'Aucun', description: 'Module masque', icon: IconX, tone: 'text-[var(--text-muted)]' },
+        { key: 'view' as PermissionLevel, label: 'Voir', description: 'Consultation', icon: IconEye, tone: 'text-[var(--accent)]' },
+        { key: 'edit' as PermissionLevel, label: 'Modifier', description: 'Creer et modifier', icon: IconPencil, tone: 'text-[var(--success)]' },
+        { key: 'delete' as PermissionLevel, label: 'Complet', description: 'Gestion complete', icon: IconKey, tone: 'text-[var(--danger)]' },
     ];
     const filteredModules = modules.filter((module) => {
         const matchesQuery = module.label.toLocaleLowerCase('fr-FR').includes(query.trim().toLocaleLowerCase('fr-FR'));
@@ -212,7 +187,7 @@ function PermissionsMatrix({
             <div className="flex flex-col gap-2.5 border-b border-[var(--border)] px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-start gap-3">
                     <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
-                        <ShieldCheck size={15} />
+                        <IconShieldCheck size={15} />
                     </div>
                     <div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -225,7 +200,7 @@ function PermissionsMatrix({
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <Checkbox isSelected={onlyCustomized} onChange={setOnlyCustomized} className="text-[11px] text-[var(--text-muted)]">Personnalises</Checkbox>
-                    <Input aria-label="Rechercher un module" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher" size="sm" startContent={<Search size={13} className="text-[var(--text-muted)]" />} classNames={{ base: 'w-full sm:w-48', input: 'text-xs', inputWrapper: 'h-9 min-h-9 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-2.5 shadow-none' }} />
+                    <Input aria-label="Rechercher un module" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher" size="sm" startContent={<IconSearch size={13} className="text-[var(--text-muted)]" />} classNames={{ base: 'w-full sm:w-48', input: 'text-xs', inputWrapper: 'h-9 min-h-9 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-2.5 shadow-none' }} />
                 </div>
             </div>
 
@@ -276,13 +251,13 @@ function PermissionsMatrix({
                 <span className={cn('text-[11px] font-medium', hasChanges ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]')}>{hasChanges ? 'Des droits ont ete personnalises.' : 'Les droits suivent le role de reference.'}</span>
                 <div className="flex items-center gap-1">
                     <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Restaurer les droits du role" aria-label="Restaurer les droits du role" onPress={onRestore}>
-                        <RotateCcw size={14} />
+                        <IconArrowRotaryFirstLeft size={14} />
                     </AppButton>
                     <AppButton isIconOnly compact size="sm" variant="quiet" color="success" tooltip="Autoriser tous les modules" aria-label="Autoriser tous les modules" onPress={() => onBatch('full')}>
-                        <KeyRound size={14} />
+                        <IconKey size={14} />
                     </AppButton>
                     <AppButton isIconOnly compact size="sm" variant="quiet" color="danger" tooltip="Retirer tous les droits" aria-label="Retirer tous les droits" onPress={() => onBatch('revoke')}>
-                        <X size={14} />
+                        <IconX size={14} />
                     </AppButton>
                 </div>
             </div>
@@ -318,7 +293,6 @@ export default function AdminUsersIndex({
         return canViewWorkload ? 'workload' : 'reports';
     });
     const [query, setQuery] = useState('');
-    const [page, setPage] = useState(1);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [filterRoles, setFilterRoles] = useState<Set<string>>(() => new Set(filterRoleOptions.map((role) => role.id)));
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'accepted' | 'blocked'>('all');
@@ -340,7 +314,6 @@ export default function AdminUsersIndex({
     const [passwordResetTarget, setPasswordResetTarget] = useState<AdminUserRow | null>(null);
     const [csvModal, setCsvModal] = useState<{ users: { name: string; email: string; role: string }[]; existing: Set<string>; overrides: Set<string> } | null>(null);
     const [auditEntries, setAuditEntries] = useState<ActivityLogEntry[]>([]);
-    const [auditPage, setAuditPage] = useState(1);
     const [auditLoading, setAuditLoading] = useState(false);
     const [accessUpdatingUserId, setAccessUpdatingUserId] = useState<number | null>(null);
     const [filterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -368,31 +341,23 @@ export default function AdminUsersIndex({
         });
     }, [users, query, activeKpi, filterRoles, filterStatus]);
 
-    const totalPages = Math.ceil(filteredUsers.length / TABLE_PAGE_SIZE);
-    const pagedUsers = filteredUsers.slice((page - 1) * TABLE_PAGE_SIZE, page * TABLE_PAGE_SIZE);
-    const auditTotalPages = Math.max(1, Math.ceil(auditEntries.length / TABLE_PAGE_SIZE));
-    const currentAuditPage = Math.min(auditPage, auditTotalPages);
-    const pagedAuditEntries = auditEntries.slice((currentAuditPage - 1) * TABLE_PAGE_SIZE, currentAuditPage * TABLE_PAGE_SIZE);
-
-    useEffect(() => { setPage(1); }, [query, activeKpi, filterRoles, filterStatus]);
-
     // ── fetch audit logs when security tab is active ──
     useEffect(() => {
         if (activeTab !== 'security' || !canViewUsers) return;
         setAuditLoading(true);
         fetch('/admin/users/audit-logs')
             .then((r) => r.json())
-            .then((data) => { setAuditEntries(data.logs); setAuditPage(1); setAuditLoading(false); })
+            .then((data) => { setAuditEntries(data.logs); setAuditLoading(false); })
             .catch(() => { setAuditLoading(false); });
     }, [activeTab]);
 
     // ── helpers ──
     function isAllSelected() {
-        return pagedUsers.length > 0 && pagedUsers.every((u) => selectedIds.has(u.id));
+        return filteredUsers.length > 0 && filteredUsers.every((u) => selectedIds.has(u.id));
     }
 
     function hasPartialSelection() {
-        return pagedUsers.some((u) => selectedIds.has(u.id)) && !isAllSelected();
+        return filteredUsers.some((u) => selectedIds.has(u.id)) && !isAllSelected();
     }
 
     function toggleAll() {
@@ -400,9 +365,9 @@ export default function AdminUsersIndex({
             const next = new Set(current);
 
             if (isAllSelected()) {
-                pagedUsers.forEach((user) => next.delete(user.id));
+                filteredUsers.forEach((user) => next.delete(user.id));
             } else {
-                pagedUsers.forEach((user) => next.add(user.id));
+                filteredUsers.forEach((user) => next.add(user.id));
             }
 
             return next;
@@ -531,7 +496,7 @@ export default function AdminUsersIndex({
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement | null)?.content ?? '',
+                        'IconX-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement | null)?.content ?? '',
                     },
                     body: JSON.stringify({ emails: importedUsers.map((user) => user.email) }),
                 });
@@ -576,21 +541,45 @@ export default function AdminUsersIndex({
         const managerUsers = users.filter((user) => primaryRole(user) === 'manager').length;
 
         return [
-            { key: 'total', label: 'Total users', value: users.length, detail: `${users.length} account${users.length === 1 ? '' : 's'} in this company`, icon: Users, color: 'text-[var(--crm-gold)]', accentColor: 'var(--crm-gold)' },
-            { key: 'online', label: 'Active now', value: activeUsers, detail: 'Active within the last five minutes', icon: UserCheck, color: 'text-[var(--crm-success)]', accentColor: 'var(--crm-success)' },
-            { key: 'admin', label: 'Admins', value: adminUsers, detail: 'Accounts with full administration access', icon: ShieldAlert, color: 'text-[var(--crm-danger)]', accentColor: 'var(--crm-danger)' },
-            { key: 'manager', label: 'Managers', value: managerUsers, detail: 'Accounts with management access', icon: ShieldCheck, color: 'text-[var(--crm-violet)]', accentColor: 'var(--crm-violet)' },
+            { key: 'total', label: 'Total users', value: users.length, detail: `${users.length} account${users.length === 1 ? '' : 's'} in this company`, icon: IconUsers, color: 'text-[var(--crm-gold)]', accentColor: 'var(--crm-gold)' },
+            { key: 'online', label: 'Active now', value: activeUsers, detail: 'Active within the last five minutes', icon: IconUserCheck, color: 'text-[var(--crm-success)]', accentColor: 'var(--crm-success)' },
+            { key: 'admin', label: 'Admins', value: adminUsers, detail: 'Accounts with full administration access', icon: IconShieldExclamation, color: 'text-[var(--crm-danger)]', accentColor: 'var(--crm-danger)' },
+            { key: 'manager', label: 'Managers', value: managerUsers, detail: 'Accounts with management access', icon: IconShieldCheck, color: 'text-[var(--crm-violet)]', accentColor: 'var(--crm-violet)' },
         ];
     }, [users]);
 
     const activeFilterCount = Number(filterRoles.size !== filterRoleOptions.length) + Number(filterStatus !== 'all');
 
+    // ── Audit log columns ──
+    const auditColumns: ColumnDef<ActivityLogEntry>[] = [
+        {
+            id: 'timestamp',
+            header: 'Horodatage',
+            cell: (info) => <span className="text-[11px] tabular-nums text-[var(--text-muted)]">{info.row.original.timestamp}</span>,
+        },
+        {
+            id: 'user',
+            header: 'Utilisateur',
+            cell: (info) => <span className="text-[11px] font-medium text-[var(--text)]">{info.row.original.user}</span>,
+        },
+        {
+            id: 'action',
+            header: 'Action',
+            cell: (info) => <span className="text-[11px] text-[var(--text-muted)]">{info.row.original.action}</span>,
+        },
+        {
+            id: 'ip',
+            header: 'Adresse IP',
+            cell: (info) => <span className="font-mono text-[10px] text-[var(--text-muted)]">{info.row.original.ip}</span>,
+        },
+    ];
+
     // ── Firm Profile state ──
     // ── User table columns ──
-    const userColumns: AppWorkspaceTableColumn<AdminUserRow>[] = [
+    const userColumns: ColumnDef<AdminUserRow>[] = [
         {
             id: 'select',
-            label: (
+            header: () => (
                 <Checkbox isSelected={isAllSelected()} isIndeterminate={hasPartialSelection()} onChange={toggleAll} aria-label="Select all visible users">
                     <Checkbox.Content>
                         <Checkbox.Control>
@@ -599,12 +588,9 @@ export default function AdminUsersIndex({
                     </Checkbox.Content>
                 </Checkbox>
             ),
-            headerClassName: 'w-12',
-            reorderable: false,
-            fixedPosition: 'start',
-            render: (user) => (
+            cell: (info) => (
                 <div onClick={(e) => e.stopPropagation()}>
-                    <Checkbox isSelected={selectedIds.has(user.id)} onChange={() => toggleOne(user.id)} aria-label={`Select ${user.name}`}>
+                    <Checkbox isSelected={selectedIds.has(info.row.original.id)} onChange={() => toggleOne(info.row.original.id)} aria-label={`Select ${info.row.original.name}`}>
                         <Checkbox.Content>
                             <Checkbox.Control>
                                 <Checkbox.Indicator />
@@ -613,116 +599,131 @@ export default function AdminUsersIndex({
                     </Checkbox>
                 </div>
             ),
+            size: 48,
         },
         {
             id: 'name',
-            label: 'User Name',
-            icon: <UserCog size={13} />,
-            render: (user) => (
-                <div className="flex items-center gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[10px] font-bold text-[var(--crm-gold)]">{initials(user.name)}</div>
-                    <div className="min-w-0">
-                        <p className="text-[12px] font-medium text-[var(--text)] truncate max-w-[180px]">{user.name}</p>
-                        <p className="text-[10px] text-[var(--text-muted)] truncate max-w-[180px]">{user.email}</p>
+            header: 'User Name',
+            size: 200,
+            cell: (info) => (
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[10px] font-bold text-[var(--crm-gold)]">{initials(info.row.original.name)}</div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[12px] font-medium text-[var(--text)] truncate">{info.row.original.name}</p>
+                        <p className="text-[10px] text-[var(--text-muted)] truncate">{info.row.original.email}</p>
                     </div>
                 </div>
             ),
         },
         {
             id: 'email',
-            label: 'Email Address',
-            icon: <Mail size={13} />,
-            render: (user) => <span className="text-[11px] text-[var(--text-muted)]">{user.email}</span>,
+            header: 'Email Address',
+            size: 180,
+            cell: (info) => <span className="text-[11px] text-[var(--text-muted)] truncate block">{info.row.original.email}</span>,
+            meta: { hideOnMobile: true },
         },
         {
             id: 'role',
-            label: 'User Role',
-            icon: <ShieldCheck size={13} />,
-            render: (user) => {
-                const role = primaryRole(user);
+            header: 'User Role',
+            size: 120,
+            cell: (info) => {
+                const role = primaryRole(info.row.original);
                 const Icon = roleIcon(role);
                 const rs = ROLE_STYLES[role] || ROLE_STYLES.viewer;
                 return (
-                    <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold', rs.bg, rs.text)}>
+                    <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold whitespace-nowrap', rs.bg, rs.text)}>
                         <span className={cn('size-1.5 rounded-full', rs.dot)} /><Icon size={12} />{formatRoleLabel(role)}
                     </span>
                 );
             },
+            meta: { hideOnMobile: true },
         },
         {
             id: 'status',
-            label: 'Status',
-            icon: <UserCheck size={13} />,
-            render: (user) => user.accountStatus === 'blocked' ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-danger)]/20 bg-[var(--crm-danger-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-danger)]">
+            header: 'Status',
+            size: 120,
+            cell: (info) => info.row.original.accountStatus === 'blocked' ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-danger)]/20 bg-[var(--crm-danger-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-danger)] whitespace-nowrap">
                     <span className="size-1.5 rounded-full bg-[var(--crm-danger)]" />Blocked
                 </span>
-            ) : user.accountStatus === 'pending' ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-gold)]/20 bg-[var(--crm-gold-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-gold)]">
+            ) : info.row.original.accountStatus === 'pending' ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-gold)]/20 bg-[var(--crm-gold-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-gold)] whitespace-nowrap">
                     <span className="size-1.5 rounded-full bg-[var(--crm-gold)]" />Pending invite
                 </span>
             ) : (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-success)]/20 bg-[var(--crm-success-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-success)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-success)]/20 bg-[var(--crm-success-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-success)] whitespace-nowrap">
                     <span className="size-1.5 rounded-full bg-[var(--crm-success)]" />Accepted
                 </span>
             ),
+            meta: { hideOnMobile: true },
         },
         {
             id: 'access',
-            label: 'Access',
-            icon: <Power size={13} />,
-            render: (user) => <UserAccessSwitch user={user} />,
+            header: 'Access',
+            size: 80,
+            cell: (info) => <UserAccessSwitch user={info.row.original} />,
+            meta: { hideOnMobile: true },
         },
         {
             id: 'created',
-            label: 'Add Date',
-            icon: <CalendarDays size={13} />,
-            render: (user) => <span className="text-[11px] text-[var(--text-muted)] tabular-nums">{formatDate(user.createdAt)}</span>,
+            header: 'Add Date',
+            size: 100,
+            cell: (info) => <span className="text-[11px] text-[var(--text-muted)] tabular-nums whitespace-nowrap block">{formatDate(info.row.original.createdAt)}</span>,
+            meta: { hideOnTablet: true },
         },
         {
             id: 'lastActive',
-            label: 'Last Active',
-            icon: <Clock3 size={13} />,
-            render: (user) => <span className="text-[11px] text-[var(--text-muted)] tabular-nums">{user.lastSeenAt ? formatDate(user.lastSeenAt) : '-'}</span>,
+            header: 'Last Active',
+            size: 100,
+            cell: (info) => <span className="text-[11px] text-[var(--text-muted)] tabular-nums whitespace-nowrap block">{info.row.original.lastSeenAt ? formatDate(info.row.original.lastSeenAt) : '-'}</span>,
+            meta: { hideOnTablet: true },
         },
         {
             id: 'actions',
-            label: '',
-            headerClassName: 'w-10',
-            reorderable: false,
-            fixedPosition: 'end',
-            render: (user) => (
-                <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                    <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Voir le profil" aria-label="Voir le profil" onPress={() => setViewProfileUser(user)}>
-                        <Eye size={12} />
-                    </AppButton>
-                    {canManageRoles && roles.some((role) => role.id === primaryRole(user)) && (!isProtectedAdministrator(primaryRole(user)) || canManageProtectedUsers) ? <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Modifier les permissions" aria-label="Modifier les permissions" onPress={() => { const role = primaryRole(user); const permissions = permissionsForUser(user, role); setEditUser(user); setEditRole(role); setEditPerms(permissions); setInitialPerms(clonePermissions(permissions)); setPendingEditAction(null); }}>
-                        <PenLine size={12} />
-                    </AppButton> : null}
-                    {user.accountStatus === 'pending' && canCreateUsers ? <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Renvoyer l'invitation" aria-label="Renvoyer l'invitation" onPress={() => router.post(`/admin/users/${user.id}/invite/resend`, {}, { preserveScroll: true, onSuccess: () => toast.success(`Invitation resent to ${user.email}`), onError: () => toast.error('Invitation could not be resent.') })}>
-                        <Mail size={12} />
-                    </AppButton> : null}
-                    {user.accountStatus === 'accepted' && canResetUserPasswords && (!isProtectedAdministrator(primaryRole(user)) || canManageProtectedUsers) ? <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Envoyer un lien de nouveau mot de passe" aria-label="Envoyer un lien de nouveau mot de passe" onPress={() => setPasswordResetTarget(user)}>
-                        <KeyRound size={12} />
-                    </AppButton> : null}
-                    {canDeleteUsers && (!isProtectedAdministrator(primaryRole(user)) || canManageProtectedUsers) ? <Dropdown
-                        isOpen={openRowActionId === user.id}
-                        onOpenChange={(isOpen) => setOpenRowActionId(isOpen ? user.id : null)}
+            header: '',
+            size: 120,
+            cell: (info) => (
+                <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <AppTooltip label="Voir le profil">
+                        <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label="Voir le profil" onClick={() => setViewProfileUser(info.row.original)}>
+                            <IconEye size={11} />
+                        </button>
+                    </AppTooltip>
+                    {canManageRoles && roles.some((role) => role.id === primaryRole(info.row.original)) && (!isProtectedAdministrator(primaryRole(info.row.original)) || canManageProtectedUsers) ? <AppTooltip label="Modifier les permissions">
+                        <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label="Modifier les permissions" onClick={() => { const role = primaryRole(info.row.original); const permissions = permissionsForUser(info.row.original, role); setEditUser(info.row.original); setEditRole(role); setEditPerms(permissions); setInitialPerms(clonePermissions(permissions)); setPendingEditAction(null); }}>
+                            <IconPencil size={11} />
+                        </button>
+                    </AppTooltip> : null}
+                    {info.row.original.accountStatus === 'pending' && canCreateUsers ? <AppTooltip label="Renvoyer l'invitation">
+                        <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label="Renvoyer l'invitation" onClick={() => router.post(`/admin/users/${info.row.original.id}/invite/resend`, {}, { preserveScroll: true, onSuccess: () => toast.success(`Invitation resent to ${info.row.original.email}`), onError: () => toast.error('Invitation could not be resent.') })}>
+                            <IconMail size={11} />
+                        </button>
+                    </AppTooltip> : null}
+                    {info.row.original.accountStatus === 'accepted' && canResetUserPasswords && (!isProtectedAdministrator(primaryRole(info.row.original)) || canManageProtectedUsers) ? <AppTooltip label="Envoyer un lien de MDP">
+                        <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label="Envoyer un lien de MDP" onClick={() => setPasswordResetTarget(info.row.original)}>
+                            <IconKey size={11} />
+                        </button>
+                    </AppTooltip> : null}
+                    {canDeleteUsers && (!isProtectedAdministrator(primaryRole(info.row.original)) || canManageProtectedUsers) ? <Dropdown
+                        isOpen={openRowActionId === info.row.original.id}
+                        onOpenChange={(isOpen) => setOpenRowActionId(isOpen ? info.row.original.id : null)}
                     >
-                        <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]" aria-label="Actions">
-                            <EllipsisVertical size={12} />
-                        </Dropdown.Trigger>
+                        <AppTooltip label="Actions">
+                            <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]" aria-label="Actions">
+                                <IconDotsVertical size={11} />
+                            </Dropdown.Trigger>
+                        </AppTooltip>
                         <Dropdown.Popover placement="bottom end" className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                             <Dropdown.Menu
                                 aria-label="Actions"
                                 onAction={(key) => {
                                     setOpenRowActionId(null);
 
-                                    if (key === 'delete') setDeleteTarget(user);
+                                    if (key === 'delete') setDeleteTarget(info.row.original);
                                 }}
                             >
                                 <Dropdown.Item key="delete" id="delete" textValue="Delete User" className="text-[var(--danger)] data-[hover]:bg-[var(--danger)]/10">
-                                    <div className="flex items-center gap-2"><span className="flex size-4 shrink-0 items-center justify-center"><Trash2 size={14} /></span><span>Delete User</span></div>
+                                    <div className="flex items-center gap-2"><span className="flex size-4 shrink-0 items-center justify-center"><IconTrash size={14} /></span><span>Delete User</span></div>
                                 </Dropdown.Item>
                             </Dropdown.Menu>
                         </Dropdown.Popover>
@@ -733,25 +734,25 @@ export default function AdminUsersIndex({
     ];
 
     const tabs: (AppWorkspaceTab & { id: TabId })[] = [
-        ...(canViewUsers ? [{ id: 'users' as const, label: 'Utilisateurs', icon: UserCheck }, { id: 'security' as const, label: 'Sécurité et audit', icon: ShieldCheck }] : []),
-        ...(canViewWorkload ? [{ id: 'workload' as const, label: 'Charge de travail', icon: Users }] : []),
-        ...(canViewOperationsReports ? [{ id: 'reports' as const, label: "Rapport d’activité", icon: CalendarDays }] : []),
+        ...(canViewUsers ? [{ id: 'users' as const, label: 'Utilisateurs', icon: IconUserCheck }, { id: 'security' as const, label: 'Sécurité et audit', icon: IconShieldCheck }] : []),
+        ...(canViewWorkload ? [{ id: 'workload' as const, label: 'Charge de travail', icon: IconUsers }] : []),
+        ...(canViewOperationsReports ? [{ id: 'reports' as const, label: "Rapport d’activité", icon: IconCalendarMonth }] : []),
     ];
 
     return (
         <>
             <Head title="User Management" />
             <AppShell>
-                <div className="w-full space-y-5">
+                <div className="w-full min-w-0 space-y-5">
                     {/* ── Page header ── */}
-                    <div className="flex items-start justify-between mb-6">
-                        <div>
+                    <div className="flex items-start justify-between gap-4 mb-6">
+                        <div className="min-w-0">
                             <h1 className="text-xl font-bold text-[var(--crm-text)]">User Management</h1>
                             <p className="text-[12px] text-[var(--crm-text-muted)] mt-0.5">Manage team access, roles, and permissions.</p>
                         </div>
                         {canCreateUsers ? <div className="flex items-center gap-2">
                             <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Add User" aria-label="Add User" onPress={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' }); setIsInviteOpen(true); }}>
-                                <Plus size={16} />
+                                <IconPlus size={16} />
                             </AppButton>
                         </div> : null}
                     </div>
@@ -760,7 +761,7 @@ export default function AdminUsersIndex({
 
                     {canViewUsers ? <TabPanel id="users" className="outline-none">
                             {/* KPI cards */}
-                            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <div className="mb-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 min-w-0">
                                 {metrics.map((m) => {
                                     const Icon = m.icon;
                                     const isActive = activeKpi === m.key;
@@ -768,195 +769,157 @@ export default function AdminUsersIndex({
                                 })}
                             </div>
 
-                            {/* ── Users table ── */}
-                            <AppWorkspaceTable
-                                ariaLabel="Users & Permissions"
-                                columns={userColumns}
-                                data={pagedUsers}
-                                rowKey={(user) => user.id}
-                                minTableWidthClassName="min-w-[860px]"
-                                columnOrderStorageKey="archilbo.admin-users.table.columns.v1"
-                                columnOrderHint="Drag to reorder this column"
-                                onRowPress={(user) => setViewProfileUser(user)}
-                                emptyContent={<AppEmptyState title="No users found" description="No users match the current filters." />}
-                                toolbar={
-                                    selectedIds.size > 0 ? (
-                                        <div className="flex flex-wrap items-center gap-3 border-b border-[var(--accent)]/15 bg-[var(--accent-soft)]/70 px-4 py-3">
-                                            <div className="flex min-w-0 items-center gap-2.5">
-                                                <div>
-                                                    <p className="text-xs font-semibold text-[var(--foreground)]">Bulk actions</p>
-                                                    <Chip size="sm" variant="soft" color="warning" startContent={<Check size={12} strokeWidth={2.5} />} className="mt-1 h-5 px-1.5 text-[9px]">
-                                                        {selectedIds.size} selected
-                                                    </Chip>
-                                                </div>
-                                            </div>
-                                            <div className="ml-auto flex flex-wrap items-center gap-2">
-                                                {canManageRoles ? <Select
-                                                    aria-label="Assign role to selected users"
-                                                    isOpen={bulkRoleSelectOpen}
-                                                    onOpenChange={setBulkRoleSelectOpen}
-                                                    onChange={(key) => {
-                                                        if (!key) return;
-                                                        setBulkRoleSelectOpen(false);
-                                                        router.put('/admin/users/bulk/role', { userIds: [...selectedIds], role: String(key) }, {
-                                                            preserveScroll: true,
-                                                            onSuccess: () => { setSelectedIds(new Set()); toast.success(`Role updated for ${selectedIds.size} user(s).`); },
-                                                            onError: () => toast.error('Could not update roles.'),
-                                                        });
-                                                    }}
-                                                >
-                                                    <Select.Trigger className="h-8 min-w-[150px] rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] shadow-sm transition hover:border-[var(--text-muted)]">
-                                                        <Select.Value className="flex-1 truncate text-left" placeholder="Change role" />
-                                                        <Select.Indicator />
-                                                    </Select.Trigger>
-                                                    <Select.Popover className="z-[120] min-w-[150px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
-                                                        <ListBox aria-label="Assign role to selected users" className="gap-0">
-                                                            {roles.map((role) => (
-                                                                <ListBox.Item key={role.id} id={role.id} textValue={role.label} className="rounded-lg px-2.5 py-2 text-xs">
-                                                                    {role.label}
-                                                                </ListBox.Item>
-                                                            ))}
-                                                        </ListBox>
-                                                    </Select.Popover>
-                                                </Select> : null}
-                                                <AppButton variant="bordered" compact onPress={exportSelectedCsv}>
-                                                    <Download size={12} />Export selected
-                                                </AppButton>
-                                                {canManageAccess ? <AppButton variant="bordered" compact onPress={() => setConfirmBulkAction('suspend')}><UserMinus size={12} />Suspend</AppButton> : null}
-                                                {canDeleteUsers ? <AppButton isIconOnly compact size="sm" variant="solid" color="danger" tooltip="Delete selected users" aria-label="Delete selected users" onPress={() => setConfirmBulkAction('delete')}><Trash2 size={14} /></AppButton> : null}
-                                                <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Clear selection" aria-label="Clear selection" onPress={() => setSelectedIds(new Set())}><X size={14} /></AppButton>
+                            {/* ── IconUsers table ── */}
+                            <div className="min-w-0 space-y-3">
+                                {/* Custom toolbar with bulk actions and filters */}
+                                {selectedIds.size > 0 ? (
+                                    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--accent)]/15 bg-[var(--accent-soft)]/70 px-4 py-3">
+                                        <div className="flex min-w-0 items-center gap-2.5 flex-1">
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-semibold text-[var(--foreground)]">Bulk actions</p>
+                                                <Chip size="sm" variant="soft" color="warning" startContent={<IconCheck size={12} strokeWidth={2.5} />} className="mt-1 h-5 px-1.5 text-[9px]">
+                                                    {selectedIds.size} selected
+                                                </Chip>
                                             </div>
                                         </div>
-                                    ) : (
-                                        <div>
-                                            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="text-[11px] font-semibold text-[var(--text)]">User Details</span>
-                                                    <span className="flex h-4 min-w-[20px] items-center justify-center rounded bg-[var(--surface-2)] px-1.5 text-[9px] font-bold text-[var(--text-muted)]">{filteredUsers.length}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Input
-                                                        size="sm"
-                                                        type="text"
-                                                        value={query}
-                                                        onChange={(e) => setQuery(e.target.value)}
-                                                        placeholder="Search name, email, role, or permission..."
-                                                        aria-label="Search users"
-                                                        classNames={{
-                                                            base: 'w-full sm:w-[280px]',
-                                                            input: 'text-[11px]',
-                                                            inputWrapper: 'h-8 min-h-8 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-2)]/65 px-2 shadow-sm shadow-black/10 transition hover:border-[var(--text-muted)] focus-within:border-[var(--accent)] focus-within:bg-[var(--surface)]',
-                                                        }}
-                                                        startContent={<span className="flex size-5 items-center justify-center rounded-md bg-[var(--surface)] text-[var(--accent)]"><Search size={12} /></span>}
-                                                        endContent={query ? (
-                                                            <Button
-                                                                isIconOnly
-                                                                size="sm"
-                                                                variant="ghost"
-                                                                aria-label="Clear user search"
-                                                                className="-mr-1 size-6 min-w-6 text-[var(--text-muted)]"
-                                                                onPress={() => setQuery('')}
-                                                            >
-                                                                <X size={13} />
-                                                            </Button>
-                                                        ) : null}
-                                                    />
-                                                    <Dropdown isOpen={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
-                                                        <Dropdown.Trigger>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="bordered"
-                                                                className={cn(
-                                                                    'h-7 min-h-7 gap-1.5 px-2 text-[10px] font-medium',
-                                                                    filterRoles.size !== filterRoleOptions.length || filterStatus !== 'all'
-                                                                        ? 'border-[var(--accent)] text-[var(--accent)]'
-                                                                        : '',
-                                                                )}
-                                                            >
-                                                                <SlidersHorizontal size={12} />
-                                                                Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-                                                            </Button>
-                                                        </Dropdown.Trigger>
-                                                        <Dropdown.Popover placement="bottom end" className="z-[80] min-w-52 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
-                                                            <Dropdown.Menu
-                                                                aria-label="Filter users"
-                                                                closeOnSelect={false}
-                                                                itemClasses={{ base: 'rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]' }}
-                                                            >
-                                                                <Dropdown.Section title="By role" className="mb-0">
-                                                                    {filterRoleOptions.map((role) => (
-                                                                        <Dropdown.Item
-                                                                            key={role.id}
-                                                                            startContent={
-                                                                                <span className={cn('flex size-4 items-center justify-center rounded border transition', filterRoles.has(role.id) ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--border)]')}>
-                                                                                    {filterRoles.has(role.id) && <Check size={10} strokeWidth={3} className="text-white" />}
-                                                                                </span>
-                                                                            }
-                                                                            onPress={() => {
-                                                                                const nextRoles = new Set(filterRoles);
-                                                                                if (nextRoles.has(role.id)) nextRoles.delete(role.id);
-                                                                                else nextRoles.add(role.id);
-                                                                                setFilterRoles(nextRoles);
-                                                                            }}
-                                                                        >
-                                                                            {role.label}
-                                                                        </Dropdown.Item>
-                                                                    ))}
-                                                                </Dropdown.Section>
-                                                                <Dropdown.Section title="By status">
-                                                                    {(['all', 'pending', 'accepted', 'blocked'] as const).map((s) => (
-                                                                        <Dropdown.Item
-                                                                            key={s}
-                                                                            className="capitalize"
-                                                                            startContent={
-                                                                                <span className={cn('flex size-4 items-center justify-center rounded-full border transition', filterStatus === s ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--border)]')}>
-                                                                                    {filterStatus === s && <Check size={10} strokeWidth={3} className="text-white" />}
-                                                                                </span>
-                                                                            }
-                                                                            onPress={() => setFilterStatus(s)}
-                                                                        >
-                                                                            {s === 'all' ? 'All statuses' : s === 'pending' ? 'Pending invitation' : s === 'accepted' ? 'Accepted' : 'Blocked'}
-                                                                        </Dropdown.Item>
-                                                                    ))}
-                                                                </Dropdown.Section>
-                                                                {activeFilterCount > 0 ? (
-                                                                    <Dropdown.Section>
-                                                                        <Dropdown.Item
-                                                                            id="reset-filters"
-                                                                            className="text-[var(--accent)]"
-                                                                            onPress={() => {
-                                                                                setFilterRoles(new Set(filterRoleOptions.map((role) => role.id)));
-                                                                                setFilterStatus('all');
-                                                                            }}
-                                                                        >
-                                                                            Reset filters
-                                                                        </Dropdown.Item>
-                                                                    </Dropdown.Section>
-                                                                ) : null}
-                                                            </Dropdown.Menu>
-                                                        </Dropdown.Popover>
-                                                    </Dropdown>
-                                                    <input id="csv-import" type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvImport} />
-                                                    <AppButton isIconOnly compact variant="ghost" tooltip="Import CSV" aria-label="Import CSV" onPress={() => (document.getElementById('csv-import') as HTMLInputElement | null)?.click()}>
-                                                        <Upload size={16} />
-                                                    </AppButton>
-                                                    <AppButton isIconOnly compact variant="ghost" tooltip="Export CSV" onPress={exportCsv}><Download size={16} /></AppButton>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                }
-                                footer={
-                                    <div className="flex items-center justify-between px-3 py-2">
-                                        <span className="text-[9px] text-[var(--text-muted)]">Showing {filteredUsers.length === 0 ? 0 : (page - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(page * TABLE_PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}</span>
-                                        <div className="flex items-center gap-1.5">
-                                            <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Previous page" isDisabled={page <= 1} onPress={() => setPage(Math.max(1, page - 1))}><ChevronLeft size={14} /></AppButton>
-                                            <span className="min-w-10 text-center text-[9px] font-semibold tabular-nums text-[var(--text-muted)]">{page} / {totalPages || 1}</span>
-                                            <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Next page" isDisabled={page >= totalPages || totalPages === 0} onPress={() => setPage(Math.min(totalPages, page + 1))}><ChevronRight size={14} /></AppButton>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {canManageRoles ? <Select
+                                                aria-label="Assign role to selected users"
+                                                isOpen={bulkRoleSelectOpen}
+                                                onOpenChange={setBulkRoleSelectOpen}
+                                                onChange={(key) => {
+                                                    if (!key) return;
+                                                    setBulkRoleSelectOpen(false);
+                                                    router.put('/admin/users/bulk/role', { userIds: [...selectedIds], role: String(key) }, {
+                                                        preserveScroll: true,
+                                                        onSuccess: () => { setSelectedIds(new Set()); toast.success(`Role updated for ${selectedIds.size} user(s).`); },
+                                                        onError: () => toast.error('Could not update roles.'),
+                                                    });
+                                                }}
+                                            >
+                                                <Select.Trigger className="h-8 min-w-[120px] sm:min-w-[150px] rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] shadow-sm transition hover:border-[var(--text-muted)]">
+                                                    <Select.Value className="flex-1 truncate text-left" placeholder="Change role" />
+                                                    <Select.Indicator />
+                                                </Select.Trigger>
+                                                <Select.Popover className="z-[120] min-w-[150px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
+                                                    <ListBox aria-label="Assign role to selected users" className="gap-0">
+                                                        {roles.map((role) => (
+                                                            <ListBox.Item key={role.id} id={role.id} textValue={role.label} className="rounded-lg px-2.5 py-2 text-xs">
+                                                                {role.label}
+                                                            </ListBox.Item>
+                                                        ))}
+                                                    </ListBox>
+                                                </Select.Popover>
+                                            </Select> : null}
+                                            <AppButton variant="outline" compact onPress={exportSelectedCsv}>
+                                                <IconDownload size={12} />Export selected
+                                            </AppButton>
+                                            {canManageAccess ? <AppButton variant="outline" compact onPress={() => setConfirmBulkAction('suspend')}><IconUserMinus size={12} />Suspend</AppButton> : null}
+                                            {canDeleteUsers ? <AppButton isIconOnly compact size="sm" variant="solid" color="danger" tooltip="Delete selected users" aria-label="Delete selected users" onPress={() => setConfirmBulkAction('delete')}><IconTrash size={14} /></AppButton> : null}
+                                            <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Clear selection" aria-label="Clear selection" onPress={() => setSelectedIds(new Set())}><IconX size={14} /></AppButton>
                                         </div>
                                     </div>
-                                }
-                            />
+                                ) : null}
+
+                                {/* Table with AppDataTable */}
+                                <AppDataTable
+                                    data={filteredUsers}
+                                    columns={userColumns}
+                                    searchPlaceholder="IconSearch name, email, role, or permission..."
+                                    emptyTitle="No users found"
+                                    emptyDescription="No users match the current filters."
+                                    pageSize={TABLE_PAGE_SIZE}
+                                    onRowClick={(user) => setViewProfileUser(user)}
+                                    toolbarActions={
+                                        <>
+                                            <Dropdown isOpen={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
+                                                <Dropdown.Trigger>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className={cn(
+                                                            'h-7 min-h-7 gap-1.5 px-2 text-[10px] font-medium',
+                                                            filterRoles.size !== filterRoleOptions.length || filterStatus !== 'all'
+                                                                ? 'border-[var(--accent)] text-[var(--accent)]'
+                                                                : '',
+                                                        )}
+                                                    >
+                                                        <IconAdjustmentsHorizontal size={12} />
+                                                        Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+                                                    </Button>
+                                                </Dropdown.Trigger>
+                                                <Dropdown.Popover placement="bottom end" className="z-[80] min-w-52 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                                                    <Dropdown.Menu
+                                                        aria-label="Filter users"
+                                                        selectionMode="none"
+                                                        onAction={(key) => {
+                                                            if (key === 'reset-filters') {
+                                                                setFilterRoles(new Set(filterRoleOptions.map((role) => role.id)));
+                                                                setFilterStatus('all');
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Dropdown.Section aria-label="By role">
+                                                            {filterRoleOptions.map((role) => (
+                                                                <Dropdown.Item
+                                                                    key={role.id}
+                                                                    textValue={role.label}
+                                                                    onPress={() => {
+                                                                        const nextRoles = new Set(filterRoles);
+                                                                        if (nextRoles.has(role.id)) nextRoles.delete(role.id);
+                                                                        else nextRoles.add(role.id);
+                                                                        setFilterRoles(nextRoles);
+                                                                    }}
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className={cn('flex size-4 items-center justify-center rounded border transition', filterRoles.has(role.id) ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--border)]')}>
+                                                                            {filterRoles.has(role.id) && <IconCheck size={10} strokeWidth={3} className="text-white" />}
+                                                                        </span>
+                                                                        {role.label}
+                                                                    </div>
+                                                                </Dropdown.Item>
+                                                            ))}
+                                                        </Dropdown.Section>
+                                                        <Dropdown.Section aria-label="By status">
+                                                            {(['all', 'pending', 'accepted', 'blocked'] as const).map((s) => (
+                                                                <Dropdown.Item
+                                                                    key={s}
+                                                                    className="capitalize"
+                                                                    textValue={s === 'all' ? 'All statuses' : s === 'pending' ? 'Pending invitation' : s === 'accepted' ? 'Accepted' : 'Blocked'}
+                                                                    onPress={() => setFilterStatus(s)}
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className={cn('flex size-4 items-center justify-center rounded-full border transition', filterStatus === s ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--border)]')}>
+                                                                            {filterStatus === s && <IconCheck size={10} strokeWidth={3} className="text-white" />}
+                                                                        </span>
+                                                                        {s === 'all' ? 'All statuses' : s === 'pending' ? 'Pending invitation' : s === 'accepted' ? 'Accepted' : 'Blocked'}
+                                                                    </div>
+                                                                </Dropdown.Item>
+                                                            ))}
+                                                        </Dropdown.Section>
+                                                        {activeFilterCount > 0 ? (
+                                                            <Dropdown.Section>
+                                                                <Dropdown.Item
+                                                                    key="reset-filters"
+                                                                    textValue="Reset filters"
+                                                                    className="text-[var(--accent)]"
+                                                                >
+                                                                    Reset filters
+                                                                </Dropdown.Item>
+                                                            </Dropdown.Section>
+                                                        ) : null}
+                                                    </Dropdown.Menu>
+                                                </Dropdown.Popover>
+                                            </Dropdown>
+                                            <input id="csv-import" type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvImport} />
+                                            <AppButton isIconOnly compact variant="ghost" tooltip="Import CSV" aria-label="Import CSV" onPress={() => (document.getElementById('csv-import') as HTMLInputElement | null)?.click()}>
+                                                <IconUpload size={16} />
+                                            </AppButton>
+                                            <AppButton isIconOnly compact variant="ghost" tooltip="Export CSV" onPress={exportCsv}><IconDownload size={16} /></AppButton>
+                                        </>
+                                    }
+                                />
+                            </div>
                     </TabPanel> : null}
 
                     {canViewWorkload ? <TabPanel id="workload" className="outline-none">
@@ -968,32 +931,23 @@ export default function AdminUsersIndex({
                     </TabPanel> : null}
 
                     {canViewUsers ? <TabPanel id="security" className="outline-none">
-                        <AppWorkspaceTable
-                            ariaLabel="Journal de sécurité"
-                            columns={[
-                                { id: 'timestamp', label: 'Horodatage', icon: <History size={13} />, render: (entry: ActivityLogEntry) => <span className="text-[11px] tabular-nums text-[var(--text-muted)]">{entry.timestamp}</span> },
-                                { id: 'user', label: 'Utilisateur', icon: <UserCog size={13} />, render: (entry: ActivityLogEntry) => <span className="text-[11px] font-medium text-[var(--text)]">{entry.user}</span> },
-                                { id: 'action', label: 'Action', icon: <ShieldCheck size={13} />, render: (entry: ActivityLogEntry) => <span className="text-[11px] text-[var(--text-muted)]">{entry.action}</span> },
-                                { id: 'ip', label: 'Adresse IP', icon: <Search size={13} />, render: (entry: ActivityLogEntry) => <span className="font-mono text-[10px] text-[var(--text-muted)]">{entry.ip}</span> },
-                            ]}
-                            data={pagedAuditEntries}
-                            rowKey={(entry) => entry.id}
-                            minTableWidthClassName="min-w-[680px]"
-                            columnOrderStorageKey="archilbo.users.audit.table.columns.v1"
-                            columnOrderHint="Glissez pour réorganiser la colonne"
-                            emptyContent={<AppEmptyState title={auditLoading ? 'Chargement du journal…' : 'Aucun événement de sécurité'} description={auditLoading ? 'Le journal est en cours de récupération.' : 'Les actions sensibles apparaîtront ici.'} />}
-                            toolbar={<div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"><div><h2 className="text-sm font-semibold text-[var(--text)]">Sécurité et audit</h2><p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Traçabilité des actions sensibles de votre organisation.</p></div><AppButton isIconOnly compact variant="ghost" tooltip="Exporter les utilisateurs visibles" aria-label="Exporter les utilisateurs visibles" onPress={exportCsv}><Download size={16} /></AppButton></div>}
-                            footer={
-                                <div className="flex items-center justify-between px-3 py-2">
-                                    <span className="text-[9px] text-[var(--text-muted)]">{auditEntries.length === 0 ? 0 : (currentAuditPage - 1) * TABLE_PAGE_SIZE + 1}–{Math.min(currentAuditPage * TABLE_PAGE_SIZE, auditEntries.length)} sur {auditEntries.length}</span>
-                                    <div className="flex items-center gap-1.5">
-                                        <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Page précédente" aria-label="Page précédente" isDisabled={currentAuditPage <= 1} onPress={() => setAuditPage(Math.max(1, currentAuditPage - 1))}><ChevronLeft size={14} /></AppButton>
-                                        <span className="min-w-10 text-center text-[9px] font-semibold tabular-nums text-[var(--text-muted)]">{currentAuditPage} / {auditTotalPages}</span>
-                                        <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Page suivante" aria-label="Page suivante" isDisabled={currentAuditPage >= auditTotalPages || auditEntries.length === 0} onPress={() => setAuditPage(Math.min(auditTotalPages, currentAuditPage + 1))}><ChevronRight size={14} /></AppButton>
-                                    </div>
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                                <div>
+                                    <h2 className="text-sm font-semibold text-[var(--text)]">Sécurité et audit</h2>
+                                    <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Traçabilité des actions sensibles de votre organisation.</p>
                                 </div>
-                            }
-                        />
+                                <AppButton isIconOnly compact variant="ghost" tooltip="Exporter les utilisateurs visibles" aria-label="Exporter les utilisateurs visibles" onPress={exportCsv}><IconDownload size={16} /></AppButton>
+                            </div>
+                            <AppDataTable
+                                data={auditEntries}
+                                columns={auditColumns}
+                                emptyTitle={auditLoading ? 'Chargement du journal…' : 'Aucun événement de sécurité'}
+                                emptyDescription={auditLoading ? 'Le journal est en cours de récupération.' : 'Les actions sensibles apparaîtront ici.'}
+                                pageSize={TABLE_PAGE_SIZE}
+                                compact
+                            />
+                        </div>
                     </TabPanel> : null}
                 </AppWorkspaceTabs>
                 </div>
@@ -1019,12 +973,12 @@ export default function AdminUsersIndex({
                             {firstError(inviteErrors, 'role') ? <p className="text-xs font-medium text-[var(--danger)]">{firstError(inviteErrors, 'role')}</p> : null}
                         </div>
                         <div className="flex items-start gap-2 rounded-lg border border-[var(--crm-info)]/20 bg-[var(--crm-info-soft)] px-3 py-2.5 text-[11px] leading-relaxed text-[var(--text-muted)]">
-                            <Mail size={14} className="mt-0.5 shrink-0 text-[var(--crm-info)]" />
+                            <IconMail size={14} className="mt-0.5 shrink-0 text-[var(--crm-info)]" />
                             <span>The invitation expires after 72 hours. Until it is accepted, the account remains pending and cannot sign in.</span>
                         </div>
                         <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] pt-4">
                             <AppButton variant="bordered" onPress={() => setIsInviteOpen(false)}>Annuler</AppButton>
-                            <AppButton type="submit" variant="solid" color="primary"><Mail size={15} />Envoyer l'invitation</AppButton>
+                            <AppButton type="submit" variant="solid" color="primary"><IconMail size={15} />Envoyer l'invitation</AppButton>
                         </div>
                     </form>
                 </AppModal>
@@ -1032,7 +986,7 @@ export default function AdminUsersIndex({
                 <AppModal isOpen={Boolean(passwordResetTarget)} onOpenChange={(open) => { if (!open) setPasswordResetTarget(null); }} title="Send password reset" size="sm">
                     {passwordResetTarget ? <div className="space-y-4">
                         <div className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 p-3">
-                            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--accent)]"><KeyRound size={16} /></div>
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--accent)]"><IconKey size={16} /></div>
                             <div>
                                 <p className="text-sm font-semibold text-[var(--foreground)]">{passwordResetTarget.name}</p>
                                 <p className="mt-0.5 text-xs text-[var(--text-muted)]">{passwordResetTarget.email}</p>
@@ -1045,7 +999,7 @@ export default function AdminUsersIndex({
                                 const target = passwordResetTarget;
                                 setPasswordResetTarget(null);
                                 router.post(`/admin/users/${target.id}/password-reset`, {}, { preserveScroll: true, onSuccess: () => toast.success(`Password reset link sent to ${target.email}`), onError: () => toast.error('Password reset link could not be sent.') });
-                            }}><Mail size={14} />Send link</AppButton>
+                            }}><IconMail size={14} />Send link</AppButton>
                         </div>
                     </div> : null}
                 </AppModal>
@@ -1056,7 +1010,7 @@ export default function AdminUsersIndex({
                     onOpenChange={(open) => { if (!open) setViewProfileUser(null); }}
                     title="User profile"
                     description="Account access and current status"
-                    headerIcon={<UserCog size={17} />}
+                    headerIcon={<IconUserCog size={17} />}
                     size="md"
                     footer={viewProfileUser && canManageRoles && roles.some((role) => role.id === primaryRole(viewProfileUser)) && (!isProtectedAdministrator(primaryRole(viewProfileUser)) || canManageProtectedUsers) ? (
                         <AppButton
@@ -1072,7 +1026,7 @@ export default function AdminUsersIndex({
                                 setViewProfileUser(null);
                             }}
                         >
-                            <PenLine size={15} />Edit permissions
+                            <IconPencil size={15} />Edit permissions
                         </AppButton>
                     ) : null}
                 >
@@ -1151,7 +1105,7 @@ export default function AdminUsersIndex({
                                                             <span className="truncate text-xs font-semibold text-[var(--foreground)]">{module}</span>
                                                             <span className="text-[9px] text-[var(--text-muted)]">{permissions.length}</span>
                                                         </span>
-                                                        <Accordion.Indicator className="text-[var(--text-muted)]"><ChevronDown size={14} /></Accordion.Indicator>
+                                                        <Accordion.Indicator className="text-[var(--text-muted)]"><IconChevronDown size={14} /></Accordion.Indicator>
                                                     </Accordion.Trigger>
                                                 </Accordion.Heading>
                                                 <Accordion.Panel>
@@ -1203,7 +1157,7 @@ export default function AdminUsersIndex({
                             {/* ── Role + Restore ── */}
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-1.5">
-                                        <ShieldCheck size={13} className="text-[var(--accent)]" />
+                                        <IconShieldCheck size={13} className="text-[var(--accent)]" />
                                         <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Role de reference</p>
                                     </div>
                                     <Select selectedKey={editRole} onSelectionChange={(key) => {
@@ -1258,7 +1212,7 @@ export default function AdminUsersIndex({
                                         },
                                         onError: () => toast.error("Impossible de mettre a jour les acces."),
                                     });
-                                }}><Save size={15} />Enregistrer</AppButton>
+                                }}><IconDeviceFloppy size={15} />Enregistrer</AppButton>
                             </div>
                         </div>
                     )}
@@ -1269,7 +1223,7 @@ export default function AdminUsersIndex({
                     <div className="text-center">
                         <div className="flex justify-center mb-4">
                             <div className="flex size-12 items-center justify-center rounded-full bg-[var(--crm-gold-soft)]">
-                                <AlertTriangle size={22} className="text-[var(--crm-gold)]" />
+                                <IconAlertTriangle size={22} className="text-[var(--crm-gold)]" />
                             </div>
                         </div>
                         <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Unsaved Changes</h3>
@@ -1292,11 +1246,11 @@ export default function AdminUsersIndex({
                                     'flex size-12 items-center justify-center rounded-full',
                                     confirmBulkAction === 'delete' ? 'bg-[var(--crm-danger-soft)]' : 'bg-[var(--crm-gold-soft)]',
                                 )}>
-                                    <AlertTriangle size={22} className={confirmBulkAction === 'delete' ? 'text-[var(--crm-danger)]' : 'text-[var(--crm-gold)]'} />
+                                    <IconAlertTriangle size={22} className={confirmBulkAction === 'delete' ? 'text-[var(--crm-danger)]' : 'text-[var(--crm-gold)]'} />
                                 </div>
                             </div>
                             <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">
-                                {confirmBulkAction === 'delete' ? 'Remove Users' : 'Suspend Users'}
+                                {confirmBulkAction === 'delete' ? 'Remove IconUsers' : 'Suspend IconUsers'}
                             </h3>
                             <p className="text-[12px] text-[var(--crm-text-muted)] leading-relaxed">
                                 {confirmBulkAction === 'delete'
@@ -1314,7 +1268,7 @@ export default function AdminUsersIndex({
                                             onSuccess: () => { setSelectedIds(new Set()); toast.success('Bulk deletion processed.'); },
                                             onError: () => toast.error('Could not remove some users.'),
                                         });
-                                    }}>Yes, Remove Users</AppButton>
+                                    }}>Yes, Remove IconUsers</AppButton>
                                 ) : (
                                     <AppButton variant="solid" color="primary" onPress={() => {
                                         const ids = [...selectedIds];
@@ -1324,7 +1278,7 @@ export default function AdminUsersIndex({
                                             onSuccess: () => { setSelectedIds(new Set()); toast.success('Bulk suspension processed.'); },
                                             onError: () => toast.error('Could not suspend users.'),
                                         });
-                                    }}>Yes, Suspend Users</AppButton>
+                                    }}>Yes, Suspend IconUsers</AppButton>
                                 )}
                             </div>
                         </div>
@@ -1422,7 +1376,7 @@ export default function AdminUsersIndex({
                         <div className="text-center">
                             <div className="flex justify-center mb-4">
                                 <div className="flex size-12 items-center justify-center rounded-full bg-[var(--crm-danger-soft)]">
-                                    <AlertTriangle size={22} className="text-[var(--crm-danger)]" />
+                                    <IconAlertTriangle size={22} className="text-[var(--crm-danger)]" />
                                 </div>
                             </div>
                             <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Remove {deleteTarget.name}?</h3>

@@ -4,7 +4,8 @@ import { css } from '@codemirror/lang-css';
 import { html } from '@codemirror/lang-html';
 import { EditorView, keymap } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
-import { Braces, Code2 } from 'lucide-react';
+import { IconBraces, IconCode } from '@tabler/icons-react';
+
 import { useMemo } from 'react';
 import { oneDark } from '@codemirror/theme-one-dark';
 import type { TemplatePlaceholder } from '@/features/finance/types';
@@ -85,7 +86,7 @@ export function TemplateCodeEditor({ label, language, value, onChange, onSave, p
         <div className="overflow-hidden rounded-xl border bg-[#0b1020] text-slate-100 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-[#101827] px-2.5 py-1.5">
                 <div className="flex min-w-0 items-center gap-2">
-                    <Code2 size={14} className="shrink-0 text-sky-300" />
+                    <IconCode size={14} className="shrink-0 text-sky-300" />
                     <span className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-300">{label}</span>
                     <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[9px] uppercase text-slate-400">CodeMirror / {language}</span>
                 </div>
@@ -93,7 +94,7 @@ export function TemplateCodeEditor({ label, language, value, onChange, onSave, p
             </div>
 
             <div className="flex flex-wrap items-center gap-1 border-b border-white/10 bg-[#0f172a] px-2.5 py-1.5">
-                <span className="mr-1 inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500"><Braces size={12} /> Insert</span>
+                <span className="mr-1 inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500"><IconBraces size={12} /> Insert</span>
                 {snippets.map((snippet) => (
                     <button key={snippet.label} type="button" onClick={() => insertText(snippet.value)} className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] text-slate-200 hover:bg-white/10">
                         {snippet.label}

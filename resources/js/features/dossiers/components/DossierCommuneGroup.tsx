@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { BadgeDollarSign, ChevronDown, Eye, FileCheck2, FolderKanban, MapPin } from 'lucide-react';
+import { IconCoin, IconChevronDown, IconEye, IconFileCheck, IconFolder, IconMapPin } from '@tabler/icons-react';
+
 import { useState } from 'react';
 import { AppButton } from '@/components/ui/AppButton';
 import type { DossierCommuneGroup as DossierCommuneGroupType } from '@/features/dossiers/types';
@@ -51,7 +52,7 @@ export function DossierCommuneGroup({ group }: Props) {
             >
                 <span className="flex min-w-0 items-center gap-3">
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
-                        <MapPin size={16} />
+                        <IconMapPin size={16} />
                     </span>
                     <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold text-[var(--crm-text)]">{group.commune}</span>
@@ -59,7 +60,7 @@ export function DossierCommuneGroup({ group }: Props) {
                     </span>
                 </span>
 
-                <ChevronDown size={16} className={open ? 'shrink-0 transition' : 'shrink-0 -rotate-90 transition'} />
+                <IconChevronDown size={16} className={open ? 'shrink-0 transition' : 'shrink-0 -rotate-90 transition'} />
             </button>
 
             {open ? (
@@ -86,7 +87,7 @@ export function DossierCommuneGroup({ group }: Props) {
                                         <td>
                                             <div className="flex items-center gap-3">
                                                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]">
-                                                    <FolderKanban size={15} />
+                                                    <IconFolder size={15} />
                                                 </span>
                                                 <div className="min-w-0">
                                                     <p className="max-w-[260px] truncate font-semibold text-[var(--crm-text)]">{dossier.projectObject || dossier.dossierNumber}</p>
@@ -109,7 +110,7 @@ export function DossierCommuneGroup({ group }: Props) {
 
                                         <td>
                                             <span className="inline-flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-400/10 px-2 py-1 text-[10px] font-semibold text-sky-300">
-                                                <FileCheck2 size={12} />
+                                                <IconFileCheck size={12} />
                                                 {dossier.documentsCount} docs
                                             </span>
                                         </td>
@@ -117,7 +118,7 @@ export function DossierCommuneGroup({ group }: Props) {
                                         <td>
                                             <div className="space-y-1">
                                                 <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/20 bg-violet-400/10 px-2 py-1 text-[10px] font-semibold text-violet-300">
-                                                    <BadgeDollarSign size={12} />
+                                                    <IconCoin size={12} />
                                                     {dossier.financeDocumentsCount} finance
                                                 </span>
                                                 <p className="text-xs text-[var(--crm-text-muted)]">Remaining: {money(dossier.remainingTotal)}</p>
@@ -133,7 +134,7 @@ export function DossierCommuneGroup({ group }: Props) {
                                         <td>
                                             <div className="flex justify-end gap-2">
                                                 <AppButton variant="secondary" size="sm" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
-                                                    <Eye size={14} />
+                                                    <IconEye size={14} />
                                                     Open
                                                 </AppButton>
 
@@ -143,7 +144,7 @@ export function DossierCommuneGroup({ group }: Props) {
                                                     title="Documents"
                                                     onClick={() => router.visit(`/documents?search=${encodeURIComponent(dossier.dossierNumber)}`)}
                                                 >
-                                                    <FileCheck2 size={14} />
+                                                    <IconFileCheck size={14} />
                                                 </button>
                                             </div>
                                         </td>

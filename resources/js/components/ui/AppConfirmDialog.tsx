@@ -1,5 +1,6 @@
 import { Modal, ModalCloseTrigger } from '@heroui/react';
-import { AlertTriangle } from 'lucide-react';
+import { IconAlertTriangle } from '@tabler/icons-react';
+
 import type { ReactNode } from 'react';
 import { AppButton } from '@/components/ui/AppButton';
 
@@ -27,7 +28,7 @@ export function AppConfirmDialog({ isOpen, title, description, confirmLabel, can
                     <Modal.Body>
                         <div className="flex gap-3">
                             <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${variant === 'danger' ? 'bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] text-[var(--danger)]' : 'bg-[var(--surface-2)] text-[var(--accent)]'}`}>
-                                {icon ?? <AlertTriangle size={18} />}
+                                {icon ?? <IconAlertTriangle size={18} />}
                             </div>
                             <p className="pt-1 text-sm leading-6 text-[var(--text-muted)]">{description}</p>
                         </div>

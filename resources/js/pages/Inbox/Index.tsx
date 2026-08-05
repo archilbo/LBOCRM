@@ -1,5 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, MessageSquare } from 'lucide-react';
+import { IconArrowLeft, IconMessage2 } from '@tabler/icons-react';
+
 import { Button, Card } from '@heroui/react';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -653,9 +654,9 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                                     {newMsgAvailable ? (
                                         <Button variant="secondary" size="sm" onPress={scrollToBottom}
                                             className="absolute bottom-20 left-1/2 z-10 -translate-x-1/2 rounded-full border border-[var(--border)] text-[var(--accent)] shadow-xl animate-in fade-in slide-in-from-bottom-2">
-                                            <MessageSquare size={12} />
+                                            <IconMessage2 size={12} />
                                             Nouveaux messages
-                                            <ArrowLeft size={12} className="rotate-90" />
+                                            <IconArrowLeft size={12} className="rotate-90" />
                                         </Button>
                                     ) : null}
                                 </div>
@@ -663,7 +664,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                         ) : (
                             <div className="hidden flex-1 items-center justify-center p-6 lg:flex">
                                 <Card className="items-center border-dashed bg-transparent px-10 py-12 text-center shadow-none">
-                                    <MessageSquare size={40} className="mx-auto text-[var(--crm-muted)]" />
+                                    <IconMessage2 size={40} className="mx-auto text-[var(--crm-muted)]" />
                                     <p className="mt-3 text-sm font-semibold text-[var(--text)]">Selectionnez une conversation</p>
                                     <p className="mt-1 text-xs text-[var(--text-muted)]">Vos messages et fichiers apparaitront ici.</p>
                                 </Card>

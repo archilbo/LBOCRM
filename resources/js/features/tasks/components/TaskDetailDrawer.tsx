@@ -1,4 +1,5 @@
-import { CalendarDays, CheckCircle2, CheckSquare, Clock3, ExternalLink, FileText, MessageSquare, Notebook, Paperclip, Plus, StickyNote, X, User, ArrowRight, Circle, Edit3, ListChecks, MessageCircle, Paperclip as PaperclipIcon } from 'lucide-react';
+import { IconCalendarMonth, IconCircleCheck, IconSquareCheck, IconClockHour3, IconExternalLink, IconFileText, IconMessage2, IconNotebook, IconPaperclip, IconPlus, IconNotes, IconX, IconUser, IconArrowRight, IconCircle, IconEdit, IconListCheck, IconMessageCircle } from '@tabler/icons-react';
+
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { AppDrawer } from '@/components/ui/AppDrawer';
@@ -96,7 +97,7 @@ export function TaskDetailDrawer({ task, onClose, onComplete, onChecklistToggle,
                     <AppButton variant="secondary" onPress={onClose}>Close</AppButton>
                     {!isComplete ? (
                         <AppButton variant="primary" onPress={() => onComplete(task)}>
-                            <CheckCircle2 size={14} /> Mark complete
+                            <IconCircleCheck size={14} /> Mark complete
                         </AppButton>
                     ) : null}
                 </div>
@@ -194,7 +195,7 @@ function OverviewTab({ task, links }: { task: TaskRow; links: { label: string; h
                         {links.map((link) => (
                             <button key={link.href} type="button" onClick={() => router.visit(link.href)}
                                 className="inline-flex items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--crm-text)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]">
-                                <ExternalLink size={12} /> {link.label}
+                                <IconExternalLink size={12} /> {link.label}
                             </button>
                         ))}
                     </div>
@@ -263,7 +264,7 @@ function ChecklistTab({ task, checklistItems, doneCount, isComplete, onToggle, o
                 <form onSubmit={onAdd} className="flex gap-2">
                     <input value={label} onChange={(e) => onLabelChange(e.target.value)} placeholder="Add checklist item"
                         className="min-w-0 flex-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
-                    <AppButton variant="secondary" type="submit"><Plus size={14} /> Add</AppButton>
+                    <AppButton variant="secondary" type="submit"><IconPlus size={14} /> Add</AppButton>
                 </form>
             ) : null}
         </div>
@@ -288,7 +289,7 @@ function CommentsTab({ task, commentBody, noteBody, showNote, onCommentChange, o
                 <p className="text-xs font-bold text-[var(--crm-muted)]">Comments ({comments.length})</p>
                 <button type="button" onClick={onToggleNote}
                     className="inline-flex items-center gap-1 text-[9px] font-semibold text-[var(--crm-muted)] hover:text-[var(--crm-gold)]">
-                    <StickyNote size={12} /> {showNote ? 'Write comment' : 'Internal note'}
+                    <IconNotes size={12} /> {showNote ? 'Write comment' : 'Internal note'}
                 </button>
             </div>
             {comments.length > 0 ? (
@@ -312,13 +313,13 @@ function CommentsTab({ task, commentBody, noteBody, showNote, onCommentChange, o
                 <form onSubmit={onSubmitComment} className="space-y-2">
                     <textarea value={commentBody} onChange={(e) => onCommentChange(e.target.value)} placeholder="Write a comment or @mention someone..." rows={3}
                         className="w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
-                    <AppButton variant="secondary" type="submit"><MessageSquare size={14} /> Add comment</AppButton>
+                    <AppButton variant="secondary" type="submit"><IconMessage2 size={14} /> Add comment</AppButton>
                 </form>
             ) : (
                 <form onSubmit={onSubmitNote} className="space-y-2">
                     <textarea value={noteBody} onChange={(e) => onNoteChange(e.target.value)} placeholder="Internal note (team only)..." rows={3}
                         className="w-full rounded-lg border border-amber-400/20 bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
-                    <AppButton variant="secondary" type="submit"><Notebook size={14} /> Add note</AppButton>
+                    <AppButton variant="secondary" type="submit"><IconNotebook size={14} /> Add note</AppButton>
                 </form>
             )}
         </div>
@@ -338,13 +339,13 @@ function FilesTab({ task, attachment, onAttachmentChange, onSubmit }: {
             <form onSubmit={onSubmit} className="flex flex-wrap items-center gap-2">
                 <input type="file" onChange={(e) => onAttachmentChange(e.target.files?.[0] ?? null)}
                     className="min-w-0 flex-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-xs text-[var(--crm-text)] file:mr-2 file:rounded file:border-0 file:bg-[var(--crm-gold)] file:px-2 file:py-0.5 file:text-[9px] file:font-bold file:text-black" />
-                <AppButton variant="secondary" type="submit"><Paperclip size={14} /> Upload</AppButton>
+                <AppButton variant="secondary" type="submit"><IconPaperclip size={14} /> Upload</AppButton>
             </form>
             {attachments.length > 0 ? (
                 <div className="space-y-1.5 max-h-60 overflow-y-auto">
                     {attachments.map((a) => (
                         <div key={a.id} className="flex items-center gap-2 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2">
-                            <FileText size={16} className="shrink-0 text-[var(--crm-muted)]" />
+                            <IconFileText size={16} className="shrink-0 text-[var(--crm-muted)]" />
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-xs font-semibold text-[var(--crm-text)]">{a.originalFilename}</p>
                                 <p className="text-[9px] text-[var(--crm-text-muted)]">{a.sizeLabel || `${a.size} B`}{a.user ? ` by ${a.user.name}` : ''}</p>
@@ -360,7 +361,7 @@ function FilesTab({ task, attachment, onAttachmentChange, onSubmit }: {
                 </div>
             ) : (
                 <div className="rounded-lg border border-dashed border-[var(--crm-border)] px-4 py-6 text-center text-xs text-[var(--crm-text-muted)]">
-                    <FileText size={20} className="mx-auto mb-1 text-[var(--crm-muted)]" />
+                    <IconFileText size={20} className="mx-auto mb-1 text-[var(--crm-muted)]" />
                     No files uploaded yet.
                 </div>
             )}
@@ -368,20 +369,20 @@ function FilesTab({ task, attachment, onAttachmentChange, onSubmit }: {
     );
 }
 
-const ACTIVITY_ICONS: Record<string, { icon: typeof Circle; color: string; label: string }> = {
-    created: { icon: Plus, color: 'text-blue-400', label: 'Task created' },
-    updated: { icon: Edit3, color: 'text-amber-400', label: 'Task updated' },
-    status_changed: { icon: ArrowRight, color: 'text-violet-400', label: 'Status changed' },
-    checklist_added: { icon: ListChecks, color: 'text-cyan-400', label: 'Checklist item added' },
-    checklist_toggled: { icon: CheckSquare, color: 'text-emerald-400', label: 'Checklist toggled' },
-    comment_added: { icon: MessageCircle, color: 'text-blue-400', label: 'Comment added' },
-    note_added: { icon: Notebook, color: 'text-amber-400', label: 'Note added' },
-    attachment_added: { icon: PaperclipIcon, color: 'text-rose-400', label: 'Attachment added' },
-    attachment_removed: { icon: PaperclipIcon, color: 'text-red-400', label: 'Attachment removed' },
+const ACTIVITY_ICONS: Record<string, { icon: typeof IconCircle; color: string; label: string }> = {
+    created: { icon: IconPlus, color: 'text-blue-400', label: 'Task created' },
+    updated: { icon: IconEdit, color: 'text-amber-400', label: 'Task updated' },
+    status_changed: { icon: IconArrowRight, color: 'text-violet-400', label: 'Status changed' },
+    checklist_added: { icon: IconListCheck, color: 'text-cyan-400', label: 'Checklist item added' },
+    checklist_toggled: { icon: IconSquareCheck, color: 'text-emerald-400', label: 'Checklist toggled' },
+    comment_added: { icon: IconMessageCircle, color: 'text-blue-400', label: 'Comment added' },
+    note_added: { icon: IconNotebook, color: 'text-amber-400', label: 'Note added' },
+    attachment_added: { icon: IconPaperclip, color: 'text-rose-400', label: 'Attachment added' },
+    attachment_removed: { icon: IconPaperclip, color: 'text-red-400', label: 'Attachment removed' },
 };
 
 function ActivityIcon({ entry }: { entry: TaskActivityLogRow }) {
-    const cfg = ACTIVITY_ICONS[entry.action] || { icon: Circle, color: 'text-zinc-400', label: entry.action };
+    const cfg = ACTIVITY_ICONS[entry.action] || { icon: IconCircle, color: 'text-zinc-400', label: entry.action };
     const Icon = cfg.icon;
     return (
         <div className="flex items-start gap-3 group">
@@ -401,7 +402,7 @@ function ActivityIcon({ entry }: { entry: TaskActivityLogRow }) {
                 <div className="flex items-center gap-2 mt-0.5">
                     {entry.user ? (
                         <span className="flex items-center gap-1 text-[9px] text-[var(--crm-text-muted)]">
-                            <User size={9} /> {entry.user.name}
+                            <IconUser size={9} /> {entry.user.name}
                         </span>
                     ) : null}
                     <span className="text-[9px] text-[var(--crm-text-muted)]">{entry.createdAt?.slice(0, 16).replace('T', ' ')}</span>
@@ -424,7 +425,7 @@ function ActivityTab({ task }: { task: TaskRow }) {
                 </div>
             ) : (
                 <div className="rounded-lg border border-dashed border-[var(--crm-border)] px-4 py-4 text-center text-xs text-[var(--crm-text-muted)]">
-                    <Clock3 size={16} className="mx-auto mb-1 text-[var(--crm-muted)]" />
+                    <IconClockHour3 size={16} className="mx-auto mb-1 text-[var(--crm-muted)]" />
                     No activity recorded yet.
                 </div>
             )}

@@ -1,4 +1,5 @@
-import { Download, Eye, ExternalLink } from 'lucide-react';
+import { IconDownload, IconEye, IconExternalLink } from '@tabler/icons-react';
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { MessageAttachmentRow } from '@/features/chat/types';
@@ -79,7 +80,7 @@ export function FileMessageCard({ attachment, isMine, onPreview }: Props) {
                     className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition"
                     title="Aperçu"
                 >
-                    <Eye size={15} />
+                    <IconEye size={15} />
                 </button>
             ) : (
                 <button
@@ -88,7 +89,7 @@ export function FileMessageCard({ attachment, isMine, onPreview }: Props) {
                     className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition disabled:opacity-50"
                     title="Télécharger"
                 >
-                    <Download size={15} />
+                    <IconDownload size={15} />
                 </button>
             )}
         </div>

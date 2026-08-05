@@ -1,15 +1,6 @@
 import { router } from '@inertiajs/react';
-import {
-    AlertCircle,
-    ArrowUpDown,
-    ChevronDown,
-    ChevronUp,
-    LogOut,
-    MoreHorizontal,
-    Pencil,
-    Trash2,
-    Undo2,
-} from 'lucide-react';
+import { IconAlertCircle, IconArrowsSort, IconChevronDown, IconChevronUp, IconLogout, IconDots, IconPencil, IconTrash, IconArrowBackUp } from '@tabler/icons-react';
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     flexRender,
@@ -55,7 +46,7 @@ function SortHeader({ label, sortKey, sort, onSortChange }: { label: string; sor
         }}
             className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-white/50 hover:text-white/80 select-none whitespace-nowrap">
             {label}
-            {active ? (dir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />) : <ArrowUpDown size={11} className="opacity-30" />}
+            {active ? (dir === 'asc' ? <IconChevronUp size={11} /> : <IconChevronDown size={11} />) : <IconArrowsSort size={11} className="opacity-30" />}
         </button>
     );
 }
@@ -198,7 +189,7 @@ export function ArchiveTable({
             header: () => <SortHeader label="Due" sortKey="due_at" sort={sort} onSortChange={onSortChange} />,
             cell: ({ row }) => (
                 row.original.isOverdue ? (
-                    <span className="inline-flex items-center gap-1 text-white/80 tabular-nums whitespace-nowrap"><AlertCircle size={11} className="text-red-400" />{row.original.dueAt}</span>
+                    <span className="inline-flex items-center gap-1 text-white/80 tabular-nums whitespace-nowrap"><IconAlertCircle size={11} className="text-red-400" />{row.original.dueAt}</span>
                 ) : row.original.dueAt ? (
                     <span className="text-white/60 tabular-nums whitespace-nowrap">{row.original.dueAt}</span>
                 ) : <span className="text-white/40">—</span>
@@ -214,7 +205,7 @@ export function ArchiveTable({
                         <AppTooltip label="More actions">
                             <button type="button" onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === row.original.id ? null : row.original.id); }}
                                 className="flex size-7 items-center justify-center rounded text-white/40 hover:bg-white/5 hover:text-white/80" aria-label={`Actions for ${row.original.archiveNumber}`}>
-                                <MoreHorizontal size={14} />
+                                <IconDots size={14} />
                             </button>
                         </AppTooltip>
                     </div>
@@ -222,16 +213,16 @@ export function ArchiveTable({
                         <div className="absolute right-0 top-full z-20 min-w-32 rounded-lg border border-white/10 bg-zinc-900 py-1 shadow-sm"
                             onMouseLeave={() => setMenuOpen(null)} onClick={(e) => e.stopPropagation()}>
                             {onCheckoutSingle ? <button type="button" onClick={() => { setMenuOpen(null); onCheckoutSingle(row.original); }}
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"><LogOut size={12} /> Check out</button>
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"><IconLogout size={12} /> Check out</button>
                             : null}
                             {onReturnSingle ? <button type="button" onClick={() => { setMenuOpen(null); onReturnSingle(row.original); }}
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"><Undo2 size={12} /> Return</button>
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"><IconArrowBackUp size={12} /> Return</button>
                             : null}
                             {onEditSingle ? <button type="button" onClick={() => { setMenuOpen(null); onEditSingle(row.original); }}
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"><Pencil size={12} /> Edit</button>
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"><IconPencil size={12} /> Edit</button>
                             : null}
                             {onDeleteSingle ? <button type="button" onClick={() => { setMenuOpen(null); onDeleteSingle(row.original); }}
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-white/5"><Trash2 size={12} /> Delete</button>
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-white/5"><IconTrash size={12} /> Delete</button>
                             : null}
                         </div>
                     ) : null}

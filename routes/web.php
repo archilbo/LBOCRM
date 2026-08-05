@@ -142,6 +142,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/documents/{dossierDocument}/view', [DocumentController::class, 'view'])->name('documents.view')->middleware('permission.route');
     Route::get('/documents/{dossierDocument}/print', [DocumentController::class, 'print'])->name('documents.print')->middleware('permission.route');
     Route::get('/documents/{dossierDocument}/download', [DocumentController::class, 'download'])->name('documents.download')->middleware('permission.route');
+    Route::get('/documents/{dossierDocument}/content', [DocumentController::class, 'content'])->name('documents.content')->middleware('permission.route');
 
     Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index')->middleware('permission.route');
     Route::post('/contracts', [ContractController::class, 'store'])->name('contracts.store')->middleware('permission.route');

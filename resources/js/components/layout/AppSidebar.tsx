@@ -1,9 +1,9 @@
 import { router, usePage } from '@inertiajs/react';
 import {
-    BadgeDollarSign, Building2, ChevronDown, ChevronRight, FolderKanban,
-    HelpCircle, LogOut, PanelLeftClose, PanelLeftOpen, Settings, Check,
-    ClipboardList, MessageCircleMore, ShieldCheck,
-} from 'lucide-react';
+    IconBuildingSkyscraper, IconCheck, IconChevronDown, IconChevronRight, IconClipboardList,
+    IconCoin, IconHelpCircle, IconLayoutKanban, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand,
+    IconLogout, IconMessages, IconSettings, IconShieldCheck,
+} from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import type { AppRoute } from '@/config/navigation';
@@ -40,8 +40,8 @@ const financeChildren: { key: string; labelKey?: string }[] = [
 
 /* ── Group keys for collapsed rail popovers ── */
 const operationsGroupKeys = [
-    'documents', 'contracts', 'tasks',
-    'calendar',
+    'documents', 'contracts', 'archives',
+    'tasks', 'calendar',
 ] as const;
 
 const financeGroupKeys = [
@@ -279,6 +279,24 @@ export function AppSidebar() {
             );
         }
 
+        function renderRailItem(routeKey: string, opts?: { badge?: ReactNode }) {
+            const route = getRoute(routeKey);
+            if (!route || !route.enabled || !canView(route)) return null;
+            const Icon = route.icon;
+            const active = isActive(route);
+            return (
+                <button type="button"
+                    onClick={() => goTo(route.href, route.enabled)}
+                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
+                    onMouseLeave={handleLeave}
+                    className={railBtn(active)}
+                    aria-label={t(route.labelKey)}>
+                    <Icon size={16} />
+                    {opts?.badge}
+                </button>
+            );
+        }
+
         return (
             <>
                 <aside
@@ -292,72 +310,30 @@ export function AppSidebar() {
                             onMouseLeave={handleLeave}
                             className="flex size-9 items-center justify-center rounded-[10px] bg-accent text-accent-fg"
                             aria-label={t('app.name')}>
-                            <Building2 size={18} />
+                            <IconBuildingSkyscraper size={18} />
                         </button>
                         <button type="button" onClick={toggleSidebar}
                             onMouseEnter={(e) => handleEnter(e, 'Expand')}
                             onMouseLeave={handleLeave}
                             className="flex size-8 items-center justify-center rounded-lg border border-border text-subtle transition hover:border-accent hover:text-accent"
                             aria-label="Expand sidebar">
-                            <PanelLeftOpen size={15} />
+                            <IconLayoutSidebarLeftExpand size={15} />
                         </button>
                     </div>
 
                     {/* ── Primary nav ── */}
                     <nav className="flex-1 space-y-[6px] overflow-y-auto px-2 py-3 scrollbar-none">
                         {/* Dashboard */}
-                        {(() => {
-                            const route = getRoute('dashboard');
-                            if (!route || !route.enabled || !canView(route)) return null;
-                            const Icon = route.icon;
-                            const active = isActive(route);
-                            return (
-                                <button type="button"
-                                    onClick={() => goTo(route.href, route.enabled)}
-                                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
-                                    onMouseLeave={handleLeave}
-                                    className={railBtn(active)}
-                                    aria-label={t(route.labelKey)}>
-                                    <Icon size={16} />
-                                </button>
-                            );
-                        })()}
+                        {renderRailItem('dashboard')}
 
                         {/* Clients */}
-                        {(() => {
-                            const route = getRoute('clients');
-                            if (!route || !route.enabled || !canView(route)) return null;
-                            const Icon = route.icon;
-                            const active = isActive(route);
-                            return (
-                                <button type="button"
-                                    onClick={() => goTo(route.href, route.enabled)}
-                                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
-                                    onMouseLeave={handleLeave}
-                                    className={railBtn(active)}
-                                    aria-label={t(route.labelKey)}>
-                                    <Icon size={16} />
-                                </button>
-                            );
-                        })()}
+                        {renderRailItem('clients')}
+
+                        {/* Intermediaries */}
+                        {renderRailItem('intermediaries')}
 
                         {/* Dossiers */}
-                        {(() => {
-                            const route = getRoute('dossiers');
-                            if (!route || !route.enabled || !canView(route)) return null;
-                            const Icon = route.icon;
-                            const active = isActive(route);
-                            return (
-                                <button type="button"
-                                    onClick={() => goTo(route.href, route.enabled)}
-                                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
-                                    onMouseLeave={handleLeave}
-                                    className={railBtn(active)}
-                                    aria-label={t(route.labelKey)}>
-                                    <Icon size={16} />
-                                </button>
-                            );
-                        })()}
+                        {renderRailItem('dossiers')}
 
                         {/* Operations group flyout */}
                         {operationsGroupKeys.some((key) => {
@@ -365,13 +341,13 @@ export function AppSidebar() {
                             return route && route.enabled && canView(route);
                         }) ? <button type="button"
                             onMouseEnter={(e) => handleEnter(e, 'Operations', {
-                                icon: <FolderKanban size={16} />,
+                                icon: <IconLayoutKanban size={16} />,
                                 items: operationsGroupKeys.map((k) => ({ key: k })),
                             })}
                             onMouseLeave={handleLeave}
                             className={railBtn(opsActive)}
                             aria-label="Operations">
-                            <FolderKanban size={16} />
+                            <IconLayoutKanban size={16} />
                         </button> : null}
 
                         {/* Finance group flyout */}
@@ -380,7 +356,7 @@ export function AppSidebar() {
                             return route && route.enabled && canView(route);
                         }) ? <button type="button"
                             onMouseEnter={(e) => handleEnter(e, 'Finance', {
-                                icon: <BadgeDollarSign size={16} />,
+                                icon: <IconCoin size={16} />,
                                 items: financeGroupKeys.map((k) => ({
                                     key: k,
                                     labelKey: k === 'finance' ? 'nav.financeOverview' : undefined,
@@ -389,47 +365,21 @@ export function AppSidebar() {
                             onMouseLeave={handleLeave}
                             className={railBtn(financeActive)}
                             aria-label="Finance">
-                            <BadgeDollarSign size={16} />
+                            <IconCoin size={16} />
                         </button> : null}
 
                         {/* Inbox */}
-                        {(() => {
-                            const route = getRoute('inbox');
-                            if (!route || !route.enabled || !canView(route)) return null;
-                            const Icon = route.icon;
-                            const active = isActive(route);
-                            return (
-                                <button type="button"
-                                    onClick={() => goTo(route.href, route.enabled)}
-                                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
-                                    onMouseLeave={handleLeave}
-                                    className={railBtn(active)}
-                                    aria-label={t(route.labelKey)}>
-                                    <Icon size={16} />
-                                    {unreadCount > 0 ? (
-                                        <span className="absolute right-[5px] top-[3px] size-2 rounded-full bg-danger" />
-                                    ) : null}
-                                </button>
-                            );
-                        })()}
+                        {renderRailItem('inbox', {
+                            badge: unreadCount > 0 ? (
+                                <span className="absolute right-[5px] top-[3px] size-2 rounded-full bg-danger" />
+                            ) : null,
+                        })}
 
                         {/* Notifications */}
-                        {(() => {
-                            const route = getRoute('notifications');
-                            if (!route || !route.enabled || !canView(route)) return null;
-                            const Icon = route.icon;
-                            const active = isActive(route);
-                            return (
-                                <button type="button"
-                                    onClick={() => goTo(route.href, route.enabled)}
-                                    onMouseEnter={(e) => handleEnter(e, t(route.labelKey))}
-                                    onMouseLeave={handleLeave}
-                                    className={railBtn(active)}
-                                    aria-label={t(route.labelKey)}>
-                                    <Icon size={16} />
-                                </button>
-                            );
-                        })()}
+                        {renderRailItem('notifications')}
+
+                        {/* Users (administration) */}
+                        {renderRailItem('users')}
                     </nav>
 
                     {/* ── Bottom: settings, user, logout ── */}
@@ -440,7 +390,7 @@ export function AppSidebar() {
                                 onMouseLeave={handleLeave}
                                 className="flex size-9 items-center justify-center rounded-xl text-muted transition hover:bg-surface-2 hover:text-foreground"
                                 aria-label={t('nav.settings')}>
-                                <Settings size={16} />
+                                <IconSettings size={16} />
                             </button>
 
                             <button type="button" onClick={() => setUserOpen((o) => !o)}
@@ -456,7 +406,7 @@ export function AppSidebar() {
                                 onMouseLeave={handleLeave}
                                 className="flex size-9 items-center justify-center rounded-xl text-muted transition hover:bg-surface-2 hover:text-danger"
                                 aria-label={t('nav.logout')}>
-                                <LogOut size={16} />
+                                <IconLogout size={16} />
                             </button>
                         </div>
                     </div>
@@ -512,7 +462,7 @@ export function AppSidebar() {
                 <button type="button" onClick={() => setWsOpen((o) => !o)}
                     className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-surface-2">
                     <div className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-accent text-accent-fg">
-                        <Building2 size={16} />
+                        <IconBuildingSkyscraper size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
                         <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
@@ -522,26 +472,26 @@ export function AppSidebar() {
                             {t('app.description')}
                         </p>
                     </div>
-                    <ChevronDown size={13} className={cn('shrink-0 text-subtle transition', wsOpen && 'rotate-180')} />
+                    <IconChevronDown size={13} className={cn('shrink-0 text-subtle transition', wsOpen && 'rotate-180')} />
                 </button>
 
                 <button type="button" onClick={toggleSidebar}
                     className="absolute right-2 top-1/2 -translate-y-1/2 flex size-6 items-center justify-center rounded-md text-subtle transition hover:bg-surface-2 hover:text-foreground"
                     title="Collapse" aria-label="Collapse">
-                    <PanelLeftClose size={13} />
+                    <IconLayoutSidebarLeftCollapse size={13} />
                 </button>
 
                 {wsOpen ? (
                     <div className="absolute left-3 right-3 top-full z-[60] mt-1 rounded-xl border border-border bg-surface p-1.5 shadow-lg">
                         <div className="flex items-center gap-2.5 border-b border-border px-2.5 py-2">
                             <div className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-accent text-accent-fg">
-                                <Building2 size={14} />
+                                <IconBuildingSkyscraper size={14} />
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-xs font-semibold text-foreground">ARCHI LBO OS</p>
                                 <p className="truncate text-[9px] text-muted">{t('app.description')}</p>
                             </div>
-                            <Check size={13} className="shrink-0 text-accent" />
+                            <IconCheck size={13} className="shrink-0 text-accent" />
                         </div>
                     </div>
                 ) : null}
@@ -549,15 +499,15 @@ export function AppSidebar() {
 
             {/* ── Navigation ── */}
             <nav className="flex-1 overflow-y-auto px-2 pb-2 scrollbar-none">
-                <NavigationSection label={t('nav.groups.principal')} icon={<FolderKanban size={13} />}>
+                <NavigationSection label={t('nav.groups.principal')} icon={<IconLayoutKanban size={13} />}>
                     {workspaceItems.map((key) => renderNavItem(key, navOpts))}
                 </NavigationSection>
 
-                <NavigationSection label={t('nav.groups.followUp')} icon={<ClipboardList size={13} />}>
+                <NavigationSection label={t('nav.groups.followUp')} icon={<IconClipboardList size={13} />}>
                     {followUpItems.map(({ key }) => renderNavItem(key, navOpts))}
                 </NavigationSection>
 
-                <NavigationSection label={t('nav.finance')} icon={<BadgeDollarSign size={13} />}>
+                <NavigationSection label={t('nav.finance')} icon={<IconCoin size={13} />}>
 
                     <div className="ml-2 border-l border-border/70 pl-2">
                         {financeChildren.map(({ key, labelKey }) => {
@@ -569,13 +519,13 @@ export function AppSidebar() {
 
                 </NavigationSection>
 
-                <NavigationSection label={t('nav.groups.communication')} icon={<MessageCircleMore size={13} />}>
+                <NavigationSection label={t('nav.groups.communication')} icon={<IconMessages size={13} />}>
                     {renderNavItem('inbox', navOpts)}
                     {renderNavItem('notifications', navOpts)}
                 </NavigationSection>
 
                 {/* Administration */}
-                <NavigationSection label={t('nav.groups.administration')} icon={<ShieldCheck size={13} />}>
+                <NavigationSection label={t('nav.groups.administration')} icon={<IconShieldCheck size={13} />}>
                     {['users'].map((key) => renderNavItem(key, navOpts))}
                 </NavigationSection>
 
@@ -587,13 +537,13 @@ export function AppSidebar() {
                 <div className="flex items-center gap-0.5 border-b border-border px-2 py-1">
                     <button type="button" onClick={() => goTo('/settings', true)}
                         className="flex h-7 flex-1 items-center gap-2 rounded-md px-2 text-[11px] font-medium text-muted transition hover:bg-surface-2 hover:text-foreground">
-                        <Settings size={14} />
+                        <IconSettings size={14} />
                         {t('nav.settings')}
                     </button>
                     <button type="button"
                         className="flex h-7 w-7 items-center justify-center rounded-md text-subtle transition hover:bg-surface-2 hover:text-foreground"
                         title="Help" aria-label="Help">
-                        <HelpCircle size={14} />
+                        <IconHelpCircle size={14} />
                     </button>
                 </div>
 
@@ -610,7 +560,7 @@ export function AppSidebar() {
                             {authUser?.email || ''}
                         </p>
                     </div>
-                    <ChevronRight size={12} className={cn('shrink-0 text-subtle transition', userOpen && 'rotate-90')} />
+                    <IconChevronRight size={12} className={cn('shrink-0 text-subtle transition', userOpen && 'rotate-90')} />
                 </button>
 
                 {userOpen ? (
@@ -627,11 +577,11 @@ export function AppSidebar() {
                         <div className="mt-1 space-y-0.5">
                             <button type="button" onClick={() => { router.visit('/settings'); setUserOpen(false); }}
                                 className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted transition hover:bg-surface-2 hover:text-foreground">
-                                <Settings size={14} /> {t('nav.settings')}
+                                <IconSettings size={14} /> {t('nav.settings')}
                             </button>
                             <button type="button" onClick={() => { router.post('/logout'); setUserOpen(false); }}
                                 className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted transition hover:bg-surface-2 hover:text-danger">
-                                <LogOut size={14} /> {t('nav.logout')}
+                                <IconLogout size={14} /> {t('nav.logout')}
                             </button>
                         </div>
                     </div>

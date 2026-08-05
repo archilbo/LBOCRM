@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Clock, Eye, FileText, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { IconArrowLeft, IconClock, IconEye, IconFileText, IconArrowRotaryFirstLeft, IconDeviceFloppy, IconTrash } from '@tabler/icons-react';
+
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
@@ -154,7 +155,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                         <div className="flex flex-wrap items-start justify-between gap-4">
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                                    <Clock size={14} />
+                                    <IconClock size={14} />
                                     Template History
                                 </div>
 
@@ -173,7 +174,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                                     onClick={() => router.visit(routes.templates)}
                                     className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
                                 >
-                                    <ArrowLeft size={16} />
+                                    <IconArrowLeft size={16} />
                                     Back to editor
                                 </button>
 
@@ -182,8 +183,8 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                                     onClick={createSnapshot}
                                     className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
                                 >
-                                    <Save size={16} />
-                                    Save snapshot
+                                    <IconDeviceFloppy size={16} />
+                                    IconDeviceFloppy snapshot
                                 </button>
                             </div>
                         </div>
@@ -237,7 +238,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                                     })
                                 ) : (
                                     <div className="rounded-2xl border border-dashed p-6 text-center">
-                                        <FileText className="mx-auto text-[var(--text-muted)]" size={24} />
+                                        <IconFileText className="mx-auto text-[var(--text-muted)]" size={24} />
                                         <p className="mt-3 text-sm font-semibold">No versions yet</p>
                                         <p className="mt-1 text-xs text-[var(--text-muted)]">
                                             Create a manual snapshot or edit the template to generate automatic history.
@@ -265,7 +266,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                                             onClick={() => restoreVersion(selectedVersion)}
                                             className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-xs font-semibold text-white transition hover:opacity-90"
                                         >
-                                            <RotateCcw size={14} />
+                                            <IconArrowRotaryFirstLeft size={14} />
                                             Restore
                                         </button>
 
@@ -274,7 +275,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                                             onClick={() => deleteVersion(selectedVersion)}
                                             className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold text-red-500 transition hover:border-red-500"
                                         >
-                                            <Trash2 size={14} />
+                                            <IconTrash size={14} />
                                             Delete
                                         </button>
                                     </div>
@@ -333,7 +334,7 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                                                 }}
                                                 className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl border bg-[var(--surface)] px-4 text-sm font-semibold text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
                                             >
-                                                <Eye size={16} />
+                                                <IconEye size={16} />
                                                 Open preview
                                             </button>
                                         </div>

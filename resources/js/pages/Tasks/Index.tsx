@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { ClipboardList, Plus } from 'lucide-react';
+import { IconClipboardList, IconPlus } from '@tabler/icons-react';
+
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
@@ -253,7 +254,7 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
                 <div className="crm-page space-y-4">
                     <section className="flex flex-col gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]"><ClipboardList size={19} /></span>
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]"><IconClipboardList size={19} /></span>
                             <div className="min-w-0">
                                 <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Operations</p>
                                 <h1 className="mt-0.5 text-lg font-bold text-[var(--foreground)]">Tasks</h1>
@@ -269,7 +270,7 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
                                 ))}
                             </div>
                             <AppButton size="sm" variant="ghost" className="h-8 border border-[var(--border)] bg-[var(--surface)] px-2.5" onPress={() => router.visit('/admin/users?tab=workload')}>Workload</AppButton>
-                            <AppButton size="sm" variant="ghost" className="h-8 bg-[var(--accent)] px-2.5 text-black hover:bg-[var(--accent-hover)]" onPress={() => { setFormErrors({}); setCreateOpen(true); }}><Plus size={14} /> New task</AppButton>
+                            <AppButton size="sm" variant="ghost" className="h-8 bg-[var(--accent)] px-2.5 text-black hover:bg-[var(--accent-hover)]" onPress={() => { setFormErrors({}); setCreateOpen(true); }}><IconPlus size={14} /> New task</AppButton>
                         </div>
                     </section>
 

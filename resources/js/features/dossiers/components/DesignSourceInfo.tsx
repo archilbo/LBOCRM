@@ -1,4 +1,5 @@
-import { Download, ArrowUpFromLine, FileWarning, Info, HardDrive, Shield, Clock, User, FileText, Package, Wrench, Image, Box } from 'lucide-react';
+import { IconDownload, IconArrowUpFromArc, IconFileAlert, IconInfoCircle, IconDatabase, IconShield, IconClock, IconUser, IconFileText, IconPackage, IconTool, IconPhoto, IconBox } from '@tabler/icons-react';
+
 import { Button, Chip } from '@heroui/react';
 import { formatFileSize, formatDate } from '@/lib/formatters';
 import type { ProjectDesignAsset, ProjectDesignFile } from '@/features/project-design/types/projectDesign';
@@ -37,7 +38,7 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                         Review Assets
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                        <Chip size="sm" variant="flat" color="default" startContent={<HardDrive size={12} />}>
+                        <Chip size="sm" variant="flat" color="default" startContent={<IconDatabase size={12} />}>
                             Source {asset.extension.toUpperCase()}
                         </Chip>
                         {reviewAssets.map((ra) => (
@@ -46,7 +47,7 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                                 size="sm"
                                 variant="flat"
                                 color={ra.mimeType === 'application/pdf' ? 'primary' : 'default'}
-                                startContent={ra.mimeType === 'application/pdf' ? <FileText size={12} /> : <Image size={12} />}
+                                startContent={ra.mimeType === 'application/pdf' ? <IconFileText size={12} /> : <IconPhoto size={12} />}
                                 onClick={() => onOpenReviewAsset?.(ra)}
                                 className="cursor-pointer transition hover:opacity-80"
                             >
@@ -67,17 +68,17 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                         <h3 className="text-base font-semibold text-[var(--foreground)]">{cap?.label ?? asset.extension.toUpperCase()}</h3>
                         <p className="mt-0.5 truncate text-[12px] text-[var(--text-muted)]">{asset.originalFilename}</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                            <Chip size="sm" variant="flat" color="default" startContent={<HardDrive size={11} />}>
+                            <Chip size="sm" variant="flat" color="default" startContent={<IconDatabase size={11} />}>
                                 Source stored
                             </Chip>
-                            <Chip size="sm" variant="flat" color="warning" startContent={<FileWarning size={11} />}>
+                            <Chip size="sm" variant="flat" color="warning" startContent={<IconFileAlert size={11} />}>
                                 Desktop editing required
                             </Chip>
-                            <Chip size="sm" variant="flat" color="danger" startContent={<Shield size={11} />}>
+                            <Chip size="sm" variant="flat" color="danger" startContent={<IconShield size={11} />}>
                                 Browser preview unavailable
                             </Chip>
                             {hasReviewAssets && (
-                                <Chip size="sm" variant="flat" color="success" startContent={<FileText size={11} />}>
+                                <Chip size="sm" variant="flat" color="success" startContent={<IconFileText size={11} />}>
                                     {reviewAssets.some(a => a.mimeType === 'application/pdf') ? 'PDF review available' : 'Review available'}
                                 </Chip>
                             )}
@@ -90,7 +91,7 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                 {/* Fallback message */}
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/30 dark:bg-amber-900/10">
                     <div className="flex items-start gap-2">
-                        <FileWarning size={16} className="mt-0.5 shrink-0 text-amber-500" />
+                        <IconFileAlert size={16} className="mt-0.5 shrink-0 text-amber-500" />
                         <div>
                             <p className="text-[11px] font-medium text-amber-800 dark:text-amber-300">Browser preview unavailable</p>
                             <p className="mt-0.5 text-[10px] text-amber-700 dark:text-amber-400">
@@ -108,10 +109,10 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                         <Button
                             size="sm"
                             variant="bordered"
-                            startContent={<Download size={14} />}
+                            startContent={<IconDownload size={14} />}
                         >
                             <a href={asset.downloadUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
-                                Download Source
+                                IconDownload Source
                             </a>
                         </Button>
                     ) : null}
@@ -119,7 +120,7 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                         <Button
                             size="sm"
                             variant="bordered"
-                            startContent={<ArrowUpFromLine size={14} />}
+                            startContent={<IconArrowUpFromArc size={14} />}
                             onPress={onUploadDerivative}
                         >
                             Upload Review Asset
@@ -131,22 +132,22 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
 
                 {/* Source metadata grid */}
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-[11px]">
-                    <MetaRow icon={<FileText size={12} />} label="Format" value={asset.extension.toUpperCase()} />
-                    <MetaRow icon={<Info size={12} />} label="MIME" value={asset.mimeType} />
-                    <MetaRow icon={<HardDrive size={12} />} label="Size" value={formatFileSize(asset.sizeBytes)} />
-                    {application && <MetaRow icon={<FileText size={12} />} label="Application" value={application} />}
-                    {asset.sourceApplication && <MetaRow icon={<Info size={12} />} label="Source version" value={asset.sourceApplication} />}
-                    {versionLabel && <MetaRow icon={<FileText size={12} />} label="Revision" value={versionLabel} />}
-                    {uploadedBy && <MetaRow icon={<User size={12} />} label="Uploaded by" value={uploadedBy.name} />}
-                    {uploadedAt && <MetaRow icon={<Clock size={12} />} label="Uploaded" value={formatDate(uploadedAt)} />}
+                    <MetaRow icon={<IconFileText size={12} />} label="Format" value={asset.extension.toUpperCase()} />
+                    <MetaRow icon={<IconInfoCircle size={12} />} label="MIME" value={asset.mimeType} />
+                    <MetaRow icon={<IconDatabase size={12} />} label="Size" value={formatFileSize(asset.sizeBytes)} />
+                    {application && <MetaRow icon={<IconFileText size={12} />} label="Application" value={application} />}
+                    {asset.sourceApplication && <MetaRow icon={<IconInfoCircle size={12} />} label="Source version" value={asset.sourceApplication} />}
+                    {versionLabel && <MetaRow icon={<IconFileText size={12} />} label="Revision" value={versionLabel} />}
+                    {uploadedBy && <MetaRow icon={<IconUser size={12} />} label="Uploaded by" value={uploadedBy.name} />}
+                    {uploadedAt && <MetaRow icon={<IconClock size={12} />} label="Uploaded" value={formatDate(uploadedAt)} />}
                     <MetaRow
-                        icon={<Shield size={12} />}
+                        icon={<IconShield size={12} />}
                         label="Scan status"
                         value={<Chip size="sm" variant="flat" color={scanColor as any} className="h-5 text-[9px]">{scanLabel}</Chip>}
                     />
                     {asset.conversionStatus && (
                         <MetaRow
-                            icon={<Clock size={12} />}
+                            icon={<IconClock size={12} />}
                             label="Conversion"
                             value={<Chip size="sm" variant="flat" color={asset.conversionStatus === 'ready' ? 'success' : 'warning'} className="h-5 text-[9px]">{asset.conversionStatus}</Chip>}
                         />
@@ -157,7 +158,7 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
             {/* No review assets hint */}
             {!hasReviewAssets && (
                 <div className="flex items-center gap-2 rounded-lg border border-dashed border-[var(--border)] px-4 py-3 text-[10px] text-[var(--text-muted)]">
-                    <Info size={14} className="shrink-0" />
+                    <IconInfoCircle size={14} className="shrink-0" />
                     <span>No review assets have been added to this version. Upload a PDF, IFC, or image to enable browser review.</span>
                 </div>
             )}

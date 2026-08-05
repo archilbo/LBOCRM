@@ -1,4 +1,5 @@
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { IconArrowDown, IconArrowUp, IconArrowsSort } from '@tabler/icons-react';
+
 import type { ReactNode } from 'react';
 
 export type FinanceSortDirection = 'asc' | 'desc';
@@ -23,7 +24,7 @@ export function FinanceSortableHeader({
     className = '',
 }: Props) {
     const active = sort === column;
-    const Icon = active ? (direction === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
+    const Icon = active ? (direction === 'asc' ? IconArrowUp : IconArrowDown) : IconArrowsSort;
 
     return (
         <th

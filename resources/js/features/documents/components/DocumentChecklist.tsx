@@ -1,4 +1,5 @@
-﻿import { CheckCircle2, Circle, AlertTriangle } from 'lucide-react';
+import { IconCircleCheck, IconCircle, IconAlertTriangle } from '@tabler/icons-react';
+
 import { AppCard } from '@/components/ui/AppCard';
 import { AppBadge } from '@/components/ui/AppBadge';
 import { useTranslation } from '@/lib/i18n';
@@ -51,11 +52,11 @@ export function DocumentChecklist() {
                     return (
                         <div key={item.labelKey} className="flex items-center gap-3 rounded-2xl border bg-[var(--surface)] p-3">
                             {done ? (
-                                <CheckCircle2 size={17} className="text-[var(--success)]" />
+                                <IconCircleCheck size={17} className="text-[var(--success)]" />
                             ) : blocked ? (
-                                <AlertTriangle size={17} className="text-[var(--danger)]" />
+                                <IconAlertTriangle size={17} className="text-[var(--danger)]" />
                             ) : (
-                                <Circle size={17} className="text-[var(--text-muted)]" />
+                                <IconCircle size={17} className="text-[var(--text-muted)]" />
                             )}
 
                             <p className="flex-1 text-sm font-medium">{t(item.labelKey)}</p>

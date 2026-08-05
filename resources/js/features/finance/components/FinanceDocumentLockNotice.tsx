@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Lock } from 'lucide-react';
+import { IconLock } from '@tabler/icons-react';
+
 import type { FinanceDocument } from '../types';
 import { Tooltip } from '@heroui/react';
 
@@ -57,7 +58,7 @@ export function FinanceDocumentLockBadge({ document, compact: _compact = false, 
     return (
         <Tooltip delay={500}>
             <span className={`inline-flex items-center justify-center text-amber-500 hover:text-amber-400 transition-colors cursor-help ${className}`}>
-                <Lock size={10} />
+                <IconLock size={10} />
             </span>
             <Tooltip.Content className="bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]">{message}</Tooltip.Content>
         </Tooltip>

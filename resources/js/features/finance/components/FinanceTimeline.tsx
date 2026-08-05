@@ -1,4 +1,5 @@
-﻿import { CheckCircle2, Circle, Clock3 } from 'lucide-react';
+import { IconCircleCheck, IconCircle, IconClockHour3 } from '@tabler/icons-react';
+
 import { AppBadge } from '@/components/ui/AppBadge';
 import { AppCard } from '@/components/ui/AppCard';
 import { useTranslation } from '@/lib/i18n';
@@ -29,11 +30,11 @@ export function FinanceTimeline() {
                         <div className="mb-3 flex items-center justify-between gap-3">
                             <div className="flex size-8 items-center justify-center rounded-full bg-[var(--surface-2)]">
                                 {step.done ? (
-                                    <CheckCircle2 size={16} className="text-[var(--success)]" />
+                                    <IconCircleCheck size={16} className="text-[var(--success)]" />
                                 ) : step.active ? (
-                                    <Clock3 size={16} className="text-[var(--warning)]" />
+                                    <IconClockHour3 size={16} className="text-[var(--warning)]" />
                                 ) : (
-                                    <Circle size={16} className="text-[var(--text-muted)]" />
+                                    <IconCircle size={16} className="text-[var(--text-muted)]" />
                                 )}
                             </div>
 

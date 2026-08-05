@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { FileText, Image, Paperclip, Upload, UploadCloud } from 'lucide-react';
+import { IconFileText, IconPhoto, IconPaperclip, IconUpload, IconCloudUpload } from '@tabler/icons-react';
+
 import { TextArea } from '@heroui/react';
 import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { AppButton } from '@/components/ui/AppButton';
@@ -146,7 +147,7 @@ export function DocumentDrawer({
       }
     >
       <form id="document-form" className="space-y-4" onSubmit={handleSubmit}>
-        <DrawerSection icon={<FileText size={12} />} title="Informations document">
+        <DrawerSection icon={<IconFileText size={12} />} title="Informations document">
           <div className={drawerStyles.sectionGrid}>
             <DrawerField label="Client" error={firstError(errors, 'client_id')}>
               <AppAutocomplete
@@ -188,7 +189,7 @@ export function DocumentDrawer({
           </div>
         </DrawerSection>
 
-        <DrawerSection icon={<Paperclip size={12} />} title={isCinTemplate ? 'Images de la CIN' : 'Fichier'}>
+        <DrawerSection icon={<IconPaperclip size={12} />} title={isCinTemplate ? 'Images de la CIN' : 'Fichier'}>
           {isCinTemplate ? (
             <div className="space-y-3">
               {/* Front (Recto) */}
@@ -196,7 +197,7 @@ export function DocumentDrawer({
                 <p className="mb-1 text-[10px] font-medium text-[var(--text-subtle)]">Recto (avant)</p>
                 {form.cinFrontFile ? (
                   <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2.5">
-                    <Image size={16} className="shrink-0 text-[var(--accent)]" />
+                    <IconPhoto size={16} className="shrink-0 text-[var(--accent)]" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-medium text-[var(--foreground)]">{form.cinFrontFile.name}</p>
                     </div>
@@ -207,9 +208,9 @@ export function DocumentDrawer({
                   </div>
                 ) : (
                   <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-3 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
-                    <Upload size={16} className="text-[var(--accent)]" />
+                    <IconUpload size={16} className="text-[var(--accent)]" />
                     <span className="mt-1 text-xs font-medium text-[var(--foreground)]">Recto de la CIN</span>
-                    <span className="text-[9px] text-[var(--text-muted)]">Image, PDF. Max 20 Mo.</span>
+                    <span className="text-[9px] text-[var(--text-muted)]">IconPhoto, PDF. Max 20 Mo.</span>
                     <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleCinFileChange('front', e.target.files)} />
                   </label>
                 )}
@@ -219,7 +220,7 @@ export function DocumentDrawer({
                 <p className="mb-1 text-[10px] font-medium text-[var(--text-subtle)]">Verso (arrière)</p>
                 {form.cinBackFile ? (
                   <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2.5">
-                    <Image size={16} className="shrink-0 text-[var(--accent)]" />
+                    <IconPhoto size={16} className="shrink-0 text-[var(--accent)]" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-medium text-[var(--foreground)]">{form.cinBackFile.name}</p>
                     </div>
@@ -230,9 +231,9 @@ export function DocumentDrawer({
                   </div>
                 ) : (
                   <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-3 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
-                    <Upload size={16} className="text-[var(--accent)]" />
+                    <IconUpload size={16} className="text-[var(--accent)]" />
                     <span className="mt-1 text-xs font-medium text-[var(--foreground)]">Verso de la CIN</span>
-                    <span className="text-[9px] text-[var(--text-muted)]">Image, PDF. Max 20 Mo.</span>
+                    <span className="text-[9px] text-[var(--text-muted)]">IconPhoto, PDF. Max 20 Mo.</span>
                     <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleCinFileChange('back', e.target.files)} />
                   </label>
                 )}
@@ -242,7 +243,7 @@ export function DocumentDrawer({
             <>
               {fileName ? (
                 <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2.5">
-                  <UploadCloud size={16} className="shrink-0 text-[var(--accent)]" />
+                  <IconCloudUpload size={16} className="shrink-0 text-[var(--accent)]" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium text-[var(--foreground)]">{fileName}</p>
                     <p className="text-[9px] text-[var(--text-muted)]">Fichier sélectionné</p>
@@ -254,7 +255,7 @@ export function DocumentDrawer({
                 </div>
               ) : (
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-4 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
-                  <Upload size={18} className="text-[var(--accent)]" />
+                  <IconUpload size={18} className="text-[var(--accent)]" />
                   <span className="mt-1.5 text-xs font-medium text-[var(--foreground)]">Choisir un fichier</span>
                   <span className="mt-0.5 text-[9px] text-[var(--text-muted)]">PDF, image, DOCX. Max 20 Mo.</span>
                   <input type="file" className="hidden" onChange={(event) => handleFileChange(event.target.files)} />
@@ -269,7 +270,7 @@ export function DocumentDrawer({
           ) : null}
         </DrawerSection>
 
-        <DrawerSection icon={<FileText size={12} />} title="Notes">
+        <DrawerSection icon={<IconFileText size={12} />} title="Notes">
           <TextArea
             placeholder="Notes internes"
             value={form.notes}

@@ -1,9 +1,6 @@
 import { router } from '@inertiajs/react';
-import {
-    AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, ChevronsUpDown, FileX,
-    Download, Eye, FileText, FileUp, FolderKanban, ListFilter,
-    Pencil, Plus, Printer, RefreshCw, ScrollText, Search, Trash2, X, FileDown, MoreHorizontal,
-} from 'lucide-react';
+import { IconAlertTriangle, IconCircleCheck, IconChevronDown, IconChevronUp, IconArrowsSort, IconFileX, IconDownload, IconEye, IconFileText, IconFileUpload, IconFolder, IconFilter, IconPencil, IconPlus, IconPrinter, IconRefresh, IconSearch, IconTrash, IconX, IconFileDownload, IconDots } from '@tabler/icons-react';
+
 import { useMemo, useState } from 'react';
 import { Avatar, Button, Card, Chip, Dropdown } from '@heroui/react';
 import type { FormErrors } from '@/lib/formErrors';
@@ -92,8 +89,8 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
     }
 
     function SortIcon({ col }: { col: SortKey }) {
-        if (sortKey !== col) return <ChevronsUpDown size={11} className="text-[var(--text-muted)]" />;
-        return sortDir === 'asc' ? <ChevronUp size={11} className="text-[var(--accent)]" /> : <ChevronDown size={11} className="text-[var(--accent)]" />;
+        if (sortKey !== col) return <IconArrowsSort size={11} className="text-[var(--text-muted)]" />;
+        return sortDir === 'asc' ? <IconChevronUp size={11} className="text-[var(--accent)]" /> : <IconChevronDown size={11} className="text-[var(--accent)]" />;
     }
 
     function openCreateDrawer() {
@@ -175,11 +172,11 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
     }
 
     const metricCards = useMemo(() => [
-        { label: 'Total contrats', value: metrics.total, detail: 'Tous les contrats', icon: ScrollText, color: '' },
-        { label: 'Brouillon', value: metrics.draft, detail: 'Non genere', icon: AlertTriangle, color: metrics.draft > 0 ? 'text-amber-400' : 'text-[var(--text-muted)]' },
-        { label: 'Genere', value: metrics.generated, detail: 'DOCX/PDF cree', icon: FileText, color: metrics.generated > 0 ? 'text-sky-400' : 'text-[var(--text-muted)]' },
-        { label: 'Signe', value: metrics.signed, detail: 'Signature client', icon: CheckCircle2, color: metrics.signed > 0 ? 'text-emerald-400' : 'text-[var(--text-muted)]' },
-        { label: 'Total TTC', value: formatCompactMoney(metrics.totalTtc), detail: 'Somme tous contrats', icon: ScrollText, color: 'text-[var(--accent)]' },
+        { label: 'Total contrats', value: metrics.total, detail: 'Tous les contrats', icon: IconFileText, color: '' },
+        { label: 'Brouillon', value: metrics.draft, detail: 'Non genere', icon: IconAlertTriangle, color: metrics.draft > 0 ? 'text-amber-400' : 'text-[var(--text-muted)]' },
+        { label: 'Genere', value: metrics.generated, detail: 'DOCX/PDF cree', icon: IconFileText, color: metrics.generated > 0 ? 'text-sky-400' : 'text-[var(--text-muted)]' },
+        { label: 'Signe', value: metrics.signed, detail: 'Signature client', icon: IconCircleCheck, color: metrics.signed > 0 ? 'text-emerald-400' : 'text-[var(--text-muted)]' },
+        { label: 'Total TTC', value: formatCompactMoney(metrics.totalTtc), detail: 'Somme tous contrats', icon: IconFileText, color: 'text-[var(--accent)]' },
     ], [metrics]);
 
     const statusFilterBg: Record<string, string> = {
@@ -203,7 +200,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                         </p>
                     </div>
                     {can('contracts.create') ? <Button variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={openCreateDrawer}>
-                        <Plus size={15} /> Nouveau contrat
+                        <IconPlus size={15} /> Nouveau contrat
                     </Button> : null}
                 </header>
 
@@ -217,7 +214,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                 <div className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
                     <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-3 py-2">
                         <div className="relative max-w-[220px] flex-1">
-                            <Search size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                            <IconSearch size={12} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }}
                                 placeholder="Rechercher par contrat, client..."
                                 className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-2 text-[10px] text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
@@ -225,7 +222,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                             {query ? (
                                 <button type="button" onClick={() => setQuery('')}
                                     className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]">
-                                    <X size={12} />
+                                    <IconX size={12} />
                                 </button>
                             ) : null}
                         </div>
@@ -233,7 +230,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                             <Dropdown>
                                 <Dropdown.Trigger className={cn("inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-medium transition hover:border-[var(--accent)]/30", statusFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
                                     <span className="contents">
-                                        <ListFilter size={12} />
+                                        <IconFilter size={12} />
                                         {statusFilter === 'all' ? 'Tous' : statusOptions.find((o) => o.id === statusFilter)?.label}
                                         <span className="rounded bg-[var(--surface-2)] px-1 py-px text-[9px] font-semibold text-[var(--text-muted)]">
                                             {statusOptions.find((o) => o.id === statusFilter)?.count ?? contracts.length}
@@ -249,11 +246,11 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                             base: 'rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40',
                                         }}>
                                         {statusOptions.map((opt) => {
-                                            const Icon = opt.id === 'all' ? ListFilter
-                                                : opt.id === 'draft' ? AlertTriangle
-                                                : opt.id === 'generated' ? FileText
-                                                : opt.id === 'signed' ? CheckCircle2
-                                                : FileX;
+                                            const Icon = opt.id === 'all' ? IconFilter
+                                                : opt.id === 'draft' ? IconAlertTriangle
+                                                : opt.id === 'generated' ? IconFileText
+                                                : opt.id === 'signed' ? IconCircleCheck
+                                                : IconFileX;
                                             const color = opt.id === 'all' ? '' : statusFilterColor[opt.id];
                                             return (
                                                 <Dropdown.Item key={opt.id}
@@ -261,7 +258,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                     textValue={opt.label}>
                                                     <div className="flex w-full items-center gap-2">
                                                         <Dropdown.ItemIndicator>
-                                                            <CheckCircle2 size={14} className="text-[var(--accent)]" />
+                                                            <IconCircleCheck size={14} className="text-[var(--accent)]" />
                                                         </Dropdown.ItemIndicator>
                                                         <Icon size={14} className={cn('shrink-0', color)} />
                                                         <span className="flex-1">{opt.label}</span>
@@ -274,7 +271,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                 </Dropdown.Popover>
                             </Dropdown>
                             <Button variant="light" size="sm" isIconOnly className="h-7 w-7 min-w-0 text-[var(--text-muted)]" onPress={() => router.reload({ preserveScroll: true })}>
-                                <RefreshCw size={12} />
+                                <IconRefresh size={12} />
                             </Button>
                         </div>
                     </div>
@@ -323,7 +320,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                         className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0">
                                         <td className="px-3 py-2">
                                             <span className="flex size-5 items-center justify-center rounded bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[9px] font-bold text-[var(--accent)]">
-                                                <ScrollText size={10} />
+                                                <IconFileText size={10} />
                                             </span>
                                         </td>
                                         <td className="px-3 py-2">
@@ -351,18 +348,18 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                             <div className="flex items-center justify-end gap-0.5">
                                                 <button type="button" onClick={() => handleAction(c, 'preview')}
                                                     className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Apercu">
-                                                    <Eye size={12} />
+                                                    <IconEye size={12} />
                                                 </button>
                                                 {c.status !== 'signed' && (
                                                     <button type="button" onClick={() => handleAction(c, 'edit')}
                                                         className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Modifier">
-                                                        <Pencil size={12} />
+                                                        <IconPencil size={12} />
                                                     </button>
                                                 )}
                                                 <Dropdown>
                                                     <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]">
                                                         <span className="contents">
-                                                            <MoreHorizontal size={12} />
+                                                            <IconDots size={12} />
                                                         </span>
                                                     </Dropdown.Trigger>
                                                     <Dropdown.Popover placement="bottom end"
@@ -378,14 +375,14 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                                 {c.hasGeneratedDocument ? (
                                                                     <Dropdown.Item key="download-docx" id="download-docx" className="text-[var(--text)]">
                                                                         <div className="flex items-center gap-2">
-                                                                            <FileDown size={13} className="text-emerald-400 shrink-0" />
+                                                                            <IconFileDownload size={13} className="text-emerald-400 shrink-0" />
                                                                             <span>Telecharger DOCX</span>
                                                                         </div>
                                                                     </Dropdown.Item>
                                                                 ) : (
                                                                     <Dropdown.Item key="generate-docx" id="generate-docx" className="text-[var(--text)]">
                                                                         <div className="flex items-center gap-2">
-                                                                            <FileUp size={13} className="text-blue-400 shrink-0" />
+                                                                            <IconFileUpload size={13} className="text-blue-400 shrink-0" />
                                                                             <span>{generating(c.id) ? 'Generation...' : 'Generer DOCX'}</span>
                                                                         </div>
                                                                     </Dropdown.Item>
@@ -393,14 +390,14 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                                 {c.hasPdf ? (
                                                                     <Dropdown.Item key="download-pdf" id="download-pdf" className="text-[var(--text)]">
                                                                         <div className="flex items-center gap-2">
-                                                                            <Download size={13} className="text-emerald-400 shrink-0" />
+                                                                            <IconDownload size={13} className="text-emerald-400 shrink-0" />
                                                                             <span>Telecharger PDF</span>
                                                                         </div>
                                                                     </Dropdown.Item>
                                                                 ) : c.hasGeneratedDocument ? (
                                                                     <Dropdown.Item key="generate-pdf" id="generate-pdf" className="text-[var(--text)]">
                                                                         <div className="flex items-center gap-2">
-                                                                            <FileText size={13} className="text-violet-400 shrink-0" />
+                                                                            <IconFileText size={13} className="text-violet-400 shrink-0" />
                                                                             <span>{generating(c.id) ? 'Generation...' : 'Generer PDF'}</span>
                                                                         </div>
                                                                     </Dropdown.Item>
@@ -408,20 +405,20 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                             </Dropdown.Section>
                                                             <Dropdown.Item key="print" id="print" className="text-[var(--text)]">
                                                                 <div className="flex items-center gap-2">
-                                                                    <Printer size={13} className="text-amber-400 shrink-0" />
+                                                                    <IconPrinter size={13} className="text-amber-400 shrink-0" />
                                                                     <span>Imprimer</span>
                                                                 </div>
                                                             </Dropdown.Item>
                                                             <Dropdown.Item key="documents" id="documents" className="text-[var(--text)]">
                                                                 <div className="flex items-center gap-2">
-                                                                    <FileText size={13} className="text-sky-400 shrink-0" />
+                                                                    <IconFileText size={13} className="text-sky-400 shrink-0" />
                                                                     <span>Documents</span>
                                                                 </div>
                                                             </Dropdown.Item>
                                                             {c.status !== 'signed' && (
                                                                 <Dropdown.Item key="mark-signed" id="mark-signed" className="text-[var(--text)]">
                                                                     <div className="flex items-center gap-2">
-                                                                        <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+                                                                        <IconCircleCheck size={13} className="text-emerald-400 shrink-0" />
                                                                         <span>Marquer signe</span>
                                                                     </div>
                                                                 </Dropdown.Item>
@@ -430,7 +427,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                                                 classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
                                                                 <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
                                                                     <div className="flex items-center gap-2">
-                                                                        <Trash2 size={13} className="shrink-0 text-red-400" />
+                                                                        <IconTrash size={13} className="shrink-0 text-red-400" />
                                                                         <span>Supprimer</span>
                                                                     </div>
                                                                 </Dropdown.Item>
@@ -489,7 +486,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                         <div className="space-y-5 pb-8">
                             <div className="flex items-center gap-3">
                                 <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-                                    <ScrollText size={18} />
+                                    <IconFileText size={18} />
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <p className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
@@ -569,9 +566,9 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                                 <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Chronologie</p>
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
-                                        { label: 'Cree', date: previewContract.createdAt, color: 'bg-[var(--accent)]', icon: ScrollText },
-                                        { label: 'Genere', date: previewContract.generatedAt, color: 'bg-purple-400', icon: FileText },
-                                        { label: 'Signe', date: previewContract.signedAt, color: 'bg-emerald-400', icon: CheckCircle2 },
+                                        { label: 'Cree', date: previewContract.createdAt, color: 'bg-[var(--accent)]', icon: IconFileText },
+                                        { label: 'Genere', date: previewContract.generatedAt, color: 'bg-purple-400', icon: IconFileText },
+                                        { label: 'Signe', date: previewContract.signedAt, color: 'bg-emerald-400', icon: IconCircleCheck },
                                     ].map((event) => (
                                         <Card key={event.label} className={cn(
                                             'flex flex-col items-center gap-1.5 rounded-xl p-3 shadow-none text-center',
@@ -592,40 +589,40 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                             <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 shadow-sm">
                                 {previewContract.status !== 'signed' && (
                                     <Button variant="solid" color="primary" size="sm" className="min-w-0 h-8 text-[10px]" onPress={() => { openEditDrawer(previewContract); setPreviewContract(null); }}>
-                                        <Pencil size={13} /> Modifier
+                                        <IconPencil size={13} /> Modifier
                                     </Button>
                                 )}
                                 <span className="h-5 w-px bg-[var(--border)]" />
                                 {previewContract.hasGeneratedDocument ? (
                                     <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.generatedDocumentDownloadUrl!; }}>
-                                        <FileDown size={13} /> DOCX
+                                        <IconFileDownload size={13} /> DOCX
                                     </Button>
                                 ) : (
                                     <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-blue-400/40 text-blue-600 hover:bg-blue-500/10" isLoading={generatingId === previewContract.id} isDisabled={generatingId === previewContract.id} onPress={() => { const id = previewContract.id; generateDocument(id, 'docx'); setPreviewContract(null); }}>
-                                        <FileUp size={13} /> DOCX
+                                        <IconFileUpload size={13} /> DOCX
                                     </Button>
                                 )}
                                 {previewContract.hasPdf ? (
                                     <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.pdfDownloadUrl!; }}>
-                                        <Download size={13} /> PDF
+                                        <IconDownload size={13} /> PDF
                                     </Button>
                                 ) : previewContract.hasGeneratedDocument ? (
                                     <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-violet-400/40 text-violet-600 hover:bg-violet-500/10" isLoading={generatingId === previewContract.id} isDisabled={generatingId === previewContract.id} onPress={() => { const id = previewContract.id; generateDocument(id, 'pdf'); setPreviewContract(null); }}>
-                                        <FileText size={13} /> PDF
+                                        <IconFileText size={13} /> PDF
                                     </Button>
                                 ) : null}
                                 <span className="h-5 w-px bg-[var(--border)]" />
                                 <Button variant="bordered" size="sm" className="min-w-0 size-8 p-0 hover:bg-[var(--surface-3)]" onPress={() => { window.open(`/contracts/${previewContract.id}/print`, '_blank', 'noopener,noreferrer'); }} title="Imprimer">
-                                    <Printer size={13} />
+                                    <IconPrinter size={13} />
                                 </Button>
                                 {previewContract.status !== 'signed' && (
                                     <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { router.put(`/contracts/${previewContract.id}/signed`, {}, { preserveScroll: true, onSuccess: () => { toast.success('Contrat marque comme signe.'); setPreviewContract(null); }, onError: () => toast.error('Erreur lors de la mise a jour.') }); }}>
-                                        <CheckCircle2 size={13} /> Signer
+                                        <IconCircleCheck size={13} /> Signer
                                     </Button>
                                 )}
                                 <span className="h-5 w-px bg-[var(--border)]" />
                                 <Button variant="solid" color="default" size="sm" className="min-w-0 size-8 p-0 hover:opacity-80" onPress={() => { setDeleteTarget(previewContract); setPreviewContract(null); }}>
-                                    <Trash2 size={13} className="text-red-400" />
+                                    <IconTrash size={13} className="text-red-400" />
                                 </Button>
                             </div>
                         </div>
@@ -639,7 +636,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                     size="sm"
                 >
                     <p className="mb-5 flex items-start gap-2 text-sm text-[var(--text-muted)]">
-                        <Trash2 size={16} className="mt-0.5 shrink-0 text-red-400" />
+                        <IconTrash size={16} className="mt-0.5 shrink-0 text-red-400" />
                         <span>Confirmez la suppression de <strong>{deleteTarget?.contractNumber}</strong>. Cette action est <span className="font-semibold text-red-400">irreversible</span>.</span>
                     </p>
                     <div className="flex justify-end gap-2">

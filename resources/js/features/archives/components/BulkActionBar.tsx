@@ -1,4 +1,5 @@
-import { LogOut, MoveRight, Undo2, X } from 'lucide-react';
+import { IconLogout, IconArrowMoveRight, IconArrowBackUp, IconX } from '@tabler/icons-react';
+
 
 type BulkActionBarProps = {
     count: number;
@@ -19,21 +20,21 @@ export function BulkActionBar({ count, onCheckout, onReturn, onMove, onClear }: 
             <div className="ml-3 flex items-center gap-1">
                 <button type="button" onClick={onCheckout}
                     className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white/70 hover:text-white hover:bg-white/5 transition">
-                    <LogOut size={13} /> Check-out
+                    <IconLogout size={13} /> Check-out
                 </button>
                 <button type="button" onClick={onReturn}
                     className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white/70 hover:text-white hover:bg-white/5 transition">
-                    <Undo2 size={13} /> Return
+                    <IconArrowBackUp size={13} /> Return
                 </button>
                 <button type="button" onClick={onMove}
                     className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-white/70 hover:text-white hover:bg-white/5 transition">
-                    <MoveRight size={13} /> Move
+                    <IconArrowMoveRight size={13} /> Move
                 </button>
             </div>
 
             <button type="button" onClick={onClear}
                 className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-white/40 hover:text-white/70 transition">
-                <X size={13} /> Clear
+                <IconX size={13} /> Clear
             </button>
         </div>
     );

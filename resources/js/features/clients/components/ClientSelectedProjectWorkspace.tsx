@@ -1,15 +1,6 @@
 import { router } from '@inertiajs/react';
-import {
-    Archive,
-    BadgeDollarSign,
-    CheckCircle2,
-    FileText,
-    FolderOpen,
-    Landmark,
-    Plus,
-    ReceiptText,
-    UploadCloud,
-} from 'lucide-react';
+import { IconArchive, IconCoin, IconCircleCheck, IconFileText, IconFolderOpen, IconBuildingBank, IconPlus, IconReceipt2, IconCloudUpload } from '@tabler/icons-react';
+
 import { TabPanel } from 'react-aria-components';
 import { AppCompactTabs } from '@/components/ui/AppCompactTabs';
 import { ClientProjectWorkflowStepper, type WorkflowRequirementActionContext } from '@/features/clients/components/ClientProjectWorkflowStepper';
@@ -121,7 +112,7 @@ function StatTile({
 }: {
     label: string;
     value: string | number;
-    icon: typeof FileText;
+    icon: typeof IconFileText;
 }) {
     return (
         <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
@@ -153,7 +144,7 @@ export function ClientSelectedProjectWorkspace({
                             className="crm-action-button justify-center border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_14%,transparent)] py-3 text-[var(--crm-accent)]"
                             onClick={onCreateProject}
                         >
-                            <Plus size={15} />
+                            <IconPlus size={15} />
                             Create project for this client
                         </button>
                     ) : null}
@@ -221,19 +212,19 @@ export function ClientSelectedProjectWorkspace({
 
                     <div className="flex flex-wrap gap-2">
                         <button type="button" className="crm-action-button border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_14%,transparent)] text-[var(--crm-accent)]" onClick={() => onUploadDocument?.()}>
-                            <UploadCloud size={15} />
+                            <IconCloudUpload size={15} />
                             Upload document
                         </button>
                         <button type="button" className="crm-action-button" onClick={() => onCreateContract?.()}>
-                            <Plus size={15} />
+                            <IconPlus size={15} />
                             Create contract
                         </button>
                         <button type="button" className="crm-action-button" onClick={() => router.visit(`/dossiers/${project.id}`)}>
-                            <FolderOpen size={15} />
+                            <IconFolderOpen size={15} />
                             Open project
                         </button>
                         <button type="button" className="crm-action-button" onClick={() => router.visit('/finance')}>
-                            <BadgeDollarSign size={15} />
+                            <IconCoin size={15} />
                             Finance
                         </button>
                     </div>
@@ -243,16 +234,16 @@ export function ClientSelectedProjectWorkspace({
             <AppCompactTabs tabs={tabs} defaultSelectedKey="workflow" className="crm-panel p-5">
                 <TabPanel id="overview" className="outline-none">
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                        <StatTile label="Documents" value={project.documentsCount} icon={FileText} />
-                        <StatTile label="Quotes" value={money(project.quotesTotal, currency)} icon={ReceiptText} />
-                        <StatTile label="Invoices" value={money(project.invoicesTotal, currency)} icon={Landmark} />
-                        <StatTile label="Remaining" value={money(project.remainingTotal, currency)} icon={BadgeDollarSign} />
+                        <StatTile label="Documents" value={project.documentsCount} icon={IconFileText} />
+                        <StatTile label="Quotes" value={money(project.quotesTotal, currency)} icon={IconReceipt2} />
+                        <StatTile label="Invoices" value={money(project.invoicesTotal, currency)} icon={IconBuildingBank} />
+                        <StatTile label="Remaining" value={money(project.remainingTotal, currency)} icon={IconCoin} />
                     </div>
 
                     <div className="mt-5 grid gap-5 xl:grid-cols-3">
                         <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
                             <div className="flex items-center gap-2">
-                                <CheckCircle2 size={15} className="text-emerald-300" />
+                                <IconCircleCheck size={15} className="text-emerald-300" />
                                 <h3 className="text-sm font-black">Contract</h3>
                             </div>
                             <p className="mt-3 text-sm text-[var(--crm-muted)]">
@@ -264,8 +255,8 @@ export function ClientSelectedProjectWorkspace({
 
                         <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
                             <div className="flex items-center gap-2">
-                                <Archive size={15} className="text-[var(--crm-accent)]" />
-                                <h3 className="text-sm font-black">Archive</h3>
+                                <IconArchive size={15} className="text-[var(--crm-accent)]" />
+                                <h3 className="text-sm font-black">IconArchive</h3>
                             </div>
                             <p className="mt-3 text-sm text-[var(--crm-muted)]">
                                 {project.archiveRecord
@@ -295,7 +286,7 @@ export function ClientSelectedProjectWorkspace({
                     </div>
                     <div className="mb-3 flex justify-end">
                         <button type="button" className="crm-action-button border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_14%,transparent)] text-[var(--crm-accent)]" onClick={() => onUploadDocument?.()}>
-                            <UploadCloud size={15} />
+                            <IconCloudUpload size={15} />
                             Upload document
                         </button>
                     </div>
@@ -309,7 +300,7 @@ export function ClientSelectedProjectWorkspace({
                             className="crm-action-button border-[var(--crm-accent)] bg-[color-mix(in_srgb,var(--crm-accent)_14%,transparent)] text-[var(--crm-accent)]"
                             onClick={() => onCreateFinanceDocument?.('quote')}
                         >
-                            <ReceiptText size={14} />
+                            <IconReceipt2 size={14} />
                             New quote
                         </button>
                         <button
@@ -317,7 +308,7 @@ export function ClientSelectedProjectWorkspace({
                             className="crm-action-button border-amber-500/30 bg-amber-500/10 text-amber-300"
                             onClick={() => onCreateFinanceDocument?.('invoice')}
                         >
-                            <Landmark size={14} />
+                            <IconBuildingBank size={14} />
                             New invoice
                         </button>
                         <button
@@ -325,7 +316,7 @@ export function ClientSelectedProjectWorkspace({
                             className="crm-action-button border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
                             onClick={() => onCreateFinanceDocument?.('receipt')}
                         >
-                            <BadgeDollarSign size={14} />
+                            <IconCoin size={14} />
                             New receipt
                         </button>
                     </div>
@@ -350,7 +341,7 @@ export function ClientSelectedProjectWorkspace({
                 <TabPanel id="records" className="outline-none">
                     <div className="mb-5 grid gap-5 xl:grid-cols-3">
                         <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-4">
-                            <h3 className="text-sm font-black">Archive</h3>
+                            <h3 className="text-sm font-black">IconArchive</h3>
                             <p className="mt-3 text-sm text-[var(--crm-muted)]">
                                 {project.archiveRecord
                                     ? `${project.archiveRecord.archiveNumber} / ${project.archiveRecord.status}`

@@ -1,5 +1,6 @@
 import { Fragment, useMemo, type ButtonHTMLAttributes, type DetailedHTMLProps } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { IconChevronRight } from '@tabler/icons-react';
+
 import { Chip, ListBox, Tooltip } from '@heroui/react';
 import {
     CATEGORY_COLORS,
@@ -138,7 +139,7 @@ export function GlobalSearchResultItem({
                         {status.label}
                     </Chip>
                 ) : null}
-                <ChevronRight
+                <IconChevronRight
                     size={12}
                     aria-hidden="true"
                     className="shrink-0 text-[var(--text-subtle)] opacity-40 transition-[opacity,color,transform] duration-150 motion-reduce:transition-none group-hover:text-[var(--accent)] group-hover:opacity-100 group-data-[focused]:translate-x-[1px] group-data-[focused]:text-[var(--accent)] group-data-[focused]:opacity-100 motion-reduce:group-data-[focused]:translate-x-0"

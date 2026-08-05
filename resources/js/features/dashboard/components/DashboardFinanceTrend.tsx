@@ -7,7 +7,8 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-import { BarChart3 } from 'lucide-react';
+import { IconChartBar } from '@tabler/icons-react';
+
 import type { DashboardFinanceTrendPoint } from '@/features/dashboard/types';
 import { formatCompactMoney } from '@/lib/currency';
 import { useTranslation } from '@/lib/i18n';
@@ -62,7 +63,7 @@ export function DashboardFinanceTrend({ points }: Props) {
     if (!hasData) {
         return (
             <div className="flex min-h-52 flex-col items-center justify-center px-4 text-center">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]"><BarChart3 size={18} /></span>
+                <span className="flex size-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]"><IconChartBar size={18} /></span>
                 <p className="mt-3 text-sm font-semibold text-[var(--foreground)]">{t('dashboard.chart.noFinanceData')}</p>
                 <p className="mt-1 max-w-xs text-xs leading-5 text-[var(--text-muted)]">{t('dashboard.chart.noFinanceDataDetail')}</p>
             </div>

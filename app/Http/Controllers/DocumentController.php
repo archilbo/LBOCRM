@@ -18,10 +18,12 @@ use App\Services\Documents\WorkflowDocumentCompletionService;
 use App\Services\Documents\WorkflowDocumentTemplateResolver;
 use App\Services\Dossiers\DossierPathBuilder;
 use App\Services\CompanyContext;
+use App\Services\Documents\DossierDocumentContentService;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -342,6 +344,15 @@ class DocumentController extends Controller
         return $files->response($dossierDocument, true);
     }
 
+    public function content(
+        DossierDocument $dossierDocument,
+        DossierDocumentContentService $content,
+    ): JsonResponse {
+        $this->authorize('view', $dossierDocument);
+
+        return $content->response($dossierDocument);
+    }
+
     public function print(DossierDocument $dossierDocument, DossierDocumentFileService $files)
     {
         $this->authorize('print', $dossierDocument);
@@ -350,11 +361,20 @@ class DocumentController extends Controller
         $viewUrl = route('documents.view', $dossierDocument);
         $filename = e($dossierDocument->original_filename ?? 'Document');
         $isImage = str_starts_with((string) $dossierDocument->mime_type, 'image/');
-        $content = $isImage
-            ? '<img src="'.$viewUrl.'" alt="'.$filename.'">'
-            : '<iframe src="'.$viewUrl.'" title="'.$filename.'"></iframe>';
 
-        return response('<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>'.$filename.'</title><style>html,body,iframe{width:100%;height:100%;margin:0;border:0}img{display:block;max-width:100%;margin:auto}</style></head><body>'.$content.'<script>window.addEventListener("load",()=>window.setTimeout(()=>window.print(),350));</script></body></html>')
+        if ($isImage) {
+            $content = '<img src="'.$viewUrl.'" alt="'.$filename.'">';
+            // Print only once the image is actually loaded (or failed), so the
+            // dialog never captures a blank surface; 5s hard fallback.
+            $script = 'window.addEventListener("load",function(){var i=document.querySelector("img");if(!i){return;}var p=function(){window.print();};if(i.complete){p();return;}i.addEventListener("load",p);i.addEventListener("error",p);window.setTimeout(p,5000);});';
+        } else {
+            $content = '<iframe src="'.$viewUrl.'" title="'.$filename.'"></iframe>';
+            // The iframe fires load once the embedded PDF/text document is
+            // ready; 5s fallback covers blocked or failed loads.
+            $script = 'var f=document.querySelector("iframe");if(!f){return;}var p=function(){window.print();};f.addEventListener("load",p);window.setTimeout(p,5000);';
+        }
+
+        return response('<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>'.$filename.'</title><style>html,body,iframe{width:100%;height:100%;margin:0;border:0}img{display:block;max-width:100%;margin:auto}</style></head><body>'.$content.'<script>'.$script.'</script></body></html>')
             ->header('Content-Type', 'text/html; charset=UTF-8')
             ->header('Cache-Control', 'private, no-store, max-age=0');
     }

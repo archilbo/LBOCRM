@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Input, ListBox, ListBoxItem } from '@heroui/react';
-import { Check, ChevronsUpDown, Loader2, Search, X } from 'lucide-react';
+import { IconCheck, IconArrowsSort, IconLoader2, IconSearch, IconX } from '@tabler/icons-react';
+
 import { cn } from '@/lib/cn';
 
 type ComboboxOption = {
@@ -39,7 +40,7 @@ function highlightMatch(text: string, query: string): ReactNode {
 
 export function AsyncCombobox({
     label,
-    placeholder = 'Search...',
+    placeholder = 'IconSearch...',
     value,
     onChange,
     queryKey,
@@ -159,7 +160,7 @@ export function AsyncCombobox({
                         isDisabled && 'pointer-events-none opacity-60',
                     )}
                 >
-                    <Search size={14} className="shrink-0 text-[var(--text-muted)]" />
+                    <IconSearch size={14} className="shrink-0 text-[var(--text-muted)]" />
                     <span className={cn('flex-1 truncate text-left', !selectedLabel && 'text-[var(--text-subtle)]')}>
                         {selectedLabel || placeholder}
                     </span>
@@ -172,10 +173,10 @@ export function AsyncCombobox({
                             className="flex size-5 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
                             aria-label="Clear selection"
                         >
-                            <X size={13} />
+                            <IconX size={13} />
                         </span>
                     ) : null}
-                    <ChevronsUpDown size={14} className="shrink-0 text-[var(--text-muted)]" />
+                    <IconArrowsSort size={14} className="shrink-0 text-[var(--text-muted)]" />
                 </div>
 
                 {isOpen && createPortal(
@@ -190,7 +191,7 @@ export function AsyncCombobox({
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
                                 placeholder="Rechercher..."
-                                startContent={<Search size={14} className="text-[var(--text-muted)]" />}
+                                startContent={<IconSearch size={14} className="text-[var(--text-muted)]" />}
                                 isClearable
                                 onClear={() => setSearchQuery('')}
                                 className="[&>div]:h-9 [&>div]:rounded-lg [&_input]:text-xs"
@@ -208,7 +209,7 @@ export function AsyncCombobox({
 
                         {isFetching ? (
                             <div className="flex items-center gap-2 px-3 py-5 text-xs text-[var(--text-muted)]">
-                                <Loader2 size={14} className="animate-spin" />
+                                <IconLoader2 size={14} className="animate-spin" />
                                 Recherche...
                             </div>
                         ) : items.length === 0 ? (
@@ -234,7 +235,7 @@ export function AsyncCombobox({
                                         <div className="flex items-center gap-2">
                                             <span className="flex-1 truncate">{highlightMatch(item.label, searchQuery)}</span>
                                             {item.id === value ? (
-                                                <Check size={14} className="shrink-0 text-[var(--accent)]" />
+                                                <IconCheck size={14} className="shrink-0 text-[var(--accent)]" />
                                             ) : null}
                                         </div>
                                     </ListBoxItem>

@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
+
 import { useState } from 'react';
 import type { CellRoom } from '@/features/archives/types';
 import { cn } from '@/lib/cn';
@@ -55,7 +56,7 @@ export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, on
                                     'flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition hover:bg-white/5',
                                     isRoomActive ? 'text-white' : 'text-white/60',
                                 )}>
-                                {isRoomExpanded ? <ChevronDown size={11} className="shrink-0" /> : <ChevronRight size={11} className="shrink-0" />}
+                                {isRoomExpanded ? <IconChevronDown size={11} className="shrink-0" /> : <IconChevronRight size={11} className="shrink-0" />}
                                 <span className="font-medium truncate">{room.name}</span>
                             </button>
                             {isRoomExpanded ? (
@@ -71,7 +72,7 @@ export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, on
                                                         'flex w-full items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] transition hover:bg-white/5',
                                                         isBoxActive ? 'text-white/80' : 'text-white/50',
                                                     )}>
-                                                    {isBoxExpanded ? <ChevronDown size={10} className="shrink-0" /> : <ChevronRight size={10} className="shrink-0" />}
+                                                    {isBoxExpanded ? <IconChevronDown size={10} className="shrink-0" /> : <IconChevronRight size={10} className="shrink-0" />}
                                                     <span className="font-mono">{box.code}</span>
                                                 </button>
                                                 {isBoxExpanded ? (

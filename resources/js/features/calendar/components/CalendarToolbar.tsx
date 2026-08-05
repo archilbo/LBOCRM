@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+
 
 type Props = {
     currentDate: Date;
@@ -36,13 +37,13 @@ export function CalendarToolbar({ currentDate, viewMode, onViewModeChange, onPre
                         type="button"
                         onClick={onPrev}
                         className="flex size-7 items-center justify-center rounded-l-lg border border-white/8 text-white/40 transition hover:bg-white/5 hover:text-white">
-                        <ChevronLeft size={14} />
+                        <IconChevronLeft size={14} />
                     </button>
                     <button
                         type="button"
                         onClick={onNext}
                         className="-ml-px flex size-7 items-center justify-center rounded-r-lg border border-white/8 text-white/40 transition hover:bg-white/5 hover:text-white">
-                        <ChevronRight size={14} />
+                        <IconChevronRight size={14} />
                     </button>
                 </div>
             </div>

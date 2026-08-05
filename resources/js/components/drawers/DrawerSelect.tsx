@@ -1,4 +1,5 @@
-import { ChevronDown } from 'lucide-react';
+import { IconChevronDown } from '@tabler/icons-react';
+
 import { Select, ListBox } from '@heroui/react';
 import { cn } from '@/lib/cn';
 import { drawerStyles, type SelectOption } from './shared';
@@ -26,7 +27,7 @@ export function DrawerSelect<T extends string = string>({
       <Select.Trigger className={cn(drawerStyles.trigger, error && 'border-[var(--danger)]')}>
         <Select.Value className="flex-1 truncate text-left text-xs" />
         <Select.Indicator>
-          <ChevronDown size={14} className="text-[var(--text-muted)]" />
+          <IconChevronDown size={14} className="text-[var(--text-muted)]" />
         </Select.Indicator>
       </Select.Trigger>
       <Select.Popover isNonModal className={drawerStyles.popover}>

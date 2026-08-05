@@ -1,4 +1,5 @@
-import { AlertCircle, ExternalLink } from 'lucide-react';
+import { IconAlertCircle, IconExternalLink } from '@tabler/icons-react';
+
 import type { ArchiveRecordRow } from '@/features/archives/types';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { router } from '@inertiajs/react';
@@ -26,11 +27,11 @@ export function PreviewPanel({ record }: PreviewPanelProps) {
                 <div className="flex items-center gap-2 shrink-0">
                     <button type="button" onClick={() => router.visit(`/archives/${record.id}`)}
                         className="flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[10px] font-medium text-white/70 hover:text-white hover:bg-white/5 transition">
-                        <ExternalLink size={11} /> Open
+                        <IconExternalLink size={11} /> Open
                     </button>
                     {record.isOverdue ? (
                         <span className="inline-flex items-center gap-1 text-[10px] text-red-400">
-                            <AlertCircle size={11} /> Overdue
+                            <IconAlertCircle size={11} /> Overdue
                         </span>
                     ) : null}
                     <StatusPill status={record.status} isOverdue={record.isOverdue} />

@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { FileText } from 'lucide-react';
+import { IconFileText } from '@tabler/icons-react';
+
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -19,7 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
         if (this.state.error) {
             return (
                 <div className="flex flex-col items-center justify-center gap-3 py-20">
-                    <FileText size={40} className="text-[var(--text-muted)]" />
+                    <IconFileText size={40} className="text-[var(--text-muted)]" />
                     <p className="text-sm font-semibold text-[var(--text)]">Something went wrong</p>
                     <p className="max-w-md text-center text-xs text-[var(--text-muted)]">
                         {this.state.error.message}

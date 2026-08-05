@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Button, Card, Input, ListBox, Select, TextArea } from '@heroui/react';
-import { Calendar, Check, ChevronLeft, ChevronRight, Eye, EyeOff, FileText, Settings, User } from 'lucide-react';
+import { IconCalendar, IconCheck, IconChevronLeft, IconChevronRight, IconEye, IconEyeOff, IconFileText, IconSettings, IconUser } from '@tabler/icons-react';
+
 import { toast } from 'sonner';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { DocPreviewIframe } from '@/features/finance/components/DocPreviewIframe';
@@ -111,9 +112,9 @@ const compactTextarea = 'min-h-20 w-full rounded-[var(--radius-md)] border borde
 const compactPopover = 'z-[70] min-w-[var(--trigger-width)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg';
 
 const steps = [
-    { label: 'Client & dossier', icon: User },
-    { label: 'Lignes, dates & remise', icon: FileText },
-    { label: 'Template & confirmation', icon: Settings },
+    { label: 'Client & dossier', icon: IconUser },
+    { label: 'Lignes, dates & remise', icon: IconFileText },
+    { label: 'Template & confirmation', icon: IconSettings },
 ];
 
 export function FinanceDocumentBuilderDrawer({
@@ -245,12 +246,12 @@ export function FinanceDocumentBuilderDrawer({
                     <div className="flex items-center gap-2">
                         {step > 0 ? (
                             <Button variant="flat" size="sm" onPress={() => setStep(step - 1)}>
-                                <ChevronLeft size={14} /> Precedent
+                                <IconChevronLeft size={14} /> Precedent
                             </Button>
                         ) : null}
                         {step < steps.length - 1 ? (
                             <Button color="primary" size="sm" isDisabled={step === 0 && !canAdvanceStep0} onPress={() => setStep(step + 1)}>
-                                Suivant <ChevronRight size={14} />
+                                Suivant <IconChevronRight size={14} />
                             </Button>
                         ) : (
                             <Button color="warning" size="sm" onPress={submit} isDisabled={isBlocked}>Creer le document</Button>
@@ -276,7 +277,7 @@ export function FinanceDocumentBuilderDrawer({
                                         isActive ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : isPast ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] opacity-50'
                                     }`}
                                 >
-                                    {isPast ? <Check size={12} /> : <StepIcon size={12} />}
+                                    {isPast ? <IconCheck size={12} /> : <StepIcon size={12} />}
                                     <span className="hidden sm:inline">{s.label}</span>
                                 </button>
                             </div>
@@ -294,7 +295,7 @@ export function FinanceDocumentBuilderDrawer({
                                 {isDossierRestricted ? <p className="text-[9px] text-red-400">Impossible de creer un document : ce dossier a deja un devis/facture</p> : null}
                             </div>
                             <Button variant="light" size="sm" onPress={() => setPreviewOpen((p) => !p)} className="shrink-0">
-                                {previewOpen ? <EyeOff size={14} /> : <Eye size={14} />}
+                                {previewOpen ? <IconEyeOff size={14} /> : <IconEye size={14} />}
                                 {previewOpen ? 'Masquer' : 'Apercu'}
                             </Button>
                         </div>
@@ -340,7 +341,7 @@ export function FinanceDocumentBuilderDrawer({
                                 />
 
                                 <Card className="p-3 space-y-3">
-                                    <div className="flex items-center gap-1.5 mb-2"><Settings size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Remise</p></div>
+                                    <div className="flex items-center gap-1.5 mb-2"><IconSettings size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Remise</p></div>
                                     <div className="grid gap-2 sm:grid-cols-2">
                                         <div className="flex min-w-0 flex-col gap-1">
                                             <label className={labelCls}>Remise document</label>
@@ -354,7 +355,7 @@ export function FinanceDocumentBuilderDrawer({
                         {step === 2 ? (
                             <>
                                 <Card className="p-3 space-y-3">
-                                    <div className="flex items-center gap-1.5 mb-2"><Settings size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Template</p></div>
+                                    <div className="flex items-center gap-1.5 mb-2"><IconSettings size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Template</p></div>
                                     <Select
                                         isDisabled={isBlocked}
                                         selectedKey={form.templateId || null}
@@ -371,7 +372,7 @@ export function FinanceDocumentBuilderDrawer({
                                 </Card>
 
                                 <Card className="p-3 space-y-3">
-                                    <div className="flex items-center gap-1.5 mb-2"><FileText size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Resume du document</p></div>
+                                    <div className="flex items-center gap-1.5 mb-2"><IconFileText size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Resume du document</p></div>
                                     <div className="grid gap-3 text-[10px] sm:grid-cols-2">
                                         <div>
                                             <p className="font-semibold text-[var(--text)]">Client</p>

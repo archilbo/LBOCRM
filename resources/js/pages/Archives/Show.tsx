@@ -1,16 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    AlertTriangle,
-    ArrowLeft,
-    LogOut,
-    MoveRight,
-    Pencil,
-    RotateCcw,
-    Trash2,
-    Undo2,
-    UserRound,
-    CheckCircle2,
-} from 'lucide-react';
+import { IconAlertTriangle, IconArrowLeft, IconLogout, IconArrowMoveRight, IconPencil, IconArrowRotaryFirstLeft, IconTrash, IconArrowBackUp, IconUserCircle, IconCircleCheck } from '@tabler/icons-react';
+
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
@@ -85,11 +75,11 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
         });
     }
 
-    function nextAction(): { label: string; icon: typeof LogOut; action: () => void } | null {
-        if (record.isLost) return { label: 'Restore', icon: RotateCcw, action: () => router.put(`/archives/${record.id}/status`, { status: 'stored' }, { preserveScroll: true, onSuccess: () => { toast.success('Restored.'); router.reload(); } }) };
-        if (record.status === 'ready_to_archive') return { label: 'Store', icon: CheckCircle2, action: () => updateStatus('stored') };
-        if (record.status === 'stored') return { label: 'Check out', icon: LogOut, action: () => updateStatus('checked_out') };
-        if (record.status === 'checked_out') return { label: 'Return', icon: Undo2, action: () => updateStatus('returned') };
+    function nextAction(): { label: string; icon: typeof IconLogout; action: () => void } | null {
+        if (record.isLost) return { label: 'Restore', icon: IconArrowRotaryFirstLeft, action: () => router.put(`/archives/${record.id}/status`, { status: 'stored' }, { preserveScroll: true, onSuccess: () => { toast.success('Restored.'); router.reload(); } }) };
+        if (record.status === 'ready_to_archive') return { label: 'Store', icon: IconCircleCheck, action: () => updateStatus('stored') };
+        if (record.status === 'stored') return { label: 'Check out', icon: IconLogout, action: () => updateStatus('checked_out') };
+        if (record.status === 'checked_out') return { label: 'Return', icon: IconArrowBackUp, action: () => updateStatus('returned') };
         return null;
     }
 
@@ -101,7 +91,7 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
             <AppShell>
                 <button type="button" onClick={() => router.visit('/archives')}
                     className="mb-3 flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--foreground)]">
-                    <ArrowLeft size={13} /> Back to archives
+                    <IconArrowLeft size={13} /> Back to archives
                 </button>
 
                 <div className="flex items-start justify-between gap-4">
@@ -117,23 +107,23 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
                     <div className="flex shrink-0 gap-1">
                         <button type="button" onClick={() => router.visit(`/archives/${record.id}/edit`)}
                             className="flex size-7 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]" title="Edit">
-                            <Pencil size={14} />
+                            <IconPencil size={14} />
                         </button>
                         <button type="button" onClick={() => setShowDelete(true)}
                             className="flex size-7 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-red-400" title="Delete">
-                            <Trash2 size={14} />
+                            <IconTrash size={14} />
                         </button>
                     </div>
                 </div>
 
                 {record.isOverdue ? (
                     <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-xs text-red-400">
-                        <AlertTriangle size={14} /> Overdue since {record.dueAt}
+                        <IconAlertTriangle size={14} /> Overdue since {record.dueAt}
                     </div>
                 ) : null}
                 {record.isLost ? (
                     <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-xs text-red-400">
-                        <AlertTriangle size={14} /> {record.lostReason || 'Marked as lost'}
+                        <IconAlertTriangle size={14} /> {record.lostReason || 'Marked as lost'}
                     </div>
                 ) : null}
 
@@ -160,7 +150,7 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
                         {record.requestedBy ? (
                             <Section title="Requester">
                                 <div className="flex items-center gap-2 text-xs">
-                                    <UserRound size={13} className="text-[var(--text-subtle)]" />
+                                    <IconUserCircle size={13} className="text-[var(--text-subtle)]" />
                                     <span className="text-[var(--foreground)]">{record.requestedBy}</span>
                                     {record.dueAt ? (
                                         <span className={cn('tabular-nums', record.isOverdue ? 'text-red-400' : 'text-[var(--text-muted)]')}>
@@ -190,11 +180,11 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
                         ) : null}
 
                         <div className="space-y-0.5">
-                            <QuickAction icon={LogOut} label="Check out" onClick={() => updateStatus('checked_out')} />
-                            <QuickAction icon={Undo2} label="Return" onClick={() => updateStatus('returned')} />
-                            <QuickAction icon={MoveRight} label="Move" onClick={() => setShowMove(true)} />
-                            <QuickAction icon={AlertTriangle} label="Mark lost" onClick={() => setShowLost(true)} className="text-red-400 hover:bg-red-400/10" />
-                            <QuickAction icon={Trash2} label="Delete" onClick={() => setShowDelete(true)} className="text-red-400 hover:bg-red-400/10" />
+                            <QuickAction icon={IconLogout} label="Check out" onClick={() => updateStatus('checked_out')} />
+                            <QuickAction icon={IconArrowBackUp} label="Return" onClick={() => updateStatus('returned')} />
+                            <QuickAction icon={IconArrowMoveRight} label="Move" onClick={() => setShowMove(true)} />
+                            <QuickAction icon={IconAlertTriangle} label="Mark lost" onClick={() => setShowLost(true)} className="text-red-400 hover:bg-red-400/10" />
+                            <QuickAction icon={IconTrash} label="Delete" onClick={() => setShowDelete(true)} className="text-red-400 hover:bg-red-400/10" />
                         </div>
 
                         <Section title="Metadata">

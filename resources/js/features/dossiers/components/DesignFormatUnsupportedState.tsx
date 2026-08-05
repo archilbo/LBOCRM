@@ -1,4 +1,5 @@
-import { FileWarning, HelpCircle, AlertTriangle } from 'lucide-react';
+import { IconFileAlert, IconHelpCircle, IconAlertTriangle } from '@tabler/icons-react';
+
 import { Chip } from '@heroui/react';
 
 export function DesignFormatUnsupportedState({ filename, extension, mimeType, message }: {
@@ -14,7 +15,7 @@ export function DesignFormatUnsupportedState({ filename, extension, mimeType, me
         <div className="flex h-full flex-col items-center justify-center p-8">
             <div className="w-full max-w-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center">
                 <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/10">
-                    <FileWarning size={28} className="text-amber-400" />
+                    <IconFileAlert size={28} className="text-amber-400" />
                 </div>
 
                 <h3 className="mt-4 text-sm font-semibold text-[var(--foreground)]">Unsupported format</h3>
@@ -31,7 +32,7 @@ export function DesignFormatUnsupportedState({ filename, extension, mimeType, me
 
                 <div className="mt-4 rounded-lg border border-amber-200/50 bg-amber-50/50 px-4 py-3 text-left dark:border-amber-800/20 dark:bg-amber-900/5">
                     <div className="flex items-start gap-2">
-                        <HelpCircle size={14} className="mt-0.5 shrink-0 text-amber-500" />
+                        <IconHelpCircle size={14} className="mt-0.5 shrink-0 text-amber-500" />
                         <p className="text-[10px] leading-relaxed text-amber-700 dark:text-amber-400">{displayMsg}</p>
                     </div>
                 </div>

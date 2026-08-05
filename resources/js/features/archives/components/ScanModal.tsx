@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { ScanLine, X } from 'lucide-react';
+import { IconScan, IconX } from '@tabler/icons-react';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppButton } from '@/components/ui/AppButton';
@@ -88,7 +89,7 @@ export function ScanModal({ isOpen, onOpenChange }: ScanModalProps) {
                         <video ref={videoRef} className="h-full w-full object-cover" playsInline />
                         <button type="button" onClick={() => { stopCamera(); setMode('manual'); }}
                             className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80">
-                            <X size={14} />
+                            <IconX size={14} />
                         </button>
                     </div>
                 ) : (
@@ -105,7 +106,7 @@ export function ScanModal({ isOpen, onOpenChange }: ScanModalProps) {
                         <div className="flex gap-2">
                             <AppButton variant="primary" type="submit" className="h-8 text-xs">Go to archive</AppButton>
                             <AppButton variant="bordered" className="h-8 text-xs" onPress={startCamera}>
-                                <ScanLine size={13} /> Use camera
+                                <IconScan size={13} /> Use camera
                             </AppButton>
                         </div>
                     </form>

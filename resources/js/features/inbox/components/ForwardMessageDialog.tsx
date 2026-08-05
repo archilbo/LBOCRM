@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar, Modal } from '@heroui/react';
-import { Check, ChevronRight, Forward, MessageCircle, Search, Users, X } from 'lucide-react';
+import { IconCheck, IconChevronRight, IconPlayerSkipForward, IconMessageCircle, IconSearch, IconUsers, IconX } from '@tabler/icons-react';
+
 import { toast } from 'sonner';
 import type { ConversationRow, MessageAttachmentRow, MessageRow } from '@/features/chat/types';
 import { getAvatarTone, getCategoryMeta, getConversationDisplayName, getConversationInitials, getLastMessagePreview, formatConversationTime } from '@/features/inbox/utils';
@@ -59,7 +60,7 @@ function ForwardMessagePreview({ message, currentUserId }: { message: MessageRow
             ) : (
                 <>
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
-                        <Forward size={16} />
+                        <IconPlayerSkipForward size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
                         <p className="text-[10px] font-semibold text-[var(--text)]">{message.userName || message.user?.name || 'Message'}</p>
@@ -73,7 +74,7 @@ function ForwardMessagePreview({ message, currentUserId }: { message: MessageRow
     );
 }
 
-// ── Search input ────────────────────────────────────────────
+// ── IconSearch input ────────────────────────────────────────────
 
 function ForwardConversationSearch({ value, onChange, onClear }: { value: string; onChange: (v: string) => void; onClear: () => void }) {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -81,7 +82,7 @@ function ForwardConversationSearch({ value, onChange, onClear }: { value: string
     return (
         <div className="mx-5 mt-3">
             <div className="relative">
-                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <IconSearch size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                     ref={inputRef}
                     type="text"
@@ -97,7 +98,7 @@ function ForwardConversationSearch({ value, onChange, onClear }: { value: string
                         className="absolute right-3 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--text)]"
                         aria-label="Effacer la recherche"
                     >
-                        <X size={14} />
+                        <IconX size={14} />
                     </button>
                 ) : null}
             </div>
@@ -161,7 +162,7 @@ function ForwardSelectedDestinations({
                             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/30 bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] py-1 pl-1.5 pr-1"
                         >
                             <Avatar size="sm" name={conv.displayName} className={`size-5 min-w-5 text-[9px] ${tone.bg} ${tone.text}`}>
-                                {conv.type === 'group' ? <Users size={9} /> : null}
+                                {conv.type === 'group' ? <IconUsers size={9} /> : null}
                             </Avatar>
                             <span className="max-w-24 truncate text-[9px] font-medium text-[var(--text)]">{conv.displayName}</span>
                             <button
@@ -169,7 +170,7 @@ function ForwardSelectedDestinations({
                                 className="flex size-4 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
                                 aria-label={`Retirer ${conv.displayName}`}
                             >
-                                <X size={10} />
+                                <IconX size={10} />
                             </button>
                         </span>
                     );
@@ -217,7 +218,7 @@ function ForwardConversationRow({
         >
             <div className="relative shrink-0">
                 <Avatar size="md" name={name} className={`${tone.bg} ${tone.text}`}>
-                    {conversation.type === 'group' ? <Users size={16} /> : initials}
+                    {conversation.type === 'group' ? <IconUsers size={16} /> : initials}
                 </Avatar>
             </div>
 
@@ -249,7 +250,7 @@ function ForwardConversationRow({
                 ) : null}
                 {isSelected ? (
                     <span className="flex size-[22px] items-center justify-center rounded-full bg-[var(--accent)] text-black">
-                        <Check size={13} />
+                        <IconCheck size={13} />
                     </span>
                 ) : (
                     <span className="flex size-[22px] items-center justify-center rounded-full border-2 border-[var(--border)]" />
@@ -430,7 +431,7 @@ export function ForwardMessageDialog({ isOpen, onClose, message, conversations, 
                     <div className="flex items-start justify-between border-b border-[var(--border)] px-5 py-[18px]">
                         <div className="flex items-start gap-3">
                             <span className="flex size-[34px] shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]">
-                                <Forward size={16} />
+                                <IconPlayerSkipForward size={16} />
                             </span>
                             <div>
                                 <h2 className="text-[15px] font-semibold text-[var(--text)]">Transférer le message</h2>
@@ -442,14 +443,14 @@ export function ForwardMessageDialog({ isOpen, onClose, message, conversations, 
                             className="flex size-8 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
                             aria-label="Fermer"
                         >
-                            <X size={16} />
+                            <IconX size={16} />
                         </button>
                     </div>
 
                     {/* Message preview */}
                     <ForwardMessagePreview message={message} currentUserId={currentUserId} />
 
-                    {/* Search */}
+                    {/* IconSearch */}
                     <ForwardConversationSearch
                         value={searchQuery}
                         onChange={(v) => { setSearchQuery(v); setFocusedIndex(0); }}
@@ -467,13 +468,13 @@ export function ForwardMessageDialog({ isOpen, onClose, message, conversations, 
                         {filtered.length === 0 ? (
                             searchQuery ? (
                                 <ForwardEmptyState
-                                    icon={<Search size={18} />}
+                                    icon={<IconSearch size={18} />}
                                     title="Aucun résultat"
                                     description="Essayez un autre nom ou mot-clé."
                                 />
                             ) : (
                                 <ForwardEmptyState
-                                    icon={<MessageCircle size={18} />}
+                                    icon={<IconMessageCircle size={18} />}
                                     title="Aucune conversation disponible"
                                     description="Créez d'abord une conversation pour pouvoir transférer ce message."
                                 />
@@ -524,7 +525,7 @@ export function ForwardMessageDialog({ isOpen, onClose, message, conversations, 
                                 {isSubmitting ? (
                                     <span className="size-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
                                 ) : (
-                                    <Forward size={14} />
+                                    <IconPlayerSkipForward size={14} />
                                 )}
                                 Transférer
                             </button>

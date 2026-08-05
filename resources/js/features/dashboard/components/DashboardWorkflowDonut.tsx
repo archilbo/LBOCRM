@@ -1,5 +1,6 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { FolderKanban } from 'lucide-react';
+import { IconFolder } from '@tabler/icons-react';
+
 import type { DashboardWorkflowStepCount } from '@/features/dashboard/types';
 import { useTranslation } from '@/lib/i18n';
 
@@ -17,7 +18,7 @@ export function DashboardWorkflowDonut({ steps }: Props) {
     if (total === 0) {
         return (
             <div className="flex min-h-52 flex-col items-center justify-center px-4 text-center">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]"><FolderKanban size={18} /></span>
+                <span className="flex size-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]"><IconFolder size={18} /></span>
                 <p className="mt-3 text-sm font-semibold text-[var(--foreground)]">{t('dashboard.chart.noActiveProjects')}</p>
                 <p className="mt-1 max-w-xs text-xs leading-5 text-[var(--text-muted)]">{t('dashboard.chart.noActiveProjectsDetail')}</p>
             </div>

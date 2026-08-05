@@ -1,17 +1,5 @@
-import {
-    ChevronLeft,
-    ChevronRight,
-    ExternalLink,
-    Maximize2,
-    Minimize2,
-    Monitor,
-    Printer,
-    RefreshCcw,
-    RotateCcw,
-    X,
-    ZoomIn,
-    ZoomOut,
-} from 'lucide-react';
+import { IconChevronLeft, IconChevronRight, IconExternalLink, IconMaximize, IconMinimize, IconDeviceDesktop, IconPrinter, IconRefresh, IconArrowRotaryFirstLeft, IconX, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
+
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type PaperSize = 'A4' | 'A5' | 'Letter';
@@ -231,7 +219,7 @@ export function TemplatePreviewPanel({
         return (
             <div className="flex w-3 shrink-0 flex-col items-center border-l border-[var(--border)] bg-[var(--surface)] pt-2">
                 <button type="button" onClick={onToggleCollapse} className="flex size-5 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]">
-                    <ChevronLeft size={14} />
+                    <IconChevronLeft size={14} />
                 </button>
             </div>
         );
@@ -244,20 +232,20 @@ export function TemplatePreviewPanel({
             <aside className="flex w-[420px] 2xl:w-[480px] shrink-0 flex-col border-l border-[var(--border)] bg-[var(--surface)]">
                 <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-2">
                     <div className="flex min-w-0 items-center gap-2">
-                        <Monitor size={14} className="shrink-0 text-[var(--accent)]" />
+                        <IconDeviceDesktop size={14} className="shrink-0 text-[var(--accent)]" />
                         <span className="truncate text-xs font-semibold text-[var(--text)]">Preview</span>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                         <button type="button" onClick={() => void refreshPreview()} className="inline-flex size-6 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]" title="Refresh">
-                            <RefreshCcw size={12} />
+                            <IconRefresh size={12} />
                         </button>
                         <button type="button" onClick={openFullPreview} className="inline-flex h-6 items-center gap-1 rounded bg-[var(--accent)] px-2 text-[9px] font-semibold text-black" title="Fullscreen preview">
-                            <Maximize2 size={10} />
+                            <IconMaximize size={10} />
                             Full
                         </button>
                         {onToggleCollapse ? (
                             <button type="button" onClick={onToggleCollapse} className="inline-flex size-6 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text)]" title="Collapse preview">
-                                <ChevronRight size={12} />
+                                <IconChevronRight size={12} />
                             </button>
                         ) : null}
                     </div>
@@ -286,7 +274,7 @@ export function TemplatePreviewPanel({
                 <div className="fixed inset-0 z-[120] flex flex-col bg-black/85 backdrop-blur-sm">
                     <div className="flex min-h-14 items-center justify-between gap-3 border-b border-white/10 bg-[var(--surface)] px-4">
                         <div className="flex min-w-0 items-center gap-3">
-                            <Monitor size={16} className="text-[var(--accent)]" />
+                            <IconDeviceDesktop size={16} className="text-[var(--accent)]" />
                             <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold text-[var(--text)]">Full preview</p>
                                 <p className="text-xs text-[var(--text-muted)]">Esc/f to close · Ctrl+± zoom · Ctrl+0 reset</p>
@@ -294,31 +282,31 @@ export function TemplatePreviewPanel({
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
                             <button type="button" onClick={() => void refreshPreview()} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs text-white/70 hover:bg-white/10">
-                                <RefreshCcw size={12} /> Refresh
+                                <IconRefresh size={12} /> Refresh
                             </button>
                             <button type="button" onClick={fitWidth} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs text-white/70 hover:bg-white/10">
-                                <Maximize2 size={12} /> Fit
+                                <IconMaximize size={12} /> Fit
                             </button>
                             <button type="button" onClick={() => setZoom((c) => clampZoom(c - 0.1))} className="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/10">
-                                <ZoomOut size={13} />
+                                <IconZoomOut size={13} />
                             </button>
                             <span className="min-w-12 rounded-md border border-white/10 px-2 py-1 text-center text-xs font-semibold text-white/80">
                                 {Math.round(zoom * 100)}%
                             </span>
                             <button type="button" onClick={() => setZoom((c) => clampZoom(c + 0.1))} className="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/10">
-                                <ZoomIn size={13} />
+                                <IconZoomIn size={13} />
                             </button>
                             <button type="button" onClick={() => setZoom(0.85)} className="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/10">
-                                <RotateCcw size={13} />
+                                <IconArrowRotaryFirstLeft size={13} />
                             </button>
                             <button type="button" onClick={openInNewTab} className="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/10">
-                                <ExternalLink size={13} />
+                                <IconExternalLink size={13} />
                             </button>
                             <button type="button" onClick={printPreview} className="inline-flex size-8 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/10">
-                                <Printer size={13} />
+                                <IconPrinter size={13} />
                             </button>
                             <button type="button" onClick={() => setIsFullPreviewOpen(false)} className="inline-flex size-8 items-center justify-center rounded-lg bg-red-500/80 text-white hover:bg-red-500">
-                                <X size={14} />
+                                <IconX size={14} />
                             </button>
                         </div>
                     </div>

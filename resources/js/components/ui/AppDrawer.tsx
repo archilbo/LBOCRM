@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 
 import { Drawer } from '@heroui/react';
-import { X } from 'lucide-react';
+import { IconX } from '@tabler/icons-react';
+
 
 import { cn } from '@/lib/cn';
 
@@ -119,7 +120,7 @@ export function AppDrawer({
                                     classNames?.closeButton,
                                 )}
                             >
-                                <X size={17} aria-hidden="true" />
+                                <IconX size={17} aria-hidden="true" />
                             </Drawer.CloseTrigger>
                         ) : null}
 
