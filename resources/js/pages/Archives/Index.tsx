@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { IconArchive, IconChevronLeft, IconChevronRight, IconChartBar, IconBuilding, IconFileText, IconLayersLinked, IconList, IconMap, IconPlus, IconRefresh, IconScan, IconSearch, IconAdjustmentsHorizontal, IconX } from '@tabler/icons-react';
+import { IconArchive, IconChevronLeft, IconChevronRight, IconChartBar, IconBuilding, IconFileText, IconLayersLinked, IconList, IconMap, IconRefresh, IconSearch, IconAdjustmentsHorizontal, IconX } from '@tabler/icons-react';
 
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -19,7 +19,6 @@ import { BulkActionBar } from '@/features/archives/components/BulkActionBar';
 import { KpiStrip } from '@/features/archives/components/KpiStrip';
 import { MapView } from '@/features/archives/components/MapView';
 import { PreviewPanel } from '@/features/archives/components/PreviewPanel';
-import { ScanModal } from '@/features/archives/components/ScanModal';
 import { CitySidebar } from '@/features/archives/components/CitySidebar';
 import { ArchiveTable } from '@/features/archives/components/ArchiveTable';
 import { useArchiveFilters } from '@/features/archives/hooks/useArchiveFilters';
@@ -28,11 +27,16 @@ import type { ArchiveFormPayload, ArchiveRecordRow, ArchivesPageProps } from '@/
 import { ARCHIVE_STATUS, defaultDue } from '@/config/statuses';
 import { cn } from '@/lib/cn';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTranslation } from '@/lib/i18n';
 
 export default function ArchivesIndex(props: ArchivesPageProps) {
     const { can } = usePermissions();
+    const { t } = useTranslation();
     const { filters, patch, debouncedPatch, reset, activeCount, activeChips } = useArchiveFilters({
-        initial: props.filters,
+        initial: {
+            ...props.filters,
+            viewMode: (props.filters.viewMode === 'map' || props.filters.viewMode === 'list') ? props.filters.viewMode : undefined,
+        } as ArchiveFilters,
         route: '/archives',
     });
 
@@ -48,7 +52,6 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     const [returnDrawerOpen, setReturnDrawerOpen] = useState(false);
     const [moveDrawerOpen, setMoveDrawerOpen] = useState(false);
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-    const [scanModalOpen, setScanModalOpen] = useState(false);
     const [cheatsheetOpen, setCheatsheetOpen] = useState(false);
     const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
     const [roomModalOpen, setRoomModalOpen] = useState(false);
@@ -85,14 +88,6 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
 
     function handleRowClick(record: ArchiveRecordRow) {
         setPreviewRecord(record);
-    }
-
-    function handleRowDoubleClick(record: ArchiveRecordRow) {
-        if (!can('archive.update')) return;
-        setSelectedArchive(record);
-        setDrawerMode('edit');
-        setFormErrors({});
-        setDrawerOpen(true);
     }
 
     function openCreateDrawer() {
@@ -264,17 +259,17 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
 
     return (
         <>
-            <Head title="Archives" />
+            <Head title={t('archivesWorkspace.title')} />
             <AppShell>
                 <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 flex flex-col min-h-0 space-y-4">
                     <div className="flex items-center justify-between shrink-0">
-                        <h1 className="text-2xl font-semibold text-white">Archives</h1>
+                        <h1 className="text-2xl font-semibold text-[var(--crm-text)]">{t('archivesWorkspace.title')}</h1>
                         {can('archive.create') ? (
                             <div className="flex items-center gap-2">
-                                <AppButton variant="ghost" compact isIconOnly onPress={() => setRoomModalOpen(true)} tooltip="Créer salle">
+                                <AppButton variant="ghost" compact isIconOnly onPress={() => setRoomModalOpen(true)} tooltip={t('actions.createRoom')}>
                                     <IconBuilding size={16} />
                                 </AppButton>
-                                <AppButton variant="primary" compact isIconOnly onPress={openCreateDrawer} tooltip="Nouvelle archive">
+                                <AppButton variant="primary" compact isIconOnly onPress={openCreateDrawer} tooltip={t('archivesWorkspace.newArchive')}>
                                     <IconArchive size={16} />
                                 </AppButton>
                             </div>
@@ -285,95 +280,82 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
 
                     <div className="flex flex-wrap items-center gap-2 shrink-0">
                         <div className="relative w-64">
-                            <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
+                            <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--crm-text-muted)]" />
                             <input
                                 ref={searchRef}
                                 type="text"
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
-                                placeholder="ARC, project, box…"
-                                className="h-8 w-full rounded-lg border border-white/10 bg-white/[0.02] pl-8 pr-7 text-[12px] text-white outline-none placeholder:text-white/40 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20"
+                                placeholder={t('searchPlaceholder')}
+                                className="h-8 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface-2)] pl-8 pr-7 text-[12px] text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-text-muted)] focus:border-[var(--crm-gold)]/50 focus:ring-2 focus:ring-[var(--crm-gold)]/20"
                             />
                             {query ? (
                                 <button type="button" onClick={() => { setQuery(''); debouncedPatch({ q: undefined }); }}
-                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded text-white/40 hover:text-white/80">
+                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]">
                                     <IconX size={12} />
                                 </button>
                             ) : null}
                         </div>
 
-                        <AppTooltip label="Filters">
+                        <AppTooltip label={t('actions.filters')}>
                             <button type="button" onClick={() => setFilterDrawerOpen(true)}
-                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/5', activeCount > 0 && 'text-amber-400')}
-                                aria-label="Filters">
+                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]', activeCount > 0 && 'text-[var(--crm-gold)]')}
+                                aria-label={t('actions.filters')}>
                                 <IconAdjustmentsHorizontal size={14} />
                             </button>
                         </AppTooltip>
 
-                        <div className="h-5 w-px bg-white/10" />
+                        <div className="h-5 w-px bg-[var(--crm-border)]" />
 
-                        <AppTooltip label="IconList view">
+                        <AppTooltip label={t('actions.listView')}>
                             <button type="button" onClick={() => patch({ viewMode: 'list' })}
-                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'list' ? 'bg-amber-500/10 text-amber-400' : 'text-white/40 hover:text-white/80 hover:bg-white/5')}
-                                aria-label="IconList view"><IconList size={14} /></button>
+                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'list' ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]')}
+                                aria-label={t('actions.listView')}><IconList size={14} /></button>
                         </AppTooltip>
-                        <AppTooltip label="IconMap view">
+                        <AppTooltip label={t('actions.mapView')}>
                             <button type="button" onClick={() => patch({ viewMode: 'map' })}
-                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'map' ? 'bg-amber-500/10 text-amber-400' : 'text-white/40 hover:text-white/80 hover:bg-white/5')}
-                                aria-label="IconMap view"><IconMap size={14} /></button>
+                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'map' ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]')}
+                                aria-label={t('actions.mapView')}><IconMap size={14} /></button>
                         </AppTooltip>
 
-                        <AppTooltip label="Refresh">
+                        <AppTooltip label={t('actions.refresh')}>
                             <button type="button" onClick={() => router.reload({ only: ['archives', 'kpis', 'tree', 'cells'] })}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Refresh">
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]" aria-label={t('actions.refresh')}>
                                 <IconRefresh size={14} />
                             </button>
                         </AppTooltip>
 
-                        <div className="h-5 w-px bg-white/10" />
+                        <div className="h-5 w-px bg-[var(--crm-border)]" />
 
-                        <AppTooltip label="Reports">
+                        <AppTooltip label={t('actions.reports')}>
                             <button type="button" onClick={() => router.visit('/archives/reports')}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Reports">
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]" aria-label={t('actions.reports')}>
                                 <IconChartBar size={14} />
-                            </button>
-                        </AppTooltip>
-                        <AppTooltip label="Cities">
-                            <button type="button" onClick={() => router.visit('/archives/cities')}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Cities">
-                                <IconBuilding size={14} />
-                            </button>
-                        </AppTooltip>
-
-                        <AppTooltip label="Scan QR code">
-                            <button type="button" onClick={() => setScanModalOpen(true)}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/5" aria-label="Scan QR code">
-                                <IconScan size={14} />
                             </button>
                         </AppTooltip>
 
                         {activeChips.length > 0 ? (
                             <div className="flex items-center gap-1.5 flex-wrap shrink-0 ml-auto">
                                 {activeChips.map((chip) => (
-                                    <span key={chip.key} className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-xs text-white/60">
+                                    <span key={chip.key} className="inline-flex items-center gap-1 rounded-md border border-[var(--crm-border)] px-2 py-1 text-xs text-[var(--crm-text-muted)]">
                                         {chip.label}
-                                        <button type="button" onClick={chip.onRemove} className="ml-0.5 text-white/40 hover:text-white/80"><IconX size={12} /></button>
+                                        <button type="button" onClick={chip.onRemove} className="ml-0.5 text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]"><IconX size={12} /></button>
                                     </span>
                                 ))}
-                                <button type="button" onClick={reset} className="text-xs text-white/50 hover:text-white/80">Clear all</button>
+                                <button type="button" onClick={reset} className="text-xs text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]">{t('actions.clearAll')}</button>
                             </div>
                         ) : null}
                     </div>
 
                     {/* Preview card — full width */}
-                    <div className="rounded-xl border border-white/5 bg-white/[0.02] shrink-0">
+                    <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-surface)] shrink-0">
                         <PreviewPanel record={previewRecord} />
                     </div>
 
                     {/* Sidebar + table — fills remaining height */}
                     <div className="flex min-h-0 flex-1 gap-3">
                         <div className="hidden lg:flex flex-col w-[220px] shrink-0">
-                            <div className="flex-1 rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
+                            <div className="flex-1 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-surface)] overflow-hidden">
                                 <CitySidebar
                                     cells={props.cells}
                                     selectedCity={filters.city || null}
@@ -385,7 +367,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                             </div>
                         </div>
 
-                        <div className="flex flex-col min-h-0 flex-1 rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
+                        <div className="flex flex-col min-h-0 flex-1 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-surface)]">
                             {viewMode === 'list' ? (
                                 <ArchiveTable
                                     archives={props.archives}
@@ -395,7 +377,6 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                     onToggleSelect={(id) => setSelectedIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
                                     onToggleAll={() => setSelectedIds((prev) => prev.size === props.archives.length ? new Set() : new Set(props.archives.map((r) => r.id)))}
                                     onRowClick={handleRowClick}
-                                    onRowDoubleClick={handleRowDoubleClick}
                                     onCheckoutSingle={can('archive.checkout') ? handleCheckoutSingle : undefined}
                                     onReturnSingle={can('archive.checkin') ? handleReturnSingle : undefined}
                                     onEditSingle={can('archive.update') ? openEditDrawer : undefined}
@@ -420,41 +401,41 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                 if (end < lastPage - 1) pages.push('ellipsis');
                                 if (end < lastPage) pages.push(lastPage);
                                 return (
-                                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 px-3 py-2.5 shrink-0">
+                                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--crm-border)] px-3 py-2.5 shrink-0">
                                         <div className="flex items-center gap-2">
                                             <AppSelect
                                                 label=""
                                                 selectedKey={String(perPage)}
                                                 onSelectionChange={(v) => handlePerPageChange(Number(v))}
                                                 options={[
-                                                    { id: '15', label: '15 / page' },
-                                                    { id: '30', label: '30 / page' },
-                                                    { id: '50', label: '50 / page' },
-                                                    { id: '100', label: '100 / page' },
+                                                    { id: '15', label: `15 ${t('page')}` },
+                                                    { id: '30', label: `30 ${t('page')}` },
+                                                    { id: '50', label: `50 ${t('page')}` },
+                                                    { id: '100', label: `100 ${t('page')}` },
                                                 ]}
                                                 className="h-7 w-24"
                                             />
-                                            <span className="text-[11px] text-white/40 tabular-nums">
-                                                {from}–{to} of {total}
+                                            <span className="text-[11px] text-[var(--crm-text-muted)] tabular-nums">
+                                                {from}–{to} {t('of')} {total}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <button type="button"
                                                 disabled={currentPage <= 1}
                                                 onClick={() => handlePageChange(currentPage - 1)}
-                                                className="flex h-7 w-7 items-center justify-center rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-20 disabled:pointer-events-none transition">
+                                                className="flex h-7 w-7 items-center justify-center rounded text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)] disabled:opacity-20 disabled:pointer-events-none transition">
                                                 <IconChevronLeft size={14} />
                                             </button>
                                             {pages.map((p, i) =>
                                                 p === 'ellipsis' ? (
-                                                    <span key={`e${i}`} className="px-1 text-white/20 select-none text-[10px]">…</span>
+                                                    <span key={`e${i}`} className="px-1 text-[var(--crm-text-muted)]/20 select-none text-[10px]">…</span>
                                                 ) : (
                                                     <button key={p} type="button"
                                                         onClick={() => handlePageChange(p)}
                                                         className={`flex h-7 min-w-7 items-center justify-center rounded text-xs transition ${
                                                             p === currentPage
-                                                                ? 'bg-amber-500/15 text-amber-400 font-semibold'
-                                                                : 'text-white/40 hover:text-white hover:bg-white/5'
+                                                                ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)] font-semibold'
+                                                                : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]'
                                                         }`}>
                                                         {p}
                                                     </button>
@@ -463,7 +444,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                             <button type="button"
                                                 disabled={currentPage >= lastPage}
                                                 onClick={() => handlePageChange(currentPage + 1)}
-                                                className="flex h-7 w-7 items-center justify-center rounded text-white/40 hover:text-white hover:bg-white/5 disabled:opacity-20 disabled:pointer-events-none transition">
+                                                className="flex h-7 w-7 items-center justify-center rounded text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)] disabled:opacity-20 disabled:pointer-events-none transition">
                                                 <IconChevronRight size={14} />
                                             </button>
                                         </div>
@@ -484,8 +465,8 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                     <button
                         type="button"
                         onClick={() => setSidebarDrawerOpen(true)}
-                        className="lg:hidden fixed bottom-4 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-white shadow-lg"
-                        aria-label="Open city sidebar"
+                        className="lg:hidden fixed bottom-4 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--crm-gold)] text-black shadow-lg"
+                        aria-label={t('actions.openCitySidebar')}
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
                     </button>
@@ -529,22 +510,22 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                 <AppDrawer
                     isOpen={filterDrawerOpen}
                     onOpenChange={setFilterDrawerOpen}
-                    title="Filters"
-                    description={`${activeCount} active filter${activeCount !== 1 ? 's' : ''}`}
+                    title={t('filters.title')}
+                    description={`${activeCount} ${activeCount === 1 ? t('filters.activeFilter') : t('filters.activeFilters')}`}
                     size="md"
                     footer={
                         <>
-                            <AppButton variant="secondary" onPress={() => { reset(); setFilterDrawerOpen(false); }}>Reset</AppButton>
-                            <AppButton variant="primary" type="submit" form="filter-form">Apply</AppButton>
+                            <AppButton variant="secondary" onPress={() => { reset(); setFilterDrawerOpen(false); }}>{t('filters.reset')}</AppButton>
+                            <AppButton variant="primary" type="submit" form="filter-form">{t('filters.apply')}</AppButton>
                         </>
                     }
                 >
                     <form id="filter-form" onSubmit={(e) => { e.preventDefault(); setFilterDrawerOpen(false); }} className="space-y-5">
                         <section>
-                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">City</h4>
+                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-[var(--crm-text-soft)] font-semibold">{t('filters.city')}</h4>
                             <select value={filters.city || ''} onChange={(e) => patch({ city: e.target.value || undefined })}
-                                className="h-9 w-full rounded-lg border border-white/10 bg-zinc-900 px-2 text-[12px] text-white outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20">
-                                <option value="">All</option>
+                                className="h-9 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-2 text-[12px] text-[var(--crm-text)] outline-none focus:border-[var(--crm-gold)]/50 focus:ring-2 focus:ring-[var(--crm-gold)]/20">
+                                <option value="">{t('filters.all')}</option>
                                 {props.cities.map((c) => (
                                     <option key={c.code} value={c.code}>{c.name} ({c.code})</option>
                                 ))}
@@ -552,17 +533,17 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                         </section>
 
                         <section>
-                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Status</h4>
+                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-[var(--crm-text-soft)] font-semibold">{t('filters.status')}</h4>
                             <div className="space-y-1">
                                 {Object.entries(ARCHIVE_STATUS).map(([key, s]) => (
-                                    <label key={key} className="flex items-center gap-2 text-[12px] text-white/80">
+                                    <label key={key} className="flex items-center gap-2 text-[12px] text-[var(--crm-text)]/80">
                                         <input type="checkbox" checked={filters.status?.includes(key) ?? false}
                                             onChange={() => {
                                                 const cur = filters.status || [];
                                                 const next = cur.includes(key) ? cur.filter((x) => x !== key) : [...cur, key];
                                                 patch({ status: next.length ? next : undefined });
                                             }}
-                                            className="size-3.5 accent-amber-500" />
+                                            className="size-3.5 accent-[var(--crm-gold)]" />
                                         <span className={s.listColor}>{s.dot}</span> {s.label}
                                     </label>
                                 ))}
@@ -570,39 +551,39 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                         </section>
 
                         <section>
-                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Requester</h4>
+                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-[var(--crm-text-soft)] font-semibold">{t('filters.requester')}</h4>
                             <select value={filters.requesterId || ''} onChange={(e) => patch({ requesterId: e.target.value || undefined })}
-                                className="h-9 w-full rounded-lg border border-white/10 bg-zinc-900 px-2 text-[12px] text-white outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20">
-                                <option value="">All</option>
+                                className="h-9 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-2 text-[12px] text-[var(--crm-text)] outline-none focus:border-[var(--crm-gold)]/50 focus:ring-2 focus:ring-[var(--crm-gold)]/20">
+                                <option value="">{t('filters.all')}</option>
                                 {props.requesters.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                             </select>
                         </section>
 
                         <section>
-                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Due date</h4>
+                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-[var(--crm-text-soft)] font-semibold">{t('filters.dueDate')}</h4>
                             <div className="flex gap-2">
                                 <input type="date" value={filters.dueFrom || ''} onChange={(e) => patch({ dueFrom: e.target.value || undefined })}
-                                    className="h-9 flex-1 rounded-lg border border-white/10 bg-zinc-900 px-2 text-[12px] text-white outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20" placeholder="From" />
+                                    className="h-9 flex-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-2 text-[12px] text-[var(--crm-text)] outline-none focus:border-[var(--crm-gold)]/50 focus:ring-2 focus:ring-[var(--crm-gold)]/20" placeholder={t('filters.from')} />
                                 <input type="date" value={filters.dueTo || ''} onChange={(e) => patch({ dueTo: e.target.value || undefined })}
-                                    className="h-9 flex-1 rounded-lg border border-white/10 bg-zinc-900 px-2 text-[12px] text-white outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20" placeholder="To" />
+                                    className="h-9 flex-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-2 text-[12px] text-[var(--crm-text)] outline-none focus:border-[var(--crm-gold)]/50 focus:ring-2 focus:ring-[var(--crm-gold)]/20" placeholder={t('filters.to')} />
                             </div>
                             <div className="mt-1 flex gap-1">
                                 {[
-                                    { label: 'Overdue', fn: () => patch({ dueTo: new Date().toISOString().split('T')[0], dueFrom: undefined }) },
-                                    { label: 'This week', fn: () => { const d = new Date(); const day = d.getDay(); const mon = new Date(d); mon.setDate(mon.getDate() - (day === 0 ? 6 : day - 1)); const sun = new Date(mon); sun.setDate(sun.getDate() + 6); patch({ dueFrom: mon.toISOString().split('T')[0], dueTo: sun.toISOString().split('T')[0] }); } },
-                                    { label: 'This month', fn: () => { const d = new Date(); patch({ dueFrom: new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0], dueTo: new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0] }); } },
+                                    { label: t('filters.overdue'), fn: () => patch({ dueTo: new Date().toISOString().split('T')[0], dueFrom: undefined }) },
+                                    { label: t('filters.thisWeek'), fn: () => { const d = new Date(); const day = d.getDay(); const mon = new Date(d); mon.setDate(mon.getDate() - (day === 0 ? 6 : day - 1)); const sun = new Date(mon); sun.setDate(sun.getDate() + 6); patch({ dueFrom: mon.toISOString().split('T')[0], dueTo: sun.toISOString().split('T')[0] }); } },
+                                    { label: t('filters.thisMonth'), fn: () => { const d = new Date(); patch({ dueFrom: new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0], dueTo: new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0] }); } },
                                 ].map((preset) => (
                                     <button key={preset.label} type="button" onClick={preset.fn}
-                                        className="rounded border border-white/10 px-2 py-1 text-xs text-white/60 hover:bg-white/5">{preset.label}</button>
+                                        className="rounded border border-[var(--crm-border)] px-2 py-1 text-xs text-[var(--crm-text-muted)] hover:bg-[var(--crm-elevated)]">{preset.label}</button>
                                 ))}
                             </div>
                         </section>
 
                         <section>
-                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Dossier</h4>
+                            <h4 className="mb-2 text-[10px] uppercase tracking-wide text-[var(--crm-text-soft)] font-semibold">{t('filters.dossier')}</h4>
                             <select value={filters.dossierId || ''} onChange={(e) => patch({ dossierId: e.target.value || undefined })}
-                                className="h-9 w-full rounded-lg border border-white/10 bg-zinc-900 px-2 text-[12px] text-white outline-none focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20">
-                                <option value="">All</option>
+                                className="h-9 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-2 text-[12px] text-[var(--crm-text)] outline-none focus:border-[var(--crm-gold)]/50 focus:ring-2 focus:ring-[var(--crm-gold)]/20">
+                                <option value="">{t('filters.all')}</option>
                                 {props.dossiers.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
                             </select>
                         </section>
@@ -612,7 +593,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                 <AppDrawer
                     isOpen={sidebarDrawerOpen}
                     onOpenChange={setSidebarDrawerOpen}
-                    title="Cities"
+                    title={t('cities')}
                     size="sm"
                 >
                     <CitySidebar
@@ -625,39 +606,37 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                     />
                 </AppDrawer>
 
-                <ScanModal isOpen={scanModalOpen} onOpenChange={setScanModalOpen} />
-
-                <AppModal isOpen={cheatsheetOpen} onOpenChange={setCheatsheetOpen} title="Keyboard shortcuts" size="sm">
+                <AppModal isOpen={cheatsheetOpen} onOpenChange={setCheatsheetOpen} title={t('modals.keyboardShortcuts')} size="sm">
                     <div className="space-y-2 text-[12px]">
                         {[
-                            { keys: '⌘K', action: 'Focus search' },
-                            { keys: 'N', action: 'New archive' },
-                            { keys: '⇧N', action: 'Batch menu' },
-                            { keys: 'C', action: 'Check out selected' },
-                            { keys: 'R', action: 'Return selected' },
-                            { keys: 'M', action: 'Move selected' },
-                            { keys: '?', action: 'Show this cheatsheet' },
+                            { keys: '⌘K', action: t('modals.focusSearch') },
+                            { keys: 'N', action: t('modals.newArchive') },
+                            { keys: '⇧N', action: t('modals.batchMenu') },
+                            { keys: 'C', action: t('modals.checkoutSelected') },
+                            { keys: 'R', action: t('modals.returnSelected') },
+                            { keys: 'M', action: t('modals.moveSelected') },
+                            { keys: '?', action: t('modals.showCheatsheet') },
                         ].map((item) => (
                             <div key={item.keys} className="flex items-center justify-between">
-                                <kbd className="rounded border border-white/10 px-1.5 py-0.5 font-mono text-xs text-white/80">{item.keys}</kbd>
-                                <span className="text-white/60">{item.action}</span>
+                                <kbd className="rounded border border-[var(--crm-border)] px-1.5 py-0.5 text-xs text-[var(--crm-text)]/80">{item.keys || ''}</kbd>
+                                <span className="text-[var(--crm-text-muted)]">{item.action}</span>
                             </div>
                         ))}
                     </div>
                 </AppModal>
 
-                <AppModal isOpen={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }} title="Delete archive?" size="sm">
-                    <p className="mb-4 text-[12px] text-white/70">Delete <strong className="text-white">{deleteTarget?.archiveNumber}</strong>? This cannot be undone.</p>
+                <AppModal isOpen={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }} title={t('modals.deleteTitle')} size="sm">
+                    <p className="mb-4 text-[12px] text-[var(--crm-text-muted)]">{t('modals.deleteConfirm', { archiveNumber: deleteTarget?.archiveNumber })}</p>
                     <div className="flex justify-end gap-2">
-                        <AppButton variant="bordered" size="sm" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
-                        <AppButton color="danger" variant="solid" size="sm" onPress={confirmDelete}>Delete</AppButton>
+                        <AppButton variant="bordered" size="sm" onPress={() => setDeleteTarget(null)}>{t('modals.cancel')}</AppButton>
+                        <AppButton color="danger" variant="solid" size="sm" onPress={confirmDelete}>{t('modals.delete')}</AppButton>
                     </div>
                 </AppModal>
 
-                <AppModal isOpen={roomModalOpen} onOpenChange={setRoomModalOpen} title="Créer salle" size="sm">
+                <AppModal isOpen={roomModalOpen} onOpenChange={setRoomModalOpen} title={t('modals.createRoom')} size="sm">
                     <div className="flex flex-col gap-3">
-                        <DrawerSection icon={<IconBuilding size={12} />} title="Salle">
-                            <DrawerField label="Nom" error={roomErrors.name}>
+                        <DrawerSection icon={<IconBuilding size={12} />} title={t('modals.room')}>
+                            <DrawerField label={t('modals.name')} error={roomErrors.name}>
                                 <Input
                                     type="text"
                                     value={roomName}
@@ -668,9 +647,9 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                             </DrawerField>
                         </DrawerSection>
 
-                        <DrawerSection icon={<IconLayersLinked size={12} />} title="Étagères">
+                        <DrawerSection icon={<IconLayersLinked size={12} />} title={t('modals.shelves')}>
                             <div className="grid grid-cols-2 gap-2">
-                                <DrawerField label="Nombre" error={roomErrors.shelves_count}>
+                                <DrawerField label={t('modals.number')} error={roomErrors.shelves_count}>
                                     <Input
                                         type="number"
                                         value={String(shelvesCount)}
@@ -682,7 +661,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                         className={drawerStyles.input}
                                     />
                                 </DrawerField>
-                                <DrawerField label="Boîtes / étagère" error={roomErrors.boxes_per_shelf}>
+                                <DrawerField label={t('modals.boxesPerShelf')} error={roomErrors.boxes_per_shelf}>
                                     <Input
                                         type="number"
                                         value={String(boxesPerShelf)}
@@ -697,8 +676,8 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                             </div>
                         </DrawerSection>
 
-                        <DrawerSection icon={<IconFileText size={12} />} title="Description">
-                            <DrawerField label="Description (optionnelle)" error={roomErrors.description}>
+                        <DrawerSection icon={<IconFileText size={12} />} title={t('modals.description')}>
+                            <DrawerField label={t('modals.optionalDescription')} error={roomErrors.description}>
                                 <TextArea
                                     value={roomDescription}
                                     onChange={(e) => setRoomDescription(e.target.value)}
@@ -709,8 +688,8 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                         </DrawerSection>
 
                         <div className="flex justify-end gap-2">
-                            <AppButton variant="bordered" size="sm" onPress={() => { setRoomModalOpen(false); setRoomErrors({}); }}>Annuler</AppButton>
-                            <AppButton variant="primary" size="sm" isDisabled={roomSubmitting} onPress={submitRoom}>{roomSubmitting ? 'Création...' : 'Créer'}</AppButton>
+                            <AppButton variant="bordered" size="sm" onPress={() => { setRoomModalOpen(false); setRoomErrors({}); }}>{t('modals.cancel')}</AppButton>
+                            <AppButton variant="primary" size="sm" isDisabled={roomSubmitting} onPress={submitRoom}>{roomSubmitting ? t('modals.creating') : t('modals.create')}</AppButton>
                         </div>
                     </div>
                 </AppModal>

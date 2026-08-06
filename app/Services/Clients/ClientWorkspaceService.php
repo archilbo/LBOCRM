@@ -139,6 +139,7 @@ class ClientWorkspaceService
             'documents' => $dossier->documents->map(function ($document) use ($dossier) {
                 $hasFile = $this->documentFiles->exists($document);
                 $canPreview = $this->documentFiles->canPreview($document, $hasFile);
+                $canPreviewText = $this->documentFiles->canPreviewText($document);
 
                 return [
                     'id' => $document->id,
@@ -153,6 +154,7 @@ class ClientWorkspaceService
                     'hasFile' => $hasFile,
                     'canPreview' => $canPreview,
                     'viewUrl' => $canPreview ? route('documents.view', $document) : null,
+                    'contentUrl' => $canPreviewText ? route('documents.content', $document) : null,
                     'printUrl' => $canPreview ? route('documents.print', $document) : null,
                     'downloadUrl' => $hasFile ? route('documents.download', $document) : null,
                 ];

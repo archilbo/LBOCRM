@@ -25,7 +25,9 @@ type AppWorkspaceTableProps<T> = {
     onRowPress?: (row: T) => void;
     renderMobileRow?: (row: T) => ReactNode;
     rowKey?: (row: T) => string | number;
-    toolbar: ReactNode;
+    toolbar?: ReactNode;
+    /** Extra classes for the card root (e.g. flex sizing inside a fixed-height layout). */
+    className?: string;
 };
 
 /** Shared CRM list shell with optional persisted column reordering. */
@@ -43,6 +45,7 @@ export function AppWorkspaceTable<T>({
     renderMobileRow,
     rowKey,
     toolbar,
+    className,
 }: AppWorkspaceTableProps<T>) {
     const baseColumns = columns ?? [];
     const columnSignature = baseColumns.map((column) => column.id).join('|');
@@ -113,8 +116,8 @@ export function AppWorkspaceTable<T>({
 
     if (children) {
         return (
-            <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-                <div className="border-b border-[var(--border)]">{toolbar}</div>
+            <div className={cn('rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm', className)}>
+                {toolbar ? <div className="border-b border-[var(--border)]">{toolbar}</div> : null}
                 {children}
                 {footer ? <div className="border-t border-[var(--border)]">{footer}</div> : null}
             </div>
@@ -122,10 +125,10 @@ export function AppWorkspaceTable<T>({
     }
 
     return (
-        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-            <div className="border-b border-[var(--border)]">{toolbar}</div>
+        <div className={cn('rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm', className)}>
+            {toolbar ? <div className="border-b border-[var(--border)]">{toolbar}</div> : null}
 
-            <div className={cn('overflow-x-auto', desktopHiddenClassName)}>
+            <div className={cn('flex-1 min-h-0 overflow-x-auto overflow-y-auto', desktopHiddenClassName)}>
                 <table aria-label={ariaLabel} className={cn('w-full text-xs', minTableWidthClassName)}>
                     <thead>
                         <tr className="border-b border-[var(--border)] bg-[var(--surface-2)]/55 text-left text-[10px] font-semibold tracking-[0.04em] text-[var(--text-muted)]">

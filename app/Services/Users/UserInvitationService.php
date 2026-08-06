@@ -46,6 +46,83 @@ class UserInvitationService
             ->first();
     }
 
+    /**
+     * Resolve the safe state of an invitation token.
+     *
+     * Only the latest token hash is stored, so an old (rotated) token is
+     * indistinguishable from one that never existed; both resolve to "invalid".
+     * A consumed token is remembered by its hash so an already-used link can be
+     * reported safely without ever storing a plain token.
+     *
+     * @return array{status: 'valid'|'invalid'|'expired'|'accepted'|'suspended', user: ?User}
+     */
+    public function resolveStatus(string $token): array
+    {
+        $hash = $this->hashToken($token);
+
+        $user = User::query()
+            ->where('invitation_token', $hash)
+            ->first();
+
+        if (! $user) {
+            $consumed = User::query()
+                ->where('consumed_invitation_token', $hash)
+                ->whereNotNull('accepted_at')
+                ->first();
+
+            return $consumed
+                ? ['status' => 'accepted', 'user' => $consumed]
+                : ['status' => 'invalid', 'user' => null];
+        }
+
+        if ($user->suspended_at !== null) {
+            return ['status' => 'suspended', 'user' => $user];
+        }
+
+        if ($user->accepted_at !== null) {
+            return ['status' => 'accepted', 'user' => $user];
+        }
+
+        if ($user->invitation_expires_at === null || $user->invitation_expires_at->isPast()) {
+            return ['status' => 'expired', 'user' => $user];
+        }
+
+        return ['status' => 'valid', 'user' => $user];
+    }
+
+    /**
+     * Accept the invitation inside a transaction and consume the token.
+     *
+     * The token hash is revalidated inside the transaction so the invitation
+     * stays strictly single-use. The consumed hash is kept (never the plain
+     * token) so reusing the link can report "already accepted".
+     *
+     * @param  array{name: string, password: string}  $attributes
+     */
+    public function consume(string $token, array $attributes): ?User
+    {
+        return DB::transaction(function () use ($token, $attributes): ?User {
+            $user = $this->findPending($token);
+
+            if (! $user) {
+                return null;
+            }
+
+            $tokenHash = $user->invitation_token;
+
+            $user->update([
+                'name' => $attributes['name'],
+                'password' => Hash::make($attributes['password']),
+                'accepted_at' => now(),
+                'invitation_token' => null,
+                'invitation_expires_at' => null,
+                'consumed_invitation_token' => $tokenHash,
+            ]);
+
+            return $user;
+        });
+    }
+
     private function issue(User $user, User $inviter): void
     {
         $plainToken = Str::random(64);

@@ -17,17 +17,6 @@ class CityController extends Controller
     {
     }
 
-    public function index(Request $request): Response
-    {
-        $this->authorizeArchive($request, 'archive.view');
-        [$cities, $usedColors] = $this->cityData();
-
-        return Inertia::render('Archives/Cities', [
-            'cities' => $cities,
-            'usedColors' => $usedColors,
-        ]);
-    }
-
     public function settings(Request $request): Response
     {
         $user = $request->user();
@@ -126,7 +115,7 @@ class CityController extends Controller
 
     private function backRoute(Request $request): string
     {
-        return $request->routeIs('settings.*') ? 'settings.index' : 'archives.cities.index';
+        return 'settings.index';
     }
 
     private function authorizeArchive(Request $request, string $permission): void

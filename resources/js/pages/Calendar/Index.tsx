@@ -1,7 +1,10 @@
+import { IconPlus } from '@tabler/icons-react';
 import { Head, router } from '@inertiajs/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppButton } from '@/components/ui/AppButton';
+import { useTranslation } from '@/lib/i18n';
 import type { CalendarEventRow } from '@/features/calendar/types';
 import { EVENT_TYPE_COLORS } from '@/features/calendar/types';
 import { CalendarSidebar } from '@/features/calendar/components/CalendarSidebar';
@@ -13,7 +16,10 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import type { EventClickArg, DateSelectArg, EventDropArg, EventResizeDoneArg } from '@fullcalendar/core';
+import frLocale from '@fullcalendar/core/locales/fr';
+import type { EventClickArg, DateSelectArg, EventDropArg } from '@fullcalendar/core';
+import type { EventResizeDoneArg } from '@fullcalendar/interaction';
+import { memo } from 'react';
 
 type PageProps = {
     events: CalendarEventRow[];
@@ -42,6 +48,7 @@ function toFC(event: CalendarEventRow) {
 }
 
 export default function CalendarIndex({ events: _events, users }: PageProps) {
+    const { t, locale } = useTranslation();
     const initialEvents = Array.isArray(_events) ? _events : [];
     const calendarRef = useRef<FullCalendar>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -89,8 +96,14 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
     }
 
     const handleDatesSet = useCallback((arg: { start: Date; end: Date; view: { currentStart: Date } }) => {
-        setCurrentDate(arg.view.currentStart);
-    }, []);
+        // Only update if the date actually changed to prevent infinite loops
+        const newDate = arg.view.currentStart;
+        if (newDate.getTime() !== currentDate.getTime()) {
+            setCurrentDate(newDate);
+        }
+    }, [currentDate]);
+
+    const eventContent = useCallback((arg: any) => <CalendarEventPill {...arg} />, []);
 
     function handleEventClick(arg: EventClickArg) {
         const id = Number(arg.event.id);
@@ -150,12 +163,12 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
         })
             .then((r) => {
                 if (!r.ok) throw new Error('Move failed');
-                toast.success('Event moved.');
+                toast.success(t('calendar.toast.moved'));
                 router.reload({ only: ['events', 'users'] });
             })
             .catch(() => {
                 arg.revert();
-                toast.error('Failed to move event.');
+                toast.error(t('calendar.toast.moveFailed'));
             });
     }
 
@@ -170,34 +183,28 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
         })
             .then((r) => {
                 if (!r.ok) throw new Error('Resize failed');
-                toast.success('Event resized.');
+                toast.success(t('calendar.toast.resized'));
                 router.reload({ only: ['events', 'users'] });
             })
             .catch(() => {
                 arg.revert();
-                toast.error('Failed to resize event.');
+                toast.error(t('calendar.toast.resizeFailed'));
             });
     }
 
     const headerAction = (
-        <div className="flex items-center gap-2">
-            <button
-                type="button"
-                onClick={openCreateDrawer}
-                className="flex h-8 items-center gap-1.5 rounded-lg bg-[var(--crm-gold)] px-3 text-xs font-semibold text-black transition hover:brightness-110">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                New event
-            </button>
-        </div>
+        <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('calendar.newEvent')} aria-label={t('calendar.newEvent')} onPress={openCreateDrawer}>
+            <IconPlus size={16} />
+        </AppButton>
     );
 
     return (
         <>
-            <Head title="Calendar" />
+            <Head title={t('calendar.title')} />
             <AppShell
-                eyebrowKey="nav.calendar"
-                titleKey="nav.calendar"
-                subtitleKey="Schedule tasks, notes, reminders, and follow-ups."
+                eyebrowKey="calendar.eyebrow"
+                titleKey="calendar.title"
+                subtitleKey="calendar.subtitle"
                 action={headerAction}>
                 <div className="calendar-workspace FORCE_CALENDAR_UI_POLISH_55UI mx-auto max-w-[1600px] px-4 pt-4">
                     <div className="grid grid-cols-[280px_minmax(0,1fr)_320px] gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px] max-lg:grid-cols-[280px_minmax(0,1fr)] max-md:grid-cols-1">
@@ -209,7 +216,7 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
                             filterUserId={filterUserId}
                             onFilterUserIdChange={setFilterUserId}
                             currentDate={currentDate}
-                            onDateChange={(d) => { setCurrentDate(d); calendarRef.current?.getApi()?.gotoDate(d); }}
+                            onDateChange={(d) => { calendarRef.current?.getApi()?.gotoDate(d); }}
                             onDayClick={(d) => { calendarRef.current?.getApi()?.gotoDate(d); setViewMode('timeGridDay'); }}
                             users={users}
                             onCreateClick={openCreateDrawer}
@@ -231,8 +238,10 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
                                     ref={calendarRef}
                                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                                     initialView={viewMode}
+                                    locale={locale === 'fr' ? 'fr' : 'en'}
+                                    locales={[frLocale]}
                                     events={fcEvents}
-                                    eventContent={CalendarEventPill}
+                                    eventContent={eventContent}
                                     eventClick={handleEventClick}
                                     selectable={true}
                                     select={handleDateSelect}

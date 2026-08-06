@@ -10,11 +10,16 @@ import type { DocumentExplorerItem } from './documentExplorerTypes';
  */
 export function toDocumentExplorerItem(document: ClientProjectDocument): DocumentExplorerItem {
     const extension = normalizeDocumentExtension(document.originalFilename);
+    const previewKind = resolveDocumentPreviewKind(document.mimeType, extension);
 
     return {
         ...document,
         extension,
-        previewKind: resolveDocumentPreviewKind(document.mimeType, extension),
-        capabilities: normalizeDocumentCapabilities(document),
+        previewKind,
+        capabilities: normalizeDocumentCapabilities({
+            canPreview: document.canPreview,
+            hasFile: document.hasFile,
+            previewKind,
+        }),
     };
 }

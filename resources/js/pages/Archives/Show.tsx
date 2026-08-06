@@ -1,27 +1,47 @@
 import { Head, router } from '@inertiajs/react';
-import { IconAlertTriangle, IconArrowLeft, IconLogout, IconArrowMoveRight, IconPencil, IconArrowRotaryFirstLeft, IconTrash, IconArrowBackUp, IconUserCircle, IconCircleCheck } from '@tabler/icons-react';
-
+import {
+    IconAlertTriangle,
+    IconArrowBackUp,
+    IconArrowLeft,
+    IconArrowMoveRight,
+    IconCircleCheck,
+    IconLogout,
+    IconPencil,
+    IconRotateClockwise,
+    IconTrash,
+    IconUserCircle,
+} from '@tabler/icons-react';
+import { Alert, Card, TextArea } from '@heroui/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+
 import { AppButton } from '@/components/ui/AppButton';
+import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
 import { AppDrawer } from '@/components/ui/AppDrawer';
-import { AppTextField } from '@/components/ui/AppTextField';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppTextField } from '@/components/ui/AppTextField';
 import { StatusPill } from '@/components/ui/StatusPill';
+import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
 import { FlowTimeline } from '@/features/archives/components/FlowTimeline';
-import { archiveVisualStatus, defaultDue } from '@/config/statuses';
-import type { ArchiveRecordRow, ArchiveEventRow, TreeNode } from '@/features/archives/types';
+import { formatNotificationTime } from '@/features/notifications/helpers';
+import { defaultDue } from '@/config/statuses';
+import type { ArchiveClientOption, ArchiveDossierOption, ArchiveFormPayload, ArchiveRecordRow, ArchiveEventRow, TreeNode } from '@/features/archives/types';
+import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/cn';
 
 type PageProps = {
     archiveRecord: ArchiveRecordRow;
     events: ArchiveEventRow[];
     tree?: TreeNode[];
+    clients?: ArchiveClientOption[];
+    dossiers?: ArchiveDossierOption[];
 };
 
-export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) {
+export default function ArchiveShow({ archiveRecord, events, tree = [], clients = [], dossiers = [] }: PageProps) {
+    const { t, locale } = useTranslation();
     const record = archiveRecord;
 
+    const [showEdit, setShowEdit] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
     const [showLost, setShowLost] = useState(false);
     const [lostReason, setLostReason] = useState('');
@@ -29,8 +49,6 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
     const [moveRoom, setMoveRoom] = useState('');
     const [moveShelf, setMoveShelf] = useState('');
     const [moveBox, setMoveBox] = useState('');
-
-    const vs = archiveVisualStatus(record.status, record.isOverdue);
 
     function updateStatus(status: string) {
         const payload: Record<string, string> = { status };
@@ -40,15 +58,36 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
         }
         router.put(`/archives/${record.id}/status`, payload, {
             preserveScroll: true,
-            onSuccess: () => { toast.success('Status updated.'); router.reload(); },
-            onError: () => toast.error('Failed.'),
+            onSuccess: () => { toast.success(t('archiveShow.toastStatusUpdated')); router.reload(); },
+            onError: () => toast.error(t('archiveShow.toastFailed')),
         });
     }
 
     function doDelete() {
         router.delete(`/archives/${record.id}`, {
-            onSuccess: () => { toast.success('Deleted.'); router.visit('/archives'); },
-            onError: () => toast.error('Delete failed.'),
+            onSuccess: () => { toast.success(t('archiveShow.toastDeleted')); router.visit('/archives'); },
+            onError: () => toast.error(t('archiveShow.toastDeleteFailed')),
+        });
+    }
+
+    function handleUpdate(payload: ArchiveFormPayload) {
+        const backendPayload = {
+            dossier_id: payload.dossierId,
+            status: payload.status || 'ready_to_archive',
+            room: payload.room || null,
+            shelf: payload.shelf || null,
+            box: payload.box || null,
+            in_date: payload.inDate || null,
+            out_date: payload.outDate || null,
+            returned_at: payload.returnedAt || null,
+            requested_by: payload.requestedBy || null,
+            due_at: payload.dueAt || null,
+            notes: payload.notes || null,
+        };
+        router.put(`/archives/${record.id}`, backendPayload, {
+            preserveScroll: true,
+            onSuccess: () => { setShowEdit(false); toast.success(t('archiveShow.toastStatusUpdated')); router.reload(); },
+            onError: () => toast.error(t('archiveShow.toastFailed')),
         });
     }
 
@@ -56,8 +95,8 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
         if (!lostReason.trim()) return;
         router.put(`/archives/${record.id}/mark-lost`, { lost_reason: lostReason }, {
             preserveScroll: true,
-            onSuccess: () => { setShowLost(false); setLostReason(''); toast.success('Marked lost.'); router.reload(); },
-            onError: () => toast.error('Failed.'),
+            onSuccess: () => { setShowLost(false); setLostReason(''); toast.success(t('archiveShow.toastLost')); router.reload(); },
+            onError: () => toast.error(t('archiveShow.toastFailed')),
         });
     }
 
@@ -70,16 +109,26 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
             box: moveBox,
         }, {
             preserveScroll: true,
-            onSuccess: () => { setShowMove(false); toast.success('Moved.'); router.reload(); },
-            onError: () => toast.error('Move failed.'),
+            onSuccess: () => { setShowMove(false); toast.success(t('archiveShow.toastMoved')); router.reload(); },
+            onError: () => toast.error(t('archiveShow.toastMoveFailed')),
         });
     }
 
-    function nextAction(): { label: string; icon: typeof IconLogout; action: () => void } | null {
-        if (record.isLost) return { label: 'Restore', icon: IconArrowRotaryFirstLeft, action: () => router.put(`/archives/${record.id}/status`, { status: 'stored' }, { preserveScroll: true, onSuccess: () => { toast.success('Restored.'); router.reload(); } }) };
-        if (record.status === 'ready_to_archive') return { label: 'Store', icon: IconCircleCheck, action: () => updateStatus('stored') };
-        if (record.status === 'stored') return { label: 'Check out', icon: IconLogout, action: () => updateStatus('checked_out') };
-        if (record.status === 'checked_out') return { label: 'Return', icon: IconArrowBackUp, action: () => updateStatus('returned') };
+    function nextAction(): { labelKey: string; icon: typeof IconLogout; action: () => void } | null {
+        if (record.isLost) {
+            return {
+                labelKey: 'restore',
+                icon: IconRotateClockwise,
+                action: () => router.put(`/archives/${record.id}/status`, { status: 'stored' }, {
+                    preserveScroll: true,
+                    onSuccess: () => { toast.success(t('archiveShow.toastRestored')); router.reload(); },
+                    onError: () => toast.error(t('archiveShow.toastFailed')),
+                }),
+            };
+        }
+        if (record.status === 'ready_to_archive') return { labelKey: 'store', icon: IconCircleCheck, action: () => updateStatus('stored') };
+        if (record.status === 'stored') return { labelKey: 'checkOut', icon: IconLogout, action: () => updateStatus('checked_out') };
+        if (record.status === 'checked_out') return { labelKey: 'return', icon: IconArrowBackUp, action: () => updateStatus('returned') };
         return null;
     }
 
@@ -89,72 +138,84 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
         <>
             <Head title={record.archiveNumber} />
             <AppShell>
-                <button type="button" onClick={() => router.visit('/archives')}
-                    className="mb-3 flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--foreground)]">
-                    <IconArrowLeft size={13} /> Back to archives
-                </button>
+                <AppButton variant="quiet" size="sm" className="-ml-2 mb-3" onPress={() => router.visit('/archives')}>
+                    <IconArrowLeft size={13} /> {t('archiveShow.backToArchives')}
+                </AppButton>
 
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                         <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">{record.archiveNumber}</h1>
-                            <StatusPill status={record.status} isOverdue={record.isOverdue} />
+                            <h1 className="text-2xl font-semibold tracking-tight text-[var(--crm-text)]">{record.archiveNumber}</h1>
+                            <StatusPill
+                                status={record.status}
+                                isOverdue={record.isOverdue}
+                                label={t(`status.${record.isOverdue ? 'overdue' : record.status}`)}
+                            />
+                            {record.city ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                                    style={{ backgroundColor: `${record.city.color}20`, color: record.city.color }}>
+                                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: record.city.color }} />
+                                    {record.city.name}
+                                </span>
+                            ) : null}
                         </div>
-                        <p className="mt-1 text-sm text-[var(--text-muted)]">
+                        <p className="mt-1 text-sm text-[var(--crm-text-muted)]">
                             {record.projectObject} · {record.dossierNumber} · {record.clientName} ({record.clientCin})
                         </p>
                     </div>
                     <div className="flex shrink-0 gap-1">
-                        <button type="button" onClick={() => router.visit(`/archives/${record.id}/edit`)}
-                            className="flex size-7 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]" title="Edit">
+                        <AppButton variant="quiet" size="sm" isIconOnly tooltip={t('archiveShow.edit')} onPress={() => setShowEdit(true)}>
                             <IconPencil size={14} />
-                        </button>
-                        <button type="button" onClick={() => setShowDelete(true)}
-                            className="flex size-7 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-red-400" title="Delete">
-                            <IconTrash size={14} />
-                        </button>
+                        </AppButton>
+                        <AppButton variant="quiet" size="sm" isIconOnly tooltip={t('archiveShow.delete')} onPress={() => setShowDelete(true)}>
+                            <IconTrash size={14} className="text-[var(--crm-danger)]" />
+                        </AppButton>
                     </div>
                 </div>
 
                 {record.isOverdue ? (
-                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-xs text-red-400">
-                        <IconAlertTriangle size={14} /> Overdue since {record.dueAt}
-                    </div>
+                    <Alert status="danger" className="mt-4">
+                        <Alert.Content>
+                            <Alert.Title>{t('archiveShow.overdueSince', { date: record.dueAt ?? '' })}</Alert.Title>
+                        </Alert.Content>
+                    </Alert>
                 ) : null}
                 {record.isLost ? (
-                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-400/20 bg-red-400/8 px-3 py-2 text-xs text-red-400">
-                        <IconAlertTriangle size={14} /> {record.lostReason || 'Marked as lost'}
-                    </div>
+                    <Alert status="danger" className="mt-4">
+                        <Alert.Content>
+                            <Alert.Title>{record.lostReason || t('archiveShow.markedLost')}</Alert.Title>
+                        </Alert.Content>
+                    </Alert>
                 ) : null}
 
-                <div className="mt-6 grid gap-6 lg:grid-cols-3">
-                    <div className="space-y-6 lg:col-span-2">
-                        <Section title="Location">
-                            <div className="flex flex-wrap gap-3 text-xs">
-                                <InfoPair label="Room" value={record.room} />
-                                <InfoPair label="Shelf" value={record.shelf} />
-                                <InfoPair label="Box" value={record.box} />
-                                <InfoPair label="Folder" value={record.folder} />
+                <div className="mt-6 grid gap-5 lg:grid-cols-3">
+                    <div className="space-y-5 lg:col-span-2">
+                        <Section title={t('archiveShow.location')}>
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                                <InfoPair label={t('archiveShow.room')} value={record.room} />
+                                <InfoPair label={t('archiveShow.shelf')} value={record.shelf} />
+                                <InfoPair label={t('archiveShow.box')} value={record.box} />
+                                <InfoPair label={t('archiveShow.folder')} value={record.folder} />
                             </div>
                         </Section>
 
-                        <Section title="Dates">
-                            <div className="flex flex-wrap gap-3 text-xs">
-                                <InfoPair label="In date" value={record.inDate} />
-                                <InfoPair label="Out date" value={record.outDate} />
-                                <InfoPair label="Due date" value={record.dueAt} color={record.isOverdue ? 'text-red-400' : undefined} />
-                                <InfoPair label="Returned" value={record.returnedAt} />
+                        <Section title={t('archiveShow.dates')}>
+                            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                                <InfoPair label={t('archiveShow.inDate')} value={record.inDate} />
+                                <InfoPair label={t('archiveShow.outDate')} value={record.outDate} />
+                                <InfoPair label={t('archiveShow.dueDate')} value={record.dueAt} color={record.isOverdue ? 'text-[var(--crm-danger)]' : undefined} />
+                                <InfoPair label={t('archiveShow.returnedAt')} value={record.returnedAt} />
                             </div>
                         </Section>
 
                         {record.requestedBy ? (
-                            <Section title="Requester">
+                            <Section title={t('archiveShow.requester')}>
                                 <div className="flex items-center gap-2 text-xs">
-                                    <IconUserCircle size={13} className="text-[var(--text-subtle)]" />
-                                    <span className="text-[var(--foreground)]">{record.requestedBy}</span>
+                                    <IconUserCircle size={14} className="text-[var(--crm-text-soft)]" />
+                                    <span className="font-medium text-[var(--crm-text)]">{record.requestedBy}</span>
                                     {record.dueAt ? (
-                                        <span className={cn('tabular-nums', record.isOverdue ? 'text-red-400' : 'text-[var(--text-muted)]')}>
-                                            due {record.dueAt}
+                                        <span className={cn('tabular-nums', record.isOverdue ? 'text-[var(--crm-danger)]' : 'text-[var(--crm-text-muted)]')}>
+                                            · {t('archiveShow.dueDate')} {record.dueAt}
                                         </span>
                                     ) : null}
                                 </div>
@@ -162,78 +223,89 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
                         ) : null}
 
                         {record.notes ? (
-                            <Section title="Notes">
-                                <p className="text-xs text-[var(--text-muted)] leading-relaxed whitespace-pre-line">{record.notes}</p>
+                            <Section title={t('archiveShow.notes')}>
+                                <p className="text-xs leading-relaxed text-[var(--crm-text-muted)] whitespace-pre-line">{record.notes}</p>
                             </Section>
                         ) : null}
 
-                        <Section title="Timeline">
+                        <Section title={t('archiveShow.timeline')}>
                             <FlowTimeline events={events} />
                         </Section>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {primary ? (
-                            <AppButton variant="primary" className="w-full h-8 text-xs" onPress={primary.action}>
-                                <primary.icon size={14} /> {primary.label}
+                            <AppButton variant="primary" className="h-9 w-full text-xs" onPress={primary.action}>
+                                <primary.icon size={14} /> {t(`archiveShow.${primary.labelKey}`)}
                             </AppButton>
                         ) : null}
 
-                        <div className="space-y-0.5">
-                            <QuickAction icon={IconLogout} label="Check out" onClick={() => updateStatus('checked_out')} />
-                            <QuickAction icon={IconArrowBackUp} label="Return" onClick={() => updateStatus('returned')} />
-                            <QuickAction icon={IconArrowMoveRight} label="Move" onClick={() => setShowMove(true)} />
-                            <QuickAction icon={IconAlertTriangle} label="Mark lost" onClick={() => setShowLost(true)} className="text-red-400 hover:bg-red-400/10" />
-                            <QuickAction icon={IconTrash} label="Delete" onClick={() => setShowDelete(true)} className="text-red-400 hover:bg-red-400/10" />
-                        </div>
+                        <Card className="gap-0 border border-[var(--crm-border)] bg-[var(--crm-surface)] shadow-sm">
+                            <Card.Content className="p-1.5">
+                                <QuickAction icon={IconLogout} label={t('archiveShow.checkOut')} onClick={() => updateStatus('checked_out')} className="text-[var(--crm-gold)] hover:bg-[var(--crm-gold-soft)]" />
+                                <QuickAction icon={IconArrowBackUp} label={t('archiveShow.return')} onClick={() => updateStatus('returned')} className="text-[var(--crm-success)] hover:bg-[var(--crm-success-soft)]" />
+                                <QuickAction icon={IconArrowMoveRight} label={t('archiveShow.move')} onClick={() => setShowMove(true)} className="text-[var(--crm-info)] hover:bg-[var(--crm-info-soft)]" />
+                                <QuickAction icon={IconAlertTriangle} label={t('archiveShow.markLost')} onClick={() => setShowLost(true)} className="text-[var(--crm-danger)] hover:bg-[var(--crm-danger-soft)]" />
+                            </Card.Content>
+                        </Card>
 
-                        <Section title="Metadata">
-                            <div className="space-y-1 text-xs text-[var(--text-muted)]">
-                                <p>Created {record.createdAt}</p>
-                                <p>Updated {record.updatedAt || '-'}</p>
+                        <Section title={t('archiveShow.metadata')}>
+                            <div className="space-y-1 text-xs text-[var(--crm-text-muted)]">
+                                <p>{t('archiveShow.created')} {record.createdAt}</p>
+                                <p>{t('archiveShow.updated')} {record.updatedAtRaw ? formatNotificationTime(record.updatedAtRaw, locale) : (record.updatedAt || '-')}</p>
                             </div>
                         </Section>
                     </div>
                 </div>
 
-                {showDelete ? (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={() => setShowDelete(false)}>
-                        <div className="w-full max-w-xs rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm" onClick={(e) => e.stopPropagation()}>
-                            <h3 className="text-sm font-semibold text-[var(--foreground)]">Delete archive?</h3>
-                            <p className="mt-2 text-xs text-[var(--text-muted)]">Delete <strong>{record.archiveNumber}</strong>? Cannot be undone.</p>
-                            <div className="mt-4 flex justify-end gap-2">
-                                <AppButton variant="bordered" size="sm" onPress={() => setShowDelete(false)}>Cancel</AppButton>
-                                <AppButton color="danger" variant="solid" size="sm" onPress={doDelete}>Delete</AppButton>
-                            </div>
-                        </div>
-                    </div>
-                ) : null}
+                <AppConfirmDialog
+                    isOpen={showDelete}
+                    title={t('archiveShow.deleteTitle')}
+                    description={t('archiveShow.deleteConfirm', { archiveNumber: record.archiveNumber })}
+                    confirmLabel={t('archiveShow.delete')}
+                    cancelLabel={t('archiveShow.cancel')}
+                    onConfirm={doDelete}
+                    onCancel={() => setShowDelete(false)}
+                />
 
-                <AppDrawer isOpen={showLost} onOpenChange={setShowLost} title="Mark as lost" description="Provide a reason for marking this archive as lost." size="sm"
+                <ArchiveDrawer
+                    isOpen={showEdit}
+                    mode="edit"
+                    archiveRecord={record}
+                    clients={clients}
+                    dossiers={dossiers}
+                    rooms={tree.map((r) => ({ id: r.id, name: r.name, code: r.code }))}
+                    shelves={tree.flatMap((r) => (r.shelves || []).map((s) => ({ id: s.id, roomId: r.id, name: s.name, code: s.code })))}
+                    boxes={tree.flatMap((r) => (r.shelves || []).flatMap((s) => (s.boxes || []).map((b) => ({ id: b.id, shelfId: s.id, name: b.name, code: b.code, capacity: b.capacity }))))}
+                    onOpenChange={setShowEdit}
+                    onSubmit={handleUpdate}
+                />
+
+                <AppDrawer isOpen={showLost} onOpenChange={setShowLost} title={t('archiveShow.lostTitle')} description={t('archiveShow.lostDescription')} size="sm"
                     footer={
                         <>
-                            <AppButton variant="secondary" onPress={() => setShowLost(false)}>Cancel</AppButton>
-                            <AppButton variant="primary" type="submit" form="lost-form">Confirm</AppButton>
+                            <AppButton variant="secondary" onPress={() => setShowLost(false)}>{t('archiveShow.cancel')}</AppButton>
+                            <AppButton variant="primary" type="submit" form="lost-form">{t('archiveShow.confirm')}</AppButton>
                         </>
                     }
                 >
                     <form id="lost-form" onSubmit={(e) => { e.preventDefault(); doMarkLost(); }}>
-                        <AppTextField label="Reason" value={lostReason} onChange={setLostReason} placeholder="e.g. Missing from shelf" isRequired />
+                        <TextArea aria-label={t('archiveShow.reason')} value={lostReason} onChange={(e) => setLostReason(e.target.value)} placeholder={t('archiveShow.reasonPlaceholder')} required />
                     </form>
                 </AppDrawer>
 
-                <AppDrawer isOpen={showMove} onOpenChange={setShowMove} title="Move archive" description="Select target location." size="sm"
+                <AppDrawer isOpen={showMove} onOpenChange={setShowMove} title={t('archiveShow.moveTitle')} description={t('archiveShow.moveDescription')} size="sm"
                     footer={
                         <>
-                            <AppButton variant="secondary" onPress={() => setShowMove(false)}>Cancel</AppButton>
-                            <AppButton variant="primary" type="submit" form="move-form">Move</AppButton>
+                            <AppButton variant="secondary" onPress={() => setShowMove(false)}>{t('archiveShow.cancel')}</AppButton>
+                            <AppButton variant="primary" type="submit" form="move-form">{t('archiveShow.move')}</AppButton>
                         </>
                     }
                 >
                     <form id="move-form" onSubmit={(e) => { e.preventDefault(); doMove(); }} className="space-y-3">
-                        <AppTextField label="Room" value={moveRoom} onChange={setMoveRoom} placeholder="e.g. A1" isRequired />
-                        <AppTextField label="Shelf" value={moveShelf} onChange={setMoveShelf} placeholder="e.g. A1-01" isRequired />
-                        <AppTextField label="Box" value={moveBox} onChange={setMoveBox} placeholder="e.g. A1-01-01" isRequired />
+                        <AppTextField label={t('archiveShow.room')} value={moveRoom} onChange={setMoveRoom} placeholder={t('archiveShow.roomPlaceholder')} isRequired />
+                        <AppTextField label={t('archiveShow.shelf')} value={moveShelf} onChange={setMoveShelf} placeholder={t('archiveShow.shelfPlaceholder')} isRequired />
+                        <AppTextField label={t('archiveShow.box')} value={moveBox} onChange={setMoveBox} placeholder={t('archiveShow.boxPlaceholder')} isRequired />
                     </form>
                 </AppDrawer>
             </AppShell>
@@ -243,27 +315,29 @@ export default function ArchiveShow({ archiveRecord, events, tree }: PageProps) 
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <div>
-            <h2 className="mb-2 text-sm font-medium text-[var(--text-muted)]">{title}</h2>
-            {children}
-        </div>
+        <Card className="gap-0 border border-[var(--crm-border)] bg-[var(--crm-surface)] shadow-sm">
+            <div className="border-b border-[var(--crm-border)] px-4 py-2.5">
+                <h2 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--crm-text-soft)]">{title}</h2>
+            </div>
+            <Card.Content className="px-4 py-3">{children}</Card.Content>
+        </Card>
     );
 }
 
 function InfoPair({ label, value, color }: { label: string; value: string | null; color?: string }) {
     return (
         <div className="min-w-0">
-            <p className="text-[var(--text-subtle)]">{label}</p>
-            <p className={cn('font-medium text-[var(--foreground)]', color)}>{value || '-'}</p>
+            <p className="text-[10px] uppercase tracking-wide text-[var(--crm-text-soft)]">{label}</p>
+            <p className={cn('mt-0.5 font-medium text-[var(--crm-text)]', color)}>{value || '-'}</p>
         </div>
     );
 }
 
-function QuickAction({ icon: Icon, label, onClick, className }: { icon: React.ComponentType<{ size?: number }>; label: string; onClick: () => void; className?: string }) {
+function QuickAction({ icon: Icon, label, onClick, className }: { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; onClick: () => void; className?: string }) {
     return (
-        <button type="button" onClick={onClick}
-            className={cn('flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]', className)}>
-            <Icon size={14} /> {label}
-        </button>
+        <AppButton variant="quiet" size="sm" className={cn('h-9 w-full justify-start gap-2 px-2 text-xs', className)} onPress={onClick}>
+            <Icon size={14} />
+            {label}
+        </AppButton>
     );
 }

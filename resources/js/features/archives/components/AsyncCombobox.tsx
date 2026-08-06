@@ -32,7 +32,7 @@ function highlightMatch(text: string, query: string): ReactNode {
     return (
         <>
             {text.slice(0, idx)}
-            <mark className="rounded-sm bg-amber-500/20 px-0.5 text-amber-300">{text.slice(idx, idx + query.length)}</mark>
+            <mark className="rounded-sm bg-[var(--accent)]/20 px-0.5 text-[var(--accent)]">{text.slice(idx, idx + query.length)}</mark>
             {text.slice(idx + query.length)}
         </>
     );

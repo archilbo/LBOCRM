@@ -164,6 +164,23 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
         setActiveTab(isClientTab(tab) && (tab !== 'finance' || canViewFinance) ? tab : 'overview');
     }, [canViewFinance, tab]);
 
+    // The active tab is URL-sourced (`?tab=`) and tab switches are written
+    // with replaceState. History navigation never re-runs the server-prop
+    // effect above, so reconcile the tab with the URL on popstate instead —
+    // this covers Back/Forward and the document preview's history-driven
+    // close (history.back() restores the URL carrying `tab=documents`),
+    // keeping the same workspace tab active after closing the preview.
+    useEffect(() => {
+        const onPopState = () => {
+            const tabParam = new URLSearchParams(window.location.search).get('tab') ?? undefined;
+            setActiveTab(isClientTab(tabParam) && (tabParam !== 'finance' || canViewFinance) ? tabParam : 'overview');
+        };
+
+        window.addEventListener('popstate', onPopState);
+
+        return () => window.removeEventListener('popstate', onPopState);
+    }, [canViewFinance]);
+
     function clientWorkspacePath(targetTab: TabId = activeTab, dossierId: number | null = selectedProject?.id ?? null) {
         const parameters = new URLSearchParams({ tab: targetTab });
 
@@ -247,6 +264,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
 
         switch (actionType) {
             case 'upload_document':
+                setDocumentFormErrors({});
                 setUploadRequirementKey(requirement.key);
                 setUploadStepKey(step.key);
                 setUploadDrawerOpen(true);
@@ -483,6 +501,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
     };
 
     const [isDocUploading, setIsDocUploading] = useState(false);
+    const [documentFormErrors, setDocumentFormErrors] = useState<FormErrors>({});
     const contractClients: ContractClientOption[] = useMemo(() => [{
         id: String(client.id),
         fullName: client.fullName,
@@ -541,16 +560,24 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
 
     function handleDocumentUpload(payload: DocumentUploadPayload) {
         setIsDocUploading(true);
+        setDocumentFormErrors({});
         const formData = new FormData();
         formData.append('status', payload.status || 'uploaded');
         formData.append('notes', payload.notes || '');
         formData.append('return_to', clientWorkspacePath());
         const isReplacement = replaceTarget !== null;
 
-        if (payload.cinFrontFile && payload.cinBackFile) {
-            formData.append('cin_front_file', payload.cinFrontFile);
-            formData.append('cin_back_file', payload.cinBackFile);
-        } else if (payload.file) {
+        // Multipart field names must match Laravel's StoreDossierDocumentRequest:
+        // CIN sides are `file_front` / `file_back`, single files are `file`.
+        if (payload.cinFrontFile) {
+            formData.append('file_front', payload.cinFrontFile);
+        }
+
+        if (payload.cinBackFile) {
+            formData.append('file_back', payload.cinBackFile);
+        }
+
+        if (!payload.cinFrontFile && !payload.cinBackFile && payload.file) {
             formData.append('file', payload.file);
         }
 
@@ -568,13 +595,14 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                 setUploadDrawerOpen(false);
                 setStandaloneUploadOpen(false);
                 setReplaceTarget(null);
-                setIsDocUploading(false);
+                setDocumentFormErrors({});
                 toast.success(isReplacement ? t('clients.show.documentReplaced') : t('clients.show.documentUploaded'));
             },
-            onError: () => {
-                setIsDocUploading(false);
+            onError: (errors) => {
+                setDocumentFormErrors(errors as FormErrors);
                 toast.error(isReplacement ? t('clients.show.documentActionFailed') : t('clients.show.documentFormError'));
             },
+            onFinish: () => setIsDocUploading(false),
         });
     }
 
@@ -711,7 +739,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                     <IconReceipt2 size={15} />
                                 </AppButton> : null}
                                 {projects.length > 0 ? (
-                        <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.uploadDocument')} aria-label={t('clients.show.uploadDocument')} onPress={() => { setStandaloneUploadOpen(true); }}>
+                        <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.show.uploadDocument')} aria-label={t('clients.show.uploadDocument')} onPress={() => { setDocumentFormErrors({}); setStandaloneUploadOpen(true); }}>
                                         <IconUpload size={15} />
                                     </AppButton>
                                 ) : null}
@@ -1214,11 +1242,11 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                             client={client}
                             projects={projects}
                             selectedProject={selectedProject}
-                            onUpload={() => setStandaloneUploadOpen(true)}
+                            onUpload={() => { setDocumentFormErrors({}); setStandaloneUploadOpen(true); }}
                             onPreview={(document) => openDocumentWindow(document.viewUrl, t('clients.show.previewUnavailable'))}
                             onPrint={(document) => openDocumentWindow(document.printUrl, t('clients.show.previewUnavailable'))}
                             onDownload={(document) => openDocumentWindow(document.downloadUrl, t('clients.show.fileUnavailable'))}
-                            onReplace={setReplaceTarget}
+                            onReplace={(document) => { setDocumentFormErrors({}); setReplaceTarget(document); }}
                             onDelete={setDocumentDeleteTarget}
                         />
                     </TabPanel>
@@ -1293,8 +1321,9 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     initialClientId={String(client.id)}
                     initialDossierId={selectedProject ? String(selectedProject.id) : ''}
                     lockProject
-                    onOpenChange={(open) => { if (!open) { setUploadRequirementKey(null); setUploadStepKey(null); } setUploadDrawerOpen(open); }}
+                    onOpenChange={(open) => { setDocumentFormErrors({}); if (!open) { setUploadRequirementKey(null); setUploadStepKey(null); } setUploadDrawerOpen(open); }}
                     onSubmit={handleDocumentUpload}
+                    errors={documentFormErrors}
                     isSubmitting={isDocUploading}
                 />
 
@@ -1375,8 +1404,9 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     templates={documentTemplates}
                     initialClientId={String(client.id)}
                     initialDossierId={selectedProject ? String(selectedProject.id) : dossiers[0] ? String(dossiers[0].id) : ''}
-                    onOpenChange={setStandaloneUploadOpen}
+                    onOpenChange={(open) => { setDocumentFormErrors({}); setStandaloneUploadOpen(open); }}
                     onSubmit={handleDocumentUpload}
+                    errors={documentFormErrors}
                     isSubmitting={isDocUploading}
                 />
 
@@ -1390,8 +1420,9 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     initialStatus={replaceTarget?.status ?? 'uploaded'}
                     lockProject
                     mode="replace"
-                    onOpenChange={(open) => { if (!open) setReplaceTarget(null); }}
+                    onOpenChange={(open) => { setDocumentFormErrors({}); if (!open) setReplaceTarget(null); }}
                     onSubmit={handleDocumentUpload}
+                    errors={documentFormErrors}
                     isSubmitting={isDocUploading}
                 />
 

@@ -30,6 +30,11 @@ type PointerPan = { pointerId: number; x: number; y: number } | null;
  * 25% steps / 90° rotation. Drag-panning is available once the image is
  * zoomed above fit and resets whenever the transform changes. The image is
  * the authorized private viewUrl — nothing else is fetched or parsed here.
+ *
+ * Lifecycle: the <img> is mounted during 'loading' (opacity-0, covered by
+ * the Skeleton) so the browser actually requests viewUrl and fires onLoad /
+ * onError; it only unmounts on failure. Retry bumps previewKey to remount
+ * the element and issue a fresh request — no automatic retry loop.
  */
 export function ImageDocumentViewer({ document, onDownload }: DocumentViewerProps) {
     const { t } = useTranslation();
@@ -102,6 +107,11 @@ export function ImageDocumentViewer({ document, onDownload }: DocumentViewerProp
     }, []);
 
     const handleRetry = useCallback(() => {
+        // Full state reset: the incremented previewKey remounts the <img>
+        // below, which issues a brand-new request to the authorized viewUrl.
+        setNaturalSize(null);
+        setZoom(null);
+        setRotation(0);
         setPan({ x: 0, y: 0 });
         setPhase('loading');
         setPreviewKey((key) => key + 1);
@@ -222,6 +232,21 @@ export function ImageDocumentViewer({ document, onDownload }: DocumentViewerProp
     const rotateLeftLabel = t('documentsExplorer.viewer.rotateLeft');
     const rotateRightLabel = t('documentsExplorer.viewer.rotateRight');
     const resetLabel = t('documentsExplorer.viewer.reset');
+
+    // Defensive guard: the parent viewer already checks canPreview + viewUrl,
+    // but never render <img src={undefined}>. Download stays available when
+    // authorized; no preview permission is inferred from the filename.
+    if (!document.viewUrl) {
+        return (
+            <div className="flex min-h-0 flex-1 flex-col">
+                <DocumentViewerFallback
+                    document={document}
+                    isInvalid={false}
+                    onDownload={canDownload ? () => onDownload(document) : null}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-h-0 flex-1 flex-col">
@@ -350,34 +375,49 @@ export function ImageDocumentViewer({ document, onDownload }: DocumentViewerProp
                     className="relative h-full w-full min-h-0 min-w-0 flex-1 overflow-hidden bg-[var(--surface-2)]/30 outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_35%,transparent)] focus-visible:ring-inset"
                     style={{ cursor: dragging ? 'grabbing' : zoomedIn ? 'grab' : 'default' }}
                 >
-                    {phase === 'loading' ? <Skeleton className="absolute inset-0 rounded-none" /> : null}
+                    {phase === 'loading' ? <Skeleton className="absolute inset-0 z-10 rounded-none" /> : null}
 
-                    {phase === 'ready' ? (
-                        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-                            <div
-                                className="will-change-transform"
-                                style={{
-                                    transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${effectiveScale}) rotate(${rotation}deg)`,
+                    {/* Always mounted while the stage renders (loading or
+                        ready): the browser must request viewUrl and fire
+                        onLoad / onError. The failed state swaps the whole
+                        stage for the fallback above. */}
+                    <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+                        <div
+                            className="will-change-transform"
+                            style={{
+                                transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${effectiveScale}) rotate(${rotation}deg)`,
+                            }}
+                        >
+                            <img
+                                key={`${document.id}:${previewKey}`}
+                                src={document.viewUrl}
+                                alt={document.name}
+                                draggable={false}
+                                className={
+                                    phase === 'ready'
+                                        ? 'block max-h-full max-w-full select-none object-contain opacity-100'
+                                        : 'block max-h-full max-w-full select-none object-contain opacity-0'
+                                }
+                                onLoad={(event) => {
+                                    const { naturalWidth, naturalHeight } = event.currentTarget;
+                                    if (naturalWidth <= 0 || naturalHeight <= 0) {
+                                        setNaturalSize(null);
+                                        setPan({ x: 0, y: 0 });
+                                        setPhase('failed');
+                                        return;
+                                    }
+                                    setNaturalSize({ width: naturalWidth, height: naturalHeight });
+                                    setPan({ x: 0, y: 0 });
+                                    setPhase('ready');
                                 }}
-                            >
-                                <img
-                                    key={previewKey}
-                                    src={document.viewUrl ?? undefined}
-                                    alt={document.name}
-                                    draggable={false}
-                                    className="max-h-full max-w-full select-none object-contain"
-                                    onLoad={(event) => {
-                                        const { naturalWidth, naturalHeight } = event.currentTarget;
-                                        if (naturalWidth > 0 && naturalHeight > 0) {
-                                            setNaturalSize({ width: naturalWidth, height: naturalHeight });
-                                        }
-                                        setPhase('ready');
-                                    }}
-                                    onError={() => setPhase('failed')}
-                                />
-                            </div>
+                                onError={() => {
+                                    setNaturalSize(null);
+                                    setPan({ x: 0, y: 0 });
+                                    setPhase('failed');
+                                }}
+                            />
                         </div>
-                    ) : null}
+                    </div>
                 </div>
             )}
         </div>

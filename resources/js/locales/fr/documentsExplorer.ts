@@ -74,6 +74,7 @@ export const frDocumentsExplorer = {
             preview: 'Aperçu',
             download: 'Télécharger',
             print: 'Imprimer',
+            printUnavailable: 'Impression non disponible pour les images',
             replace: 'Remplacer le fichier',
             updateStatus: 'Modifier le statut',
             details: 'Afficher les détails',

@@ -1,11 +1,14 @@
 import type { ClientProjectDocument } from '@/features/clients/types';
-import type { DocumentExplorerCapabilities } from './documentExplorerTypes';
+import type { DocumentExplorerCapabilities, DocumentPreviewKind } from './documentExplorerTypes';
 
 /**
- * Source fields the backend resource currently exposes per document.
+ * Source fields the backend resource currently exposes per document,
+ * completed with the explorer's own preview classification.
  * Only these fields drive capability normalization.
  */
-type DocumentCapabilitySource = Pick<ClientProjectDocument, 'canPreview' | 'hasFile'>;
+type DocumentCapabilitySource = Pick<ClientProjectDocument, 'canPreview' | 'hasFile'> & {
+    previewKind: DocumentPreviewKind;
+};
 
 /**
  * Normalizes the backend-provided document data into the explorer capability
@@ -15,6 +18,10 @@ type DocumentCapabilitySource = Pick<ClientProjectDocument, 'canPreview' | 'hasF
  * - view and print actions are enabled when `canPreview` is true (backend
  *   aborts documents.view / documents.print with 422 otherwise);
  * - download is enabled when the file exists (`hasFile`).
+ *
+ * Images are never printable: print is only offered for page-layout formats
+ * (PDF/Word/…), even though images preview fine. The backend print route
+ * stays permission-gated; this flag only controls presentation.
  *
  * Capabilities not exposed by the current backend resource default to false
  * here; nothing is inferred from role names or URL presence. Frontend
@@ -31,7 +38,7 @@ export function normalizeDocumentCapabilities(
         canView: canPreview,
         canPreview,
         canDownload: hasFile,
-        canPrint: canPreview,
+        canPrint: canPreview && document.previewKind !== 'image',
         canReplace: false,
         canUpdateStatus: false,
         canDelete: false,

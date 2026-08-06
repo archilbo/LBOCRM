@@ -1,13 +1,16 @@
 import { router } from '@inertiajs/react';
-import { IconAlertTriangle, IconCircleCheck, IconChevronDown, IconArrowsSort, IconChevronUp, IconEye, IconFolder, IconFilter, IconMapPin, IconDots, IconPencil, IconPlus, IconRefresh, IconSearch, IconAdjustmentsHorizontal, IconTrash, IconX } from '@tabler/icons-react';
+import { IconAlertTriangle, IconCircleCheck, IconChevronDown, IconArrowsSort, IconChevronUp, IconEye, IconFolder, IconFilter, IconMapPin, IconDots, IconPencil, IconPlus, IconRefresh, IconSearch, IconAdjustmentsHorizontal, IconTrash, IconX, IconUserCircle, IconMap2, IconGitBranch, IconClockHour3, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import type { Icon } from '@tabler/icons-react';
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar, Button, Card, Chip, Dropdown } from '@heroui/react';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
-import { AppWorkspaceTable } from '@/components/ui/AppWorkspaceTable';
+import { AppWorkspaceTable, type AppWorkspaceTableColumn } from '@/components/ui/AppWorkspaceTable';
+import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { cn } from '@/lib/cn';
 import type { City, DossierFormPayload, DossierRow } from '@/features/dossiers/types';
 import type { FormErrors } from '@/lib/formErrors';
@@ -67,7 +70,6 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
     const [sortField, setSortField] = useState<SortField>('updatedAt');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
     const [deleteTarget, setDeleteTarget] = useState<DossierRow | null>(null);
-    const [openMenuId, setOpenMenuId] = useState<number | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
     const [viewMode, setViewMode] = useState<'workspace' | 'location'>('workspace');
 
@@ -115,6 +117,95 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
         if (sortField !== col) return <IconArrowsSort size={11} className="text-[var(--text-muted)]" />;
         return sortDir === 'asc' ? <IconChevronUp size={11} className="text-[var(--accent)]" /> : <IconChevronDown size={11} className="text-[var(--accent)]" />;
     }
+
+    useEffect(() => {
+        setPage((currentPage) => Math.min(currentPage, pageCount - 1));
+    }, [pageCount]);
+
+    function ColumnHeader({ label, icon: Icon, field }: { label: string; icon: Icon; field?: SortField }) {
+        const content = (<><Icon size={13} strokeWidth={1.9} /><span>{label}</span>{field ? <SortIcon col={field} /> : null}</>);
+
+        if (!field) {
+            return <span className="inline-flex items-center gap-1.5">{content}</span>;
+        }
+
+        return (
+            <button type="button" onClick={() => toggleSort(field)} className="inline-flex items-center gap-1.5 text-left transition hover:text-[var(--foreground)]">
+                {content}
+            </button>
+        );
+    }
+
+    const dossierColumns: AppWorkspaceTableColumn<DossierRow>[] = [
+        {
+            id: 'folder',
+            label: '',
+            headerClassName: 'w-8',
+            reorderable: false,
+            render: () => (
+                <span className="flex size-5 items-center justify-center rounded bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[9px] font-bold text-[var(--accent)]">
+                    <IconFolder size={10} />
+                </span>
+            ),
+        },
+        {
+            id: 'project',
+            label: <ColumnHeader label="Projet" icon={IconFolder} field="projectObject" />,
+            render: (dossier) => <div className="min-w-0"><p className="max-w-[180px] truncate font-medium text-[var(--text)]">{dossier.projectObject}</p><p className="max-w-[180px] truncate text-[var(--text-muted)]">{dossier.dossierNumber}</p></div>,
+        },
+        {
+            id: 'client',
+            label: <ColumnHeader label="Client" icon={IconUserCircle} field="clientName" />,
+            render: (dossier) => (
+                <div className="flex items-center gap-2">
+                    <Avatar name={dossier.clientName || '?'} size="sm" className="shrink-0 size-6 text-[9px] font-bold" classNames={{ base: 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' }} />
+                    <span className="truncate text-[var(--text)]">{dossier.clientName || '-'}</span>
+                </div>
+            ),
+        },
+        {
+            id: 'city',
+            label: <ColumnHeader label="Ville" icon={IconMapPin} />,
+            render: (dossier) => dossier.city ? (
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10" style={{ backgroundColor: dossier.city.color }} />
+                    <span className="text-[var(--text-muted)]">{dossier.city.code}</span>
+                </span>
+            ) : <span className="text-[var(--text-muted)]">—</span>,
+        },
+        {
+            id: 'location',
+            label: <ColumnHeader label="Localisation" icon={IconMap2} />,
+            render: (dossier) => (
+                <div className="min-w-0">
+                    <p className="max-w-[120px] truncate text-[var(--text-muted)]">{dossier.province || '-'}</p>
+                    <p className="max-w-[120px] truncate text-[var(--text-muted)]">{dossier.commune || ''}</p>
+                </div>
+            ),
+        },
+        {
+            id: 'workflow',
+            label: <ColumnHeader label="Workflow" icon={IconGitBranch} />,
+            render: (dossier) => <Chip variant="flat" size="sm" color={workflowChipColor[dossier.workflowStep] || 'default'}>{getDossierWorkflowLabel(dossier.workflowStep)}</Chip>,
+        },
+        {
+            id: 'status',
+            label: <ColumnHeader label="Statut" icon={IconCircleCheck} field="status" />,
+            render: (dossier) => <Chip variant="flat" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>,
+        },
+        {
+            id: 'updated',
+            label: <ColumnHeader label="Modifie" icon={IconClockHour3} field="updatedAt" />,
+            render: (dossier) => <span className="whitespace-nowrap text-[var(--text-muted)]">{dossier.updatedAt || '-'}</span>,
+        },
+        {
+            id: 'actions',
+            label: '',
+            headerClassName: 'w-24',
+            reorderable: false,
+            render: (dossier) => <div onClick={(event) => event.stopPropagation()}><RowMenu dossier={dossier} /></div>,
+        },
+    ];
 
     function openCreateDrawer() {
         if (!can('dossiers.create')) return;
@@ -178,7 +269,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
         }
     }
 
-    function RowMenu({ dossier, isOpen, onToggle }: { dossier: DossierRow; isOpen: boolean; onToggle: () => void }) {
+    function RowMenu({ dossier }: { dossier: DossierRow }) {
         const hasMenuActions = canAny(['documents.view', 'finance.view', 'archive.view', 'dossiers.delete']);
         return (
             <div className="flex items-center gap-0.5">
@@ -260,9 +351,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                             Suivez et gerez tous les projets et dossiers.
                         </p>
                     </div>
-                    {can('dossiers.create') ? <Button variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={openCreateDrawer}>
-                        <IconPlus size={15} /> Nouveau projet
-                    </Button> : null}
+                    {can('dossiers.create') ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Nouveau projet" aria-label="Nouveau projet" onPress={openCreateDrawer}><IconPlus size={14} /></AppButton> : null}
                 </header>
 
                 {/* ── Tab bar ── */}
@@ -273,7 +362,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                 'relative pb-2.5 text-[11px] font-semibold transition',
                                 viewMode === mode ? 'text-[var(--foreground)]' : 'text-[var(--text-muted)] hover:text-[var(--foreground)]',
                             )}>
-                            {mode === 'workspace' ? 'Workspace' : 'Location'}
+                            {mode === 'workspace' ? 'Tableau' : 'Localisation'}
                             {viewMode === mode ? (
                                 <span className="absolute -bottom-px left-0 right-0 h-0.5 rounded-full bg-[var(--accent)]" />
                             ) : null}
@@ -310,6 +399,18 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                         {/* ── Table card ── */}
                         <AppWorkspaceTable
                             ariaLabel="Liste des projets"
+                            columns={dossierColumns}
+                            columnOrderStorageKey="archilbo.dossiers.table.columns.v1"
+                            columnOrderHint="Glisser pour reordonner les colonnes"
+                            data={pageDossiers}
+                            rowKey={(dossier) => dossier.id}
+                            minTableWidthClassName="min-w-[860px]"
+                            onRowPress={(dossier) => setPreviewDossier(dossier)}
+                            emptyContent={
+                                query || workflowFilter !== 'all'
+                                    ? <AppEmptyState title="Aucun dossier trouve" description="Essayez de modifier votre recherche ou vos filtres." />
+                                    : <AppEmptyState title="Creez un projet pour commencer" description="Utilisez le bouton Nouveau projet pour ajouter votre premier dossier." />
+                            }
                             toolbar={
                                 <div className="flex flex-wrap items-center gap-2 px-3 py-2">
                                 <div className="relative max-w-[220px] flex-1">
@@ -364,118 +465,21 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                                             </Dropdown.Menu>
                                         </Dropdown.Popover>
                                     </Dropdown>
-                                    <Button variant="light" size="sm" isIconOnly className="h-7 w-7 min-w-0 text-[var(--text-muted)]" onPress={() => router.reload({ preserveScroll: true })}>
-                                        <IconRefresh size={12} />
-                                    </Button>
+                                    <AppButton variant="ghost" isIconOnly size="sm" onPress={() => router.reload({ preserveScroll: true })} className="size-7 text-[var(--text-muted)]" aria-label="Actualiser"><IconRefresh size={12} /></AppButton>
                                 </div>
                                 </div>
                             }
-                        >
-
-                            {/* ── Table ── */}
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-xs min-w-[800px]">
-                                    <thead>
-                                        <tr className="border-b border-[var(--border)] text-left text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                                            <th className="w-8 px-3 py-2"></th>
-                                            <th className="px-3 py-2">
-                                                <button type="button" onClick={() => toggleSort('projectObject')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
-                                                    Projet <SortIcon col="projectObject" />
-                                                </button>
-                                            </th>
-                                            <th className="px-3 py-2">
-                                                <button type="button" onClick={() => toggleSort('clientName')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
-                                                    Client <SortIcon col="clientName" />
-                                                </button>
-                                            </th>
-                                            <th className="px-3 py-2">Ville</th>
-                                            <th className="px-3 py-2">Localisation</th>
-                                            <th className="px-3 py-2">Workflow</th>
-                                            <th className="px-3 py-2">
-                                                <button type="button" onClick={() => toggleSort('status')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
-                                                    Statut <SortIcon col="status" />
-                                                </button>
-                                            </th>
-                                            <th className="px-3 py-2">
-                                                <button type="button" onClick={() => toggleSort('updatedAt')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
-                                                    Modifie <SortIcon col="updatedAt" />
-                                                </button>
-                                            </th>
-                                            <th className="w-10 px-3 py-2"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {pageDossiers.length > 0 ? pageDossiers.map((dossier) => (
-                                            <tr key={dossier.id}
-                                                className="border-b border-[var(--border)] transition hover:bg-[var(--surface-2)] last:border-0 cursor-pointer"
-                                                onClick={() => setPreviewDossier(dossier)}>
-                                                <td className="px-3 py-2">
-                                                    <span className="flex size-5 items-center justify-center rounded bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[9px] font-bold text-[var(--accent)]">
-                                                        <IconFolder size={10} />
-                                                    </span>
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    <p className="max-w-[180px] truncate font-medium text-[var(--text)]">{dossier.projectObject}</p>
-                                                    <p className="max-w-[180px] truncate text-[var(--text-muted)]">{dossier.dossierNumber}</p>
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <Avatar name={dossier.clientName || '?'} size="sm" className="shrink-0 size-6 text-[9px] font-bold" classNames={{ base: 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' }} />
-                                                        <span className="truncate text-[var(--text)]">{dossier.clientName || '-'}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    {dossier.city ? (
-                                                        <span className="inline-flex items-center gap-1.5">
-                                                            <span className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10" style={{ backgroundColor: dossier.city.color }} />
-                                                            <span className="text-[var(--text-muted)]">{dossier.city.code}</span>
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-[var(--text-muted)]">—</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-3 py-2 text-[var(--text-muted)]">
-                                                    <p className="max-w-[120px] truncate">{dossier.province || '-'}</p>
-                                                    <p className="max-w-[120px] truncate">{dossier.commune || ''}</p>
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    <Chip variant="flat" size="sm" color={workflowChipColor[dossier.workflowStep] || 'default'}>{getDossierWorkflowLabel(dossier.workflowStep)}</Chip>
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    <Chip variant="flat" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>
-                                                </td>
-                                                <td className="px-3 py-2 text-[var(--text-muted)]">{dossier.updatedAt || '-'}</td>
-                                                <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
-                                                    <RowMenu dossier={dossier} isOpen={openMenuId === dossier.id}
-                                                        onToggle={() => setOpenMenuId(openMenuId === dossier.id ? null : dossier.id)} />
-                                                </td>
-                                            </tr>
-                                        )) : (
-                                            <tr>
-                                                <td colSpan={9} className="px-3 py-8 text-center text-xs text-[var(--text-muted)]">
-                                                    {query || workflowFilter !== 'all' ? 'Aucun dossier trouve.' : 'Creez un projet pour commencer.'}
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* ── Pagination ── */}
-                            <div className="flex items-center justify-end border-t border-[var(--border)] px-3 py-2">
-                                <div className="flex items-center gap-2">
-                                    <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)}
-                                        className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[9px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
-                                        Precedent
-                                    </button>
-                                    <span className="text-[9px] text-[var(--text-muted)]">{page + 1} / {pageCount}</span>
-                                    <button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}
-                                        className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 text-[9px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40">
-                                        Suivant
-                                    </button>
+                            footer={
+                                <div className="flex items-center justify-between px-3 py-2">
+                                    <span className="text-[9px] text-[var(--text-muted)]">{filteredDossiers.length} dossier(s)</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Page precedente" aria-label="Page precedente" isDisabled={page === 0} onPress={() => setPage((current) => current - 1)}><IconChevronLeft size={14} /></AppButton>
+                                        <span className="min-w-10 text-center text-[9px] font-semibold tabular-nums text-[var(--text-muted)]">{page + 1} / {pageCount}</span>
+                                        <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Page suivante" aria-label="Page suivante" isDisabled={page >= pageCount - 1} onPress={() => setPage((current) => current + 1)}><IconChevronRight size={14} /></AppButton>
+                                    </div>
                                 </div>
-                            </div>
-                        </AppWorkspaceTable>
+                            }
+                        />
 
                         {/* ── Preview drawer ── */}
                         <AppDrawer

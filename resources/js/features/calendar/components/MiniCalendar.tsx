@@ -1,6 +1,9 @@
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { Button } from '@heroui/react';
 
 import { useMemo } from 'react';
+
+import { useTranslation } from '@/lib/i18n';
 
 type Props = {
     currentDate: Date;
@@ -8,11 +11,22 @@ type Props = {
     onDayClick: (d: Date) => void;
 };
 
-const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-
 export function MiniCalendar({ currentDate, onDateChange, onDayClick }: Props) {
+    const { t, locale } = useTranslation();
+    const intlLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
+
+    const DAYS = useMemo(() => {
+        // Monday-first weekday labels from the active locale (2020-06-01 was a Monday)
+        const formatter = new Intl.DateTimeFormat(intlLocale, { weekday: 'short' });
+        const base = new Date(2020, 5, 1);
+        return Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(base);
+            d.setDate(base.getDate() + i);
+            return formatter.format(d);
+        });
+    }, [intlLocale]);
 
     const today = useMemo(() => {
         const d = new Date();
@@ -40,15 +54,29 @@ export function MiniCalendar({ currentDate, onDateChange, onDayClick }: Props) {
     return (
         <div className="select-none">
             <div className="mb-3 flex items-center justify-between">
-                <button type="button" onClick={prev} className="flex size-6 items-center justify-center rounded text-[var(--crm-muted)] hover:bg-white/5 hover:text-white">
+                <Button
+                    type="button"
+                    isIconOnly
+                    size="sm"
+                    variant="ghost"
+                    onPress={prev}
+                    aria-label={t('calendar.previous')}
+                    className="size-6 min-w-6 rounded p-0 text-[var(--crm-muted)] hover:bg-white/5 hover:text-white">
                     <IconChevronLeft size={13} />
-                </button>
+                </Button>
                 <span className="text-xs font-semibold">
-                    {new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate)}
+                    {new Intl.DateTimeFormat(intlLocale, { month: 'long', year: 'numeric' }).format(currentDate)}
                 </span>
-                <button type="button" onClick={next} className="flex size-6 items-center justify-center rounded text-[var(--crm-muted)] hover:bg-white/5 hover:text-white">
+                <Button
+                    type="button"
+                    isIconOnly
+                    size="sm"
+                    variant="ghost"
+                    onPress={next}
+                    aria-label={t('calendar.next')}
+                    className="size-6 min-w-6 rounded p-0 text-[var(--crm-muted)] hover:bg-white/5 hover:text-white">
                     <IconChevronRight size={13} />
-                </button>
+                </Button>
             </div>
             <div className="grid grid-cols-7 gap-0 text-center">
                 {DAYS.map((d) => (
@@ -62,11 +90,14 @@ export function MiniCalendar({ currentDate, onDateChange, onDayClick }: Props) {
                     const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`;
                     const isToday = dateStr === today;
                     return (
-                        <button
+                        <Button
                             key={i}
                             type="button"
-                            onClick={() => onDayClick(new Date(y, m, cell.day))}
-                            className={`mx-auto flex size-6 items-center justify-center rounded-full text-[10px] font-medium transition hover:bg-white/10 ${
+                            isIconOnly
+                            size="sm"
+                            variant="ghost"
+                            onPress={() => onDayClick(new Date(y, m, cell.day))}
+                            className={`mx-auto flex size-6 min-w-6 rounded-full p-0 text-[10px] font-medium transition hover:bg-white/10 ${
                                 isToday
                                     ? 'bg-[var(--crm-gold)] text-black hover:brightness-110'
                                     : cell.isOutside
@@ -74,7 +105,7 @@ export function MiniCalendar({ currentDate, onDateChange, onDayClick }: Props) {
                                         : 'text-white/70 hover:text-white'
                             }`}>
                             {cell.day}
-                        </button>
+                        </Button>
                     );
                 })}
             </div>

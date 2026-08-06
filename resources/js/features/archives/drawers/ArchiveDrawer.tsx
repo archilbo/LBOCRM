@@ -199,8 +199,8 @@ export function ArchiveDrawer({
             onOpenChange={onOpenChange}
             panelClassName="sm:w-[520px]"
             isDismissable={false}
-            title={mode === 'create' ? 'Creer une fiche d archive' : 'Modifier la fiche d archive'}
-            description="Enregistrer le suivi physique de l archivage."
+            title={mode === 'create' ? "Créer une fiche d'archive" : 'Modifier la fiche d archive'}
+            description="Enregistrer le suivi physique de l'archivage."
             footer={
                 <>
                     <AppButton variant="light" onPress={() => onOpenChange(false)}>

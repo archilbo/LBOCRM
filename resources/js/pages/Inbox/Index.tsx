@@ -4,6 +4,7 @@ import { IconArrowLeft, IconMessage2 } from '@tabler/icons-react';
 import { Button, Card } from '@heroui/react';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useTranslation } from '@/lib/i18n';
 import { echo } from '@laravel/echo-react';
 import { AppShell } from '@/components/layout/AppShell';
 import type { FormErrors } from '@/lib/formErrors';
@@ -106,6 +107,7 @@ function upsertMessages(prev: MessageRow[], incoming: MessageRow[]) {
 }
 
 export default function InboxIndex({ conversations: _conversations, users, currentUserId: pageCurrentUserId, unreadCount: _unreadCount, conversationPaginator: initialConversationPaginator, companyId }: PageProps) {
+    const { t } = useTranslation();
     const authUser = (usePage().props.auth?.user as { id: number; name: string } | undefined) || { id: 0, name: '' };
     const currentUserId = pageCurrentUserId || authUser.id;
     const onlineUserIds = useInboxPresence(companyId);
@@ -242,7 +244,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                 else setConversations(page.conversations);
                 setConversationPaginator(page.paginator);
             } catch (error) {
-                if (!(error instanceof DOMException && error.name === 'AbortError')) toast.error('Impossible de charger les conversations.');
+                if (!(error instanceof DOMException && error.name === 'AbortError')) toast.error(t('inbox.toast.loadConversationsError'));
             } finally {
                 if (!controller.signal.aborted) setLoadingConversations(false);
             }
@@ -264,7 +266,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                 const currId = c.lastMessage?.id ?? null;
                 if (prevId !== undefined && prevId !== null && currId !== null && currId !== prevId) {
                     if (c.id !== selectedConvRef.current?.id) {
-                        toast(conversationName(c, currentUserId), { description: messagePreview(c.lastMessage) || 'New message' });
+                        toast(conversationName(c, currentUserId), { description: messagePreview(c.lastMessage) || t('inbox.toast.newMessage') });
                         playMessageSound();
                     }
                 }
@@ -413,7 +415,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                 ));
             })
             .catch((error) => {
-                if (!(error instanceof DOMException && error.name === 'AbortError')) toast.error('Impossible de charger les messages.');
+                if (!(error instanceof DOMException && error.name === 'AbortError')) toast.error(t('inbox.toast.loadMessagesError'));
             })
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     }
@@ -429,7 +431,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                 setMessages((prev) => upsertMessages(prev, (data.messages || []).reverse()));
                 setPaginator(data.paginator || null);
             })
-            .catch(() => toast.error('Failed to load older messages'))
+            .catch(() => toast.error(t('inbox.toast.loadOlderError')))
             .finally(() => setLoadingOlder(false));
     }
 
@@ -455,7 +457,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                         setMessages([]);
                         setMobileView('list');
                     }
-                    toast.success('Conversation archived.');
+                    toast.success(t('inbox.toast.archived'));
                 } else {
                     setArchivedConversations((prev) => prev.filter((item) => item.id !== conv.id));
                     setConversations((prev) => [updated, ...prev.filter((item) => item.id !== conv.id)]);
@@ -463,16 +465,16 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                         setSelectedConv(updated);
                         setConvTab('active');
                     }
-                    toast.success('Conversation restored.');
+                    toast.success(t('inbox.toast.restored'));
                 }
             })
-            .catch(() => toast.error('Archive action failed.'));
+            .catch(() => toast.error(t('inbox.toast.archiveError')));
     }
 
     let tempIdCounter = useRef(0);
 
     function sendMessage(body: string, files: File[], replyToId?: number): Promise<MessageRow> {
-        if (!selectedConv || (!body.trim() && files.length === 0)) return Promise.reject(new InboxApiError('Impossible d\'envoyer le message.', 0));
+        if (!selectedConv || (!body.trim() && files.length === 0)) return Promise.reject(new InboxApiError(t('inbox.toast.sendError'), 0));
         const conversationId = selectedConv.id;
 
         // Optimistic message
@@ -524,7 +526,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             })
             .catch((error) => {
                 setMessages((prev) => prev.map((item) => item.id === tempId ? { ...item, isFailed: true } : item));
-                toast.error(error instanceof InboxApiError ? error.message : 'Impossible d’envoyer le message.');
+                toast.error(error instanceof InboxApiError ? error.message : t('inbox.toast.sendError'));
                 throw error;
             });
     }
@@ -550,7 +552,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             const setter = convTab === 'archived' ? setArchivedConversations : setConversations;
             setter((prev) => Array.from(new Map([...prev, ...page.conversations].map((item) => [item.id, item])).values()));
             setConversationPaginator(page.paginator);
-        } catch { toast.error('Impossible de charger plus de conversations.'); }
+        } catch { toast.error(t('inbox.toast.loadMoreError')); }
         finally { setLoadingConversations(false); }
     }
 
@@ -561,15 +563,15 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             setConversations((current) => current.map((item) => item.id === conversation.id ? { ...item, ...patch } : item));
             setArchivedConversations((current) => current.map((item) => item.id === conversation.id ? { ...item, ...patch } : item));
             setSelectedConv((current) => current?.id === conversation.id ? { ...current, ...patch } : current);
-        } catch { toast.error('Impossible de mettre à jour la conversation.'); }
+        } catch { toast.error(t('inbox.toast.updatePreferenceError')); }
     }
 
     async function markConversationUnread(conversation: ConversationRow) {
         try {
             await inboxApi.markUnread(conversation.id);
             setConversations((current) => current.map((item) => item.id === conversation.id ? { ...item, unreadCount: Math.max(1, item.unreadCount) } : item));
-            toast.success('Conversation marquée comme non lue.');
-        } catch { toast.error('Impossible de marquer la conversation.'); }
+            toast.success(t('inbox.toast.markedUnread'));
+        } catch { toast.error(t('inbox.toast.markUnreadError')); }
     }
 
     function handleNewConv(event: FormEvent<HTMLFormElement>) {
@@ -589,7 +591,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             onSuccess: () => {
                 setNewConvOpen(false);
                 setNewConvForm({ type: 'direct', user_ids: [], subject: '', category: 'general', custom_category: '' });
-                toast.success('Conversation created.');
+                toast.success(t('inbox.toast.created'));
             },
             onError: (err) => setFormErrors(err),
         });
@@ -602,7 +604,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
 
     return (
         <>
-            <Head title="Messages" />
+            <Head title={t('inbox.pageTitle')} />
             <AppShell fullBleed hideMobileNav={selectedConv !== null}>
                 <div className="flex h-full min-h-0 w-full overflow-hidden bg-[var(--surface-2)]">
                     {/* Conversation sidebar — mobile: full width when list, hidden when chat; md+: fixed width */}
@@ -655,7 +657,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                                         <Button variant="secondary" size="sm" onPress={scrollToBottom}
                                             className="absolute bottom-20 left-1/2 z-10 -translate-x-1/2 rounded-full border border-[var(--border)] text-[var(--accent)] shadow-xl animate-in fade-in slide-in-from-bottom-2">
                                             <IconMessage2 size={12} />
-                                            Nouveaux messages
+                                            {t('inbox.newMessagesSeparator')}
                                             <IconArrowLeft size={12} className="rotate-90" />
                                         </Button>
                                     ) : null}
@@ -665,8 +667,8 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                             <div className="hidden flex-1 items-center justify-center p-6 lg:flex">
                                 <Card className="items-center border-dashed bg-transparent px-10 py-12 text-center shadow-none">
                                     <IconMessage2 size={40} className="mx-auto text-[var(--crm-muted)]" />
-                                    <p className="mt-3 text-sm font-semibold text-[var(--text)]">Selectionnez une conversation</p>
-                                    <p className="mt-1 text-xs text-[var(--text-muted)]">Vos messages et fichiers apparaitront ici.</p>
+                                    <p className="mt-3 text-sm font-semibold text-[var(--text)]">{t('inbox.selectConversation')}</p>
+                                    <p className="mt-1 text-xs text-[var(--text-muted)]">{t('inbox.selectConversationDesc')}</p>
                                 </Card>
                             </div>
                         )}

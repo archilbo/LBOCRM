@@ -3,6 +3,7 @@ import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { CellRoom } from '@/features/archives/types';
 import { cn } from '@/lib/cn';
+import { useTranslation } from '@/lib/i18n';
 
 type CitySidebarProps = {
     cells: CellRoom[];
@@ -14,6 +15,7 @@ type CitySidebarProps = {
 };
 
 export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, onSelectCity, onSelectBox }: CitySidebarProps) {
+    const { t } = useTranslation();
     const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set(cells.map((r) => r.code)));
     const [expandedBoxes, setExpandedBoxes] = useState<Set<string>>(new Set());
 
@@ -35,17 +37,17 @@ export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, on
 
     if (cells.length === 0) {
         return (
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                <h3 className="mb-2 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Archives</h3>
-                <p className="text-xs text-white/40">No archives stored yet.</p>
+            <div className="h-full rounded-xl border border-[var(--crm-border-soft)] bg-[var(--crm-elevated)]/60 p-4">
+                <h3 className="mb-2 text-[10px] uppercase tracking-wide text-[var(--crm-text-muted)] font-semibold">{t('citySidebar.title')}</h3>
+                <p className="text-xs text-[var(--crm-text-soft)]">{t('citySidebar.noArchives')}</p>
             </div>
         );
     }
 
     return (
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-            <h3 className="mb-2 px-1 text-[10px] uppercase tracking-wide text-white/50 font-semibold">Archives</h3>
-            <div className="space-y-0.5">
+        <div className="flex h-full flex-col overflow-hidden rounded-xl border border-[var(--crm-border-soft)] bg-[var(--crm-elevated)]/60 p-3">
+            <h3 className="mb-2 shrink-0 px-1 text-[10px] uppercase tracking-wide text-[var(--crm-text-muted)] font-semibold">{t('citySidebar.title')}</h3>
+            <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto">
                 {cells.map((room) => {
                     const isRoomExpanded = expandedRooms.has(room.code);
                     const isRoomActive = selectedRoom === room.code;
@@ -53,8 +55,8 @@ export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, on
                         <div key={room.code}>
                             <button type="button" onClick={() => toggleRoom(room.code)}
                                 className={cn(
-                                    'flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition hover:bg-white/5',
-                                    isRoomActive ? 'text-white' : 'text-white/60',
+                                    'flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition hover:bg-[var(--crm-elevated)]',
+                                    isRoomActive ? 'text-[var(--crm-text)]' : 'text-[var(--crm-text-muted)]',
                                 )}>
                                 {isRoomExpanded ? <IconChevronDown size={11} className="shrink-0" /> : <IconChevronRight size={11} className="shrink-0" />}
                                 <span className="font-medium truncate">{room.name}</span>
@@ -69,11 +71,11 @@ export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, on
                                                 <button type="button"
                                                     onClick={() => { toggleBox(room.code + box.code); onSelectBox(room.code, box.code); }}
                                                     className={cn(
-                                                        'flex w-full items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] transition hover:bg-white/5',
-                                                        isBoxActive ? 'text-white/80' : 'text-white/50',
+                                                        'flex w-full items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] transition hover:bg-[var(--crm-elevated)]',
+                                                        isBoxActive ? 'text-[var(--crm-text)]/80' : 'text-[var(--crm-text-muted)]',
                                                     )}>
                                                     {isBoxExpanded ? <IconChevronDown size={10} className="shrink-0" /> : <IconChevronRight size={10} className="shrink-0" />}
-                                                    <span className="font-mono">{box.code}</span>
+                                                    <span>{box.code}</span>
                                                 </button>
                                                 {isBoxExpanded ? (
                                                     <div className="ml-3 space-y-0.5">
@@ -83,11 +85,11 @@ export function CitySidebar({ cells, selectedCity, selectedRoom, selectedBox, on
                                                                 <button key={city.code} type="button"
                                                                     onClick={() => onSelectCity(isCityActive ? null : city.code)}
                                                                     className={cn(
-                                                                        'flex w-full items-center gap-2 rounded-lg px-2 py-1 text-[10px] transition hover:bg-white/5',
-                                                                        isCityActive ? 'text-amber-400' : 'text-white/50',
+                                                                        'flex w-full items-center gap-2 rounded-lg px-2 py-1 text-[10px] transition hover:bg-[var(--crm-elevated)]',
+                                                                        isCityActive ? 'text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)]',
                                                                     )}>
                                                                     <span
-                                                                        className={cn('h-2 w-2 rounded-full shrink-0', isCityActive ? 'ring-2 ring-white/40' : 'ring-1 ring-black/10')}
+                                                                        className={cn('h-2 w-2 rounded-full shrink-0', isCityActive ? 'ring-2 ring-[var(--crm-gold)]/40' : 'ring-1 ring-black/10')}
                                                                         style={{ backgroundColor: city.color }}
                                                                     />
                                                                     <span className="truncate">{city.name}</span>

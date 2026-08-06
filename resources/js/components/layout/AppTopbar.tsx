@@ -1,20 +1,22 @@
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
-import { IconClipboardList, IconFileText, IconFolder, IconHeartHandshake, IconPlus, IconUserPlus } from '@tabler/icons-react';
+import { IconClipboardList, IconFileText, IconFolder, IconPlus, IconUserPlus } from '@tabler/icons-react';
 
+import { useTranslation } from '@/lib/i18n';
 import { MessagePopover } from '@/features/inbox/components/MessagePopover';
 import { NotificationPopover } from '@/features/notifications/components/NotificationPopover';
 import { AppGlobalSearch } from '@/components/layout/AppGlobalSearch';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
 const QUICK_ACTIONS = [
-    { label: 'New Project', icon: IconFolder, href: '/projects/create' },
-    { label: 'New Client', icon: IconUserPlus, href: '/clients/create' },
-    { label: 'Log Expense', icon: IconFileText, href: '/finance/expenses/create' },
-    { label: 'Create Task', icon: IconClipboardList, href: '/tasks/create' },
+    { labelKey: 'topbar.newProject', icon: IconFolder, href: '/projects/create' },
+    { labelKey: 'topbar.newClient', icon: IconUserPlus, href: '/clients/create' },
+    { labelKey: 'topbar.finance', icon: IconFileText, href: '/finance/expenses/create' },
+    { labelKey: 'topbar.createTask', icon: IconClipboardList, href: '/tasks/create' },
 ];
 
 export function AppTopbar() {
+    const { t } = useTranslation();
     const [newOpen, setNewOpen] = useState(false);
 
     return (
@@ -32,7 +34,7 @@ export function AppTopbar() {
                             className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] max-sm:hidden"
                         >
                             <IconPlus size={14} strokeWidth={2.5} />
-                            <span className="hidden lg:inline">New</span>
+                            <span className="hidden lg:inline">{t('topbar.new')}</span>
                         </button>
                         {newOpen && (
                             <>
@@ -41,10 +43,10 @@ export function AppTopbar() {
                                     {QUICK_ACTIONS.map((a) => {
                                         const Icon = a.icon;
                                         return (
-                                            <button key={a.label} type="button" onClick={() => { setNewOpen(false); router.visit(a.href); }}
+                                            <button key={a.labelKey} type="button" onClick={() => { setNewOpen(false); router.visit(a.href); }}
                                                 className="flex w-full items-center gap-3 px-3 py-2 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
                                                 <Icon size={14} className="text-[var(--text-muted)]" />
-                                                {a.label}
+                                                {t(a.labelKey)}
                                             </button>
                                         );
                                     })}

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { IconFileText, IconPhoto, IconPaperclip, IconUpload, IconCloudUpload } from '@tabler/icons-react';
 
 import { TextArea } from '@heroui/react';
@@ -7,7 +7,9 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { DrawerSection, DrawerField, DrawerSelect } from '@/components/drawers';
 import { drawerStyles, type DrawerBaseProps } from '@/components/drawers';
-import { firstError } from '@/lib/formErrors';
+import { firstError, hasErrors } from '@/lib/formErrors';
+import type { FormErrors } from '@/lib/formErrors';
+import { cn } from '@/lib/cn';
 import type { DocumentUploadPayload, ClientOption, DocumentTemplateOption, DossierOption } from '@/features/documents/types';
 
 type DocumentDrawerProps = DrawerBaseProps & {
@@ -23,6 +25,12 @@ type DocumentDrawerProps = DrawerBaseProps & {
   mode?: 'upload' | 'replace';
   onSubmit: (payload: DocumentUploadPayload) => void;
 };
+
+type CinSide = 'front' | 'back';
+
+const CIN_ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf';
+
+const SINGLE_FILE_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx';
 
 const emptyForm: DocumentUploadPayload = {
   dossierId: '',
@@ -51,6 +59,14 @@ export function DocumentDrawer({
   const [selectedClientId, setSelectedClientId] = useState(initialClientId);
   const [fileName, setFileName] = useState('');
   const [fileError, setFileError] = useState('');
+  // Tracks sides the user corrected after a backend error so the stale error
+  // disappears visually until the next submit (backend stays authoritative).
+  const [correctedFields, setCorrectedFields] = useState<Set<CinSide | 'file'>>(new Set());
+  const [sideLocalErrors, setSideLocalErrors] = useState<{ front: string; back: string }>({ front: '', back: '' });
+
+  const frontFieldRef = useRef<HTMLDivElement>(null);
+  const backFieldRef = useRef<HTMLDivElement>(null);
+  const fileFieldRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -63,8 +79,24 @@ export function DocumentDrawer({
       setSelectedClientId(initialClientId);
       setFileName('');
       setFileError('');
+      setCorrectedFields(new Set());
+      setSideLocalErrors({ front: '', back: '' });
     }
   }, [initialClientId, initialDossierId, initialStatus, initialTemplateId, isOpen]);
+
+  const frontError = correctedFields.has('front') ? undefined : (firstError(errors, 'file_front') || sideLocalErrors.front);
+  const backError = correctedFields.has('back') ? undefined : (firstError(errors, 'file_back') || sideLocalErrors.back);
+  const fileFieldError = correctedFields.has('file') ? undefined : (firstError(errors, 'file') || fileError);
+
+  // Focus/scroll the first invalid upload field when backend errors arrive.
+  useEffect(() => {
+    if (!isOpen || !hasErrors(errors)) return;
+    const firstKey = (['file_front', 'file_back', 'file'] as const).find((key) => errors[key]);
+    if (!firstKey) return;
+    const target = firstKey === 'file_front' ? frontFieldRef : firstKey === 'file_back' ? backFieldRef : fileFieldRef;
+    target.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    target.current?.focus();
+  }, [errors, isOpen]);
 
   const filteredDossiers = useMemo(() => {
     if (!selectedClientId) return [];
@@ -109,19 +141,24 @@ export function DocumentDrawer({
     setFileError('');
     setForm((current) => ({ ...current, file }));
     setFileName(file?.name ?? '');
+    setCorrectedFields((current) => new Set(current).add('file'));
   }
 
-  function handleCinFileChange(side: 'front' | 'back', fileList: FileList | null) {
+  function handleCinFileChange(side: CinSide, fileList: FileList | null) {
     const file = fileList?.[0] ?? null;
     if (file && file.size > 20 * 1024 * 1024) {
-      setFileError(`Le fichier (${side === 'front' ? 'Recto' : 'Verso'}) est trop volumineux. Maximum 20 Mo.`);
+      setSideLocalErrors((current) => ({
+        ...current,
+        [side]: `Le fichier (${side === 'front' ? 'Recto' : 'Verso'}) est trop volumineux. Maximum 20 Mo.`,
+      }));
       return;
     }
-    setFileError('');
+    setSideLocalErrors((current) => ({ ...current, [side]: '' }));
     setForm((current) => ({
       ...current,
       [side === 'front' ? 'cinFrontFile' : 'cinBackFile']: file,
     }));
+    setCorrectedFields((current) => new Set(current).add(side));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -147,7 +184,7 @@ export function DocumentDrawer({
       }
     >
       <form id="document-form" className="space-y-4" onSubmit={handleSubmit}>
-        <DrawerSection icon={<IconFileText size={12} />} title="Informations document">
+        <DrawerSection icon={<IconFileText size={12} />} title="Informations du document">
           <div className={drawerStyles.sectionGrid}>
             <DrawerField label="Client" error={firstError(errors, 'client_id')}>
               <AppAutocomplete
@@ -193,81 +230,100 @@ export function DocumentDrawer({
           {isCinTemplate ? (
             <div className="space-y-3">
               {/* Front (Recto) */}
-              <div>
+              <div ref={frontFieldRef} tabIndex={-1} className="outline-none">
                 <p className="mb-1 text-[10px] font-medium text-[var(--text-subtle)]">Recto (avant)</p>
                 {form.cinFrontFile ? (
-                  <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2.5">
+                  <div className={cn('flex items-center gap-3 rounded-lg border bg-[var(--surface-2)] p-2.5', frontError ? 'border-[var(--danger)]' : 'border-[var(--border)]')}>
                     <IconPhoto size={16} className="shrink-0 text-[var(--accent)]" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-medium text-[var(--foreground)]">{form.cinFrontFile.name}</p>
                     </div>
                     <button type="button" onClick={() => setForm((f) => ({ ...f, cinFrontFile: null }))}
-                      className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[9px] text-[var(--text-muted)] transition hover:border-red-400/30 hover:text-red-400">
+                      className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[9px] text-[var(--text-muted)] transition hover:border-red-600/30 hover:text-red-600">
                       Retirer
                     </button>
                   </div>
                 ) : (
-                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-3 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
+                  <label className={cn('flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed bg-[var(--surface)] p-3 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]', frontError ? 'border-[var(--danger)]' : 'border-[var(--border)]')}>
                     <IconUpload size={16} className="text-[var(--accent)]" />
                     <span className="mt-1 text-xs font-medium text-[var(--foreground)]">Recto de la CIN</span>
-                    <span className="text-[9px] text-[var(--text-muted)]">IconPhoto, PDF. Max 20 Mo.</span>
-                    <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleCinFileChange('front', e.target.files)} />
+                    <span className="text-[9px] text-[var(--text-muted)]">Photo, PDF. Max 20 Mo.</span>
+                    <input type="file" className="hidden" accept={CIN_ACCEPT}
+                      aria-invalid={frontError ? true : undefined}
+                      aria-describedby={frontError ? 'document-front-error' : undefined}
+                      onChange={(e) => handleCinFileChange('front', e.target.files)} />
                   </label>
                 )}
+                {frontError ? (
+                  <p id="document-front-error" className="mt-1.5 text-[9px] font-medium text-[var(--danger)]">
+                    {frontError}
+                  </p>
+                ) : null}
               </div>
               {/* Back (Verso) */}
-              <div>
+              <div ref={backFieldRef} tabIndex={-1} className="outline-none">
                 <p className="mb-1 text-[10px] font-medium text-[var(--text-subtle)]">Verso (arrière)</p>
                 {form.cinBackFile ? (
-                  <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2.5">
+                  <div className={cn('flex items-center gap-3 rounded-lg border bg-[var(--surface-2)] p-2.5', backError ? 'border-[var(--danger)]' : 'border-[var(--border)]')}>
                     <IconPhoto size={16} className="shrink-0 text-[var(--accent)]" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-medium text-[var(--foreground)]">{form.cinBackFile.name}</p>
                     </div>
                     <button type="button" onClick={() => setForm((f) => ({ ...f, cinBackFile: null }))}
-                      className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[9px] text-[var(--text-muted)] transition hover:border-red-400/30 hover:text-red-400">
+                      className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[9px] text-[var(--text-muted)] transition hover:border-red-600/30 hover:text-red-600">
                       Retirer
                     </button>
                   </div>
                 ) : (
-                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-3 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
+                  <label className={cn('flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed bg-[var(--surface)] p-3 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]', backError ? 'border-[var(--danger)]' : 'border-[var(--border)]')}>
                     <IconUpload size={16} className="text-[var(--accent)]" />
                     <span className="mt-1 text-xs font-medium text-[var(--foreground)]">Verso de la CIN</span>
-                    <span className="text-[9px] text-[var(--text-muted)]">IconPhoto, PDF. Max 20 Mo.</span>
-                    <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleCinFileChange('back', e.target.files)} />
+                    <span className="text-[9px] text-[var(--text-muted)]">Photo, PDF. Max 20 Mo.</span>
+                    <input type="file" className="hidden" accept={CIN_ACCEPT}
+                      aria-invalid={backError ? true : undefined}
+                      aria-describedby={backError ? 'document-back-error' : undefined}
+                      onChange={(e) => handleCinFileChange('back', e.target.files)} />
                   </label>
                 )}
+                {backError ? (
+                  <p id="document-back-error" className="mt-1.5 text-[9px] font-medium text-[var(--danger)]">
+                    {backError}
+                  </p>
+                ) : null}
               </div>
             </div>
           ) : (
-            <>
+            <div ref={fileFieldRef} tabIndex={-1} className="outline-none">
               {fileName ? (
-                <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2.5">
+                <div className={cn('flex items-center gap-3 rounded-lg border bg-[var(--surface-2)] p-2.5', fileFieldError ? 'border-[var(--danger)]' : 'border-[var(--border)]')}>
                   <IconCloudUpload size={16} className="shrink-0 text-[var(--accent)]" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium text-[var(--foreground)]">{fileName}</p>
                     <p className="text-[9px] text-[var(--text-muted)]">Fichier sélectionné</p>
                   </div>
                   <button type="button" onClick={() => { setFileName(''); setForm((f) => ({ ...f, file: null })); }}
-                    className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[9px] text-[var(--text-muted)] transition hover:border-red-400/30 hover:text-red-400">
+                    className="flex size-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[9px] text-[var(--text-muted)] transition hover:border-red-600/30 hover:text-red-600">
                     Retirer
                   </button>
                 </div>
               ) : (
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-4 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]">
+                <label className={cn('flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed bg-[var(--surface)] p-4 text-center transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)]', fileFieldError ? 'border-[var(--danger)]' : 'border-[var(--border)]')}>
                   <IconUpload size={18} className="text-[var(--accent)]" />
                   <span className="mt-1.5 text-xs font-medium text-[var(--foreground)]">Choisir un fichier</span>
                   <span className="mt-0.5 text-[9px] text-[var(--text-muted)]">PDF, image, DOCX. Max 20 Mo.</span>
-                  <input type="file" className="hidden" onChange={(event) => handleFileChange(event.target.files)} />
+                  <input type="file" className="hidden" accept={SINGLE_FILE_ACCEPT}
+                    aria-invalid={fileFieldError ? true : undefined}
+                    aria-describedby={fileFieldError ? 'document-file-error' : undefined}
+                    onChange={(event) => handleFileChange(event.target.files)} />
                 </label>
               )}
-            </>
+              {fileFieldError ? (
+                <p id="document-file-error" className="mt-1.5 text-[9px] font-medium text-[var(--danger)]">
+                  {fileFieldError}
+                </p>
+              ) : null}
+            </div>
           )}
-          {fileError || firstError(errors, 'file') || firstError(errors, 'cin_front_file') || firstError(errors, 'cin_back_file') ? (
-            <p className="mt-1.5 text-[9px] font-medium text-[var(--danger)]">
-              {fileError || firstError(errors, 'file') || firstError(errors, 'cin_front_file') || firstError(errors, 'cin_back_file')}
-            </p>
-          ) : null}
         </DrawerSection>
 
         <DrawerSection icon={<IconFileText size={12} />} title="Notes">

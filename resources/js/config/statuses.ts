@@ -63,18 +63,18 @@ export type ArchiveStatusEntry = {
 };
 
 export const ARCHIVE_STATUS: Record<string, ArchiveStatusEntry> = {
-    ready_to_archive: { key: 'ready_to_archive', label: 'Ready', dot: '○', dotColor: 'text-slate-400', pillColor: 'default', listColor: 'text-slate-400' },
-    stored: { key: 'stored', label: 'Stored', dot: '●', dotColor: 'text-emerald-400', pillColor: 'success', listColor: 'text-emerald-400' },
-    checked_out: { key: 'checked_out', label: 'Out', dot: '●', dotColor: 'text-amber-400', pillColor: 'warning', listColor: 'text-amber-400' },
-    returned: { key: 'returned', label: 'Returned', dot: '●', dotColor: 'text-sky-400', pillColor: 'warning', listColor: 'text-sky-400' },
-    lost: { key: 'lost', label: 'Lost', dot: '✕', dotColor: 'text-rose-400', pillColor: 'danger', listColor: 'text-rose-400' },
+    ready_to_archive: { key: 'ready_to_archive', label: 'Ready', dot: '○', dotColor: 'text-[var(--text-muted)]', pillColor: 'default', listColor: 'text-[var(--text-muted)]' },
+    stored: { key: 'stored', label: 'Stored', dot: '●', dotColor: 'text-[var(--success)]', pillColor: 'success', listColor: 'text-[var(--success)]' },
+    checked_out: { key: 'checked_out', label: 'Out', dot: '●', dotColor: 'text-[var(--warning)]', pillColor: 'warning', listColor: 'text-[var(--warning)]' },
+    returned: { key: 'returned', label: 'Returned', dot: '●', dotColor: 'text-[var(--info)]', pillColor: 'warning', listColor: 'text-[var(--info)]' },
+    lost: { key: 'lost', label: 'Lost', dot: '✕', dotColor: 'text-[var(--danger)]', pillColor: 'danger', listColor: 'text-[var(--danger)]' },
 };
 
 export function archiveVisualStatus(status: string, isOverdue: boolean): ArchiveStatusEntry {
     if (isOverdue) {
-        return { key: 'overdue', label: 'Overdue', dot: '●', dotColor: 'text-red-400', pillColor: 'danger', listColor: 'text-red-400' };
+        return { key: 'overdue', label: 'Overdue', dot: '●', dotColor: 'text-[var(--danger)]', pillColor: 'danger', listColor: 'text-[var(--danger)]' };
     }
-    return ARCHIVE_STATUS[status] ?? { key: status, label: status, dot: '○', dotColor: 'text-slate-400', pillColor: 'default', listColor: 'text-slate-400' };
+    return ARCHIVE_STATUS[status] ?? { key: status, label: status, dot: '○', dotColor: 'text-[var(--text-muted)]', pillColor: 'default', listColor: 'text-[var(--text-muted)]' };
 }
 
 export function defaultDue(days = 7): string {

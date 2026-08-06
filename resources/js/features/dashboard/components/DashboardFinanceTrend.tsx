@@ -76,7 +76,7 @@ export function DashboardFinanceTrend({ points }: Props) {
                 <p className="text-lg font-semibold tracking-[-0.03em] text-[var(--foreground)]">{formatCompactMoney(totalCollected)}</p>
                 <p className="text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--foreground)]">{formatCompactMoney(totalInvoiced)}</span> {t('dashboard.chart.invoiced').toLowerCase()}</p>
                 <div className="ml-auto flex items-center gap-3 text-[10px] font-medium text-[var(--text-muted)]">
-                    <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-400" />{t('dashboard.chart.collected')}</span>
+                    <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-500" />{t('dashboard.chart.collected')}</span>
                     <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-[var(--accent)]" />{t('dashboard.chart.invoiced')}</span>
                 </div>
             </div>
@@ -85,8 +85,8 @@ export function DashboardFinanceTrend({ points }: Props) {
                     <AreaChart data={points} margin={{ top: 4, right: 2, left: -18, bottom: 0 }}>
                         <defs>
                             <linearGradient id="dashboard-collected-gradient" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stopColor="#34d399" stopOpacity={0.34} />
-                                <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                                <stop offset="0%" stopColor="#10b981" stopOpacity={0.34} />
+                                <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                             </linearGradient>
                             <linearGradient id="dashboard-invoiced-gradient" x1="0" x2="0" y1="0" y2="1">
                                 <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.2} />
@@ -98,7 +98,7 @@ export function DashboardFinanceTrend({ points }: Props) {
                         <YAxis axisLine={false} tickLine={false} tick={false} width={18} />
                         <Tooltip content={<FinanceTooltip />} cursor={{ stroke: 'var(--border-strong)', strokeWidth: 1 }} />
                         <Area dataKey="invoiced" name={t('dashboard.chart.invoiced')} stroke="var(--accent)" strokeWidth={2} fill="url(#dashboard-invoiced-gradient)" type="monotone" />
-                        <Area dataKey="collected" name={t('dashboard.chart.collected')} stroke="#34d399" strokeWidth={2} fill="url(#dashboard-collected-gradient)" type="monotone" />
+                        <Area dataKey="collected" name={t('dashboard.chart.collected')} stroke="#10b981" strokeWidth={2} fill="url(#dashboard-collected-gradient)" type="monotone" />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>

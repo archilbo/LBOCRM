@@ -1,6 +1,7 @@
 import { usePage } from '@inertiajs/react';
 import { useTyping } from '@/features/inbox/components/useTyping';
 import { toast } from 'sonner';
+import { useTranslation } from '@/lib/i18n';
 import { IconCheck, IconChecks, IconChevronLeft, IconChevronDown, IconChevronUp, IconFileText, IconPhotoOff, IconInfoCircle, IconMessage2, IconPaperclip, IconSearch, IconSend, IconSettings, IconTrash, IconUserMinus, IconUserPlus, IconUsers, IconX } from '@tabler/icons-react';
 
 import { Avatar, Button, Card, Chip, Input, ListBox, Modal, ScrollShadow, SearchField, Select, Spinner, TextArea } from '@heroui/react';
@@ -28,14 +29,14 @@ function formatTime(dateStr?: string | null): string {
     return date ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 }
 
-function dateSeparator(dateStr?: string | null): string {
+function dateSeparator(dateStr?: string | null, t?: (key: string) => string): string {
     const date = parseMessageDate(dateStr);
     if (!date) return '';
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    if (date.toDateString() === today.toDateString()) return 'Aujourd hui';
-    if (date.toDateString() === yesterday.toDateString()) return 'Hier';
+    if (date.toDateString() === today.toDateString()) return t ? t('inbox.today') : 'Aujourd hui';
+    if (date.toDateString() === yesterday.toDateString()) return t ? t('inbox.yesterday') : 'Hier';
     return date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
 
@@ -49,6 +50,7 @@ function shouldGroup(prev: MessageRow | undefined, curr: MessageRow): boolean {
 }
 
 function ImageGrid({ attachments, onImageClick }: { attachments: MessageAttachmentRow[]; onImageClick?: (index: number) => void }) {
+    const { t } = useTranslation();
     const images = attachments.filter((a) => isImageAttachment(a));
     if (attachments.length === 0) return null;
     return (
@@ -56,7 +58,7 @@ function ImageGrid({ attachments, onImageClick }: { attachments: MessageAttachme
             {images.length > 0 ? (
                 <div className={`grid gap-1.5 overflow-hidden rounded-xl ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {images.slice(0, 4).map((image, index) => (
-                        <Button key={image.id} isIconOnly variant="ghost" aria-label={`Ouvrir ${image.originalFilename}`} onPress={() => onImageClick?.(index)} className={`relative w-full min-w-0 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-0 ${images.length === 1 ? 'aspect-[4/3] max-h-64 min-h-44' : 'aspect-square'}`}>
+                        <Button key={image.id} isIconOnly variant="ghost" aria-label={t('inbox.openImage', { name: image.originalFilename })} onPress={() => onImageClick?.(index)} className={`relative w-full min-w-0 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-0 ${images.length === 1 ? 'aspect-[4/3] max-h-64 min-h-44' : 'aspect-square'}`}>
                             <AttachmentImage attachment={image} />
                             {index === 3 && images.length > 4 ? <span className="absolute inset-0 flex items-center justify-center bg-black/60 text-sm font-bold text-white">+{images.length - 4}</span> : null}
                         </Button>
@@ -88,6 +90,7 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
     onReplyClick?: (replyToId: number) => void;
     onFilePreview?: (attachment: MessageAttachmentRow, allAttachments: MessageAttachmentRow[]) => void;
 }) {
+    const { t } = useTranslation();
     const avatarTone = getAvatarTone(msg.userId ?? msg.user?.id ?? 0);
     const highlight = (text: string) => {
         if (!searchQuery || !text) return text;
@@ -112,8 +115,8 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
                 </div>
             ) : null}
             <div className="min-w-0 max-w-[82%] sm:max-w-[68%]">
-                {!grouped ? <div className={`mb-1 flex items-center gap-2 px-1 ${isMine ? 'justify-end' : 'justify-start'}`}><p className={`text-[10px] font-semibold ${isMine ? 'text-[var(--foreground)]' : avatarTone.text}`}>{isMine ? 'Vous' : msg.user?.name || msg.userName || 'Utilisateur'}</p><span className="text-[8px] text-[var(--text-muted)]">{formatTime(msg.createdAt)}</span>{isGroup && !isMine ? <Chip size="sm" variant="soft" className="h-4 px-1 text-[7px]">Membre</Chip> : null}</div> : null}
-                {msg.isForwarded ? <p className={`mb-0.5 text-[9px] text-[var(--crm-muted)] ${isMine ? 'text-right' : 'text-left'}`}>Transféré</p> : null}
+                {!grouped ? <div className={`mb-1 flex items-center gap-2 px-1 ${isMine ? 'justify-end' : 'justify-start'}`}><p className={`text-[10px] font-semibold ${isMine ? 'text-[var(--foreground)]' : avatarTone.text}`}>{isMine ? t('inbox.you') : msg.user?.name || msg.userName || t('inbox.user')}</p><span className="text-[8px] text-[var(--text-muted)]">{formatTime(msg.createdAt)}</span>{isGroup && !isMine ? <Chip size="sm" variant="soft" className="h-4 px-1 text-[7px]">{t('inbox.member')}</Chip> : null}</div> : null}
+                {msg.isForwarded ? <p className={`mb-0.5 text-[9px] text-[var(--crm-muted)] ${isMine ? 'text-right' : 'text-left'}`}>{t('inbox.forwarded')}</p> : null}
                 {msg.replyTo ? (
                     <ReplyPreview replyTo={msg.replyTo} isMine={isMine} onClick={() => onReplyClick?.(msg.replyTo!.id)} />
                 ) : null}
@@ -129,7 +132,7 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
                         </div>
                     ) : null}
                     {hasBody ? (
-                        <div className={`whitespace-pre-wrap break-words px-3.5 py-2.5 text-[11px] leading-5 ${msg.attachments && msg.attachments.length > 0 ? 'border-t border-black/10' : ''}`}>
+                        <div className={`whitespace-pre-wrap break-words px-2 py-1 text-[11px] leading-2 ${msg.attachments && msg.attachments.length > 0 ? 'border-t border-black/10' : ''}`}>
                             {highlight(msg.body)}
                         </div>
                     ) : null}
@@ -138,7 +141,7 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
                     <MessageDeliveryStatus createdAt={msg.createdAt} isMine={isMine} readBy={msg.readBy} isEdited={msg.isEdited} isFailed={msg.isFailed} onRetry={() => onRetry?.(msg)} />
                 </div>
             </div>
-            {isMine ? (!grouped ? <Avatar size="sm" name="Vous" className="mt-4 shrink-0 bg-[var(--accent-soft)] text-[var(--accent)]">V</Avatar> : <div className="w-8 shrink-0" />) : null}
+            {isMine ? (!grouped ? <Avatar size="sm" name={t('inbox.you')} className="mt-4 shrink-0 bg-[var(--accent-soft)] text-[var(--accent)]">V</Avatar> : <div className="w-8 shrink-0" />) : null}
             {!isMine ? (
                 <div className="self-start pt-[10px]">
                     <MessageActionToolbar isMine={isMine} body={msg.body} onReply={() => onReply(msg)} onForward={() => onForwardMsg(msg)} onEdit={() => onEdit?.(msg)} onDelete={() => onDelete?.(msg)} />
@@ -169,6 +172,7 @@ type Props = {
 };
 
 export function MessageThread({ conversation, conversations, messages, loading, loadingOlder, paginator, currentUserId, onSend, onLoadOlder, onMessageUpdate, onMessageDelete, onScroll, onRetryMessage, onSearchMessagesLoaded, users = [], onOpenInfo, onBack }: Props) {
+    const { t } = useTranslation();
     const pageUsers = users;
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -237,7 +241,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                     setSearchIndex(0);
                 })
                 .catch((error) => {
-                    if (!(error instanceof DOMException && error.name === 'AbortError')) toast.error('Recherche impossible.');
+                    if (!(error instanceof DOMException && error.name === 'AbortError')) toast.error(t('inbox.toast.searchError'));
                 });
         }, 250);
         return () => { window.clearTimeout(timer); controller.abort(); };
@@ -261,20 +265,20 @@ export function MessageThread({ conversation, conversations, messages, loading, 
         if (isGroup) {
             const pc = conversation.participantsCount ?? parts.length;
             const oc = conversation.onlineCount ?? parts.filter((p) => p?.user?.lastSeenAt && Date.now() - new Date(p.user.lastSeenAt).getTime() < 300000).length;
-            return `${pc} membre${pc !== 1 ? 's' : ''}${oc > 0 ? ` · ${oc} en ligne` : ''}`;
+            return `${t('inbox.membersCount', { count: pc, s: pc !== 1 ? 's' : '' })}${oc > 0 ? ` · ${t('inbox.onlineCount', { count: oc })}` : ''}`;
         }
         const other = others[0];
         if (!other) return '';
         const ls = other.user?.lastSeenAt;
         if (!ls) return '';
         const diff = Date.now() - new Date(ls).getTime();
-        if (diff < 300000) return 'En ligne';
+        if (diff < 300000) return t('inbox.onlineNow');
         const mins = Math.floor(diff / 60000);
-        if (mins < 60) return `Vu il y a ${mins} min`;
+        if (mins < 60) return t('inbox.seenMinutes', { count: mins });
         const hours = Math.floor(mins / 60);
-        if (hours < 24) return `Vu il y a ${hours} h`;
-        return `Vu le ${new Date(ls).toLocaleDateString([], { day: 'numeric', month: 'short' })}`;
-    }, [conversation, others, parts, isGroup]);
+        if (hours < 24) return t('inbox.seenHours', { count: hours });
+        return t('inbox.seenDate', { date: new Date(ls).toLocaleDateString([], { day: 'numeric', month: 'short' }) });
+    }, [conversation, others, parts, isGroup, t]);
 
     const handleSend = useCallback(async () => {
         const body = text.trim();
@@ -300,7 +304,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
             onMessageUpdate?.(updated);
             setEditingMsg(null); setText('');
             if (textareaRef.current) textareaRef.current.style.height = 'auto';
-        } catch (error) { toast.error(error instanceof InboxApiError ? error.message : 'Modification impossible.'); } finally { setSending(false); }
+        } catch (error) { toast.error(error instanceof InboxApiError ? error.message : t('inbox.toast.updateError')); } finally { setSending(false); }
     }, [text, editingMsg, sending, conversation.id, onMessageUpdate]);
 
     const handleEdit = useCallback((msg: MessageRow) => {
@@ -315,9 +319,9 @@ export function MessageThread({ conversation, conversations, messages, loading, 
             await inboxApi.deleteMessage(conversation.id, deleteConfirmId);
             onMessageDelete?.(deleteConfirmId);
             setDeleteConfirmId(null);
-            toast.success('Message supprime.');
+            toast.success(t('inbox.toast.deleted'));
         } catch (error) {
-            toast.error(error instanceof InboxApiError ? error.message : 'Suppression impossible.');
+            toast.error(error instanceof InboxApiError ? error.message : t('inbox.toast.deleteError'));
         }
     }, [conversation.id, deleteConfirmId, onMessageDelete]);
 
@@ -360,23 +364,23 @@ export function MessageThread({ conversation, conversations, messages, loading, 
         if (!groupSubject.trim() || !isGroup) return;
         try {
             await inboxApi.updateConversation(conversation.id, groupSubject.trim());
-            toast.success('Groupe renommé'); setGroupSettingsOpen(false);
-        } catch { toast.error('Impossible de renommer le groupe.'); }
+            toast.success(t('inbox.toast.renamed')); setGroupSettingsOpen(false);
+        } catch { toast.error(t('inbox.toast.renameError')); }
     }, [conversation.id, isGroup, groupSubject]);
 
     const handleAddParticipant = useCallback(async () => {
         if (!addUserId) return;
         try {
             await inboxApi.addParticipant(conversation.id, Number(addUserId));
-            toast.success('Participant ajouté'); setAddUserId(''); setAvailableUsers([]);
-        } catch { toast.error('Impossible d\'ajouter le participant.'); }
+            toast.success(t('inbox.toast.participantAdded')); setAddUserId(''); setAvailableUsers([]);
+        } catch { toast.error(t('inbox.toast.addParticipantError')); }
     }, [conversation.id, addUserId]);
 
     const handleRemoveParticipant = useCallback(async (userId: number) => {
         try {
             await inboxApi.removeParticipant(conversation.id, userId);
-            toast.success('Participant retiré.');
-        } catch { toast.error('Impossible de retirer le participant.'); }
+            toast.success(t('inbox.toast.participantRemoved'));
+        } catch { toast.error(t('inbox.toast.removeParticipantError')); }
     }, [conversation.id]);
 
     const openGroupSettings = useCallback(() => {
@@ -389,7 +393,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
         const dates: { label: string; messageIds: number[] }[] = [];
         let lastLabel = '';
         for (const msg of messages) {
-            const label = dateSeparator(msg.createdAt);
+            const label = dateSeparator(msg.createdAt, t);
             if (label !== lastLabel) { dates.push({ label, messageIds: [msg.id] }); lastLabel = label; }
             else { dates[dates.length - 1].messageIds.push(msg.id); }
         }
@@ -410,12 +414,12 @@ export function MessageThread({ conversation, conversations, messages, loading, 
         <div className="flex flex-1 flex-col min-h-0">
             {/* Header */}
             <div className="flex h-[68px] shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 sm:px-5">
-                <InboxIconButton label="Retour aux conversations" onPress={onBack} className="lg:hidden"><IconChevronLeft size={18} /></InboxIconButton>
+                <InboxIconButton label={t('inbox.back')} onPress={onBack} className="lg:hidden"><IconChevronLeft size={18} /></InboxIconButton>
                 {!isGroup ? <div className="relative shrink-0">
                     <Avatar size="md" name={otherName} className={`${avatarTone.bg} ${avatarTone.text}`}>
                         {getConversationInitials(conversation, currentUserId)}
                     </Avatar>
-                    {others.length === 1 && statusLine === 'En ligne' ? (
+                    {others.length === 1 && statusLine === t('inbox.onlineNow') ? (
                         <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--crm-surface)] bg-emerald-400" />
                     ) : null}
                 </div> : null}
@@ -426,23 +430,23 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                             <Chip size="sm" variant="flat" className={`${catMeta.tone.bg} ${catMeta.tone.text}`}>{catMeta.label}</Chip>
                         ) : null}
                     </div>
-                    {isGroup ? <div className="mt-1 flex items-center gap-2"><div className="flex -space-x-1.5">{parts.slice(0, 5).map((participant) => <Avatar key={participant.id} size="sm" name={participant.user?.name || 'Utilisateur'} className="size-5 border border-[var(--surface)] text-[7px]" />)}{parts.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{parts.length - 5}</span> : null}</div>{canManageGroup ? <Button variant="ghost" size="sm" onPress={openGroupSettings} className="h-5 rounded-md px-1.5 text-[8px] text-[var(--accent)]"><IconUserPlus size={10} />Nouveau membre</Button> : null}</div> : statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
+                    {isGroup ? <div className="mt-1 flex items-center gap-2"><div className="flex -space-x-1.5">{parts.slice(0, 5).map((participant) => <Avatar key={participant.id} size="sm" name={participant.user?.name || t('inbox.user')} className="size-5 border border-[var(--surface)] text-[7px]" />)}{parts.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{parts.length - 5}</span> : null}</div>{canManageGroup ? <Button variant="ghost" size="sm" onPress={openGroupSettings} className="h-5 rounded-md px-1.5 text-[8px] text-[var(--accent)]"><IconUserPlus size={10} />{t('inbox.newMember')}</Button> : null}</div> : statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
                 </div>
                 {searchOpen ? (
                     <div className="flex items-center gap-1">
-                        <SearchField value={searchQuery} onChange={setSearchQuery} aria-label="Rechercher dans les messages" variant="secondary" className="w-48">
-                            <IconSearch size={13} /><SearchField.Input ref={searchInputRef} placeholder="Rechercher..." autoFocus /><SearchField.ClearButton />
+                        <SearchField value={searchQuery} onChange={setSearchQuery} aria-label={t('inbox.searchMessagesAria')} variant="secondary" className="w-48">
+                            <IconSearch size={13} /><SearchField.Input ref={searchInputRef} placeholder={t('inbox.searchPlaceholder')} autoFocus /><SearchField.ClearButton />
                         </SearchField>
                         {searchResults.length > 0 ? <span className="text-[9px] text-[var(--crm-text-muted)] shrink-0">{searchIndex + 1}/{searchResults.length}</span> : null}
-                        <InboxIconButton size="sm" label="Resultat precedent" isDisabled={searchResults.length === 0} onPress={() => setSearchIndex((index) => Math.min(index + 1, searchResults.length - 1))}><IconChevronUp size={12} /></InboxIconButton>
-                        <InboxIconButton size="sm" label="Resultat suivant" isDisabled={searchResults.length === 0} onPress={() => setSearchIndex((index) => Math.max(index - 1, 0))}><IconChevronDown size={12} /></InboxIconButton>
-                        <InboxIconButton size="sm" label="Fermer la recherche" onPress={() => { setSearchOpen(false); setSearchQuery(''); setSearchResults([]); }}><IconX size={12} /></InboxIconButton>
+                        <InboxIconButton size="sm" label={t('inbox.prevResult')} isDisabled={searchResults.length === 0} onPress={() => setSearchIndex((index) => Math.min(index + 1, searchResults.length - 1))}><IconChevronUp size={12} /></InboxIconButton>
+                        <InboxIconButton size="sm" label={t('inbox.nextResult')} isDisabled={searchResults.length === 0} onPress={() => setSearchIndex((index) => Math.max(index - 1, 0))}><IconChevronDown size={12} /></InboxIconButton>
+                        <InboxIconButton size="sm" label={t('inbox.closeSearch')} onPress={() => { setSearchOpen(false); setSearchQuery(''); setSearchResults([]); }}><IconX size={12} /></InboxIconButton>
                     </div>
                 ) : (
                     <div className="flex items-center gap-1">
-                        <InboxIconButton label="Rechercher" tone="accent" onPress={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}><IconSearch size={14} /></InboxIconButton>
-                        <InboxIconButton label="Informations" tone="accent" onPress={onOpenInfo} className="xl:hidden"><IconInfoCircle size={14} /></InboxIconButton>
-                        {isGroup && canManageGroup ? <InboxIconButton label="Parametres du groupe" tone="accent" onPress={openGroupSettings}><IconSettings size={14} /></InboxIconButton> : null}
+                        <InboxIconButton label={t('inbox.search')} tone="accent" onPress={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}><IconSearch size={14} /></InboxIconButton>
+                        <InboxIconButton label={t('inbox.info')} tone="accent" onPress={onOpenInfo} className="xl:hidden"><IconInfoCircle size={14} /></InboxIconButton>
+                        {isGroup && canManageGroup ? <InboxIconButton label={t('inbox.groupSettings')} tone="accent" onPress={openGroupSettings}><IconSettings size={14} /></InboxIconButton> : null}
                     </div>
                 )}
             </div>
@@ -457,8 +461,8 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                         ) : messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12">
                                 <IconMessage2 size={32} className="text-[var(--crm-muted)]" />
-                                <p className="mt-2 text-xs text-[var(--crm-text-muted)]">Aucun message</p>
-                                <p className="mt-0.5 text-[9px] text-[var(--crm-muted)]">Envoyez un message pour demarrer la conversation.</p>
+                                <p className="mt-2 text-xs text-[var(--crm-text-muted)]">{t('inbox.noMessages')}</p>
+                                <p className="mt-0.5 text-[9px] text-[var(--crm-muted)]">{t('inbox.noMessagesDesc')}</p>
                             </div>
                         ) : (
                             <>
@@ -466,7 +470,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                     <div className="flex justify-center py-3">
                                         <Button size="sm" variant="secondary" onPress={onLoadOlder} isDisabled={loadingOlder}>
                                             {loadingOlder ? <Spinner size="sm" color="warning" /> : null}
-                                            {loadingOlder ? 'Chargement...' : `Charger les messages precedents (${paginator.total - (paginator.currentPage * paginator.perPage) > 0 ? paginator.total - (paginator.currentPage * paginator.perPage) : 0})`}
+                                            {loadingOlder ? t('inbox.loading') : `${t('inbox.loadOlder')} (${paginator.total - (paginator.currentPage * paginator.perPage) > 0 ? paginator.total - (paginator.currentPage * paginator.perPage) : 0})`}
                                         </Button>
                                     </div>
                                 ) : null}
@@ -483,7 +487,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                             const isSearchResult = searchResults.includes(msg.id);
                                             return (
                                                 <div key={msg.id} id={`msg-${msg.id}`} className={`msg-slide-in ${isSearchResult ? (searchResults[searchIndex] === msg.id ? 'ring-2 ring-[var(--crm-gold)]/50 rounded-lg' : 'ring-1 ring-[var(--crm-gold)]/20 rounded-lg') : ''}`}>
-                                                    {msg.id === firstUnreadId ? <div className="my-3 flex items-center gap-2"><span className="h-px flex-1 bg-[var(--crm-gold)]/30" /><span className="text-[9px] font-bold uppercase tracking-wider text-[var(--crm-gold)]">Nouveaux messages</span><span className="h-px flex-1 bg-[var(--crm-gold)]/30" /></div> : null}
+                                                    {msg.id === firstUnreadId ? <div className="my-3 flex items-center gap-2"><span className="h-px flex-1 bg-[var(--crm-gold)]/30" /><span className="text-[9px] font-bold uppercase tracking-wider text-[var(--crm-gold)]">{t('inbox.newMessagesSeparator')}</span><span className="h-px flex-1 bg-[var(--crm-gold)]/30" /></div> : null}
                                                     <MessageBubble msg={msg} isMine={msg.userId === currentUserId} grouped={shouldGroup(prev, msg)} isGroup={isGroup}
                                                         currentUserId={currentUserId} onReply={setReplyTo} onForward={setForwardMsg} onImageClick={handleImageClick}
                                                         onEdit={handleEdit} onDelete={handleDelete} onRetry={onRetryMessage} searchQuery={searchQuery}
@@ -504,10 +508,10 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                         <div className="flex items-center gap-2 border-t border-[var(--crm-border)] bg-[var(--crm-surface)] px-4 py-2 shrink-0">
                             <div className="h-8 w-0.5 rounded-full bg-[var(--crm-gold)]" />
                             <div className="min-w-0 flex-1">
-                                <p className="text-[9px] font-semibold text-[var(--crm-gold)]">Reponse a {replyTo.userName || 'un message'}</p>
-                                <p className="truncate text-[9px] text-[var(--crm-text-muted)]">{replyTo.body || (replyTo.attachments && replyTo.attachments.length > 0 ? 'Photo' : '')}</p>
+                                <p className="text-[9px] font-semibold text-[var(--crm-gold)]">{t('inbox.replyTo')} {replyTo.userName || t('inbox.replyToFallback')}</p>
+                                <p className="truncate text-[9px] text-[var(--crm-text-muted)]">{replyTo.body || (replyTo.attachments && replyTo.attachments.length > 0 ? t('inbox.photo') : '')}</p>
                             </div>
-                            <InboxIconButton size="sm" label="Annuler la reponse" onPress={() => setReplyTo(null)}><IconX size={14} /></InboxIconButton>
+                            <InboxIconButton size="sm" label={t('inbox.cancelReply')} onPress={() => setReplyTo(null)}><IconX size={14} /></InboxIconButton>
                         </div>
                     ) : null}
 
@@ -516,10 +520,10 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                         <div className="flex items-center gap-2 border-t border-[var(--crm-border)] bg-[var(--crm-surface)] px-4 py-2 shrink-0">
                             <div className="h-8 w-0.5 rounded-full bg-emerald-400" />
                             <div className="min-w-0 flex-1">
-                                <p className="text-[9px] font-semibold text-emerald-400">Modification du message</p>
+                                <p className="text-[9px] font-semibold text-emerald-400">{t('inbox.editing')}</p>
                                 <p className="truncate text-[9px] text-[var(--crm-text-muted)]">{editingMsg.body || ''}</p>
                             </div>
-                            <InboxIconButton size="sm" label="Annuler la modification" onPress={() => { setEditingMsg(null); setText(''); if (textareaRef.current) textareaRef.current.style.height = 'auto'; }}><IconX size={14} /></InboxIconButton>
+                            <InboxIconButton size="sm" label={t('inbox.cancelEdit')} onPress={() => { setEditingMsg(null); setText(''); if (textareaRef.current) textareaRef.current.style.height = 'auto'; }}><IconX size={14} /></InboxIconButton>
                         </div>
                     ) : null}
 
@@ -534,7 +538,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                             <span className="truncate text-[9px] text-[var(--crm-text)]">{file.name}</span>
                                         </div>
                                     )}
-                                    <InboxIconButton size="sm" label={`Retirer ${file.name}`} tone="danger" onPress={() => removeImage(i)} className="absolute -right-2 -top-2 size-6 min-w-6 bg-red-500 text-white"><IconX size={10} /></InboxIconButton>
+                                    <InboxIconButton size="sm" label={t('inbox.removeFile', { name: file.name })} tone="danger" onPress={() => removeImage(i)} className="absolute -right-2 -top-2 size-6 min-w-6 bg-red-500 text-white"><IconX size={10} /></InboxIconButton>
                                 </div>
                             ))}
                         </div>
@@ -557,7 +561,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                             typingUsers.length === 2 ? `${typingUsers[0].name} + ${typingUsers[1].name}` :
                                             `${typingUsers[0].name} + ${typingUsers.length - 1}`}
                                     </span>
-                                    <span className="ml-1">ecrit</span>
+                                    <span className="ml-1">{t('inbox.typing')}</span>
                                 </p>
                                 <span className="typing-dots ml-0.5 inline-flex items-end gap-1 rounded-full bg-black/20 px-1.5 py-1" aria-hidden="true">
                                     <span className="typing-dot" />
@@ -571,12 +575,12 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                     {/* Composer */}
                     <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-3 pb-3 pt-2.5 sm:px-5">
                         <Card className="mx-auto flex w-full max-w-[62rem] flex-row items-end gap-1.5 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.14)]">
-                            {!editingMsg ? <InboxIconButton label="Joindre un fichier" tone="accent" onPress={() => fileInputRef.current?.click()} className="shrink-0 rounded-full"><IconPaperclip size={17} /></InboxIconButton> : <div className="size-9 shrink-0" />}
+                            {!editingMsg ? <InboxIconButton label={t('inbox.attachFile')} tone="accent" onPress={() => fileInputRef.current?.click()} className="shrink-0 rounded-full"><IconPaperclip size={17} /></InboxIconButton> : <div className="size-9 shrink-0" />}
                             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.zip" multiple className="hidden" onChange={handleImageSelect} />
                             <TextArea ref={textareaRef} value={text} onChange={(event) => { setText(event.target.value); sendTyping(); event.target.style.height = 'auto'; event.target.style.height = `${Math.min(event.target.scrollHeight, 120)}px`; }} onKeyDown={handleKeyDown}
-                                aria-label="Message" placeholder="Ecrire un message..." rows={1}
+                                aria-label={t('inbox.messageAria')} placeholder={t('inbox.writePlaceholder')} rows={1}
                                 className="min-h-9 flex-1 resize-none rounded-lg border-0 bg-transparent px-2 py-2 text-xs text-[var(--text)] outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_15%,transparent)]" />
-                            <Button isIconOnly variant="primary" size="sm" aria-label={editingMsg ? 'Enregistrer la modification' : 'Envoyer'} onPress={editingMsg ? handleUpdate : handleSend} isDisabled={!canSend || sending} className="shrink-0 rounded-full">
+                            <Button isIconOnly variant="primary" size="sm" aria-label={editingMsg ? t('inbox.saveEditAria') : t('inbox.sendAria')} onPress={editingMsg ? handleUpdate : handleSend} isDisabled={!canSend || sending} className="shrink-0 rounded-full">
                                 {sending ? <Spinner size="sm" color="current" /> : editingMsg ? <IconCheck size={16} /> : <IconSend size={16} />}
                             </Button>
                         </Card>
@@ -591,9 +595,9 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                 <Modal.Backdrop isOpen onOpenChange={(open) => !open && setDeleteConfirmId(null)} isDismissable className="z-[95] bg-black/65 backdrop-blur-sm">
                     <Modal.Container size="xs">
                         <Modal.Dialog className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">
-                            <Modal.Header><Modal.Heading>Supprimer ce message ?</Modal.Heading><Modal.CloseTrigger /></Modal.Header>
-                            <Modal.Body><p className="text-sm text-[var(--text-muted)]">Cette action retirera le message de la conversation.</p></Modal.Body>
-                            <Modal.Footer><Button variant="ghost" onPress={() => setDeleteConfirmId(null)}>Annuler</Button><Button variant="danger" onPress={confirmDelete}><IconTrash size={14} /> Supprimer</Button></Modal.Footer>
+                            <Modal.Header><Modal.Heading>{t('inbox.deleteTitle')}</Modal.Heading><Modal.CloseTrigger /></Modal.Header>
+                            <Modal.Body><p className="text-sm text-[var(--text-muted)]">{t('inbox.deleteDesc')}</p></Modal.Body>
+                            <Modal.Footer><Button variant="ghost" onPress={() => setDeleteConfirmId(null)}>{t('inbox.cancel')}</Button><Button variant="danger" onPress={confirmDelete}><IconTrash size={14} /> {t('inbox.delete')}</Button></Modal.Footer>
                         </Modal.Dialog>
                     </Modal.Container>
                 </Modal.Backdrop>
@@ -602,16 +606,16 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                 <Modal.Backdrop isOpen onOpenChange={setGroupSettingsOpen} isDismissable className="z-[90] bg-black/65 backdrop-blur-sm">
                     <Modal.Container size="sm">
                         <Modal.Dialog className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">
-                            <Modal.Header><Modal.Heading>Parametres du groupe</Modal.Heading><Modal.CloseTrigger /></Modal.Header>
+                            <Modal.Header><Modal.Heading>{t('inbox.groupSettings')}</Modal.Heading><Modal.CloseTrigger /></Modal.Header>
                             <Modal.Body className="space-y-5">
                                 <div className="flex items-end gap-2">
-                                    <Input label="Nom du groupe" value={groupSubject} onChange={(event) => setGroupSubject(event.target.value)} variant="secondary" fullWidth />
-                                    <Button variant="primary" onPress={handleRenameGroup} isDisabled={!groupSubject.trim()}>Enregistrer</Button>
+                                    <Input label={t('inbox.groupName')} value={groupSubject} onChange={(event) => setGroupSubject(event.target.value)} variant="secondary" fullWidth />
+                                    <Button variant="primary" onPress={handleRenameGroup} isDisabled={!groupSubject.trim()}>{t('inbox.save')}</Button>
                                 </div>
 
                                 <section className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-sm font-semibold">Participants</h3>
+                                        <h3 className="text-sm font-semibold">{t('inbox.participants')}</h3>
                                         <Chip size="sm" variant="flat">{parts.length}</Chip>
                                     </div>
                                     <ScrollShadow className="max-h-48 space-y-1 rounded-xl border border-[var(--border)] p-1.5">
@@ -619,16 +623,16 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                             <Card key={participant.id} className="flex-row items-center gap-3 border-0 bg-[var(--surface-2)] px-3 py-2 shadow-none">
                                                 <Avatar size="sm" name={participant.user?.name || ''} />
                                                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{participant.user?.name}</span>
-                                                <InboxIconButton label={`Retirer ${participant.user?.name || 'ce participant'}`} tone="danger" onPress={() => handleRemoveParticipant(participant.user!.id)}><IconUserMinus size={14} /></InboxIconButton>
+                                                <InboxIconButton label={t('inbox.removeParticipant', { name: participant.user?.name || t('inbox.removeParticipantFallback') })} tone="danger" onPress={() => handleRemoveParticipant(participant.user!.id)}><IconUserMinus size={14} /></InboxIconButton>
                                             </Card>
                                         ))}
                                     </ScrollShadow>
                                 </section>
 
                                 <div className="flex items-end gap-2">
-                                    <Select selectedKey={addUserId || null} onSelectionChange={(key) => setAddUserId(key ? String(key) : '')} aria-label="Ajouter un participant" className="flex-1">
+                                    <Select selectedKey={addUserId || null} onSelectionChange={(key) => setAddUserId(key ? String(key) : '')} aria-label={t('inbox.addParticipantAria')} className="flex-1">
                                         <Select.Trigger className="h-10 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm">
-                                            <Select.Value className="flex-1 truncate text-left" placeholder="Choisir un utilisateur" />
+                                            <Select.Value className="flex-1 truncate text-left" placeholder={t('inbox.chooseUser')} />
                                             <Select.Indicator><IconChevronDown size={14} /></Select.Indicator>
                                         </Select.Trigger>
                                         <Select.Popover isNonModal className="z-[100] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
@@ -637,7 +641,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                             </ListBox>
                                         </Select.Popover>
                                     </Select>
-                                    <Button variant="secondary" onPress={handleAddParticipant} isDisabled={!addUserId}><IconUserPlus size={14} /> Ajouter</Button>
+                                    <Button variant="secondary" onPress={handleAddParticipant} isDisabled={!addUserId}><IconUserPlus size={14} /> {t('inbox.add')}</Button>
                                 </div>
                             </Modal.Body>
                         </Modal.Dialog>

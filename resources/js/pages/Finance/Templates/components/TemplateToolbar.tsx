@@ -87,9 +87,8 @@ export function TemplateToolbar({
             <div className="flex shrink-0 items-center gap-1.5">
                 {draftName ? (
                     <>
-                        <AppButton size="sm" variant="outline" onPress={onNew} className="h-8 px-2.5 text-xs">
+                        <AppButton isIconOnly compact variant="quiet" tooltip="Nouveau" aria-label="Nouveau" onPress={onNew}>
                             <IconPlus size={14} />
-                            <span className="hidden sm:inline">Nouveau</span>
                         </AppButton>
 
                         <AppButton
@@ -146,8 +145,8 @@ export function TemplateToolbar({
                         </span>
                     </>
                 ) : (
-                    <AppButton size="sm" variant="primary" onPress={onNew} className="h-8 px-3 text-xs">
-                        <IconPlus size={14} /> Nouveau template
+                    <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Nouveau template" aria-label="Nouveau template" onPress={onNew}>
+                        <IconPlus size={14} />
                     </AppButton>
                 )}
 

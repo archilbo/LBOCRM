@@ -41,7 +41,7 @@ class AdminUserInvitationController extends Controller
         ]);
 
         return redirect()->route('admin.users.index')
-            ->with('success', $message);
+            ->with('success', ['key' => 'users.invitations.toast.sent', 'values' => ['email' => $user->email]]);
     }
 
     public function resend(Request $request, User $user): RedirectResponse
@@ -68,7 +68,7 @@ class AdminUserInvitationController extends Controller
             'email' => $user->email,
         ]);
 
-        return back()->with('success', "A new invitation link was sent to {$user->email}.");
+        return back()->with('success', ['key' => 'users.invitations.toast.resent', 'values' => ['email' => $user->email]]);
     }
 
     public function bulkValidate(Request $request): JsonResponse
@@ -169,12 +169,26 @@ class AdminUserInvitationController extends Controller
             ->with('success', $message);
     }
 
-    public function accept(string $token): Response|RedirectResponse
+    public function accept(Request $request, string $token): Response|RedirectResponse
     {
-        $user = $this->invitations->findPending($token);
+        $resolution = $this->invitations->resolveStatus($token);
 
-        if (! $user) {
-            return redirect()->route('login')->with('error', 'This invitation link is invalid or has already been used.');
+        if ($resolution['status'] !== 'valid') {
+            return Inertia::render('Auth/InvitationStatus', [
+                'status' => $resolution['status'],
+            ]);
+        }
+
+        /** @var User $user */
+        $user = $resolution['user'];
+
+        if ($request->user()) {
+            return Inertia::render('Auth/InvitationStatus', [
+                'status' => 'conflict',
+                'token' => $token,
+                'currentEmail' => $request->user()->email,
+                'invitedEmail' => $user->email,
+            ]);
         }
 
         return Inertia::render('Auth/AcceptInvitation', [
@@ -186,10 +200,8 @@ class AdminUserInvitationController extends Controller
 
     public function complete(Request $request, string $token): RedirectResponse
     {
-        $user = $this->invitations->findPending($token);
-
-        if (! $user) {
-            return redirect()->route('login')->with('error', 'This invitation link is invalid or has already been used.');
+        if (! $this->invitations->findPending($token)) {
+            return redirect()->route('invitation.accept', ['token' => $token]);
         }
 
         $validated = $request->validate([
@@ -197,17 +209,33 @@ class AdminUserInvitationController extends Controller
             'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::min(12)->mixedCase()->numbers()->symbols()],
         ]);
 
-        $user->fill([
-            'name' => $validated['name'],
-            'password' => bcrypt($validated['password']),
-            'invitation_token' => null,
-            'invitation_expires_at' => null,
-            'accepted_at' => now(),
-        ])->save();
+        // Consumes the token inside a transaction (single-use, atomic).
+        $user = $this->invitations->consume($token, $validated);
+
+        if (! $user) {
+            return redirect()->route('invitation.accept', ['token' => $token]);
+        }
 
         auth()->login($user);
+        $request->session()->regenerate();
 
-        return redirect()->route('dashboard');
+        return redirect()->route('dashboard')
+            ->with('success', ['key' => 'auth.acceptInvitation.activatedSuccess', 'values' => []]);
+    }
+
+    public function continueSession(Request $request, string $token): RedirectResponse
+    {
+        $resolution = $this->invitations->resolveStatus($token);
+
+        if ($resolution['status'] !== 'valid') {
+            return redirect()->route('invitation.accept', ['token' => $token]);
+        }
+
+        auth()->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('invitation.accept', ['token' => $token]);
     }
 
     private function assignableRoles(Request $request): array

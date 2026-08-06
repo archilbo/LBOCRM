@@ -54,6 +54,7 @@ class ArchiveRecordResource extends JsonResource
 
             'notes' => $this->notes,
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
+            'updatedAtRaw' => optional($this->updated_at)->toIso8601String(),
             'createdAt' => optional($this->created_at)->format('Y-m-d'),
 
             'events' => $this->relationLoaded('events') ? ArchiveEventResource::collection($this->events)->resolve() : [],

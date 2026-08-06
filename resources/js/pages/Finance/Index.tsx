@@ -395,9 +395,8 @@ export default function FinanceIndex({
                 titleKey="finance.title"
                 subtitleKey="finance.subtitle"
                 action={
-                    <AppButton variant="primary" onPress={openCreateDrawer}>
+                    <AppButton isIconOnly compact variant="solid" color="primary" tooltip="New finance record" aria-label="New finance record" onPress={openCreateDrawer}>
                         <IconPlus size={16} />
-                        New finance record
                     </AppButton>
                 }
             >

@@ -22,7 +22,7 @@ type AppDrawerClassNames = {
 type AppDrawerProps = {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
-    title?: string;
+    title?: ReactNode;
     description?: string;
     children: ReactNode;
     footer?: ReactNode;
@@ -96,7 +96,7 @@ export function AppDrawer({
                     )}
                 >
                     <Drawer.Dialog
-                        aria-label={title ?? 'Drawer'}
+                        aria-label={typeof title === 'string' ? title : 'Drawer'}
                         className={cn(
                             'relative flex h-dvh max-h-dvh min-h-0 max-w-full flex-col',
                             'overflow-hidden rounded-none bg-[var(--surface)] text-[var(--foreground)]',

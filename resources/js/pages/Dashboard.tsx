@@ -198,7 +198,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                     <Button
                                         key={project.id}
                                         variant="ghost"
-                                        className="h-auto w-full justify-start py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px]"
+                                        className="h-auto w-full justify-start py-2 text-left hover:bg-[var(--surface-3)] bg-[var(--surface-2)] rounded-[10px]"
                                         onPress={() => navigate(project.href)}
                                     >
                                         <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><span className="min-w-0"><span className="truncate text-xs font-semibold text-[var(--foreground)]">{project.project}</span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{project.dossierNumber} / {project.client}</span></span><span className="flex shrink-0 items-center gap-2"><Chip size="sm" variant="soft" color={project.missingDocs > 0 ? 'warning' : 'success'}>{project.missingDocs} {t('dashboard.states.documents')}</Chip><IconChevronRight size={14} className="text-[var(--text-muted)]" /></span></span>
@@ -224,7 +224,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                         <Button
                                             key={action.id}
                                             variant="ghost"
-                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px] min-w-0"
+                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[var(--surface-3)] bg-[var(--surface-2)] rounded-[10px] min-w-0"
                                             onPress={() => navigate(action.href)}
                                         >
                                             <span className="flex min-w-0 flex-1 items-center gap-2.5"><DashboardIcon icon={action.icon} tone={action.tone} /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-[var(--foreground)]">{t(`dashboard.nextActions.${action.kind}.title`)}</span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{action.context ?? t(`dashboard.nextActions.${action.kind}.detail`)}</span></span><Chip size="sm" variant="soft" color={tones[action.tone].chip}>{t(`dashboard.nextActions.due.${action.dueKey}`)}</Chip></span>
@@ -249,7 +249,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                         <Button
                                             key={dossier.id}
                                             variant="ghost"
-                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px] min-w-0"
+                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[var(--surface-3)] bg-[var(--surface-2)] rounded-[10px] min-w-0"
                                             onPress={() => navigate(dossier.href)}
                                         >
                                             <span className="flex min-w-0 flex-1 items-center justify-between gap-2"><span className="min-w-0"><span className="block truncate text-xs font-semibold text-[var(--foreground)]">{dossier.project}</span><span className="block truncate text-[9px] text-[var(--text-muted)]">{dossier.client}</span></span><Chip size="sm" variant="soft" color="danger">{dossier.daysStuck} {t('dashboard.states.days')}</Chip></span>
@@ -259,7 +259,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                         <Button
                                             key={task.id}
                                             variant="ghost"
-                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px] min-w-0"
+                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[var(--surface-3)] bg-[var(--surface-2)] rounded-[10px] min-w-0"
                                             onPress={() => navigate(`/tasks?task=${task.id}`)}
                                         >
                                             <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-2"><span className="min-w-0"><span className="block truncate text-xs font-semibold text-[var(--foreground)]">{task.title}</span><span className="block truncate text-[9px] text-[var(--text-muted)]">{task.taskNumber}</span></span><Chip size="sm" variant="soft" color={task.isOverdue ? 'danger' : 'warning'}>{task.isOverdue ? t('dashboard.states.overdue') : t('dashboard.states.urgent')}</Chip></span>
@@ -289,7 +289,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                         <Button
                                             key={alert.id}
                                             variant="ghost"
-                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px] min-w-0"
+                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[var(--surface-3)] bg-[var(--surface-2)] rounded-[10px] min-w-0"
                                             onPress={() => navigate(alert.href)}
                                         >
                                             <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-2"><span className="min-w-0"><span className="flex items-center gap-2 text-xs font-semibold text-[var(--foreground)]"><span className={`size-1.5 shrink-0 rounded-full ${tones[alert.tone].dot}`} /><span className="truncate">{t(`dashboard.alerts.${alert.id}.title`)}</span></span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{t(`dashboard.alerts.${alert.id}.detail`, alert.count === undefined ? undefined : { count: alert.count })}</span></span><span className={`self-center text-xs font-semibold ${tones[alert.tone].text}`}>{formatCompactMoney(alert.amount)}</span></span>
@@ -314,7 +314,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                         <Button
                                             key={message.id}
                                             variant="ghost"
-                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[#2a2622] bg-[#211f1b] rounded-[10px] min-w-0"
+                                            className="h-auto w-full justify-start items-center py-2 text-left hover:bg-[var(--surface-3)] bg-[var(--surface-2)] rounded-[10px] min-w-0"
                                             onPress={() => navigate(`/inbox?conversation=${message.conversationId}`)}
                                         >
                                             <span className="flex min-w-0 flex-1 items-start gap-2.5"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-bold text-black">{message.sender.charAt(0).toUpperCase()}</span><span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate text-xs font-semibold text-[var(--foreground)]">{message.sender}</span>{message.unread ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent)]" /> : null}</span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{message.body}</span></span></span>

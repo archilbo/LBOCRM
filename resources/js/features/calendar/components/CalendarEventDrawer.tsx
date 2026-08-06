@@ -3,7 +3,7 @@ import { router } from '@inertiajs/react';
 import { IconX, IconInfoCircle } from '@tabler/icons-react';
 
 import { CalendarDateTime, type DateValue } from '@internationalized/date';
-import { Calendar, Checkbox, DateField, DatePicker, Input, TextArea } from '@heroui/react';
+import { Button, Calendar, Checkbox, DateField, DatePicker, Input, TextArea } from '@heroui/react';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
@@ -11,13 +11,13 @@ import { DrawerSection, DrawerField, DrawerSelect, drawerStyles } from '@/compon
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
 import { CalendarReminderForm } from '@/features/calendar/components/CalendarReminderForm';
+import { useTranslation } from '@/lib/i18n';
 import type {
     CalendarEventRow, CalendarEventType, CalendarEventPriority, CalendarEventStatus,
     CalendarVisibility,
 } from '@/features/calendar/types';
 import {
-    EVENT_TYPE_LABELS, EVENT_TYPE_CLASSES, EVENT_TYPE_COLORS, EVENT_PRIORITY_LABELS,
-    EVENT_STATUS_LABELS, VISIBILITY_LABELS,
+    EVENT_TYPE_CLASSES,
 } from '@/features/calendar/types';
 
 type UserOption = { id: number; name: string; email: string };
@@ -84,6 +84,7 @@ function toBackendPayload(f: CalendarEventForm) {
 }
 
 export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, defaultStart }: Props) {
+    const { t } = useTranslation();
     const isEdit = !!editEvent;
     const [form, setForm] = useState(() => initForm(editEvent, defaultStart));
     const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -131,47 +132,47 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
     }
 
     const typeHint = currentForm.type === 'task'
-        ? 'Assigned task will appear in Tasks.'
+        ? t('calendar.typeHints.task')
         : currentForm.type === 'note'
-            ? 'Note events are visible on the calendar.'
+            ? t('calendar.typeHints.note')
             : currentForm.type === 'reminder'
-                ? 'Reminder notifications will be sent at the scheduled time.'
+                ? t('calendar.typeHints.reminder')
                 : null;
 
     return (
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={handleClose}
-            title={isEdit ? 'Edit event' : 'New event'}
-            description={isEdit ? `#${editEvent?.eventNumber || ''}` : 'Create a new calendar event'}
+            title={isEdit ? t('calendar.drawer.editTitle') : t('calendar.newEvent')}
+            description={isEdit ? `#${editEvent?.eventNumber || ''}` : t('calendar.drawer.createDescription')}
             footer={
                 <>
-                    <AppButton variant="secondary" onPress={() => handleClose(false)}>Cancel</AppButton>
+                    <AppButton variant="secondary" onPress={() => handleClose(false)}>{t('calendar.drawer.cancel')}</AppButton>
                     <AppButton variant="primary" type="submit" form="calendar-event-form">
-                        {isEdit ? 'Update' : 'Create'}
+                        {isEdit ? t('calendar.drawer.update') : t('calendar.drawer.create')}
                     </AppButton>
                 </>
             }>
             <form id="calendar-event-form" className="space-y-5" onSubmit={handleSubmit}>
                 <AppFormErrorSummary errors={formErrors} />
 
-                <DrawerSection title="Details">
+                <DrawerSection title={t('calendar.drawer.details')}>
                     <div className={drawerStyles.sectionGrid}>
                         <div className="grid grid-cols-2 gap-2">
-                            <DrawerField label="Type" error={firstError(formErrors, 'type')}>
+                            <DrawerField label={t('calendar.drawer.fields.type')} error={firstError(formErrors, 'type')}>
                                 <DrawerSelect
                                     value={currentForm.type}
                                     onChange={(v) => setForm((p) => ({ ...p, type: (v as CalendarEventType) || 'task', color: (v as CalendarEventType) || 'task' }))}
-                                    options={Object.entries(EVENT_TYPE_LABELS).map(([id, label]) => ({ id: id as CalendarEventType, label }))}
-                                    placeholder="Select"
+                                    options={Object.keys(EVENT_TYPE_CLASSES).map((id) => ({ id: id as CalendarEventType, label: t(`calendar.eventTypes.${id}`) }))}
+                                    placeholder={t('calendar.drawer.fields.type')}
                                 />
                             </DrawerField>
-                            <DrawerField label="Priority" error={firstError(formErrors, 'priority')}>
+                            <DrawerField label={t('calendar.drawer.fields.priority')} error={firstError(formErrors, 'priority')}>
                                 <DrawerSelect
                                     value={currentForm.priority}
                                     onChange={(v) => setForm((p) => ({ ...p, priority: (v as CalendarEventPriority) || 'medium' }))}
-                                    options={Object.entries(EVENT_PRIORITY_LABELS).map(([id, label]) => ({ id: id as CalendarEventPriority, label }))}
-                                    placeholder="Select"
+                                    options={(['low', 'medium', 'high', 'urgent'] as CalendarEventPriority[]).map((id) => ({ id, label: t(`calendar.priorities.${id}`) }))}
+                                    placeholder={t('calendar.drawer.fields.priority')}
                                 />
                             </DrawerField>
                         </div>
@@ -183,24 +184,24 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                             </div>
                         )}
 
-                        <DrawerField label="Title" error={firstError(formErrors, 'title')}>
+                        <DrawerField label={t('calendar.drawer.fields.title')} error={firstError(formErrors, 'title')}>
                             <Input type="text" value={currentForm.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                                placeholder="Event title" className={drawerStyles.input}
+                                placeholder={t('calendar.drawer.fields.titlePlaceholder')} className={drawerStyles.input}
                                 aria-invalid={!!firstError(formErrors, 'title')} />
                         </DrawerField>
 
-                        <DrawerField label="Description" error={firstError(formErrors, 'description')}>
+                        <DrawerField label={t('calendar.drawer.fields.description')} error={firstError(formErrors, 'description')}>
                             <TextArea value={currentForm.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                                placeholder="Event description" className={drawerStyles.textarea}
+                                placeholder={t('calendar.drawer.fields.descriptionPlaceholder')} className={drawerStyles.textarea}
                                 aria-invalid={!!firstError(formErrors, 'description')} />
                         </DrawerField>
                     </div>
                 </DrawerSection>
 
-                <DrawerSection title="Schedule">
+                <DrawerSection title={t('calendar.drawer.schedule')}>
                     <div className={drawerStyles.sectionGrid}>
                         <div className="grid grid-cols-2 gap-2">
-                            <DrawerField label="Start" error={firstError(formErrors, 'starts_at')}>
+                            <DrawerField label={t('calendar.drawer.fields.start')} error={firstError(formErrors, 'starts_at')}>
                             <DatePicker
                                 value={toCalendarDateTime(currentForm.startsAt)}
                                 onChange={(v) => setForm((p) => ({ ...p, startsAt: fromCalendarDateTime(v) }))}
@@ -217,7 +218,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                     </DateField.Suffix>
                                 </DateField.Group>
                                 <DatePicker.Popover isNonModal className={drawerStyles.popover}>
-                                    <Calendar aria-label="Start date">
+                                    <Calendar aria-label={t('calendar.drawer.fields.startAria')}>
                                         <Calendar.Header>
                                             <Calendar.YearPickerTrigger>
                                                 <Calendar.YearPickerTriggerHeading />
@@ -243,7 +244,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                 </DatePicker.Popover>
                             </DatePicker>
                             </DrawerField>
-                            <DrawerField label="End" error={firstError(formErrors, 'ends_at')}>
+                            <DrawerField label={t('calendar.drawer.fields.end')} error={firstError(formErrors, 'ends_at')}>
                             <DatePicker
                                 value={toCalendarDateTime(currentForm.endsAt)}
                                 onChange={(v) => setForm((p) => ({ ...p, endsAt: fromCalendarDateTime(v) }))}
@@ -260,7 +261,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                     </DateField.Suffix>
                                 </DateField.Group>
                                 <DatePicker.Popover isNonModal className={drawerStyles.popover}>
-                                    <Calendar aria-label="End date">
+                                    <Calendar aria-label={t('calendar.drawer.fields.endAria')}>
                                         <Calendar.Header>
                                             <Calendar.YearPickerTrigger>
                                                 <Calendar.YearPickerTriggerHeading />
@@ -294,54 +295,56 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                     <Checkbox.Control>
                                         <Checkbox.Indicator />
                                     </Checkbox.Control>
-                                    All day
+                                    {t('calendar.allDay')}
                                 </Checkbox.Content>
                             </Checkbox>
                         </DrawerField>
                     </div>
                 </DrawerSection>
 
-                <DrawerSection title="Status & Visibility">
+                <DrawerSection title={t('calendar.drawer.statusVisibility')}>
                     <div className={drawerStyles.sectionGrid}>
                         <div className="grid grid-cols-2 gap-2">
-                            <DrawerField label="Status" error={firstError(formErrors, 'status')}>
+                            <DrawerField label={t('calendar.drawer.fields.status')} error={firstError(formErrors, 'status')}>
                                 <DrawerSelect
                                     value={currentForm.status}
                                     onChange={(v) => setForm((p) => ({ ...p, status: (v as CalendarEventStatus) || 'scheduled' }))}
-                                    options={Object.entries(EVENT_STATUS_LABELS).map(([id, label]) => ({ id: id as CalendarEventStatus, label }))}
-                                    placeholder="Select"
+                                    options={(['scheduled', 'in_progress', 'completed', 'cancelled', 'overdue'] as CalendarEventStatus[]).map((id) => ({ id, label: t(`calendar.statuses.${id}`) }))}
+                                    placeholder={t('calendar.drawer.fields.status')}
                                 />
                             </DrawerField>
-                            <DrawerField label="Visibility" error={firstError(formErrors, 'visibility')}>
+                            <DrawerField label={t('calendar.drawer.fields.visibility')} error={firstError(formErrors, 'visibility')}>
                                 <DrawerSelect
                                     value={currentForm.visibility}
                                     onChange={(v) => setForm((p) => ({ ...p, visibility: (v as CalendarVisibility) || 'assigned_users' }))}
-                                    options={Object.entries(VISIBILITY_LABELS).map(([id, label]) => ({ id: id as CalendarVisibility, label }))}
-                                    placeholder="Select"
+                                    options={(['private', 'assigned_users', 'team', 'admins'] as CalendarVisibility[]).map((id) => ({ id, label: t(`calendar.visibility.${id}`) }))}
+                                    placeholder={t('calendar.drawer.fields.visibility')}
                                 />
                             </DrawerField>
                         </div>
                     </div>
                 </DrawerSection>
 
-                <DrawerSection title="Appearance">
+                <DrawerSection title={t('calendar.drawer.appearance')}>
                     <div className={drawerStyles.sectionGrid}>
-                        <DrawerField label="Color">
+                        <DrawerField label={t('calendar.drawer.fields.color')}>
                             <div className="flex flex-wrap gap-2">
                                 {(Object.entries(EVENT_TYPE_CLASSES) as [CalendarEventType, string][]).map(([type, cls]) => {
                                     const bgClass = cls.split(' ')[0];
                                     const borderClass = cls.split(' ')[2];
                                     return (
-                                        <button
+                                        <Button
                                             key={type}
                                             type="button"
-                                            onClick={() => setForm((p) => ({ ...p, color: type }))}
-                                            className={`flex size-8 items-center justify-center rounded-full border-2 transition ${
+                                            isIconOnly
+                                            variant="ghost"
+                                            onPress={() => setForm((p) => ({ ...p, color: type }))}
+                                            className={`flex size-8 min-w-8 items-center justify-center rounded-full border-2 p-0 transition ${
                                                 currentForm.color === type ? 'ring-2 ring-[var(--crm-gold)] ring-offset-2 ring-offset-[var(--crm-elevated)]' : ''
                                             } ${borderClass || 'border-[var(--crm-border)]'} ${bgClass || 'bg-zinc-500/20'}`}
-                                            title={EVENT_TYPE_LABELS[type]}>
-                                            <span className="text-[8px] font-bold opacity-60">{EVENT_TYPE_LABELS[type].charAt(0)}</span>
-                                        </button>
+                                            aria-label={t(`calendar.eventTypes.${type}`)}>
+                                            <span className="text-[8px] font-bold opacity-60">{t(`calendar.eventTypes.${type}`).charAt(0)}</span>
+                                        </Button>
                                     );
                                 })}
                             </div>
@@ -349,9 +352,9 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                     </div>
                 </DrawerSection>
 
-                <DrawerSection title="Assignees">
+                <DrawerSection title={t('calendar.drawer.assignees')}>
                     <div className={drawerStyles.sectionGrid}>
-                        <DrawerField label="Add user">
+                        <DrawerField label={t('calendar.drawer.addUser')}>
                             <DrawerSelect
                                 value=""
                                 onChange={(v) => {
@@ -359,7 +362,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                         setForm((p) => ({ ...p, participantIds: [...p.participantIds, Number(v)] }));
                                 }}
                                 options={users.filter((u) => !currentForm.participantIds.includes(u.id)).map((u) => ({ id: String(u.id), label: u.name }))}
-                                placeholder="Add user..."
+                                placeholder={t('calendar.drawer.addUserPlaceholder')}
                             />
                         </DrawerField>
                         {currentForm.participantIds.length > 0 ? (
@@ -374,12 +377,16 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                                 {initials(u.name)}
                                             </span>
                                             {u.name}
-                                            <button
+                                            <Button
                                                 type="button"
-                                                onClick={() => setForm((p) => ({ ...p, participantIds: p.participantIds.filter((x) => x !== id) }))}
-                                                className="text-[var(--crm-muted)] hover:text-red-400">
+                                                isIconOnly
+                                                variant="ghost"
+                                                size="sm"
+                                                onPress={() => setForm((p) => ({ ...p, participantIds: p.participantIds.filter((x) => x !== id) }))}
+                                                aria-label={t('calendar.drawer.removeUser', { name: u.name })}
+                                                className="size-4 min-w-4 rounded p-0 text-[var(--crm-muted)] hover:text-red-400">
                                                 <IconX size={12} />
-                                            </button>
+                                            </Button>
                                         </span>
                                     ) : null;
                                 })}
@@ -388,7 +395,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                     </div>
                 </DrawerSection>
 
-                <DrawerSection title="Reminder">
+                <DrawerSection title={t('calendar.drawer.reminder')}>
                     <CalendarReminderForm
                         value={currentForm.reminderOffset}
                         onChange={(v) => setForm((p) => ({ ...p, reminderOffset: v }))}

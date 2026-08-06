@@ -9,10 +9,11 @@ import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
 import { AppInput } from '@/components/ui/AppInput';
 import type { ChatUserOption } from '@/features/chat/types';
-import { CATEGORY_OPTIONS, getAvatarTone } from '@/features/inbox/utils';
+import { CATEGORY_OPTIONS, getAvatarTone, getCategoryLabel } from '@/features/inbox/utils';
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
 import { cn } from '@/lib/cn';
+import { useTranslation } from '@/lib/i18n';
 
 export type NewConvFormData = {
     type: 'direct' | 'group';
@@ -41,8 +42,9 @@ function ConversationModeToggle({
     mode: 'direct' | 'group';
     onChange: (m: 'direct' | 'group') => void;
 }) {
+    const { t } = useTranslation();
     return (
-        <div className="flex rounded-xl bg-[var(--surface-2)] p-0.5" role="radiogroup" aria-label="Type de conversation">
+        <div className="flex rounded-xl bg-[var(--surface-2)] p-0.5" role="radiogroup" aria-label={t('inbox.convTypeAria')}>
             {(['direct', 'group'] as const).map((value) => {
                 const active = mode === value;
                 return (
@@ -61,7 +63,7 @@ function ConversationModeToggle({
                         )}
                     >
                         {value === 'direct' ? <IconMessageCircle size={14} /> : <IconUsers size={14} />}
-                        {value === 'direct' ? 'Direct' : 'Groupe'}
+                        {value === 'direct' ? t('inbox.direct') : t('inbox.group')}
                     </button>
                 );
             })}
@@ -77,6 +79,7 @@ function SelectedRecipients({
     onRemove: (id: number) => void;
 }) {
     if (users.length === 0) return null;
+    const { t } = useTranslation();
     return (
         <div className="flex flex-wrap gap-1.5">
             {users.map((user) => {
@@ -92,7 +95,7 @@ function SelectedRecipients({
                             type="button"
                             onClick={() => onRemove(user.id)}
                             className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
-                            aria-label={`Retirer ${user.name}`}
+                            aria-label={t('inbox.removeUser', { name: user.name })}
                         >
                             <IconX size={10} />
                         </button>
@@ -167,10 +170,11 @@ function ConversationGroupFields({
     onCustomCategoryChange: (val: string) => void;
     errors: FormErrors;
 }) {
+    const { t } = useTranslation();
     return (
         <div className="space-y-3">
             <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-[var(--foreground)]">Catégorie</label>
+                <label className="text-xs font-semibold text-[var(--foreground)]">{t('inbox.category')}</label>
                 <div className="flex flex-wrap gap-1.5">
                     {CATEGORY_OPTIONS.map((opt) => {
                         const active = category === opt.id;
@@ -186,7 +190,7 @@ function ConversationGroupFields({
                                         : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]',
                                 )}
                             >
-                                {opt.label}
+                                {getCategoryLabel(opt.id, t)}
                             </button>
                         );
                     })}
@@ -194,10 +198,10 @@ function ConversationGroupFields({
             </div>
             {category === 'custom' ? (
                 <AppInput
-                    label="Nouvelle catégorie"
+                    label={t('inbox.newCategory')}
                     value={customCategory}
                     onChange={onCustomCategoryChange}
-                    placeholder="Ex. Fournisseurs"
+                    placeholder={t('inbox.categoryPlaceholder')}
                     error={firstError(errors, 'custom_category')}
                 />
             ) : null}
@@ -214,18 +218,19 @@ function ConversationDrawerFooter({
     isDirect: boolean;
     onCancel: () => void;
 }) {
+    const { t } = useTranslation();
     return (
         <>
             <span className="mr-auto text-[9px] text-[var(--text-muted)]">
                 {userCount > 0
-                    ? `${userCount} sélectionné${userCount > 1 ? 's' : ''}`
-                    : 'Aucun destinataire'}
+                    ? t('inbox.selectedCount', { count: userCount, s: userCount > 1 ? 's' : '' })
+                    : t('inbox.noRecipients')}
             </span>
             <AppButton variant="secondary" onPress={onCancel}>
-                Annuler
+                {t('inbox.cancel')}
             </AppButton>
             <AppButton type="submit" form="new-conversation-form" variant="primary" isDisabled={userCount === 0}>
-                {isDirect ? 'Démarrer' : 'Créer le groupe'}
+                {isDirect ? t('inbox.start') : t('inbox.createGroup')}
             </AppButton>
         </>
     );
@@ -242,6 +247,7 @@ export function NewConversationDrawer({
     onFormChange,
     onSubmit,
 }: Props) {
+    const { t } = useTranslation();
     const [userSearch, setUserSearch] = useState('');
     const isDirect = form.type === 'direct';
     const filteredUsers = useMemo(() => {
@@ -275,7 +281,7 @@ export function NewConversationDrawer({
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={handleOpenChange}
-            title="Nouvelle conversation"
+            title={t('inbox.newConversation')}
             headerIcon={<IconUserPlus size={18} />}
             panelClassName="max-w-[430px]"
             contentClassName="[scrollbar-width:none]"
@@ -300,12 +306,12 @@ export function NewConversationDrawer({
                 />
 
                 <AppInput
-                    label="Sujet"
+                    label={t('inbox.subject')}
                     value={form.subject}
                     onChange={(val) => onFormChange({ ...form, subject: val })}
-                    placeholder={isDirect ? 'Ex. Suivi du dossier' : 'Ex. Equipe finance'}
+                    placeholder={isDirect ? t('inbox.subjectDirectPlaceholder') : t('inbox.subjectGroupPlaceholder')}
                     description={
-                        isDirect ? 'Optionnel' : 'Donnez un nom clair au groupe.'
+                        isDirect ? t('inbox.optional') : t('inbox.groupNameDesc')
                     }
                 />
 
@@ -325,12 +331,12 @@ export function NewConversationDrawer({
                     <div className="flex items-center justify-between gap-3">
                         <div>
                             <h3 id="participants-heading" className="text-sm font-semibold">
-                                {isDirect ? 'Destinataire' : 'Participants'}
+                                {isDirect ? t('inbox.recipient') : t('inbox.participants')}
                             </h3>
                             <p className="text-xs text-[var(--text-muted)]">
                                 {isDirect
-                                    ? 'Sélectionnez une personne.'
-                                    : 'Vous serez ajouté automatiquement.'}
+                                    ? t('inbox.selectPerson')
+                                    : t('inbox.autoAdded')}
                             </p>
                         </div>
                         {!isDirect && form.user_ids.length > 0 ? (

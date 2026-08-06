@@ -55,7 +55,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
 
             {error ? (
                 <Card variant="secondary" className="rounded-xl border border-red-500/25 bg-red-500/5">
-                    <Card.Content className="flex items-center justify-between gap-3 p-3">
+                    <Card.Content className="flex flex-row items-center justify-between gap-3 p-3">
                         <p className="text-[9px] text-red-300">Failed to load the review queue.</p>
                         <Button size="sm" variant="ghost" onPress={() => window.location.reload()} className="h-7 text-[9px]">Retry</Button>
                     </Card.Content>

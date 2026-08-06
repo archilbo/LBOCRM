@@ -13,7 +13,11 @@ class ArchiveRecord extends Model
 
     protected $fillable = [
         'dossier_id',
+        'company_id',
+        'city_id',
         'archive_number',
+        'archive_year',
+        'archive_sequence',
         'status',
         'room',
         'shelf',
@@ -35,6 +39,8 @@ class ArchiveRecord extends Model
     ];
 
     protected $casts = [
+        'archive_year' => 'integer',
+        'archive_sequence' => 'integer',
         'in_date' => 'date',
         'out_date' => 'date',
         'returned_at' => 'date',

@@ -669,7 +669,7 @@ function VersionsPanel({
                                 : 'border-[var(--border)] bg-[var(--surface-2)]/30',
                         )}
                     >
-                        <Card.Content className="flex items-center gap-1.5 p-1.5">
+                        <Card.Content className="flex flex-row items-center gap-1.5 p-1.5">
                             <Button
                                 variant="ghost"
                                 fullWidth

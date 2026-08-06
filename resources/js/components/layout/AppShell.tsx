@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ScrollShadow } from '@heroui/react';
 import { AppMobileNav } from '@/components/layout/AppMobileNav';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { AppTopbar } from '@/components/layout/AppTopbar';
@@ -33,21 +34,23 @@ export function AppShell({ eyebrowKey, titleKey, subtitleKey, action, children, 
                         {children}
                     </main>
                 ) : (
-                    <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-                        <AppPageContainer>
-                            {eyebrowKey || titleKey ? (
-                                <header className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-sm">
-                                    <AppPageHeader
-                                        eyebrow={eyebrowKey ? t(eyebrowKey) : undefined}
-                                        title={t(titleKey ?? '')}
-                                        subtitle={subtitleKey ? t(subtitleKey) : undefined}
-                                        actions={action}
-                                    />
-                                </header>
-                            ) : null}
+                    <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+                        <ScrollShadow className="flex-1 overflow-y-auto">
+                            <AppPageContainer>
+                                {eyebrowKey || titleKey ? (
+                                    <header className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-sm">
+                                        <AppPageHeader
+                                            eyebrow={eyebrowKey ? t(eyebrowKey) : undefined}
+                                            title={t(titleKey ?? '')}
+                                            subtitle={subtitleKey ? t(subtitleKey) : undefined}
+                                            actions={action}
+                                        />
+                                    </header>
+                                ) : null}
 
-                            {children}
-                        </AppPageContainer>
+                                {children}
+                            </AppPageContainer>
+                        </ScrollShadow>
                     </main>
                 )}
             </div>

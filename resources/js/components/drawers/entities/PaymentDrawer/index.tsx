@@ -209,7 +209,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                     {canRecordAdvance ? (
                         <Card className="border border-[color-mix(in_srgb,var(--accent)_35%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] p-3 text-xs text-[var(--foreground)]">
                             <p className="font-semibold">Avance dossier</p>
-                            <p className="mt-1 leading-5 text-[var(--text-muted)]">Aucun devis ni facture active ne bloque ce paiement. Un recu sera cree et l avance sera rattachee automatiquement a la prochaine facture.</p>
+                            <p className="mt-1 leading-5 text-[var(--text-muted)]">Aucun devis ni facture active ne bloque ce paiement. Un reçu sera créé et l'avance sera rattachée automatiquement à la prochaine facture.</p>
                         </Card>
                     ) : null}
 
@@ -217,8 +217,8 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                         <Card className="p-3">
                             <div className="flex items-center gap-2 text-xs font-semibold"><IconReceipt2 size={14} />{activeInvoice.number}</div>
                             <div className="mt-2 grid gap-2 text-[10px] sm:grid-cols-3">
-                                <p>Total TTC: <strong>{formatCompactMoney(activeInvoice.totalTtc, activeInvoice.currency)}</strong></p>
-                                <p>Paye: <strong>{formatCompactMoney(activeInvoice.paidTotal, activeInvoice.currency)}</strong></p>
+                                <p>Total TTC : <strong>{formatCompactMoney(activeInvoice.totalTtc, activeInvoice.currency)}</strong></p>
+                                <p>Payé : <strong>{formatCompactMoney(activeInvoice.paidTotal, activeInvoice.currency)}</strong></p>
                                 <p>Restant: <strong>{formatCompactMoney(activeInvoice.remainingTotal, activeInvoice.currency)}</strong></p>
                             </div>
                         </Card>
@@ -230,7 +230,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                             <Input className={compactInput} type="number" min="0" step="0.01" value={form.amount}
                                 onChange={(e) => update('amount', e.target.value)}
                                 validationState={isOverpayment ? 'invalid' : 'valid'}
-                                errorMessage={isOverpayment ? 'Depasse le reste a payer.' : undefined}
+                                errorMessage={isOverpayment ? 'Dépasse le reste à payer.' : undefined}
                             />
                         </div>
                         <DateField label="Date paiement" value={strToDate(form.paidAt)} onChange={(d) => update('paidAt', dateToStr(d))} />
@@ -286,7 +286,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                 <div className="flex gap-4">
                                     <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"><IconReceipt2 size={20} /></div>
                                     <div className="min-w-0">
-                                        <Heading slot="title" className="text-base font-semibold">Recu cree: {receiptPrompt?.number}</Heading>
+                                        <Heading slot="title" className="text-base font-semibold">Reçu créé : {receiptPrompt?.number}</Heading>
                                         <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">Paiement {receiptPrompt?.paymentNumber} enregistre. Voulez-vous ouvrir, imprimer ou sauvegarder le recu ?</p>
                                     </div>
                                 </div>

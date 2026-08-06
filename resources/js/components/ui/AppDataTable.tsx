@@ -120,7 +120,7 @@ export function AppDataTable<TData extends object>({
 
                                     return (
                                         <th key={header.id} className={cn(
-                                            'text-left text-xs font-medium text-[var(--text-muted)]',
+                                            'text-left text-xs font-medium capitalize text-[var(--text-muted)]',
                                             compact ? 'px-3 py-2' : 'px-4 py-3',
                                             meta?.hideOnMobile && 'hidden md:table-cell',
                                             meta?.hideOnTablet && 'hidden lg:table-cell'

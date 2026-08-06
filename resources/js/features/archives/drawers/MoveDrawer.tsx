@@ -3,6 +3,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { DrawerField, DrawerSelect } from '@/components/drawers';
 import type { ArchiveRecordRow, TreeNode } from '@/features/archives/types';
+import { useTranslation } from '@/lib/i18n';
 
 type MoveDrawerProps = {
     isOpen: boolean;
@@ -13,6 +14,7 @@ type MoveDrawerProps = {
 };
 
 export function MoveDrawer({ isOpen, onOpenChange, archives, tree, onConfirm }: MoveDrawerProps) {
+    const { t } = useTranslation();
     const [roomCode, setRoomCode] = useState('');
     const [shelfCode, setShelfCode] = useState('');
     const [boxCode, setBoxCode] = useState('');
@@ -43,12 +45,12 @@ export function MoveDrawer({ isOpen, onOpenChange, archives, tree, onConfirm }: 
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            title={`Déplacer ${archives.length} archive${archives.length > 1 ? 's' : ''}`}
-            description="Sélectionnez la localisation cible."
+            title={`${t('drawers.move.title')} ${archives.length} archive${archives.length > 1 ? 's' : ''}`}
+            description={t('drawers.move.description')}
             footer={
                 <>
-                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>Annuler</AppButton>
-                    <AppButton variant="primary" type="submit" form="move-form">Déplacer</AppButton>
+                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>{t('drawers.move.cancel')}</AppButton>
+                    <AppButton variant="primary" type="submit" form="move-form">{t('drawers.move.confirm')}</AppButton>
                 </>
             }
         >
@@ -56,37 +58,37 @@ export function MoveDrawer({ isOpen, onOpenChange, archives, tree, onConfirm }: 
                 <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg bg-[var(--surface-2)] p-2">
                     {archives.map((a) => (
                         <div key={a.id} className="flex items-center justify-between text-xs">
-                            <span className="font-mono tabular-nums text-[var(--foreground)]">{a.archiveNumber}</span>
+                            <span className="tabular-nums text-[var(--foreground)]">{a.archiveNumber}</span>
                             <span className="truncate text-[var(--text-muted)] ml-2">{a.projectObject}</span>
                         </div>
                     ))}
                 </div>
 
-                <DrawerField label="Salle">
+                <DrawerField label={t('drawers.move.roomLabel')}>
                     <DrawerSelect
                         value={roomCode}
                         onChange={(v) => { setRoomCode(v); setShelfCode(''); setBoxCode(''); }}
                         options={roomOptions}
-                        placeholder="Sélectionner salle"
+                        placeholder={t('drawers.move.roomPlaceholder')}
                     />
                 </DrawerField>
 
-                <DrawerField label="Étagère">
+                <DrawerField label={t('drawers.move.shelfLabel')}>
                     <DrawerSelect
                         value={shelfCode}
                         onChange={(v) => { setShelfCode(v); setBoxCode(''); }}
                         options={shelfOptions}
-                        placeholder={roomCode ? 'Sélectionner étagère' : 'Salle d\'abord'}
+                        placeholder={roomCode ? t('drawers.move.shelfPlaceholder') : t('drawers.move.roomFirst')}
                         isDisabled={!roomCode}
                     />
                 </DrawerField>
 
-                <DrawerField label="Boîte">
+                <DrawerField label={t('drawers.move.boxLabel')}>
                     <DrawerSelect
                         value={boxCode}
                         onChange={(v) => setBoxCode(v)}
                         options={boxOptions}
-                        placeholder={shelfCode ? 'Sélectionner boîte' : 'Étagère d\'abord'}
+                        placeholder={shelfCode ? t('drawers.move.boxPlaceholder') : t('drawers.move.shelfFirst')}
                         isDisabled={!shelfCode}
                     />
                 </DrawerField>

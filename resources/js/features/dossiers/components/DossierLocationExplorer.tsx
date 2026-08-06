@@ -1,8 +1,8 @@
 import { router } from '@inertiajs/react';
 import { IconCoin, IconBuilding, IconChevronRight, IconEye, IconFileCheck, IconFileText, IconFolder, IconGlobe, IconMapPin, IconDots, IconPencil, IconSearch, IconX } from '@tabler/icons-react';
+import { Dropdown } from '@heroui/react';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppButton } from '@/components/ui/AppButton';
+import { useMemo, useRef, useState } from 'react';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
@@ -28,8 +28,8 @@ function workflowLabel(value: string) {
     const labels: Record<string, string> = {
         client: 'Client',
         documents: 'Documents',
-        contract: 'Contract',
-        authorization: 'Authorization',
+        contract: 'Contrat',
+        authorization: 'Autorisation',
         finance: 'Finance',
         archive: 'Archive',
     };
@@ -82,21 +82,8 @@ export function DossierLocationExplorer({ groups }: Props) {
     const [selectedProvince, setSelectedProvince] = useState(groups[0]?.province ?? '');
     const [selectedCommune, setSelectedCommune] = useState(groups[0]?.communes[0]?.commune ?? '');
     const [query, setQuery] = useState('');
-    const [openMenuId, setOpenMenuId] = useState<number | null>(null);
     const [mobileStep, setMobileStep] = useState<'provinces' | 'communes' | 'projects'>('provinces');
     const searchRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (openMenuId === null) return;
-        function handleClick(e: MouseEvent) {
-            const target = e.target as HTMLElement;
-            if (!target.closest('[data-row-menu]')) setOpenMenuId(null);
-        }
-        function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpenMenuId(null); }
-        document.addEventListener('mousedown', handleClick);
-        document.addEventListener('keydown', handleKey);
-        return () => { document.removeEventListener('mousedown', handleClick); document.removeEventListener('keydown', handleKey); };
-    }, [openMenuId]);
 
     const selectedProvinceGroup = useMemo(
         () => groups.find((g) => g.province === selectedProvince) ?? null,
@@ -123,7 +110,7 @@ export function DossierLocationExplorer({ groups }: Props) {
         return [
             { label: 'Provinces', value: totalProvinces, icon: IconGlobe, color: 'text-violet-400', bgClass: 'bg-violet-400/10' },
             { label: 'Communes', value: totalCommunes, icon: IconBuilding, color: 'text-amber-400', bgClass: 'bg-amber-400/10' },
-            { label: 'Projects', value: totalProjects, icon: IconFolder, color: 'text-sky-400', bgClass: 'bg-sky-400/10' },
+            { label: 'Projets', value: totalProjects, icon: IconFolder, color: 'text-sky-400', bgClass: 'bg-sky-400/10' },
             { label: 'Documents', value: totalDocuments, icon: IconFileText, color: 'text-emerald-400', bgClass: 'bg-emerald-400/10' },
             { label: 'Actives', value: activeCommunes, icon: IconMapPin, color: activeCommunes > 0 ? 'text-rose-400' : 'text-[var(--text-muted)]', bgClass: activeCommunes > 0 ? 'bg-rose-400/10' : 'bg-[var(--surface-2)]' },
         ];
@@ -145,8 +132,8 @@ export function DossierLocationExplorer({ groups }: Props) {
     if (!groups.length) {
         return (
             <AppEmptyState
-                title="No location groups found"
-                description="Create projects with province and commune to see the location browser."
+                title="Aucun groupe de localisation trouvé"
+                description="Créez des projets avec une province et une commune pour afficher le navigateur de localisation."
             />
         );
     }
@@ -177,7 +164,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                 <div className="block xl:hidden">
                     <div className="mb-3">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Provinces</p>
-                        <p className="text-xs text-[var(--text-muted)]">Select a province to view communes</p>
+                        <p className="text-xs text-[var(--text-muted)]">Sélectionnez une province pour afficher les communes</p>
                     </div>
                     <div className="grid gap-2">
                         {groups.map((group) => (
@@ -188,7 +175,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <p className="text-sm font-semibold text-[var(--foreground)]">{group.province}</p>
-                                    <p className="text-xs text-[var(--text-muted)]">{group.communes.length} communes · {group.stats.projectsCount} projects</p>
+                                    <p className="text-xs text-[var(--text-muted)]">{group.communes.length} communes · {group.stats.projectsCount} projets</p>
                                 </div>
                                 <IconChevronRight size={16} className="shrink-0 text-[var(--text-muted)]" />
                             </button>
@@ -203,11 +190,11 @@ export function DossierLocationExplorer({ groups }: Props) {
                     <button type="button" onClick={() => setMobileStep('provinces')}
                         className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--accent)] hover:underline">
                         <IconChevronRight size={14} className="rotate-180" />
-                        Back to provinces
+                        Retour aux provinces
                     </button>
                     <div className="mb-3">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">{selectedProvinceGroup.province}</p>
-                        <p className="text-xs text-[var(--text-muted)]">Select a commune to view projects</p>
+                        <p className="text-xs text-[var(--text-muted)]">Sélectionnez une commune pour afficher les projets</p>
                     </div>
                     <div className="grid gap-2">
                         {selectedProvinceGroup.communes.map((commune) => (
@@ -215,7 +202,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                                 className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-left transition hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_5%,transparent)]">
                                 <div className="min-w-0 flex-1">
                                     <p className="text-sm font-semibold text-[var(--foreground)]">{commune.commune}</p>
-                                    <p className="text-xs text-[var(--text-muted)]">{commune.stats.projectsCount} projects · {commune.stats.documentsCount} docs</p>
+                                    <p className="text-xs text-[var(--text-muted)]">{commune.stats.projectsCount} projets · {commune.stats.documentsCount} docs</p>
                                 </div>
                                 <IconChevronRight size={16} className="shrink-0 text-[var(--text-muted)]" />
                             </button>
@@ -230,24 +217,24 @@ export function DossierLocationExplorer({ groups }: Props) {
                     <button type="button" onClick={() => setMobileStep('communes')}
                         className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--accent)] hover:underline">
                         <IconChevronRight size={14} className="rotate-180" />
-                        Back to communes
+                        Retour aux communes
                     </button>
                     <div className="mb-3">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
                             {selectedProvinceGroup?.province} / {activeCommune.commune}
                         </p>
-                        <p className="text-xs text-[var(--text-muted)]">{projects.length} visible project(s)</p>
+                        <p className="text-xs text-[var(--text-muted)]">{projects.length} projet(s) visible(s)</p>
                     </div>
                     <ProjectSearchBar query={query} setQuery={setQuery} searchRef={searchRef} />
                     <div className="mt-3 grid gap-3">
                         {projects.length > 0 ? (
                             projects.map((project) => (
-                                <ProjectCard key={project.id} project={project} openMenuId={openMenuId} setOpenMenuId={setOpenMenuId} />
+                                <ProjectCard key={project.id} project={project} />
                             ))
                         ) : (
                             <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-10 text-center">
-                                <p className="text-sm font-medium text-[var(--foreground)]">No projects found</p>
-                                <p className="mt-1 text-xs text-[var(--text-muted)]">Choose another commune or clear search.</p>
+                                <p className="text-sm font-medium text-[var(--foreground)]">Aucun projet trouvé</p>
+                                <p className="mt-1 text-xs text-[var(--text-muted)]">Choisissez une autre commune ou effacez la recherche.</p>
                             </div>
                         )}
                     </div>
@@ -263,7 +250,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                             <IconMapPin size={15} className="text-[var(--accent)]" />
                             <div>
                                 <p className="text-[11px] font-semibold text-[var(--foreground)]">Provinces</p>
-                                <p className="text-[9px] text-[var(--text-muted)]">{groups.length} total</p>
+                                <p className="text-[9px] text-[var(--text-muted)]">{groups.length} au total</p>
                             </div>
                         </div>
                     </div>
@@ -273,7 +260,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                             return (
                                 <button key={group.province} type="button" onClick={() => chooseProvince(group)}
                                     className={cn(
-                                        'flex w-full items-center gap-3 px-4 py-3 text-left transition',
+                                        'relative flex w-full items-center gap-3 px-4 py-3 text-left transition',
                                         isActive
                                             ? 'bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]'
                                             : 'hover:bg-[var(--surface-2)]',
@@ -313,7 +300,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                             <IconBuilding size={15} className="text-[var(--accent)]" />
                             <div>
                                 <p className="text-[11px] font-semibold text-[var(--foreground)]">Communes</p>
-                                <p className="text-[9px] text-[var(--text-muted)]">{selectedProvinceGroup?.province || 'Select a province'}</p>
+                                <p className="text-[9px] text-[var(--text-muted)]">{selectedProvinceGroup?.province || 'Sélectionnez une province'}</p>
                             </div>
                         </div>
                     </div>
@@ -324,7 +311,7 @@ export function DossierLocationExplorer({ groups }: Props) {
                                 return (
                                     <button key={commune.commune} type="button" onClick={() => chooseCommune(commune)}
                                         className={cn(
-                                            'flex w-full items-center gap-3 px-4 py-3 text-left transition',
+                                            'relative flex w-full items-center gap-3 px-4 py-3 text-left transition',
                                             isActive
                                                 ? 'bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]'
                                                 : 'hover:bg-[var(--surface-2)]',
@@ -359,8 +346,8 @@ export function DossierLocationExplorer({ groups }: Props) {
                         ) : (
                             <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
                                 <IconBuilding size={28} className="text-[var(--text-muted)]/40" />
-                                <p className="text-[12px] font-medium text-[var(--foreground)]">Select a province</p>
-                                <p className="text-[10px] text-[var(--text-muted)]">to view communes</p>
+                                <p className="text-[12px] font-medium text-[var(--foreground)]">Sélectionnez une province</p>
+                                <p className="text-[10px] text-[var(--text-muted)]">pour afficher les communes</p>
                             </div>
                         )}
                     </div>
@@ -374,9 +361,9 @@ export function DossierLocationExplorer({ groups }: Props) {
                                 <p className="text-[11px] font-semibold text-[var(--foreground)]">
                                     {selectedProvinceGroup?.province && activeCommune?.commune
                                         ? `${selectedProvinceGroup.province} / ${activeCommune.commune}`
-                                        : 'Select location'}
+                                        : 'Sélectionnez une localisation'}
                                 </p>
-                                <p className="text-[9px] text-[var(--text-muted)]">{projects.length} visible project(s)</p>
+                                <p className="text-[9px] text-[var(--text-muted)]">{projects.length} projet(s) visible(s)</p>
                             </div>
                             {activeCommune ? (
                                 <ProjectSearchBar query={query} setQuery={setQuery} searchRef={searchRef} compact />
@@ -387,20 +374,20 @@ export function DossierLocationExplorer({ groups }: Props) {
                         {activeCommune ? (
                             projects.length > 0 ? (
                                 projects.map((project) => (
-                                    <ProjectCard key={project.id} project={project} openMenuId={openMenuId} setOpenMenuId={setOpenMenuId} />
+                                    <ProjectCard key={project.id} project={project} />
                                 ))
                             ) : (
                                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                                     <IconFolder size={32} className="text-[var(--text-muted)]/30" />
-                                    <p className="text-[12px] font-medium text-[var(--foreground)]">No projects found</p>
-                                    <p className="text-[10px] text-[var(--text-muted)]">Choose another commune or clear search.</p>
+                                    <p className="text-[12px] font-medium text-[var(--foreground)]">Aucun projet trouvé</p>
+                                    <p className="text-[10px] text-[var(--text-muted)]">Choisissez une autre commune ou effacez la recherche.</p>
                                 </div>
                             )
                         ) : (
                             <div className="flex flex-col items-center gap-2 py-16 text-center">
                                 <IconBuilding size={32} className="text-[var(--text-muted)]/30" />
-                                <p className="text-[12px] font-medium text-[var(--foreground)]">Select a commune</p>
-                                <p className="text-[10px] text-[var(--text-muted)]">to view projects</p>
+                                <p className="text-[12px] font-medium text-[var(--foreground)]">Sélectionnez une commune</p>
+                                <p className="text-[10px] text-[var(--text-muted)]">pour afficher les projets</p>
                             </div>
                         )}
                     </div>
@@ -421,7 +408,7 @@ function ProjectSearchBar({ query, setQuery, searchRef, compact }: {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="IconSearch projects..."
+                placeholder="Rechercher des projets..."
                 className="h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-8 pr-7 text-[11px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
             />
             {query ? (
@@ -434,9 +421,7 @@ function ProjectSearchBar({ query, setQuery, searchRef, compact }: {
     );
 }
 
-function RowMenu({ project, isOpen, onToggle }: {
-    project: DossierLocationRow; isOpen: boolean; onToggle: () => void;
-}) {
+function RowMenu({ project }: { project: DossierLocationRow }) {
     const iconColor = (id: string) => {
         const colors: Record<string, string> = {
             open: 'text-sky-400',
@@ -448,37 +433,46 @@ function RowMenu({ project, isOpen, onToggle }: {
     };
 
     const items = [
-        { id: 'open', label: 'Open', icon: <IconEye size={14} />, action: () => router.visit(`/dossiers/${project.id}`) },
-        { id: 'edit', label: 'Edit', icon: <IconPencil size={14} />, action: () => router.visit(`/dossiers/${project.id}`) },
+        { id: 'open', label: 'Ouvrir', icon: <IconEye size={14} />, action: () => router.visit(`/dossiers/${project.id}`) },
+        { id: 'edit', label: 'Modifier', icon: <IconPencil size={14} />, action: () => router.visit(`/dossiers/${project.id}`) },
         { id: 'documents', label: 'Documents', icon: <IconFileCheck size={14} />, action: () => router.visit(`/documents?dossier_id=${project.id}`) },
         { id: 'finance', label: 'Finance', icon: <IconCoin size={14} />, action: () => router.visit(`/finance/documents?dossier_id=${project.id}`) },
     ];
 
+    function runAction(id: string) {
+        items.find((item) => item.id === id)?.action();
+    }
+
     return (
-        <div className="relative inline-flex" data-row-menu>
-            <button type="button" onClick={(e) => { e.stopPropagation(); onToggle(); }}
-                className="flex size-7 items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] transition hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
+        <Dropdown>
+            <Dropdown.Trigger
+                aria-label="Actions du projet"
+                className="inline-flex size-7 items-center justify-center rounded-lg border border-transparent text-[var(--text-muted)] outline-none transition hover:border-[var(--border)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] data-[open]:border-[var(--border)] data-[open]:bg-[var(--surface-2)] data-[open]:text-[var(--foreground)]"
+            >
                 <IconDots size={14} />
-            </button>
-            {isOpen ? (
-                <div className="absolute right-0 top-full z-50 mt-1 min-w-[150px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl"
-                    onClick={(e) => e.stopPropagation()}>
+            </Dropdown.Trigger>
+            <Dropdown.Popover placement="bottom end" className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
+                <Dropdown.Menu aria-label="Actions du projet" onAction={(key) => runAction(String(key))} className="outline-none">
                     {items.map((item) => (
-                        <button key={item.id} type="button" onClick={() => { item.action(); }}
-                            className="flex h-[32px] w-full items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                            <span className={cn('flex size-[14px] shrink-0 items-center justify-center', iconColor(item.id))}>{item.icon}</span>
-                            <span>{item.label}</span>
-                        </button>
+                        <Dropdown.Item
+                            key={item.id}
+                            id={item.id}
+                            textValue={item.label}
+                            className="rounded-lg px-2.5 py-2 text-[11px] font-medium text-[var(--foreground)] outline-none transition data-[hover]:bg-[var(--surface-2)]"
+                        >
+                            <div className="flex items-center gap-2">
+                                <span className={cn('flex size-4 shrink-0 items-center justify-center', iconColor(item.id))}>{item.icon}</span>
+                                <span>{item.label}</span>
+                            </div>
+                        </Dropdown.Item>
                     ))}
-                </div>
-            ) : null}
-        </div>
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
     );
 }
 
-function ProjectCard({ project, openMenuId, setOpenMenuId }: {
-    project: DossierLocationRow; openMenuId: number | null; setOpenMenuId: (v: number | null) => void;
-}) {
+function ProjectCard({ project }: { project: DossierLocationRow }) {
     return (
         <div className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 transition hover:border-[var(--accent)]/30 hover:shadow-sm">
             <div className="flex items-center justify-between gap-2">
@@ -496,8 +490,7 @@ function ProjectCard({ project, openMenuId, setOpenMenuId }: {
                         <p className="truncate text-[9px] text-[var(--text-muted)]">{project.dossierNumber}</p>
                     </div>
                 </div>
-                <RowMenu project={project} isOpen={openMenuId === project.id}
-                    onToggle={() => setOpenMenuId(openMenuId === project.id ? null : project.id)} />
+                <RowMenu project={project} />
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] text-[var(--text-muted)]">

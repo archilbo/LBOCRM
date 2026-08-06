@@ -5,15 +5,42 @@ import type { EnrichedNotification, NotificationModule, NotificationRow, Notific
 
 export const MODULE_ORDER: NotificationModule[] = ['tasks', 'requests', 'documents', 'contracts', 'finance', 'archives', 'calendar', 'system'];
 
+// Note: These are translation keys, not translated strings
 export const MODULE_LABELS: Record<NotificationModule, string> = {
-    tasks: 'Tasks',
-    requests: 'Requests',
-    documents: 'Documents',
-    contracts: 'Contracts',
-    finance: 'Finance',
-    archives: 'Archives',
-    calendar: 'Calendar',
-    system: 'System',
+    tasks: 'notifications.modules.tasks',
+    requests: 'notifications.modules.requests',
+    documents: 'notifications.modules.documents',
+    contracts: 'notifications.modules.contracts',
+    finance: 'notifications.modules.finance',
+    archives: 'notifications.modules.archives',
+    calendar: 'notifications.modules.calendar',
+    system: 'notifications.modules.system',
+};
+
+// Note: These are translation keys, not translated strings
+export const ACTION_LABELS: Record<string, string> = {
+    assigned: 'notifications.actions.assigned',
+    reassigned: 'notifications.actions.reassigned',
+    completed: 'notifications.actions.completed',
+    in_review: 'notifications.actions.in_review',
+    blocked: 'notifications.actions.blocked',
+    overdue: 'notifications.actions.overdue',
+    due_tomorrow: 'notifications.actions.due_tomorrow',
+    mentioned: 'notifications.actions.mentioned',
+    status_changed: 'notifications.actions.status_changed',
+    uploaded: 'notifications.actions.uploaded',
+    status_updated: 'notifications.actions.status_updated',
+    created: 'notifications.actions.created',
+    updated: 'notifications.actions.updated',
+    generated: 'notifications.actions.generated',
+    signed: 'notifications.actions.signed',
+    accepted: 'notifications.actions.accepted',
+    rejected: 'notifications.actions.rejected',
+    cancelled: 'notifications.actions.cancelled',
+    converted: 'notifications.actions.converted',
+    payment_received: 'notifications.actions.payment_received',
+    checked_out: 'notifications.actions.checked_out',
+    returned: 'notifications.actions.returned',
 };
 
 export function getNotificationModule(n: NotificationRow): NotificationModule {
@@ -62,91 +89,66 @@ export function getNotificationText(n: NotificationRow): { title: string; body: 
     const action = (data.action as string) || '';
     const body = (data.body as string) || '';
 
-    const actionLabels: Record<string, string> = {
-        assigned: 'Task assigned',
-        reassigned: 'Task reassigned',
-        completed: 'Task completed',
-        in_review: 'Ready for review',
-        blocked: 'Task is blocked',
-        overdue: 'Overdue',
-        due_tomorrow: 'Due tomorrow',
-        mentioned: 'You were mentioned',
-        status_changed: 'Status changed',
-        uploaded: 'Document uploaded',
-        status_changed: 'Status updated',
-        created: 'Created',
-        updated: 'Updated',
-        generated: 'Document generated',
-        signed: 'Contract signed',
-        accepted: 'Quote accepted',
-        rejected: 'Quote rejected',
-        cancelled: 'Cancelled',
-        converted: 'Converted to invoice',
-        payment_received: 'Payment received',
-        checked_out: 'Checked out',
-        returned: 'Returned',
-    };
-
-    const actionTitle = actionLabels[action];
+    const actionTitle = ACTION_LABELS[action];
 
     if (type === 'TaskNotification') {
         return {
-            title: actionTitle || 'Task update',
+            title: actionTitle || 'notifications.defaults.taskUpdate',
             body: description || title || null,
         };
     }
 
     if (type === 'ChatMessageNotification') {
         return {
-            title: (data.sender_name as string) || 'New message',
+            title: (data.sender_name as string) || 'notifications.defaults.newMessage',
             body: body || description || null,
         };
     }
 
     if (type === 'CalendarEventNotification') {
         return {
-            title: actionTitle || 'Calendar event',
+            title: actionTitle || 'notifications.defaults.calendarEvent',
             body: description || title || null,
         };
     }
 
     if (type === 'DocumentNotification') {
         return {
-            title: actionTitle || 'Document update',
+            title: actionTitle || 'notifications.defaults.documentUpdate',
             body: description || (data.original_filename as string) || null,
         };
     }
 
     if (type === 'ContractNotification') {
         return {
-            title: actionTitle || 'Contract update',
+            title: actionTitle || 'notifications.defaults.contractUpdate',
             body: description || null,
         };
     }
 
     if (type === 'FinanceDocumentNotification') {
         return {
-            title: actionTitle || 'Finance update',
+            title: actionTitle || 'notifications.defaults.financeUpdate',
             body: description || null,
         };
     }
 
     if (type === 'ArchiveOverdueNotification') {
         return {
-            title: actionTitle || 'IconArchive update',
+            title: actionTitle || 'notifications.defaults.archiveUpdate',
             body: description || null,
         };
     }
 
     if (data.suggestion) {
         return {
-            title: 'New suggestion',
+            title: 'notifications.defaults.newSuggestion',
             body: description || null,
         };
     }
 
     return {
-        title: actionTitle || description || type || 'Notification',
+        title: actionTitle || description || type || 'notifications.defaults.notification',
         body: null,
     };
 }
@@ -194,11 +196,24 @@ export const SEVERITY_COLORS: Record<NotificationSeverity, { dot: string; bg: st
     urgent: { dot: 'bg-red-400', bg: 'bg-red-400/5', border: 'border-red-400/15' },
 };
 
-export function formatNotificationTime(isoString: string): string {
+export function formatNotificationTime(isoString: string, locale: string = 'en'): string {
     const now = Date.now();
     const date = new Date(isoString).getTime();
     const diffMs = now - date;
     const diffSec = Math.floor(diffMs / 1000);
+
+    if (locale === 'fr') {
+        if (diffSec < 60) return 'à l\'instant';
+        const diffMin = Math.floor(diffSec / 60);
+        if (diffMin < 60) return `il y a ${diffMin} min`;
+        const diffHours = Math.floor(diffMin / 60);
+        if (diffHours < 24) return `il y a ${diffHours} h`;
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffDays === 1) return 'hier';
+        if (diffDays < 7) return `il y a ${diffDays} j`;
+        return new Date(isoString).toLocaleDateString('fr', { month: 'short', day: 'numeric' });
+    }
+
     if (diffSec < 60) return 'just now';
     const diffMin = Math.floor(diffSec / 60);
     if (diffMin < 60) return `${diffMin}m ago`;
@@ -212,11 +227,12 @@ export function formatNotificationTime(isoString: string): string {
 
 export type TimeGroup = 'now' | 'today' | 'yesterday' | 'earlier';
 
+// Note: These are translation keys, not translated strings
 export const TIME_GROUP_LABELS: Record<TimeGroup, string> = {
-    now: 'Now',
-    today: 'Today',
-    yesterday: 'Yesterday',
-    earlier: 'Earlier',
+    now: 'notifications.timeGroups.now',
+    today: 'notifications.timeGroups.today',
+    yesterday: 'notifications.timeGroups.yesterday',
+    earlier: 'notifications.timeGroups.earlier',
 };
 
 export const TIME_GROUP_ORDER: TimeGroup[] = ['now', 'today', 'yesterday', 'earlier'];

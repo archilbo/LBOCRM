@@ -1,22 +1,20 @@
 import { router } from '@inertiajs/react';
-import { IconBuilding, IconCircleCheck, IconChevronRight, IconDownload, IconEye, IconFileCheck, IconFileText, IconFolder, IconMapPin, IconDots, IconSearch, IconTrash, IconUserCircle, IconX, IconCircleX } from '@tabler/icons-react';
+import { IconAlertTriangle, IconBuilding, IconCircleCheck, IconChevronRight, IconCircleX, IconDownload, IconDots, IconEye, IconFileCheck, IconFileText, IconFolder, IconMapPin, IconSearch, IconTrash, IconUserCircle, IconX } from '@tabler/icons-react';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { Dropdown } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
-import { StatusPill } from '@/components/ui/StatusPill';
+import { AppModal } from '@/components/ui/AppModal';
 import { cn } from '@/lib/cn';
 import type {
-    DocumentClientGroup, DocumentCommuneGroup, DocumentGroupRow,
-    DocumentLocationGroup, DocumentProjectGroup, DocumentTypeGroup,
+    DocumentClientGroup, DocumentCommuneGroup, DocumentGroupRow, DocumentLocationGroup,
 } from '@/features/documents/types';
 
 type Props = {
     groups: DocumentLocationGroup[];
     onPreview?: (doc: DocumentGroupRow) => void;
 };
-
-type Level = 'clients' | 'projects' | 'types';
 
 const STATUS_COLORS: Record<string, 'success' | 'primary' | 'warning' | 'danger' | 'default'> = {
     verified: 'success',
@@ -25,12 +23,19 @@ const STATUS_COLORS: Record<string, 'success' | 'primary' | 'warning' | 'danger'
     rejected: 'danger',
 };
 
+const STATUS_LABELS: Record<string, string> = {
+    verified: 'Vérifié',
+    uploaded: 'Téléversé',
+    missing: 'Manquant',
+    rejected: 'Rejeté',
+};
+
 function fileTypeColor(mimeType: string | null | undefined): string {
     if (!mimeType) return 'bg-[var(--surface-2)] text-[var(--text-muted)]';
-    if (mimeType === 'application/pdf') return 'bg-rose-500/10 text-rose-400';
-    if (mimeType.includes('wordprocessingml')) return 'bg-sky-500/10 text-sky-400';
-    if (mimeType.includes('spreadsheetml')) return 'bg-emerald-500/10 text-emerald-400';
-    if (mimeType.startsWith('image/')) return 'bg-violet-500/10 text-violet-400';
+    if (mimeType === 'application/pdf') return 'bg-rose-500/10 text-rose-600';
+    if (mimeType.includes('wordprocessingml')) return 'bg-sky-500/10 text-sky-600';
+    if (mimeType.includes('spreadsheetml')) return 'bg-emerald-500/10 text-emerald-600';
+    if (mimeType.startsWith('image/')) return 'bg-violet-500/10 text-violet-600';
     return 'bg-[var(--surface-2)] text-[var(--text-muted)]';
 }
 
@@ -45,87 +50,74 @@ function flattenClientDocs(client: DocumentClientGroup): DocumentGroupRow[] {
     return client.projects.flatMap((p) => p.types.flatMap((t) => t.documents));
 }
 
-function flattenProjectDocs(project: DocumentProjectGroup): DocumentGroupRow[] {
-    return project.types.flatMap((t) => t.documents);
-}
-
-function RowMenu({ doc, onPreview }: { doc: DocumentGroupRow; onPreview?: (d: DocumentGroupRow) => void }) {
-    const [open, setOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!open) return;
-        function close(e: MouseEvent) {
-            if (menuRef.current && e.target instanceof Node && menuRef.current.contains(e.target)) return;
-            setOpen(false);
-        }
-        document.addEventListener('mousedown', close);
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
-        return () => { document.removeEventListener('mousedown', close); };
-    }, [open]);
-
+function RowMenu({ doc, onPreview, onDelete }: {
+    doc: DocumentGroupRow; onPreview?: (d: DocumentGroupRow) => void; onDelete: (d: DocumentGroupRow) => void;
+}) {
     return (
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => setOpen(!open)}
-                className={cn(
-                    'flex size-6 items-center justify-center rounded-md transition',
-                    open
-                        ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-                        : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]',
-                )}>
+        <Dropdown>
+            <Dropdown.Trigger aria-label="Actions du document" className="flex size-6 items-center justify-center rounded-md text-[var(--text-muted)] outline-none transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] data-[open]:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]">
                 <IconDots size={13} />
-            </button>
-            {open && (
-                <div ref={menuRef} className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
-                    <button type="button" onClick={() => { setOpen(false); onPreview?.(doc); }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                        <IconEye size={14} /> Preview
-                    </button>
+            </Dropdown.Trigger>
+            <Dropdown.Popover placement="bottom end" className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                <Dropdown.Menu
+                    aria-label="Actions du document"
+                    onAction={(key) => {
+                        if (key === 'preview') onPreview?.(doc);
+                        else if (key === 'verify') router.put(`/documents/${doc.id}/status`, { status: 'verified' }, { preserveScroll: true, onSuccess: () => toast.success('Document vérifié.'), onError: () => toast.error('Impossible de mettre à jour le statut.') });
+                        else if (key === 'download') window.open(`/documents/${doc.id}/download`, '_blank');
+                        else if (key === 'project') router.visit(`/dossiers/${doc.dossierId}`);
+                        else if (key === 'missing') router.put(`/documents/${doc.id}/status`, { status: 'missing' }, { preserveScroll: true, onSuccess: () => toast.success('Marqué manquant.'), onError: () => toast.error('Impossible de mettre à jour.') });
+                        else if (key === 'delete') onDelete(doc);
+                    }}
+                    className="outline-none"
+                >
+                    <Dropdown.Item key="preview" id="preview" textValue="Aperçu" className="rounded-lg px-2 py-1.5 text-[10px] font-medium text-[var(--foreground)] outline-none transition data-[hover]:bg-[var(--surface-2)]">
+                        <div className="flex items-center gap-2">
+                            <IconEye size={14} className="shrink-0 text-sky-600" />
+                            <span>Aperçu</span>
+                        </div>
+                    </Dropdown.Item>
                     {doc.status !== 'verified' && (
-                        <button type="button" onClick={() => { router.put(`/documents/${doc.id}/status`, { status: 'verified' }, { preserveScroll: true, onSuccess: () => toast.success('Document verified.'), onError: () => toast.error('Could not update status.') }); setOpen(false); }}
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                            <IconCircleCheck size={14} /> Mark verified
-                        </button>
+                        <Dropdown.Item key="verify" id="verify" textValue="Marquer vérifié" className="rounded-lg px-2 py-1.5 text-[10px] font-medium text-[var(--foreground)] outline-none transition data-[hover]:bg-[var(--surface-2)]">
+                            <div className="flex items-center gap-2">
+                                <IconCircleCheck size={14} className="shrink-0 text-emerald-600" />
+                                <span>Marquer vérifié</span>
+                            </div>
+                        </Dropdown.Item>
                     )}
-                    <button type="button" onClick={() => { window.open(`/documents/${doc.id}/download`, '_blank'); setOpen(false); }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                        <IconDownload size={14} /> IconDownload
-                    </button>
-                    <button type="button" onClick={() => { router.visit(`/dossiers/${doc.dossierId}`); setOpen(false); }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                        <IconFolder size={14} /> Open project
-                    </button>
-                    <button type="button" onClick={() => { router.put(`/documents/${doc.id}/status`, { status: 'missing' }, { preserveScroll: true, onSuccess: () => toast.success('Marked as missing.'), onError: () => toast.error('Could not update.') }); setOpen(false); }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-amber-400 transition hover:bg-amber-400/10">
-                        <IconCircleX size={14} /> Mark missing
-                    </button>
-                    <div className="my-1 border-t border-[var(--border)]" />
-                    <button type="button" onClick={() => { if (confirm('Delete this document? This cannot be undone.')) { router.delete(`/documents/${doc.id}`, { preserveScroll: true, onSuccess: () => toast.success('Document deleted.'), onError: () => toast.error('Could not delete.') }); } setOpen(false); }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] text-[var(--danger)] transition hover:bg-[var(--danger)]/10">
-                        <IconTrash size={14} /> Delete
-                    </button>
-                </div>
-            )}
-        </div>
+                    <Dropdown.Item key="download" id="download" textValue="Télécharger" className="rounded-lg px-2 py-1.5 text-[10px] font-medium text-[var(--foreground)] outline-none transition data-[hover]:bg-[var(--surface-2)]">
+                        <div className="flex items-center gap-2">
+                            <IconDownload size={14} className="shrink-0 text-blue-600" />
+                            <span>Télécharger</span>
+                        </div>
+                    </Dropdown.Item>
+                    <Dropdown.Item key="project" id="project" textValue="Ouvrir le projet" className="rounded-lg px-2 py-1.5 text-[10px] font-medium text-[var(--foreground)] outline-none transition data-[hover]:bg-[var(--surface-2)]">
+                        <div className="flex items-center gap-2">
+                            <IconFolder size={14} className="shrink-0 text-violet-600" />
+                            <span>Ouvrir le projet</span>
+                        </div>
+                    </Dropdown.Item>
+                    <Dropdown.Item key="missing" id="missing" textValue="Marquer manquant" className="rounded-lg px-2 py-1.5 text-[10px] font-medium text-[var(--foreground)] outline-none transition data-[hover]:bg-[var(--surface-2)]">
+                        <div className="flex items-center gap-2">
+                            <IconCircleX size={14} className="shrink-0 text-amber-600" />
+                            <span>Marquer manquant</span>
+                        </div>
+                    </Dropdown.Item>
+                    <Dropdown.Item key="delete" id="delete" textValue="Supprimer" className="rounded-lg px-2 py-1.5 text-[10px] font-medium text-red-600 outline-none transition data-[hover]:bg-red-500/10">
+                        <div className="flex items-center gap-2">
+                            <IconTrash size={14} className="shrink-0 text-red-600" />
+                            <span>Supprimer</span>
+                        </div>
+                    </Dropdown.Item>
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
     );
 }
 
-function CollapsibleSection({ label, count, children }: { label: string; count: number; children: React.ReactNode }) {
-    const [open, setOpen] = useState(false);
-    return (
-        <div>
-            <button type="button" onClick={() => setOpen(!open)}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--text-subtle)] transition hover:text-[var(--foreground)]">
-                <IconChevronRight size={11} className={cn('transition shrink-0', open && 'rotate-90')} />
-                {label}
-                <span className="ml-auto text-[9px] text-[var(--text-muted)]">{count}</span>
-            </button>
-            {open && children}
-        </div>
-    );
-}
-
-function DocumentBrowserCard({ doc, onPreview }: { doc: DocumentGroupRow; onPreview?: (d: DocumentGroupRow) => void }) {
+function DocumentBrowserCard({ doc, onPreview, onDelete }: {
+    doc: DocumentGroupRow; onPreview?: (d: DocumentGroupRow) => void; onDelete: (d: DocumentGroupRow) => void;
+}) {
     const mimeColor = fileTypeColor(null);
     return (
         <div onClick={() => onPreview?.(doc)}
@@ -139,28 +131,28 @@ function DocumentBrowserCard({ doc, onPreview }: { doc: DocumentGroupRow; onPrev
                         <p className="truncate text-[11px] font-medium text-[var(--foreground)]">
                             {doc.templateName || doc.originalFilename || 'Document'}
                         </p>
-                        <p className="truncate text-[9px] text-[var(--text-muted)]">{doc.documentNumber || doc.documentType || 'No number'}</p>
+                        <p className="truncate text-[9px] text-[var(--text-muted)]">{doc.documentNumber || doc.documentType || 'Sans numéro'}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                     <span className={cn(
                         'rounded px-1 py-px text-[8px] font-semibold uppercase leading-tight',
-                        STATUS_COLORS[doc.status] === 'success' && 'bg-emerald-500/15 text-emerald-400',
-                        STATUS_COLORS[doc.status] === 'primary' && 'bg-sky-500/15 text-sky-400',
-                        STATUS_COLORS[doc.status] === 'warning' && 'bg-amber-500/15 text-amber-400',
-                        STATUS_COLORS[doc.status] === 'danger' && 'bg-red-500/15 text-red-400',
+                        STATUS_COLORS[doc.status] === 'success' && 'bg-emerald-500/15 text-emerald-600',
+                        STATUS_COLORS[doc.status] === 'primary' && 'bg-sky-500/15 text-sky-600',
+                        STATUS_COLORS[doc.status] === 'warning' && 'bg-amber-500/15 text-amber-600',
+                        STATUS_COLORS[doc.status] === 'danger' && 'bg-red-500/15 text-red-600',
                         !STATUS_COLORS[doc.status] && 'bg-[var(--surface-2)] text-[var(--text-muted)]',
-                    )}>{doc.status}</span>
-                    <RowMenu doc={doc} onPreview={onPreview} />
+                    )}>{STATUS_LABELS[doc.status] || doc.status}</span>
+                    <RowMenu doc={doc} onPreview={onPreview} onDelete={onDelete} />
                 </div>
             </div>
             {doc.originalFilename && (
                 <p className="mt-1 truncate text-[9px] text-[var(--text-subtle)]">{doc.originalFilename}</p>
             )}
             <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[9px] text-[var(--text-muted)]">
-                <span><span className="text-[var(--text-subtle)]">Project</span> {doc.dossierNumber || '-'}</span>
+                <span><span className="text-[var(--text-subtle)]">Projet</span> {doc.dossierNumber || '-'}</span>
                 <span><span className="text-[var(--text-subtle)]">Client</span> {doc.clientName || '-'}</span>
-                <span><span className="text-[var(--text-subtle)]">Uploaded</span> {doc.uploadedAt || '-'}</span>
+                <span><span className="text-[var(--text-subtle)]">Téléversé</span> {doc.uploadedAt || '-'}</span>
             </div>
         </div>
     );
@@ -180,7 +172,6 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
         [selectedProvinceGroup, selectedCommune],
     );
 
-    const [level, setLevel] = useState<Level>('clients');
     const [selectedClient, setSelectedClient] = useState(selectedCommuneGroup?.clients[0]?.clientName ?? '');
     const activeClient = useMemo(
         () => selectedCommuneGroup?.clients.find((c) => c.clientName === selectedClient)
@@ -188,77 +179,32 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
         [selectedCommuneGroup, selectedClient],
     );
 
-    const [selectedProject, setSelectedProject] = useState(activeClient?.projects[0]?.dossierNumber ?? '');
-    const activeProject = useMemo(
-        () => activeClient?.projects.find((p) => p.dossierNumber === selectedProject)
-            ?? activeClient?.projects[0] ?? null,
-        [activeClient, selectedProject],
-    );
-
-    const [selectedType, setSelectedType] = useState(activeProject?.types[0]?.type ?? '');
-    const activeType = useMemo(
-        () => activeProject?.types.find((t) => t.type === selectedType)
-            ?? activeProject?.types[0] ?? null,
-        [activeProject, selectedType],
-    );
-
     const [query, setQuery] = useState('');
     const searchRef = useRef<HTMLInputElement>(null);
+    const [deleteTarget, setDeleteTarget] = useState<DocumentGroupRow | null>(null);
 
     const documents = useMemo(() => {
-        let rows: DocumentGroupRow[] = [];
-        if (level === 'clients' && activeClient) rows = flattenClientDocs(activeClient);
-        if (level === 'projects' && activeProject) rows = flattenProjectDocs(activeProject);
-        if (level === 'types' && activeType) rows = activeType.documents;
+        const rows = activeClient ? flattenClientDocs(activeClient) : [];
         return rows.filter((d) => searchDocument(d, query));
-    }, [activeClient, activeProject, activeType, level, query]);
+    }, [activeClient, query]);
 
     function chooseProvince(group: DocumentLocationGroup) {
         const fc = group.communes[0]?.clients[0];
-        const fp = fc?.projects[0];
-        const ft = fp?.types[0];
         setSelectedProvince(group.province);
         setSelectedCommune(group.communes[0]?.commune ?? '');
         setSelectedClient(fc?.clientName ?? '');
-        setSelectedProject(fp?.dossierNumber ?? '');
-        setSelectedType(ft?.type ?? '');
-        setLevel('clients');
         setQuery('');
     }
 
     function chooseCommune(commune: DocumentCommuneGroup) {
         const fc = commune.clients[0];
-        const fp = fc?.projects[0];
-        const ft = fp?.types[0];
         setSelectedCommune(commune.commune);
         setSelectedClient(fc?.clientName ?? '');
-        setSelectedProject(fp?.dossierNumber ?? '');
-        setSelectedType(ft?.type ?? '');
-        setLevel('clients');
         setQuery('');
     }
 
     function chooseClient(client: DocumentClientGroup) {
-        const fp = client.projects[0];
-        const ft = fp?.types[0];
         setSelectedClient(client.clientName);
-        setSelectedProject(fp?.dossierNumber ?? '');
-        setSelectedType(ft?.type ?? '');
-        setLevel('clients');
-        setQuery('');
-    }
-
-    function chooseProject(project: DocumentProjectGroup) {
-        const ft = project.types[0];
-        setSelectedProject(project.dossierNumber);
-        setSelectedType(ft?.type ?? '');
-        setLevel('projects');
-        setQuery('');
-    }
-
-    function chooseType(type: DocumentTypeGroup) {
-        setSelectedType(type.type);
-        setLevel('types');
         setQuery('');
     }
 
@@ -311,6 +257,15 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
         );
     }
 
+    function confirmDelete() {
+        if (!deleteTarget) return;
+        router.delete(`/documents/${deleteTarget.id}`, {
+            preserveScroll: true,
+            onSuccess: () => { toast.success('Document supprimé.'); setDeleteTarget(null); },
+            onError: () => toast.error('Impossible de supprimer.'),
+        });
+    }
+
     const summary = selectedProvinceGroup?.stats;
 
     return (
@@ -331,7 +286,7 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
             <div className="hidden xl:grid xl:grid-cols-[220px_240px_260px_minmax(0,1fr)] xl:rounded-xl xl:border xl:border-[var(--border)] xl:bg-[var(--surface)] xl:shadow-sm xl:overflow-hidden" style={{ maxHeight: 'calc(100vh - 240px)' }}>
                 {/* Province */}
                 <aside className="border-r border-[var(--border)] flex flex-col">
-                    <PaneHeader icon={<IconMapPin size={14} />} label="Provinces" subtitle={`${groups.length} total`} />
+                    <PaneHeader icon={<IconMapPin size={14} />} label="Provinces" subtitle={`${groups.length} au total`} />
                     <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                         {groups.length > 0 ? groups.map((group) => (
                             <PaneRow key={group.province}
@@ -341,13 +296,13 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                 subtitle={`${group.communes.length} communes · ${group.stats.documentsCount} docs`}
                                 onClick={() => chooseProvince(group)}
                             />
-                        )) : <EmptyPane icon={<IconMapPin size={24} />} title="No provinces" description="No document data available." />}
+                        )) : <EmptyPane icon={<IconMapPin size={24} />} title="Aucune province" description="Aucune donnée documentaire disponible." />}
                     </div>
                 </aside>
 
                 {/* Commune */}
                 <aside className="border-r border-[var(--border)] flex flex-col">
-                    <PaneHeader icon={<IconBuilding size={14} />} label="Communes" subtitle={selectedProvinceGroup?.province || 'Select a province'} />
+                    <PaneHeader icon={<IconBuilding size={14} />} label="Communes" subtitle={selectedProvinceGroup?.province || 'Sélectionnez une province'} />
                     <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                         {selectedProvinceGroup ? (
                             selectedProvinceGroup.communes.map((commune) => (
@@ -359,55 +314,25 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                                     onClick={() => chooseCommune(commune)}
                                 />
                             ))
-                        ) : <EmptyPane icon={<IconBuilding size={24} />} title="Select a province" description="to view communes" />}
+                        ) : <EmptyPane icon={<IconBuilding size={24} />} title="Sélectionnez une province" description="pour afficher les communes" />}
                     </div>
                 </aside>
 
                 {/* Scope */}
                 <aside className="border-r border-[var(--border)] flex flex-col">
-                    <PaneHeader icon={<IconFileCheck size={14} />} label="Scope" subtitle="Client / project / type" />
+                    <PaneHeader icon={<IconFileCheck size={14} />} label="Portée" subtitle="Client / projet / type" />
                     <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                         {selectedCommuneGroup ? (
-                            <>
-                                <CollapsibleSection label="Clients" count={selectedCommuneGroup.clients.length}>
-                                    {selectedCommuneGroup.clients.map((client) => (
-                                        <PaneRow key={client.clientName}
-                                            active={level === 'clients' && activeClient?.clientName === client.clientName}
-                                            icon={<IconUserCircle size={12} />}
-                                            title={client.clientName}
-                                            subtitle={`${client.projects.length} projects · ${client.stats.documentsCount} docs`}
-                                            onClick={() => chooseClient(client)}
-                                        />
-                                    ))}
-                                </CollapsibleSection>
-                                {activeClient && (
-                                    <CollapsibleSection label="Projects" count={activeClient.projects.length}>
-                                        {activeClient.projects.map((project) => (
-                                            <PaneRow key={project.dossierNumber}
-                                                active={level === 'projects' && activeProject?.dossierNumber === project.dossierNumber}
-                                                icon={<IconFolder size={12} />}
-                                                title={project.projectObject || project.dossierNumber}
-                                                subtitle={`${project.types.length} types · ${project.stats.documentsCount} docs`}
-                                                onClick={() => chooseProject(project)}
-                                            />
-                                        ))}
-                                    </CollapsibleSection>
-                                )}
-                                {activeProject && (
-                                    <CollapsibleSection label="Types" count={activeProject.types.length}>
-                                        {activeProject.types.map((type) => (
-                                            <PaneRow key={type.type}
-                                                active={level === 'types' && activeType?.type === type.type}
-                                                icon={<IconFileText size={12} />}
-                                                title={type.type}
-                                                subtitle={`${type.stats.documentsCount} docs`}
-                                                onClick={() => chooseType(type)}
-                                            />
-                                        ))}
-                                    </CollapsibleSection>
-                                )}
-                            </>
-                        ) : <EmptyPane icon={<IconFileCheck size={24} />} title="Select a commune" description="to browse documents by scope" />}
+                            selectedCommuneGroup.clients.map((client) => (
+                                <PaneRow key={client.clientName}
+                                    active={activeClient?.clientName === client.clientName}
+                                    icon={<IconUserCircle size={12} />}
+                                    title={client.clientName}
+                                    subtitle={`${client.projects.length} projets · ${client.stats.documentsCount} docs`}
+                                    onClick={() => chooseClient(client)}
+                                />
+                            ))
+                        ) : <EmptyPane icon={<IconFileCheck size={24} />} title="Sélectionnez une commune" description="pour parcourir les documents par portée" />}
                     </div>
                 </aside>
 
@@ -416,18 +341,18 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                     <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2.5">
                         <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Document browser</p>
+                                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Explorateur de documents</p>
                                 <p className="truncate text-[11px] font-medium text-[var(--foreground)]">
                                     {selectedProvinceGroup?.province && selectedCommuneGroup?.commune
                                         ? `${selectedProvinceGroup.province} / ${selectedCommuneGroup.commune}`
-                                        : 'Select location'}
+                                        : 'Sélectionnez une localisation'}
                                 </p>
                             </div>
                             <div className="relative w-[180px] shrink-0">
                                 <IconSearch size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                                 <input ref={searchRef} type="text" value={query} onChange={(e) => setQuery(e.target.value)}
-                                    placeholder="IconSearch documents..."
-                                    className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-[10px] text-[var(--foreground)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]" />
+                                    aria-label="Rechercher des documents"
+                                    className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-[10px] text-[var(--foreground)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_20%,transparent)]" />
                                 {query ? (
                                     <button type="button" onClick={() => setQuery('')}
                                         className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-4 items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--foreground)]">
@@ -441,25 +366,46 @@ export function DocumentGroupedExplorer({ groups, onPreview }: Props) {
                         {selectedCommuneGroup ? (
                             documents.length > 0 ? (
                                 documents.map((doc) => (
-                                    <DocumentBrowserCard key={doc.id} doc={doc} onPreview={onPreview} />
+                                    <DocumentBrowserCard key={doc.id} doc={doc} onPreview={onPreview} onDelete={setDeleteTarget} />
                                 ))
                             ) : (
                                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                                     <IconFileText size={28} className="text-[var(--text-muted)]/30" />
-                                    <p className="text-[11px] font-medium text-[var(--foreground)]">No documents found</p>
-                                    <p className="text-[9px] text-[var(--text-muted)]">Choose another scope or clear search.</p>
+                                    <p className="text-[11px] font-medium text-[var(--foreground)]">Aucun document trouvé</p>
+                                    <p className="text-[9px] text-[var(--text-muted)]">Choisissez une autre portée ou effacez la recherche.</p>
                                 </div>
                             )
                         ) : (
                             <div className="flex flex-col items-center gap-2 py-16 text-center">
                                 <IconBuilding size={28} className="text-[var(--text-muted)]/30" />
-                                <p className="text-[11px] font-medium text-[var(--foreground)]">Select a commune</p>
-                                <p className="text-[9px] text-[var(--text-muted)]">to browse documents</p>
+                                <p className="text-[11px] font-medium text-[var(--foreground)]">Sélectionnez une commune</p>
+                                <p className="text-[9px] text-[var(--text-muted)]">pour parcourir les documents</p>
                             </div>
                         )}
                     </div>
                 </main>
             </div>
+
+            <AppModal
+                isOpen={!!deleteTarget}
+                onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+                title="Supprimer le document ?"
+                size="sm"
+            >
+                <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 mb-4">
+                    <IconAlertTriangle size={18} className="shrink-0 text-red-600" />
+                    <p className="text-xs text-[var(--text-muted)]">
+                        Cette action est <span className="font-semibold text-red-600">irréversible</span>.
+                    </p>
+                </div>
+                <p className="mb-5 text-sm text-[var(--text-muted)]">
+                    Confirmez la suppression de <strong>{deleteTarget?.templateName || deleteTarget?.originalFilename || 'ce document'}</strong>.
+                </p>
+                <div className="flex justify-end gap-2">
+                    <AppButton variant="light" onPress={() => setDeleteTarget(null)}>Annuler</AppButton>
+                    <AppButton variant="solid" color="danger" onPress={confirmDelete}>Supprimer</AppButton>
+                </div>
+            </AppModal>
         </div>
     );
 }

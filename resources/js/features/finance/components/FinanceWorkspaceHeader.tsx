@@ -48,23 +48,11 @@ export function FinanceWorkspaceHeader({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap xl:justify-end">
-                    {canCreatePayment ? <AppButton size="sm" variant="ghost" className="border border-[var(--border)] bg-[var(--surface-2)]" onPress={onCreatePayment}>
-                        <IconWallet size={15} />
-                        Paiement
-                    </AppButton> : null}
-                    {canCreateExpense ? <AppButton size="sm" variant="ghost" className="border border-[var(--border)] bg-[var(--surface-2)]" onPress={onCreateExpense}>
-                        <IconShoppingCart size={15} />
-                        Depense
-                    </AppButton> : null}
-                    {canCreateDocument ? <AppButton size="sm" variant="ghost" className="border border-[var(--border)] bg-[var(--surface-2)]" onPress={onCreateInvoice}>
-                        <IconReceipt2 size={15} />
-                        Facture
-                    </AppButton> : null}
-                    {canCreateDocument ? <AppButton size="sm" variant="ghost" className="bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]" onPress={onCreateQuote}>
-                        <IconPlus size={15} />
-                        Nouveau devis
-                    </AppButton> : null}
+                <div className="flex flex-wrap items-center gap-1.5 xl:justify-end">
+                    {canCreatePayment ? <AppButton isIconOnly compact variant="quiet" tooltip="Paiement" aria-label="Paiement" onPress={onCreatePayment}><IconWallet size={14} /></AppButton> : null}
+                    {canCreateExpense ? <AppButton isIconOnly compact variant="quiet" tooltip="Depense" aria-label="Depense" onPress={onCreateExpense}><IconShoppingCart size={14} /></AppButton> : null}
+                    {canCreateDocument ? <AppButton isIconOnly compact variant="quiet" tooltip="Facture" aria-label="Facture" onPress={onCreateInvoice}><IconReceipt2 size={14} /></AppButton> : null}
+                    {canCreateDocument ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Nouveau devis" aria-label="Nouveau devis" onPress={onCreateQuote}><IconPlus size={14} /></AppButton> : null}
                 </div>
             </div>
         </section>

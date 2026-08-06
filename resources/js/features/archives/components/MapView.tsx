@@ -4,6 +4,7 @@ import { BoxCell } from '@/features/archives/components/BoxCell';
 import { BoxContentsDrawer } from '@/features/archives/components/BoxContentsDrawer';
 import { MapLegend } from '@/features/archives/components/MapLegend';
 import type { TreeNode, BoxContents } from '@/features/archives/types';
+import { useTranslation } from '@/lib/i18n';
 
 type MapViewProps = {
     tree: TreeNode[];
@@ -20,6 +21,7 @@ function RoomUtilization(room: TreeNode) {
 }
 
 export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
+    const { t } = useTranslation();
     const [expandedRooms, setExpandedRooms] = useState<Set<number>>(() => new Set(tree.map((r) => r.id)));
     const [drawerBoxCode, setDrawerBoxCode] = useState<string | null>(null);
     const [drawerData, setDrawerData] = useState<BoxContents | null>(null);
@@ -76,11 +78,11 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
         <>
             <div className="flex flex-col h-full">
                 {/* Navigation bar */}
-                <div className="shrink-0 border-b border-white/5 bg-white/[0.01] px-4 py-2">
+                <div className="shrink-0 border-b border-[var(--crm-border-soft)] bg-[var(--crm-elevated)]/50 px-4 py-2">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[9px] font-medium uppercase tracking-wider text-white/30 mr-1">
-                                Rooms
+                            <span className="text-[9px] font-medium uppercase tracking-wider text-[var(--crm-text-soft)] mr-1">
+                                {t('map.rooms')}
                             </span>
                             {tree.map((room) => (
                                 <button
@@ -90,8 +92,8 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                     className={cn(
                                         'rounded-md border px-2.5 py-1 text-[10px] font-medium transition',
                                         activeRoomTab === room.code
-                                            ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
-                                            : 'border-white/10 text-white/50 hover:text-white/85 hover:bg-white/5',
+                                            ? 'border-[var(--crm-gold)]/40 bg-[var(--crm-gold)]/10 text-[var(--crm-gold)]'
+                                            : 'border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]/85 hover:bg-[var(--crm-elevated)]',
                                     )}
                                 >
                                     {room.code}
@@ -107,14 +109,14 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search boxes…"
-                                    className="h-7 w-36 rounded-md border border-white/10 bg-white/[0.02] pl-2 pr-6 text-[10px] text-white outline-none placeholder:text-white/30 focus:border-white/20 focus:ring-2 focus:ring-white/15 transition"
+                                    placeholder={t('map.searchBoxes')}
+                                    className="h-7 w-36 rounded-md border border-[var(--crm-border)] bg-[var(--crm-elevated)]/60 pl-2 pr-6 text-[10px] text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-text-soft)] focus:border-[var(--crm-border-strong)] focus:ring-2 focus:ring-[var(--crm-gold)]/15 transition"
                                 />
                                 {searchQuery && (
                                     <button
                                         type="button"
                                         onClick={() => setSearchQuery('')}
-                                        className="absolute right-1 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--crm-text-soft)] hover:text-[var(--crm-text-muted)]"
                                     >
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <path d="M18 6L6 18M6 6l12 12" />
@@ -122,8 +124,8 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                     </button>
                                 )}
                             </div>
-                            <span className="text-[9px] text-white/30 tabular-nums">
-                                {totalRecords} rec · {totalBoxes} boxes
+                            <span className="text-[9px] text-[var(--crm-text-soft)] tabular-nums">
+                                {totalRecords} {t('map.rec')} · {totalBoxes} {t('map.boxes')}
                             </span>
                         </div>
                     </div>
@@ -146,19 +148,19 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                     id={`room-${room.code}`}
                                     className={cn(
                                         'rounded-xl border overflow-hidden transition-all duration-300',
-                                        'border-white/5 bg-white/[0.02]',
-                                        activeRoomTab === room.code && 'ring-1 ring-amber-500/20 border-amber-500/20',
+                                        'border-[var(--crm-border-soft)] bg-[var(--crm-elevated)]/60',
+                                        activeRoomTab === room.code && 'ring-1 ring-[var(--crm-gold)]/20 border-[var(--crm-gold)]/20',
                                     )}
                                 >
                                     {/* Room header */}
                                     <button
                                         type="button"
                                         onClick={() => toggleRoom(room.id)}
-                                        className="flex w-full items-center justify-between px-5 py-3.5 text-left transition hover:bg-white/[0.02]"
+                                        className="flex w-full items-center justify-between px-5 py-3.5 text-left transition hover:bg-[var(--crm-elevated)]/50"
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className={cn(
-                                                'flex items-center justify-center size-6 rounded border border-white/10 text-white/40 transition-transform duration-200',
+                                                'flex items-center justify-center size-6 rounded border border-[var(--crm-border)] text-[var(--crm-text-soft)] transition-transform duration-200',
                                                 isExpanded && 'rotate-90',
                                             )}>
                                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -167,15 +169,15 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2.5">
-                                                    <span className="text-sm font-semibold text-white/90">{room.name}</span>
-                                                    <span className="rounded bg-white/5 px-1.5 py-[1px] text-[9px] font-mono text-white/40 border border-white/5">
+                                                    <span className="text-sm font-semibold text-[var(--crm-text)]/90">{room.name}</span>
+                                                            <span className="rounded bg-[var(--crm-elevated)] px-1.5 py-[1px] text-[9px] text-[var(--crm-text-soft)] border border-[var(--crm-border)]">
                                                         {room.code}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[9px] text-white/40">{roomRecs} rec{roomRecs !== 1 ? 's' : ''}</span>
-                                                    <span className="text-white/15">·</span>
-                                                    <span className="text-[9px] text-white/40">{util.filled}/{util.total} boxes used</span>
+                                                    <span className="text-[9px] text-[var(--crm-text-soft)]">{roomRecs} {t('map.rec')}{roomRecs !== 1 ? 's' : ''}</span>
+                                                    <span className="text-[var(--crm-text-soft)]/50">·</span>
+                                                    <span className="text-[9px] text-[var(--crm-text-soft)]">{util.filled}/{util.total} {t('map.boxesUsed')}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -183,18 +185,18 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                         <div className="flex items-center gap-3">
                                             {/* Utilization bar */}
                                             <div className="hidden sm:flex items-center gap-2">
-                                                <div className="flex h-1.5 w-16 rounded-full bg-white/5 overflow-hidden">
+                                                <div className="flex h-1.5 w-16 rounded-full bg-[var(--crm-elevated)] overflow-hidden">
                                                     <div
                                                         className={cn(
                                                             'h-full rounded-full transition-all duration-500',
-                                                            util.pct >= 90 ? 'bg-red-400' : util.pct >= 70 ? 'bg-amber-400' : 'bg-emerald-400',
+                                                            util.pct >= 90 ? 'bg-[var(--crm-danger)]' : util.pct >= 70 ? 'bg-[var(--crm-gold)]' : 'bg-[var(--crm-success)]',
                                                         )}
                                                         style={{ width: `${util.pct}%` }}
                                                     />
                                                 </div>
                                                 <span className={cn(
                                                     'text-[9px] font-medium tabular-nums',
-                                                    util.pct >= 90 ? 'text-red-400' : util.pct >= 70 ? 'text-amber-400' : 'text-emerald-400',
+                                                    util.pct >= 90 ? 'text-[var(--crm-danger)]' : util.pct >= 70 ? 'text-[var(--crm-gold)]' : 'text-[var(--crm-success)]',
                                                 )}>
                                                     {util.pct}%
                                                 </span>
@@ -209,7 +211,7 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                                 stroke="currentColor"
                                                 strokeWidth="2"
                                                 className={cn(
-                                                    'text-white/30 transition-transform duration-200',
+                                                    'text-[var(--crm-text-soft)] transition-transform duration-200',
                                                     isExpanded && 'rotate-180',
                                                 )}
                                             >
@@ -237,29 +239,29 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                             const shelfPct = Math.round((shelfCount / shelfCap) * 100);
 
                                             return (
-                                                <div key={shelf.id} className="border-t border-white/[0.03]">
+                                                <div key={shelf.id} className="border-t border-[var(--crm-border-soft)]/60">
                                                     {/* Shelf header */}
                                                     <div className="flex items-center px-5 pt-3 pb-1">
                                                         {/* Left bracket */}
-                                                        <svg width="12" height="20" viewBox="0 0 12 20" className="shrink-0 text-white/15">
+                                                        <svg width="12" height="20" viewBox="0 0 12 20" className="shrink-0 text-[var(--crm-text-soft)]/50">
                                                             <path d="M11 0H8a6 6 0 00-6 6v8a6 6 0 006 6h3" fill="none" stroke="currentColor" strokeWidth="1.5" />
                                                         </svg>
 
                                                         <div className="flex-1 h-px bg-gradient-to-r from-white/10 via-white/5 to-transparent mx-1.5" />
 
-                                                        <span className="text-[9px] font-medium text-white/40">Shelf {shelf.code}</span>
+                                                        <span className="text-[9px] font-medium text-[var(--crm-text-soft)]">{t('map.shelf')} {shelf.code}</span>
 
                                                         <div className="flex-1 h-px bg-gradient-to-l from-white/10 via-white/5 to-transparent mx-1.5" />
 
                                                         {/* Right bracket */}
-                                                        <svg width="12" height="20" viewBox="0 0 12 20" className="shrink-0 text-white/15 rotate-180">
+                                                        <svg width="12" height="20" viewBox="0 0 12 20" className="shrink-0 text-[var(--crm-text-soft)]/50 rotate-180">
                                                             <path d="M11 0H8a6 6 0 00-6 6v8a6 6 0 006 6h3" fill="none" stroke="currentColor" strokeWidth="1.5" />
                                                         </svg>
 
                                                         {shelfCount > 0 && (
                                                             <span className={cn(
                                                                 'ml-2 text-[9px] tabular-nums font-medium',
-                                                                shelfPct >= 90 ? 'text-red-400' : shelfPct >= 70 ? 'text-amber-400' : 'text-white/30',
+                                                                shelfPct >= 90 ? 'text-[var(--crm-danger)]' : shelfPct >= 70 ? 'text-[var(--crm-gold)]' : 'text-[var(--crm-text-soft)]',
                                                             )}>
                                                                 {shelfPct}%
                                                             </span>
@@ -286,8 +288,8 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                                                 ))}
                                                             </div>
                                                         ) : (
-                                                            <div className="py-6 text-center text-xs text-white/15">
-                                                                {searchQuery ? 'No boxes match your search' : 'No boxes configured'}
+                                                            <div className="py-6 text-center text-xs text-[var(--crm-text-soft)]/50">
+                                                                {searchQuery ? t('map.noBoxesMatch') : t('map.noBoxesConfigured')}
                                                             </div>
                                                         )}
                                                     </div>
@@ -296,8 +298,8 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                                         })}
 
                                         {(!room.shelves || room.shelves.length === 0) && (
-                                            <div className="border-t border-white/[0.03] px-5 py-8 text-center text-xs text-white/20">
-                                                No shelves configured in this room
+                                            <div className="border-t border-[var(--crm-border-soft)]/60 px-5 py-8 text-center text-xs text-[var(--crm-text-soft)]/60">
+                                                {t('map.noShelvesConfigured')}
                                             </div>
                                         )}
                                     </div>
@@ -306,7 +308,7 @@ export function MapView({ tree, selectedBox, onSelectBox }: MapViewProps) {
                         })}
 
                         {tree.length === 0 && (
-                            <div className="flex flex-col items-center justify-center py-16 text-white/20">
+                            <div className="flex flex-col items-center justify-center py-16 text-[var(--crm-text-soft)]/60">
                                 <svg viewBox="0 0 24 24" className="size-10 mb-3" fill="none" stroke="currentColor" strokeWidth="1">
                                     <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7a2 2 0 012-2h14a2 2 0 012 2M3 7h18" />
                                 </svg>

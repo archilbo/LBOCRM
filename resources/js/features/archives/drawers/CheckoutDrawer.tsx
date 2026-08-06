@@ -6,6 +6,7 @@ import { DrawerField, drawerStyles } from '@/components/drawers';
 import { DateField } from '@/features/archives/components/DateField';
 import { strToDate, dateToStr } from '@/lib/dateUtils';
 import type { ArchiveRecordRow } from '@/features/archives/types';
+import { useTranslation } from '@/lib/i18n';
 
 type CheckoutDrawerProps = {
     isOpen: boolean;
@@ -21,6 +22,7 @@ function defaultDue(days = 7): string {
 }
 
 export function CheckoutDrawer({ isOpen, onOpenChange, archives, onConfirm }: CheckoutDrawerProps) {
+    const { t } = useTranslation();
     const [requester, setRequester] = useState('');
     const [dueAt, setDueAt] = useState(defaultDue());
     const [purpose, setPurpose] = useState('');
@@ -44,12 +46,12 @@ export function CheckoutDrawer({ isOpen, onOpenChange, archives, onConfirm }: Ch
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            title={`Sortie de ${archives.length} archive${archives.length > 1 ? 's' : ''}`}
-            description="Remplissez les informations de sortie."
+            title={t('drawers.checkout.title', { count: archives.length })}
+            description={t('drawers.checkout.description')}
             footer={
                 <>
-                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>Annuler</AppButton>
-                    <AppButton variant="primary" type="submit" form="checkout-form">Confirmer</AppButton>
+                    <AppButton variant="secondary" onPress={() => onOpenChange(false)}>{t('drawers.checkout.cancel')}</AppButton>
+                    <AppButton variant="primary" type="submit" form="checkout-form">{t('drawers.checkout.confirm')}</AppButton>
                 </>
             }
         >
@@ -57,19 +59,19 @@ export function CheckoutDrawer({ isOpen, onOpenChange, archives, onConfirm }: Ch
                 <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg bg-[var(--surface-2)] p-2">
                     {archives.map((a) => (
                         <div key={a.id} className="flex items-center justify-between text-xs">
-                            <span className="font-mono tabular-nums text-[var(--foreground)]">{a.archiveNumber}</span>
+                            <span className="tabular-nums text-[var(--foreground)]">{a.archiveNumber}</span>
                             <span className="truncate text-[var(--text-muted)] ml-2">{a.projectObject}</span>
                         </div>
                     ))}
                 </div>
 
-                <DrawerField label="Demandeur (optionnel)">
+                <DrawerField label={t('drawers.checkout.requesterLabel')}>
                     <Input type="text" value={requester} onChange={(e) => setRequester(e.target.value)}
-                        placeholder="Nom du demandeur" className={drawerStyles.input} />
+                        placeholder={t('drawers.checkout.requesterPlaceholder')} className={drawerStyles.input} />
                 </DrawerField>
 
                 <div>
-                    <DateField label="Date d'échéance" value={strToDate(dueAt)} onChange={(d) => setDueAt(dateToStr(d))} />
+                    <DateField label={t('drawers.checkout.dueDateLabel')} value={strToDate(dueAt)} onChange={(d) => setDueAt(dateToStr(d))} />
                     <div className="mt-1 flex gap-1">
                         {[7, 14, 30].map((days) => (
                             <button
@@ -84,9 +86,9 @@ export function CheckoutDrawer({ isOpen, onOpenChange, archives, onConfirm }: Ch
                     </div>
                 </div>
 
-                <DrawerField label="Motif (optionnel)">
+                <DrawerField label={t('drawers.checkout.purposeLabel')}>
                     <Input type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)}
-                        placeholder="Pourquoi cette sortie ?" className={drawerStyles.input} />
+                        placeholder={t('drawers.checkout.purposePlaceholder')} className={drawerStyles.input} />
                 </DrawerField>
             </form>
         </AppDrawer>

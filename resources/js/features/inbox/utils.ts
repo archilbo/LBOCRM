@@ -56,19 +56,26 @@ export function getConversationInitials(conv: ConversationRow, currentUserId: nu
   return name.split(' ').filter(Boolean).slice(0, 2).map((s: string) => s[0]?.toUpperCase()).join('') || '?';
 }
 
-export function getLastMessagePreview(conv: ConversationRow, currentUserId: number): string {
+export function getLastMessagePreview(conv: ConversationRow, currentUserId: number, t?: (key: string, values?: Record<string, string | number>) => string): string {
   const lm = conv.lastMessage;
-  if (!lm) return 'No messages yet';
+  if (!lm) return t ? t('inbox.previews.noMessagesYet') : 'No messages yet';
   const ac = lm.attachmentsCount ?? 0;
   let preview = '';
-  if (ac > 1) preview = `${ac} photos`;
-  else if (ac === 1 && !lm.body) preview = 'Photo';
+  if (ac > 1) preview = t ? t('inbox.previews.photos', { count: ac }) : `${ac} photos`;
+  else if (ac === 1 && !lm.body) preview = t ? t('inbox.previews.photo') : 'Photo';
   else if (ac === 1 && lm.body) preview = lm.body;
   else preview = lm.body || '';
-  if (lm.isForwarded) preview = `Forwarded: ${preview}`;
-  if (lm.userId === currentUserId) preview = `You: ${preview}`;
+  if (lm.isForwarded) preview = t ? `${t('inbox.previews.forwarded')}: ${preview}` : `Forwarded: ${preview}`;
+  if (lm.userId === currentUserId) preview = t ? `${t('inbox.previews.you')}: ${preview}` : `You: ${preview}`;
   else if (conv.type === 'group' && lm.userName) preview = `${lm.userName}: ${preview}`;
   return preview;
+}
+
+export function getCategoryLabel(category: string | null | undefined, t: (key: string) => string): string {
+  const meta = getCategoryMeta(category);
+  const key = `inbox.categories.${(category || 'general').toLowerCase()}`;
+  const label = t(key);
+  return label === key ? meta.label : label;
 }
 
 export function formatConversationTime(dateStr: string | null | undefined): string {

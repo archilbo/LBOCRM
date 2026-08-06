@@ -33,6 +33,9 @@ type DocumentViewerHeaderProps = {
  * capability-gated actions (Download, Print, Replace, Details, Delete,
  * Close). Actions are hidden when the corresponding capability is false;
  * access is never inferred from role names, URLs or callback existence.
+ * The print button stays visible but disabled for images (they preview
+ * fine but are not printable); printing is not offered from the actions
+ * menu either (canPrint is false for images).
  * Update-status stays hidden (backend capability not exposed yet).
  */
 export function DocumentViewerHeader({
@@ -95,7 +98,18 @@ export function DocumentViewerHeader({
                                 <DownloadIcon size={15} />
                             </AppButton>
                         ) : null}
-                        {document.capabilities.canPrint ? (
+                        {document.previewKind === 'image' ? (
+                            <AppButton
+                                isIconOnly
+                                compact
+                                variant="quiet"
+                                isDisabled
+                                tooltip={t('documentsExplorer.actions.printUnavailable')}
+                                aria-label={t('documentsExplorer.actions.printUnavailable')}
+                            >
+                                <PrinterIcon size={15} />
+                            </AppButton>
+                        ) : document.capabilities.canPrint ? (
                             <AppButton
                                 isIconOnly
                                 compact

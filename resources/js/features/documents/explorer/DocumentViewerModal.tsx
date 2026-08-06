@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@heroui/react';
 
+import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
 import type { ClientProjectDocument } from '@/features/clients/types';
 import { DocumentDetailsPanel } from './DocumentDetailsPanel';
@@ -87,10 +88,10 @@ function ViewerPreview({
 /**
  * Header + workspace + bottom navigation for the open document. Mounted with
  * key={document.id} so Details resets to closed on every document change
- * (no effect, no stored preference). Desktop: the workspace is a grid with a
- * minmax(0,1fr) viewer column and a fixed 320px details column; below lg the
- * details become a capped, scrollable section under the viewer and the modal
- * is full-screen.
+ * (no effect, no stored preference). Desktop: the workspace is a grid whose
+ * second column (fixed 320px details panel) is only reserved while Details is
+ * open — closed, the viewer spans the full width; below lg the details become
+ * a capped, scrollable section under the viewer and the modal is full-screen.
  */
 function ViewerDialogContent({
     document,
@@ -125,7 +126,14 @@ function ViewerDialogContent({
                 onDelete={onDelete}
             />
 
-            <div className="grid min-h-0 min-w-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div
+                className={cn(
+                    'grid min-h-0 min-w-0 flex-1 overflow-hidden',
+                    detailsOpen
+                        ? 'lg:grid-cols-[minmax(0,1fr)_320px]'
+                        : 'lg:grid-cols-[minmax(0,1fr)]',
+                )}
+            >
                 <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
                     <ViewerPreview
                         key={document ? String(document.id) : 'invalid'}

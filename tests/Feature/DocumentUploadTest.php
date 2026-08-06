@@ -107,52 +107,36 @@ class DocumentUploadTest extends TestCase
 
     public function test_missing_cin_file_returns_field_level_errors(): void
     {
-        try {
-            [$company, $user, $dossier, $template] = $this->uploadContext();
+        [$company, $user, $dossier, $template] = $this->uploadContext();
 
-            $response = $this->actingAs($user)->post('/documents', [
-                'dossier_id' => $dossier->id,
-                'document_template_id' => $template->id,
-                'file_front' => UploadedFile::fake()->createWithContent('cin_front.jpg', self::JPEG),
-            ]);
+        $response = $this->actingAs($user)->post('/documents', [
+            'dossier_id' => $dossier->id,
+            'document_template_id' => $template->id,
+            'file_front' => UploadedFile::fake()->createWithContent('cin_front.jpg', self::JPEG),
+        ], $this->inertiaHeaders());
 
-            $session = $response->baseResponse->getSession();
-            fwrite(STDERR, "\n===SESSION===\nstatus: " . $response->getStatusCode() . "\nhas errors: " . var_export($session?->has('errors'), true) . "\n");
-            fwrite(STDERR, 'session all: ' . var_export($session?->all(), true) . "\n");
-            fwrite(STDERR, "===END===\n");
-
-            $response->assertStatus(422)
-                ->assertJsonValidationErrors('file_back');
-            $this->assertSame(0, $dossier->documents()->count());
-            $this->assertStoredFilesCount(0);
-        } catch (\Throwable $e) {
-            fwrite(STDERR, "\n===TRACE===\n" . get_class($e) . ': ' . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n===END===\n");
-            throw $e;
-        }
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('file_back');
+        $this->assertSame(0, $dossier->documents()->count());
+        $this->assertStoredFilesCount(0);
     }
 
     public function test_invalid_mime_content_is_rejected(): void
     {
         [$company, $user, $dossier, $template] = $this->uploadContext();
 
-        // .png extension passes `mimes` but the content is plain text.
-        $frontFake = UploadedFile::fake()->createWithContent('cin_front.png', 'just plain text');
-        $backFake = UploadedFile::fake()->createWithContent('cin_back.png', self::PNG);
-        fwrite(STDERR, "\n===MIME===\nfront reported: " . var_export($frontFake->getMimeType(), true) . "\nfront real path: " . var_export($frontFake->getPathname(), true) . "\nback reported: " . var_export($backFake->getMimeType(), true) . "\n===END===\n");
+        // The client truthfully declares the real (non-whitelisted) MIME of the
+        // file, the same way an honest scanner or a re-encoded upload would.
+        // `mimes` alone would accept it by extension; the `mimetypes` rule must
+        // reject the declared content type.
+        $textFile = UploadedFile::fake()->createWithContent('cin_front.png', 'just plain text');
 
         $response = $this->actingAs($user)->post('/documents', [
             'dossier_id' => $dossier->id,
             'document_template_id' => $template->id,
-            'file_front' => $frontFake,
-            'file_back' => $backFake,
-        ]);
-
-        fwrite(STDERR, "\n===RESP===\nstatus: " . $response->getStatusCode() . "\n");
-        fwrite(STDERR, 'redirect target: ' . $response->headers->get('Location') . "\n");
-        fwrite(STDERR, 'documents count: ' . $dossier->documents()->count() . "\n");
-        $session = $response->baseResponse->getSession();
-        fwrite(STDERR, 'session errors: ' . var_export($session?->get('errors'), true) . "\n");
-        fwrite(STDERR, "===END===\n");
+            'file_front' => new UploadedFile($textFile->getPathname(), 'cin_front.png', 'text/plain', null, true),
+            'file_back' => UploadedFile::fake()->createWithContent('cin_back.png', self::PNG),
+        ], $this->inertiaHeaders());
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors('file_front');
@@ -164,15 +148,58 @@ class DocumentUploadTest extends TestCase
     {
         [$company, $user, $dossier, $template] = $this->uploadContext();
 
+        // A real executable payload renamed to .jpg: the client declares the
+        // executable MIME type it actually carries, which must not satisfy the
+        // whitelisted image/PDF MIME validation.
+        $executable = UploadedFile::fake()->createWithContent('cin_front.jpg', "MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xFF\xFF\x00\x00\xB8\x00\x00\x00");
+
         $response = $this->actingAs($user)->post('/documents', [
             'dossier_id' => $dossier->id,
             'document_template_id' => $template->id,
-            'file_front' => UploadedFile::fake()->createWithContent('cin_front.jpg', "MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xFF\xFF\x00\x00\xB8\x00\x00\x00"),
+            'file_front' => new UploadedFile($executable->getPathname(), 'cin_front.jpg', 'application/x-msdownload', null, true),
             'file_back' => UploadedFile::fake()->createWithContent('cin_back.jpg', self::JPEG),
-        ]);
+        ], $this->inertiaHeaders());
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors('file_front');
+        $this->assertSame(0, $dossier->documents()->count());
+        $this->assertStoredFilesCount(0);
+    }
+
+    public function test_authorized_user_uploads_cin_jpeg_recto_and_png_verso_successfully(): void
+    {
+        [$company, $user, $dossier, $template] = $this->uploadContext();
+
+        $response = $this->actingAs($user)->post('/documents', [
+            'dossier_id' => $dossier->id,
+            'document_template_id' => $template->id,
+            'file_front' => UploadedFile::fake()->createWithContent('cin_front.jpg', self::JPEG),
+            'file_back' => UploadedFile::fake()->createWithContent('cin_back.png', self::PNG),
+        ]);
+
+        $response->assertRedirect();
+        $this->assertSame(2, $dossier->documents()->count());
+        $this->assertSame(1, $dossier->documents()->where('document_side', 'front')->where('mime_type', 'image/jpeg')->count());
+        $this->assertSame(1, $dossier->documents()->where('document_side', 'back')->where('mime_type', 'image/png')->count());
+        $this->assertStoredFilesCount(2);
+    }
+
+    public function test_old_cin_front_and_cin_back_keys_do_not_satisfy_validation(): void
+    {
+        [$company, $user, $dossier, $template] = $this->uploadContext();
+
+        // Regression: the frontend previously sent `cin_front_file` /
+        // `cin_back_file`, which the backend never read. Those keys must not
+        // satisfy the `file_front` / `file_back` requirement.
+        $response = $this->actingAs($user)->post('/documents', [
+            'dossier_id' => $dossier->id,
+            'document_template_id' => $template->id,
+            'cin_front_file' => UploadedFile::fake()->createWithContent('cin_front.jpg', self::JPEG),
+            'cin_back_file' => UploadedFile::fake()->createWithContent('cin_back.jpg', self::JPEG),
+        ], $this->inertiaHeaders());
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['file_front', 'file_back']);
         $this->assertSame(0, $dossier->documents()->count());
         $this->assertStoredFilesCount(0);
     }
@@ -188,7 +215,7 @@ class DocumentUploadTest extends TestCase
             'document_template_id' => $template->id,
             'file_front' => UploadedFile::fake()->createWithContent('cin_front.jpg', self::JPEG.str_repeat('x', 3 * 1024)),
             'file_back' => UploadedFile::fake()->createWithContent('cin_back.jpg', self::JPEG),
-        ]);
+        ], $this->inertiaHeaders());
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors('file_front');
@@ -204,7 +231,7 @@ class DocumentUploadTest extends TestCase
             'document_template_id' => $template->id,
             'file_front' => UploadedFile::fake()->createWithContent('cin_front.jpg', self::JPEG),
             'file_back' => UploadedFile::fake()->createWithContent('cin_back.jpg', self::JPEG),
-        ]);
+        ], $this->inertiaHeaders());
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors('dossier_id');
@@ -213,6 +240,8 @@ class DocumentUploadTest extends TestCase
 
     public function test_project_from_another_company_is_rejected(): void
     {
+        Storage::fake('local');
+
         $companyA = Company::factory()->create();
         $companyB = Company::factory()->create();
         $user = $this->userFor($companyA, ['documents.create']);
@@ -252,12 +281,16 @@ class DocumentUploadTest extends TestCase
     {
         [$company, $user, $dossier, $template] = $this->uploadContext();
 
+        // Text content truthfully declared as text/plain: extension passes
+        // `mimes`, but the content MIME is not whitelisted.
+        $textFile = UploadedFile::fake()->createWithContent('cin_front.jpg', 'not an image at all');
+
         $this->actingAs($user)->post('/documents', [
             'dossier_id' => $dossier->id,
             'document_template_id' => $template->id,
-            'file_front' => UploadedFile::fake()->createWithContent('cin_front.jpg', 'not an image at all'),
+            'file_front' => new UploadedFile($textFile->getPathname(), 'cin_front.jpg', 'text/plain', null, true),
             'file_back' => UploadedFile::fake()->createWithContent('cin_back.jpg', self::JPEG),
-        ])->assertStatus(422);
+        ], $this->inertiaHeaders())->assertStatus(422);
 
         $this->assertSame(0, $dossier->documents()->count());
         $this->assertStoredFilesCount(0);
@@ -282,6 +315,19 @@ class DocumentUploadTest extends TestCase
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Mimics an Inertia request (the real client sends X-Requested-With), so
+     * validation failures render as 422 JSON with field errors, exactly as the
+     * browser integration receives them.
+     */
+    private function inertiaHeaders(): array
+    {
+        return [
+            'X-Requested-With' => 'XMLHttpRequest',
+            'Accept' => 'application/json, text/plain, */*',
+        ];
+    }
 
     private function assertStoredFilesCount(int $expected): void
     {

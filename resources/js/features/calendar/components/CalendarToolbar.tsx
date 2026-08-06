@@ -1,5 +1,7 @@
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { Button } from '@heroui/react';
 
+import { useTranslation } from '@/lib/i18n';
 
 type Props = {
     currentDate: Date;
@@ -11,13 +13,15 @@ type Props = {
 };
 
 const VIEWS = [
-    { key: 'dayGridMonth' as const, label: 'Month' },
-    { key: 'timeGridWeek' as const, label: 'Week' },
-    { key: 'timeGridDay' as const, label: 'Day' },
+    { key: 'dayGridMonth' as const, tKey: 'calendar.month' },
+    { key: 'timeGridWeek' as const, tKey: 'calendar.week' },
+    { key: 'timeGridDay' as const, tKey: 'calendar.day' },
 ];
 
 export function CalendarToolbar({ currentDate, viewMode, onViewModeChange, onPrev, onNext, onToday }: Props) {
-    const title = new Intl.DateTimeFormat('en-US', {
+    const { t, locale } = useTranslation();
+    const intlLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
+    const title = new Intl.DateTimeFormat(intlLocale, {
         month: 'long',
         year: 'numeric',
         day: viewMode === 'timeGridDay' ? 'numeric' : undefined,
@@ -26,25 +30,35 @@ export function CalendarToolbar({ currentDate, viewMode, onViewModeChange, onPre
     return (
         <div className="flex h-[54px] items-center justify-between border-b border-white/8 px-4">
             <div className="flex items-center gap-2">
-                <button
+                <Button
                     type="button"
-                    onClick={onToday}
-                    className="h-7 rounded-lg border border-white/8 px-3 text-[10px] font-semibold text-white/70 transition hover:bg-white/5 hover:text-white">
-                    Today
-                </button>
+                    variant="outline"
+                    size="sm"
+                    onPress={onToday}
+                    className="h-7 min-h-7 rounded-lg border-white/8 px-3 text-[10px] font-semibold text-white/70 transition hover:bg-white/5 hover:text-white">
+                    {t('calendar.today')}
+                </Button>
                 <div className="flex items-center">
-                    <button
+                    <Button
                         type="button"
-                        onClick={onPrev}
-                        className="flex size-7 items-center justify-center rounded-l-lg border border-white/8 text-white/40 transition hover:bg-white/5 hover:text-white">
+                        isIconOnly
+                        size="sm"
+                        variant="outline"
+                        onPress={onPrev}
+                        aria-label={t('calendar.previous')}
+                        className="size-7 min-w-7 rounded-l-lg rounded-r-none border-white/8 p-0 text-white/40 transition hover:bg-white/5 hover:text-white">
                         <IconChevronLeft size={14} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
-                        onClick={onNext}
-                        className="-ml-px flex size-7 items-center justify-center rounded-r-lg border border-white/8 text-white/40 transition hover:bg-white/5 hover:text-white">
+                        isIconOnly
+                        size="sm"
+                        variant="outline"
+                        onPress={onNext}
+                        aria-label={t('calendar.next')}
+                        className="-ml-px size-7 min-w-7 rounded-l-none rounded-r-lg border-white/8 p-0 text-white/40 transition hover:bg-white/5 hover:text-white">
                         <IconChevronRight size={14} />
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -52,17 +66,19 @@ export function CalendarToolbar({ currentDate, viewMode, onViewModeChange, onPre
 
             <div className="flex rounded-lg border border-white/8 p-0.5">
                 {VIEWS.map((v) => (
-                    <button
+                    <Button
                         key={v.key}
                         type="button"
-                        onClick={() => onViewModeChange(v.key)}
-                        className={`h-7 rounded-md px-3 text-[10px] font-semibold transition ${
+                        variant="ghost"
+                        size="sm"
+                        onPress={() => onViewModeChange(v.key)}
+                        className={`h-7 min-h-7 rounded-md px-3 text-[10px] font-semibold transition ${
                             viewMode === v.key
-                                ? 'bg-[var(--crm-gold)] text-black'
+                                ? 'bg-[var(--crm-gold)] text-black hover:brightness-110'
                                 : 'text-white/50 hover:text-white'
                         }`}>
-                        {v.label}
-                    </button>
+                        {t(v.tKey)}
+                    </Button>
                 ))}
             </div>
         </div>

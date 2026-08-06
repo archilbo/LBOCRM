@@ -93,8 +93,8 @@ export function ExpenseDrawer({ isOpen, onOpenChange, expense, mode = expense ? 
     return (
         <AppDrawer
             isOpen={isOpen} onOpenChange={onOpenChange}
-            title={isViewOnly ? 'Depense' : isEditing ? 'Modifier la depense' : 'Nouvelle depense'}
-            description={isViewOnly ? '' : 'Enregistrez une depense.'}
+            title={isViewOnly ? 'Dépense' : isEditing ? 'Modifier la dépense' : 'Nouvelle dépense'}
+            description={isViewOnly ? '' : 'Enregistrez une dépense.'}
             footer={
                 isViewOnly
                     ? <Button variant="light" size="sm" onPress={() => onOpenChange(false)}>Fermer</Button>
@@ -158,7 +158,7 @@ export function ExpenseDrawer({ isOpen, onOpenChange, expense, mode = expense ? 
                             <label className={labelCls}>Montant</label>
                             <Input className={compactInput} type="number" min="0" step="0.01" value={form.amount} onChange={(e) => update('amount', e.target.value)} />
                         </div>
-                        <DateField label="Date depense" value={strToDate(form.expenseDate)} onChange={(d) => update('expenseDate', dateToStr(d))} />
+                        <DateField label="Date dépense" value={strToDate(form.expenseDate)} onChange={(d) => update('expenseDate', dateToStr(d))} />
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2">
                         <div className="flex min-w-0 flex-col gap-1">

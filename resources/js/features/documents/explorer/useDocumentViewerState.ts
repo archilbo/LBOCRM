@@ -33,13 +33,12 @@ export type DocumentViewerState = {
  * parameter.
  *
  * History strategy:
- * - open()  -> pushState   (one entry per open)
+ * - open()  -> replaceState (adds preview_document parameter)
  * - prev/next -> replaceState (no extra entries)
- * - close after local open -> history.back() (popstate closes the modal)
- * - close after URL restore -> replaceState removing the parameter
+ * - close() -> replaceState removing the parameter
  *
- * popstate is the single listener for Back/Forward; pushState/replaceState
- * never fire popstate, so there is no URL/state loop.
+ * This ensures closing the preview always stays on the same page and tab.
+ * popstate handles browser Back/Forward navigation.
  */
 export function useDocumentViewerState({
     documents,
@@ -55,7 +54,6 @@ export function useDocumentViewerState({
     });
 
     const openIdRef = useRef(openDocumentId);
-    const openedByPushRef = useRef(false);
     const openerRef = useRef<HTMLElement | null>(null);
 
     const restoreFocus = useCallback(() => {
@@ -72,10 +70,6 @@ export function useDocumentViewerState({
     useEffect(() => {
         const onPopState = () => {
             const nextId = readViewerDocumentId(window.location.href);
-
-            // A pop restore is history-driven: closing later must remove the
-            // parameter with replaceState instead of calling back() again.
-            openedByPushRef.current = false;
 
             if (nextId === null && openIdRef.current !== null) {
                 window.setTimeout(restoreFocus, 0);
@@ -105,9 +99,8 @@ export function useDocumentViewerState({
         openerRef.current = active instanceof HTMLElement && !active.closest('[role="menu"]') ? active : null;
 
         openIdRef.current = id;
-        openedByPushRef.current = true;
         setOpenDocumentId(id);
-        window.history.pushState({ previewDocument: id }, '', buildViewerUrl(window.location.href, id));
+        window.history.replaceState({ previewDocument: id }, '', buildViewerUrl(window.location.href, id));
     }, []);
 
     const navigateTo = useCallback((id: string) => {
@@ -121,20 +114,10 @@ export function useDocumentViewerState({
             return;
         }
 
-        const wasPushOpened = openedByPushRef.current;
-
-        openedByPushRef.current = false;
-
-        if (wasPushOpened) {
-            // Pop the entry created by open(): the popstate listener closes
-            // the modal and restores focus.
-            window.history.back();
-        } else {
-            openIdRef.current = null;
-            window.history.replaceState({ previewDocument: null }, '', removeViewerParam(window.location.href));
-            setOpenDocumentId(null);
-            window.setTimeout(restoreFocus, 0);
-        }
+        openIdRef.current = null;
+        window.history.replaceState({ previewDocument: null }, '', removeViewerParam(window.location.href));
+        setOpenDocumentId(null);
+        window.setTimeout(restoreFocus, 0);
     }, [restoreFocus]);
 
     const openDocument = useMemo(

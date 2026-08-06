@@ -1,5 +1,7 @@
 import { cn } from '@/lib/cn';
 import { AppKpiCard } from '@/components/ui/AppKpiCard';
+import { useTranslation } from '@/lib/i18n';
+import { useMemo } from 'react';
 
 type KpiProps = {
     kpis: {
@@ -16,20 +18,27 @@ type KpiProps = {
     className?: string;
 };
 
-const KPI_ITEMS = [
-    { key: null as string | null, label: 'Total', valueKey: 'total' as const, dot: '' },
-    { key: 'ready', label: 'Ready', valueKey: 'ready' as const, dot: 'bg-emerald-500' },
-    { key: 'stored', label: 'Stored', valueKey: 'stored' as const, dot: 'bg-sky-500' },
-    { key: 'checked_out', label: 'Out', valueKey: 'checkedOut' as const, dot: 'bg-amber-500' },
-    { key: 'overdue', label: 'Overdue', valueKey: 'overdue' as const, dot: 'bg-red-500' },
-    { key: 'returned', label: 'Returned', valueKey: 'returned' as const, dot: 'bg-violet-500' },
-    { key: 'lost', label: 'Lost', valueKey: 'lost' as const, dot: 'bg-zinc-500' },
+const KPI_CONFIG = [
+    { key: null as string | null, valueKey: 'total' as const, dot: '' },
+    { key: 'ready', valueKey: 'ready' as const, dot: 'bg-[var(--crm-success)]' },
+    { key: 'stored', valueKey: 'stored' as const, dot: 'bg-[var(--crm-info)]' },
+    { key: 'checked_out', valueKey: 'checkedOut' as const, dot: 'bg-[var(--crm-gold)]' },
+    { key: 'overdue', valueKey: 'overdue' as const, dot: 'bg-[var(--crm-danger)]' },
+    { key: 'returned', valueKey: 'returned' as const, dot: 'bg-[var(--crm-violet)]' },
+    { key: 'lost', valueKey: 'lost' as const, dot: 'bg-[var(--crm-text-soft)]' },
 ] as const;
 
 export function KpiStrip({ kpis, activeFilter, onFilter, className }: KpiProps) {
+    const { t } = useTranslation();
+
+    const kpiItems = useMemo(() => KPI_CONFIG.map((item) => ({
+        ...item,
+        label: t(`kpi.${item.valueKey}`),
+    })), [t]);
+
     return (
         <div className={cn('grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7', className)}>
-            {KPI_ITEMS.map((item) => {
+            {kpiItems.map((item) => {
                 const value = kpis[item.valueKey];
                 const isActive = activeFilter === item.key;
 
@@ -38,9 +47,10 @@ export function KpiStrip({ kpis, activeFilter, onFilter, className }: KpiProps) 
                         key={item.key ?? 'total'}
                         label={item.label}
                         value={value}
-                        icon={item.dot ? <span className={cn('size-1.5 rounded-full', item.dot)} /> : undefined}
+                        icon={item.dot ? <span className={cn('size-2 rounded-full', item.dot)} /> : undefined}
                         onPress={item.key ? () => onFilter(isActive ? null : item.key) : undefined}
                         isSelected={isActive}
+                        stacked
                     />
                 );
             })}

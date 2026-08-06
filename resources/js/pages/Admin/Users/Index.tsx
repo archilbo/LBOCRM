@@ -7,6 +7,7 @@ import { IconAlertTriangle, IconChevronDown, IconCalendarMonth, IconCheck, IconC
 
 import { Accordion, Button, Checkbox, Chip, Dropdown, Input, ListBox, Select, Switch } from '@heroui/react';
 import { toast } from 'sonner';
+import { useTranslation } from '@/lib/i18n';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDataTable } from '@/components/ui/AppDataTable';
@@ -285,6 +286,7 @@ export default function AdminUsersIndex({
     operationsReport = null,
     reportedAt = new Date().toISOString(),
 }: PageProps) {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<TabId>(() => {
         const requested = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('tab');
         if (requested === 'workload' && canViewWorkload) return 'workload';
@@ -302,6 +304,8 @@ export default function AdminUsersIndex({
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [inviteForm, setInviteForm] = useState({ firstName: '', lastName: '', email: '', role: 'staff' as string });
     const [inviteErrors, setInviteErrors] = useState<FormErrors>({});
+    const [isInviting, setIsInviting] = useState(false);
+    const [resendingId, setResendingId] = useState<number | null>(null);
     const [viewProfileUser, setViewProfileUser] = useState<AdminUserRow | null>(null);
     const [editUser, setEditUser] = useState<AdminUserRow | null>(null);
     const [editPerms, setEditPerms] = useState<PermissionsState>({});
@@ -518,7 +522,11 @@ export default function AdminUsersIndex({
 
     function handleInvite(e: FormEvent) {
         e.preventDefault();
+        if (isInviting) {
+            return;
+        }
         setInviteErrors({});
+        setIsInviting(true);
         router.post('/admin/users/invite', {
             name: `${inviteForm.firstName} ${inviteForm.lastName}`.trim(),
             email: inviteForm.email,
@@ -528,9 +536,14 @@ export default function AdminUsersIndex({
             onSuccess: () => {
                 setIsInviteOpen(false);
                 setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' });
-                toast.success(`Invitation sent to ${inviteForm.email}`);
             },
-            onError: (err) => setInviteErrors(err),
+            onError: (err) => {
+                setInviteErrors(err);
+                if (Object.keys(err).length === 0) {
+                    toast.error(t('users.invitations.toast.sendFailed'));
+                }
+            },
+            onFinish: () => setIsInviting(false),
         });
     }
 
@@ -695,7 +708,18 @@ export default function AdminUsersIndex({
                         </button>
                     </AppTooltip> : null}
                     {info.row.original.accountStatus === 'pending' && canCreateUsers ? <AppTooltip label="Renvoyer l'invitation">
-                        <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label="Renvoyer l'invitation" onClick={() => router.post(`/admin/users/${info.row.original.id}/invite/resend`, {}, { preserveScroll: true, onSuccess: () => toast.success(`Invitation resent to ${info.row.original.email}`), onError: () => toast.error('Invitation could not be resent.') })}>
+                        <button type="button" disabled={resendingId === info.row.original.id} className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:pointer-events-none disabled:opacity-50" aria-label="Renvoyer l'invitation" onClick={() => {
+                            const userId = info.row.original.id;
+                            if (resendingId === userId) {
+                                return;
+                            }
+                            setResendingId(userId);
+                            router.post(`/admin/users/${userId}/invite/resend`, {}, {
+                                preserveScroll: true,
+                                onError: () => toast.error(t('users.invitations.toast.resendFailed')),
+                                onFinish: () => setResendingId(null),
+                            });
+                        }}>
                             <IconMail size={11} />
                         </button>
                     </AppTooltip> : null}
@@ -978,7 +1002,7 @@ export default function AdminUsersIndex({
                         </div>
                         <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] pt-4">
                             <AppButton variant="bordered" onPress={() => setIsInviteOpen(false)}>Annuler</AppButton>
-                            <AppButton type="submit" variant="solid" color="primary"><IconMail size={15} />Envoyer l'invitation</AppButton>
+                            <AppButton type="submit" variant="solid" color="primary" isDisabled={isInviting}><IconMail size={15} />{isInviting ? "Envoi en cours…" : "Envoyer l'invitation"}</AppButton>
                         </div>
                     </form>
                 </AppModal>

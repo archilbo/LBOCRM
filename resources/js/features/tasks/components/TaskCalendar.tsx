@@ -1,5 +1,9 @@
 import type { TaskRow } from '@/features/tasks/types';
-import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_DOT_COLORS, STATUS_LABELS } from '@/features/tasks/types';
+import { PRIORITY_COLORS, STATUS_DOT_COLORS } from '@/features/tasks/types';
+import { Button, Card, Chip } from '@heroui/react';
+import { cn } from '@/lib/cn';
+import { AvatarPill } from '@/components/ui/AvatarPill';
+import { useTranslation } from '@/lib/i18n';
 
 type Props = {
     tasks: TaskRow[];
@@ -7,17 +11,18 @@ type Props = {
 };
 
 export function TaskCalendar({ tasks, onTaskClick }: Props) {
+    const { t } = useTranslation();
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
     const weekEnd = new Date(now); weekEnd.setDate(now.getDate() + (7 - now.getDay()));
     const weekEndStr = weekEnd.toISOString().slice(0, 10);
 
-    const groups: { label: string; tasks: TaskRow[]; accent: string }[] = [
-        { label: 'Overdue', tasks: [], accent: 'text-red-400' },
-        { label: 'Today', tasks: [], accent: 'text-[var(--crm-gold)]' },
-        { label: 'This week', tasks: [], accent: 'text-blue-400' },
-        { label: 'Upcoming', tasks: [], accent: 'text-emerald-400' },
-        { label: 'No date', tasks: [], accent: 'text-zinc-400' },
+    const groups: { id: string; label: string; tasks: TaskRow[]; accent: string }[] = [
+        { id: 'overdue', label: t('tasks.periods.overdue'), tasks: [], accent: 'text-red-400' },
+        { id: 'today', label: t('tasks.periods.today'), tasks: [], accent: 'text-[var(--accent)]' },
+        { id: 'thisWeek', label: t('tasks.periods.thisWeek'), tasks: [], accent: 'text-blue-400' },
+        { id: 'upcoming', label: t('tasks.periods.upcoming'), tasks: [], accent: 'text-emerald-400' },
+        { id: 'noDate', label: t('tasks.periods.noDate'), tasks: [], accent: 'text-zinc-400' },
     ];
 
     for (const t of tasks) {
@@ -32,8 +37,8 @@ export function TaskCalendar({ tasks, onTaskClick }: Props) {
 
     if (nonEmpty.length === 0) {
         return (
-            <div className="flex items-center justify-center rounded-xl border border-dashed border-[var(--crm-border)] bg-[var(--crm-elevated)] py-16">
-                <p className="text-sm text-[var(--crm-text-muted)]">No tasks to show.</p>
+            <div className="flex items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] py-16">
+                <p className="text-sm text-[var(--text-muted)]">{t('tasks.empty.calendar')}</p>
             </div>
         );
     }
@@ -41,26 +46,26 @@ export function TaskCalendar({ tasks, onTaskClick }: Props) {
     return (
         <div className="space-y-3">
             {nonEmpty.map((group) => (
-                <div key={group.label} className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-3">
+                <Card key={group.id} className="gap-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
                     <div className="mb-2 flex items-center gap-2">
                         <span className={`text-xs font-bold uppercase tracking-[0.1em] ${group.accent}`}>{group.label}</span>
-                        <span className="text-[9px] text-[var(--crm-text-muted)]">({group.tasks.length})</span>
+                        <span className="text-[9px] text-[var(--text-muted)]">({group.tasks.length})</span>
                     </div>
                     <div className="space-y-1">
-                        {group.tasks.map((t) => (
-                            <button key={t.id} type="button" onClick={() => onTaskClick(t)}
-                                className="flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left transition hover:border-[var(--crm-border)] hover:bg-[var(--crm-surface)]">
-                                <span className={`size-2 shrink-0 rounded-full ${STATUS_DOT_COLORS[t.status]}`} />
-                                <span className="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--crm-text)]">{t.title}</span>
-                                <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${PRIORITY_COLORS[t.priority]}`}>{PRIORITY_LABELS[t.priority]}</span>
-                                {t.dueDate ? <span className={`whitespace-nowrap text-[9px] ${group.label === 'Overdue' ? 'font-semibold text-red-400' : 'text-[var(--crm-text-muted)]'}`}>{t.dueDate}</span> : null}
-                                {Array.isArray(t.assignees) && t.assignees.length > 0 ? (
-                                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--crm-gold)] text-[7px] font-bold text-black">{t.assignees[0].name.charAt(0)}</span>
+                        {group.tasks.map((task) => (
+                            <Button key={task.id} variant="ghost" onPress={() => onTaskClick(task)}
+                                className="flex h-auto min-h-0 w-full items-center gap-2 justify-start rounded-lg border border-transparent px-2.5 py-2 text-left transition hover:border-[var(--border)] hover:bg-[var(--surface-2)]">
+                                <span className={`size-2 shrink-0 rounded-full ${STATUS_DOT_COLORS[task.status]}`} />
+                                <span className="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--text)]">{task.title}</span>
+                                <Chip size="sm" className={cn('h-5 rounded-full border px-2 text-[9px] font-semibold', PRIORITY_COLORS[task.priority])}>{t(`tasks.priorities.${task.priority}`)}</Chip>
+                                {task.dueDate ? <span className={`whitespace-nowrap text-[9px] ${group.id === 'overdue' ? 'font-semibold text-red-400' : 'text-[var(--text-muted)]'}`}>{task.dueDate}</span> : null}
+                                {Array.isArray(task.assignees) && task.assignees.length > 0 ? (
+                                    <AvatarPill name={task.assignees[0].name} size="sm" className="size-4 min-w-4 text-[7px]" />
                                 ) : null}
-                            </button>
+                            </Button>
                         ))}
                     </div>
-                </div>
+                </Card>
             ))}
         </div>
     );

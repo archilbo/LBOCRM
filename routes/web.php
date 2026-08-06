@@ -39,11 +39,15 @@ use Inertia\Inertia;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
-    Route::get('/accept-invitation/{token}', [AdminUserInvitationController::class, 'accept'])->name('invitation.accept')->middleware('throttle:10,1');
-    Route::post('/accept-invitation/{token}', [AdminUserInvitationController::class, 'complete'])->name('invitation.complete')->middleware('throttle:10,1');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'create'])->name('password.reset')->middleware('throttle:10,1');
     Route::post('/reset-password', [PasswordResetController::class, 'store'])->name('password.update')->middleware('throttle:10,1');
 });
+
+// Invitation acceptance must stay reachable regardless of authentication state:
+// the web middleware group (sessions, CSRF, HandleInertiaRequests) still applies.
+Route::get('/accept-invitation/{token}', [AdminUserInvitationController::class, 'accept'])->name('invitation.accept')->middleware('throttle:10,1');
+Route::post('/accept-invitation/{token}', [AdminUserInvitationController::class, 'complete'])->name('invitation.complete')->middleware('throttle:10,1');
+Route::post('/accept-invitation/{token}/continue', [AdminUserInvitationController::class, 'continueSession'])->name('invitation.continue')->middleware('throttle:10,1');
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
@@ -229,11 +233,6 @@ Route::middleware('auth')->group(function () {
         Route::put('/archives/{archiveRecord}/mark-lost', [ArchiveController::class, 'markLost'])->name('archives.mark-lost');
         Route::delete('/archives/{archiveRecord}', [ArchiveController::class, 'destroy'])->name('archives.destroy');
     });
-    Route::get('/archives/cities', [\App\Http\Controllers\CityController::class, 'index'])->name('archives.cities.index')->middleware('permission.route');
-    Route::post('/archives/cities', [\App\Http\Controllers\CityController::class, 'store'])->name('archives.cities.store')->middleware('permission.route');
-    Route::put('/archives/cities/{city}', [\App\Http\Controllers\CityController::class, 'update'])->name('archives.cities.update')->middleware('permission.route');
-    Route::delete('/archives/cities/{city}', [\App\Http\Controllers\CityController::class, 'destroy'])->name('archives.cities.destroy')->middleware('permission.route');
-
     Route::get('/settings', [\App\Http\Controllers\CityController::class, 'settings'])->name('settings.index')->middleware('permission.route');
     Route::post('/settings/cities', [\App\Http\Controllers\CityController::class, 'store'])->name('settings.cities.store')->middleware('permission.route');
     Route::put('/settings/cities/{city}', [\App\Http\Controllers\CityController::class, 'update'])->name('settings.cities.update')->middleware('permission.route');

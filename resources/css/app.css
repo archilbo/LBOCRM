@@ -183,6 +183,8 @@ summary {
     --success-soft-foreground: var(--success);
     --warning-soft: color-mix(in srgb, var(--warning) 14%, transparent);
     --warning-soft-foreground: var(--warning);
+    --info-soft: color-mix(in srgb, var(--info) 14%, transparent);
+    --info-soft-foreground: var(--info);
     --radius: var(--radius-md);
     --field-radius: var(--radius-md);
 }
@@ -207,9 +209,25 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Force the project font (Geist) on every string — native form controls and
+   HeroUI parts inherit the app font instead of falling back to a system stack. */
+@layer base {
+    html {
+        font-family: var(--font-sans);
+    }
+
+    button,
+    input,
+    select,
+    textarea,
+    optgroup,
+    [data-slot] {
+        font-family: inherit;
+    }
+}
+
 code,
 pre,
-kbd,
 samp {
     font-family: var(--font-mono);
 }
@@ -453,7 +471,7 @@ samp {
     line-height: 16px;
     font-weight: 600;
     text-align: left;
-    text-transform: uppercase;
+    text-transform: capitalize;
     letter-spacing: 0.04em;
     padding: 0.5rem 0.625rem;
     border-bottom: 1px solid var(--border);
@@ -745,7 +763,7 @@ html.pd-editor-fullscreen .pd-tabs-container {
     font-weight: 700;
     letter-spacing: 0.08em;
     line-height: 1;
-    text-transform: uppercase;
+    text-transform: capitalize;
     white-space: nowrap;
 }
 

@@ -1,13 +1,19 @@
-import { IconCalendarMonth, IconCircleCheck, IconSquareCheck, IconClockHour3, IconExternalLink, IconFileText, IconMessage2, IconNotebook, IconPaperclip, IconPlus, IconNotes, IconX, IconUser, IconArrowRight, IconCircle, IconEdit, IconListCheck, IconMessageCircle } from '@tabler/icons-react';
+import { IconCircleCheck, IconSquareCheck, IconClockHour3, IconExternalLink, IconFileText, IconMessage2, IconNotebook, IconPaperclip, IconPlus, IconNotes, IconUser, IconArrowRight, IconCircle, IconEdit, IconListCheck, IconMessageCircle } from '@tabler/icons-react';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { TabPanel } from 'react-aria-components';
+import { Button, Checkbox, Chip, Input, Link, ProgressBar, TextArea } from '@heroui/react';
 import { router } from '@inertiajs/react';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppWorkspaceTabs, type AppWorkspaceTab } from '@/components/ui/AppWorkspaceTabs';
+import { AvatarPill } from '@/components/ui/AvatarPill';
+import { drawerStyles } from '@/components/drawers';
+import { cn } from '@/lib/cn';
 import type { TaskActivityLogRow, TaskRow } from '@/features/tasks/types';
 import {
-    CATEGORY_COLORS, CATEGORY_LABELS, IMPACT_COLORS, IMPACT_LABELS, PRIORITY_COLORS, PRIORITY_LABELS,
-    STATUS_COLORS, STATUS_DOT_COLORS, STATUS_LABELS, TYPE_LABELS,
+    CATEGORY_COLORS, CATEGORY_LABELS, IMPACT_LABELS, PRIORITY_COLORS, PRIORITY_LABELS,
+    STATUS_COLORS, STATUS_LABELS, TYPE_LABELS,
 } from '@/features/tasks/types';
 
 type Props = {
@@ -22,16 +28,16 @@ type Props = {
 
 type TabId = 'overview' | 'checklist' | 'comments' | 'files' | 'activity';
 
-const TABS: { id: TabId; label: string }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'checklist', label: 'Checklist' },
-    { id: 'comments', label: 'Comments' },
-    { id: 'files', label: 'Files' },
-    { id: 'activity', label: 'Activity' },
+const TABS: AppWorkspaceTab[] = [
+    { id: 'overview', label: 'Overview', icon: IconCircle },
+    { id: 'checklist', label: 'Checklist', icon: IconListCheck },
+    { id: 'comments', label: 'Comments', icon: IconMessage2 },
+    { id: 'files', label: 'Files', icon: IconPaperclip },
+    { id: 'activity', label: 'Activity', icon: IconClockHour3 },
 ];
 
 function Badge({ children, className }: { children: React.ReactNode; className: string }) {
-    return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold ${className}`}>{children}</span>;
+    return <Chip size="sm" className={cn('h-5 rounded-full border px-2 text-[9px] font-semibold', className)}>{children}</Chip>;
 }
 
 export function TaskDetailDrawer({ task, onClose, onComplete, onChecklistToggle, onChecklistAdd, onCommentAdd, onAttachmentUpload }: Props) {
@@ -94,10 +100,10 @@ export function TaskDetailDrawer({ task, onClose, onComplete, onChecklistToggle,
             }
             footer={
                 <div className="flex items-center gap-2">
-                    <AppButton variant="secondary" onPress={onClose}>Close</AppButton>
+                    <AppButton variant="secondary" onPress={onClose}>Fermer</AppButton>
                     {!isComplete ? (
                         <AppButton variant="primary" onPress={() => onComplete(task)}>
-                            <IconCircleCheck size={14} /> Mark complete
+                            <IconCircleCheck size={14} /> Marquer terminée
                         </AppButton>
                     ) : null}
                 </div>
@@ -110,32 +116,24 @@ export function TaskDetailDrawer({ task, onClose, onComplete, onChecklistToggle,
             </div>
 
             {/* Tabs */}
-            <div className="mb-4 flex gap-1 border-b border-[var(--crm-border)]">
-                {TABS.map((t) => (
-                    <button key={t.id} type="button" onClick={() => setTab(t.id)}
-                        className={`border-b-2 px-3 py-2 text-xs font-semibold transition ${tab === t.id ? 'border-[var(--crm-gold)] text-[var(--crm-gold)]' : 'border-transparent text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
-                        {t.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* Tab content */}
-            {tab === 'overview' ? <OverviewTab task={task} links={links} /> : null}
-            {tab === 'checklist' ? (
-                <ChecklistTab task={task} checklistItems={checklistItems} doneCount={doneCount} isComplete={isComplete}
-                    onToggle={(id) => onChecklistToggle(task.id, id)} onAdd={submitChecklist}
-                    label={checklistLabel} onLabelChange={setChecklistLabel} />
-            ) : null}
-            {tab === 'comments' ? (
-                <CommentsTab task={fetchedTask || task} commentBody={commentBody} noteBody={noteBody} showNote={showNote}
-                    onCommentChange={setCommentBody} onNoteChange={setNoteBody}
-                    onSubmitComment={submitComment} onSubmitNote={submitNote}
-                    onToggleNote={() => setShowNote(!showNote)} />
-            ) : null}
-            {tab === 'files' ? (
-                <FilesTab task={fetchedTask || task} attachment={attachment} onAttachmentChange={setAttachment} onSubmit={submitAttachment} />
-            ) : null}
-            {tab === 'activity' ? <ActivityTab task={fetchedTask || task} /> : null}
+            <AppWorkspaceTabs tabs={TABS} selectedKey={tab} onSelectionChange={(key) => setTab(key as TabId)}>
+                <TabPanel id="overview" className="outline-none"><OverviewTab task={task} links={links} /></TabPanel>
+                <TabPanel id="checklist" className="outline-none">
+                    <ChecklistTab task={task} checklistItems={checklistItems} doneCount={doneCount} isComplete={isComplete}
+                        onToggle={(id) => onChecklistToggle(task.id, id)} onAdd={submitChecklist}
+                        label={checklistLabel} onLabelChange={setChecklistLabel} />
+                </TabPanel>
+                <TabPanel id="comments" className="outline-none">
+                    <CommentsTab task={fetchedTask || task} commentBody={commentBody} noteBody={noteBody} showNote={showNote}
+                        onCommentChange={setCommentBody} onNoteChange={setNoteBody}
+                        onSubmitComment={submitComment} onSubmitNote={submitNote}
+                        onToggleNote={() => setShowNote(!showNote)} />
+                </TabPanel>
+                <TabPanel id="files" className="outline-none">
+                    <FilesTab task={fetchedTask || task} onAttachmentChange={setAttachment} onSubmit={submitAttachment} />
+                </TabPanel>
+                <TabPanel id="activity" className="outline-none"><ActivityTab task={fetchedTask || task} /></TabPanel>
+            </AppWorkspaceTabs>
         </AppDrawer>
     );
 }
@@ -173,16 +171,16 @@ function OverviewTab({ task, links }: { task: TaskRow; links: { label: string; h
                 <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--crm-muted)]">People</p>
                 <div className="flex flex-wrap gap-2">
                     {Array.isArray(task.assignees) && task.assignees.map((a) => (
-                        <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2.5 py-1 text-xs font-semibold">
-                            <span className="flex size-5 items-center justify-center rounded-full bg-[var(--crm-gold)] text-[8px] font-bold text-black">{a.name.charAt(0)}</span>
+                        <Chip key={a.id} size="sm" className="h-7 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-semibold text-[var(--text)]">
+                            <AvatarPill name={a.name} size="sm" className="size-5 min-w-5 border-2 border-[var(--surface)] text-[8px]" />
                             {a.name}
-                        </span>
+                        </Chip>
                     ))}
                     {Array.isArray(task.watchers) && task.watchers.map((w) => (
-                        <span key={w.id} className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] px-2.5 py-1 text-[9px] text-[var(--crm-text-muted)]">Watching: {w.name}</span>
+                        <Chip key={w.id} size="sm" className="h-7 rounded-full border border-[var(--border)] px-2.5 text-[9px] text-[var(--text-muted)]">Watching: {w.name}</Chip>
                     ))}
                     {(!Array.isArray(task.assignees) || task.assignees.length === 0) && (!Array.isArray(task.watchers) || task.watchers.length === 0) ? (
-                        <span className="text-xs text-[var(--crm-text-muted)]">No people assigned.</span>
+                        <span className="text-xs text-[var(--text-muted)]">No people assigned.</span>
                     ) : null}
                 </div>
             </div>
@@ -193,10 +191,9 @@ function OverviewTab({ task, links }: { task: TaskRow; links: { label: string; h
                     <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--crm-muted)]">Linked records</p>
                     <div className="flex flex-wrap gap-1.5">
                         {links.map((link) => (
-                            <button key={link.href} type="button" onClick={() => router.visit(link.href)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--crm-text)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]">
+                            <AppButton key={link.href} variant="bordered" size="sm" className="h-7 min-h-7 rounded-lg px-2.5 text-xs font-semibold text-[var(--text)]" onPress={() => router.visit(link.href)}>
                                 <IconExternalLink size={12} /> {link.label}
-                            </button>
+                            </AppButton>
                         ))}
                     </div>
                 </div>
@@ -211,10 +208,9 @@ function OverviewTab({ task, links }: { task: TaskRow; links: { label: string; h
                         { s: 'blocked', l: 'Blocked' },
                         { s: 'in_review', l: 'In review' },
                     ].filter((a) => a.s !== task.status).map((action) => (
-                        <button key={action.s} type="button" onClick={() => router.put(`/tasks/${task.id}/status`, { status: action.s }, { preserveScroll: true, preserveState: true })}
-                            className="inline-flex items-center gap-1 rounded-lg border border-[var(--crm-border)] px-2.5 py-1.5 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]">
+                        <AppButton key={action.s} variant="bordered" size="sm" className="h-7 min-h-7 rounded-lg px-2.5 text-[9px] font-semibold text-[var(--text-muted)]" onPress={() => router.put(`/tasks/${task.id}/status`, { status: action.s }, { preserveScroll: true, preserveState: true })}>
                             {action.l}
-                        </button>
+                        </AppButton>
                     ))}
                 </div>
             ) : null}
@@ -242,28 +238,29 @@ function ChecklistTab({ task, checklistItems, doneCount, isComplete, onToggle, o
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-[var(--crm-muted)]">Checklist {doneCount}/{checklistItems.length}</p>
-                <span className="text-xs font-semibold text-[var(--crm-text-muted)]">{task.progress}%</span>
+                <p className="text-xs font-bold text-[var(--text-muted)]">Checklist {doneCount}/{checklistItems.length}</p>
+                <span className="text-xs font-semibold text-[var(--text-muted)]">{task.progress}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-[var(--crm-surface-3)]">
-                <div className="h-full rounded-full bg-[var(--crm-gold)]" style={{ width: `${task.progress}%` }} />
-            </div>
+            <ProgressBar value={task.progress} aria-label={`${task.progress}% complete`} className="h-1.5">
+                <ProgressBar.Track className="h-full rounded-full bg-[var(--surface-3)]">
+                    <ProgressBar.Fill className="h-full rounded-full bg-[var(--accent)]" />
+                </ProgressBar.Track>
+            </ProgressBar>
             {checklistItems.length > 0 ? (
                 <div className="space-y-1">
                     {checklistItems.map((item) => (
-                        <label key={item.id} className="flex items-center gap-2 rounded-lg border border-[var(--crm-border)] px-3 py-2 text-sm transition hover:bg-[var(--crm-surface)]">
-                            <input type="checkbox" checked={item.isDone} onChange={() => onToggle(item.id)} className="accent-[var(--crm-gold)]" />
-                            <span className={item.isDone ? 'text-[var(--crm-text-muted)] line-through' : 'text-[var(--crm-text)]'}>{item.label}</span>
-                        </label>
+                        <div key={item.id} className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm transition hover:bg-[var(--surface)]">
+                            <Checkbox isSelected={item.isDone} onChange={() => onToggle(item.id)} aria-label={item.label} />
+                            <span className={item.isDone ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text)]'}>{item.label}</span>
+                        </div>
                     ))}
                 </div>
             ) : (
-                <p className="rounded-lg border border-dashed border-[var(--crm-border)] px-3 py-3 text-sm text-[var(--crm-text-muted)]">No checklist items yet.</p>
+                <p className="rounded-lg border border-dashed border-[var(--border)] px-3 py-3 text-sm text-[var(--text-muted)]">No checklist items yet.</p>
             )}
             {!isComplete ? (
                 <form onSubmit={onAdd} className="flex gap-2">
-                    <input value={label} onChange={(e) => onLabelChange(e.target.value)} placeholder="Add checklist item"
-                        className="min-w-0 flex-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
+                    <Input value={label} onChange={(e) => onLabelChange(e.target.value)} placeholder="Add checklist item" aria-label="Add checklist item" className={drawerStyles.input} />
                     <AppButton variant="secondary" type="submit"><IconPlus size={14} /> Add</AppButton>
                 </form>
             ) : null}
@@ -286,39 +283,34 @@ function CommentsTab({ task, commentBody, noteBody, showNote, onCommentChange, o
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-[var(--crm-muted)]">Comments ({comments.length})</p>
-                <button type="button" onClick={onToggleNote}
-                    className="inline-flex items-center gap-1 text-[9px] font-semibold text-[var(--crm-muted)] hover:text-[var(--crm-gold)]">
+                <p className="text-xs font-bold text-[var(--text-muted)]">Comments ({comments.length})</p>
+                <Button size="sm" variant="ghost" onPress={onToggleNote} className="h-6 min-h-6 px-1.5 text-[9px] font-semibold text-[var(--text-muted)] hover:text-[var(--accent)]">
                     <IconNotes size={12} /> {showNote ? 'Write comment' : 'Internal note'}
-                </button>
+                </Button>
             </div>
             {comments.length > 0 ? (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                     {comments.map((c) => (
-                        <div key={c.id} className={`rounded-lg border px-3 py-2 ${c.isNote ? 'border-amber-400/15 bg-amber-400/5' : 'border-[var(--crm-border)] bg-[var(--crm-surface)]'}`}>
+                        <div key={c.id} className={`rounded-lg border px-3 py-2 ${c.isNote ? 'border-amber-400/15 bg-amber-400/5' : 'border-[var(--border)] bg-[var(--surface)]'}`}>
                             <div className="flex items-center gap-1.5 mb-1">
-                                <span className="flex size-5 items-center justify-center rounded-full bg-[var(--crm-gold-soft)] text-[7px] font-bold text-[var(--crm-gold)]">
-                                    {c.user?.name?.charAt(0) || '?'}
-                                </span>
-                                <span className="text-[9px] font-semibold text-[var(--crm-text)]">{c.user?.name || 'Unknown'}</span>
-                                {c.isNote ? <span className="rounded bg-amber-400/15 px-1 py-0.5 text-[8px] font-bold text-amber-300">NOTE</span> : null}
-                                <span className="ml-auto text-[9px] text-[var(--crm-text-muted)]">{c.createdAt?.slice(0, 10)}</span>
+                                <AvatarPill name={c.user?.name || '?'} size="sm" className="size-5 min-w-5 text-[7px]" />
+                                <span className="text-[9px] font-semibold text-[var(--text)]">{c.user?.name || 'Unknown'}</span>
+                                {c.isNote ? <Chip size="sm" className="h-4 min-h-4 rounded bg-amber-400/15 px-1 text-[8px] font-bold text-amber-300">NOTE</Chip> : null}
+                                <span className="ml-auto text-[9px] text-[var(--text-muted)]">{c.createdAt?.slice(0, 10)}</span>
                             </div>
-                            <p className="text-xs text-[var(--crm-text)] whitespace-pre-wrap">{c.body}</p>
+                            <p className="text-xs text-[var(--text)] whitespace-pre-wrap">{c.body}</p>
                         </div>
                     ))}
                 </div>
             ) : null}
             {!showNote ? (
                 <form onSubmit={onSubmitComment} className="space-y-2">
-                    <textarea value={commentBody} onChange={(e) => onCommentChange(e.target.value)} placeholder="Write a comment or @mention someone..." rows={3}
-                        className="w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
+                    <TextArea value={commentBody} onChange={(e) => onCommentChange(e.target.value)} placeholder="Write a comment or @mention someone..." rows={3} aria-label="Write a comment" className={drawerStyles.textarea} />
                     <AppButton variant="secondary" type="submit"><IconMessage2 size={14} /> Add comment</AppButton>
                 </form>
             ) : (
                 <form onSubmit={onSubmitNote} className="space-y-2">
-                    <textarea value={noteBody} onChange={(e) => onNoteChange(e.target.value)} placeholder="Internal note (team only)..." rows={3}
-                        className="w-full rounded-lg border border-amber-400/20 bg-[var(--crm-surface)] px-3 py-2 text-sm text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
+                    <TextArea value={noteBody} onChange={(e) => onNoteChange(e.target.value)} placeholder="Internal note (team only)..." rows={3} aria-label="Internal note" className={cn(drawerStyles.textarea, 'border-amber-400/20')} />
                     <AppButton variant="secondary" type="submit"><IconNotebook size={14} /> Add note</AppButton>
                 </form>
             )}
@@ -326,9 +318,8 @@ function CommentsTab({ task, commentBody, noteBody, showNote, onCommentChange, o
     );
 }
 
-function FilesTab({ task, attachment, onAttachmentChange, onSubmit }: {
+function FilesTab({ task, onAttachmentChange, onSubmit }: {
     task: TaskRow;
-    attachment: File | null;
     onAttachmentChange: (f: File | null) => void;
     onSubmit: (e: FormEvent) => void;
 }) {
@@ -337,31 +328,30 @@ function FilesTab({ task, attachment, onAttachmentChange, onSubmit }: {
         <div className="space-y-3">
             <p className="text-xs font-bold text-[var(--crm-muted)]">Attachments ({attachments.length})</p>
             <form onSubmit={onSubmit} className="flex flex-wrap items-center gap-2">
-                <input type="file" onChange={(e) => onAttachmentChange(e.target.files?.[0] ?? null)}
-                    className="min-w-0 flex-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2 text-xs text-[var(--crm-text)] file:mr-2 file:rounded file:border-0 file:bg-[var(--crm-gold)] file:px-2 file:py-0.5 file:text-[9px] file:font-bold file:text-black" />
+                <Input type="file" onChange={(e) => onAttachmentChange(e.target.files?.[0] ?? null)} aria-label="Upload attachment" className="min-w-0 flex-1 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--foreground)]" />
                 <AppButton variant="secondary" type="submit"><IconPaperclip size={14} /> Upload</AppButton>
             </form>
             {attachments.length > 0 ? (
                 <div className="space-y-1.5 max-h-60 overflow-y-auto">
                     {attachments.map((a) => (
-                        <div key={a.id} className="flex items-center gap-2 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-3 py-2">
-                            <IconFileText size={16} className="shrink-0 text-[var(--crm-muted)]" />
+                        <div key={a.id} className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                            <IconFileText size={16} className="shrink-0 text-[var(--text-muted)]" />
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs font-semibold text-[var(--crm-text)]">{a.originalFilename}</p>
-                                <p className="text-[9px] text-[var(--crm-text-muted)]">{a.sizeLabel || `${a.size} B`}{a.user ? ` by ${a.user.name}` : ''}</p>
+                                <p className="truncate text-xs font-semibold text-[var(--text)]">{a.originalFilename}</p>
+                                <p className="text-[9px] text-[var(--text-muted)]">{a.sizeLabel || `${a.size} B`}{a.user ? ` by ${a.user.name}` : ''}</p>
                             </div>
                             {a.downloadUrl ? (
-                                <a href={a.downloadUrl} download target="_blank" rel="noopener noreferrer"
-                                    className="shrink-0 rounded-lg border border-[var(--crm-border)] px-2 py-1 text-[9px] font-semibold text-[var(--crm-text-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-gold)]">
+                                <Link href={a.downloadUrl} download target="_blank" rel="noopener noreferrer"
+                                    className="shrink-0 rounded-lg border border-[var(--border)] px-2 py-1 text-[9px] font-semibold text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]">
                                     Download
-                                </a>
+                                </Link>
                             ) : null}
                         </div>
                     ))}
                 </div>
             ) : (
-                <div className="rounded-lg border border-dashed border-[var(--crm-border)] px-4 py-6 text-center text-xs text-[var(--crm-text-muted)]">
-                    <IconFileText size={20} className="mx-auto mb-1 text-[var(--crm-muted)]" />
+                <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-6 text-center text-xs text-[var(--text-muted)]">
+                    <IconFileText size={20} className="mx-auto mb-1 text-[var(--text-muted)]" />
                     No files uploaded yet.
                 </div>
             )}

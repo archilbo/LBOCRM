@@ -390,7 +390,7 @@ function DrawerFooter({ mode, step, isSubmitting, stepValid, onOpenChange, onBac
             ) : <div />}
             {step === createSteps.length - 1 ? (
                 <AppButton variant="solid" color="primary" type="submit" form="contract-form" isLoading={isSubmitting}>
-                    <IconCheck size={14} /> {isSubmitting ? 'Creation...' : 'Creer le contrat'}
+                    <IconCheck size={14} /> {isSubmitting ? 'Création…' : 'Créer le contrat'}
                 </AppButton>
             ) : (
                 <AppButton variant="solid" color="primary" onPress={onNext}

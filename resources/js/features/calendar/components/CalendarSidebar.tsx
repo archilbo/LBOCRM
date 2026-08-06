@@ -1,8 +1,11 @@
-import { IconPlus, IconSearch, IconX, IconAlertTriangle, IconCalendarMonth } from '@tabler/icons-react';
+import { IconPlus, IconAlertTriangle } from '@tabler/icons-react';
+import { Button, Chip } from '@heroui/react';
 
 import type { CalendarEventRow, CalendarEventType } from '@/features/calendar/types';
-import { EVENT_TYPE_LABELS, EVENT_TYPE_CLASSES } from '@/features/calendar/types';
+import { EVENT_TYPE_CLASSES } from '@/features/calendar/types';
 import { MiniCalendar } from '@/features/calendar/components/MiniCalendar';
+import { AppSearchInput } from '@/components/ui/AppSearchInput';
+import { useTranslation } from '@/lib/i18n';
 
 type UserOption = { id: number; name: string; email: string };
 
@@ -22,16 +25,14 @@ type Props = {
     onEventClick: (e: CalendarEventRow) => void;
 };
 
-const TYPES: { id: string; label: string }[] = [
-    { id: '', label: 'All types' },
-    ...Object.entries(EVENT_TYPE_LABELS).map(([id, label]) => ({ id, label })),
-];
+const TYPE_IDS: string[] = ['', ...Object.keys(EVENT_TYPE_CLASSES)];
 
 export function CalendarSidebar({
     search, onSearchChange, filterType, onFilterTypeChange,
     filterUserId, onFilterUserIdChange, currentDate, onDateChange,
     onDayClick, users, onCreateClick, events, onEventClick,
 }: Props) {
+    const { t } = useTranslation();
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
     const overdueCount = events.filter(
@@ -45,31 +46,23 @@ export function CalendarSidebar({
             <div className="rounded-xl border border-white/8 bg-[color-mix(in_srgb,var(--crm-elevated)_70%,#000)] p-[14px]">
 
                 {/* New event button */}
-                <button
+                <Button
                     type="button"
-                    onClick={onCreateClick}
+                    variant="primary"
+                    onPress={onCreateClick}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--crm-gold)] px-3 py-2 text-xs font-semibold text-black transition hover:brightness-110">
-                    <IconPlus size={14} /> New event
-                </button>
+                    <IconPlus size={14} /> {t('calendar.newEvent')}
+                </Button>
 
-                {/* IconSearch */}
-                <div className="relative mt-3">
-                    <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]" />
-                    <input
-                        value={search}
-                        onChange={(e) => onSearchChange(e.target.value)}
-                        placeholder="IconSearch events..."
-                        className="h-8 w-full rounded-lg border border-white/8 bg-white/5 pl-8 pr-8 text-xs text-white placeholder-[var(--crm-text-muted)] outline-none transition focus:border-[var(--crm-gold)]/40 focus:ring-2 focus:ring-[var(--crm-gold)]/20"
-                    />
-                    {search ? (
-                        <button
-                            type="button"
-                            onClick={() => onSearchChange('')}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]">
-                            <IconX size={12} />
-                        </button>
-                    ) : null}
-                </div>
+                {/* Search */}
+                <AppSearchInput
+                    value={search}
+                    onChange={onSearchChange}
+                    placeholder={t('calendar.search')}
+                    ariaLabel={t('calendar.search')}
+                    maxWidth=""
+                    className="mt-3"
+                />
 
                 {/* Divider */}
                 <div className="my-3 border-t border-white/8" />
@@ -79,26 +72,29 @@ export function CalendarSidebar({
 
                 {/* Overdue badge */}
                 {overdueCount > 0 && (
-                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/8 px-3 py-2">
-                        <IconAlertTriangle size={13} className="text-red-400" />
-                        <span className="text-xs font-semibold text-red-400">{overdueCount} overdue</span>
-                    </div>
+                    <Chip
+                        variant="soft"
+                        color="danger"
+                        className="mt-3 h-auto w-full justify-start gap-2 rounded-lg border border-red-500/20 bg-red-500/8 px-3 py-2 text-xs font-semibold text-red-400">
+                        <IconAlertTriangle size={13} className="text-red-400" /> {t('calendar.todayOverdue', { count: overdueCount })}
+                    </Chip>
                 )}
 
                 {/* Today mini-list */}
                 {todayEvents.length > 0 && (
                     <div className="mt-3">
-                        <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-gold)]">Today</p>
+                        <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-gold)]">{t('calendar.today')}</p>
                         <div className="space-y-0.5">
                             {todayEvents.map((e) => (
-                                <button
+                                <Button
                                     key={e.id}
                                     type="button"
-                                    onClick={() => onEventClick(e)}
-                                    className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-[10px] font-medium text-white/70 transition hover:bg-white/5">
+                                    variant="ghost"
+                                    onPress={() => onEventClick(e)}
+                                    className="flex h-auto min-h-0 w-full items-center gap-2 rounded px-2 py-1 text-left text-[10px] font-medium text-white/70 transition hover:bg-white/5 hover:text-white">
                                     <span className={`size-1.5 shrink-0 rounded-full ${EVENT_TYPE_CLASSES[e.type]?.split(' ')[0] || 'bg-zinc-400'}`} />
                                     <span className="min-w-0 flex-1 truncate">{e.title}</span>
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
@@ -108,23 +104,24 @@ export function CalendarSidebar({
                 <div className="my-3 border-t border-white/8" />
 
                 {/* Event type filter */}
-                <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">Event type</p>
+                <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">{t('calendar.eventType')}</p>
                 <div className="space-y-0.5">
-                    {TYPES.map((t) => (
-                        <button
-                            key={t.id}
+                    {TYPE_IDS.map((id) => (
+                        <Button
+                            key={id}
                             type="button"
-                            onClick={() => onFilterTypeChange(t.id)}
-                            className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
-                                filterType === t.id
+                            variant="ghost"
+                            onPress={() => onFilterTypeChange(id)}
+                            className={`flex h-auto min-h-0 w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                                filterType === id
                                     ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]'
                                     : 'text-[var(--crm-text-muted)] hover:bg-white/5 hover:text-white'
                             }`}>
-                            {t.id ? (
-                                <span className={`size-2 rounded-full ${EVENT_TYPE_CLASSES[t.id as CalendarEventType]?.split(' ')[0] || 'bg-zinc-400'}`} />
+                            {id ? (
+                                <span className={`size-2 rounded-full ${EVENT_TYPE_CLASSES[id as CalendarEventType]?.split(' ')[0] || 'bg-zinc-400'}`} />
                             ) : null}
-                            {t.label}
-                        </button>
+                            {id ? t(`calendar.eventTypes.${id}`) : t('calendar.allTypes')}
+                        </Button>
                     ))}
                 </div>
 
@@ -132,24 +129,26 @@ export function CalendarSidebar({
                 <div className="my-3 border-t border-white/8" />
 
                 {/* User filter */}
-                <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">User</p>
+                <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">{t('calendar.user')}</p>
                 <div className="flex flex-wrap gap-1">
-                    <button
+                    <Button
                         type="button"
-                        onClick={() => onFilterUserIdChange('')}
-                        className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${
+                        variant="ghost"
+                        onPress={() => onFilterUserIdChange('')}
+                        className={`h-auto min-h-0 rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${
                             filterUserId === '' ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)] hover:text-white'
-                        }`}>All</button>
+                        }`}>{t('calendar.allUsers')}</Button>
                     {users.map((u) => (
-                        <button
+                        <Button
                             key={u.id}
                             type="button"
-                            onClick={() => onFilterUserIdChange(String(u.id))}
-                            className={`rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${
+                            variant="ghost"
+                            onPress={() => onFilterUserIdChange(String(u.id))}
+                            className={`h-auto min-h-0 rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${
                                 filterUserId === String(u.id) ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)] hover:text-white'
                             }`}>
                             {u.name.split(' ')[0]}
-                        </button>
+                        </Button>
                     ))}
                 </div>
             </div>

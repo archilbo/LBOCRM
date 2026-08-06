@@ -45,6 +45,7 @@ export type ArchiveRecordRow = {
     city: { id: number; name: string; code: string; color: string } | null;
     notes: string | null;
     updatedAt: string | null;
+    updatedAtRaw: string | null;
     createdAt: string | null;
     events?: ArchiveEventRow[];
 };

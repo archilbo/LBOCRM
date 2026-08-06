@@ -1,171 +1,147 @@
-import { IconCalendarMonth, IconChevronDown, IconColumns3, IconLayoutDashboard, IconList, IconSearch, IconTable, IconTimeline, IconX } from '@tabler/icons-react';
+import { IconChevronDown, IconCircleCheck, IconX } from '@tabler/icons-react';
 
-import { useRef, useState } from 'react';
-import type { ViewMode } from '@/features/tasks/types';
+import { Button, Card, Chip, Dropdown } from '@heroui/react';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppSearchInput } from '@/components/ui/AppSearchInput';
+import { cn } from '@/lib/cn';
+import { useTranslation } from '@/lib/i18n';
 
 const FILTERS = [
-    { id: 'all', label: 'All' },
-    { id: 'my', label: 'My tasks' },
-    { id: 'assigned_by_me', label: 'Assigned by me' },
-    { id: 'watching', label: 'Watching' },
-    { id: 'overdue', label: 'Overdue' },
-    { id: 'due_today', label: 'Due today' },
-    { id: 'due_week', label: 'Due this week' },
-    { id: 'blocked', label: 'Blocked' },
-    { id: 'completed', label: 'Completed' },
+    { id: 'all', key: 'tasks.filters.all' },
+    { id: 'my', key: 'tasks.filters.my' },
+    { id: 'assigned_by_me', key: 'tasks.filters.assignedByMe' },
+    { id: 'watching', key: 'tasks.filters.watching' },
+    { id: 'overdue', key: 'tasks.filters.overdue' },
+    { id: 'due_today', key: 'tasks.filters.dueToday' },
+    { id: 'due_week', key: 'tasks.filters.dueThisWeek' },
+    { id: 'blocked', key: 'tasks.filters.blocked' },
+    { id: 'completed', key: 'tasks.filters.completed' },
 ];
 
 const CATEGORIES = [
-    { id: 'all', label: 'All projects' },
-    { id: 'documents', label: 'Documents' },
-    { id: 'client_follow_up', label: 'Client' },
-    { id: 'contract', label: 'Contracts' },
-    { id: 'finance', label: 'Finance' },
-    { id: 'archive', label: 'Archive' },
-    { id: 'general_admin', label: 'General' },
+    { id: 'all', key: 'tasks.filters.allProjects' },
+    { id: 'documents', key: 'tasks.categories.documents' },
+    { id: 'client_follow_up', key: 'tasks.categories.client_follow_up' },
+    { id: 'contract', key: 'tasks.categories.contract' },
+    { id: 'finance', key: 'tasks.categories.finance' },
+    { id: 'archive', key: 'tasks.categories.archive' },
+    { id: 'general_admin', key: 'tasks.categories.general_admin' },
 ];
 
 const PRIORITY_OPTIONS = [
-    { id: 'all', label: 'All priorities' },
-    { id: 'urgent', label: 'Urgent' },
-    { id: 'high', label: 'High' },
-    { id: 'medium', label: 'Medium' },
-    { id: 'low', label: 'Low' },
+    { id: 'all', key: 'tasks.filters.allPriorities' },
+    { id: 'urgent', key: 'tasks.priorities.urgent' },
+    { id: 'high', key: 'tasks.priorities.high' },
+    { id: 'medium', key: 'tasks.priorities.medium' },
+    { id: 'low', key: 'tasks.priorities.low' },
 ];
 
-const VIEW_TABS: { id: ViewMode; label: string; icon: typeof IconLayoutDashboard }[] = [
-    { id: 'overview', label: 'Overview', icon: IconLayoutDashboard },
-    { id: 'board', label: 'Board', icon: IconColumns3 },
-    { id: 'list', label: 'IconList', icon: IconList },
-    { id: 'table', label: 'Table', icon: IconTable },
-    { id: 'timeline', label: 'IconTimeline', icon: IconTimeline },
-    { id: 'calendar', label: 'Calendar', icon: IconCalendarMonth },
-];
+type Option = { id: string; key: string };
 
 type Props = {
     filter: string;
     category: string;
     priorityFilter: string;
     query: string;
-    viewMode: ViewMode;
     onFilterChange: (f: string) => void;
     onCategoryChange: (c: string) => void;
     onPriorityFilterChange: (p: string) => void;
     onQueryChange: (q: string) => void;
-    onViewModeChange: (v: ViewMode) => void;
 };
 
-export function TaskFilters({ filter, category, priorityFilter, query, viewMode, onFilterChange, onCategoryChange, onPriorityFilterChange, onQueryChange, onViewModeChange }: Props) {
-    const [scopeOpen, setScopeOpen] = useState(false);
-    const [moduleOpen, setModuleOpen] = useState(false);
-    const [priorityOpen, setPriorityOpen] = useState(false);
-    const scopeRef = useRef<HTMLDivElement>(null);
-    const moduleRef = useRef<HTMLDivElement>(null);
-    const priorityRef = useRef<HTMLDivElement>(null);
+function FilterSelect({ label, width, options, value, onSelect }: { label: string; width: string; options: Option[]; value: string; onSelect: (id: string) => void }) {
+    const { t } = useTranslation();
+    return (
+        <Dropdown>
+            <Dropdown.Trigger
+                className={cn(
+                    'group inline-flex h-8 items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-xs font-semibold text-[var(--text)] transition hover:border-[var(--accent)]/30',
+                    width,
+                    value !== 'all' && 'border-[var(--accent)] text-[var(--accent)]',
+                )}
+            >
+                <span className="truncate">{label}</span>
+                <IconChevronDown size={12} className="shrink-0 text-[var(--text-muted)] transition group-data-[open]:rotate-180" />
+            </Dropdown.Trigger>
+            <Dropdown.Popover placement="bottom start" className="min-w-44 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                <Dropdown.Menu
+                    aria-label={label}
+                    selectionMode="single"
+                    selectedKeys={[value]}
+                    onAction={(key) => onSelect(String(key))}
+                >
+                    {options.map((option) => (
+                        <Dropdown.Item
+                            key={option.id}
+                            id={option.id}
+                            textValue={t(option.key)}
+                            className="rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] outline-none transition data-[hovered]:bg-[var(--surface-2)]"
+                        >
+                            <div className="flex w-full items-center gap-2">
+                                <Dropdown.ItemIndicator><IconCircleCheck size={14} className="text-[var(--accent)]" /></Dropdown.ItemIndicator>
+                                <span className="flex-1">{t(option.key)}</span>
+                            </div>
+                        </Dropdown.Item>
+                    ))}
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
+    );
+}
 
+function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+    const { t } = useTranslation();
+    return (
+        <Chip size="sm" className="h-6 rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[9px] font-semibold text-[var(--text)]">
+            {label}
+            <Button isIconOnly size="sm" aria-label={t('tasks.filters.removeChip', { label })} onPress={onRemove} className="ml-0.5 size-4 min-w-4 p-0 text-[var(--text-muted)] hover:text-[var(--danger)]">
+                <IconX size={10} />
+            </Button>
+        </Chip>
+    );
+}
+
+export function TaskFilters({ filter, category, priorityFilter, query, onFilterChange, onCategoryChange, onPriorityFilterChange, onQueryChange }: Props) {
+    const { t } = useTranslation();
     const activeFilter = FILTERS.find((item) => item.id === filter) ?? FILTERS[0];
     const activeCategory = CATEGORIES.find((item) => item.id === category) ?? CATEGORIES[0];
     const activePriority = PRIORITY_OPTIONS.find((item) => item.id === priorityFilter) ?? PRIORITY_OPTIONS[0];
 
     const hasActive = filter !== 'all' || category !== 'all' || priorityFilter !== 'all' || !!query;
 
-    const dropClass = (active: boolean) =>
-        `flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-xs font-semibold transition ${active ? 'border-[var(--crm-gold)] bg-[var(--crm-gold)] text-black' : 'border-transparent text-[var(--crm-text)] hover:bg-[var(--crm-surface)]'}`;
+    const reset = () => {
+        onFilterChange('all');
+        onCategoryChange('all');
+        onPriorityFilterChange('all');
+        onQueryChange('');
+    };
 
     return (
-        <section className="overflow-visible rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)]">
-            <div className="flex flex-wrap items-center gap-2 p-2.5">
-                <div className="relative min-w-[200px] flex-1">
-                    <IconSearch size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--crm-muted)]" />
-                    <input value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder="IconSearch tasks, clients, projects..."
-                        className="h-9 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] pl-8 pr-8 text-xs text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-gold)] focus:ring-2 focus:ring-[var(--crm-gold)]/20" />
-                    {query ? <button type="button" onClick={() => onQueryChange('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--crm-muted)] hover:text-[var(--crm-gold)]"><IconX size={14} /></button> : null}
+        <Card className="gap-0 overflow-visible rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+            <Card.Content className="flex flex-row flex-nowrap items-center gap-2 overflow-x-auto p-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <AppSearchInput value={query} onChange={onQueryChange} placeholder={t('tasks.filters.search')} ariaLabel={t('tasks.filters.searchAria')} maxWidth="" className="min-w-[140px] flex-1" />
+
+                <div className="flex shrink-0 items-center gap-1.5">
+                    <FilterSelect label={t(activeFilter.key)} width="w-[132px]" options={FILTERS} value={filter} onSelect={onFilterChange} />
+                    <FilterSelect label={t(activeCategory.key)} width="w-[142px]" options={CATEGORIES} value={category} onSelect={onCategoryChange} />
+                    <FilterSelect label={t(activePriority.key)} width="w-[124px]" options={PRIORITY_OPTIONS} value={priorityFilter} onSelect={onPriorityFilterChange} />
                 </div>
 
-                <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                    <DropdownSelect ref={scopeRef} isOpen={scopeOpen} onToggle={() => { setScopeOpen(!scopeOpen); setModuleOpen(false); setPriorityOpen(false); }}
-                        onClose={() => setScopeOpen(false)} label={activeFilter.label} width="140px">
-                        {FILTERS.map((item) => (
-                            <button key={item.id} type="button" onClick={() => { onFilterChange(item.id); setScopeOpen(false); }} className={dropClass(filter === item.id)}>{item.label}</button>
-                        ))}
-                    </DropdownSelect>
-
-                    <DropdownSelect ref={moduleRef} isOpen={moduleOpen} onToggle={() => { setModuleOpen(!moduleOpen); setScopeOpen(false); setPriorityOpen(false); }}
-                        onClose={() => setModuleOpen(false)} label={activeCategory.label} width="140px">
-                        {CATEGORIES.map((item) => (
-                            <button key={item.id} type="button" onClick={() => { onCategoryChange(item.id); setModuleOpen(false); }} className={dropClass(category === item.id)}>{item.label}</button>
-                        ))}
-                    </DropdownSelect>
-
-                    <DropdownSelect ref={priorityRef} isOpen={priorityOpen} onToggle={() => { setPriorityOpen(!priorityOpen); setScopeOpen(false); setModuleOpen(false); }}
-                        onClose={() => setPriorityOpen(false)} label={activePriority.label} width="130px">
-                        {PRIORITY_OPTIONS.map((item) => (
-                            <button key={item.id} type="button" onClick={() => { onPriorityFilterChange(item.id); setPriorityOpen(false); }} className={dropClass(priorityFilter === item.id)}>{item.label}</button>
-                        ))}
-                    </DropdownSelect>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] p-0.5">
-                    {VIEW_TABS.map((tab) => {
-                        const Icon = tab.icon;
-                        return (
-                            <button key={tab.id} type="button" onClick={() => onViewModeChange(tab.id)}
-                                className={`inline-flex h-7 items-center gap-1 rounded-md px-2 text-[9px] font-semibold transition ${viewMode === tab.id ? 'bg-[var(--crm-gold)] text-black' : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}
-                                title={tab.label}>
-                                <Icon size={12} />
-                                <span className="hidden md:inline">{tab.label}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                <button type="button" onClick={() => { onFilterChange('all'); onCategoryChange('all'); onPriorityFilterChange('all'); onQueryChange(''); }}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--crm-border)] text-[var(--crm-muted)] transition hover:border-[var(--crm-gold)] hover:text-[var(--crm-text)]">
-                    <IconX size={13} />
-                </button>
-            </div>
+                {hasActive ? (
+                    <AppButton isIconOnly compact variant="quiet" tooltip={t('tasks.filters.reset')} aria-label={t('tasks.filters.reset')} className="shrink-0" onPress={reset}>
+                        <IconX size={13} />
+                    </AppButton>
+                ) : null}
+            </Card.Content>
 
             {hasActive ? (
-                <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--crm-border)] px-3 py-1.5">
-                    {filter !== 'all' ? <Chip label={activeFilter.label} onRemove={() => onFilterChange('all')} /> : null}
-                    {category !== 'all' ? <Chip label={activeCategory.label} onRemove={() => onCategoryChange('all')} /> : null}
-                    {priorityFilter !== 'all' ? <Chip label={activePriority.label} onRemove={() => onPriorityFilterChange('all')} /> : null}
-                    {query ? <Chip label={`"${query}"`} onRemove={() => onQueryChange('')} /> : null}
-                </div>
+                <Card.Content className="flex flex-row flex-wrap items-center gap-1.5 border-t border-[var(--border)] px-3 py-1.5">
+                    {filter !== 'all' ? <FilterChip label={t(activeFilter.key)} onRemove={() => onFilterChange('all')} /> : null}
+                    {category !== 'all' ? <FilterChip label={t(activeCategory.key)} onRemove={() => onCategoryChange('all')} /> : null}
+                    {priorityFilter !== 'all' ? <FilterChip label={t(activePriority.key)} onRemove={() => onPriorityFilterChange('all')} /> : null}
+                    {query ? <FilterChip label={`"${query}"`} onRemove={() => onQueryChange('')} /> : null}
+                </Card.Content>
             ) : null}
-        </section>
+        </Card>
     );
 }
-
-function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
-    return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2 py-0.5 text-[9px] font-semibold text-[var(--crm-text)]">
-            {label}
-            <button type="button" onClick={onRemove} className="text-[var(--crm-muted)] hover:text-red-400"><IconX size={10} /></button>
-        </span>
-    );
-}
-
-const DropdownSelect = ({ ref, isOpen, onToggle, onClose, label, width, children }: {
-    ref: React.RefObject<HTMLDivElement | null>;
-    isOpen: boolean;
-    onToggle: () => void;
-    onClose: () => void;
-    label: string;
-    width: string;
-    children: React.ReactNode;
-}) => (
-    <div ref={ref} className="relative" onBlur={(e) => { if (!ref.current?.contains(e.relatedTarget)) onClose(); }}>
-        <button type="button" onClick={onToggle}
-            className="inline-flex h-8 items-center justify-between gap-2 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface)] px-2.5 text-xs font-semibold text-[var(--crm-text)] transition hover:border-[var(--crm-gold)]"
-            style={{ width }}>
-            <span className="truncate">{label}</span>
-            <IconChevronDown size={12} className={`shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
-        {isOpen ? (
-            <div className="absolute left-0 top-9 z-50 min-w-[180px] rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-1 shadow-2xl shadow-black/40">
-                {children}
-            </div>
-        ) : null}
-    </div>
-);

@@ -1,7 +1,7 @@
 export type TaskStatus = 'backlog' | 'not_started' | 'in_progress' | 'waiting_client' | 'waiting_admin' | 'blocked' | 'in_review' | 'completed' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TaskImpact = 'low' | 'normal' | 'high' | 'critical';
-export type TaskType = 'general' | 'missing_document' | 'client_follow_up' | 'contract' | 'finance' | 'archive' | 'review' | 'internal_admin';
+export type TaskType = 'general' | 'missing_document' | 'client_follow_up' | 'contract' | 'finance' | 'archive' | 'review' | 'internal_admin' | 'calendar';
 export type TaskCategory = 'documents' | 'client_follow_up' | 'contract' | 'finance' | 'archive' | 'general_admin';
 
 export type TaskRow = {
@@ -83,26 +83,26 @@ export const CATEGORY_LABELS: Record<TaskCategory, string> = {
 };
 
 export const CATEGORY_COLORS: Record<TaskCategory, string> = {
-    documents: 'text-blue-400 border-blue-400/20 bg-blue-400/10',
-    client_follow_up: 'text-emerald-400 border-emerald-400/20 bg-emerald-400/10',
-    contract: 'text-violet-400 border-violet-400/20 bg-violet-400/10',
-    finance: 'text-rose-400 border-rose-400/20 bg-rose-400/10',
-    archive: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/10',
-    general_admin: 'text-zinc-400 border-zinc-400/20 bg-zinc-400/10',
+    documents: 'text-blue-600 border-blue-600/20 bg-blue-600/10',
+    client_follow_up: 'text-emerald-600 border-emerald-600/20 bg-emerald-600/10',
+    contract: 'text-violet-600 border-violet-600/20 bg-violet-600/10',
+    finance: 'text-rose-600 border-rose-600/20 bg-rose-600/10',
+    archive: 'text-cyan-600 border-cyan-600/20 bg-cyan-600/10',
+    general_admin: 'text-zinc-600 border-zinc-600/20 bg-zinc-600/10',
 };
 
 export const PRIORITY_COLORS: Record<TaskPriority, string> = {
-    low: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/25',
-    medium: 'bg-blue-500/20 text-blue-300 border-blue-500/25',
-    high: 'bg-amber-500/20 text-amber-300 border-amber-500/25',
-    urgent: 'bg-red-500/20 text-red-300 border-red-500/25',
+    low: 'bg-zinc-500/10 text-zinc-600 border-zinc-500/25',
+    medium: 'bg-blue-500/10 text-blue-600 border-blue-500/25',
+    high: 'bg-amber-500/10 text-amber-600 border-amber-500/25',
+    urgent: 'bg-red-500/10 text-red-600 border-red-500/25',
 };
 
 export const IMPACT_COLORS: Record<TaskImpact, string> = {
-    low: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/20',
-    normal: 'bg-blue-500/15 text-blue-300 border-blue-500/20',
-    high: 'bg-amber-500/15 text-amber-300 border-amber-500/20',
-    critical: 'bg-red-500/15 text-red-300 border-red-500/20',
+    low: 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20',
+    normal: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+    high: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+    critical: 'bg-red-500/10 text-red-600 border-red-500/20',
 };
 
 export const TYPE_LABELS: Record<TaskType, string> = {
@@ -114,6 +114,7 @@ export const TYPE_LABELS: Record<TaskType, string> = {
     archive: 'Archive',
     review: 'Review',
     internal_admin: 'Internal admin',
+    calendar: 'Calendar',
 };
 
 export const COLUMNS: TaskStatus[] = ['not_started', 'in_progress', 'waiting_client', 'waiting_admin', 'blocked', 'in_review', 'completed'];
@@ -160,26 +161,26 @@ export type TaskAttachmentRow = {
 };
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {
-    backlog: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/20',
-    not_started: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/20',
-    in_progress: 'bg-blue-500/15 text-blue-300 border-blue-500/20',
-    waiting_client: 'bg-violet-500/15 text-violet-300 border-violet-500/20',
-    waiting_admin: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/20',
-    in_review: 'bg-amber-500/15 text-amber-300 border-amber-500/20',
-    completed: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20',
-    blocked: 'bg-red-500/15 text-red-300 border-red-500/20',
-    cancelled: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/15',
+    backlog: 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20',
+    not_started: 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20',
+    in_progress: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+    waiting_client: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
+    waiting_admin: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
+    in_review: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+    completed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    blocked: 'bg-red-500/10 text-red-600 border-red-500/20',
+    cancelled: 'bg-zinc-500/5 text-zinc-500 border-zinc-500/15',
 };
 
 export const STATUS_DOT_COLORS: Record<TaskStatus, string> = {
-    backlog: 'bg-zinc-400',
-    not_started: 'bg-zinc-400',
-    in_progress: 'bg-blue-400',
-    waiting_client: 'bg-violet-400',
-    waiting_admin: 'bg-cyan-400',
-    in_review: 'bg-amber-400',
-    completed: 'bg-emerald-400',
-    blocked: 'bg-red-400',
+    backlog: 'bg-zinc-500',
+    not_started: 'bg-zinc-500',
+    in_progress: 'bg-blue-500',
+    waiting_client: 'bg-violet-500',
+    waiting_admin: 'bg-cyan-500',
+    in_review: 'bg-amber-500',
+    completed: 'bg-emerald-500',
+    blocked: 'bg-red-500',
     cancelled: 'bg-zinc-500',
 };
 

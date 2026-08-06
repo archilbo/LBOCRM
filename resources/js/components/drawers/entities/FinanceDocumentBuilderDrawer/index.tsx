@@ -228,7 +228,7 @@ export function FinanceDocumentBuilderDrawer({
             delete payload.dossier_id;
         }
         if (mode === 'edit' && isLocked) { delete payload.type; delete payload.issue_date; }
-        const opts = { preserveScroll: true, preserveState: false, onSuccess: () => { toast.success(mode === 'edit' ? 'Document mis a jour.' : 'Document cree.'); onSaved?.(form.type); onOpenChange(false); }, onError: () => toast.error('Impossible enregistrer le document.') };
+        const opts = { preserveScroll: true, preserveState: false, onSuccess: () => { toast.success(mode === 'edit' ? 'Document mis à jour.' : 'Document créé.'); onSaved?.(form.type); onOpenChange(false); }, onError: () => toast.error("Impossible d'enregistrer le document.") };
         if (mode === 'edit' && document) { router.put(`/finance/documents/${document.id}`, payload, opts); return; }
         router.post('/finance/documents', payload, opts);
     }
@@ -238,7 +238,7 @@ export function FinanceDocumentBuilderDrawer({
             isOpen={isOpen}
             onOpenChange={onOpenChange}
             title={title}
-            description="Construire le document avec calcul HT, TVA, TTC et apercu en direct."
+            description="Construire le document avec calcul HT, TVA, TTC et aperçu en direct."
             panelClassName="!w-[min(1200px,calc(100vw-24px))] !max-w-[1200px] sm:!w-[min(1200px,calc(100vw-40px))]"
             footer={
                 <div className="flex items-center justify-between gap-2">
@@ -246,7 +246,7 @@ export function FinanceDocumentBuilderDrawer({
                     <div className="flex items-center gap-2">
                         {step > 0 ? (
                             <Button variant="flat" size="sm" onPress={() => setStep(step - 1)}>
-                                <IconChevronLeft size={14} /> Precedent
+                                <IconChevronLeft size={14} /> Précédent
                             </Button>
                         ) : null}
                         {step < steps.length - 1 ? (
@@ -291,8 +291,8 @@ export function FinanceDocumentBuilderDrawer({
                             <div className="flex flex-wrap items-center gap-2">
                                 <FinanceDocumentLockNotice document={document} compact />
                                 {lockMessage && !canEditNumberFields ? <p className="text-[9px] text-amber-400">{lockMessage}</p> : null}
-                                {hasNoDossiers ? <p className="text-[9px] text-amber-400">Impossible de creer un document : ce client n&apos;a aucun dossier</p> : null}
-                                {isDossierRestricted ? <p className="text-[9px] text-red-400">Impossible de creer un document : ce dossier a deja un devis/facture</p> : null}
+                                {hasNoDossiers ? <p className="text-[9px] text-amber-400">Impossible de créer un document : ce client n&apos;a aucun dossier</p> : null}
+                                {isDossierRestricted ? <p className="text-[9px] text-red-400">Impossible de créer un document : ce dossier a déjà un devis/facture</p> : null}
                             </div>
                             <Button variant="light" size="sm" onPress={() => setPreviewOpen((p) => !p)} className="shrink-0">
                                 {previewOpen ? <IconEyeOff size={14} /> : <IconEye size={14} />}

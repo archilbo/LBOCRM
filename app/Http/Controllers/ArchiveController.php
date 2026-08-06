@@ -15,11 +15,14 @@ use App\Models\Dossier;
 use App\Models\Room;
 use App\Models\Shelf;
 use App\Services\Archive\ArchiveNotificationService;
+use App\Services\Archive\ArchiveNumberingException;
+use App\Services\Archive\ArchiveNumberingService;
 use App\Services\CompanyContext;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Models\User;
 use Inertia\Inertia;
@@ -27,8 +30,10 @@ use Inertia\Response;
 
 class ArchiveController extends Controller
 {
-    public function __construct(private readonly CompanyContext $companyContext)
-    {
+    public function __construct(
+        private readonly CompanyContext $companyContext,
+        private readonly ArchiveNumberingService $archiveNumbering,
+    ) {
     }
 
     public function index(Request $request): Response
@@ -259,14 +264,34 @@ class ArchiveController extends Controller
         return response()->json(['count' => $query->count()]);
     }
 
-    public function show(ArchiveRecord $archiveRecord): Response
+    public function show(Request $request, ArchiveRecord $archiveRecord): Response
     {
         $this->authorize('view', $archiveRecord);
         $archiveRecord->load(['dossier.client', 'events.actor']);
 
+        $tree = Room::with('shelves.boxes')->get()->map(fn ($room) => [
+            'id' => $room->id,
+            'name' => $room->name,
+            'code' => $room->code,
+            'shelves' => $room->shelves->map(fn ($shelf) => [
+                'id' => $shelf->id,
+                'name' => $shelf->name,
+                'code' => $shelf->code,
+                'boxes' => $shelf->boxes->map(fn ($box) => [
+                    'id' => $box->id,
+                    'name' => $box->name,
+                    'code' => $box->code,
+                    'capacity' => $box->capacity,
+                ]),
+            ]),
+        ]);
+
         return Inertia::render('Archives/Show', [
             'archiveRecord' => (new ArchiveRecordResource($archiveRecord))->resolve(),
             'events' => ArchiveEventResource::collection($archiveRecord->events)->resolve(),
+            'clients' => $this->clientOptions($request->user()),
+            'dossiers' => $this->dossierOptions($request->user()),
+            'tree' => $tree,
         ]);
     }
 
@@ -274,12 +299,30 @@ class ArchiveController extends Controller
     {
         $this->authorize('create', ArchiveRecord::class);
         $data = $this->prepareArchiveData($request->validated());
-        $this->scopedDossiers($request->user())->findOrFail($data['dossier_id']);
-        $data['archive_number'] = $this->nextArchiveNumber();
-        $data['folder'] = (string) $this->nextFolderNumber();
 
-        $record = ArchiveRecord::create($data);
-        $record->events()->create(['type' => 'ready', 'payload' => ['note' => 'Archive record created']]);
+        try {
+            $record = DB::transaction(function () use ($data, $request): ArchiveRecord {
+                $dossier = $this->scopedDossiers($request->user())->findOrFail($data['dossier_id']);
+
+                // Number + creation happen in the same transaction: the counter row is
+                // locked (lockForUpdate), so concurrent requests can never collide.
+                $numbering = $this->archiveNumbering->reserve($dossier);
+
+                $data['archive_number'] = $numbering['number'];
+                $data['archive_year'] = $numbering['year'];
+                $data['archive_sequence'] = $numbering['sequence'];
+                $data['company_id'] = $numbering['company_id'];
+                $data['city_id'] = $numbering['city_id'];
+                $data['folder'] = (string) $this->nextFolderNumber();
+
+                $record = ArchiveRecord::create($data);
+                $record->events()->create(['type' => 'ready', 'payload' => ['note' => 'Archive record created']]);
+
+                return $record;
+            });
+        } catch (ArchiveNumberingException $e) {
+            return redirect()->back()->withInput()->withErrors(['dossier_id' => $e->getMessage()]);
+        }
 
         if ($request->filled('return_to')) {
             return redirect()->to($request->string('return_to')->toString())->with('success', 'Archive record created successfully.');
@@ -721,24 +764,19 @@ class ArchiveController extends Controller
         return $data;
     }
 
-    private function nextArchiveNumber(): string
-    {
-        $year = now()->format('Y');
-        $next = ArchiveRecord::count() + 1;
-
-        do {
-            $number = sprintf('ARC-%s-%04d', $year, $next);
-            $next++;
-        } while (ArchiveRecord::where('archive_number', $number)->exists());
-
-        return $number;
-    }
-
     private function nextFolderNumber(): int
     {
-        $lastFolder = ArchiveRecord::query()
-            ->whereNotNull('folder')
-            ->where('folder', 'REGEXP', '^[0-9]+$')
+        $query = ArchiveRecord::query()
+            ->whereNotNull('folder');
+
+        // REGEXP is MySQL-only; SQLite uses GLOB for the same whole-value match.
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            $query->where('folder', 'GLOB', '[0-9]*');
+        } else {
+            $query->where('folder', 'REGEXP', '^[0-9]+$');
+        }
+
+        $lastFolder = $query
             ->orderByRaw('CAST(folder AS UNSIGNED) DESC')
             ->value('folder');
 

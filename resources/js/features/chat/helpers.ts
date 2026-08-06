@@ -26,7 +26,7 @@ export function conversationInitial(conversation: ConversationRow, currentUserId
     return conversationName(conversation, currentUserId).charAt(0).toUpperCase();
 }
 
-export function conversationStatus(conversation: ConversationRow, currentUserId: number): string {
+export function conversationStatus(conversation: ConversationRow, currentUserId: number, locale: string = 'en'): string {
     const participants = Array.isArray(conversation.participants) ? conversation.participants : [];
     const others = currentUserId > 0
         ? participants.filter((participant) => participant?.user?.id !== currentUserId)
@@ -36,15 +36,23 @@ export function conversationStatus(conversation: ConversationRow, currentUserId:
         return `${participants.length} member${participants.length === 1 ? '' : 's'}`;
     }
 
-    if (others[0]?.user?.isOnline) return 'Online';
+    if (others[0]?.user?.isOnline) return locale === 'fr' ? 'En ligne' : 'Online';
 
     const lastSeenAt = others[0]?.user?.lastSeenAt;
     if (!lastSeenAt) return '';
 
     const diff = Date.now() - new Date(lastSeenAt).getTime();
-    if (diff < 300000) return 'Online';
+    if (diff < 300000) return locale === 'fr' ? 'En ligne' : 'Online';
 
     const mins = Math.floor(diff / 60000);
+
+    if (locale === 'fr') {
+        if (mins < 60) return `Vu il y a ${mins} min`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return `Vu il y a ${hours} h`;
+        return `Vu le ${new Date(lastSeenAt).toLocaleDateString('fr', { month: 'short', day: 'numeric' })}`;
+    }
+
     if (mins < 60) return `Last seen ${mins}m ago`;
 
     const hours = Math.floor(mins / 60);

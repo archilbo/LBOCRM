@@ -1,29 +1,34 @@
+import { Button } from '@heroui/react';
 import { drawerStyles } from '@/components/drawers';
+import { useTranslation } from '@/lib/i18n';
 
 type Props = {
     value: number | null;
     onChange: (v: number | null) => void;
 };
 
-const OPTIONS = [
-    { value: null, label: 'No reminder' },
-    { value: 0, label: 'At event time' },
-    { value: 5, label: '5 minutes before' },
-    { value: 15, label: '15 minutes before' },
-    { value: 60, label: '1 hour before' },
-    { value: 180, label: '3 hours before' },
-    { value: 1440, label: '1 day before' },
+type ReminderOption = { value: number | null; tKey: string; count?: number };
+
+const OPTIONS: ReminderOption[] = [
+    { value: null, tKey: 'calendar.reminderOptions.none' },
+    { value: 0, tKey: 'calendar.reminderOptions.atTime' },
+    { value: 5, tKey: 'calendar.reminderOptions.minutes', count: 5 },
+    { value: 15, tKey: 'calendar.reminderOptions.minutes', count: 15 },
+    { value: 60, tKey: 'calendar.reminderOptions.hour' },
+    { value: 180, tKey: 'calendar.reminderOptions.hours', count: 3 },
+    { value: 1440, tKey: 'calendar.reminderOptions.day' },
 ];
 
 export function CalendarReminderForm({ value, onChange }: Props) {
+    const { t } = useTranslation();
     return (
         <div className={drawerStyles.sectionGrid}>
             <div className="flex flex-wrap gap-1.5">
                 {OPTIONS.map((opt) => (
-                    <button key={String(opt.value)} type="button" onClick={() => onChange(opt.value)}
-                        className={`rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition ${value === opt.value ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
-                        {opt.label}
-                    </button>
+                    <Button key={String(opt.value)} type="button" variant="outline" size="sm" onPress={() => onChange(opt.value)}
+                        className={`h-auto min-h-0 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition ${value === opt.value ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
+                        {opt.count !== undefined ? t(opt.tKey, { count: opt.count }) : t(opt.tKey)}
+                    </Button>
                 ))}
             </div>
         </div>

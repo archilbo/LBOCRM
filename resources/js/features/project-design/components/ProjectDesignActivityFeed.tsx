@@ -49,7 +49,7 @@ export function ProjectDesignActivityFeed({ dossierId }: { dossierId: number }) 
         <div className="space-y-1.5">
             {items.map((item) => (
                 <Card key={item.id} variant="secondary" className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-                    <Card.Content className="flex items-start gap-3 px-3 py-2.5">
+                    <Card.Content className="flex flex-row items-start gap-3 px-3 py-2.5">
                         <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]">
                             <IconClock size={13} />
                         </span>

@@ -37,11 +37,11 @@ export function DashboardClientActionDrawer({ isOpen, onOpenChange }: Props) {
             preserveScroll: true,
             onSuccess: () => {
                 onOpenChange(false);
-                toast.success('Client cree.');
+                toast.success('Client créé.');
             },
             onError: (nextErrors) => {
                 setErrors(nextErrors as FormErrors);
-                toast.error('Verifiez les informations du client.');
+                toast.error('Vérifiez les informations du client.');
             },
         });
     }

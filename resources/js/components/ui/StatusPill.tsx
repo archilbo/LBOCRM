@@ -1,15 +1,15 @@
 import { cn } from '@/lib/cn';
 
 const tone: Record<string, string> = {
-    ready_to_archive: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    stored: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
-    checked_out: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    returned: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
-    lost: 'bg-zinc-500/15 text-zinc-500',
+    ready_to_archive: 'bg-[var(--crm-success-soft)] text-[var(--crm-success)]',
+    stored: 'bg-[var(--crm-info-soft)] text-[var(--crm-info)]',
+    checked_out: 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]',
+    returned: 'bg-[var(--crm-violet-soft)] text-[var(--crm-violet)]',
+    lost: 'bg-[var(--crm-text-muted)]/12 text-[var(--crm-text-muted)]',
 };
 
 const toneOverdue: Record<string, string> = {
-    checked_out: 'bg-red-500/10 text-red-600 dark:text-red-400',
+    checked_out: 'bg-[var(--crm-danger-soft)] text-[var(--crm-danger)]',
 };
 
 const labels: Record<string, string> = {
@@ -21,11 +21,11 @@ const labels: Record<string, string> = {
 };
 
 const colorMap: Record<string, string> = {
-    default: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400',
-    primary: 'bg-[var(--accent)]/10 text-[var(--accent)]',
-    success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    danger: 'bg-red-500/10 text-red-600 dark:text-red-400',
+    default: 'bg-[var(--surface-2)] text-[var(--text-muted)]',
+    primary: 'bg-[var(--accent-soft)] text-[var(--accent)]',
+    success: 'bg-[var(--success-soft)] text-[var(--success)]',
+    warning: 'bg-[var(--warning-soft)] text-[var(--warning)]',
+    danger: 'bg-[var(--danger-soft)] text-[var(--danger)]',
 };
 
 type StatusPillProps = {
@@ -44,9 +44,9 @@ export function StatusPill({ label, status, isOverdue, color = 'default', size =
     // New API: status key + optional isOverdue
     if (status) {
         const colorClass = isOverdue
-            ? toneOverdue[status] || 'bg-red-500/10 text-red-600 dark:text-red-400'
-            : tone[status] || 'bg-zinc-500/10 text-zinc-500';
-        const displayLabel = isOverdue ? 'Overdue' : (labels[status] || status);
+            ? toneOverdue[status] || 'bg-[var(--crm-danger-soft)] text-[var(--crm-danger)]'
+            : tone[status] || 'bg-[var(--crm-text-muted)]/12 text-[var(--crm-text-muted)]';
+        const displayLabel = label || (isOverdue ? 'Overdue' : (labels[status] || status));
         return (
             <span className={cn('inline-flex items-center gap-1.5 rounded-full font-medium', h, px, 'text-xs', colorClass, className)}>
                 <span className="h-1.5 w-1.5 rounded-full bg-current" />

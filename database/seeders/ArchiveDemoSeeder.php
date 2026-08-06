@@ -9,9 +9,11 @@ use App\Models\City;
 use App\Models\Room;
 use App\Models\Shelf;
 use App\Models\Dossier;
+use App\Services\Archive\ArchiveNumberingService;
 use App\Services\Dossiers\DossierNumberService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class ArchiveDemoSeeder extends Seeder
 {
@@ -93,6 +95,7 @@ class ArchiveDemoSeeder extends Seeder
 
         $statuses = ['ready_to_archive', 'stored', 'checked_out', 'returned'];
         $now = Carbon::now();
+        $numberingService = app(ArchiveNumberingService::class);
 
         // Create 30 sample archives
         for ($i = 0; $i < 30; $i++) {
@@ -100,9 +103,17 @@ class ArchiveDemoSeeder extends Seeder
             $status = $statuses[array_rand($statuses)];
             $box = $boxes[array_rand($boxes)];
 
+            // Reserve inside a transaction so the per-company/city/year counter
+            // stays consistent even though the seeder does not hold one.
+            $numbering = DB::transaction(fn () => $numberingService->reserve($dossier));
+
             $record = ArchiveRecord::create([
                 'dossier_id' => $dossier->id,
-                'archive_number' => sprintf('ARC-%s-%04d', $now->format('Y'), 1001 + $i),
+                'company_id' => $numbering['company_id'],
+                'city_id' => $numbering['city_id'],
+                'archive_number' => $numbering['number'],
+                'archive_year' => $numbering['year'],
+                'archive_sequence' => $numbering['sequence'],
                 'status' => $status,
                 'room' => $box->shelf->room->code,
                 'shelf' => $box->shelf->code,
@@ -134,10 +145,15 @@ class ArchiveDemoSeeder extends Seeder
             $dossier = $dossiers->random();
             $box = $boxes[array_rand($boxes)];
             $dueDate = $now->subDays(rand(3, 10));
+            $numbering = DB::transaction(fn () => $numberingService->reserve($dossier));
 
             $record = ArchiveRecord::create([
                 'dossier_id' => $dossier->id,
-                'archive_number' => sprintf('ARC-%s-%04d', $now->format('Y'), 1031 + $i),
+                'company_id' => $numbering['company_id'],
+                'city_id' => $numbering['city_id'],
+                'archive_number' => $numbering['number'],
+                'archive_year' => $numbering['year'],
+                'archive_sequence' => $numbering['sequence'],
                 'status' => 'checked_out',
                 'room' => $box->shelf->room->code,
                 'shelf' => $box->shelf->code,
@@ -157,9 +173,14 @@ class ArchiveDemoSeeder extends Seeder
 
         // Create 1 lost archive
         $dossier = $dossiers->random();
+        $numbering = DB::transaction(fn () => $numberingService->reserve($dossier));
         $record = ArchiveRecord::create([
             'dossier_id' => $dossier->id,
-            'archive_number' => sprintf('ARC-%s-%04d', $now->format('Y'), 1033),
+            'company_id' => $numbering['company_id'],
+            'city_id' => $numbering['city_id'],
+            'archive_number' => $numbering['number'],
+            'archive_year' => $numbering['year'],
+            'archive_sequence' => $numbering['sequence'],
             'status' => 'checked_out',
             'room' => null,
             'shelf' => null,

@@ -6,6 +6,7 @@ import { Avatar, Button, Card, Chip, Dropdown } from '@heroui/react';
 import type { FormErrors } from '@/lib/formErrors';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppButton } from '@/components/ui/AppButton';
 import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
@@ -199,9 +200,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                             Preparez les calculs de contrats, generer les fichiers DOCX/PDF officiels, et suivez le workflow de signature.
                         </p>
                     </div>
-                    {can('contracts.create') ? <Button variant="solid" color="primary" size="sm" className="h-9 shrink-0" onPress={openCreateDrawer}>
-                        <IconPlus size={15} /> Nouveau contrat
-                    </Button> : null}
+                    {can('contracts.create') ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Nouveau contrat" aria-label="Nouveau contrat" onPress={openCreateDrawer}><IconPlus size={14} /></AppButton> : null}
                 </header>
 
                 <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
@@ -279,7 +278,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs min-w-[700px]">
                             <thead>
-                                <tr className="border-b border-[var(--border)] text-left text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                                <tr className="border-b border-[var(--border)] text-left text-[9px] font-semibold capitalize tracking-[0.12em] text-[var(--text-muted)]">
                                     <th className="w-8 px-3 py-2"></th>
                                     <th className="px-3 py-2">
                                         <button type="button" onClick={() => toggleSort('contractNumber')} className="inline-flex items-center gap-1 transition hover:text-[var(--text)]">
