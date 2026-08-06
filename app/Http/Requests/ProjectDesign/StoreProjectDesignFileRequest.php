@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests\ProjectDesign;
 
+use App\Services\PermissionRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreProjectDesignFileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('project-design.create-file') ?? false;
+        return $this->user() !== null
+            && app(PermissionRegistry::class)->allows($this->user(), 'project-design.create-file');
     }
 
     public function rules(): array

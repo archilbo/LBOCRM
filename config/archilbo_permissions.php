@@ -134,6 +134,30 @@ return [
         'documents.*' => ['manage documents'],
         'contracts.*' => ['manage contracts'],
         'archive.*' => ['manage archives'],
+        // Explicit per-permission mappings. A wildcard alias would let any
+        // future catalogue addition inherit `manage finance` silently; every
+        // finance ability granted by the legacy permission is listed here so
+        // the expansion is auditable. The matrix still wins for custom
+        // accounts: a custom Finance level overrides this legacy grant.
+        'finance.view' => ['manage finance'],
+        'finance.documents.create' => ['manage finance'],
+        'finance.documents.update' => ['manage finance'],
+        'finance.documents.issue' => ['manage finance'],
+        'finance.documents.cancel' => ['manage finance'],
+        'finance.documents.delete' => ['manage finance'],
+        'finance.payments.view' => ['manage finance'],
+        'finance.payments.create' => ['manage finance'],
+        'finance.payments.update' => ['manage finance'],
+        'finance.payments.reverse' => ['manage finance'],
+        'finance.expenses.view' => ['manage finance'],
+        'finance.expenses.create' => ['manage finance'],
+        'finance.expenses.update' => ['manage finance'],
+        'finance.expenses.delete' => ['manage finance'],
+        'finance.templates.view' => ['manage finance'],
+        'finance.templates.manage' => ['manage finance'],
+        'finance.reports.export' => ['manage finance'],
+        'finance.settings.view' => ['manage finance'],
+        'finance.settings.update' => ['manage finance'],
         'tasks.view' => ['view tasks', 'manage tasks'],
         'tasks.create' => ['manage tasks'],
         'tasks.update' => ['manage tasks'],
@@ -164,8 +188,8 @@ return [
         ],
         'Projects' => [
             'view' => ['dossiers.view', 'project-design.view'],
-            'edit' => ['dossiers.create', 'dossiers.update', 'dossiers.workflow.update', 'project-design.create-folder', 'project-design.update-folder', 'project-design.create-file', 'project-design.update-file', 'project-design.upload', 'project-design.create-version', 'project-design.annotate', 'project-design.create-remark', 'project-design.address-remark'],
-            'delete' => ['dossiers.delete', 'project-design.delete-folder', 'project-design.delete'],
+            'edit' => ['dossiers.create', 'dossiers.update', 'dossiers.workflow.update', 'project-design.create-folder', 'project-design.update-folder', 'project-design.create-file', 'project-design.update-file', 'project-design.upload', 'project-design.download-source', 'project-design.create-version', 'project-design.submit-review', 'project-design.review', 'project-design.annotate', 'project-design.create-remark', 'project-design.assign-remark', 'project-design.address-remark', 'project-design.verify-remark', 'project-design.reopen-remark', 'project-design.approve', 'project-design.request-changes', 'project-design.restore', 'project-design.manage'],
+            'delete' => ['dossiers.delete', 'project-design.delete-folder', 'project-design.delete', 'project-design.archive'],
         ],
         'Documents' => [
             'view' => ['documents.view'],
@@ -190,7 +214,7 @@ return [
         'Calendar' => [
             'view' => ['calendar.view'],
             'edit' => ['calendar.create', 'calendar.update'],
-            'delete' => [],
+            'delete' => ['calendar.delete'],
         ],
         'Inbox' => [
             'view' => ['inbox.view'],
@@ -347,6 +371,7 @@ return [
         'tus.*' => 'project-design.upload',
 
         'tasks.index' => 'tasks.view',
+        'planning.index' => 'tasks.view',
         'tasks.show' => 'tasks.view',
         'tasks.detail' => 'tasks.view',
         'tasks.comments.index' => 'tasks.view',

@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ApplySecurityHeaders;
+use App\Http\Middleware\SetLocaleFromRequest;
 use App\Http\Middleware\UpdateLastSeen;
 use Illuminate\Http\Request;
 
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             HandleInertiaRequests::class,
+            SetLocaleFromRequest::class,
             UpdateLastSeen::class,
             ApplySecurityHeaders::class,
         ]);

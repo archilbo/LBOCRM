@@ -18,6 +18,7 @@ use App\Enums\ClientStatus;
 use App\Services\Clients\ClientWorkspaceService;
 use App\Services\CompanyContext;
 use App\Services\Finance\FinanceContextService;
+use App\Services\PermissionRegistry;
 use App\Services\Finance\FinanceSettingsService;
 use App\Exceptions\CinScanException;
 use App\Services\Cin\CinScanner;
@@ -64,7 +65,7 @@ class ClientController extends Controller
     {
         $this->authorize('view', $client);
 
-        $canViewFinance = $request->user()->can('finance.view') || $request->user()->can('manage finance');
+        $canViewFinance = app(PermissionRegistry::class)->allows($request->user(), 'finance.view');
 
         $client->load(['intermediary', 'dossiers'])->loadCount('dossiers');
         $selectedDossierId = $request->integer('dossier_id') ?: null;
@@ -85,7 +86,7 @@ class ClientController extends Controller
                     'type' => $template->document_type,
                 ])
                 ->values(),
-            'financeTemplates' => $canViewFinance && ($request->user()->can('finance.templates.view') || $request->user()->can('manage finance'))
+            'financeTemplates' => $canViewFinance && app(PermissionRegistry::class)->allows($request->user(), 'finance.templates.view')
                 ? $financeContext->apply(FinanceTemplate::query(), $request->user())
                 ->active()
                 ->orderBy('type')

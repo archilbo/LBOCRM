@@ -9,7 +9,11 @@ use App\Models\Dossier;
 use App\Models\FinanceDocument;
 use App\Models\User;
 use App\Services\Dashboard\DashboardCommandCenterService;
+use App\Services\PermissionRegistry;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class DashboardCommandCenterTest extends TestCase
@@ -68,6 +72,73 @@ class DashboardCommandCenterTest extends TestCase
         $this->assertSame('1', $kpis['unpaidInvoices']['value']);
         $this->assertSame(1500.0, collect($data['financeTrend'])->sum('invoiced'));
         $this->assertSame('1', collect($data['systemHealth'])->firstWhere('label', 'Clients')['value']);
+    }
+
+    public function test_quick_links_are_hidden_without_the_underlying_permission(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        [$company, $branch, $user] = $this->tenant('alpha');
+        $user->assignRole('viewer');
+
+        $data = $this->app->make(DashboardCommandCenterService::class)->data($user);
+
+        // Viewer has read-only access: no quick action should be offered.
+        $this->assertSame([], $data['quickLinks']);
+    }
+
+    public function test_quick_links_are_filtered_per_action_permission(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        [$company, $branch, $user] = $this->tenant('alpha');
+        $role = Role::findOrCreate('dossier_creator', 'web');
+        $role->syncPermissions([Permission::findOrCreate('dossiers.create', 'web')]);
+        $user->assignRole($role);
+
+        $data = $this->app->make(DashboardCommandCenterService::class)->data($user);
+
+        $this->assertSame(['newProject'], array_column($data['quickLinks'], 'key'));
+    }
+
+    public function test_staff_receives_all_quick_actions_through_legacy_aliases(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        [$company, $branch, $user] = $this->tenant('alpha');
+        $user->assignRole('staff');
+
+        $data = $this->app->make(DashboardCommandCenterService::class)->data($user);
+
+        $this->assertSame(
+            ['newProject', 'uploadDocument', 'createInvoice', 'newClient', 'newTask', 'newConversation'],
+            array_column($data['quickLinks'], 'key'),
+        );
+    }
+
+    public function test_custom_matrix_controls_quick_actions(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        [$company, $branch] = $this->tenant('alpha');
+        $registry = app(PermissionRegistry::class);
+        $configuration = $registry->normalizeModuleConfiguration([
+            'Clients' => ['access' => 'edit', 'scope' => 'all'],
+        ]);
+
+        $user = User::factory()->create(['company_id' => $company->id, 'branch_id' => $branch->id]);
+        $user->assignRole('custom');
+        $user->syncPermissions($registry->permissionsForModuleLevels($configuration));
+        $user->module_permissions = [
+            'base_role' => 'manager',
+            'is_custom' => true,
+            'modules' => $configuration,
+        ];
+        $user->save();
+
+        $data = $this->app->make(DashboardCommandCenterService::class)->data($user);
+
+        $this->assertSame(['newClient'], array_column($data['quickLinks'], 'key'));
     }
 
     /** @return array{Company, Branch, User} */

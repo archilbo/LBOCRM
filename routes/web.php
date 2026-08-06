@@ -335,5 +335,5 @@ Route::middleware('auth')->group(function () {
     Route::put('/calendar/reminders/{calendarReminder}/dismiss', [CalendarReminderController::class, 'dismiss'])->name('calendar.reminders.dismiss');
     });
 
-    Route::get('/planning', [\App\Http\Controllers\PlanningController::class, 'index'])->name('planning.index');
+    Route::get('/planning', [\App\Http\Controllers\PlanningController::class, 'index'])->name('planning.index')->middleware('permission.route');
 });

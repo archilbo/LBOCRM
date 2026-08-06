@@ -6,14 +6,15 @@ import { useMemo, useState } from 'react';
 import type { FormErrors } from '@/lib/formErrors';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
-import { formatCompactMoney } from '@/lib/currency';
+import { formatCompactMoney } from '@/features/finance/utils/calculations';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppKpiCard } from '@/components/ui/AppKpiCard';
+import { FinanceKpiCard } from '@/features/finance/components/FinanceKpiCard';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppDataTable } from '@/components/ui/AppDataTable';
 import { AppFilterBar } from '@/components/ui/AppFilterBar';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppStatusBadge } from '@/components/ui/AppStatusBadge';
+import { AppBadge } from '@/components/ui/AppBadge';
 import { FinanceRowActions } from '@/features/finance/components/FinanceRowActions';
 import { FinanceDrawer } from '@/components/drawers';
 import { countByValue, filterByValue } from '@/lib/filters';
@@ -365,24 +366,28 @@ export default function FinanceIndex({
             value: formatCompactMoney(metrics.totalTtc),
             icon: IconReceipt,
             accent: 'var(--accent)',
+            metricType: 'revenue' as const,
         },
         {
             label: 'Paid',
             value: formatCompactMoney(metrics.paid),
             icon: IconCircleCheck,
             accent: '#22c55e',
+            metricType: 'revenue' as const,
         },
         {
             label: 'Remaining',
             value: formatCompactMoney(metrics.remaining),
             icon: IconTrendingUp,
             accent: '#f59e0b',
+            metricType: 'revenue' as const,
         },
         {
             label: 'Overdue',
             value: formatCompactMoney(metrics.overdue),
             icon: IconAlertCircle,
             accent: '#ef4444',
+            metricType: 'overdue' as const,
         },
     ];
 
@@ -415,9 +420,9 @@ export default function FinanceIndex({
                         onChange={setStatusFilter}
                     />
                 </section>
-                <section className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-4">
+                <section className="grid gap-5 grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))]">
                     {metricCards.map((metric) => (
-                        <AppKpiCard key={metric.label} label={metric.label} value={metric.value} icon={<metric.icon size={15} style={{ color: metric.accent }} />} accentColor={metric.accent} />
+                        <FinanceKpiCard key={metric.label} label={metric.label} value={metric.value} icon={<metric.icon size={15} style={{ color: metric.accent }} />} accentColor={metric.accent} keepCurrencyAttached metricType={metric.metricType} />
                     ))}
                 </section>
 

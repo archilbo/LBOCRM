@@ -199,6 +199,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'finance.payments.view',
             'finance.expenses.view',
             'finance.templates.view',
+            'finance.settings.view',
         ];
 
         $financeAdminPermissions = [

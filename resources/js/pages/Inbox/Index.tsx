@@ -471,7 +471,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             .catch(() => toast.error(t('inbox.toast.archiveError')));
     }
 
-    let tempIdCounter = useRef(0);
+    const tempIdCounter = useRef(0);
 
     function sendMessage(body: string, files: File[], replyToId?: number): Promise<MessageRow> {
         if (!selectedConv || (!body.trim() && files.length === 0)) return Promise.reject(new InboxApiError(t('inbox.toast.sendError'), 0));

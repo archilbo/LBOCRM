@@ -28,6 +28,7 @@ use App\Http\Resources\ProjectDesign\ProjectDesignReviewResource;
 use App\Http\Resources\ProjectDesign\ProjectDesignRemarkResource;
 use App\Services\CompanyContext;
 use App\Services\Dossiers\DossierPathBuilder;
+use App\Services\PermissionRegistry;
 use App\Services\ProjectDesign\ProjectDesignUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -77,7 +78,7 @@ class ProjectDesignController extends Controller
             'approvalProgress' => $activeApprovalFilesCount > 0
                 ? (int) round(($approvedFilesCount / $activeApprovalFilesCount) * 100)
                 : 0,
-            'canUpload' => $user->can('project-design.upload'),
+            'canUpload' => app(PermissionRegistry::class)->allows($user, 'project-design.upload'),
         ]);
     }
 

@@ -112,8 +112,18 @@ function primaryRole(user: AdminUserRow) {
 }
 
 function formatRoleLabel(role: string) {
-    return role.replace(/[_-]+/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
+    return ROLE_LABELS_FR[role] ?? role.replace(/[_-]+/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
 }
+
+const ROLE_LABELS_FR: Record<string, string> = {
+    admin: 'Administrateur',
+    super_admin: 'Super administrateur',
+    finance_admin: 'Administrateur financier',
+    manager: 'Gestionnaire',
+    operations_manager: "Gestionnaire d'opérations",
+    staff: 'Collaborateur',
+    viewer: 'Consultant',
+};
 
 function permissionModule(permission: string) {
     const leadingSegment = permission.split('.')[0] ?? permission;
@@ -145,7 +155,7 @@ function groupPermissions(permissions: string[]) {
 function formatDate(dateStr: string | null) {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).replace(',', ',');
+    return d.toLocaleDateString('fr-FR', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 // ───────────────────────────────────────────────────────
@@ -171,8 +181,8 @@ function PermissionsMatrix({
     const levels = [
         { key: 'none' as PermissionLevel, label: 'Aucun', description: 'Module masque', icon: IconX, tone: 'text-[var(--text-muted)]' },
         { key: 'view' as PermissionLevel, label: 'Voir', description: 'Consultation', icon: IconEye, tone: 'text-[var(--accent)]' },
-        { key: 'edit' as PermissionLevel, label: 'Modifier', description: 'Creer et modifier', icon: IconPencil, tone: 'text-[var(--success)]' },
-        { key: 'delete' as PermissionLevel, label: 'Complet', description: 'Gestion complete', icon: IconKey, tone: 'text-[var(--danger)]' },
+        { key: 'edit' as PermissionLevel, label: 'Modifier', description: 'Créer et modifier', icon: IconPencil, tone: 'text-[var(--success)]' },
+        { key: 'delete' as PermissionLevel, label: 'Complet', description: 'Gestion complète', icon: IconKey, tone: 'text-[var(--danger)]' },
     ];
     const filteredModules = modules.filter((module) => {
         const matchesQuery = module.label.toLocaleLowerCase('fr-FR').includes(query.trim().toLocaleLowerCase('fr-FR'));
@@ -192,15 +202,15 @@ function PermissionsMatrix({
                     </div>
                     <div>
                         <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-sm font-semibold text-[var(--foreground)]">Acces par module</h3>
+                            <h3 className="text-sm font-semibold text-[var(--foreground)]">Accès par module</h3>
                             <Chip size="sm" variant="soft" className="h-5 bg-[var(--surface-2)] px-1.5 text-[9px] text-[var(--text-muted)]">{modules.length} modules</Chip>
-                            {customizedCount > 0 ? <Chip size="sm" variant="soft" color="warning" className="h-5 px-1.5 text-[9px]">{customizedCount} personnalise{customizedCount > 1 ? 's' : ''}</Chip> : null}
+                            {customizedCount > 0 ? <Chip size="sm" variant="soft" color="warning" className="h-5 px-1.5 text-[9px]">{customizedCount} personnalisé{customizedCount > 1 ? 's' : ''}</Chip> : null}
                         </div>
-                        <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Limites a la societe et a la branche de l'utilisateur.</p>
+                        <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Limitées à la société et à la branche de l'utilisateur.</p>
                     </div>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Checkbox isSelected={onlyCustomized} onChange={setOnlyCustomized} className="text-[11px] text-[var(--text-muted)]">Personnalises</Checkbox>
+                    <Checkbox isSelected={onlyCustomized} onChange={setOnlyCustomized} className="text-[11px] text-[var(--text-muted)]">Personnalisés</Checkbox>
                     <Input aria-label="Rechercher un module" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher" size="sm" startContent={<IconSearch size={13} className="text-[var(--text-muted)]" />} classNames={{ base: 'w-full sm:w-48', input: 'text-xs', inputWrapper: 'h-9 min-h-9 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-2.5 shadow-none' }} />
                 </div>
             </div>
@@ -246,12 +256,12 @@ function PermissionsMatrix({
                 </div>
             </div>
 
-            {filteredModules.length === 0 ? <p className="px-4 py-8 text-center text-xs text-[var(--text-muted)]">Aucun module ne correspond a cette recherche.</p> : null}
+            {filteredModules.length === 0 ? <p className="px-4 py-8 text-center text-xs text-[var(--text-muted)]">Aucun module ne correspond à cette recherche.</p> : null}
 
             <div className="flex shrink-0 flex-col gap-2 border-t border-[var(--border)] bg-[var(--surface-2)]/35 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-                <span className={cn('text-[11px] font-medium', hasChanges ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]')}>{hasChanges ? 'Des droits ont ete personnalises.' : 'Les droits suivent le role de reference.'}</span>
+                <span className={cn('text-[11px] font-medium', hasChanges ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]')}>{hasChanges ? 'Des droits ont été personnalisés.' : 'Les droits suivent le rôle de référence.'}</span>
                 <div className="flex items-center gap-1">
-                    <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Restaurer les droits du role" aria-label="Restaurer les droits du role" onPress={onRestore}>
+                    <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Restaurer les droits du rôle" aria-label="Restaurer les droits du rôle" onPress={onRestore}>
                         <IconArrowRotaryFirstLeft size={14} />
                     </AppButton>
                     <AppButton isIconOnly compact size="sm" variant="quiet" color="success" tooltip="Autoriser tous les modules" aria-label="Autoriser tous les modules" onPress={() => onBatch('full')}>
@@ -393,15 +403,15 @@ export default function AdminUsersIndex({
         router.put(`/admin/users/${user.id}/access`, { is_active: isActive }, {
             preserveScroll: true,
             preserveState: true,
-            onSuccess: () => toast.success(isActive ? 'User access restored.' : 'User access suspended.'),
-            onError: () => toast.error('User access could not be updated.'),
+            onSuccess: () => toast.success(isActive ? 'Accès utilisateur rétabli.' : 'Accès utilisateur suspendu.'),
+            onError: () => toast.error("Impossible de mettre à jour l'accès utilisateur."),
             onFinish: () => setAccessUpdatingUserId(null),
         });
     }
 
     function UserAccessSwitch({ user }: { user: AdminUserRow }) {
         if (isProtectedAdministrator(primaryRole(user))) {
-            return <span className="text-[10px] font-medium text-[var(--text-muted)]">Protected</span>;
+            return <span className="text-[10px] font-medium text-[var(--text-muted)]">Protégé</span>;
         }
 
         const isCurrentUser = user.id === currentUserId;
@@ -413,7 +423,7 @@ export default function AdminUsersIndex({
                     size="sm"
                     isSelected={!user.isSuspended}
                     isDisabled={!canManageAccess || isCurrentUser || isUpdating}
-                    aria-label={user.isSuspended ? `Restore access for ${user.name}` : `Suspend access for ${user.name}`}
+                    aria-label={user.isSuspended ? `Rétablir l'accès de ${user.name}` : `Suspendre l'accès de ${user.name}`}
                     onChange={(isActive) => updateUserAccess(user, isActive)}
                 >
                     <Switch.Content>
@@ -423,7 +433,7 @@ export default function AdminUsersIndex({
                     </Switch.Content>
                 </Switch>
                 <span className={cn('text-[10px] font-medium', user.isSuspended ? 'text-[var(--crm-danger)]' : 'text-[var(--crm-success)]')}>
-                    {user.isSuspended ? 'Inactive' : 'Active'}
+                    {user.isSuspended ? 'Inactif' : 'Actif'}
                 </span>
             </div>
         );
@@ -431,11 +441,11 @@ export default function AdminUsersIndex({
 
     function downloadUsersCsv(records: AdminUserRow[], filename: string) {
         if (records.length === 0) {
-            toast.error('There are no users to export.');
+            toast.error('Aucun utilisateur à exporter.');
             return;
         }
 
-        const header = 'Name,Email,Role,Status,Created,Last Active\n';
+        const header = 'Nom,Email,Rôle,Statut,Créé,Dernière activité\n';
         const escapeCsv = (value: string | null) => `"${String(value ?? '').replace(/"/g, '""')}"`;
         const rows = records.map((user) => [
             user.name,
@@ -454,7 +464,7 @@ export default function AdminUsersIndex({
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        toast.success(`${records.length} user(s) exported.`);
+        toast.success(`${records.length} utilisateur(s) exporté(s).`);
     }
 
     function exportCsv() {
@@ -471,7 +481,7 @@ export default function AdminUsersIndex({
 
         if (!file) return;
         if (!file.name.toLowerCase().endsWith('.csv')) {
-            toast.error('Choose a CSV file.');
+            toast.error('Choisissez un fichier CSV.');
             return;
         }
 
@@ -491,7 +501,7 @@ export default function AdminUsersIndex({
             }, []);
 
             if (importedUsers.length === 0) {
-                toast.error('No valid users were found in this CSV.');
+                toast.error('Aucun utilisateur valide trouvé dans ce CSV.');
                 return;
             }
 
@@ -514,7 +524,7 @@ export default function AdminUsersIndex({
                     overrides: new Set(),
                 });
             } catch {
-                toast.error('Could not validate the CSV. Try again.');
+                toast.error('Impossible de valider le CSV. Réessayez.');
             }
         };
         reader.readAsText(file);
@@ -554,10 +564,10 @@ export default function AdminUsersIndex({
         const managerUsers = users.filter((user) => primaryRole(user) === 'manager').length;
 
         return [
-            { key: 'total', label: 'Total users', value: users.length, detail: `${users.length} account${users.length === 1 ? '' : 's'} in this company`, icon: IconUsers, color: 'text-[var(--crm-gold)]', accentColor: 'var(--crm-gold)' },
-            { key: 'online', label: 'Active now', value: activeUsers, detail: 'Active within the last five minutes', icon: IconUserCheck, color: 'text-[var(--crm-success)]', accentColor: 'var(--crm-success)' },
-            { key: 'admin', label: 'Admins', value: adminUsers, detail: 'Accounts with full administration access', icon: IconShieldExclamation, color: 'text-[var(--crm-danger)]', accentColor: 'var(--crm-danger)' },
-            { key: 'manager', label: 'Managers', value: managerUsers, detail: 'Accounts with management access', icon: IconShieldCheck, color: 'text-[var(--crm-violet)]', accentColor: 'var(--crm-violet)' },
+            { key: 'total', label: 'Utilisateurs', value: users.length, detail: `${users.length} compte${users.length === 1 ? '' : 's'} dans cette société`, icon: IconUsers, color: 'text-[var(--crm-gold)]', accentColor: 'var(--crm-gold)' },
+            { key: 'online', label: 'Actifs maintenant', value: activeUsers, detail: 'Actifs au cours des cinq dernières minutes', icon: IconUserCheck, color: 'text-[var(--crm-success)]', accentColor: 'var(--crm-success)' },
+            { key: 'admin', label: 'Administrateurs', value: adminUsers, detail: "Comptes disposant d'un accès d'administration complet", icon: IconShieldExclamation, color: 'text-[var(--crm-danger)]', accentColor: 'var(--crm-danger)' },
+            { key: 'manager', label: 'Gestionnaires', value: managerUsers, detail: "Comptes disposant d'un accès de gestion", icon: IconShieldCheck, color: 'text-[var(--crm-violet)]', accentColor: 'var(--crm-violet)' },
         ];
     }, [users]);
 
@@ -593,7 +603,7 @@ export default function AdminUsersIndex({
         {
             id: 'select',
             header: () => (
-                <Checkbox isSelected={isAllSelected()} isIndeterminate={hasPartialSelection()} onChange={toggleAll} aria-label="Select all visible users">
+                <Checkbox isSelected={isAllSelected()} isIndeterminate={hasPartialSelection()} onChange={toggleAll} aria-label="Sélectionner tous les utilisateurs visibles">
                     <Checkbox.Content>
                         <Checkbox.Control>
                             <Checkbox.Indicator />
@@ -603,7 +613,7 @@ export default function AdminUsersIndex({
             ),
             cell: (info) => (
                 <div onClick={(e) => e.stopPropagation()}>
-                    <Checkbox isSelected={selectedIds.has(info.row.original.id)} onChange={() => toggleOne(info.row.original.id)} aria-label={`Select ${info.row.original.name}`}>
+                    <Checkbox isSelected={selectedIds.has(info.row.original.id)} onChange={() => toggleOne(info.row.original.id)} aria-label={`Sélectionner ${info.row.original.name}`}>
                         <Checkbox.Content>
                             <Checkbox.Control>
                                 <Checkbox.Indicator />
@@ -616,7 +626,7 @@ export default function AdminUsersIndex({
         },
         {
             id: 'name',
-            header: 'User Name',
+            header: 'Nom',
             size: 200,
             cell: (info) => (
                 <div className="flex items-center gap-3 min-w-0">
@@ -629,15 +639,8 @@ export default function AdminUsersIndex({
             ),
         },
         {
-            id: 'email',
-            header: 'Email Address',
-            size: 180,
-            cell: (info) => <span className="text-[11px] text-[var(--text-muted)] truncate block">{info.row.original.email}</span>,
-            meta: { hideOnMobile: true },
-        },
-        {
             id: 'role',
-            header: 'User Role',
+            header: 'Rôle',
             size: 120,
             cell: (info) => {
                 const role = primaryRole(info.row.original);
@@ -653,40 +656,40 @@ export default function AdminUsersIndex({
         },
         {
             id: 'status',
-            header: 'Status',
+            header: 'Statut',
             size: 120,
             cell: (info) => info.row.original.accountStatus === 'blocked' ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-danger)]/20 bg-[var(--crm-danger-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-danger)] whitespace-nowrap">
-                    <span className="size-1.5 rounded-full bg-[var(--crm-danger)]" />Blocked
+                    <span className="size-1.5 rounded-full bg-[var(--crm-danger)]" />Bloqué
                 </span>
             ) : info.row.original.accountStatus === 'pending' ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-gold)]/20 bg-[var(--crm-gold-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-gold)] whitespace-nowrap">
-                    <span className="size-1.5 rounded-full bg-[var(--crm-gold)]" />Pending invite
+                    <span className="size-1.5 rounded-full bg-[var(--crm-gold)]" />Invitation en attente
                 </span>
             ) : (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--crm-success)]/20 bg-[var(--crm-success-soft)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--crm-success)] whitespace-nowrap">
-                    <span className="size-1.5 rounded-full bg-[var(--crm-success)]" />Accepted
+                    <span className="size-1.5 rounded-full bg-[var(--crm-success)]" />Accepté
                 </span>
             ),
             meta: { hideOnMobile: true },
         },
         {
             id: 'access',
-            header: 'Access',
+            header: 'Accès',
             size: 80,
             cell: (info) => <UserAccessSwitch user={info.row.original} />,
             meta: { hideOnMobile: true },
         },
         {
             id: 'created',
-            header: 'Add Date',
+            header: "Date d'ajout",
             size: 100,
             cell: (info) => <span className="text-[11px] text-[var(--text-muted)] tabular-nums whitespace-nowrap block">{formatDate(info.row.original.createdAt)}</span>,
             meta: { hideOnTablet: true },
         },
         {
             id: 'lastActive',
-            header: 'Last Active',
+            header: 'Dernière activité',
             size: 100,
             cell: (info) => <span className="text-[11px] text-[var(--text-muted)] tabular-nums whitespace-nowrap block">{info.row.original.lastSeenAt ? formatDate(info.row.original.lastSeenAt) : '-'}</span>,
             meta: { hideOnTablet: true },
@@ -746,8 +749,8 @@ export default function AdminUsersIndex({
                                     if (key === 'delete') setDeleteTarget(info.row.original);
                                 }}
                             >
-                                <Dropdown.Item key="delete" id="delete" textValue="Delete User" className="text-[var(--danger)] data-[hover]:bg-[var(--danger)]/10">
-                                    <div className="flex items-center gap-2"><span className="flex size-4 shrink-0 items-center justify-center"><IconTrash size={14} /></span><span>Delete User</span></div>
+                                <Dropdown.Item key="delete" id="delete" textValue="Supprimer l'utilisateur" className="text-[var(--danger)] data-[hover]:bg-[var(--danger)]/10">
+                                    <div className="flex items-center gap-2"><span className="flex size-4 shrink-0 items-center justify-center"><IconTrash size={14} /></span><span>Supprimer l'utilisateur</span></div>
                                 </Dropdown.Item>
                             </Dropdown.Menu>
                         </Dropdown.Popover>
@@ -765,17 +768,17 @@ export default function AdminUsersIndex({
 
     return (
         <>
-            <Head title="User Management" />
+            <Head title="Gestion des utilisateurs" />
             <AppShell>
                 <div className="w-full min-w-0 space-y-5">
                     {/* ── Page header ── */}
                     <div className="flex items-start justify-between gap-4 mb-6">
                         <div className="min-w-0">
-                            <h1 className="text-xl font-bold text-[var(--crm-text)]">User Management</h1>
-                            <p className="text-[12px] text-[var(--crm-text-muted)] mt-0.5">Manage team access, roles, and permissions.</p>
+                            <h1 className="text-xl font-bold text-[var(--crm-text)]">Gestion des utilisateurs</h1>
+                            <p className="text-[12px] text-[var(--crm-text-muted)] mt-0.5">Gérez les accès, les rôles et les permissions de l'équipe.</p>
                         </div>
                         {canCreateUsers ? <div className="flex items-center gap-2">
-                            <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Add User" aria-label="Add User" onPress={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' }); setIsInviteOpen(true); }}>
+                            <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Ajouter un utilisateur" aria-label="Ajouter un utilisateur" onPress={() => { setInviteErrors({}); setInviteForm({ firstName: '', lastName: '', email: '', role: 'staff' }); setIsInviteOpen(true); }}>
                                 <IconPlus size={16} />
                             </AppButton>
                         </div> : null}
@@ -800,15 +803,15 @@ export default function AdminUsersIndex({
                                     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--accent)]/15 bg-[var(--accent-soft)]/70 px-4 py-3">
                                         <div className="flex min-w-0 items-center gap-2.5 flex-1">
                                             <div className="min-w-0">
-                                                <p className="text-xs font-semibold text-[var(--foreground)]">Bulk actions</p>
+                                                <p className="text-xs font-semibold text-[var(--foreground)]">Actions groupées</p>
                                                 <Chip size="sm" variant="soft" color="warning" startContent={<IconCheck size={12} strokeWidth={2.5} />} className="mt-1 h-5 px-1.5 text-[9px]">
-                                                    {selectedIds.size} selected
+                                                    {selectedIds.size} sélectionné(s)
                                                 </Chip>
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap items-center gap-2">
                                             {canManageRoles ? <Select
-                                                aria-label="Assign role to selected users"
+                                                aria-label="Attribuer un rôle aux utilisateurs sélectionnés"
                                                 isOpen={bulkRoleSelectOpen}
                                                 onOpenChange={setBulkRoleSelectOpen}
                                                 onChange={(key) => {
@@ -816,17 +819,17 @@ export default function AdminUsersIndex({
                                                     setBulkRoleSelectOpen(false);
                                                     router.put('/admin/users/bulk/role', { userIds: [...selectedIds], role: String(key) }, {
                                                         preserveScroll: true,
-                                                        onSuccess: () => { setSelectedIds(new Set()); toast.success(`Role updated for ${selectedIds.size} user(s).`); },
-                                                        onError: () => toast.error('Could not update roles.'),
+                                                        onSuccess: () => { setSelectedIds(new Set()); toast.success(`Rôle mis à jour pour ${selectedIds.size} utilisateur(s).`); },
+                                                        onError: () => toast.error('Impossible de mettre à jour les rôles.'),
                                                     });
                                                 }}
                                             >
                                                 <Select.Trigger className="h-8 min-w-[120px] sm:min-w-[150px] rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 text-xs text-[var(--foreground)] shadow-sm transition hover:border-[var(--text-muted)]">
-                                                    <Select.Value className="flex-1 truncate text-left" placeholder="Change role" />
+                                                    <Select.Value className="flex-1 truncate text-left" placeholder="Changer le rôle" />
                                                     <Select.Indicator />
                                                 </Select.Trigger>
                                                 <Select.Popover className="z-[120] min-w-[150px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
-                                                    <ListBox aria-label="Assign role to selected users" className="gap-0">
+                                                    <ListBox aria-label="Attribuer un rôle aux utilisateurs sélectionnés" className="gap-0">
                                                         {roles.map((role) => (
                                                             <ListBox.Item key={role.id} id={role.id} textValue={role.label} className="rounded-lg px-2.5 py-2 text-xs">
                                                                 {role.label}
@@ -836,11 +839,11 @@ export default function AdminUsersIndex({
                                                 </Select.Popover>
                                             </Select> : null}
                                             <AppButton variant="outline" compact onPress={exportSelectedCsv}>
-                                                <IconDownload size={12} />Export selected
+                                                <IconDownload size={12} />Exporter la sélection
                                             </AppButton>
-                                            {canManageAccess ? <AppButton variant="outline" compact onPress={() => setConfirmBulkAction('suspend')}><IconUserMinus size={12} />Suspend</AppButton> : null}
-                                            {canDeleteUsers ? <AppButton isIconOnly compact size="sm" variant="solid" color="danger" tooltip="Delete selected users" aria-label="Delete selected users" onPress={() => setConfirmBulkAction('delete')}><IconTrash size={14} /></AppButton> : null}
-                                            <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Clear selection" aria-label="Clear selection" onPress={() => setSelectedIds(new Set())}><IconX size={14} /></AppButton>
+                                            {canManageAccess ? <AppButton variant="outline" compact onPress={() => setConfirmBulkAction('suspend')}><IconUserMinus size={12} />Suspendre</AppButton> : null}
+                                            {canDeleteUsers ? <AppButton isIconOnly compact size="sm" variant="solid" color="danger" tooltip="Supprimer les utilisateurs sélectionnés" aria-label="Supprimer les utilisateurs sélectionnés" onPress={() => setConfirmBulkAction('delete')}><IconTrash size={14} /></AppButton> : null}
+                                            <AppButton isIconOnly compact size="sm" variant="quiet" tooltip="Effacer la sélection" aria-label="Effacer la sélection" onPress={() => setSelectedIds(new Set())}><IconX size={14} /></AppButton>
                                         </div>
                                     </div>
                                 ) : null}
@@ -849,9 +852,9 @@ export default function AdminUsersIndex({
                                 <AppDataTable
                                     data={filteredUsers}
                                     columns={userColumns}
-                                    searchPlaceholder="IconSearch name, email, role, or permission..."
-                                    emptyTitle="No users found"
-                                    emptyDescription="No users match the current filters."
+                                    searchPlaceholder="Rechercher un nom, un rôle ou une permission…"
+                                    emptyTitle="Aucun utilisateur trouvé"
+                                    emptyDescription="Aucun utilisateur ne correspond aux filtres actuels."
                                     pageSize={TABLE_PAGE_SIZE}
                                     onRowClick={(user) => setViewProfileUser(user)}
                                     toolbarActions={
@@ -874,7 +877,7 @@ export default function AdminUsersIndex({
                                                 </Dropdown.Trigger>
                                                 <Dropdown.Popover placement="bottom end" className="z-[80] min-w-52 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                                                     <Dropdown.Menu
-                                                        aria-label="Filter users"
+                                                        aria-label="Filtrer les utilisateurs"
                                                         selectionMode="none"
                                                         onAction={(key) => {
                                                             if (key === 'reset-filters') {
@@ -883,7 +886,7 @@ export default function AdminUsersIndex({
                                                             }
                                                         }}
                                                     >
-                                                        <Dropdown.Section aria-label="By role">
+                                                        <Dropdown.Section aria-label="Par rôle">
                                                             {filterRoleOptions.map((role) => (
                                                                 <Dropdown.Item
                                                                     key={role.id}
@@ -904,19 +907,19 @@ export default function AdminUsersIndex({
                                                                 </Dropdown.Item>
                                                             ))}
                                                         </Dropdown.Section>
-                                                        <Dropdown.Section aria-label="By status">
+                                                        <Dropdown.Section aria-label="Par statut">
                                                             {(['all', 'pending', 'accepted', 'blocked'] as const).map((s) => (
                                                                 <Dropdown.Item
                                                                     key={s}
                                                                     className="capitalize"
-                                                                    textValue={s === 'all' ? 'All statuses' : s === 'pending' ? 'Pending invitation' : s === 'accepted' ? 'Accepted' : 'Blocked'}
+                                                                    textValue={s === 'all' ? 'Tous les statuts' : s === 'pending' ? 'Invitation en attente' : s === 'accepted' ? 'Accepté' : 'Bloqué'}
                                                                     onPress={() => setFilterStatus(s)}
                                                                 >
                                                                     <div className="flex items-center gap-2">
                                                                         <span className={cn('flex size-4 items-center justify-center rounded-full border transition', filterStatus === s ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--border)]')}>
                                                                             {filterStatus === s && <IconCheck size={10} strokeWidth={3} className="text-white" />}
                                                                         </span>
-                                                                        {s === 'all' ? 'All statuses' : s === 'pending' ? 'Pending invitation' : s === 'accepted' ? 'Accepted' : 'Blocked'}
+                                                                        {s === 'all' ? 'Tous les statuts' : s === 'pending' ? 'Invitation en attente' : s === 'accepted' ? 'Accepté' : 'Bloqué'}
                                                                     </div>
                                                                 </Dropdown.Item>
                                                             ))}
@@ -925,10 +928,10 @@ export default function AdminUsersIndex({
                                                             <Dropdown.Section>
                                                                 <Dropdown.Item
                                                                     key="reset-filters"
-                                                                    textValue="Reset filters"
+                                                                    textValue="Réinitialiser les filtres"
                                                                     className="text-[var(--accent)]"
                                                                 >
-                                                                    Reset filters
+                                                                    Réinitialiser les filtres
                                                                 </Dropdown.Item>
                                                             </Dropdown.Section>
                                                         ) : null}
@@ -936,10 +939,10 @@ export default function AdminUsersIndex({
                                                 </Dropdown.Popover>
                                             </Dropdown>
                                             <input id="csv-import" type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvImport} />
-                                            <AppButton isIconOnly compact variant="ghost" tooltip="Import CSV" aria-label="Import CSV" onPress={() => (document.getElementById('csv-import') as HTMLInputElement | null)?.click()}>
+                                            <AppButton isIconOnly compact variant="ghost" tooltip="Importer un CSV" aria-label="Importer un CSV" onPress={() => (document.getElementById('csv-import') as HTMLInputElement | null)?.click()}>
                                                 <IconUpload size={16} />
                                             </AppButton>
-                                            <AppButton isIconOnly compact variant="ghost" tooltip="Export CSV" onPress={exportCsv}><IconDownload size={16} /></AppButton>
+                                            <AppButton isIconOnly compact variant="ghost" tooltip="Exporter en CSV" onPress={exportCsv}><IconDownload size={16} /></AppButton>
                                         </>
                                     }
                                 />
@@ -980,25 +983,25 @@ export default function AdminUsersIndex({
                 <AppModal isOpen={isInviteOpen} onOpenChange={(open) => { if (!open) { setIsInviteOpen(false); setInviteErrors({}); } }} title="Nouveau compte utilisateur" size="md">
                     <form onSubmit={handleInvite} className="space-y-4">
                         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 px-3.5 py-3">
-                            <p className="text-sm font-semibold text-[var(--foreground)]">Creer un acces interne</p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">The account joins your current company and branch. We send a secure link so the recipient can choose their own password and activate access.</p>
+                            <p className="text-sm font-semibold text-[var(--foreground)]">Créer un accès interne</p>
+                            <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">Le compte est rattaché à votre société et à votre agence actuelles. Nous envoyons un lien sécurisé afin que le destinataire puisse choisir son mot de passe et activer son accès.</p>
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
-                            <AppTextField label="Prenom" placeholder="Prenom" value={inviteForm.firstName} onChange={(value) => setInviteForm((current) => ({ ...current, firstName: value }))} error={firstError(inviteErrors, 'name')} isRequired />
+                            <AppTextField label="Prénom" placeholder="Prénom" value={inviteForm.firstName} onChange={(value) => setInviteForm((current) => ({ ...current, firstName: value }))} error={firstError(inviteErrors, 'name')} isRequired />
                             <AppTextField label="Nom" placeholder="Nom" value={inviteForm.lastName} onChange={(value) => setInviteForm((current) => ({ ...current, lastName: value }))} />
                         </div>
                         <AppTextField label="Adresse e-mail" type="email" placeholder="utilisateur@archilbo.com" value={inviteForm.email} onChange={(value) => setInviteForm((current) => ({ ...current, email: value }))} error={firstError(inviteErrors, 'email')} isRequired />
                         <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-[var(--foreground)]">Role initial</label>
-                            <Select selectedKey={inviteForm.role} onSelectionChange={(key) => setInviteForm((current) => ({ ...current, role: String(key ?? 'staff') }))} aria-label="Role initial">
+                            <label className="text-xs font-semibold text-[var(--foreground)]">Rôle initial</label>
+                            <Select selectedKey={inviteForm.role} onSelectionChange={(key) => setInviteForm((current) => ({ ...current, role: String(key ?? 'staff') }))} aria-label="Rôle initial">
                                 <Select.Trigger className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)]"><Select.Value className="flex-1 truncate text-left" /><Select.Indicator /></Select.Trigger>
-                                <Select.Popover className="z-[140] min-w-[280px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl"><ListBox aria-label="Choisir le role" className="gap-0">{roles.map((role) => <ListBox.Item key={role.id} id={role.id} textValue={role.label} className="rounded-lg px-3 py-2.5 text-xs">{role.label}</ListBox.Item>)}</ListBox></Select.Popover>
+                                <Select.Popover className="z-[140] min-w-[280px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl"><ListBox aria-label="Choisir le rôle" className="gap-0">{roles.map((role) => <ListBox.Item key={role.id} id={role.id} textValue={role.label} className="rounded-lg px-3 py-2.5 text-xs">{role.label}</ListBox.Item>)}</ListBox></Select.Popover>
                             </Select>
                             {firstError(inviteErrors, 'role') ? <p className="text-xs font-medium text-[var(--danger)]">{firstError(inviteErrors, 'role')}</p> : null}
                         </div>
                         <div className="flex items-start gap-2 rounded-lg border border-[var(--crm-info)]/20 bg-[var(--crm-info-soft)] px-3 py-2.5 text-[11px] leading-relaxed text-[var(--text-muted)]">
                             <IconMail size={14} className="mt-0.5 shrink-0 text-[var(--crm-info)]" />
-                            <span>The invitation expires after 72 hours. Until it is accepted, the account remains pending and cannot sign in.</span>
+                            <span>L'invitation expire après 72 heures. Tant qu'elle n'est pas acceptée, le compte reste en attente et ne peut pas se connecter.</span>
                         </div>
                         <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] pt-4">
                             <AppButton variant="bordered" onPress={() => setIsInviteOpen(false)}>Annuler</AppButton>
@@ -1007,7 +1010,7 @@ export default function AdminUsersIndex({
                     </form>
                 </AppModal>
 
-                <AppModal isOpen={Boolean(passwordResetTarget)} onOpenChange={(open) => { if (!open) setPasswordResetTarget(null); }} title="Send password reset" size="sm">
+                <AppModal isOpen={Boolean(passwordResetTarget)} onOpenChange={(open) => { if (!open) setPasswordResetTarget(null); }} title="Réinitialisation du mot de passe" size="sm">
                     {passwordResetTarget ? <div className="space-y-4">
                         <div className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 p-3">
                             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--crm-gold-soft)] text-[var(--accent)]"><IconKey size={16} /></div>
@@ -1016,14 +1019,14 @@ export default function AdminUsersIndex({
                                 <p className="mt-0.5 text-xs text-[var(--text-muted)]">{passwordResetTarget.email}</p>
                             </div>
                         </div>
-                        <p className="text-sm leading-relaxed text-[var(--text-muted)]">Passwords cannot be viewed or recovered. Send a secure, expiring link so this user can choose a new password.</p>
+                        <p className="text-sm leading-relaxed text-[var(--text-muted)]">Les mots de passe ne peuvent ni être consultés ni récupérés. Envoyez un lien sécurisé à durée limitée pour que cet utilisateur puisse choisir un nouveau mot de passe.</p>
                         <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] pt-4">
-                            <AppButton variant="bordered" onPress={() => setPasswordResetTarget(null)}>Cancel</AppButton>
+                            <AppButton variant="bordered" onPress={() => setPasswordResetTarget(null)}>Annuler</AppButton>
                             <AppButton variant="solid" color="primary" onPress={() => {
                                 const target = passwordResetTarget;
                                 setPasswordResetTarget(null);
-                                router.post(`/admin/users/${target.id}/password-reset`, {}, { preserveScroll: true, onSuccess: () => toast.success(`Password reset link sent to ${target.email}`), onError: () => toast.error('Password reset link could not be sent.') });
-                            }}><IconMail size={14} />Send link</AppButton>
+                                router.post(`/admin/users/${target.id}/password-reset`, {}, { preserveScroll: true, onSuccess: () => toast.success(`Lien de réinitialisation envoyé à ${target.email}`), onError: () => toast.error("Impossible d'envoyer le lien de réinitialisation.") });
+                            }}><IconMail size={14} />Envoyer le lien</AppButton>
                         </div>
                     </div> : null}
                 </AppModal>
@@ -1032,8 +1035,8 @@ export default function AdminUsersIndex({
                 <AppDrawer
                     isOpen={Boolean(viewProfileUser)}
                     onOpenChange={(open) => { if (!open) setViewProfileUser(null); }}
-                    title="User profile"
-                    description="Account access and current status"
+                    title="Profil de l'utilisateur"
+                    description="Accès au compte et statut actuel"
                     headerIcon={<IconUserCog size={17} />}
                     size="md"
                     footer={viewProfileUser && canManageRoles && roles.some((role) => role.id === primaryRole(viewProfileUser)) && (!isProtectedAdministrator(primaryRole(viewProfileUser)) || canManageProtectedUsers) ? (
@@ -1050,7 +1053,7 @@ export default function AdminUsersIndex({
                                 setViewProfileUser(null);
                             }}
                         >
-                            <IconPencil size={15} />Edit permissions
+                            <IconPencil size={15} />Modifier les permissions
                         </AppButton>
                     ) : null}
                 >
@@ -1087,7 +1090,7 @@ export default function AdminUsersIndex({
                                                             : 'bg-[var(--crm-success-soft)] text-[var(--crm-success)]',
                                                 )}
                                             >
-                                                {viewProfileUser.accountStatus === 'blocked' ? 'Blocked' : viewProfileUser.accountStatus === 'pending' ? 'Pending invitation' : 'Accepted'}
+                                                {viewProfileUser.accountStatus === 'blocked' ? 'Bloqué' : viewProfileUser.accountStatus === 'pending' ? 'Invitation en attente' : 'Accepté'}
                                             </Chip>
                                         </div>
                                     </div>
@@ -1096,9 +1099,9 @@ export default function AdminUsersIndex({
 
                             <dl className="grid grid-cols-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--border)]">
                                 {[
-                                    ['Account', viewProfileUser.accountStatus === 'blocked' ? 'Blocked' : viewProfileUser.accountStatus === 'pending' ? 'Pending invitation' : 'Accepted'],
-                                    ['Last active', viewProfileUser.isOnline ? 'Online now' : viewProfileUser.lastSeenAt ? formatDate(viewProfileUser.lastSeenAt) : 'No activity'],
-                                    ['Joined', formatDate(viewProfileUser.createdAt)],
+                                    ['Compte', viewProfileUser.accountStatus === 'blocked' ? 'Bloqué' : viewProfileUser.accountStatus === 'pending' ? 'Invitation en attente' : 'Accepté'],
+                                    ['Dernière activité', viewProfileUser.isOnline ? 'En ligne maintenant' : viewProfileUser.lastSeenAt ? formatDate(viewProfileUser.lastSeenAt) : 'Aucune activité'],
+                                    ['Inscrit', formatDate(viewProfileUser.createdAt)],
                                 ].map(([label, value]) => (
                                     <div key={label} className="min-w-0 bg-[var(--surface)] px-3 py-2.5">
                                         <dt className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</dt>
@@ -1110,8 +1113,8 @@ export default function AdminUsersIndex({
                             <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
                                 <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-3.5 py-3">
                                     <div>
-                                        <h3 className="text-sm font-semibold text-[var(--foreground)]">Access</h3>
-                                        <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Effective permissions from the assigned roles.</p>
+                                        <h3 className="text-sm font-semibold text-[var(--foreground)]">Accès</h3>
+                                        <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Permissions effectives issues des rôles attribués.</p>
                                     </div>
                                     <Chip size="sm" variant="soft" className="h-6 shrink-0 px-2 text-[9px] text-[var(--text-muted)]">
                                         {viewProfileUser.permissions.length}
@@ -1146,7 +1149,7 @@ export default function AdminUsersIndex({
                                     </Accordion>
                                 ) : (
                                     <p className="m-3 rounded-lg border border-dashed border-[var(--border)] px-3 py-4 text-sm text-[var(--text-muted)]">
-                                        This account currently inherits its role permissions.
+                                        Ce compte hérite actuellement des permissions de son rôle.
                                     </p>
                                 )}
                             </section>
@@ -1164,7 +1167,7 @@ export default function AdminUsersIndex({
                         }
                         setEditUser(null);
                     }
-                }} title="Gerer les acces" size="xl" containerClassName="!w-[calc(100vw-2rem)] !max-w-[68rem]">
+                }} title="Gérer les accès" size="xl" containerClassName="!w-[calc(100vw-2rem)] !max-w-[68rem]">
                     {editUser && (
                         <div className="flex max-h-[calc(100dvh-11rem)] flex-col gap-3 overflow-hidden px-1 pb-1">
                             {/* ── User identity ── */}
@@ -1182,15 +1185,15 @@ export default function AdminUsersIndex({
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-1.5">
                                         <IconShieldCheck size={13} className="text-[var(--accent)]" />
-                                        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Role de reference</p>
+                                        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Rôle de référence</p>
                                     </div>
                                     <Select selectedKey={editRole} onSelectionChange={(key) => {
                                         const newRole = String(key ?? 'viewer');
                                         setEditRole(newRole);
                                         setEditPerms(defaultPermissionsFor(newRole));
-                                    }} aria-label="Role de reference" className="mt-1.5">
+                                    }} aria-label="Rôle de référence" className="mt-1.5">
                                         <Select.Trigger className="h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--foreground)] shadow-none"><Select.Value className="flex-1 truncate text-left" /><Select.Indicator /></Select.Trigger>
-                                        <Select.Popover className="z-[140] min-w-[260px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl"><ListBox aria-label="Choisir un role" className="gap-0">{roles.map((role) => <ListBox.Item key={role.id} id={role.id} textValue={role.label} className="rounded-lg px-3 py-2.5 text-xs">{role.label}</ListBox.Item>)}</ListBox></Select.Popover>
+                                        <Select.Popover className="z-[140] min-w-[260px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl"><ListBox aria-label="Choisir un rôle" className="gap-0">{roles.map((role) => <ListBox.Item key={role.id} id={role.id} textValue={role.label} className="rounded-lg px-3 py-2.5 text-xs">{role.label}</ListBox.Item>)}</ListBox></Select.Popover>
                                     </Select>
                                 </div>
                                 <div className="flex items-center gap-px overflow-hidden self-start rounded-lg border border-[var(--border)] bg-[var(--border)] lg:self-auto">
@@ -1232,9 +1235,9 @@ export default function AdminUsersIndex({
                                         preserveScroll: true,
                                         onSuccess: () => {
                                             setEditUser(null);
-                                            toast.success('Les acces ont ete mis a jour.');
+                                            toast.success('Les accès ont été mis à jour.');
                                         },
-                                        onError: () => toast.error("Impossible de mettre a jour les acces."),
+                                        onError: () => toast.error("Impossible de mettre à jour les accès."),
                                     });
                                 }}><IconDeviceFloppy size={15} />Enregistrer</AppButton>
                             </div>
@@ -1250,13 +1253,13 @@ export default function AdminUsersIndex({
                                 <IconAlertTriangle size={22} className="text-[var(--crm-gold)]" />
                             </div>
                         </div>
-                        <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Unsaved Changes</h3>
+                        <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Modifications non enregistrées</h3>
                         <p className="text-[12px] text-[var(--crm-text-muted)] leading-relaxed">
-                            You have unsaved permission changes. Discard them?
+                            Vous avez des modifications de permissions non enregistrées. Les ignorer ?
                         </p>
                         <div className="flex items-center justify-center gap-2 mt-6">
-                            <AppButton variant="bordered" onPress={() => { setShowUnsavedWarning(false); setPendingEditAction(null); }}>Keep Editing</AppButton>
-                            <AppButton variant="solid" color="danger" onPress={() => { pendingEditAction?.(); }}>Discard Changes</AppButton>
+                            <AppButton variant="bordered" onPress={() => { setShowUnsavedWarning(false); setPendingEditAction(null); }}>Continuer la modification</AppButton>
+                            <AppButton variant="solid" color="danger" onPress={() => { pendingEditAction?.(); }}>Ignorer les modifications</AppButton>
                         </div>
                     </div>
                 </AppModal>
@@ -1274,35 +1277,35 @@ export default function AdminUsersIndex({
                                 </div>
                             </div>
                             <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">
-                                {confirmBulkAction === 'delete' ? 'Remove IconUsers' : 'Suspend IconUsers'}
+                                {confirmBulkAction === 'delete' ? 'Supprimer les utilisateurs' : 'Suspendre les utilisateurs'}
                             </h3>
                             <p className="text-[12px] text-[var(--crm-text-muted)] leading-relaxed">
                                 {confirmBulkAction === 'delete'
-                                    ? `${selectedIds.size} user(s) will lose all access immediately. This cannot be undone.`
-                                    : `${selectedIds.size} user(s) will lose access until manually reinstated.`}
+                                    ? `${selectedIds.size} utilisateur(s) perdront immédiatement tout accès. Cette action est irréversible.`
+                                    : `${selectedIds.size} utilisateur(s) perdront l'accès jusqu'à une réactivation manuelle.`}
                             </p>
                             <div className="flex items-center justify-center gap-2 mt-6">
-                                <AppButton variant="bordered" onPress={() => setConfirmBulkAction(null)}>Cancel</AppButton>
+                                <AppButton variant="bordered" onPress={() => setConfirmBulkAction(null)}>Annuler</AppButton>
                                 {confirmBulkAction === 'delete' ? (
                                     <AppButton variant="solid" color="danger" onPress={() => {
                                         const ids = [...selectedIds];
                                         setConfirmBulkAction(null);
                                         router.post('/admin/users/bulk/delete', { userIds: ids }, {
                                             preserveScroll: true,
-                                            onSuccess: () => { setSelectedIds(new Set()); toast.success('Bulk deletion processed.'); },
-                                            onError: () => toast.error('Could not remove some users.'),
+                                            onSuccess: () => { setSelectedIds(new Set()); toast.success('Suppression groupée effectuée.'); },
+                                            onError: () => toast.error('Impossible de supprimer certains utilisateurs.'),
                                         });
-                                    }}>Yes, Remove IconUsers</AppButton>
+                                    }}>Oui, supprimer</AppButton>
                                 ) : (
                                     <AppButton variant="solid" color="primary" onPress={() => {
                                         const ids = [...selectedIds];
                                         setConfirmBulkAction(null);
                                         router.put('/admin/users/bulk/suspend', { userIds: ids }, {
                                             preserveScroll: true,
-                                            onSuccess: () => { setSelectedIds(new Set()); toast.success('Bulk suspension processed.'); },
-                                            onError: () => toast.error('Could not suspend users.'),
+                                            onSuccess: () => { setSelectedIds(new Set()); toast.success('Suspension groupée effectuée.'); },
+                                            onError: () => toast.error('Impossible de suspendre les utilisateurs.'),
                                         });
-                                    }}>Yes, Suspend IconUsers</AppButton>
+                                    }}>Oui, suspendre</AppButton>
                                 )}
                             </div>
                         </div>
@@ -1311,11 +1314,11 @@ export default function AdminUsersIndex({
 
                 {/* ── Modal: Delete User ── */}
                 {/* ── Modal: CSV Import Review ── */}
-                <AppModal isOpen={!!csvModal} onOpenChange={(o) => { if (!o) setCsvModal(null); }} title="Review CSV Import" size="lg">
+                <AppModal isOpen={!!csvModal} onOpenChange={(o) => { if (!o) setCsvModal(null); }} title="Examen de l'import CSV" size="lg">
                     {csvModal && (
                         <div className="space-y-4">
                             <p className="text-[12px] text-[var(--crm-text-muted)]">
-                                {csvModal.users.filter(u => !csvModal.existing.has(u.email)).length} new · {csvModal.existing.size} existing
+                                {csvModal.users.filter(u => !csvModal.existing.has(u.email)).length} nouveau(x) · {csvModal.existing.size} existant(s)
                             </p>
                             <div className="max-h-[320px] overflow-y-auto rounded-lg border border-[var(--crm-border)] divide-y divide-[var(--crm-border)]/40">
                                 {csvModal.users.map((u, i) => {
@@ -1347,7 +1350,7 @@ export default function AdminUsersIndex({
                                                                 return { ...p, overrides: next };
                                                             });
                                                         }}
-                                                            className="h-6 min-w-0 rounded-r-none px-2 text-[9px]">Skip</Button>
+                                                            className="h-6 min-w-0 rounded-r-none px-2 text-[9px]">Ignorer</Button>
                                                         <Button size="sm" variant={isOverridden ? 'primary' : 'ghost'} onPress={() => {
                                                             setCsvModal((p) => {
                                                                 if (!p) return p;
@@ -1356,11 +1359,11 @@ export default function AdminUsersIndex({
                                                                 return { ...p, overrides: next };
                                                             });
                                                         }}
-                                                            className="h-6 min-w-0 rounded-l-none px-2 text-[9px]">Override</Button>
+                                                            className="h-6 min-w-0 rounded-l-none px-2 text-[9px]">Remplacer</Button>
                                                     </div>
                                                 )}
                                                 {!isDuplicate && (
-                                                    <span className="text-[9px] font-medium text-[var(--crm-success)]/60">New</span>
+                                                    <span className="text-[9px] font-medium text-[var(--crm-success)]/60">Nouveau</span>
                                                 )}
                                             </div>
                                         </div>
@@ -1370,11 +1373,11 @@ export default function AdminUsersIndex({
                             <div className="flex items-center justify-between pt-2 border-t border-[var(--crm-border)]">
                                 <span className="text-[10px] text-[var(--crm-text-soft)]">
                                     {csvModal.existing.size > 0 && (
-                                        <>{csvModal.overrides.size} of {csvModal.existing.size} duplicate(s) will be overridden</>
+                                        <>{csvModal.overrides.size} sur {csvModal.existing.size} doublon(s) seront remplacés</>
                                     )}
                                 </span>
                                 <div className="flex items-center gap-2">
-                                    <AppButton variant="bordered" onPress={() => setCsvModal(null)}>Cancel</AppButton>
+                                    <AppButton variant="bordered" onPress={() => setCsvModal(null)}>Annuler</AppButton>
                                     <AppButton variant="solid" color="primary" onPress={() => {
                                         const overrides: Record<string, boolean> = {};
                                         csvModal.overrides.forEach((e) => { overrides[e] = true; });
@@ -1382,11 +1385,11 @@ export default function AdminUsersIndex({
                                         setCsvModal(null);
                                         router.post('/admin/users/invite/bulk', payload, {
                                             preserveScroll: true,
-                                            onSuccess: () => toast.success('CSV import completed.'),
-                                            onError: () => toast.error('CSV import failed.'),
+                                            onSuccess: () => toast.success('Import CSV terminé.'),
+                                            onError: () => toast.error("Échec de l'import CSV."),
                                         });
                                     }}>
-                                        Import {csvModal.users.length} User{csvModal.users.length > 1 ? 's' : ''}
+                                        Importer {csvModal.users.length} utilisateur{csvModal.users.length > 1 ? 's' : ''}
                                     </AppButton>
                                 </div>
                             </div>
@@ -1403,13 +1406,13 @@ export default function AdminUsersIndex({
                                     <IconAlertTriangle size={22} className="text-[var(--crm-danger)]" />
                                 </div>
                             </div>
-                            <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Remove {deleteTarget.name}?</h3>
+                            <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Supprimer {deleteTarget.name} ?</h3>
                             <p className="text-[12px] text-[var(--crm-text-muted)] leading-relaxed">
-                                They will lose all access to <strong className="text-[var(--crm-text)]/70">ARCHI LBO OS</strong> immediately.
+                                Il perdra immédiatement tout accès à <strong className="text-[var(--crm-text)]/70">ARCHI LBO OS</strong>.
                             </p>
                             <div className="flex items-center justify-center gap-2 mt-6">
-                                <AppButton variant="bordered" onPress={() => setDeleteTarget(null)}>Cancel</AppButton>
-                                <AppButton variant="solid" color="danger" onPress={() => { router.delete(`/admin/users/${deleteTarget.id}`, { preserveScroll: true, onSuccess: () => { setDeleteTarget(null); toast.success(`${deleteTarget.name} has been removed.`); }, onError: () => toast.error('Could not remove user.'), }); }}>Yes, Remove User</AppButton>
+                                <AppButton variant="bordered" onPress={() => setDeleteTarget(null)}>Annuler</AppButton>
+                                <AppButton variant="solid" color="danger" onPress={() => { router.delete(`/admin/users/${deleteTarget.id}`, { preserveScroll: true, onSuccess: () => { setDeleteTarget(null); toast.success(`${deleteTarget.name} a été supprimé.`); }, onError: () => toast.error("Impossible de supprimer l'utilisateur."), }); }}>Oui, supprimer l'utilisateur</AppButton>
                             </div>
                         </div>
                     )}

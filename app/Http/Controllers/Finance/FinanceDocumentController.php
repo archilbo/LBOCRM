@@ -28,6 +28,7 @@ use App\Services\Finance\FinanceSettingsService;
 use App\Services\Finance\FinanceMonthlySummaryService;
 use App\Services\Finance\PaymentLedgerService;
 use App\Services\Finance\DossierFinanceEligibilityService;
+use App\Services\PermissionRegistry;
 use App\Services\Finance\FinanceTemplateRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -53,9 +54,9 @@ class FinanceDocumentController extends Controller
         $user = $request->user();
         $context->payload($user);
 
-        $canViewPayments = $user->can('finance.payments.view') || $user->can('manage finance');
-        $canViewExpenses = $user->can('finance.expenses.view') || $user->can('manage finance');
-        $canViewTemplates = $user->can('finance.templates.view') || $user->can('manage finance');
+        $canViewPayments = app(PermissionRegistry::class)->allows($user, 'finance.payments.view');
+        $canViewExpenses = app(PermissionRegistry::class)->allows($user, 'finance.expenses.view');
+        $canViewTemplates = app(PermissionRegistry::class)->allows($user, 'finance.templates.view');
         $currency = FinanceSettingsService::getCurrency();
         $expenses = $canViewExpenses ? $queries->expenses($request, $user)->through(fn (Expense $expense) => [
                 'id' => $expense->id,

@@ -140,7 +140,7 @@ export function FinanceDocumentBuilderDrawer({
             setStep(0);
             setPreviewHtml(null);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [isOpen, document?.id]);
 
     const fetchPreview = useCallback(async () => {

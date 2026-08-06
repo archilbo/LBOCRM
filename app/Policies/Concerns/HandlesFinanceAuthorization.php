@@ -8,6 +8,6 @@ trait HandlesFinanceAuthorization
 
     protected function allowed(\App\Models\User $user, string $permission): bool
     {
-        return $this->tenantAllowed($user, $permission) || $user->can('manage finance');
+        return $this->tenantAllowed($user, $permission);
     }
 }

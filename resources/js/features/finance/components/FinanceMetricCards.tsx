@@ -1,6 +1,6 @@
 import { IconCoin, IconFileText, IconReceipt2, IconWallet } from '@tabler/icons-react';
 
-import { AppMetricCard } from '@/components/ui/AppMetricCard';
+import { FinanceKpiCard } from '@/features/finance/components/FinanceKpiCard';
 import { formatCompactMoney } from '@/features/finance/utils/calculations';
 
 export type FinanceMetrics = {
@@ -20,18 +20,18 @@ type FinanceMetricCardsProps = {
 
 export function FinanceMetricCards({ metrics }: FinanceMetricCardsProps) {
     const cards = [
-        { label: 'Total Devis', value: formatCompactMoney(metrics.totalQuotes, metrics.currency), icon: <IconFileText size={18} /> },
-        { label: 'Total Factures', value: formatCompactMoney(metrics.totalInvoices, metrics.currency), icon: <IconReceipt2 size={18} /> },
-        { label: 'Encaisse', value: formatCompactMoney(metrics.paidTotal, metrics.currency), icon: <IconWallet size={18} /> },
-        { label: 'Restant', value: formatCompactMoney(metrics.remainingTotal, metrics.currency), icon: <IconCoin size={18} /> },
-        { label: 'En retard', value: formatCompactMoney(metrics.overdueTotal, metrics.currency), icon: <IconCoin size={18} /> },
-        { label: 'Brouillons', value: metrics.draftCount, icon: <IconFileText size={18} /> },
+        { label: 'Total Devis', value: formatCompactMoney(metrics.totalQuotes, metrics.currency), icon: <IconFileText size={18} />, metricTypeSemantic: 'revenue' as const },
+        { label: 'Total Factures', value: formatCompactMoney(metrics.totalInvoices, metrics.currency), icon: <IconReceipt2 size={18} />, metricTypeSemantic: 'revenue' as const },
+        { label: 'Encaisse', value: formatCompactMoney(metrics.paidTotal, metrics.currency), icon: <IconWallet size={18} />, metricTypeSemantic: 'revenue' as const },
+        { label: 'Restant', value: formatCompactMoney(metrics.remainingTotal, metrics.currency), icon: <IconCoin size={18} />, metricTypeSemantic: 'revenue' as const },
+        { label: 'En retard', value: formatCompactMoney(metrics.overdueTotal, metrics.currency), icon: <IconCoin size={18} />, metricTypeSemantic: 'overdue' as const },
+        { label: 'Brouillons', value: metrics.draftCount, icon: <IconFileText size={18} />, metricTypeSemantic: 'revenue' as const },
     ];
 
     return (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))]">
             {cards.map((card) => (
-                <AppMetricCard key={card.label} {...card} />
+                <FinanceKpiCard key={card.label} {...card} keepCurrencyAttached />
             ))}
         </div>
     );

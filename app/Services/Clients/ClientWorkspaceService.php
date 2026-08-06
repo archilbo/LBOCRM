@@ -11,6 +11,7 @@ use App\Services\Dossiers\DossierWorkflowStepperService;
 use App\Services\Documents\DossierDocumentFileService;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\Finance\DossierFinanceEligibilityService;
+use App\Services\PermissionRegistry;
 use Illuminate\Support\Facades\Storage;
 
 class ClientWorkspaceService
@@ -19,12 +20,13 @@ class ClientWorkspaceService
         private readonly DossierWorkflowStepperService $workflowStepper,
         private readonly DossierDocumentFileService $documentFiles,
         private readonly DossierFinanceEligibilityService $financeEligibility,
+        private readonly PermissionRegistry $permissions,
     ) {
     }
 
     public function forClient(Client $client, ?int $selectedDossierId = null, ?User $viewer = null): array
     {
-        $canViewFinance = $viewer === null || $viewer->can('finance.view') || $viewer->can('manage finance');
+        $canViewFinance = $viewer === null || $this->permissions->allows($viewer, 'finance.view');
 
         $relations = [
             'intermediary',

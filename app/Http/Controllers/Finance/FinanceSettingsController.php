@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\UpdateFinanceSettingsRequest;
 use App\Models\CompanySetting;
+use App\Services\PermissionRegistry;
 use Illuminate\Http\RedirectResponse;
 
 class FinanceSettingsController extends Controller
 {
     public function update(UpdateFinanceSettingsRequest $request): RedirectResponse
     {
-        abort_unless($request->user()->can('finance.settings.update') || $request->user()->can('manage finance'), 403);
+        abort_unless(app(PermissionRegistry::class)->allows($request->user(), 'finance.settings.update'), 403);
         $data = $request->validated();
 
         $finance = $data['finance'] ?? [];
@@ -47,7 +48,7 @@ class FinanceSettingsController extends Controller
 
     public function reset(): RedirectResponse
     {
-        abort_unless(request()->user()->can('finance.settings.update') || request()->user()->can('manage finance'), 403);
+        abort_unless(app(PermissionRegistry::class)->allows(request()->user(), 'finance.settings.update'), 403);
         CompanySetting::setValue('finance', 'default_tva_rate', 20, 'decimal', 'Default TVA rate');
         CompanySetting::setValue('finance', 'default_currency', 'MAD', 'string', 'Default currency');
         CompanySetting::setValue('finance', 'default_payment_terms_days', 30, 'integer', 'Payment terms days');

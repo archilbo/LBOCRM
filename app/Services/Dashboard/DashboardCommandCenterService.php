@@ -12,6 +12,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\CompanyContext;
 use App\Services\Finance\FinanceContextService;
+use App\Services\PermissionRegistry;
 use Illuminate\Database\Eloquent\Builder;
 
 class DashboardCommandCenterService
@@ -19,6 +20,7 @@ class DashboardCommandCenterService
     public function __construct(
         private readonly CompanyContext $companyContext,
         private readonly FinanceContextService $financeContext,
+        private readonly PermissionRegistry $permissions,
     ) {}
 
     public function data(User $user): array
@@ -182,14 +184,7 @@ class DashboardCommandCenterService
             'activityFeed' => $this->activityFeed($user),
             'urgentTaskList' => $urgentTaskList,
             'recentMessageList' => $recentMessageList,
-            'quickLinks' => [
-                ['key' => 'newProject', 'href' => '/dossiers?command=create', 'icon' => 'projects'],
-                ['key' => 'uploadDocument', 'href' => '/documents?command=upload', 'icon' => 'upload'],
-                ['key' => 'createInvoice', 'href' => '/finance/documents?tab=invoices&command=create-invoice', 'icon' => 'invoices'],
-                ['key' => 'newClient', 'href' => '/clients?command=create', 'icon' => 'clients'],
-                ['key' => 'newTask', 'href' => '/tasks?command=create', 'icon' => 'tasks'],
-                ['key' => 'newConversation', 'href' => '/inbox?command=create', 'icon' => 'chat'],
-            ],
+            'quickLinks' => $this->quickLinks($user),
             'systemHealth' => [
                 ['label' => 'Clients', 'value' => (string) $this->clients($user)->count(), 'icon' => 'clients', 'tone' => 'blue'],
                 ['label' => 'Projects', 'value' => (string) $this->dossiers($user)->count(), 'icon' => 'projects', 'tone' => 'gold'],
@@ -198,6 +193,26 @@ class DashboardCommandCenterService
                 ['label' => 'Last refresh', 'value' => now()->format('H:i'), 'icon' => 'clock', 'tone' => 'green'],
             ],
         ];
+    }
+
+    private function quickLinks(User $user): array
+    {
+        // Each quick action targets a page with a create/manage command; the
+        // action is only offered when the registry grants the underlying
+        // ability (legacy aliases and custom matrices included).
+        $links = [
+            ['key' => 'newProject', 'href' => '/dossiers?command=create', 'icon' => 'projects', 'permission' => 'dossiers.create'],
+            ['key' => 'uploadDocument', 'href' => '/documents?command=upload', 'icon' => 'upload', 'permission' => 'documents.create'],
+            ['key' => 'createInvoice', 'href' => '/finance/documents?tab=invoices&command=create-invoice', 'icon' => 'invoices', 'permission' => 'finance.documents.create'],
+            ['key' => 'newClient', 'href' => '/clients?command=create', 'icon' => 'clients', 'permission' => 'clients.create'],
+            ['key' => 'newTask', 'href' => '/tasks?command=create', 'icon' => 'tasks', 'permission' => 'tasks.create'],
+            ['key' => 'newConversation', 'href' => '/inbox?command=create', 'icon' => 'chat', 'permission' => 'inbox.manage'],
+        ];
+
+        return array_values(array_map(
+            fn (array $link) => ['key' => $link['key'], 'href' => $link['href'], 'icon' => $link['icon']],
+            array_filter($links, fn (array $link) => $this->permissions->allows($user, $link['permission'])),
+        ));
     }
 
     private function nextActions(User $user): array

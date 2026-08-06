@@ -16,10 +16,12 @@ use App\Traits\AuditsActions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class AdminUserController extends Controller
 {
@@ -83,9 +85,14 @@ class AdminUserController extends Controller
         $this->ensureManagedUser($request, $user);
 
         $oldRole = $user->getRoleNames()->first() ?? 'none';
-        $user->syncRoles([$request->validated('role')]);
-        $user->syncPermissions([]);
-        $user->update(['module_permissions' => null]);
+
+        DB::transaction(function () use ($user, $request, $oldRole) {
+            $user->syncRoles([$request->validated('role')]);
+            $user->syncPermissions([]);
+            $user->update(['module_permissions' => null]);
+        });
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->audit($request, 'user.role.updated', "Changed {$user->name}'s role from {$oldRole} to {$request->validated('role')}", [
             'user_id' => $user->id,
@@ -173,19 +180,26 @@ class AdminUserController extends Controller
         $customPermissions = $this->permissions->permissionsForModuleLevels($moduleConfiguration);
 
         if ($validated['isCustom']) {
-            $user->syncRoles(['custom']);
-            $user->syncPermissions($customPermissions);
-            $user->module_permissions = [
-                'base_role' => $validated['role'],
-                'is_custom' => true,
-                'modules' => $moduleConfiguration,
-            ];
+            DB::transaction(function () use ($user, $validated, $moduleConfiguration, $customPermissions) {
+                $user->syncRoles(['custom']);
+                $user->syncPermissions($customPermissions);
+                $user->module_permissions = [
+                    'base_role' => $validated['role'],
+                    'is_custom' => true,
+                    'modules' => $moduleConfiguration,
+                ];
+                $user->save();
+            });
         } else {
-            $user->syncRoles([$validated['role']]);
-            $user->syncPermissions([]);
-            $user->module_permissions = null;
+            DB::transaction(function () use ($user, $validated) {
+                $user->syncRoles([$validated['role']]);
+                $user->syncPermissions([]);
+                $user->module_permissions = null;
+                $user->save();
+            });
         }
-        $user->save();
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->audit($request, 'user.permissions.updated', "Updated permissions for {$user->name} (role: {$oldRole} → {$validated['role']})", [
             'user_id' => $user->id,
@@ -220,11 +234,15 @@ class AdminUserController extends Controller
                 return;
             }
 
-            $user->syncRoles([$data['role']]);
-            $user->syncPermissions([]);
-            $user->update(['module_permissions' => null]);
+            DB::transaction(function () use ($user, $data) {
+                $user->syncRoles([$data['role']]);
+                $user->syncPermissions([]);
+                $user->update(['module_permissions' => null]);
+            });
             $count++;
         });
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->audit($request, 'bulk.role.updated', "Bulk updated {$count} user(s) to role {$data['role']}", [
             'user_ids' => $data['userIds'],

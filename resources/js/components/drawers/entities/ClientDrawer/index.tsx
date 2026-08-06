@@ -4,6 +4,7 @@ import {
     useState,
 } from 'react';
 import type { Key } from 'react-aria-components';
+import { usePage } from '@inertiajs/react';
 import { IconCircleCheck, IconScan, IconUpload } from '@tabler/icons-react';
 
 import { Input, TextArea } from '@heroui/react';
@@ -49,6 +50,11 @@ const emptyForm: ClientFormPayload = {
 
 export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChange, onSubmit, errors = {}, isSubmitting = false }: ClientDrawerProps) {
   const { t } = useTranslation();
+  // The Scan CIN mode posts to /clients/scan-cin; hide the toggle when the
+  // backend would reject the call so the UI never advertises a 403.
+  const canScanCin = Boolean(
+    ((usePage().props as Record<string, unknown>).auth as { user?: { permissions?: string[] } } | undefined)?.user?.permissions?.includes('clients.cin.scan'),
+  );
   const [form, setForm] = useState<ClientFormPayload>(emptyForm);
   const [inputMode, setInputMode] = useState<'manual' | 'scan'>('manual');
   const [lastScan, setLastScan] = useState<{
@@ -150,15 +156,17 @@ export function ClientDrawer({ isOpen, mode, client, intermediaries, onOpenChang
               )}>
               <IconUpload size={14} /> {t('clients.drawer.manualEntry')}
             </button>
-            <button type="button" onClick={() => setInputMode('scan')}
-              className={cn(
-                'flex flex-1 items-center justify-center gap-2 py-2.5 text-[11px] font-medium transition',
-                inputMode === 'scan'
-                  ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)]',
-              )}>
-              <IconScan size={14} /> {t('clients.drawer.scanCin')}
-            </button>
+            {canScanCin && (
+              <button type="button" onClick={() => setInputMode('scan')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-2 py-2.5 text-[11px] font-medium transition',
+                  inputMode === 'scan'
+                    ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                    : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)]',
+                )}>
+                <IconScan size={14} /> {t('clients.drawer.scanCin')}
+              </button>
+            )}
           </div>
         )}
 

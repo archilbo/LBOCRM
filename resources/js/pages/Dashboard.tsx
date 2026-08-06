@@ -136,21 +136,23 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                             </AppButton>
                                         ))}
                                     </div>
-                                    <div className="flex items-center justify-between border-t border-[var(--border)] px-2 py-1.5">
-                                        <span className="px-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('dashboard.sections.quickActions')}</span>
-                                        <div className="flex items-center gap-1">
-                                            {quickLinks.map((link) => {
-                                                const Icon = iconMap[link.icon] ?? IconFolder;
+                                    {quickLinks.length > 0 ? (
+                                        <div className="flex items-center justify-between border-t border-[var(--border)] px-2 py-1.5">
+                                            <span className="px-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('dashboard.sections.quickActions')}</span>
+                                            <div className="flex items-center gap-1">
+                                                {quickLinks.map((link) => {
+                                                    const Icon = iconMap[link.icon] ?? IconFolder;
 
-                                                return (
-                                                    <Tooltip key={link.key} delay={450}>
-                                                        <Tooltip.Trigger><AppButton isIconOnly size="sm" compact variant="quiet" onPress={() => openQuickAction(link.key, link.href)} aria-label={t(`dashboard.quickActions.${link.key}`)}><Icon size={14} /></AppButton></Tooltip.Trigger>
-                                                        <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">{t(`dashboard.quickActions.${link.key}`)}</Tooltip.Content>
-                                                    </Tooltip>
-                                                );
-                                            })}
+                                                    return (
+                                                        <Tooltip key={link.key} delay={450}>
+                                                            <Tooltip.Trigger><AppButton isIconOnly size="sm" compact variant="quiet" onPress={() => openQuickAction(link.key, link.href)} aria-label={t(`dashboard.quickActions.${link.key}`)}><Icon size={14} /></AppButton></Tooltip.Trigger>
+                                                            <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">{t(`dashboard.quickActions.${link.key}`)}</Tooltip.Content>
+                                                        </Tooltip>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : null}
                                 </div>
                             </Card.Content>
                         </Card>

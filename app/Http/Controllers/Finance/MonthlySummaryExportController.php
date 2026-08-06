@@ -6,6 +6,7 @@ use App\Exports\MonthlySummaryExport;
 use App\Http\Controllers\Controller;
 use App\Services\Finance\FinanceMonthlySummaryService;
 use App\Services\Finance\FinanceSettingsService;
+use App\Services\PermissionRegistry;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class MonthlySummaryExportController extends Controller
 {
     public function exportPdf(Request $request, FinanceMonthlySummaryService $service): RedirectResponse|BinaryFileResponse|StreamedResponse
     {
-        abort_unless($request->user()->can('finance.reports.export') || $request->user()->can('manage finance'), 403);
+        abort_unless(app(PermissionRegistry::class)->allows($request->user(), 'finance.reports.export'), 403);
         $months = $this->parseMonths($request);
         $typeFilter = $this->parseType($request);
 
@@ -81,7 +82,7 @@ class MonthlySummaryExportController extends Controller
 
     public function exportExcel(Request $request, FinanceMonthlySummaryService $service): BinaryFileResponse|RedirectResponse
     {
-        abort_unless($request->user()->can('finance.reports.export') || $request->user()->can('manage finance'), 403);
+        abort_unless(app(PermissionRegistry::class)->allows($request->user(), 'finance.reports.export'), 403);
         $months = $this->parseMonths($request);
         $typeFilter = $this->parseType($request);
 
@@ -113,7 +114,7 @@ class MonthlySummaryExportController extends Controller
 
     public function exportCsv(Request $request, FinanceMonthlySummaryService $service): StreamedResponse|RedirectResponse
     {
-        abort_unless($request->user()->can('finance.reports.export') || $request->user()->can('manage finance'), 403);
+        abort_unless(app(PermissionRegistry::class)->allows($request->user(), 'finance.reports.export'), 403);
         $months = $this->parseMonths($request);
         $typeFilter = $this->parseType($request);
 
@@ -127,7 +128,7 @@ class MonthlySummaryExportController extends Controller
             $fh = fopen('php://output', 'wb');
             fputs($fh, "\xEF\xBB\xBF"); // BOM for UTF-8 Excel compat
 
-            fputcsv($fh, ['Type', 'N°', 'Client', 'Date', 'Statut', 'Total', 'Restant'], ';');
+            fputcsv($fh, ['Type', 'NÂ°', 'Client', 'Date', 'Statut', 'Total', 'Restant'], ';');
 
             foreach ($data['rows'] as $row) {
                 fputcsv($fh, [
@@ -262,8 +263,8 @@ class MonthlySummaryExportController extends Controller
                 $rows[] = [
                     'type' => $typeFilter === 'all' ? $doc['type'] : $typeFilter,
                     'number' => $doc['number'],
-                    'client' => $doc['clientName'] ?? '—',
-                    'date' => $doc['issueDate'] ?? '—',
+                    'client' => $doc['clientName'] ?? 'â€”',
+                    'date' => $doc['issueDate'] ?? 'â€”',
                     'status' => $doc['status'],
                     'total' => $totalRaw,
                     'amount' => $amountRaw,
@@ -278,13 +279,13 @@ class MonthlySummaryExportController extends Controller
                     $rows[] = [
                         'type' => 'payment',
                         'number' => $pay['paymentNumber'],
-                        'client' => $pay['clientName'] ?? '—',
-                        'date' => $pay['paidAt'] ?? '—',
+                        'client' => $pay['clientName'] ?? 'â€”',
+                        'date' => $pay['paidAt'] ?? 'â€”',
                         'status' => 'Paye',
                         'total' => $amountRaw,
                         'amount' => 0,
                         'totalFmt' => $this->compactMoney($amountRaw, $currency),
-                        'amountFmt' => '—',
+                        'amountFmt' => 'â€”',
                     ];
                 }
             }

@@ -125,8 +125,62 @@ class PermissionRegistry
         return in_array($permission, $this->effectiveNames($user), true);
     }
 
+    public function allowsAny(User $user, array $permissions): bool
+    {
+        if ($user->hasAnyRole(config('archilbo_roles.protected', []))) {
+            return true;
+        }
+
+        return (bool) array_intersect($permissions, $this->effectiveNames($user));
+    }
+
+    public function allowsAll(User $user, array $permissions): bool
+    {
+        if ($user->hasAnyRole(config('archilbo_roles.protected', []))) {
+            return true;
+        }
+
+        $effective = $this->effectiveNames($user);
+
+        return $permissions !== []
+            && $permissions === array_values(array_intersect($permissions, $effective));
+    }
+
+    /**
+     * The stored custom module matrix, when present and enabled. This is the
+     * authoritative configuration for custom accounts: it replaces the base
+     * role instead of layering on top of it.
+     */
+    public function customConfiguration(User $user): ?array
+    {
+        $configuration = $user->module_permissions;
+
+        return is_array($configuration) && ($configuration['is_custom'] ?? false) === true
+            ? $configuration
+            : null;
+    }
+
+    public function hasCustomConfiguration(User $user): bool
+    {
+        return $this->customConfiguration($user) !== null;
+    }
+
+    /**
+     * Effective permission names for a user. Custom accounts are governed by
+     * their stored module matrix (users.module_permissions) for every
+     * matrix-managed permission; permissions the matrix does not govern stay
+     * inherited from the role. Every other account is governed by its Spatie
+     * role permissions plus legacy aliases. Protected roles always keep full
+     * access and are never narrowed by a stale matrix.
+     */
     public function effectiveNames(User $user): array
     {
+        $custom = $this->customConfiguration($user);
+
+        if ($custom && ! $user->hasAnyRole(config('archilbo_roles.protected', []))) {
+            return $this->effectiveNamesForCustom($user, $custom['modules'] ?? []);
+        }
+
         $granted = collect($user->getAllPermissions())
             ->pluck('name')
             ->values()
@@ -136,6 +190,62 @@ class PermissionRegistry
             $granted,
             $user->hasRole(config('archilbo_roles.super_admin_role')),
         );
+    }
+
+    /**
+     * Effective names for a custom (matrix-governed) account.
+     *
+     * The matrix replaces the base role for managed permissions, it does not
+     * strip the account of abilities the matrix does not govern:
+     *
+     *     effective = unmanaged grants + matrix grants
+     *
+     * Unmanaged grants are the Spatie role/direct permissions minus every
+     * permission governed by a module set and every legacy alias that expands
+     * into governed permissions (a raw `manage clients` must not re-grant the
+     * clients module the matrix set to none).
+     */
+    private function effectiveNamesForCustom(User $user, array $modules): array
+    {
+        $granted = collect($user->getAllPermissions())
+            ->pluck('name')
+            ->values()
+            ->toArray();
+
+        $unmanaged = array_values(array_diff(
+            $this->effectiveNamesFromGranted($granted),
+            $this->managedPermissionNames(),
+            $this->managedLegacyPermissionNames(),
+        ));
+
+        return array_values(array_unique([
+            ...$unmanaged,
+            ...$this->permissionsForModuleLevels($modules),
+        ]));
+    }
+
+    /**
+     * Every catalogue permission that is governed by the module matrix
+     * (view/edit/delete sets across all access modules).
+     */
+    public function managedPermissionNames(): array
+    {
+        return array_values(array_unique(collect($this->accessModules())
+            ->flatMap(fn (array $module) => array_merge(
+                $module['view'] ?? [],
+                $module['edit'] ?? [],
+                $module['delete'] ?? [],
+            ))
+            ->values()
+            ->all()));
+    }
+
+    /**
+     * Legacy permission names that expand into managed permissions.
+     */
+    public function managedLegacyPermissionNames(): array
+    {
+        return array_values(array_unique(array_merge(...array_values(config('archilbo_permissions.legacy_aliases', [])))));
     }
 
     private function accessModules(): array

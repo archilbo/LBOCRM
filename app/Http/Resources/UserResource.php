@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\PermissionRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,7 +24,7 @@ class UserResource extends JsonResource
             'roles' => $this->getRoleNames()->values(),
             'displayRole' => $customConfiguration['base_role'] ?? $this->getRoleNames()->first(),
             'permissionConfiguration' => $customConfiguration,
-            'permissions' => $this->getAllPermissions()->pluck('name')->values(),
+            'permissions' => app(PermissionRegistry::class)->effectiveNames($this->resource),
             'lastSeenAt' => optional($this->last_seen_at)->toISOString(),
             'isOnline' => is_null($this->suspended_at) && $this->last_seen_at ? $this->last_seen_at->gt(now()->subMinutes(5)) : false,
             'createdAt' => optional($this->created_at)->format('Y-m-d'),

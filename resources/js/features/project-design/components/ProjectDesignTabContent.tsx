@@ -329,16 +329,18 @@ function EditorWorkspace({
     const requestedAssetMissing = Boolean(workspaceState.assetId && !requestedAsset);
 
     const authUser = ((usePage().props as Record<string, unknown>).auth as {
-        user?: { id: number; companyId?: number; permissions?: string[]; roles?: string[] };
+        user?: { id: number; companyId?: number; permissions?: string[] };
     } | undefined)?.user;
     const userId = authUser?.id;
     const companyId = authUser?.companyId ?? null;
-    const canManageAllRemarks = authUser?.roles?.includes('admin') ?? false;
+    // Admin (protected) receives every catalogue permission in the shared
+    // props, so a single permission-driven check covers all roles; no raw
+    // role-name checks here.
     const remarkCapabilities = {
-        assign: canManageAllRemarks || Boolean(authUser?.permissions?.includes('project-design.assign-remark')),
-        address: canManageAllRemarks || Boolean(authUser?.permissions?.includes('project-design.address-remark')),
-        verify: canManageAllRemarks || Boolean(authUser?.permissions?.includes('project-design.verify-remark')),
-        reopen: canManageAllRemarks || Boolean(authUser?.permissions?.includes('project-design.reopen-remark')),
+        assign: Boolean(authUser?.permissions?.includes('project-design.assign-remark')),
+        address: Boolean(authUser?.permissions?.includes('project-design.address-remark')),
+        verify: Boolean(authUser?.permissions?.includes('project-design.verify-remark')),
+        reopen: Boolean(authUser?.permissions?.includes('project-design.reopen-remark')),
     };
 
     const editorRootRef = useCallback((node: HTMLDivElement | null) => {

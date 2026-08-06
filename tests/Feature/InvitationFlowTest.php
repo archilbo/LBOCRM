@@ -295,4 +295,107 @@ class InvitationFlowTest extends TestCase
         $this->assertNotSame($token, $stored);
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $stored);
     }
+
+    public function test_invited_user_receives_the_seeded_role_and_its_runtime_access(): void
+    {
+        [, $user] = $this->makeInvitation();
+
+        $fresh = $user->fresh(['roles']);
+        $this->assertTrue($fresh->hasRole('staff'));
+        $this->assertNull($fresh->module_permissions);
+
+        // The role must be live at runtime, not just recorded: the registry
+        // grants the staff finance read set through the seeded role.
+        $registry = app(\App\Services\PermissionRegistry::class);
+        $this->assertTrue($registry->allows($fresh, 'finance.view'));
+        $this->assertTrue($registry->allows($fresh, 'finance.settings.view'));
+        $this->assertFalse($registry->allows($fresh, 'finance.documents.delete'));
+        $this->assertTrue($registry->allows($fresh, 'clients.view'));
+        // Staff carries the legacy `manage clients` alias: full client CRUD is
+        // the intended seeded behavior for that role.
+        $this->assertTrue($registry->allows($fresh, 'clients.delete'));
+    }
+
+    public function test_backend_reports_the_actual_failing_password_requirement(): void
+    {
+        [, $user, $token] = $this->makeInvitation();
+        $this->withHeader('accept-language', 'fr-FR,fr;q=0.9,en;q=0.8');
+
+        // 14 chars, lowercase + numbers only: fails uppercase and symbol checks.
+        $this->post(route('invitation.complete', ['token' => $token]), [
+            'name' => 'Pending User',
+            'password' => '1234567891234aze',
+            'password_confirmation' => '1234567891234aze',
+        ])->assertSessionHasErrors(['password' => 'Le champ mot de passe doit contenir au moins une majuscule et une minuscule.']);
+
+        $this->assertNull($user->fresh()->accepted_at);
+    }
+
+    public function test_backend_reports_minimum_length_when_actually_too_short(): void
+    {
+        [, $user, $token] = $this->makeInvitation();
+        $this->withHeader('accept-language', 'fr-FR,fr;q=0.9,en;q=0.8');
+
+        $this->post(route('invitation.complete', ['token' => $token]), [
+            'name' => 'Pending User',
+            'password' => 'Aze123!',
+            'password_confirmation' => 'Aze123!',
+        ])->assertSessionHasErrors(['password' => 'Le champ mot de passe doit contenir au moins 12 caractères.']);
+
+        $this->assertNull($user->fresh()->accepted_at);
+    }
+
+    public function test_backend_reports_confirmation_mismatch_without_length_error(): void
+    {
+        [, $user, $token] = $this->makeInvitation();
+        $this->withHeader('accept-language', 'fr-FR,fr;q=0.9,en;q=0.8');
+
+        $this->post(route('invitation.complete', ['token' => $token]), [
+            'name' => 'Pending User',
+            'password' => 'ArchiLbo@2026!',
+            'password_confirmation' => 'ArchiLbo@2027!',
+        ])->assertSessionHasErrors(['password' => 'Le champ mot de passe de confirmation ne correspond pas.']);
+
+        $this->assertNull($user->fresh()->accepted_at);
+    }
+
+    public function test_backend_reports_missing_number_requirement(): void
+    {
+        [, $user, $token] = $this->makeInvitation();
+        $this->withHeader('accept-language', 'fr-FR,fr;q=0.9,en;q=0.8');
+
+        $this->post(route('invitation.complete', ['token' => $token]), [
+            'name' => 'Pending User',
+            'password' => 'Azeazeazeaze!',
+            'password_confirmation' => 'Azeazeazeaze!',
+        ])->assertSessionHasErrors(['password' => 'Le champ mot de passe doit contenir au moins un chiffre.']);
+
+        $this->assertNull($user->fresh()->accepted_at);
+    }
+
+    public function test_backend_reports_missing_symbol_requirement(): void
+    {
+        [, $user, $token] = $this->makeInvitation();
+        $this->withHeader('accept-language', 'fr-FR,fr;q=0.9,en;q=0.8');
+
+        $this->post(route('invitation.complete', ['token' => $token]), [
+            'name' => 'Pending User',
+            'password' => 'Azeazeazeaze1',
+            'password_confirmation' => 'Azeazeazeaze1',
+        ])->assertSessionHasErrors(['password' => 'Le champ mot de passe doit contenir au moins un symbole.']);
+
+        $this->assertNull($user->fresh()->accepted_at);
+    }
+
+    public function test_backend_messages_follow_the_accept_language_header(): void
+    {
+        [, , $token] = $this->makeInvitation();
+
+        $this->withHeader('accept-language', 'en-US,en;q=0.9,fr;q=0.8')
+            ->post(route('invitation.complete', ['token' => $token]), [
+                'name' => 'Pending User',
+                'password' => 'Aze123!',
+                'password_confirmation' => 'Aze123!',
+            ])->assertSessionHasErrors(['password' => 'The password field must be at least 12 characters.']);
+    }
 }

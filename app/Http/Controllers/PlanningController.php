@@ -3,15 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
+use App\Services\PermissionRegistry;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PlanningController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, PermissionRegistry $permissions): Response
     {
-        abort_unless($request->user()->can('view tasks') || $request->user()->hasRole('admin'), 403);
+        abort_unless($permissions->allows($request->user(), 'tasks.view'), 403);
 
         $tasks = Task::with(['dossier.client', 'assignees', 'creator'])
             ->orderBy('due_date')

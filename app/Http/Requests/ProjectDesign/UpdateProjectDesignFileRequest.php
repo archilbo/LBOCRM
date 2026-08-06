@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests\ProjectDesign;
 
+use App\Services\PermissionRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProjectDesignFileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('project-design.update-file') ?? false;
+        return $this->user() !== null
+            && app(PermissionRegistry::class)->allows($this->user(), 'project-design.update-file');
     }
 
     public function rules(): array

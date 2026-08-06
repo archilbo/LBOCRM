@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\GeminiOcrService;
+use App\Services\PermissionRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,6 +12,8 @@ class CinOcrController extends Controller
 {
     public function scan(Request $request, GeminiOcrService $ocrService): JsonResponse
     {
+        $this->authorizeScan($request);
+
         $validated = $request->validate([
             'image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
         ]);
@@ -52,6 +55,8 @@ class CinOcrController extends Controller
 
     public function scanCin(Request $request, GeminiOcrService $ocrService): JsonResponse
     {
+        $this->authorizeScan($request);
+
         $validated = $request->validate([
             'front_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
             'back_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
@@ -63,5 +68,13 @@ class CinOcrController extends Controller
         );
 
         return response()->json($result);
+    }
+
+    private function authorizeScan(Request $request): void
+    {
+        abort_unless(
+            $request->user() && app(PermissionRegistry::class)->allows($request->user(), 'clients.cin.scan'),
+            403,
+        );
     }
 }

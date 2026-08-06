@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Finance;
 
+use App\Services\PermissionRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UploadCompanyLogoRequest extends FormRequest
@@ -10,18 +11,13 @@ class UploadCompanyLogoRequest extends FormRequest
     {
         $user = $this->user();
 
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
-        if (method_exists($user, 'can')) {
-            return $user->can('finance.settings.update')
-                || $user->can('manage finance')
-                || $user->can('manage users')
-                || $user->hasRole('admin');
-        }
-
-        return true;
+        // The registry resolves the legacy `manage finance` alias and the
+        // protected admin bypass; no raw Spatie/role fallbacks here.
+        return app(PermissionRegistry::class)->allows($user, 'finance.settings.update');
     }
 
     public function rules(): array

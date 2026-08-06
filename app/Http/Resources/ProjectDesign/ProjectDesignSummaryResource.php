@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\ProjectDesign;
 
+use App\Services\PermissionRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,7 +15,8 @@ class ProjectDesignSummaryResource extends JsonResource
             'files' => (int) ($this->resource['files'] ?? 0),
             'versions' => (int) ($this->resource['versions'] ?? 0),
             'activities' => (int) ($this->resource['activities'] ?? 0),
-            'canUpload' => $request->user()?->can('project-design.upload') ?? false,
+            'canUpload' => $request->user() !== null
+                && app(PermissionRegistry::class)->allows($request->user(), 'project-design.upload'),
         ];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\UploadCompanyLogoRequest;
 use App\Models\CompanySetting;
+use App\Services\PermissionRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -13,7 +14,7 @@ class CompanyLogoController extends Controller
 {
     public function store(UploadCompanyLogoRequest $request): RedirectResponse
     {
-        abort_unless($request->user()->can('finance.settings.update') || $request->user()->can('manage finance'), 403);
+        abort_unless(app(PermissionRegistry::class)->allows($request->user(), 'finance.settings.update'), 403);
         $file = $request->file('logo');
         $extension = strtolower($file->extension() ?: 'png');
 
@@ -42,7 +43,7 @@ class CompanyLogoController extends Controller
 
     public function destroy(): RedirectResponse
     {
-        abort_unless(request()->user()->can('finance.settings.update') || request()->user()->can('manage finance'), 403);
+        abort_unless(app(PermissionRegistry::class)->allows(request()->user(), 'finance.settings.update'), 403);
         $oldPath = CompanySetting::getValue('company', 'company_logo_path', '');
 
         if ($this->isManagedLogo((string) $oldPath)) {

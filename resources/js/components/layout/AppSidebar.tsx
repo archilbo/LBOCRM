@@ -6,7 +6,7 @@ import {
 } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import type { AppRoute } from '@/config/navigation';
+import type { AppRoute, AppRouteKey } from '@/config/navigation';
 import { appRoutes, isActivePath, isValidHref } from '@/config/navigation';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
@@ -168,6 +168,21 @@ export function AppSidebar() {
     }, [authUser.permissions]);
 
     const navOpts = { isActive, canView, goTo, t };
+
+    /* Only render a group section when at least one of its items is visible,
+       otherwise a permission-restricted user sees a bare group label. */
+    const visibleItems = useCallback((keys: readonly string[]): string[] => (
+        keys.filter((key) => {
+            const route = routeMap.get(key as AppRouteKey);
+            return route && route.enabled && canView(route);
+        })
+    ), [canView]);
+
+    const visibleWorkspace = visibleItems(workspaceItems);
+    const visibleFollowUp = visibleItems(followUpItems.map((item) => item.key));
+    const visibleFinance = visibleItems(financeChildren.map((item) => item.key));
+    const visibleCommunication = visibleItems(['inbox', 'notifications']);
+    const visibleAdministration = visibleItems(['users']);
 
     useEffect(() => {
         const shortcutToRoute: Record<string, string> = Object.fromEntries(
@@ -499,35 +514,42 @@ export function AppSidebar() {
 
             {/* ── Navigation ── */}
             <nav className="flex-1 overflow-y-auto px-2 pb-2 scrollbar-none">
-                <NavigationSection label={t('nav.groups.principal')} icon={<IconLayoutKanban size={13} />}>
-                    {workspaceItems.map((key) => renderNavItem(key, navOpts))}
-                </NavigationSection>
+                {visibleWorkspace.length > 0 ? (
+                    <NavigationSection label={t('nav.groups.principal')} icon={<IconLayoutKanban size={13} />}>
+                        {visibleWorkspace.map((key) => renderNavItem(key, navOpts))}
+                    </NavigationSection>
+                ) : null}
 
-                <NavigationSection label={t('nav.groups.followUp')} icon={<IconClipboardList size={13} />}>
-                    {followUpItems.map(({ key }) => renderNavItem(key, navOpts))}
-                </NavigationSection>
+                {visibleFollowUp.length > 0 ? (
+                    <NavigationSection label={t('nav.groups.followUp')} icon={<IconClipboardList size={13} />}>
+                        {visibleFollowUp.map((key) => renderNavItem(key, navOpts))}
+                    </NavigationSection>
+                ) : null}
 
-                <NavigationSection label={t('nav.finance')} icon={<IconCoin size={13} />}>
+                {visibleFinance.length > 0 ? (
+                    <NavigationSection label={t('nav.finance')} icon={<IconCoin size={13} />}>
+                        <div className="ml-2 border-l border-border/70 pl-2">
+                            {visibleFinance.map((key) => {
+                                const child = financeChildren.find((item) => item.key === key);
+                                const route = getRoute(key);
+                                if (!route) return null;
+                                return <NavItem key={key} route={{ ...route, labelKey: child?.labelKey ?? route.labelKey }} {...navOpts} />;
+                            })}
+                        </div>
+                    </NavigationSection>
+                ) : null}
 
-                    <div className="ml-2 border-l border-border/70 pl-2">
-                        {financeChildren.map(({ key, labelKey }) => {
-                            const route = getRoute(key);
-                            if (!route || !route.enabled || !canView(route)) return null;
-                            return <NavItem key={key} route={{ ...route, labelKey: labelKey ?? route.labelKey }} {...navOpts} />;
-                        })}
-                    </div>
+                {visibleCommunication.length > 0 ? (
+                    <NavigationSection label={t('nav.groups.communication')} icon={<IconMessages size={13} />}>
+                        {visibleCommunication.map((key) => renderNavItem(key, navOpts))}
+                    </NavigationSection>
+                ) : null}
 
-                </NavigationSection>
-
-                <NavigationSection label={t('nav.groups.communication')} icon={<IconMessages size={13} />}>
-                    {renderNavItem('inbox', navOpts)}
-                    {renderNavItem('notifications', navOpts)}
-                </NavigationSection>
-
-                {/* Administration */}
-                <NavigationSection label={t('nav.groups.administration')} icon={<IconShieldCheck size={13} />}>
-                    {['users'].map((key) => renderNavItem(key, navOpts))}
-                </NavigationSection>
+                {visibleAdministration.length > 0 ? (
+                    <NavigationSection label={t('nav.groups.administration')} icon={<IconShieldCheck size={13} />}>
+                        {visibleAdministration.map((key) => renderNavItem(key, navOpts))}
+                    </NavigationSection>
+                ) : null}
 
                 {/* ── Projects / Status dots ── */}
             </nav>
