@@ -10,6 +10,7 @@ import type { AppRoute, AppRouteKey } from '@/config/navigation';
 import { appRoutes, isActivePath, isValidHref } from '@/config/navigation';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
+import { useBranding } from '@/hooks/useBranding';
 import { useTheme } from '@/providers/ThemeProvider';
 
 const EXPANDED = 236;
@@ -122,6 +123,9 @@ function renderNavItem(routeKey: string, opts: {
 
 export function AppSidebar() {
     const { t } = useTranslation();
+    const branding = useBranding();
+    const appName = branding.appName || 'ARCHI LBO OS';
+    const shortName = branding.shortName || 'LBO OS';
     const { sidebarCollapsed, toggleSidebar } = useTheme();
     const { url: currentPath, props } = usePage();
     const authUser = ((props as any).auth?.user || {}) as { id?: number; name?: string; email?: string; permissions?: string[] };
@@ -321,10 +325,10 @@ export function AppSidebar() {
                     {/* ── Top: logo + expand ── */}
                     <div className="flex shrink-0 flex-col items-center gap-[6px] border-b border-border px-2 py-3">
                         <button type="button" onClick={() => goTo('/', true)}
-                            onMouseEnter={(e) => handleEnter(e, t('app.name'))}
+                            onMouseEnter={(e) => handleEnter(e, shortName)}
                             onMouseLeave={handleLeave}
                             className="flex size-9 items-center justify-center rounded-[10px] bg-accent text-accent-fg"
-                            aria-label={t('app.name')}>
+                            aria-label={shortName}>
                             <IconBuildingSkyscraper size={18} />
                         </button>
                         <button type="button" onClick={toggleSidebar}
@@ -481,7 +485,9 @@ export function AppSidebar() {
                     </div>
                     <div className="min-w-0 flex-1">
                         <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
-                            ARCHI LBO <span className="text-accent">OS</span>
+                            {appName === 'ARCHI LBO OS' ? (<>
+                                ARCHI LBO <span className="text-accent">OS</span>
+                            </>) : appName}
                         </p>
                         <p className="truncate text-[10px] leading-tight text-muted">
                             {t('app.description')}
@@ -503,7 +509,7 @@ export function AppSidebar() {
                                 <IconBuildingSkyscraper size={14} />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs font-semibold text-foreground">ARCHI LBO OS</p>
+                                <p className="truncate text-xs font-semibold text-foreground">{appName}</p>
                                 <p className="truncate text-[9px] text-muted">{t('app.description')}</p>
                             </div>
                             <IconCheck size={13} className="shrink-0 text-accent" />

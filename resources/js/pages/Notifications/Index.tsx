@@ -24,7 +24,7 @@ type PageProps = {
 
 export default function NotificationsIndex({ notifications, unreadCount, activeFilter }: PageProps) {
     const { t, locale } = useTranslation();
-    const enriched = useMemo(() => notifications.map(enrichNotification), [notifications]);
+    const enriched = useMemo(() => notifications.map((row) => enrichNotification(row, t)), [notifications, t]);
 
     const filters = useMemo(() => [
         { id: 'all', label: t('notifications.filters.all') },
@@ -55,18 +55,18 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="flex size-9 items-center justify-center rounded-lg bg-white/[0.04]">
-                                <IconBell size={16} className="text-white/45" />
+                            <div className="flex size-9 items-center justify-center rounded-lg bg-[var(--crm-surface-2)]">
+                                <IconBell size={16} className="text-[var(--crm-text-muted)]" />
                             </div>
                             <div>
-                                <h1 className="text-base font-semibold text-white/90">{t('notifications.title')}</h1>
-                                <p className="text-[10px] text-white/30 mt-0.5">{enriched.length} {t('notifications.total')}{unreadCount > 0 ? `, ${unreadCount} ${t('notifications.unread')}` : ''}</p>
+                                <h1 className="text-base font-semibold text-[var(--crm-text)]">{t('notifications.title')}</h1>
+                                <p className="text-[10px] text-[var(--crm-text-muted)] mt-0.5">{enriched.length} {t('notifications.total')}{unreadCount > 0 ? `, ${unreadCount} ${t('notifications.unread')}` : ''}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-1">
                             {unreadCount > 0 ? (
                                 <button type="button" onClick={markAllAsRead}
-                                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-[10px] font-semibold text-white/40 transition hover:bg-white/5 hover:text-white/70">
+                                    className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-[10px] font-semibold text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface-2)] hover:text-[var(--crm-text)]">
                                     <IconChecks size={13} />
                                     {t('notifications.markAllRead')}
                                 </button>
@@ -83,12 +83,12 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                                     className={cn(
                                         'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[10px] font-medium transition',
                                         isActive
-                                            ? 'bg-white/10 text-white/80'
-                                            : 'text-white/40 hover:bg-white/5 hover:text-white/60',
+                                            ? 'bg-[var(--crm-gold-brand)] text-black'
+                                            : 'text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface-2)] hover:text-[var(--crm-text)]',
                                     )}>
                                     {f.label}
                                     {f.id === 'unread' && unreadCount > 0 ? (
-                                        <span className="flex h-3.5 min-w-[15px] items-center justify-center rounded bg-red-500/80 px-1 text-[8px] font-bold text-white">{unreadCount}</span>
+                                        <span className="flex h-3.5 min-w-[15px] items-center justify-center rounded bg-[var(--crm-danger)] px-1 text-[8px] font-bold text-white">{unreadCount}</span>
                                     ) : null}
                                 </button>
                             );
@@ -104,16 +104,16 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                                 <div key={group}>
                                     <div className="flex items-center gap-3 mb-3 px-0.5">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[9px] font-semibold uppercase tracking-widest text-white/25">{t(`notifications.timeGroups.${group}`)}</span>
-                                            <span className="flex h-4 min-w-[18px] items-center justify-center rounded bg-white/[0.04] px-1.5 text-[9px] font-semibold tabular-nums text-white/20">{items.length}</span>
+                                            <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--crm-text-soft)]">{t(`notifications.timeGroups.${group}`)}</span>
+                                            <span className="flex h-4 min-w-[18px] items-center justify-center rounded bg-[var(--crm-surface-2)] px-1.5 text-[9px] font-semibold tabular-nums text-[var(--crm-text-muted)]">{items.length}</span>
                                         </div>
-                                        <div className="flex-1 h-px bg-white/[0.04]" />
+                                        <div className="flex-1 h-px bg-[var(--crm-border)]" />
                                     </div>
                                     <div className="space-y-1.5">
                                         {items.map((n) => {
                                             const Icon = getNotificationIcon(n.module);
                                             const sev = SEVERITY_COLORS[n.severity];
-                                            const displayTitle = n.title.startsWith('notifications.') ? t(n.title) : n.title;
+                                            const displayTitle = n.title.startsWith('notifications.') ? t(n.title, n.values) : n.title;
                                             return (
                                                 <div
                                                     key={n.id}
@@ -121,20 +121,20 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                                                     className={cn(
                                                         'group relative flex items-start gap-3.5 rounded-lg px-4 py-3.5 transition cursor-pointer',
                                                         n.isRead
-                                                            ? 'hover:bg-white/[0.015]'
-                                                            : 'bg-white/[0.02] hover:bg-white/[0.03]',
+                                                            ? 'hover:bg-[var(--crm-surface-2)]'
+                                                            : 'bg-[var(--crm-surface)] hover:bg-[var(--crm-surface-2)]',
                                                     )}
                                                 >
                                                     {/* Unread indicator */}
                                                     {!n.isRead ? (
-                                                        <span className="absolute left-0 top-3.5 w-0.5 h-4.5 rounded-r-full" style={{ backgroundColor: sev.dot.replace('bg-', '').replace('-400', '') }} />
+                                                        <span className={`absolute left-0 top-3.5 w-0.5 h-4.5 rounded-r-full ${sev.dot}`} />
                                                     ) : null}
 
                                                     {/* Icon */}
                                                     <div className={cn(
                                                         'flex size-8 shrink-0 items-center justify-center rounded-lg',
                                                         n.isRead
-                                                            ? 'bg-white/[0.03] text-white/25'
+                                                            ? 'bg-[var(--crm-surface-2)] text-[var(--crm-text-soft)]'
                                                             : `${sev.bg} ${sev.dot.replace('bg-', 'text-')}`,
                                                     )}>
                                                         <Icon size={15} />
@@ -146,26 +146,26 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                                                             <div className="min-w-0">
                                                                 <p className={cn(
                                                                     'text-[12px] leading-snug',
-                                                                    n.isRead ? 'text-white/50' : 'text-white/85 font-semibold',
+                                                                    n.isRead ? 'text-[var(--crm-text-muted)]' : 'text-[var(--crm-text)] font-semibold',
                                                                 )}>
                                                                     {displayTitle}
                                                                 </p>
                                                             </div>
-                                                            <span className="shrink-0 text-[9px] text-white/25 tabular-nums mt-0.5">{formatNotificationTime(n.createdAt, locale)}</span>
+                                                            <span className="shrink-0 text-[9px] text-[var(--crm-text-soft)] tabular-nums mt-0.5">{formatNotificationTime(n.createdAt, locale)}</span>
                                                         </div>
                                                         {n.body ? (
                                                             <p className={cn(
                                                                 'mt-1 text-xs leading-relaxed max-w-lg',
-                                                                n.isRead ? 'text-white/25' : 'text-white/40',
-                                                            )}>{n.body}</p>
+                                                                n.isRead ? 'text-[var(--crm-text-soft)]' : 'text-[var(--crm-text-muted)]',
+                                                            )}>{n.body.startsWith('notifications.') ? t(n.body, n.values) : n.body}</p>
                                                         ) : null}
                                                         <div className="mt-2 flex items-center gap-2">
                                                             {n.entityLabel ? (
-                                                                <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-semibold text-white/35">{n.entityLabel}</span>
+                                                                <span className="inline-flex items-center gap-1 rounded-md bg-[var(--crm-surface-2)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--crm-text-muted)]">{n.entityLabel}</span>
                                                             ) : null}
                                                             <span className={cn(
                                                                 'text-[9px] font-semibold',
-                                                                n.isRead ? 'text-white/15' : sev.dot.replace('bg-', 'text-'),
+                                                                n.isRead ? 'text-[var(--crm-text-soft)]' : sev.dot.replace('bg-', 'text-'),
                                                             )}>
                                                                 {n.severity === 'urgent' ? t('notifications.severity.urgent') : n.severity === 'warning' ? t('notifications.severity.warning') : n.severity === 'success' ? t('notifications.severity.success') : t('notifications.severity.info')}
                                                             </span>
@@ -175,7 +175,7 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                                                     {/* Mark as read */}
                                                     {!n.isRead ? (
                                                         <button type="button" onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
-                                                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md self-start mt-1 text-white/25 transition hover:bg-white/5 hover:text-emerald-400" title={t('notifications.markedAsRead')}>
+                                                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md self-start mt-1 text-[var(--crm-text-soft)] transition hover:bg-[var(--crm-surface-2)] hover:text-[var(--crm-success)]" title={t('notifications.markedAsRead')}>
                                                             <IconChecks size={13} />
                                                         </button>
                                                     ) : null}
@@ -188,11 +188,11 @@ export default function NotificationsIndex({ notifications, unreadCount, activeF
                         })}
                         {enriched.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-24">
-                                <div className="flex size-14 items-center justify-center rounded-xl bg-white/[0.03]">
-                                    <IconBell size={24} className="text-white/15" />
+                                <div className="flex size-14 items-center justify-center rounded-xl bg-[var(--crm-surface-2)]">
+                                    <IconBell size={24} className="text-[var(--crm-text-soft)]" />
                                 </div>
-                                <p className="mt-4 text-sm font-medium text-white/35">{t('notifications.noNotifications')}</p>
-                                <p className="mt-1.5 text-xs text-white/25">{t('notifications.allCaughtUp')}</p>
+                                <p className="mt-4 text-sm font-medium text-[var(--crm-text-muted)]">{t('notifications.noNotifications')}</p>
+                                <p className="mt-1.5 text-xs text-[var(--crm-text-soft)]">{t('notifications.allCaughtUp')}</p>
                             </div>
                         ) : null}
                     </div>

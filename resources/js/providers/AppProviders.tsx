@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-aria-components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from '@inertiajs/react';
 import { AppFlashToasts } from '@/components/layout/AppFlashToasts';
+import { BrandingProvider } from '@/components/system/branding-provider';
 import { AppToastProvider } from '@/providers/AppToastProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { I18nProvider } from '@/lib/i18n';
@@ -35,14 +36,16 @@ export function AppProviders({ children }: AppProvidersProps) {
             <RouterProvider navigate={navigate}>
                 <I18nProvider>
                     <ThemeProvider>
-                        <AppFlashToasts />
-                        <AppToastProvider />
-                        <GlobalUploadProvider onOpenUploadCenter={() => setUploadCenterOpen(true)}>
-                            {children}
-                            <UploadConnectionStatus />
-                            <GlobalUploadDock />
-                            <GlobalUploadCenterDrawer isOpen={uploadCenterOpen} onOpenChange={setUploadCenterOpen} />
-                        </GlobalUploadProvider>
+                        <BrandingProvider>
+                            <AppFlashToasts />
+                            <AppToastProvider />
+                            <GlobalUploadProvider onOpenUploadCenter={() => setUploadCenterOpen(true)}>
+                                {children}
+                                <UploadConnectionStatus />
+                                <GlobalUploadDock />
+                                <GlobalUploadCenterDrawer isOpen={uploadCenterOpen} onOpenChange={setUploadCenterOpen} />
+                            </GlobalUploadProvider>
+                        </BrandingProvider>
                     </ThemeProvider>
                 </I18nProvider>
             </RouterProvider>

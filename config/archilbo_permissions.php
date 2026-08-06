@@ -99,6 +99,10 @@ return [
 
         'settings.view' => ['group' => 'settings', 'label' => 'Voir les paramètres'],
         'settings.update' => ['group' => 'settings', 'label' => 'Modifier les paramètres'],
+
+        'system.settings.view' => ['group' => 'system', 'label' => 'Voir les paramètres système'],
+        'system.settings.update' => ['group' => 'system', 'label' => 'Modifier les paramètres système'],
+        'system.branding.update' => ['group' => 'system', 'label' => 'Modifier l\'apparence'],
         'qa.view' => ['group' => 'qa', 'label' => 'Voir les contrôles qualité'],
 
         'project-design.view' => ['group' => 'project-design', 'label' => 'Voir les plans'],
@@ -230,6 +234,11 @@ return [
             'view' => ['archive.view'],
             'edit' => ['archive.create', 'archive.update', 'archive.checkout', 'archive.checkin'],
             'delete' => ['archive.delete'],
+        ],
+        'Système' => [
+            'view' => ['system.settings.view'],
+            'edit' => ['system.settings.update', 'system.branding.update'],
+            'delete' => [],
         ],
     ],
 
@@ -365,6 +374,8 @@ return [
         'settings.cities.store' => 'archive.update',
         'settings.cities.update' => 'archive.update',
         'settings.cities.destroy' => 'archive.delete',
+        'settings.system-appearance.index' => 'system.settings.view',
+        'settings.system-appearance.update' => 'system.settings.update',
 
         'dossiers.project-design.*' => 'project-design.view',
         'project-design.assets.*' => 'project-design.view',

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CompanySetting extends Model
 {
@@ -14,11 +16,30 @@ class CompanySetting extends Model
         'label',
         'description',
         'is_public',
+        'updated_by',
     ];
 
     protected $casts = [
         'is_public' => 'boolean',
     ];
+
+    /**
+     * User who last updated this setting, if any.
+     */
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function scopeGroup(Builder $query, string $group): Builder
+    {
+        return $query->where('group', $group);
+    }
+
+    public function scopePublic(Builder $query): Builder
+    {
+        return $query->where('is_public', true);
+    }
 
     public static function getValue(string $group, string $key, mixed $default = null): mixed
     {

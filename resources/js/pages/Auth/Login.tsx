@@ -3,9 +3,9 @@ import { IconArrowRight, IconCoin, IconBuilding, IconCircleCheck, IconEye, IconE
 
 import { FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { AppButton } from '@/components/ui/AppButton';
-import { AppTextField } from '@/components/ui/AppTextField';
+import { Button, Checkbox, FieldError, Input, Label, TextField } from '@heroui/react';
 import { useTranslation } from '@/lib/i18n';
+import { useBranding } from '@/hooks/useBranding';
 
 const FORCE_LOGIN_REDESIGN_53L = true;
 
@@ -36,6 +36,8 @@ const checks = [
 
 export default function Login({ errors = {}, status }: PageProps) {
     const { t } = useTranslation();
+    const branding = useBranding();
+    const appName = branding.appName || 'ARCHI LBO OS';
 
     useEffect(() => {
         document.documentElement.classList.add('login-no-scroll');
@@ -96,7 +98,13 @@ export default function Login({ errors = {}, status }: PageProps) {
                                     <IconBuilding size={24} />
                                 </div>
                                 <div>
-                                    <p className="text-[16px] font-semibold tracking-[-0.03em]">ARCHI LBO <span className="text-[var(--crm-accent)]">OS</span></p>
+                                    <p className="text-[16px] font-semibold tracking-[-0.03em]">
+                                        {appName === 'ARCHI LBO OS' ? (
+                                            <>ARCHI LBO <span className="text-[var(--crm-accent)]">OS</span></>
+                                        ) : (
+                                            appName
+                                        )}
+                                    </p>
                                     <p className="mt-0.5 text-xs leading-4 text-[var(--crm-muted)]">{t('auth.login.leftPanelTagline')}</p>
                                 </div>
                             </div>
@@ -149,7 +157,13 @@ export default function Login({ errors = {}, status }: PageProps) {
                                     <IconBuilding size={22} />
                                 </div>
                                 <div>
-                                    <p className="text-[16px] font-semibold tracking-[-0.03em]">ARCHI LBO <span className="text-[var(--crm-accent)]">OS</span></p>
+                                    <p className="text-[16px] font-semibold tracking-[-0.03em]">
+                                        {appName === 'ARCHI LBO OS' ? (
+                                            <>ARCHI LBO <span className="text-[var(--crm-accent)]">OS</span></>
+                                        ) : (
+                                            appName
+                                        )}
+                                    </p>
                                     <p className="mt-0.5 text-xs leading-4 text-[var(--crm-muted)]">{t('auth.login.leftPanelTagline')}</p>
                                 </div>
                             </div>
@@ -177,56 +191,74 @@ export default function Login({ errors = {}, status }: PageProps) {
                                 </div>
 
                                 <form className="grid gap-5 p-6 sm:p-7" onSubmit={handleSubmit}>
-                                    <AppTextField
-                                        label={t('auth.login.email')}
+                                    <TextField
                                         type="email"
                                         value={form.email}
                                         onChange={(value) => updateField('email', value)}
-                                        error={errors.email}
-                                        placeholder={t('auth.login.emailPlaceholder')}
-                                        autoComplete="username"
-                                    />
+                                        isInvalid={Boolean(errors.email)}
+                                        className="grid gap-1.5"
+                                    >
+                                        <Label className="text-sm font-medium text-[var(--crm-text)]">{t('auth.login.email')}</Label>
+                                        <Input
+                                            placeholder={t('auth.login.emailPlaceholder')}
+                                            autoComplete="username"
+                                            className="h-10 rounded-2xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 text-sm text-[var(--crm-text)] outline-none transition placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-accent)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--crm-accent)_14%,transparent)]"
+                                        />
+                                        {errors.email ? <FieldError className="text-xs font-medium text-[var(--crm-danger)]">{errors.email}</FieldError> : null}
+                                    </TextField>
 
-                                    <AppTextField
-                                        label={t('auth.login.password')}
+                                    <TextField
                                         type={isPasswordVisible ? 'text' : 'password'}
                                         value={form.password}
                                         onChange={(value) => updateField('password', value)}
-                                        error={errors.password}
-                                        placeholder={t('auth.login.passwordPlaceholder')}
-                                        autoComplete="current-password"
-                                        endContent={
-                                            <AppButton
+                                        isInvalid={Boolean(errors.password)}
+                                        className="grid gap-1.5"
+                                    >
+                                        <Label className="text-sm font-medium text-[var(--crm-text)]">{t('auth.login.password')}</Label>
+                                        <div className="relative">
+                                            <Input
+                                                placeholder={t('auth.login.passwordPlaceholder')}
+                                                autoComplete="current-password"
+                                                className="h-10 w-full rounded-2xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 pr-11 text-sm text-[var(--crm-text)] outline-none transition placeholder:text-[var(--crm-muted)] focus:border-[var(--crm-accent)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--crm-accent)_14%,transparent)]"
+                                            />
+                                            <Button
                                                 type="button"
                                                 variant="ghost"
                                                 size="sm"
                                                 isIconOnly
                                                 aria-label={isPasswordVisible ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
-                                                className="size-8 min-w-0 text-[var(--crm-muted)] hover:bg-[var(--crm-elevated)] hover:text-[var(--crm-accent)]"
                                                 onPress={() => setIsPasswordVisible((visible) => !visible)}
+                                                className="absolute right-1.5 top-1/2 z-10 size-8 min-w-0 -translate-y-1/2 text-[var(--crm-muted)] hover:bg-[var(--crm-elevated)] hover:text-[var(--crm-accent)]"
                                             >
                                                 {isPasswordVisible ? <IconEyeOff size={16} /> : <IconEye size={16} />}
-                                            </AppButton>
-                                        }
-                                    />
+                                            </Button>
+                                        </div>
+                                        {errors.password ? <FieldError className="text-xs font-medium text-[var(--crm-danger)]">{errors.password}</FieldError> : null}
+                                    </TextField>
 
-                                    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 py-3">
-                                        <span className="flex items-center gap-3 text-[12px] font-medium tracking-[-0.01em]">
-                                            <input
-                                                type="checkbox"
-                                                checked={form.remember}
-                                                onChange={(event) => updateField('remember', event.target.checked)}
-                                                className="size-4 accent-[var(--crm-accent)]"
-                                            />
-                                            {t('auth.login.rememberSession')}
-                                        </span>
-                                        <IconShieldCheck size={16} className="text-[var(--crm-muted)]" />
-                                    </label>
+                                    <Checkbox
+                                        isSelected={form.remember}
+                                        onChange={(checked) => updateField('remember', checked)}
+                                        className="flex w-full flex-row items-center justify-between gap-3 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] px-3 py-3"
+                                    >
+                                        <Checkbox.Content className="flex min-w-0 items-center gap-3 text-[12px] font-medium tracking-[-0.01em]">
+                                            <Checkbox.Control className="rounded-md border border-[var(--crm-border)] bg-[var(--crm-bg)]">
+                                                <Checkbox.Indicator className="text-[var(--crm-accent)]" />
+                                            </Checkbox.Control>
+                                            <span className="truncate">{t('auth.login.rememberSession')}</span>
+                                        </Checkbox.Content>
+                                        <IconShieldCheck size={16} className="shrink-0 text-[var(--crm-muted)]" />
+                                    </Checkbox>
 
-                                    <AppButton variant="primary" type="submit" isDisabled={processing}>
+                                    <Button
+                                        type="submit"
+                                        variant="primary"
+                                        isDisabled={processing}
+                                        className="h-11 w-full rounded-xl text-sm font-semibold"
+                                    >
                                         {processing ? t('auth.login.signingIn') : t('auth.login.enterWorkspace')}
                                         <IconArrowRight size={16} />
-                                    </AppButton>
+                                    </Button>
                                 </form>
 
                                 <div className="border-t border-[var(--crm-border)] bg-black/10 px-6 py-4 sm:px-7">

@@ -7,6 +7,11 @@ import { createInertiaApp } from '@inertiajs/react';
 import { configureEcho } from '@laravel/echo-react';
 import { createRoot } from 'react-dom/client';
 import { AppProviders } from '@/providers/AppProviders';
+import type { PublicBrandingSettings } from '@/types/branding';
+
+// Cached by the setup callback from the initial shared props, so the document
+// title helper can resolve the brand name synchronously.
+let sharedBranding: PublicBrandingSettings | null = null;
 
 const reverbKey = import.meta.env.VITE_REVERB_APP_KEY || 'local';
 const reverbHost = import.meta.env.VITE_REVERB_HOST || '127.0.0.1';
@@ -36,7 +41,10 @@ configureEcho({
 });
 
 createInertiaApp({
-    title: (title) => title ? `${title} - ARCHI LBO OS` : 'ARCHI LBO OS',
+    title: (title) => {
+        const appName = sharedBranding?.appName || 'ARCHI LBO OS';
+        return title ? `${title} - ${appName}` : appName;
+    },
     resolve: (name) => {
         const pages = import.meta.glob('./pages/**/*.tsx', { eager: true });
         const page = pages[`./pages/${name}.tsx`];
@@ -48,6 +56,11 @@ createInertiaApp({
         return page;
     },
     setup({ el, App, props }) {
+        const initial = (props.initialPage as { props?: { branding?: PublicBrandingSettings } }).props?.branding;
+        if (initial) {
+            sharedBranding = initial;
+        }
+
         createRoot(el).render(
             <AppProviders>
                 <App {...props} />

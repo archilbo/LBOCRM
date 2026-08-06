@@ -18,6 +18,7 @@ export type EnrichedNotification = NotificationRow & {
     severity: NotificationSeverity;
     title: string;
     body: string | null;
+    values: Record<string, string | number>;
     entityLabel: string | null;
     entityType: string | null;
     entityId: number | null;

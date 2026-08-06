@@ -6,10 +6,15 @@ use Illuminate\Http\Request;
 use Inertia\Middleware;
 use App\Services\Chat\ChatService;
 use App\Services\PermissionRegistry;
+use App\Services\SystemSettingsService;
 
 class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
+
+    public function __construct(private readonly SystemSettingsService $systemSettings)
+    {
+    }
 
     public function version(Request $request): ?string
     {
@@ -22,6 +27,8 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...parent::share($request),
+
+            'branding' => fn () => $this->systemSettings->publicBrandingArray(),
 
             'auth' => [
                 'user' => $user ? [

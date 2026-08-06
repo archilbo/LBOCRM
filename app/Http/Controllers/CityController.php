@@ -25,9 +25,10 @@ class CityController extends Controller
         $canDeleteCities = $user && $this->permissions->allows($user, 'archive.delete');
         $canViewFinance = $user && $this->permissions->allows($user, 'finance.settings.view');
         $canManageFinance = $user && $this->permissions->allows($user, 'finance.settings.update');
+        $canViewSystemAppearance = $user && $this->permissions->allows($user, 'system.settings.view');
 
         abort_unless(
-            $user && ($canViewCities || $canViewFinance),
+            $user && ($canViewCities || $canViewFinance || $canViewSystemAppearance),
             403
         );
 
@@ -41,6 +42,7 @@ class CityController extends Controller
             'canDeleteCities' => $canDeleteCities,
             'canViewFinanceSettings' => $canViewFinance,
             'canManageFinanceSettings' => $canManageFinance,
+            'canViewSystemAppearance' => $canViewSystemAppearance,
             'financeSettings' => $canViewFinance ? [
                 'settings' => app(FinanceSettingsService::class)->allGrouped(),
                 'routes' => [

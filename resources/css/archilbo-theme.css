@@ -23,6 +23,7 @@
     --crm-gold: #a16e07;
     --crm-gold-2: #8a5e04;
     --crm-gold-soft: color-mix(in srgb, var(--crm-gold) 14%, transparent);
+    --crm-gold-brand: #f6b725;
 
     --crm-success: #15803d;
     --crm-success-soft: color-mix(in srgb, var(--crm-success) 14%, transparent);
@@ -83,6 +84,7 @@
     --crm-gold: #f6b725;
     --crm-gold-2: #d79516;
     --crm-gold-soft: color-mix(in srgb, var(--crm-gold) 14%, transparent);
+    --crm-gold-brand: #f6b725;
 
     --crm-success: #4ade80;
     --crm-success-soft: color-mix(in srgb, var(--crm-success) 14%, transparent);

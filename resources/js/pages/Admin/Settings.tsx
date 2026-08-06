@@ -34,6 +34,7 @@ type PageProps = {
     canDeleteCities?: boolean;
     canViewFinanceSettings?: boolean;
     canManageFinanceSettings?: boolean;
+    canViewSystemAppearance?: boolean;
     financeSettings?: FinanceSettingsFormProps | null;
 };
 
@@ -51,13 +52,24 @@ function visiblePageNumbers(currentPage: number, totalPages: number): number[] {
     return Array.from({ length: count }, (_, index) => start + index);
 }
 
-export default function AdminSettings({ cities, usedColors, canViewCities = false, canManageCities = false, canDeleteCities = false, canViewFinanceSettings = false, canManageFinanceSettings = false, financeSettings }: PageProps) {
+export default function AdminSettings({ cities, usedColors, canViewCities = false, canManageCities = false, canDeleteCities = false, canViewFinanceSettings = false, canManageFinanceSettings = false, canViewSystemAppearance = false, financeSettings }: PageProps) {
     const { url } = usePage();
 
     const tabs: AppWorkspaceTab[] = [
         ...(canViewCities ? BASE_TABS : []),
         ...(canViewFinanceSettings ? [{ id: 'company', label: 'Entreprise', icon: IconBuilding }, { id: 'finance', label: 'Finance', icon: IconSettings2 }] : []),
+        ...(canViewSystemAppearance ? [{ id: 'system-appearance', label: 'Système & apparence', icon: IconPalette }] : []),
     ];
+
+    function handleTabChange(key: string) {
+        if (key === 'system-appearance') {
+            router.visit('/settings/system-appearance');
+
+            return;
+        }
+
+        setActiveTab(key);
+    }
 
     const [activeTab, setActiveTab] = useState<string>(() => {
         const tab = new URL(url, window.location.origin).searchParams.get('tab');
@@ -84,7 +96,7 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
                                     : 'Gérez les villes utilisées pour l’organisation des dossiers et archives.'}
                         />
 
-                        <AppWorkspaceTabs tabs={tabs} selectedKey={activeTab} onSelectionChange={setActiveTab}>
+                        <AppWorkspaceTabs tabs={tabs} selectedKey={activeTab} onSelectionChange={handleTabChange}>
                             {canViewCities ? (
                             <TabPanel id="cities">
                                 <CitiesTabContent

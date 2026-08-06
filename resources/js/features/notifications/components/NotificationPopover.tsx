@@ -45,7 +45,7 @@ function NotifCard({ n, onClose }: { n: EnrichedNotification; onClose: () => voi
     const sev = SEVERITY_COLORS[n.severity];
 
     // Translate title if it's a translation key
-    const displayTitle = n.title.startsWith('notifications.') ? t(n.title) : n.title;
+    const displayTitle = n.title.startsWith('notifications.') ? t(n.title, n.values) : n.title;
 
     function handleClick() {
         if (!n.isRead) {
@@ -73,7 +73,7 @@ function NotifCard({ n, onClose }: { n: EnrichedNotification; onClose: () => voi
                 </div>
                 {n.body ? (
                     <p className={`mt-0.5 line-clamp-1 text-[10px] ${n.isRead ? 'text-[var(--crm-text-muted)]/70' : 'text-[var(--crm-text-muted)]'}`}>
-                        {n.body}
+                        {n.body.startsWith('notifications.') ? t(n.body, n.values) : n.body}
                     </p>
                 ) : null}
                 <div className="mt-1 flex items-center gap-2">
@@ -113,7 +113,7 @@ export function NotificationPopover() {
     const notifRows = pageProps.auth?.user?.recent_notifications ?? [];
     const unreadCount = pageProps.auth?.user?.unread_notifications ?? 0;
 
-    const enriched = useMemo(() => notifRows.map(enrichNotification), [notifRows]);
+    const enriched = useMemo(() => notifRows.map((row) => enrichNotification(row, t)), [notifRows, t]);
 
     const filtered = useMemo(() => {
         if (activeTab === 'all') return enriched;
@@ -136,7 +136,7 @@ export function NotificationPopover() {
 
     return (
         <DialogTrigger>
-            <Button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] transition hover:bg-white/5 hover:text-[var(--crm-text)]" aria-label="Notifications">
+            <Button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] transition hover:bg-[var(--crm-surface-2)] hover:text-[var(--crm-text)]" aria-label="Notifications">
                 <IconBell size={15} />
                 {unreadCount > 0 ? (
                     <span className="absolute -right-1.5 -top-1 flex min-w-[18px] items-center justify-center rounded-md bg-red-500 px-1 py-[1px] text-[9px] font-bold leading-tight text-white shadow-sm shadow-red-500/30">
@@ -172,7 +172,7 @@ export function NotificationPopover() {
                                     const isActive = activeTab === tab.key;
                                     return (
                                         <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)}
-                                            className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[9px] font-semibold transition ${isActive ? 'bg-[var(--crm-gold)] text-black' : 'text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface)] hover:text-[var(--crm-text)]'}`}>
+                                            className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[9px] font-semibold transition ${isActive ? 'bg-[var(--crm-gold-brand)] text-black' : 'text-[var(--crm-text-muted)] hover:bg-[var(--crm-surface)] hover:text-[var(--crm-text)]'}`}>
                                             {getModuleTabLabel(tab.key, t)}
                                             {count > 0 ? (
                                                 <span className={`flex h-4 min-w-[16px] items-center justify-center rounded px-1 text-[9px] font-bold ${isActive ? 'bg-black/20 text-black' : 'bg-[var(--crm-surface-2)] text-[var(--crm-text-muted)]'}`}>

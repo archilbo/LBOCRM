@@ -237,6 +237,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/cities', [\App\Http\Controllers\CityController::class, 'store'])->name('settings.cities.store')->middleware('permission.route');
     Route::put('/settings/cities/{city}', [\App\Http\Controllers\CityController::class, 'update'])->name('settings.cities.update')->middleware('permission.route');
     Route::delete('/settings/cities/{city}', [\App\Http\Controllers\CityController::class, 'destroy'])->name('settings.cities.destroy')->middleware('permission.route');
+    Route::get('/settings/system-appearance', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'index'])->name('settings.system-appearance.index')->middleware('permission.route');
+    Route::put('/settings/system-appearance', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'update'])->name('settings.system-appearance.update')->middleware('permission.route');
 
     Route::prefix('api')->middleware('permission.route')->group(function () {
         Route::get('/clients/search', [ApiClientController::class, 'search'])->name('api.clients.search');
