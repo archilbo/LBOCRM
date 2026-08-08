@@ -85,7 +85,7 @@ export type ClientProjectDocument = {
     documentNumber: string | null;
     originalFilename: string | null;
     mimeType: string | null;
-    sizeLabel: string;
+    sizeLabel: string | null;
     storageLocation: string | null;
     uploadedAt: string | null;
     hasFile: boolean;
@@ -236,4 +236,13 @@ export type ClientWorkspace = {
     projects: ClientProjectSummary[];
     selectedProject: ClientSelectedProjectWorkspace | null;
     contracts: ClientContractSummary[];
+    /**
+     * Client-scoped Document Explorer payload: all documents from ALL of the
+     * Client's Projects (uploaded files + generated Contract/Fiche
+     * artifacts), backend-scoped and source-deduplicated.
+     */
+    explorer: {
+        context: import('@/features/documents/explorer/documentExplorerTypes').ExplorerContext;
+        documents: import('@/features/documents/explorer/documentExplorerTypes').ExplorerDocumentPayload[];
+    };
 };

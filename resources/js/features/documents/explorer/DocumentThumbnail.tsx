@@ -124,7 +124,7 @@ export function DocumentThumbnail({ item, compact = false, className }: Document
     return (
         <div className={cn('relative shrink-0 overflow-hidden bg-[var(--surface-2)]', compact ? 'size-11 rounded-lg' : 'aspect-[4/3] rounded-t-xl', className)}>
             {canShowImage && item.viewUrl ? (
-                <ImageThumbnail key={item.id} src={item.viewUrl} name={item.name} />
+                <ImageThumbnail key={item.key} src={item.viewUrl} name={item.name} />
             ) : (
                 <PreviewCover
                     kind={item.previewKind === 'image' ? 'unsupported' : item.previewKind}

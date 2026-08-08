@@ -52,6 +52,9 @@ export type CalendarActivity = {
 
 export type CalendarEventRow = {
     id: number;
+    key: string;
+    sourceType: 'calendar_event';
+    sourceId: number;
     eventNumber: string;
     type: CalendarEventType;
     title: string;
@@ -79,6 +82,10 @@ export type CalendarEventRow = {
     activityLogs: CalendarActivity[];
     createdAt: string | null;
     updatedAt: string | null;
+    capabilities: {
+        update: boolean;
+        delete: boolean;
+    };
 };
 
 export type CalendarFormData = {

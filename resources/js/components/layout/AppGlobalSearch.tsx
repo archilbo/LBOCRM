@@ -431,11 +431,11 @@ export function AppGlobalSearch() {
      * printable characters return focus to the search input (and bypass RAC's typeahead).
      */
     function handleListKeyDownCapture(event: ReactKeyboardEvent) {
-        if (event.key === 'IconArrowLeft' || event.key === 'IconArrowRight') {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
             if (tabs.length > 1) {
                 event.preventDefault();
                 event.stopPropagation();
-                cycleCategory(event.key === 'IconArrowRight' ? 1 : -1);
+                cycleCategory(event.key === 'ArrowRight' ? 1 : -1);
                 focusListBoundary('first');
             }
 
@@ -462,16 +462,16 @@ export function AppGlobalSearch() {
             return;
         }
 
-        if ((event.key === 'IconArrowLeft' || event.key === 'IconArrowRight') && isOpen && tabs.length > 1) {
+        if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && isOpen && tabs.length > 1) {
             event.preventDefault();
-            cycleCategory(event.key === 'IconArrowRight' ? 1 : -1);
+            cycleCategory(event.key === 'ArrowRight' ? 1 : -1);
 
             return;
         }
 
-        if ((event.key === 'IconArrowDown' || event.key === 'IconArrowUp') && isOpen) {
+        if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && isOpen) {
             event.preventDefault();
-            focusListBoundary(event.key === 'IconArrowDown' ? 'first' : 'last');
+            focusListBoundary(event.key === 'ArrowDown' ? 'first' : 'last');
         }
     }
 

@@ -30,7 +30,8 @@ export type DocumentViewerState = {
 
 /**
  * Same-page viewer state synchronized with the `preview_document` query
- * parameter.
+ * parameter. The parameter carries the source-aware document key
+ * (`${sourceType}:${id}`), so entries from different sources never collide.
  *
  * History strategy:
  * - open()  -> replaceState (adds preview_document parameter)
@@ -85,7 +86,7 @@ export function useDocumentViewerState({
     }, [restoreFocus]);
 
     const open = useCallback((entry: DocumentExplorerItem) => {
-        const id = String(entry.id);
+        const id = entry.key;
 
         if (openIdRef.current === id) {
             return;
@@ -121,12 +122,12 @@ export function useDocumentViewerState({
     }, [restoreFocus]);
 
     const openDocument = useMemo(
-        () => documents.find((entry) => String(entry.id) === openDocumentId) ?? null,
+        () => documents.find((entry) => entry.key === openDocumentId) ?? null,
         [documents, openDocumentId],
     );
 
     const visibleIndex = useMemo(
-        () => (openDocumentId === null ? -1 : visibleDocuments.findIndex((entry) => String(entry.id) === openDocumentId)),
+        () => (openDocumentId === null ? -1 : visibleDocuments.findIndex((entry) => entry.key === openDocumentId)),
         [visibleDocuments, openDocumentId],
     );
 
@@ -138,7 +139,7 @@ export function useDocumentViewerState({
             return;
         }
 
-        navigateTo(String(visibleDocuments[visibleIndex - 1].id));
+        navigateTo(visibleDocuments[visibleIndex - 1].key);
     }, [visibleIndex, visibleDocuments, navigateTo]);
 
     const goToNext = useCallback(() => {
@@ -146,7 +147,7 @@ export function useDocumentViewerState({
             return;
         }
 
-        navigateTo(String(visibleDocuments[visibleIndex + 1].id));
+        navigateTo(visibleDocuments[visibleIndex + 1].key);
     }, [visibleIndex, visibleDocuments, navigateTo]);
 
     return {

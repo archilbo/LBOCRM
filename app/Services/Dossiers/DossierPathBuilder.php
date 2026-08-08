@@ -5,6 +5,7 @@ namespace App\Services\Dossiers;
 use App\Models\Contract;
 use App\Models\Dossier;
 use App\Models\DocumentTemplate;
+use App\Models\ProjectEfficiencySheet;
 use Illuminate\Support\Str;
 
 class DossierPathBuilder
@@ -66,6 +67,22 @@ class DossierPathBuilder
     public function contractPdfPath(Contract $contract, Dossier $dossier): string
     {
         return $this->contractPath($contract, $dossier, 'pdf');
+    }
+
+    /**
+     * Relative storage path for a generated fiche efficacité DOCX.
+     *
+     * Each version gets its own file (fiche-efficacite-{dossier}-v{n}.docx);
+     * regeneration never overwrites or deletes previous version files, and
+     * only relative paths are ever stored on the fiche row.
+     */
+    public function efficiencySheetDocxPath(ProjectEfficiencySheet $sheet, Dossier $dossier, int $version): string
+    {
+        $code = $this->sanitize($dossier->dossier_number ?: 'projet');
+
+        return $this->dossierBasePath($dossier)
+            . '/Fiche_Efficacite/'
+            . 'fiche-efficacite-' . $code . '-v' . $version . '.docx';
     }
 
     private function contractPath(Contract $contract, Dossier $dossier, string $ext): string

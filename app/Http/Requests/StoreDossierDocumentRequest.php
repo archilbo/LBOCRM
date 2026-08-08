@@ -24,6 +24,15 @@ class StoreDossierDocumentRequest extends FormRequest
                 'exists:dossiers,id',
             ],
 
+            // Optional Client ownership guard: when the upload originates from
+            // a Client context, the chosen Project must belong to that Client
+            // (verified in DocumentController::store, not trusted here).
+            'client_id' => [
+                'nullable',
+                'integer',
+                'exists:clients,id',
+            ],
+
             'document_template_id' => [
                 'required',
                 'integer',

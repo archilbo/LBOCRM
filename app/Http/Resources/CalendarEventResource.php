@@ -9,8 +9,14 @@ class CalendarEventResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $canUpdate = $request->user()?->can('update', $this->resource) ?? false;
+        $canDelete = $request->user()?->can('delete', $this->resource) ?? false;
+
         return [
             'id' => $this->id,
+            'key' => "calendar_event:{$this->id}",
+            'sourceType' => 'calendar_event',
+            'sourceId' => $this->id,
             'eventNumber' => $this->event_number,
             'type' => $this->type,
             'title' => $this->title,
@@ -18,8 +24,8 @@ class CalendarEventResource extends JsonResource
             'status' => $this->status,
             'priority' => $this->priority,
             'color' => $this->color,
-            'startsAt' => $this->starts_at?->format('Y-m-d H:i:s'),
-            'endsAt' => $this->ends_at?->format('Y-m-d H:i:s'),
+            'startsAt' => $this->starts_at?->toIso8601String(),
+            'endsAt' => $this->ends_at?->toIso8601String(),
             'allDay' => $this->all_day,
             'timezone' => $this->timezone,
             'visibility' => $this->visibility,
@@ -36,8 +42,12 @@ class CalendarEventResource extends JsonResource
             'participants' => CalendarParticipantResource::collection($this->whenLoaded('participants')),
             'reminders' => CalendarReminderResource::collection($this->whenLoaded('reminders')),
             'activityLogs' => CalendarActivityResource::collection($this->whenLoaded('activityLogs')),
-            'createdAt' => $this->created_at?->format('Y-m-d H:i:s'),
-            'updatedAt' => $this->updated_at?->format('Y-m-d H:i:s'),
+            'createdAt' => $this->created_at?->toIso8601String(),
+            'updatedAt' => $this->updated_at?->toIso8601String(),
+            'capabilities' => [
+                'update' => $canUpdate,
+                'delete' => $canDelete,
+            ],
         ];
     }
 }

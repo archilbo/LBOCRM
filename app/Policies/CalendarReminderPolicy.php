@@ -19,7 +19,7 @@ class CalendarReminderPolicy
     {
         return $this->allowed($user, 'calendar.view')
             && $reminder->event?->belongsToScope($user)
-            && ($user->hasAnyRole(config('archilbo_roles.protected'))
+            && ($this->isProtected($user)
                 || $reminder->user_id === $user->id
                 || $reminder->event->created_by === $user->id);
     }
@@ -33,7 +33,7 @@ class CalendarReminderPolicy
     {
         return $this->allowed($user, 'calendar.update')
             && $reminder->event?->belongsToScope($user)
-            && ($user->hasAnyRole(config('archilbo_roles.protected'))
+            && ($this->isProtected($user)
                 || $reminder->user_id === $user->id
                 || $reminder->event->created_by === $user->id);
     }
@@ -42,7 +42,7 @@ class CalendarReminderPolicy
     {
         return $this->allowed($user, 'calendar.delete')
             && $reminder->event?->belongsToScope($user)
-            && ($user->hasAnyRole(config('archilbo_roles.protected'))
+            && ($this->isProtected($user)
                 || $reminder->user_id === $user->id
                 || $reminder->event->created_by === $user->id);
     }

@@ -15,6 +15,9 @@ export type ContractRow = {
     pricePerSquareMeter: number;
     calculationMode: 'percentage' | 'forfait' | string;
     feeRatePercent: number;
+    architectFeeOptionId: string | null;
+    architectFeeLabel: string | null;
+    contractTemplateKey: string | null;
     forfaitTtc: number | null;
     ht: number;
     tva: number;
@@ -34,6 +37,18 @@ export type ContractRow = {
     pdfDownloadUrl: string | null;
     generatedDocumentPublicUrl: string | null;
     pdfPublicUrl: string | null;
+};
+
+export type ArchitectFeeOption = {
+    id: string;
+    name: string;
+    calculationType: 'percentage' | 'forfait';
+    percentageRate: string | null;
+    flatAmount: string | null;
+    contractTemplateKey: string;
+    contractTemplateName: string;
+    isDefault: boolean;
+    isActive: boolean;
 };
 
 export type ContractDossierOption = {
@@ -56,6 +71,7 @@ export type ContractFormPayload = {
     surface: string;
     price_per_square_meter: string;
     calculation_mode: string;
+    architect_fee_option_id: string;
     fee_rate_percent: string;
     forfait_ttc: string;
     notes: string;

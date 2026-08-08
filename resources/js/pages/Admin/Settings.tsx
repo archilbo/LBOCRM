@@ -14,8 +14,10 @@ import { AppPageHeader } from '@/components/ui/AppPageHeader';
 import { AppWorkspaceTabs, type AppWorkspaceTab } from '@/components/ui/AppWorkspaceTabs';
 import { AppSearchInput } from '@/components/ui/AppSearchInput';
 import { FinanceSettingsForm, type FinanceSettingsFormProps } from '@/features/finance/components/FinanceSettingsForm';
+import { SystemAppearancePanel, type SystemAppearancePermissions } from '@/components/settings/system-appearance-panel';
 import { DrawerSection, DrawerField, drawerStyles } from '@/components/drawers';
 import type { FormErrors } from '@/lib/formErrors';
+import type { PublicBrandingSettings } from '@/types/branding';
 
 type CityRow = {
     id: number;
@@ -36,6 +38,8 @@ type PageProps = {
     canManageFinanceSettings?: boolean;
     canViewSystemAppearance?: boolean;
     financeSettings?: FinanceSettingsFormProps | null;
+    branding?: PublicBrandingSettings | null;
+    permissions?: SystemAppearancePermissions | null;
 };
 
 const SWATCHES = ['#E08D3C', '#4A90D9', '#7EB36A', '#C0392B', '#8E44AD', '#2C3E50', '#D35400', '#16A085', '#F39C12', '#2980B9'];
@@ -52,7 +56,7 @@ function visiblePageNumbers(currentPage: number, totalPages: number): number[] {
     return Array.from({ length: count }, (_, index) => start + index);
 }
 
-export default function AdminSettings({ cities, usedColors, canViewCities = false, canManageCities = false, canDeleteCities = false, canViewFinanceSettings = false, canManageFinanceSettings = false, canViewSystemAppearance = false, financeSettings }: PageProps) {
+export default function AdminSettings({ cities, usedColors, canViewCities = false, canManageCities = false, canDeleteCities = false, canViewFinanceSettings = false, canManageFinanceSettings = false, canViewSystemAppearance = false, financeSettings, branding, permissions }: PageProps) {
     const { url } = usePage();
 
     const tabs: AppWorkspaceTab[] = [
@@ -62,18 +66,12 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
     ];
 
     function handleTabChange(key: string) {
-        if (key === 'system-appearance') {
-            router.visit('/settings/system-appearance');
-
-            return;
-        }
-
         setActiveTab(key);
     }
 
     const [activeTab, setActiveTab] = useState<string>(() => {
         const tab = new URL(url, window.location.origin).searchParams.get('tab');
-        if (tab && ['company', 'finance'].includes(tab) && canViewFinanceSettings) {
+        if (tab && ((canViewFinanceSettings && ['company', 'finance'].includes(tab)) || (canViewSystemAppearance && tab === 'system-appearance'))) {
             return tab;
         }
 
@@ -93,7 +91,9 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
                                 ? 'Centralisez les valeurs appliquées aux devis, factures, reçus et documents.'
                                 : activeTab === 'company'
                                     ? 'Gérez l’identité, le logo, les mentions légales et les coordonnées bancaires.'
-                                    : 'Gérez les villes utilisées pour l’organisation des dossiers et archives.'}
+                                    : activeTab === 'system-appearance'
+                                        ? 'Personnalisez l’identité, la couleur de marque et les logos de l’application.'
+                                        : 'Gérez les villes utilisées pour l’organisation des dossiers et archives.'}
                         />
 
                         <AppWorkspaceTabs tabs={tabs} selectedKey={activeTab} onSelectionChange={handleTabChange}>
@@ -112,6 +112,9 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
                                     <FinanceSettingsForm
                                         settings={financeSettings.settings}
                                         routes={financeSettings.routes}
+                                        architectRates={financeSettings.architectRates}
+                                        architectFeeOptions={financeSettings.architectFeeOptions}
+                                        contractTemplateOptions={financeSettings.contractTemplateOptions}
                                         canManage={canManageFinanceSettings}
                                         showHeader={false}
                                         visibleSections={['company', 'bank']}
@@ -123,10 +126,18 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
                                     <FinanceSettingsForm
                                         settings={financeSettings.settings}
                                         routes={financeSettings.routes}
+                                        architectRates={financeSettings.architectRates}
+                                        architectFeeOptions={financeSettings.architectFeeOptions}
+                                        contractTemplateOptions={financeSettings.contractTemplateOptions}
                                         canManage={canManageFinanceSettings}
                                         showHeader={false}
                                         visibleSections={['finance']}
                                     />
+                                </TabPanel>
+                            ) : null}
+                            {canViewSystemAppearance && branding && permissions ? (
+                                <TabPanel id="system-appearance">
+                                    <SystemAppearancePanel branding={branding} permissions={permissions} embedded />
                                 </TabPanel>
                             ) : null}
                         </AppWorkspaceTabs>

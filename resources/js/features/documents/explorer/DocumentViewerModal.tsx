@@ -3,12 +3,11 @@ import { Modal } from '@heroui/react';
 
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
-import type { ClientProjectDocument } from '@/features/clients/types';
 import { DocumentDetailsPanel } from './DocumentDetailsPanel';
 import { DocumentViewerFallback } from './DocumentViewerFallback';
 import { DocumentViewerHeader } from './DocumentViewerHeader';
 import { DocumentViewerNavigation } from './DocumentViewerNavigation';
-import type { DocumentExplorerItem } from './documentExplorerTypes';
+import type { DocumentExplorerItem, ExplorerDocument } from './documentExplorerTypes';
 import { ImageDocumentViewer } from './viewers/ImageDocumentViewer';
 import { PdfDocumentViewer } from './viewers/PdfDocumentViewer';
 import { TextDocumentViewer } from './viewers/TextDocumentViewer';
@@ -24,10 +23,10 @@ type DocumentViewerModalProps = {
     onPrevious: () => void;
     onNext: () => void;
     onClose: () => void;
-    onDownload: (document: ClientProjectDocument) => void;
-    onPrint: (document: ClientProjectDocument) => void;
-    onReplace: (document: ClientProjectDocument) => void;
-    onDelete: (document: ClientProjectDocument) => void;
+    onDownload: (document: ExplorerDocument) => void;
+    onPrint: (document: ExplorerDocument) => void;
+    onReplace: (document: ExplorerDocument) => void;
+    onDelete: (document: ExplorerDocument) => void;
 };
 
 /**
@@ -136,7 +135,7 @@ function ViewerDialogContent({
             >
                 <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
                     <ViewerPreview
-                        key={document ? String(document.id) : 'invalid'}
+                        key={document ? document.key : 'invalid'}
                         document={document}
                         isInvalid={isInvalid}
                         onDownload={handleDownload}
@@ -241,7 +240,7 @@ export function DocumentViewerModal({
                     className="!h-[92vh] !max-h-[960px] !w-[min(94vw,1500px)] !max-w-none !p-0 flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl max-lg:!h-dvh max-lg:!max-h-dvh max-lg:!w-full max-lg:!max-w-full max-lg:!rounded-none"
                 >
                     <ViewerDialogContent
-                        key={document ? String(document.id) : 'invalid'}
+                        key={document ? document.key : 'invalid'}
                         document={document}
                         isInvalid={isInvalid}
                         projectLabel={projectLabel}

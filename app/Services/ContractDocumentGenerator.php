@@ -4,11 +4,10 @@ namespace App\Services;
 
 use App\Models\Contract;
 use App\Services\Dossiers\DossierPathBuilder;
-use App\Support\UnicodeText;
+use App\Services\Documents\DocxPlaceholderReplacer;
+use App\Services\Contracts\ContractTemplateNamingService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
-use PhpOffice\PhpWord\TemplateProcessor;
-use ZipArchive;
 
 class ContractDocumentGenerator
 {
@@ -28,8 +27,9 @@ class ContractDocumentGenerator
 
         $values = $this->values($contract);
 
-        $this->replaceWithTemplateProcessor($absoluteDocxPath, $values);
-        $this->replaceSquarePlaceholdersInDocx($absoluteDocxPath, $values);
+        // Shared safe engine: run-local replacement, template structure kept
+        // 100% intact (no paragraph flattening, no run deletion).
+        app(DocxPlaceholderReplacer::class)->replace($absoluteDocxPath, $values);
 
         return [
             'docx_path' => $relativeDocxPath,
@@ -39,18 +39,17 @@ class ContractDocumentGenerator
 
     private function templatePath(Contract $contract): string
     {
-        if ($contract->calculation_mode === 'forfait') {
-            $key = 'forfait';
-        } else {
+        $key = $contract->contract_template_key;
+
+        if (! $key) {
             $rate = (float) ($contract->fee_rate_percent ?? config('archilbo_templates.contracts.default_rate', 0.5));
-            $key = abs($rate - 2.0) < 0.001 ? '2' : '0_5';
+            $key = app(ContractTemplateNamingService::class)->keyFor($contract->calculation_mode ?? 'percentage', $rate);
         }
 
-        $templates = (array) config('archilbo_templates.contracts.templates');
-        $path = $templates[$key] ?? null;
+        $path = app(ContractTemplateNamingService::class)->pathForKey($key);
 
-        if (! $path || ! File::exists($path)) {
-            throw new \RuntimeException("Contract template not found for type $key.");
+        if (! File::exists($path)) {
+            throw new \RuntimeException("Modèle de contrat introuvable : contrat_architecte_{$key}.docx.");
         }
 
         return $path;
@@ -101,147 +100,15 @@ class ContractDocumentGenerator
         ];
     }
 
-    private function replaceWithTemplateProcessor(string $docxPath, array $values): void
-    {
-        /*
-         * PHPWord normally uses ${KEY}.
-         * Our real templates use [KEY].
-         * Newer PHPWord versions allow custom macro delimiters.
-         */
-
-        try {
-            $template = new TemplateProcessor($docxPath);
-
-            if (method_exists($template, 'setMacroOpeningChars')) {
-                $template->setMacroOpeningChars('[');
-            }
-
-            if (method_exists($template, 'setMacroClosingChars')) {
-                $template->setMacroClosingChars(']');
-            }
-
-            foreach ($values as $key => $value) {
-                $template->setValue($key, UnicodeText::forDocument($value));
-            }
-
-            $template->saveAs($docxPath);
-        } catch (\Throwable) {
-            /*
-             * Fallback below will still try direct XML replacement.
-             */
-        }
-    }
-
+    /**
+     * Delegate kept for the existing unit test suite (reflection) — the real
+     * work happens in the shared DocxPlaceholderReplacer.
+     *
+     * @param  array<string, string>  $values  [TOKEN => value]
+     */
     private function replaceSquarePlaceholdersInDocx(string $docxPath, array $values): void
     {
-        /*
-         * Keeps the original DOCX template 100%.
-         * Handles placeholders split across multiple <w:t> runs
-         * (e.g. [CLIENT_ADD] broken into <w:t>[</w:t><w:t>CLIENT_</w:t><w:t>ADD]</w:t>).
-         */
-
-        $zip = new ZipArchive;
-
-        if ($zip->open($docxPath) !== true) {
-            throw new \RuntimeException('Could not open generated DOCX file.');
-        }
-
-        $search = [];
-        $replace = [];
-
-        foreach ($values as $key => $value) {
-            $search[$key] = '['.$key.']';
-            $replace[$key] = UnicodeText::forDocument($value);
-        }
-
-        for ($index = 0; $index < $zip->numFiles; $index++) {
-            $name = $zip->getNameIndex($index);
-
-            if (! $name || ! str_starts_with($name, 'word/') || ! str_ends_with($name, '.xml')) {
-                continue;
-            }
-
-            $xml = $zip->getFromName($name);
-
-            if ($xml === false) {
-                continue;
-            }
-
-            $updatedXml = $this->replaceInXmlString($xml, $search, $replace);
-
-            if ($updatedXml !== $xml) {
-                $zip->addFromString($name, $updatedXml);
-            }
-        }
-
-        $zip->close();
-    }
-
-    private function replaceInXmlString(string $xml, array $search, array $replace): string
-    {
-        $directSearch = [];
-        foreach ($search as $key => $tag) {
-            $directSearch[$tag] = $replace[$key];
-        }
-
-        libxml_use_internal_errors(true);
-
-        $dom = new \DOMDocument;
-        $dom->loadXML($xml, LIBXML_PARSEHUGE);
-        $xpath = new \DOMXPath($dom);
-        $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
-
-        $paragraphs = $xpath->query('//w:p');
-
-        foreach ($paragraphs as $p) {
-            $textNodes = [];
-            $fullText = '';
-
-            foreach ($xpath->query('.//w:t', $p) as $t) {
-                $textNodes[] = $t;
-                $fullText .= $t->textContent;
-            }
-
-            if (empty($textNodes)) {
-                continue;
-            }
-
-            $hasPlaceholder = false;
-            foreach ($directSearch as $tag => $replacement) {
-                if (str_contains($fullText, $tag)) {
-                    $hasPlaceholder = true;
-                    break;
-                }
-            }
-
-            if (! $hasPlaceholder) {
-                continue;
-            }
-
-            $newText = str_replace(
-                array_keys($directSearch),
-                array_values($directSearch),
-                $fullText
-            );
-
-            $textNodes[0]->nodeValue = '';
-            $textNodes[0]->appendChild($dom->createTextNode($newText));
-
-            for ($i = count($textNodes) - 1; $i >= 1; $i--) {
-                $run = $textNodes[$i]->parentNode;
-                $p->removeChild($run);
-            }
-        }
-
-        $decl = '';
-        if (str_starts_with($xml, '<?xml')) {
-            $end = strpos($xml, '?>');
-            if ($end !== false) {
-                $decl = substr($xml, 0, $end + 2)."\n";
-            }
-        }
-
-        return $decl.$dom->saveXML($dom->documentElement);
+        app(DocxPlaceholderReplacer::class)->replace($docxPath, $values);
     }
 
     private function money(float|int|string|null $value): string

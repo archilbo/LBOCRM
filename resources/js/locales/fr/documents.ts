@@ -10,6 +10,8 @@ export const frDocuments = {
             verified: 'Vérifié',
             missing: 'Manquant',
             rejected: 'Rejeté',
+            generated: 'Généré',
+            signed: 'Signé',
         },
         metrics: {
             total: 'Documents au total',

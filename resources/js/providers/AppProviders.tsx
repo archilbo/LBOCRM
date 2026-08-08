@@ -11,6 +11,7 @@ import { GlobalUploadProvider } from '@/features/uploads/GlobalUploadProvider';
 import { GlobalUploadDock } from '@/features/uploads/GlobalUploadDock';
 import { GlobalUploadCenterDrawer } from '@/features/uploads/GlobalUploadCenterDrawer';
 import { UploadConnectionStatus } from '@/features/uploads/UploadConnectionStatus';
+import type { PublicBrandingSettings } from '@/types/branding';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -23,9 +24,10 @@ const queryClient = new QueryClient({
 
 type AppProvidersProps = {
     children: ReactNode;
+    initialBranding?: PublicBrandingSettings;
 };
 
-export function AppProviders({ children }: AppProvidersProps) {
+export function AppProviders({ children, initialBranding }: AppProvidersProps) {
     const [uploadCenterOpen, setUploadCenterOpen] = useState(false);
     const navigate = useCallback((href: string, options?: any) => {
         router.visit(href, options ?? {});
@@ -36,7 +38,7 @@ export function AppProviders({ children }: AppProvidersProps) {
             <RouterProvider navigate={navigate}>
                 <I18nProvider>
                     <ThemeProvider>
-                        <BrandingProvider>
+                        <BrandingProvider initialBranding={initialBranding}>
                             <AppFlashToasts />
                             <AppToastProvider />
                             <GlobalUploadProvider onOpenUploadCenter={() => setUploadCenterOpen(true)}>

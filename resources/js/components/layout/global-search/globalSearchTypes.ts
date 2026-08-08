@@ -16,6 +16,7 @@ export type BackendSearchResult = {
         city?: string | null;
         cityColor?: string | null;
         room?: string | null;
+        requestedBy?: string | null;
         href: string;
     } | null;
     /** Optional structured metadata pieces, one fact per entry. */

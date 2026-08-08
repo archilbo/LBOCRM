@@ -34,7 +34,7 @@ class FinancePdfGenerator
             $absolutePath = $this->storage->disk()->path($relativePath);
 
             Pdf::loadHTML($html)
-                ->setPaper('a4', 'portrait')
+                ->setPaper(...$this->paperSettings($document->template))
                 ->save($absolutePath);
 
             if (!file_exists($absolutePath) || filesize($absolutePath) === 0) {
@@ -51,6 +51,26 @@ class FinancePdfGenerator
         } catch (Throwable $e) {
             throw new RuntimeException('Unable to generate finance PDF: ' . $e->getMessage(), previous: $e);
         }
+    }
+
+    /**
+     * Strictly mapped Dompdf paper settings from template metadata.
+     * Arbitrary strings never reach Dompdf.
+     *
+     * @return array{0: string, 1: string} [$paper, $orientation]
+     */
+    private function paperSettings(?\App\Models\FinanceTemplate $template): array
+    {
+        $paper = match (strtoupper((string) ($template?->paper_size ?? 'A4'))) {
+            'A5' => 'a5',
+            'LETTER' => 'letter',
+            default => 'a4',
+        };
+        $orientation = in_array(strtolower((string) ($template?->orientation ?? 'portrait')), ['landscape'], true)
+            ? 'landscape'
+            : 'portrait';
+
+        return [$paper, $orientation];
     }
 
 }

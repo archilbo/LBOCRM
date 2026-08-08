@@ -1,11 +1,12 @@
 import { IconPlus } from '@tabler/icons-react';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { useEcho } from '@laravel/echo-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { useTranslation } from '@/lib/i18n';
-import type { CalendarEventRow } from '@/features/calendar/types';
+import type { CalendarEventRow, CalendarEventType } from '@/features/calendar/types';
 import { EVENT_TYPE_COLORS } from '@/features/calendar/types';
 import { CalendarSidebar } from '@/features/calendar/components/CalendarSidebar';
 import { CalendarToolbar } from '@/features/calendar/components/CalendarToolbar';
@@ -17,17 +18,25 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import frLocale from '@fullcalendar/core/locales/fr';
-import type { EventClickArg, DateSelectArg, EventDropArg } from '@fullcalendar/core';
+import type { EventClickArg, DateSelectArg, EventDropArg, EventContentArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
-import { memo } from 'react';
 
 type PageProps = {
     events: CalendarEventRow[];
     users: { id: number; name: string; email: string }[];
+    range: { start: string; end: string };
+    capabilities: { create: boolean; manageAdminVisibility: boolean };
+};
+
+type CalendarRealtimeEvent = {
+    eventKey: string;
+    action: 'created' | 'updated' | 'moved' | 'resized' | 'participants_updated' | 'deleted';
 };
 
 function toFC(event: CalendarEventRow) {
-    const color = event.color || EVENT_TYPE_COLORS[event.type] || '#6b7280';
+    const color = /^#[0-9A-Fa-f]{6}$/.test(event.color || '')
+        ? event.color!
+        : EVENT_TYPE_COLORS[event.type] || '#6b7280';
     return {
         id: String(event.id),
         title: event.title,
@@ -37,21 +46,30 @@ function toFC(event: CalendarEventRow) {
         backgroundColor: 'transparent',
         borderColor: 'transparent',
         textColor: color,
+        editable: event.capabilities.update,
+        startEditable: event.capabilities.update,
+        durationEditable: event.capabilities.update,
         extendedProps: {
             type: event.type,
             description: event.description,
             status: event.status,
             priority: event.priority,
             eventNumber: event.eventNumber,
+            capabilities: event.capabilities,
         },
     };
 }
 
-export default function CalendarIndex({ events: _events, users }: PageProps) {
+function localDate(value: Date): string {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+}
+
+export default function CalendarIndex({ events: _events, users, range, capabilities }: PageProps) {
     const { t, locale } = useTranslation();
-    const initialEvents = Array.isArray(_events) ? _events : [];
+    const initialEvents = _events;
     const calendarRef = useRef<FullCalendar>(null);
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const requestedRangeRef = useRef<string | null>(null);
+    const [currentDate, setCurrentDate] = useState(() => new Date(`${range.start}T12:00:00`));
     const [viewMode, setViewMode] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>('dayGridMonth');
     const [search, setSearch] = useState('');
     const [filterType, setFilterType] = useState('');
@@ -59,6 +77,20 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editEvent, setEditEvent] = useState<CalendarEventRow | undefined>(undefined);
     const [defaultStart, setDefaultStart] = useState<string | undefined>(undefined);
+    const [defaultType, setDefaultType] = useState<CalendarEventType>('task');
+    const pageProps = usePage().props as unknown as { auth?: { user?: { id?: number } } };
+    const currentUserId = Number(pageProps.auth?.user?.id || 0);
+
+    const refreshCalendar = useCallback((_event: CalendarRealtimeEvent) => {
+        router.reload({ only: ['events', 'users', 'range', 'capabilities'] });
+    }, []);
+
+    useEcho<CalendarRealtimeEvent>(
+        `user.${currentUserId}.calendar`,
+        '.calendar.changed',
+        refreshCalendar,
+        [refreshCalendar],
+    );
 
     const fcEvents = useMemo(() => initialEvents.filter((e) => {
         if (search.trim()) {
@@ -96,21 +128,43 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
     }
 
     const handleDatesSet = useCallback((arg: { start: Date; end: Date; view: { currentStart: Date } }) => {
-        // Only update if the date actually changed to prevent infinite loops
-        const newDate = arg.view.currentStart;
-        if (newDate.getTime() !== currentDate.getTime()) {
-            setCurrentDate(newDate);
-        }
-    }, [currentDate]);
+        setCurrentDate((previous) => previous.getTime() === arg.view.currentStart.getTime()
+            ? previous
+            : arg.view.currentStart);
 
-    const eventContent = useCallback((arg: any) => <CalendarEventPill {...arg} />, []);
+        const start = localDate(arg.start);
+        const inclusiveEnd = new Date(arg.end);
+        inclusiveEnd.setDate(inclusiveEnd.getDate() - 1);
+        const end = localDate(inclusiveEnd);
+
+        const requestedRange = `${start}:${end}`;
+
+        if (range.start === start && range.end === end) {
+            requestedRangeRef.current = null;
+            return;
+        }
+
+        if (requestedRangeRef.current === requestedRange) return;
+
+        requestedRangeRef.current = requestedRange;
+
+        router.get('/calendar', { start, end }, {
+            only: ['events', 'users', 'range', 'capabilities'],
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+            onError: () => { requestedRangeRef.current = null; },
+        });
+    }, [range]);
+
+    const eventContent = useCallback((arg: EventContentArg) => <CalendarEventPill {...arg} />, []);
 
     function handleEventClick(arg: EventClickArg) {
         const id = Number(arg.event.id);
         const found = initialEvents.find((e) => e.id === id);
         if (found) {
             fetch(`/calendar/events/${id}`)
-                .then((r) => r.json())
+                .then((r) => r.ok ? r.json() : Promise.reject(new Error('Event unavailable')))
                 .then((data) => {
                     setEditEvent(data.data || found);
                     setDefaultStart(undefined);
@@ -126,7 +180,7 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
 
     function handleSidebarEventClick(event: CalendarEventRow) {
         fetch(`/calendar/events/${event.id}`)
-            .then((r) => r.json())
+            .then((r) => r.ok ? r.json() : Promise.reject(new Error('Event unavailable')))
             .then((data) => {
                 setEditEvent(data.data || event);
                 setDefaultStart(undefined);
@@ -140,13 +194,17 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
     }
 
     function handleDateSelect(arg: DateSelectArg) {
+        if (!capabilities.create) return;
         setEditEvent(undefined);
+        setDefaultType('task');
         setDefaultStart(arg.startStr);
         setDrawerOpen(true);
     }
 
-    function openCreateDrawer() {
+    function openCreateDrawer(type: CalendarEventType = 'task') {
+        if (!capabilities.create) return;
         setEditEvent(undefined);
+        setDefaultType(type);
         setDefaultStart(undefined);
         setDrawerOpen(true);
     }
@@ -156,9 +214,14 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
         const startStr = arg.event.start?.toISOString();
         const endStr = arg.event.end?.toISOString();
 
+        if (!arg.event.extendedProps.capabilities?.update || !startStr) {
+            arg.revert();
+            return;
+        }
+
         fetch(`/calendar/events/${id}/move`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (window as any).csrfToken || '' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '' },
             body: JSON.stringify({ starts_at: startStr, ends_at: endStr }),
         })
             .then((r) => {
@@ -176,9 +239,14 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
         const id = Number(arg.event.id);
         const endStr = arg.event.end?.toISOString();
 
+        if (!arg.event.extendedProps.capabilities?.update || !endStr) {
+            arg.revert();
+            return;
+        }
+
         fetch(`/calendar/events/${id}/resize`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (window as any).csrfToken || '' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '' },
             body: JSON.stringify({ ends_at: endStr }),
         })
             .then((r) => {
@@ -193,7 +261,7 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
     }
 
     const headerAction = (
-        <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('calendar.newEvent')} aria-label={t('calendar.newEvent')} onPress={openCreateDrawer}>
+        <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('calendar.newEvent')} aria-label={t('calendar.newEvent')} onPress={() => openCreateDrawer()} isDisabled={!capabilities.create}>
             <IconPlus size={16} />
         </AppButton>
     );
@@ -220,6 +288,7 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
                             onDayClick={(d) => { calendarRef.current?.getApi()?.gotoDate(d); setViewMode('timeGridDay'); }}
                             users={users}
                             onCreateClick={openCreateDrawer}
+                            canCreate={capabilities.create}
                             events={initialEvents}
                             onEventClick={handleSidebarEventClick}
                         />
@@ -243,7 +312,7 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
                                     events={fcEvents}
                                     eventContent={eventContent}
                                     eventClick={handleEventClick}
-                                    selectable={true}
+                                    selectable={capabilities.create}
                                     select={handleDateSelect}
                                     datesSet={handleDatesSet}
                                     dayMaxEvents={3}
@@ -268,6 +337,7 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
                                 events={initialEvents}
                                 onEventClick={handleSidebarEventClick}
                                 onCreateEvent={openCreateDrawer}
+                                canCreate={capabilities.create}
                             />
                         </div>
                     </div>
@@ -278,17 +348,21 @@ export default function CalendarIndex({ events: _events, users }: PageProps) {
                             events={initialEvents}
                             onEventClick={handleSidebarEventClick}
                             onCreateEvent={openCreateDrawer}
+                            canCreate={capabilities.create}
                         />
                     </div>
                 </div>
             </AppShell>
 
             <CalendarEventDrawer
+                key={`${drawerOpen ? 'open' : 'closed'}-${editEvent?.id ?? 'new'}-${defaultStart ?? ''}-${defaultType}`}
                 isOpen={drawerOpen}
                 onOpenChange={(o) => { if (!o) { setDrawerOpen(false); setEditEvent(undefined); } }}
                 users={users}
                 editEvent={editEvent}
                 defaultStart={defaultStart}
+                defaultType={defaultType}
+                canManageAdminVisibility={capabilities.manageAdminVisibility}
             />
         </>
     );

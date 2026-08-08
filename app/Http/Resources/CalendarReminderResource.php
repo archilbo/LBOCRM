@@ -14,12 +14,12 @@ class CalendarReminderResource extends JsonResource
             'calendarEventId' => $this->calendar_event_id,
             'userId' => $this->user_id,
             'offsetMinutes' => $this->offset_minutes,
-            'remindAt' => $this->remind_at?->format('Y-m-d H:i:s'),
+            'remindAt' => $this->remind_at?->toIso8601String(),
             'channel' => $this->channel,
             'status' => $this->status,
-            'snoozedUntil' => $this->snoozed_until?->format('Y-m-d H:i:s'),
-            'sentAt' => $this->sent_at?->format('Y-m-d H:i:s'),
-            'createdAt' => $this->created_at?->format('Y-m-d H:i:s'),
+            'snoozedUntil' => $this->snoozed_until?->toIso8601String(),
+            'sentAt' => $this->sent_at?->toIso8601String(),
+            'createdAt' => $this->created_at?->toIso8601String(),
         ];
     }
 }

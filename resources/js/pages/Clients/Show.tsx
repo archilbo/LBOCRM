@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { TabPanel } from 'react-aria-components';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppWorkspaceTabs } from '@/components/ui/AppWorkspaceTabs';
+import { EntityTabs } from '@/components/navigation/entity-tabs';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
@@ -15,8 +15,9 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
 import { usePermissions } from '@/hooks/usePermissions';
-import type { ClientFormPayload, ClientProjectDocument, ClientProjectPayment, ClientRow, ClientStatus, ClientWorkspace } from '@/features/clients/types';
+import type { ClientFormPayload, ClientProjectPayment, ClientRow, ClientStatus, ClientWorkspace } from '@/features/clients/types';
 import type { DossierWorkflowRequirement, DossierWorkflowStep } from '@/features/clients/types';
+import type { ExplorerDocument } from '@/features/documents/explorer/documentExplorerTypes';
 import type { DossierFormPayload } from '@/features/dossiers/types';
 import type { FinanceDocument, FinanceDocumentType, FinanceSettings, TemplateOption } from '@/features/finance/types';
 import { ClientDrawer } from '@/components/drawers';
@@ -27,7 +28,7 @@ import { AppWorkflowStepper, type WorkflowRequirementActionContext } from '@/com
 import { DocumentDrawer } from '@/components/drawers';
 import type { DocumentUploadPayload } from '@/features/documents/types';
 import { ContractDrawer } from '@/components/drawers';
-import type { ContractFormPayload, ContractClientOption, ContractDossierOption } from '@/features/contracts/types';
+import type { ArchitectFeeOption, ContractFormPayload, ContractClientOption, ContractDossierOption } from '@/features/contracts/types';
 import { formatDate } from '@/lib/formatters';
 import { formatMoney } from '@/lib/currency';
 import { ClientArchivesCard } from '@/features/clients/components/ClientArchivesCard';
@@ -69,6 +70,7 @@ type PageProps = {
     documentTemplates: { id: string; label: string; type?: string | null }[];
     financeTemplates: TemplateOption[];
     financeSettings: FinanceSettings;
+    architectFeeOptions: ArchitectFeeOption[];
     cities: { id: number; name: string }[];
     tab?: string;
 };
@@ -104,7 +106,7 @@ function isClientTab(value: string | undefined): value is TabId {
     return validTabs.includes(value as TabId);
 }
 
-export default function ClientShow({ client, dossiers, workspace, cities, intermediaries, documentTemplates, financeTemplates, financeSettings, tab }: PageProps) {
+export default function ClientShow({ client, dossiers, workspace, cities, intermediaries, documentTemplates, financeTemplates, financeSettings, architectFeeOptions, tab }: PageProps) {
     const { t } = useTranslation();
     const { can } = usePermissions();
 
@@ -132,8 +134,8 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
     const [paymentDeleteTarget, setPaymentDeleteTarget] = useState<ClientProjectPayment | null>(null);
     const [financeDeleteTarget, setFinanceDeleteTarget] = useState<FinanceDocument | null>(null);
     const [standaloneUploadOpen, setStandaloneUploadOpen] = useState(false);
-    const [replaceTarget, setReplaceTarget] = useState<ClientProjectDocument | null>(null);
-    const [documentDeleteTarget, setDocumentDeleteTarget] = useState<ClientProjectDocument | null>(null);
+    const [replaceTarget, setReplaceTarget] = useState<ExplorerDocument | null>(null);
+    const [documentDeleteTarget, setDocumentDeleteTarget] = useState<ExplorerDocument | null>(null);
     const [isDocumentDeleting, setIsDocumentDeleting] = useState(false);
 
     const [confirmActionOpen, setConfirmActionOpen] = useState(false);
@@ -221,7 +223,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
     }));
 
     const activeProjects = projects.filter((p) => p.status === 'opened' || p.status === 'active').length;
-    const totalDocuments = selectedProject?.documents?.length ?? dossiers.length;
+    const totalDocuments = workspace?.explorer?.documents?.length ?? selectedProject?.documents?.length ?? dossiers.length;
 
     function openDocumentWindow(url: string | null, unavailableMessage: string) {
         if (!url) {
@@ -584,6 +586,9 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
         if (!isReplacement) {
             formData.append('dossier_id', payload.dossierId);
             formData.append('document_template_id', payload.documentTemplateId || '');
+            // Client ownership guard: backend verifies the chosen Project
+            // belongs to this Client before storing.
+            formData.append('client_id', String(client.id));
             if (uploadStepKey) formData.append('workflow_step_key', uploadStepKey);
             if (uploadRequirementKey) formData.append('workflow_req_key', uploadRequirementKey);
         }
@@ -716,7 +721,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     </div>
                 </div>
 
-                <AppWorkspaceTabs
+                <EntityTabs
                     tabs={tabs}
                     selectedKey={activeTab}
                     onSelectionChange={selectTab}
@@ -1241,7 +1246,8 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                         <ClientDocumentsTab
                             client={client}
                             projects={projects}
-                            selectedProject={selectedProject}
+                            explorerContext={workspace?.explorer?.context ?? null}
+                            explorerDocuments={workspace?.explorer?.documents ?? []}
                             onUpload={() => { setDocumentFormErrors({}); setStandaloneUploadOpen(true); }}
                             onPreview={(document) => openDocumentWindow(document.viewUrl, t('clients.show.previewUnavailable'))}
                             onPrint={(document) => openDocumentWindow(document.printUrl, t('clients.show.previewUnavailable'))}
@@ -1299,7 +1305,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                             )}
                         </div>
                     </TabPanel>
-                </AppWorkspaceTabs>
+                </EntityTabs>
 
                 {/* ── Edit drawer ── */}
                 <ClientDrawer
@@ -1334,6 +1340,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     contract={editContract}
                     clients={contractClients}
                     dossiers={contractDossiers}
+                    architectFeeOptions={architectFeeOptions}
                     initialDossierId={editContract ? (editContract.dossierId ?? '') : (contractTabCreateMode ? '' : (selectedProject ? String(selectedProject.id) : ''))}
                     initialFloorArea={contractTabCreateMode ? null : (selectedProject?.floorArea ?? null)}
                     lockProject={!editContract && !contractTabCreateMode}

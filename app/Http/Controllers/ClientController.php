@@ -112,6 +112,7 @@ class ClientController extends Controller
                 'companyInfo' => (new FinanceSettingsService())->companyInfo(),
                 'bankInfo' => (new FinanceSettingsService())->bankInfo(),
             ] : null,
+            'architectFeeOptions' => FinanceSettingsService::architectFeeOptions(true),
             'dossiers' => $client->dossiers()
                 ->latest()
                 ->get()

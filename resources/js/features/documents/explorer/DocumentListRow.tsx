@@ -1,20 +1,19 @@
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
-import type { ClientProjectDocument } from '@/features/clients/types';
-import { fileTypeLabelKey, formatDocumentDate, formatFileSize } from './documentExplorerFormatters';
+import { fileTypeLabelKey, formatDocumentDate, formatDocumentVersion, formatFileSize } from './documentExplorerFormatters';
 import { DocumentActionsMenu } from './DocumentActionsMenu';
 import { DocumentStatusChip } from './DocumentCard';
 import { DocumentThumbnail } from './DocumentThumbnail';
-import type { DocumentExplorerItem } from './documentExplorerTypes';
+import type { DocumentExplorerItem, ExplorerDocument } from './documentExplorerTypes';
 
 type DocumentListRowProps = {
     item: DocumentExplorerItem;
     projectLabel: string;
     onOpen: (document: DocumentExplorerItem) => void;
-    onPrint: (document: ClientProjectDocument) => void;
-    onDownload: (document: ClientProjectDocument) => void;
-    onReplace: (document: ClientProjectDocument) => void;
-    onDelete: (document: ClientProjectDocument) => void;
+    onPrint: (document: ExplorerDocument) => void;
+    onDownload: (document: ExplorerDocument) => void;
+    onReplace: (document: ExplorerDocument) => void;
+    onDelete: (document: ExplorerDocument) => void;
 };
 
 /**
@@ -39,11 +38,13 @@ export function DocumentListRow({
     const typeKey = fileTypeLabelKey(item.previewKind, item.extension);
     const sizeText = formatFileSize(null, item.sizeLabel) ?? t('documentsExplorer.metadata.unknownSize');
     const dateText = formatDocumentDate(item.uploadedAt, locale) ?? t('documentsExplorer.metadata.unknownDate');
+    const versionText = formatDocumentVersion(item.version);
     const openLabel = t('documentsExplorer.actions.open');
+    const rowProjectLabel = item.projectLabel ?? projectLabel;
 
     const secondary = item.originalFilename && item.originalFilename !== item.name
         ? item.originalFilename
-        : `${t(typeKey)} · ${sizeText}`;
+        : `${t(typeKey)}${versionText ? ` · ${versionText}` : ''} · ${sizeText}`;
 
     const primary = canOpen ? (
         <button
@@ -78,10 +79,10 @@ export function DocumentListRow({
         >
             {primary}
 
-            <span className="hidden w-40 max-w-40 min-w-0 truncate text-[10px] text-[var(--text-muted)] md:block" title={projectLabel}>
-                {projectLabel}
+            <span className="hidden w-40 max-w-40 min-w-0 truncate text-[10px] text-[var(--text-muted)] md:block" title={rowProjectLabel}>
+                {rowProjectLabel}
             </span>
-            <span className="hidden w-20 shrink-0 truncate text-[10px] text-[var(--text-muted)] sm:block">{t(typeKey)}</span>
+            <span className="hidden w-20 shrink-0 truncate text-[10px] text-[var(--text-muted)] sm:block">{t(typeKey)}{versionText ? ` · ${versionText}` : ''}</span>
             <span className="hidden w-16 shrink-0 truncate text-[10px] text-[var(--text-muted)] lg:block">{sizeText}</span>
             <DocumentStatusChip status={item.status} className="max-sm:hidden" />
             <span className="hidden w-24 shrink-0 whitespace-nowrap text-[10px] text-[var(--text-muted)] sm:block">{dateText}</span>

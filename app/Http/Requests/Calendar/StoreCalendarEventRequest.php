@@ -2,13 +2,16 @@
 
 namespace App\Http\Requests\Calendar;
 
+use App\Models\CalendarEvent;
+use App\Services\PermissionRegistry;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class StoreCalendarEventRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', CalendarEvent::class) ?? false;
     }
 
     public function rules(): array
@@ -19,11 +22,11 @@ class StoreCalendarEventRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'status' => ['nullable', 'string', 'in:scheduled,in_progress,completed,cancelled,overdue'],
             'priority' => ['nullable', 'string', 'in:low,medium,high,urgent'],
-            'color' => ['nullable', 'string', 'max:7'],
+            'color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'all_day' => ['nullable', 'boolean'],
-            'timezone' => ['nullable', 'string', 'max:64'],
+            'timezone' => ['nullable', 'timezone'],
             'visibility' => ['nullable', 'string', 'in:private,assigned_users,team,admins'],
             'owner_id' => ['nullable', 'exists:users,id'],
             'task_id' => ['nullable', 'exists:tasks,id'],
@@ -37,5 +40,14 @@ class StoreCalendarEventRequest extends FormRequest
             'participant_ids.*' => ['integer', 'exists:users,id'],
             'reminder_offset' => ['nullable', 'integer', 'min:-1'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($this->input('visibility') === 'admins' && ! app(PermissionRegistry::class)->isProtected($this->user())) {
+                $validator->errors()->add('visibility', 'Cette visibilité est réservée aux administrateurs.');
+            }
+        });
     }
 }

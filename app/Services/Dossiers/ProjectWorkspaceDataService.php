@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Services\CompanyContext;
 use App\Services\Documents\WorkflowDocumentTemplateResolver;
 use App\Services\Finance\DossierFinanceEligibilityService;
+use App\Services\Finance\FinanceSettingsService;
 use App\Services\PermissionRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -33,6 +34,7 @@ class ProjectWorkspaceDataService
         private readonly DossierWorkflowStepperService $workflowStepper,
         private readonly DossierFinanceEligibilityService $financeEligibility,
         private readonly ProjectActivityService $activity,
+        private readonly ProjectDocumentExplorerService $documentExplorer,
     ) {
     }
 
@@ -54,6 +56,10 @@ class ProjectWorkspaceDataService
             $relations[] = 'contract';
         }
 
+        if ($capabilities['canViewEfficiencySheet']) {
+            $relations[] = 'efficiencySheet';
+        }
+
         if ($capabilities['canViewFinance']) {
             $relations[] = 'financeDocuments.payments';
             $relations[] = 'financeDocuments.creator';
@@ -64,6 +70,7 @@ class ProjectWorkspaceDataService
 
         if ($capabilities['canViewArchive']) {
             $relations[] = 'archiveRecord.events.actor';
+            $relations[] = 'archiveRecord.city';
         }
 
         $dossier->load($relations);
@@ -109,6 +116,10 @@ class ProjectWorkspaceDataService
             ? $this->documentPayload($dossier, $user)
             : collect();
 
+        $explorerDocuments = $capabilities['canViewDocuments']
+            ? $this->explorerDocumentsPayload($dossier, $user, $capabilities['canViewEfficiencySheet'])
+            : collect();
+
         $contract = $capabilities['canViewContract']
             ? $this->contractPayload($dossier)
             : null;
@@ -131,6 +142,11 @@ class ProjectWorkspaceDataService
             'canDesign' => $capabilities['canViewProjectDesign'],
             'workflow' => $this->workflowStepper->evaluate($dossier),
             'documents' => $documents->values(),
+            'explorerDocuments' => $explorerDocuments->values(),
+            'explorerContext' => [
+                'type' => 'project',
+                'projectId' => (int) $dossier->id,
+            ],
             'contract' => $contract,
             'financeRecords' => $finance['legacyRecords'] ?? collect(),
             'archiveRecord' => $archive,
@@ -185,6 +201,9 @@ class ProjectWorkspaceDataService
             'contractClients' => $capabilities['canViewContract']
                 ? $this->contractClientOptions($user)
                 : [],
+            'architectFeeOptions' => $capabilities['canViewContract']
+                ? FinanceSettingsService::architectFeeOptions(true)
+                : [],
             'financeDossiers' => $capabilities['canViewFinance']
                 ? $this->financeDossierOptions($user)
                 : [],
@@ -228,6 +247,10 @@ class ProjectWorkspaceDataService
             'canViewArchive' => $this->permissions->allows($user, 'archive.view'),
             'canUpdateArchive' => $this->permissions->allows($user, 'archive.update'),
             'canViewProjectDesign' => $this->permissions->allows($user, 'project-design.view'),
+            'canViewEfficiencySheet' => $this->permissions->allows($user, 'projects.efficiency_sheet.view'),
+            'canCreateEfficiencySheet' => $this->permissions->allows($user, 'projects.efficiency_sheet.create'),
+            'canUpdateEfficiencySheet' => $this->permissions->allows($user, 'projects.efficiency_sheet.update'),
+            'canGenerateEfficiencySheet' => $this->permissions->allows($user, 'projects.efficiency_sheet.generate'),
         ];
     }
 
@@ -238,28 +261,15 @@ class ProjectWorkspaceDataService
             ->map(function (DossierDocument $document) use ($user): array {
                 $canDownload = $user->can('download', $document);
 
-                $baseName =
-                    $document->template?->name
-                    ?? $document->original_filename
-                    ?? 'Document';
-
-                $displayName = match (
-                    $document->document_side
-                ) {
-                    DossierDocument::SIDE_FRONT =>
-                        $baseName.' — Recto',
-
-                    DossierDocument::SIDE_BACK =>
-                        $baseName.' — Verso',
-
-                    default => $baseName,
-                };
+                $displayName = $this->documentExplorer->documentDisplayName($document);
 
                 return [
                     'id' => $document->id,
                     'documentNumber' => $document->document_number,
                     'name' => $displayName,
-                    'baseName' => $baseName,
+                    'baseName' => $document->template?->name
+                        ?? $document->original_filename
+                        ?? 'Document',
                     'documentSide' =>
                         $document->document_side
                         ?? DossierDocument::SIDE_SINGLE,
@@ -284,6 +294,18 @@ class ProjectWorkspaceDataService
                         $document->template?->code,
                 ];
             });
+    }
+
+    /**
+     * Explorer payload for the Project Documents tab — delegated to
+     * ProjectDocumentExplorerService, the single aggregator that combines
+     * uploaded documents with the generated contract and efficiency-sheet
+     * files. See that service for the STEP 0 rules (no file copies, no
+     * duplicate rows, no storage-path exposure, original source routes).
+     */
+    private function explorerDocumentsPayload(Dossier $dossier, User $user, bool $canViewEfficiencySheet): Collection
+    {
+        return $this->documentExplorer->forDossier($dossier, $user, $canViewEfficiencySheet);
     }
 
     private function contractPayload(Dossier $dossier): ?array
@@ -422,7 +444,9 @@ class ProjectWorkspaceDataService
             'clientName' => $dossier->client?->full_name ?? '',
             'clientCin' => $dossier->client?->cin ?? '',
             'archiveNumber' => $archive->archive_number,
+            'displaySequence' => str_pad((string) $archive->archive_sequence, 4, '0', STR_PAD_LEFT),
             'status' => $archive->status,
+            'city' => $this->archiveCityPayload($archive, $dossier),
             'room' => $archive->room,
             'shelf' => $archive->shelf,
             'box' => $archive->box,
@@ -441,6 +465,27 @@ class ProjectWorkspaceDataService
                 $archive->box,
                 $archive->folder,
             ]))),
+        ];
+    }
+
+    /**
+     * City shown next to the archive chip: the archive's own city when present,
+     * falling back to the dossier city (the numbering scope is identical).
+     *
+     * @return array{id: int, name: string, color: string}|null
+     */
+    private function archiveCityPayload(ArchiveRecord $archive, Dossier $dossier): ?array
+    {
+        $city = $archive->city ?? $dossier->city;
+
+        if (! $city) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $city->id,
+            'name' => (string) $city->name,
+            'color' => (string) ($city->color ?? '#64748B'),
         ];
     }
 

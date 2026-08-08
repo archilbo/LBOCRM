@@ -5,26 +5,23 @@ namespace App\Services\Finance;
 use App\Models\FinanceDocument;
 use App\Models\FinanceTemplate;
 use Illuminate\Support\Arr;
+use RuntimeException;
 
 class FinanceTemplateRenderer
 {
-    public function __construct(private readonly FinanceDocumentRenderData $renderData)
-    {
+    public function __construct(
+        private readonly FinanceDocumentRenderData $renderData,
+        private readonly FinanceTemplatePlaceholderRegistry $registry,
+    ) {
     }
 
     public function renderHtml(FinanceDocument $document): string
     {
         $data = $this->renderData->toArray($document);
-        $template = $this->resolveTemplate($document);
-        $body = trim((string) ($template?->body_html ?: $this->fallbackBody()));
-        $header = trim((string) ($template?->header_html ?: ''));
-        $footer = trim((string) ($template?->footer_html ?: ''));
-        $css = trim((string) ($template?->css ?: $this->fallbackCss()));
-        $content = $header . $body . $footer;
-        $content = $this->replaceLegacyPlaceholders($content, $data);
-        $content = $this->replacePlaceholders($content, $data);
+        $template = $this->templateFor($document);
+        $html = $this->assemble($template, $data);
 
-        return '<!doctype html><html><head><meta charset="utf-8"><style>' . $css . '</style></head><body>' . $content . '</body></html>';
+        return $this->guardUnresolved($html);
     }
 
     public function renderPreviewHtml(FinanceDocument $document): string
@@ -34,68 +31,12 @@ class FinanceTemplateRenderer
 
     public function renderTemplatePreview(?FinanceTemplate $template, array $data): string
     {
-        $body = trim((string) ($template?->body_html ?: $this->fallbackBody()));
-        $header = trim((string) ($template?->header_html ?: ''));
-        $footer = trim((string) ($template?->footer_html ?: ''));
-        $css = trim((string) ($template?->css ?: $this->fallbackCss()));
-        $content = $header . $body . $footer;
-        $content = $this->replaceLegacyPlaceholders($content, $data);
-        $content = $this->replacePlaceholders($content, $data);
+        $html = $this->assemble($template, $data);
 
-        return '<!doctype html><html><head><meta charset="utf-8"><style>' . $css . '</style></head><body>' . $content . '</body></html>';
+        return $this->guardUnresolved($html);
     }
 
-    public function replacePlaceholders(string $html, array $data): string
-    {
-        $html = str_replace('{{items_table}}', $this->renderItemsTable($data['items'], $data['document']['currency']), $html);
-        $html = str_replace('{{payments_table}}', $this->renderPaymentsTable($data['payments'], $data['document']['currency']), $html);
-
-        return preg_replace_callback('/{{\s*([a-zA-Z0-9_.]+)\s*}}/', function (array $matches) use ($data) {
-            $value = Arr::get($data, $matches[1], '');
-
-            return e(is_scalar($value) ? (string) $value : '');
-        }, $html) ?? $html;
-    }
-
-    public function renderItemsTable(array $items, string $currency): string
-    {
-        if ($items === []) {
-            return '<p>Aucune ligne.</p>';
-        }
-
-        $rows = collect($items)->map(function (array $item): string {
-            return '<tr>'
-                . '<td>' . e((string) $item['position']) . '</td>'
-                . '<td><strong>' . e($item['title']) . '</strong><br><span>' . e($item['description']) . '</span></td>'
-                . '<td class="text-right">' . e((string) $item['quantity']) . '</td>'
-                . '<td>' . e($item['unit']) . '</td>'
-                . '<td class="text-right">' . e($item['unit_price_display']) . '</td>'
-                . '<td class="text-right">' . e($item['total_ht_display']) . '</td>'
-                . '<td class="text-right">' . e($item['total_ttc_display']) . '</td>'
-                . '</tr>';
-        })->implode('');
-
-        return '<table class="items-table"><thead><tr><th>#</th><th>Designation</th><th>Qt</th><th>Unite</th><th>PU HT</th><th>Total HT</th><th>Total TTC</th></tr></thead><tbody>' . $rows . '</tbody></table>';
-    }
-
-    public function renderPaymentsTable(array $payments, string $currency): string
-    {
-        if ($payments === []) {
-            return '<p>Aucun paiement enregistre.</p>';
-        }
-
-        $rows = collect($payments)->map(fn (array $payment): string => '<tr>'
-            . '<td>' . e($payment['payment_number']) . '</td>'
-            . '<td>' . e($payment['paid_at']) . '</td>'
-            . '<td>' . e($payment['method']) . '</td>'
-            . '<td>' . e($payment['reference']) . '</td>'
-            . '<td class="text-right">' . e($payment['amount_display']) . '</td>'
-            . '</tr>')->implode('');
-
-        return '<table class="payments-table"><thead><tr><th>Paiement</th><th>Date</th><th>Mode</th><th>Reference</th><th>Montant</th></tr></thead><tbody>' . $rows . '</tbody></table>';
-    }
-
-    private function resolveTemplate(FinanceDocument $document): ?FinanceTemplate
+    public function templateFor(FinanceDocument $document): ?FinanceTemplate
     {
         if ($document->template_id) {
             $template = FinanceTemplate::query()->find($document->template_id);
@@ -109,6 +50,144 @@ class FinanceTemplateRenderer
             ->where('is_default', true)
             ->first()
             ?: FinanceTemplate::query()->where('type', $document->type)->first();
+    }
+
+    public function replacePlaceholders(string $html, array $data): string
+    {
+        // Trusted, pre-generated HTML variables are rendered as-is (never escaped).
+        foreach ($this->trustedReplacements($data) as $placeholder => $value) {
+            $html = str_replace($placeholder, $value, $html);
+        }
+
+        return preg_replace_callback('/{{\s*([a-zA-Z0-9_.]+)\s*}}/', function (array $matches) use ($data) {
+            $value = Arr::get($data, $matches[1], '');
+
+            return e(is_scalar($value) ? (string) $value : '');
+        }, $html) ?? $html;
+    }
+
+    public function renderItemsTable(array $items, string $currency): string
+    {
+        if ($items === []) {
+            return '<p class="finance-items-empty">Aucune ligne.</p>';
+        }
+
+        $rows = collect($items)->map(function (array $item, int $index): string {
+            $unit = trim((string) ($item['unit'] ?? ''));
+
+            return '<tr class="finance-items-table__row' . ($index % 2 === 1 ? ' finance-items-table__row--alt' : '') . '">'
+                . '<td class="designation"><strong>' . e((string) $item['title']) . '</strong>'
+                . ($unit !== '' ? ' <span class="unit">(' . e($unit) . ')</span>' : '')
+                . '<br><span class="description">' . e((string) $item['description']) . '</span></td>'
+                . '<td class="text-right">' . e((string) $item['quantity']) . '</td>'
+                . '<td class="text-right">' . e($item['unit_price_display']) . '</td>'
+                . '<td class="text-right">' . e($item['total_ht_display']) . '</td>'
+                . '</tr>';
+        })->implode('');
+
+        return '<table class="items-table finance-items-table">'
+            . '<thead class="finance-items-table__head"><tr>'
+            . '<th>DÉSIGNATION</th><th class="text-right">QTÉ</th><th class="text-right">PRIX UNITAIRE HT</th><th class="text-right">PRIX TOTAL HT</th>'
+            . '</tr></thead><tbody class="finance-items-table__body">' . $rows . '</tbody></table>';
+    }
+
+    public function renderPaymentsTable(array $payments, string $currency): string
+    {
+        if ($payments === []) {
+            return '<p class="finance-items-empty">Aucun paiement enregistré.</p>';
+        }
+
+        $rows = collect($payments)->map(fn (array $payment, int $index): string => '<tr class="finance-items-table__row' . ($index % 2 === 1 ? ' finance-items-table__row--alt' : '') . '">'
+            . '<td>' . e($payment['payment_number']) . '</td>'
+            . '<td>' . e($payment['paid_at']) . '</td>'
+            . '<td>' . e($payment['method']) . '</td>'
+            . '<td>' . e($payment['reference']) . '</td>'
+            . '<td class="text-right">' . e($payment['amount_display']) . '</td>'
+            . '</tr>')->implode('');
+
+        return '<table class="payments-table finance-items-table">'
+            . '<thead class="finance-items-table__head"><tr>'
+            . '<th>Paiement</th><th>Date</th><th>Mode</th><th>Référence</th><th class="text-right">Montant</th>'
+            . '</tr></thead><tbody class="finance-items-table__body">' . $rows . '</tbody></table>';
+    }
+
+    public function renderReceiptTable(array $payments, string $currency): string
+    {
+        // The receipt table is MANDATORY structure: it must always render,
+        // even when no payment is linked yet (empty-state row + zero TOTAL).
+        $rows = $payments === []
+            ? '<tr class="finance-items-table__row"><td colspan="6" class="receipt-empty">Aucun paiement enregistré.</td></tr>'
+            : collect($payments)->map(fn (array $payment, int $index): string => '<tr class="finance-items-table__row' . ($index % 2 === 1 ? ' finance-items-table__row--alt' : '') . '">'
+                . '<td>' . e($payment['paid_at']) . '</td>'
+                . '<td>' . e($payment['object']) . '</td>'
+                . '<td class="text-right">' . e($payment['negotiated_display']) . '</td>'
+                . '<td class="text-right">' . e($payment['advance_display']) . '</td>'
+                . '<td>' . e($payment['method']) . '</td>'
+                . '<td class="text-right">' . e($payment['remaining_display']) . '</td>'
+                . '</tr>')->implode('');
+
+        $money = fn (float $value): string => number_format($value, 2, '.', ' ') . ' ' . $currency;
+        $last = $payments[array_key_last($payments)] ?? [];
+        $totalRow = '<tr class="receipt-total-row">'
+            . '<td colspan="2" class="receipt-total-label">TOTAL</td>'
+            . '<td class="text-right">' . $money((float) collect($payments)->sum('negotiated')) . '</td>'
+            . '<td class="text-right">' . $money((float) collect($payments)->sum('advance')) . '</td>'
+            . '<td></td>'
+            . '<td class="text-right">' . $money((float) ($last['remaining'] ?? 0)) . '</td>'
+            . '</tr>';
+
+        return '<table class="receipt-table finance-items-table">'
+            . '<thead class="finance-items-table__head"><tr>'
+            . '<th>DATE</th><th>OBJET</th><th class="text-right">MONTANT<br>NÉGOCIÉ</th><th class="text-right">AVANCE</th><th>MODE DE<br>PAIEMENT</th><th class="text-right">RESTE</th>'
+            . '</tr></thead><tbody class="finance-items-table__body">' . $rows . $totalRow . '</tbody></table>';
+    }
+
+    /**
+     * Strict policy: no template token may survive into the final document.
+     */
+    private function guardUnresolved(string $html): string
+    {
+        $remaining = $this->findTokens($html);
+
+        if ($remaining !== []) {
+            throw new RuntimeException(
+                'Impossible de générer le document : placeholders non résolus ' . implode(', ', $remaining) . '.'
+            );
+        }
+
+        return $html;
+    }
+
+    private function findTokens(string $html): array
+    {
+        preg_match_all('/{{\s*[^{}\s][^{}]*\s*}}/', $html, $matches);
+
+        return array_values(array_unique($matches[0] ?? []));
+    }
+
+    private function assemble(?FinanceTemplate $template, array $data): string
+    {
+        $body = trim((string) ($template?->body_html ?: $this->fallbackBody()));
+        $header = trim((string) ($template?->header_html ?: ''));
+        $footer = trim((string) ($template?->footer_html ?: ''));
+        $css = trim((string) ($template?->css ?: $this->fallbackCss()));
+        $content = $header . $body . $footer;
+        $content = $this->replaceLegacyPlaceholders($content, $data);
+        $content = $this->replacePlaceholders($content, $data);
+
+        return '<!doctype html><html><head><meta charset="utf-8"><style>' . $css . '</style></head><body>' . $content . '</body></html>';
+    }
+
+    private function trustedReplacements(array $data): array
+    {
+        $currency = (string) Arr::get($data, 'document.currency', FinanceSettingsService::getCurrency());
+
+        return [
+            '{{items_table}}' => $this->renderItemsTable(Arr::get($data, 'items', []), $currency),
+            '{{payments_table}}' => $this->renderPaymentsTable(Arr::get($data, 'payments', []), $currency),
+            '{{receipt_table}}' => $this->renderReceiptTable(Arr::get($data, 'payments', []), $currency),
+            '{{company.logo_html}}' => (string) Arr::get($data, 'company.logo_html', ''),
+        ];
     }
 
     private function replaceLegacyPlaceholders(string $html, array $data): string
@@ -128,14 +207,14 @@ class FinanceTemplateRenderer
             '{{client_address}}' => Arr::get($data, 'client.address', ''),
             '{{client_phone}}' => Arr::get($data, 'client.phone', ''),
             '{{client_email}}' => Arr::get($data, 'client.email', ''),
-            '{{client_cin}}' => Arr::get($data, 'client.cin', ''),
-            '{{client_ice}}' => '',
+            '{{client_cin}}' => Arr::get($data, 'client.identifier', Arr::get($data, 'client.cin', '')),
+            '{{client_ice}}' => Arr::get($data, 'client.ice', ''),
             '{{dossier_number}}' => Arr::get($data, 'dossier.number', ''),
             '{{project_object}}' => Arr::get($data, 'dossier.project_object', ''),
             '{{project_address}}' => Arr::get($data, 'dossier.address', ''),
             '{{items_rows}}' => $this->renderLegacyItemRows($data['items']),
             '{{total_ht}}' => Arr::get($data, 'totals.subtotal_ht', ''),
-            '{{tva_rate}}' => '',
+            '{{tva_rate}}' => Arr::get($data, 'totals.tax_rate', ''),
             '{{tax_total}}' => Arr::get($data, 'totals.tax_total', ''),
             '{{total_ttc}}' => Arr::get($data, 'totals.total_ttc', ''),
             '{{payment_terms}}' => Arr::get($data, 'document.terms', ''),
@@ -173,6 +252,6 @@ class FinanceTemplateRenderer
 
     private function fallbackCss(): string
     {
-        return 'body{font-family:DejaVu Sans,sans-serif;font-size:12px;color:#111}.document{padding:24px}.header{display:table;width:100%;margin-bottom:24px}.header>div{display:table-cell;width:50%;vertical-align:top}.document-title{text-align:right}h1,h2,h3{margin:0 0 8px}.items-table,.payments-table,.totals{width:100%;border-collapse:collapse;margin-top:16px}.items-table th,.items-table td,.payments-table th,.payments-table td,.totals td{border:1px solid #ddd;padding:7px}.items-table th,.payments-table th{background:#f3f4f6}.text-right{text-align:right}.totals{margin-left:auto;width:45%}.total{font-weight:bold;background:#f9fafb}.client-info,.project-info,.notes{margin-top:16px}';
+        return 'body{font-family:DejaVu Sans,sans-serif;font-size:12px;color:#111}.document{padding:24px}.header{display:table;width:100%;margin-bottom:24px}.header>div{display:table-cell;width:50%;vertical-align:top}.document-title{text-align:right}h1,h2,h3{margin:0 0 8px}.items-table,.payments-table,.receipt-table,.totals{width:100%;border-collapse:collapse;margin-top:16px}.items-table th,.items-table td,.payments-table th,.payments-table td,.receipt-table th,.receipt-table td,.totals td{border:1px solid #ddd;padding:7px}.items-table th,.payments-table th,.receipt-table th{background:#f3f4f6}.text-right{text-align:right}.totals{margin-left:auto;width:45%}.total{font-weight:bold;background:#f9fafb}.client-info,.project-info,.notes{margin-top:16px}';
     }
 }

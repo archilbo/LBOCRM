@@ -1,13 +1,15 @@
 import { router, usePage } from '@inertiajs/react';
-import { IconCashBanknote, IconBuilding, IconCalculator, IconCircleCheck, IconChevronRight, IconFileText, IconPhoto, IconBuildingBank, IconLoader2, IconMaximize, IconDeviceFloppy, IconSettings, IconTrash, IconUpload } from '@tabler/icons-react';
+import { IconBuilding, IconBuildingBank, IconCalculator, IconCalendarCheck, IconCalendarDue, IconCashBanknote, IconCertificate, IconChevronDown, IconCircleCheck, IconChevronRight, IconCoin, IconCompass, IconCreditCard, IconDiscount, IconFileText, IconIdBadge, IconLoader2, IconMail, IconMapPin, IconMaximize, IconDeviceFloppy, IconPercentage, IconPhone, IconPhoto, IconPrinter, IconRuler, IconSettings, IconShieldCheck, IconTrash, IconUpload, IconUser } from '@tabler/icons-react';
 
 import { type ChangeEvent, type DragEvent, type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Chip, Description, FieldError, Input, Label, TextArea, TextField } from '@heroui/react';
+import { Chip, Description, FieldError, Input, Label, ListBox, Select, TextArea, TextField } from '@heroui/react';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppPageHeader } from '@/components/ui/AppPageHeader';
+import { cn } from '@/lib/cn';
+import { ArchitectFeeOptionsSection, type ArchitectFeeOptionSettings } from '@/features/finance/components/ArchitectFeeOptionsSection';
 
 type FinanceSettingsForm = {
     finance: {
@@ -20,8 +22,10 @@ type FinanceSettingsForm = {
     };
     company: {
         companyName: string;
+        companyLegalRepresentative: string;
         companyAddress: string;
         companyPhone: string;
+        companyFax: string;
         companyEmail: string;
         companyIce: string;
         companyTva: string;
@@ -48,8 +52,10 @@ export type FinanceSettingsFormProps = {
         };
         company: {
             companyName: string;
+            companyLegalRepresentative: string;
             companyAddress: string;
             companyPhone: string;
+            companyFax: string;
             companyEmail: string;
             companyIce: string;
             companyTva: string;
@@ -68,6 +74,10 @@ export type FinanceSettingsFormProps = {
         uploadLogo: string;
         deleteLogo: string;
     };
+    /** Distinct architect rates found on contracts, used for the default-rate dropdown. */
+    architectRates?: number[];
+    architectFeeOptions?: ArchitectFeeOptionSettings[];
+    contractTemplateOptions?: { id: string; label: string }[];
     canManage?: boolean;
     showHeader?: boolean;
     visibleSections?: SettingsSection[];
@@ -89,8 +99,10 @@ function fromSettings(settings: FinanceSettingsFormProps['settings']): FinanceSe
         },
         company: {
             companyName: toStringValue(settings.company.companyName),
+            companyLegalRepresentative: toStringValue(settings.company.companyLegalRepresentative),
             companyAddress: toStringValue(settings.company.companyAddress),
             companyPhone: toStringValue(settings.company.companyPhone),
+            companyFax: toStringValue(settings.company.companyFax),
             companyEmail: toStringValue(settings.company.companyEmail),
             companyIce: toStringValue(settings.company.companyIce),
             companyTva: toStringValue(settings.company.companyTva),
@@ -118,8 +130,10 @@ function toPayload(form: FinanceSettingsForm) {
         },
         company: {
             company_name: form.company.companyName,
+            company_legal_representative: form.company.companyLegalRepresentative,
             company_address: form.company.companyAddress,
             company_phone: form.company.companyPhone,
+            company_fax: form.company.companyFax,
             company_email: form.company.companyEmail,
             company_ice: form.company.companyIce,
             company_tva: form.company.companyTva,
@@ -168,6 +182,10 @@ function validateSettings(form: FinanceSettingsForm): Record<string, string> {
         errors['company.company_phone'] = 'Saisissez un numéro de téléphone valide.';
     }
 
+    if (form.company.companyFax && !PHONE_PATTERN.test(form.company.companyFax)) {
+        errors['company.company_fax'] = 'Saisissez un numéro de fax valide.';
+    }
+
     if (form.bank.bankRib && !/^[A-Za-z0-9][A-Za-z0-9\s-]{5,254}$/.test(form.bank.bankRib)) {
         errors['bank.bank_rib'] = 'Saisissez un RIB valide.';
     }
@@ -191,6 +209,7 @@ function Field({
     maxLength,
     pattern,
     autoComplete,
+    icon,
 }: {
     label: string;
     value: string;
@@ -207,11 +226,19 @@ function Field({
     maxLength?: number;
     pattern?: string;
     autoComplete?: string;
+    icon?: ReactNode;
 }) {
     return (
         <TextField type={type} value={value} onChange={onChange} isInvalid={Boolean(error)} isDisabled={isDisabled} className="min-w-0">
             <Label className="mb-1 block text-[11px] font-semibold text-[var(--text)]">{label}</Label>
-            <Input placeholder={placeholder} inputMode={inputMode} min={min} max={max} step={step} maxLength={maxLength} pattern={pattern} autoComplete={autoComplete} className="h-9 rounded-lg text-sm" />
+            <div className="relative">
+                {icon ? (
+                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden>
+                        {icon}
+                    </span>
+                ) : null}
+                <Input placeholder={placeholder} inputMode={inputMode} min={min} max={max} step={step} maxLength={maxLength} pattern={pattern} autoComplete={autoComplete} className={cn('h-9 w-full rounded-lg text-sm', icon && 'pl-9')} />
+            </div>
             {help ? <Description className="mt-1 text-[10px] leading-4 text-[var(--text-muted)]">{help}</Description> : null}
             {error ? <FieldError className="mt-1 text-[10px] font-semibold">{error}</FieldError> : null}
         </TextField>
@@ -225,6 +252,7 @@ function TextAreaField({
     error,
     placeholder,
     isDisabled = false,
+    icon,
 }: {
     label: string;
     value: string;
@@ -232,13 +260,89 @@ function TextAreaField({
     error?: string;
     placeholder?: string;
     isDisabled?: boolean;
+    icon?: ReactNode;
 }) {
     return (
         <TextField value={value} onChange={onChange} isInvalid={Boolean(error)} isDisabled={isDisabled} className="min-w-0">
             <Label className="mb-1 block text-[11px] font-semibold text-[var(--text)]">{label}</Label>
-            <TextArea rows={3} placeholder={placeholder} className="w-full resize-y rounded-lg text-sm" />
+            <div className="relative">
+                {icon ? (
+                    <span className="pointer-events-none absolute left-2.5 top-2.5 text-[var(--text-muted)]" aria-hidden>
+                        {icon}
+                    </span>
+                ) : null}
+                <TextArea rows={3} placeholder={placeholder} className={cn('w-full resize-y rounded-lg text-sm', icon && 'pl-9')} />
+            </div>
             {error ? <FieldError className="mt-1 text-[10px] font-semibold">{error}</FieldError> : null}
         </TextField>
+    );
+}
+
+function SelectField({
+    label,
+    value,
+    onChange,
+    error,
+    options,
+    isDisabled = false,
+    icon,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    error?: string;
+    options: Array<{ value: string; label: string }>;
+    isDisabled?: boolean;
+    icon?: ReactNode;
+}) {
+    return (
+        <div className="flex min-w-0 flex-col gap-1">
+            <Label className="mb-1 block text-[11px] font-semibold text-[var(--text)]">{label}</Label>
+            <div className="relative">
+                {icon ? (
+                    <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden>
+                        {icon}
+                    </span>
+                ) : null}
+                <Select
+                    selectedKey={value || null}
+                    onSelectionChange={(key) => onChange(key ? String(key) : '')}
+                    isDisabled={isDisabled}
+                    placeholder="Sélectionner…"
+                    aria-label={label}
+                >
+                    <Select.Trigger
+                        className={cn(
+                            'flex h-9 w-full min-w-0 items-center gap-2 rounded-lg border bg-[var(--surface)] pr-2.5 text-sm text-[var(--text)] outline-none transition',
+                            'border-[var(--border)] hover:border-[var(--accent)] focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]',
+                            'disabled:cursor-not-allowed disabled:opacity-60',
+                            icon && 'pl-9',
+                            error && 'border-[var(--danger)]',
+                        )}
+                    >
+                        <Select.Value className="flex-1 truncate text-left text-sm" />
+                        <Select.Indicator>
+                            <IconChevronDown size={14} className="text-[var(--text-muted)]" />
+                        </Select.Indicator>
+                    </Select.Trigger>
+                    <Select.Popover className="z-[120] w-[var(--trigger-width)] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
+                        <ListBox aria-label={label} className="gap-0">
+                            {options.map((option) => (
+                                <ListBox.Item
+                                    key={option.value}
+                                    id={option.value}
+                                    textValue={option.label}
+                                    className="flex cursor-pointer items-center rounded-lg px-2.5 py-2 text-xs text-[var(--text)] outline-none transition hover:bg-[var(--surface-2)] data-[focus-visible]:bg-[var(--surface-2)] data-[selected]:bg-[var(--accent)]/10"
+                                >
+                                    {option.label}
+                                </ListBox.Item>
+                            ))}
+                        </ListBox>
+                    </Select.Popover>
+                </Select>
+            </div>
+            {error ? <FieldError className="mt-1 text-[10px] font-semibold">{error}</FieldError> : null}
+        </div>
     );
 }
 
@@ -291,7 +395,7 @@ const SETTINGS_SECTIONS: Array<{
     { id: 'bank', label: 'Coordonnées bancaires', description: 'Informations de paiement', icon: IconBuildingBank },
 ];
 
-export function FinanceSettingsForm({ settings, routes, canManage = false, showHeader = true, visibleSections }: FinanceSettingsFormProps) {
+export function FinanceSettingsForm({ settings, routes, architectRates = [], architectFeeOptions = [], contractTemplateOptions = [], canManage = false, showHeader = true, visibleSections }: FinanceSettingsFormProps) {
     const { errors: serverErrors = {} } = usePage().props as { errors?: Record<string, string> };
     const initialForm = useMemo(() => fromSettings(settings), [settings]);
 
@@ -312,6 +416,22 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
     const validationErrors = useMemo(() => validateSettings(form), [form]);
     const errors = useMemo(() => ({ ...serverErrors, ...validationErrors }), [serverErrors, validationErrors]);
     const settingsSnapshot = useMemo(() => JSON.stringify(toPayload(form)), [form]);
+
+    // Dropdown choices = rates found on contracts, always including the
+    // current saved value (deduped, sorted numerically) so the selection
+    // never renders blank for a previously saved custom rate.
+    const architectRateOptions = useMemo(() => {
+        const rates = [...architectRates];
+        const current = Number(form.finance.defaultArchitectRate);
+
+        if (Number.isFinite(current) && !rates.some((rate) => Math.abs(rate - current) < 1e-9)) {
+            rates.push(current);
+        }
+
+        return [...new Map(rates.map((rate) => [String(rate), rate])).values()]
+            .map((rate) => ({ value: String(rate), label: `${rate} %` }))
+            .sort((a, b) => Number(a.value) - Number(b.value));
+    }, [architectRates, form.finance.defaultArchitectRate]);
     const canAutoSave = Object.keys(validationErrors).length === 0;
     const availableSections = useMemo(
         () => SETTINGS_SECTIONS.filter((section) => !visibleSections || visibleSections.includes(section.id)),
@@ -426,7 +546,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
     }
 
     function updateCompany(key: keyof FinanceSettingsForm['company'], value: string) {
-        const nextValue = key === 'companyPhone'
+        const nextValue = key === 'companyPhone' || key === 'companyFax'
             ? value.replace(/[^0-9+\s().-]/g, '').slice(0, 25)
             : value;
 
@@ -553,12 +673,14 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                                 description="Valeurs par défaut appliquées aux nouveaux documents et calculs automatiques."
                             >
                             <div className="grid gap-3 md:grid-cols-2">
-                                <Field label="Taux de TVA par défaut (%)" type="number" inputMode="decimal" min={0} max={100} step="any" value={form.finance.defaultTvaRate} onChange={(value) => updateFinance('defaultTvaRate', value)} error={errors['finance.default_tva_rate']} isDisabled={!canManage} />
-                                <Field label="Devise" value={form.finance.defaultCurrency} onChange={(value) => updateFinance('defaultCurrency', value)} error={errors['finance.default_currency']} placeholder="MAD" maxLength={3} pattern="[A-Z]{3}" autoComplete="off" isDisabled={!canManage} />
-                                <Field label="Délai de paiement (jours)" type="number" inputMode="numeric" min={0} max={365} step={1} value={form.finance.defaultPaymentTermsDays} onChange={(value) => updateFinance('defaultPaymentTermsDays', value)} error={errors['finance.default_payment_terms_days']} isDisabled={!canManage} />
-                                <Field label="Validité des devis (jours)" type="number" inputMode="numeric" min={0} max={365} step={1} value={form.finance.defaultQuoteValidityDays} onChange={(value) => updateFinance('defaultQuoteValidityDays', value)} error={errors['finance.default_quote_validity_days']} isDisabled={!canManage} />
-                                <Field label="Prix unitaire par m²" type="number" inputMode="decimal" min={0} step="any" value={form.finance.defaultUnitPriceM2} onChange={(value) => updateFinance('defaultUnitPriceM2', value)} error={errors['finance.default_unit_price_m2']} isDisabled={!canManage} />
-                                <Field label="Taux architecte par défaut (%)" type="number" inputMode="decimal" min={0} max={100} step="any" value={form.finance.defaultArchitectRate} onChange={(value) => updateFinance('defaultArchitectRate', value)} error={errors['finance.default_architect_rate']} isDisabled={!canManage} />
+                                <Field label="Taux de TVA par défaut (%)" icon={<IconDiscount size={15} />} type="number" inputMode="decimal" min={0} max={100} step="any" value={form.finance.defaultTvaRate} onChange={(value) => updateFinance('defaultTvaRate', value)} error={errors['finance.default_tva_rate']} isDisabled={!canManage} />
+                                <Field label="Devise" icon={<IconCoin size={15} />} value={form.finance.defaultCurrency} onChange={(value) => updateFinance('defaultCurrency', value)} error={errors['finance.default_currency']} placeholder="MAD" maxLength={3} pattern="[A-Z]{3}" autoComplete="off" isDisabled={!canManage} />
+                                <Field label="Délai de paiement (jours)" icon={<IconCalendarDue size={15} />} type="number" inputMode="numeric" min={0} max={365} step={1} value={form.finance.defaultPaymentTermsDays} onChange={(value) => updateFinance('defaultPaymentTermsDays', value)} error={errors['finance.default_payment_terms_days']} isDisabled={!canManage} />
+                                <Field label="Validité des devis (jours)" icon={<IconCalendarCheck size={15} />} type="number" inputMode="numeric" min={0} max={365} step={1} value={form.finance.defaultQuoteValidityDays} onChange={(value) => updateFinance('defaultQuoteValidityDays', value)} error={errors['finance.default_quote_validity_days']} isDisabled={!canManage} />
+                                <Field label="Prix unitaire par m²" icon={<IconRuler size={15} />} type="number" inputMode="decimal" min={0} step="any" value={form.finance.defaultUnitPriceM2} onChange={(value) => updateFinance('defaultUnitPriceM2', value)} error={errors['finance.default_unit_price_m2']} isDisabled={!canManage} />
+                            </div>
+                            <div className="mt-4">
+                                <ArchitectFeeOptionsSection options={architectFeeOptions} canManage={canManage} />
                             </div>
                             </Section>
                         ) : null}
@@ -570,9 +692,11 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                                 description="Informations affichées dans les en-têtes, pieds de page et documents générés."
                             >
                             <div className="grid gap-4 md:grid-cols-2">
-                                <Field label="Raison sociale" value={form.company.companyName} onChange={(value) => updateCompany('companyName', value)} error={errors['company.company_name']} isDisabled={!canManage} />
-                                <Field label="E-mail" type="email" inputMode="email" autoComplete="email" value={form.company.companyEmail} onChange={(value) => updateCompany('companyEmail', value)} error={errors['company.company_email']} isDisabled={!canManage} />
-                                <Field label="Téléphone" type="tel" inputMode="tel" autoComplete="tel" pattern="\+?[0-9][0-9\s().-]{6,24}" maxLength={25} value={form.company.companyPhone} onChange={(value) => updateCompany('companyPhone', value)} error={errors['company.company_phone']} isDisabled={!canManage} />
+                                <Field label="Raison sociale" icon={<IconBuilding size={15} />} value={form.company.companyName} onChange={(value) => updateCompany('companyName', value)} error={errors['company.company_name']} isDisabled={!canManage} />
+                                <Field label="Représentant légal" icon={<IconUser size={15} />} value={form.company.companyLegalRepresentative} onChange={(value) => updateCompany('companyLegalRepresentative', value)} error={errors['company.company_legal_representative']} maxLength={255} isDisabled={!canManage} />
+                                <Field label="E-mail" icon={<IconMail size={15} />} type="email" inputMode="email" autoComplete="email" value={form.company.companyEmail} onChange={(value) => updateCompany('companyEmail', value)} error={errors['company.company_email']} isDisabled={!canManage} />
+                                <Field label="Téléphone" icon={<IconPhone size={15} />} type="tel" inputMode="tel" autoComplete="tel" pattern="\+?[0-9][0-9\s().-]{6,24}" maxLength={25} value={form.company.companyPhone} onChange={(value) => updateCompany('companyPhone', value)} error={errors['company.company_phone']} isDisabled={!canManage} />
+                                <Field label="Fax" icon={<IconPrinter size={15} />} type="tel" inputMode="tel" autoComplete="tel" pattern="\+?[0-9][0-9\s().-]{6,24}" maxLength={25} value={form.company.companyFax} onChange={(value) => updateCompany('companyFax', value)} error={errors['company.company_fax']} isDisabled={!canManage} />
                                 <div className="md:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
                                     <div className="flex flex-wrap items-center justify-between gap-3">
                                         <div className="flex items-start gap-3">
@@ -653,7 +777,7 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <TextAreaField label="Adresse" value={form.company.companyAddress} onChange={(value) => updateCompany('companyAddress', value)} error={errors['company.company_address']} isDisabled={!canManage} />
+                                    <TextAreaField icon={<IconMapPin size={15} />} label="Adresse" value={form.company.companyAddress} onChange={(value) => updateCompany('companyAddress', value)} error={errors['company.company_address']} isDisabled={!canManage} />
                                 </div>
 
                             </div>
@@ -667,12 +791,12 @@ export function FinanceSettingsForm({ settings, routes, canManage = false, showH
                                 description="Informations de règlement et références administratives utilisées dans les documents."
                             >
                             <div className="grid gap-4 md:grid-cols-2">
-                                <Field label="Banque" value={form.bank.bankName} onChange={(value) => updateBank('bankName', value)} error={errors['bank.bank_name']} isDisabled={!canManage} />
-                                <Field label="RIB" value={form.bank.bankRib} onChange={(value) => updateBank('bankRib', value)} error={errors['bank.bank_rib']} pattern="[A-Za-z0-9][A-Za-z0-9\s-]{5,254}" maxLength={255} autoComplete="off" isDisabled={!canManage} />
-                                <Field label="ICE" value={form.company.companyIce} onChange={(value) => updateCompany('companyIce', value)} error={errors['company.company_ice']} isDisabled={!canManage} />
-                                <Field label="TVA" value={form.company.companyTva} onChange={(value) => updateCompany('companyTva', value)} error={errors['company.company_tva']} isDisabled={!canManage} />
-                                <Field label="Patente" value={form.company.companyPatente} onChange={(value) => updateCompany('companyPatente', value)} error={errors['company.company_patente']} isDisabled={!canManage} />
-                                <Field label="CNSS" value={form.company.companyCnss} onChange={(value) => updateCompany('companyCnss', value)} error={errors['company.company_cnss']} isDisabled={!canManage} />
+                                <Field label="Banque" icon={<IconBuildingBank size={15} />} value={form.bank.bankName} onChange={(value) => updateBank('bankName', value)} error={errors['bank.bank_name']} isDisabled={!canManage} />
+                                <Field label="RIB" icon={<IconCreditCard size={15} />} value={form.bank.bankRib} onChange={(value) => updateBank('bankRib', value)} error={errors['bank.bank_rib']} pattern="[A-Za-z0-9][A-Za-z0-9\s-]{5,254}" maxLength={255} autoComplete="off" isDisabled={!canManage} />
+                                <Field label="ICE" icon={<IconIdBadge size={15} />} value={form.company.companyIce} onChange={(value) => updateCompany('companyIce', value)} error={errors['company.company_ice']} isDisabled={!canManage} />
+                                <Field label="TVA" icon={<IconPercentage size={15} />} value={form.company.companyTva} onChange={(value) => updateCompany('companyTva', value)} error={errors['company.company_tva']} isDisabled={!canManage} />
+                                <Field label="Patente" icon={<IconCertificate size={15} />} value={form.company.companyPatente} onChange={(value) => updateCompany('companyPatente', value)} error={errors['company.company_patente']} isDisabled={!canManage} />
+                                <Field label="CNSS" icon={<IconShieldCheck size={15} />} value={form.company.companyCnss} onChange={(value) => updateCompany('companyCnss', value)} error={errors['company.company_cnss']} isDisabled={!canManage} />
                             </div>
                             </Section>
                         ) : null}

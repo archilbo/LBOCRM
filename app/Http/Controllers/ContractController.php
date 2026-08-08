@@ -6,10 +6,12 @@ use App\Http\Requests\StoreContractRequest;
 use App\Http\Requests\UpdateContractRequest;
 use App\Http\Resources\ContractResource;
 use App\Models\Client;
+use App\Models\ArchitectFeeOption;
 use App\Models\Contract;
 use App\Models\Dossier;
 use App\Notifications\ContractNotification;
 use App\Services\ContractDocumentGenerator;
+use App\Services\Contracts\ContractTemplateNamingService;
 use App\Services\Dossiers\DossierPathBuilder;
 use App\Support\DecimalMoney;
 use App\Services\WordDocumentConverter;
@@ -41,6 +43,7 @@ class ContractController extends Controller
             'contracts' => ContractResource::collection($contracts)->resolve(),
             'dossiers' => $this->dossierOptions($request->user(), $companyContext),
             'clients' => $this->clientOptions($request->user(), $companyContext),
+            'architectFeeOptions' => \App\Services\Finance\FinanceSettingsService::architectFeeOptions(true),
             'metrics' => [
                 'total' => (clone $scope)->count(),
                 'draft' => (clone $scope)->where('status', 'draft')->count(),
@@ -55,7 +58,7 @@ class ContractController extends Controller
     {
         $this->authorize('create', Contract::class);
         abort_unless(app(\App\Services\CompanyContext::class)->applyTo(Dossier::query(), $request->user())->whereKey($request->integer('dossier_id'))->exists(), 404);
-        $data = $this->prepareContractData($request->validated());
+        $data = $this->prepareContractData($request->validated(), true);
         $data['contract_number'] = $data['contract_number'] ?? $this->nextContractNumber();
 
         $contract = Contract::create($data);
@@ -78,7 +81,7 @@ class ContractController extends Controller
         $this->authorize('update', $contract);
         $hadGeneratedFiles = $contract->generated_document_path || $contract->pdf_path;
 
-        $contract->update($this->prepareContractData($request->validated()));
+        $contract->update($this->prepareContractData($request->validated(), false, $contract));
 
         $this->invalidateGeneratedFiles($contract, $hadGeneratedFiles);
 
@@ -400,15 +403,37 @@ class ContractController extends Controller
         ]);
     }
 
-    private function prepareContractData(array $data): array
+    private function prepareContractData(array $data, bool $isNew = false, ?Contract $existing = null): array
     {
         $dossier = Dossier::query()->findOrFail($data['dossier_id']);
         unset($data['return_to']);
 
-        $calculationMode = ($data['calculation_mode'] ?? 'percentage') === 'forfait'
-            ? 'forfait'
-            : 'percentage';
-        $feeRatePercent = (float) ($data['fee_rate_percent'] ?? config('archilbo_templates.contracts.default_rate', 0.5));
+        $optionId = $data['architect_fee_option_id'] ?? $existing?->architect_fee_option_id;
+        $option = $optionId ? ArchitectFeeOption::query()->find($optionId) : null;
+
+        if ($isNew && ! $option) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'architect_fee_option_id' => 'Aucun taux architecte actif n’est disponible. Configurez-en un dans les paramètres Finance.',
+            ]);
+        }
+
+        if ($option && ! $option->is_active && ($isNew || (int) $option->id !== (int) $existing?->architect_fee_option_id)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'architect_fee_option_id' => 'Ce taux architecte n’est plus actif.',
+            ]);
+        }
+
+        if ($option && ! is_file(app(ContractTemplateNamingService::class)->pathForKey($option->contract_template_key))) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'architect_fee_option_id' => 'Aucun modèle de contrat détecté pour ce taux. Ajoutez le fichier ' . app(ContractTemplateNamingService::class)->filenameFor($option->calculation_type, $option->percentage_rate) . '.',
+            ]);
+        }
+
+        $calculationMode = $option?->calculation_type
+            ?? (($data['calculation_mode'] ?? $existing?->calculation_mode ?? 'percentage') === 'forfait' ? 'forfait' : 'percentage');
+        $feeRatePercent = $option && $option->calculation_type === 'percentage'
+            ? (float) $option->percentage_rate
+            : (float) ($existing?->fee_rate_percent ?? $data['fee_rate_percent'] ?? config('archilbo_templates.contracts.default_rate', 0.5));
         $surface = (float) ($data['surface'] ?? 0);
         $unitPrice = (float) ($data['price_per_square_meter'] ?? config('archilbo_templates.contracts.construction_unit_price', 900));
         $tvaRate = ((float) config('archilbo_templates.contracts.tva_rate', 20)) / 100;
@@ -445,6 +470,12 @@ class ContractController extends Controller
             'price_per_square_meter' => $unitPrice,
             'calculation_mode' => $calculationMode,
             'fee_rate_percent' => $feeRatePercent,
+            'architect_fee_option_id' => $option?->id,
+            'architect_fee_type' => $option?->calculation_type ?? $existing?->architect_fee_type,
+            'architect_fee_rate' => $option?->calculation_type === 'percentage' ? $option->percentage_rate : null,
+            'architect_fee_amount' => $calculationMode === 'forfait' ? $ttc : null,
+            'architect_fee_label' => $option?->name ?? $existing?->architect_fee_label,
+            'contract_template_key' => $option?->contract_template_key ?? $existing?->contract_template_key,
             'forfait_ttc' => $calculationMode === 'forfait' ? $ttc : null,
             'ht' => $ht,
             'tva' => $tva,

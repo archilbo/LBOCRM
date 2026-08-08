@@ -8,6 +8,7 @@ import { IconAlertTriangle, IconChevronDown, IconCalendarMonth, IconCheck, IconC
 import { Accordion, Button, Checkbox, Chip, Dropdown, Input, ListBox, Select, Switch } from '@heroui/react';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
+import { useBranding } from '@/hooks/useBranding';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppDataTable } from '@/components/ui/AppDataTable';
@@ -297,6 +298,8 @@ export default function AdminUsersIndex({
     reportedAt = new Date().toISOString(),
 }: PageProps) {
     const { t } = useTranslation();
+    const branding = useBranding();
+    const appName = branding.appName || 'ARCHI LBO OS';
     const [activeTab, setActiveTab] = useState<TabId>(() => {
         const requested = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('tab');
         if (requested === 'workload' && canViewWorkload) return 'workload';
@@ -1408,7 +1411,7 @@ export default function AdminUsersIndex({
                             </div>
                             <h3 className="text-base font-semibold text-[var(--crm-text)]/90 mb-2">Supprimer {deleteTarget.name} ?</h3>
                             <p className="text-[12px] text-[var(--crm-text-muted)] leading-relaxed">
-                                Il perdra immédiatement tout accès à <strong className="text-[var(--crm-text)]/70">ARCHI LBO OS</strong>.
+                                Il perdra immédiatement tout accès à <strong className="text-[var(--crm-text)]/70">{appName}</strong>.
                             </p>
                             <div className="flex items-center justify-center gap-2 mt-6">
                                 <AppButton variant="bordered" onPress={() => setDeleteTarget(null)}>Annuler</AppButton>

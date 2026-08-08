@@ -184,6 +184,7 @@ class GlobalSearchController extends Controller
                         'city' => $dossier->city?->name,
                         'cityColor' => $dossier->city?->color,
                         'room' => $dossier->archiveRecord->room,
+                        'requestedBy' => $dossier->archiveRecord->requested_by,
                         'href' => '/archives/' . $dossier->archiveRecord->id,
                     ]
                     : null,
@@ -336,7 +337,6 @@ class GlobalSearchController extends Controller
                 'subtitle' => ($record->dossier?->dossier_number ?? '-') . ' · ' . collect([$record->room, $record->shelf, $record->box, $record->folder])->filter()->implode(' / '),
                 'meta' => $this->mergeMeta([
                     $record->dossier?->project_object ?: null,
-                    $record->requested_by ? 'Requested by ' . $record->requested_by : null,
                 ]),
                 'href' => '/archives',
                 'badge' => $record->status,
@@ -347,6 +347,7 @@ class GlobalSearchController extends Controller
                     'city' => $record->dossier?->city?->name,
                     'cityColor' => $record->dossier?->city?->color,
                     'room' => $record->room,
+                    'requestedBy' => $record->requested_by,
                     'href' => '/archives/' . $record->id,
                 ],
             ]);

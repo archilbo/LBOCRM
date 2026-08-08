@@ -118,16 +118,21 @@ class PermissionRegistry
 
     public function allows(User $user, string $permission): bool
     {
-        if ($user->hasAnyRole(config('archilbo_roles.protected', []))) {
+        if ($this->isProtected($user)) {
             return true;
         }
 
         return in_array($permission, $this->effectiveNames($user), true);
     }
 
+    public function isProtected(User $user): bool
+    {
+        return $user->hasAnyRole(config('archilbo_roles.protected', []));
+    }
+
     public function allowsAny(User $user, array $permissions): bool
     {
-        if ($user->hasAnyRole(config('archilbo_roles.protected', []))) {
+        if ($this->isProtected($user)) {
             return true;
         }
 
@@ -136,7 +141,7 @@ class PermissionRegistry
 
     public function allowsAll(User $user, array $permissions): bool
     {
-        if ($user->hasAnyRole(config('archilbo_roles.protected', []))) {
+        if ($this->isProtected($user)) {
             return true;
         }
 
@@ -177,7 +182,7 @@ class PermissionRegistry
     {
         $custom = $this->customConfiguration($user);
 
-        if ($custom && ! $user->hasAnyRole(config('archilbo_roles.protected', []))) {
+        if ($custom && ! $this->isProtected($user)) {
             return $this->effectiveNamesForCustom($user, $custom['modules'] ?? []);
         }
 

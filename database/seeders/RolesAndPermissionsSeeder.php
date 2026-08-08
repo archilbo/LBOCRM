@@ -164,6 +164,25 @@ class RolesAndPermissionsSeeder extends Seeder
             'project-design.restore',
         ]);
 
+        /*
+         * Fiche efficacité mirrors Project document access: roles that fully
+         * manage dossiers/contracts get the full set; read-only Project roles
+         * get the read set; roles without Project access get nothing.
+         */
+        $efficiencySheetPerms = [
+            'projects.efficiency_sheet.view',
+            'projects.efficiency_sheet.create',
+            'projects.efficiency_sheet.update',
+            'projects.efficiency_sheet.generate',
+            'projects.efficiency_sheet.download',
+            'projects.efficiency_sheet.delete',
+        ];
+
+        $efficiencySheetReadPerms = [
+            'projects.efficiency_sheet.view',
+            'projects.efficiency_sheet.download',
+        ];
+
         $permissionModels = Permission::query()
             ->where('guard_name', 'web')
             ->whereIn('name', $permissions)
@@ -192,7 +211,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'calendar.update',
             'calendar.delete',
             'view qa',
-        ], $projectDesignManagerPerms);
+        ], $projectDesignManagerPerms, $efficiencySheetPerms);
 
         $managerFinanceReadPermissions = [
             'finance.view',
@@ -269,7 +288,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'calendar.create',
                 'calendar.update',
                 'calendar.delete',
-            ], $projectDesignPerms))
+            ], $projectDesignPerms, $efficiencySheetPerms))
         );
 
         $viewer->syncPermissions(
@@ -286,7 +305,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'finance.settings.view',
             ], [
                 'project-design.view',
-            ]))
+            ], $efficiencySheetReadPerms))
         );
 
         $custom->syncPermissions([]);

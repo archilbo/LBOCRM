@@ -19,6 +19,7 @@ use App\Http\Controllers\DossierController;
 use App\Http\Controllers\DossierWorkflowRequirementController;
 use App\Http\Controllers\ProjectDesignController;
 use App\Http\Controllers\ProjectDesignUploadSessionController;
+use App\Http\Controllers\ProjectEfficiencySheetController;
 use App\Http\Controllers\TusController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\Finance\DocumentTemplateController;
@@ -55,6 +56,10 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 
 Route::middleware('auth')->group(function () {
     Route::put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update')->middleware('permission.route');
+    Route::post('/finance/settings/architect-fee-options', [\App\Http\Controllers\Finance\ArchitectFeeOptionController::class, 'store'])->name('finance.architect-fee-options.store')->middleware('permission.route');
+    Route::put('/finance/settings/architect-fee-options/{architectFeeOption}', [\App\Http\Controllers\Finance\ArchitectFeeOptionController::class, 'update'])->name('finance.architect-fee-options.update')->middleware('permission.route');
+    Route::put('/finance/settings/architect-fee-options/{architectFeeOption}/default', [\App\Http\Controllers\Finance\ArchitectFeeOptionController::class, 'setDefault'])->name('finance.architect-fee-options.default')->middleware('permission.route');
+    Route::put('/finance/settings/architect-fee-options/{architectFeeOption}/deactivate', [\App\Http\Controllers\Finance\ArchitectFeeOptionController::class, 'deactivate'])->name('finance.architect-fee-options.deactivate')->middleware('permission.route');
     Route::put('/finance/settings/reset', [FinanceSettingsController::class, 'reset'])->name('finance.settings.reset')->middleware('permission.route');
     Route::post('/finance/settings/logo', [CompanyLogoController::class, 'store'])->name('finance.settings.logo.store')->middleware('permission.route');
     Route::delete('/finance/settings/logo', [CompanyLogoController::class, 'destroy'])->name('finance.settings.logo.destroy')->middleware('permission.route');
@@ -89,6 +94,33 @@ Route::middleware('auth')->group(function () {
     ])->middleware('permission.route');
     Route::put('/dossiers/{dossier}/workflow-requirements', [DossierWorkflowRequirementController::class, 'update'])
         ->name('dossiers.workflow-requirements.update')
+        ->middleware('permission.route');
+    Route::get('/dossiers/{dossier}/efficiency-sheet', [ProjectEfficiencySheetController::class, 'show'])
+        ->name('dossiers.efficiency-sheet.show')
+        ->middleware('permission.route');
+    Route::post('/dossiers/{dossier}/efficiency-sheet', [ProjectEfficiencySheetController::class, 'store'])
+        ->name('dossiers.efficiency-sheet.store')
+        ->middleware('permission.route');
+    Route::put('/dossiers/{dossier}/efficiency-sheet/{efficiencySheet}', [ProjectEfficiencySheetController::class, 'update'])
+        ->name('dossiers.efficiency-sheet.update')
+        ->middleware('permission.route');
+    Route::post('/dossiers/{dossier}/efficiency-sheet/{efficiencySheet}/generate-docx', [ProjectEfficiencySheetController::class, 'generateDocx'])
+        ->name('dossiers.efficiency-sheet.generate-docx')
+        ->middleware('permission.route');
+    Route::post('/dossiers/{dossier}/efficiency-sheet/{efficiencySheet}/generate-pdf', [ProjectEfficiencySheetController::class, 'generatePdf'])
+        ->name('dossiers.efficiency-sheet.generate-pdf')
+        ->middleware('permission.route');
+    Route::get('/dossiers/{dossier}/efficiency-sheet/{efficiencySheet}/download/docx', [ProjectEfficiencySheetController::class, 'downloadDocx'])
+        ->name('dossiers.efficiency-sheet.download.docx')
+        ->middleware('permission.route');
+    Route::get('/dossiers/{dossier}/efficiency-sheet/{efficiencySheet}/download/pdf', [ProjectEfficiencySheetController::class, 'downloadPdf'])
+        ->name('dossiers.efficiency-sheet.download.pdf')
+        ->middleware('permission.route');
+    Route::get('/dossiers/{dossier}/efficiency-sheet/{efficiencySheet}/preview/pdf', [ProjectEfficiencySheetController::class, 'previewPdf'])
+        ->name('dossiers.efficiency-sheet.preview.pdf')
+        ->middleware('permission.route');
+    Route::get('/dossiers/{dossier}/efficiency-sheet/{efficiencySheet}/print', [ProjectEfficiencySheetController::class, 'print'])
+        ->name('dossiers.efficiency-sheet.print')
         ->middleware('permission.route');
 
     Route::middleware('permission.route')->group(function () {
@@ -179,6 +211,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/finance/templates/{documentTemplate}/duplicate', [DocumentTemplateController::class, 'duplicate'])->name('finance.templates.duplicate');
     Route::put('/finance/templates/{documentTemplate}/default', [DocumentTemplateController::class, 'setDefault'])->name('finance.templates.default');
     Route::get('/finance/templates/{documentTemplate}/preview', [DocumentTemplateController::class, 'preview'])->name('finance.templates.preview');
+    Route::post('/finance/templates/preview-draft', [DocumentTemplateController::class, 'previewDraft'])->name('finance.templates.preview-draft');
 
     Route::get('/finance/documents', [FinanceDocumentController::class, 'index'])->name('finance.documents.index');
     Route::post('/finance/documents', [FinanceDocumentController::class, 'store'])->name('finance.documents.store');
@@ -239,6 +272,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/settings/cities/{city}', [\App\Http\Controllers\CityController::class, 'destroy'])->name('settings.cities.destroy')->middleware('permission.route');
     Route::get('/settings/system-appearance', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'index'])->name('settings.system-appearance.index')->middleware('permission.route');
     Route::put('/settings/system-appearance', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'update'])->name('settings.system-appearance.update')->middleware('permission.route');
+    Route::put('/settings/system-appearance/identity', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'updateIdentity'])->name('settings.system-appearance.identity.update')->middleware('permission.route');
+    Route::put('/settings/system-appearance/appearance', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'updateAppearance'])->name('settings.system-appearance.appearance.update')->middleware('permission.route');
+    Route::post('/settings/system-appearance/assets', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'uploadAsset'])->name('settings.system-appearance.assets.store')->middleware('permission.route');
+    Route::delete('/settings/system-appearance/assets', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'removeAsset'])->name('settings.system-appearance.assets.destroy')->middleware('permission.route');
 
     Route::prefix('api')->middleware('permission.route')->group(function () {
         Route::get('/clients/search', [ApiClientController::class, 'search'])->name('api.clients.search');

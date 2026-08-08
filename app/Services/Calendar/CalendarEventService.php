@@ -6,7 +6,8 @@ use App\Models\CalendarEvent;
 use App\Models\User;
 use App\Services\CompanyContext;
 use App\Services\Collaboration\RelatedRecordScopeGuard;
-use Carbon\Carbon;
+use App\Services\PermissionRegistry;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 class CalendarEventService
@@ -20,26 +21,30 @@ class CalendarEventService
         protected CalendarRecurrenceService $recurrenceService,
         protected CompanyContext $companyContext,
         protected RelatedRecordScopeGuard $scopeGuard,
+        protected PermissionRegistry $permissions,
+        protected CalendarRealtimeService $realtimeService,
     ) {}
 
     public function indexPayload(User $user, array $filters): array
     {
+        [$rangeStart, $rangeEnd] = $this->range($filters);
+
         $query = CalendarEvent::with([
-            'creator', 'owner', 'participants.user', 'reminders',
+            'creator:id,name,email,company_id,branch_id',
+            'owner:id,name,email,company_id,branch_id',
+            'participants:id,calendar_event_id,user_id,role,response_status,last_read_at',
+            'participants.user:id,name,email,company_id,branch_id',
+            'reminders:id,calendar_event_id,user_id,offset_minutes,remind_at,channel,status,snoozed_until,sent_at,created_at',
         ])->whereHas('creator', fn ($creator) => $this->companyContext->applyTo($creator, $user))
             ->where(function ($q) use ($user) {
             $q->where('created_by', $user->id)
               ->orWhereHas('participants', fn ($p) => $p->where('user_id', $user->id))
-              ->orWhere('visibility', 'team')
-              ->orWhere('visibility', 'admins');
-        });
+              ->orWhere('visibility', 'team');
 
-        if (! $user->hasAnyRole(config('archilbo_roles.protected'))) {
-            $query->where(function ($q) use ($user) {
-                $q->where('visibility', '!=', 'admins')
-                  ->orWhere('created_by', $user->id);
-            });
-        }
+                if ($this->permissions->isProtected($user)) {
+                    $q->orWhere('visibility', 'admins');
+                }
+        });
 
         if (!empty($filters['type'])) {
             $query->where('type', $filters['type']);
@@ -50,16 +55,14 @@ class CalendarEventService
         }
 
         if (!empty($filters['user_id'])) {
+            $this->scopeGuard->assertUserIds($user, [(int) $filters['user_id']]);
             $query->whereHas('participants', fn ($q) => $q->where('user_id', $filters['user_id']));
         }
 
-        if (!empty($filters['start'])) {
-            $query->where('starts_at', '>=', Carbon::parse($filters['start']));
-        }
-
-        if (!empty($filters['end'])) {
-            $query->where('starts_at', '<=', Carbon::parse($filters['end']));
-        }
+        $query->where('starts_at', '<=', $rangeEnd)
+            ->where(fn ($dates) => $dates
+                ->whereNull('ends_at')
+                ->orWhere('ends_at', '>=', $rangeStart));
 
         $events = $query->orderBy('starts_at')->get();
 
@@ -68,7 +71,28 @@ class CalendarEventService
             'users' => $this->companyContext->applyTo(User::query(), $user)
                 ->orderBy('name')
                 ->get(['id', 'name', 'email']),
+            'range' => [
+                'start' => $rangeStart->toDateString(),
+                'end' => $rangeEnd->toDateString(),
+            ],
         ];
+    }
+
+    /** @return array{CarbonImmutable, CarbonImmutable} */
+    private function range(array $filters): array
+    {
+        $timezone = config('app.timezone', 'UTC');
+
+        if (! empty($filters['start']) && ! empty($filters['end'])) {
+            return [
+                CarbonImmutable::createFromFormat('!Y-m-d', $filters['start'], $timezone)->startOfDay(),
+                CarbonImmutable::createFromFormat('!Y-m-d', $filters['end'], $timezone)->endOfDay(),
+            ];
+        }
+
+        $today = CarbonImmutable::now($timezone);
+
+        return [$today->startOfMonth(), $today->endOfMonth()];
     }
 
     public function create(array $data, User $user): CalendarEvent
@@ -120,11 +144,15 @@ class CalendarEventService
             $this->recurrenceService->apply($event);
         }
 
-        return $event->refresh();
+        $event = $event->refresh();
+        $this->realtimeService->publish($event, 'created');
+
+        return $event;
     }
 
     public function update(CalendarEvent $event, array $data, User $user): CalendarEvent
     {
+        $previousRecipientIds = $this->realtimeService->recipientIds($event);
         $old = $event->replicate();
         $participantIds = $data['participant_ids'] ?? null;
         $reminderOffset = $data['reminder_offset'] ?? null;
@@ -171,7 +199,10 @@ class CalendarEventService
             }
         }
 
-        return $event->fresh()->load(['participants.user', 'reminders']);
+        $event = $event->fresh()->load(['participants.user', 'reminders']);
+        $this->realtimeService->publish($event, 'updated', $previousRecipientIds);
+
+        return $event;
     }
 
     public function move(CalendarEvent $event, Carbon $newStart, ?Carbon $newEnd, User $user): CalendarEvent
@@ -197,7 +228,10 @@ class CalendarEventService
             $this->notificationService->notifyDateChanged($event, $p->user);
         });
 
-        return $event->fresh();
+        $event = $event->fresh();
+        $this->realtimeService->publish($event, 'moved');
+
+        return $event;
     }
 
     public function resize(CalendarEvent $event, Carbon $newEnd, User $user): CalendarEvent
@@ -210,7 +244,20 @@ class CalendarEventService
             'ends_at' => $newEnd->format('Y-m-d H:i:s'),
         ]);
 
-        return $event->fresh();
+        $event = $event->fresh();
+        $this->realtimeService->publish($event, 'resized');
+
+        return $event;
+    }
+
+    public function delete(CalendarEvent $event): void
+    {
+        $recipientIds = $this->realtimeService->recipientIds($event);
+        $eventKey = "calendar_event:{$event->id}";
+
+        $event->delete();
+
+        $this->realtimeService->publishTo($recipientIds, $eventKey, 'deleted');
     }
 
     public function conflicts(CalendarEvent $event, array $participantIds): Collection

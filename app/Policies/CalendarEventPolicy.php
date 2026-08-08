@@ -21,12 +21,12 @@ class CalendarEventPolicy
             return false;
         }
 
-        if ($user->hasAnyRole(config('archilbo_roles.protected'))) return true;
+        if ($this->isProtected($user)) return true;
         if ($event->visibility === 'admins') return false;
         if ($user->id === $event->created_by) return true;
         if ($event->visibility === 'team') return true;
         if ($event->visibility === 'assigned_users') {
-            return $event->participants()->where('user_id', $user->id)->exists();
+            return $this->isParticipant($event, $user);
         }
         return $user->id === $event->created_by;
     }
@@ -42,9 +42,9 @@ class CalendarEventPolicy
             return false;
         }
 
-        if ($user->hasAnyRole(config('archilbo_roles.protected'))) return true;
+        if ($this->isProtected($user)) return true;
         if ($user->id === $event->created_by) return true;
-        if ($event->participants()->where('user_id', $user->id)->where('role', 'owner')->exists()) return true;
+        if ($this->isParticipant($event, $user, 'owner')) return true;
         return false;
     }
 
@@ -52,7 +52,7 @@ class CalendarEventPolicy
     {
         return $this->allowed($user, 'calendar.delete')
             && $event->belongsToScope($user)
-            && ($user->hasAnyRole(config('archilbo_roles.protected')) || $user->id === $event->created_by);
+            && ($this->isProtected($user) || $user->id === $event->created_by);
     }
 
     public function move(User $user, CalendarEvent $event): bool
@@ -63,5 +63,20 @@ class CalendarEventPolicy
     public function resize(User $user, CalendarEvent $event): bool
     {
         return $this->update($user, $event);
+    }
+
+    private function isParticipant(CalendarEvent $event, User $user, ?string $role = null): bool
+    {
+        if ($event->relationLoaded('participants')) {
+            return $event->participants
+                ->where('user_id', $user->id)
+                ->when($role, fn ($participants) => $participants->where('role', $role))
+                ->isNotEmpty();
+        }
+
+        return $event->participants()
+            ->where('user_id', $user->id)
+            ->when($role, fn ($query) => $query->where('role', $role))
+            ->exists();
     }
 }

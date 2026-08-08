@@ -13,6 +13,11 @@ Broadcast::channel('user.{userId}.inbox', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 }, ['guards' => ['web']]);
 
+Broadcast::channel('user.{userId}.calendar', function ($user, $userId) {
+    return (int) $user->id === (int) $userId
+        && app(\App\Services\PermissionRegistry::class)->allows($user, 'calendar.view');
+}, ['guards' => ['web']]);
+
 Broadcast::channel('company.{companyId}.presence', function ($user, $companyId) {
     if ((int) $user->company_id !== (int) $companyId) return false;
 

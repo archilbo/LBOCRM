@@ -1,6 +1,8 @@
 import type { ComponentType, ReactNode } from 'react';
 import { Tab, TabList, Tabs } from 'react-aria-components';
 
+import { cn } from '@/lib/cn';
+
 /**
  * Any icon component accepting `size`/`className` — supports both Lucide
  * (project default) and Tabler (`@tabler/icons-react`) glyphs.
@@ -13,20 +15,22 @@ export type AppWorkspaceTab = {
     icon: WorkspaceTabIcon;
 };
 
-type AppWorkspaceTabsProps = {
+export type AppWorkspaceTabsProps = {
     tabs: AppWorkspaceTab[];
     selectedKey: string;
     onSelectionChange: (key: string) => void;
     counts?: Partial<Record<string, number>>;
+    /** Extra classes appended to the root `<Tabs>` element (e.g. flex layout for embedded editor workspaces). */
+    className?: string;
     children: ReactNode;
 };
 
-export function AppWorkspaceTabs({ tabs, selectedKey, onSelectionChange, counts = {}, children }: AppWorkspaceTabsProps) {
+export function AppWorkspaceTabs({ tabs, selectedKey, onSelectionChange, counts = {}, className, children }: AppWorkspaceTabsProps) {
     return (
         <Tabs
             selectedKey={selectedKey}
             onSelectionChange={(key) => onSelectionChange(String(key))}
-            className="min-w-0"
+            className={cn('min-w-0', className)}
         >
             <div className="mb-3 overflow-hidden">
                 <TabList className="flex min-w-max gap-1 overflow-x-auto">

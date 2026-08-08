@@ -8,6 +8,13 @@ export const frDocumentsExplorer = {
             projects: 'Projets',
         },
 
+        tabs: {
+            projectFiles: 'Fichiers du projet',
+            generated: 'Documents générés',
+            generatedEmpty:
+                'Les documents générés (contrat, fiche d’efficacité) apparaîtront ici après leur génération.',
+        },
+
         search: {
             placeholder: 'Rechercher un fichier…',
             noResults: 'Aucun document ne correspond à votre recherche.',
@@ -81,6 +88,15 @@ export const frDocumentsExplorer = {
             delete: 'Supprimer',
             more: 'Plus d’actions',
             upload: 'Importer un document',
+            openDocuments: 'Ouvrir dans Documents',
+        },
+
+        deleteModal: {
+            title: 'Supprimer le document ?',
+            body: 'Confirmez la suppression de {name} ?',
+            cancel: 'Annuler',
+            delete: 'Supprimer',
+            success: 'Document supprimé.',
         },
 
         viewer: {

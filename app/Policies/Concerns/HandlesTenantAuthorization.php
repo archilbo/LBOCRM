@@ -14,6 +14,11 @@ trait HandlesTenantAuthorization
         return app(PermissionRegistry::class)->allows($user, $permission);
     }
 
+    protected function isProtected(User $user): bool
+    {
+        return app(PermissionRegistry::class)->isProtected($user);
+    }
+
     protected function sameScope(User $user, Model $model): bool
     {
         return app(CompanyContext::class)->owns($user, $model);

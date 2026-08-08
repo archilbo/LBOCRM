@@ -1,12 +1,13 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { router } from '@inertiajs/react';
-import { IconX, IconInfoCircle } from '@tabler/icons-react';
+import { IconTrash, IconX, IconInfoCircle } from '@tabler/icons-react';
 
 import { CalendarDateTime, type DateValue } from '@internationalized/date';
 import { Button, Calendar, Checkbox, DateField, DatePicker, Input, TextArea } from '@heroui/react';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
+import { AppConfirmDialog } from '@/components/ui/AppConfirmDialog';
 import { DrawerSection, DrawerField, DrawerSelect, drawerStyles } from '@/components/drawers';
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
@@ -18,6 +19,7 @@ import type {
 } from '@/features/calendar/types';
 import {
     EVENT_TYPE_CLASSES,
+    EVENT_TYPE_COLORS,
 } from '@/features/calendar/types';
 
 type UserOption = { id: number; name: string; email: string };
@@ -28,6 +30,8 @@ type Props = {
     users: UserOption[];
     editEvent?: CalendarEventRow | null;
     defaultStart?: string;
+    defaultType?: CalendarEventType;
+    canManageAdminVisibility: boolean;
 };
 
 function initials(name: string): string {
@@ -41,12 +45,26 @@ function initials(name: string): string {
 
 function toCalendarDateTime(str: string): CalendarDateTime | null {
     if (!str) return null;
-    // Accept both "T" and space as date/time separator (API returns "Y-m-d H:i:s")
+    if (/[zZ]|[+-]\d{2}:\d{2}$/.test(str)) {
+        const date = new Date(str);
+        if (!Number.isNaN(date.getTime())) {
+            return new CalendarDateTime(date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes());
+        }
+    }
+
     const norm = str.replace(' ', 'T');
     const [datePart, timePart] = norm.split('T');
     const [y, m, d] = datePart.split('-').map(Number);
     const [hh, mm] = timePart ? timePart.split(':').map(Number) : [0, 0];
     return new CalendarDateTime(y, m, d, hh || 0, mm || 0);
+}
+
+function localDateTime(value = new Date()): string {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}T${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+}
+
+function colorFor(type: CalendarEventType): string {
+    return EVENT_TYPE_COLORS[type];
 }
 
 function fromCalendarDateTime(v: DateValue | null): string {
@@ -83,27 +101,20 @@ function toBackendPayload(f: CalendarEventForm) {
     };
 }
 
-export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, defaultStart }: Props) {
+export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, defaultStart, defaultType = 'task', canManageAdminVisibility }: Props) {
     const { t } = useTranslation();
     const isEdit = !!editEvent;
-    const [form, setForm] = useState(() => initForm(editEvent, defaultStart));
+    const [form, setForm] = useState(() => initForm(editEvent, defaultStart, defaultType));
     const [formErrors, setFormErrors] = useState<FormErrors>({});
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-    useEffect(() => {
-        if (isOpen) {
-            setForm(initForm(editEvent, defaultStart));
-            setFormErrors({});
-        }
-    }, [isOpen, editEvent, defaultStart]);
-
-    const currentForm = useMemo(() => {
-        if (!isOpen) return form;
-        return form;
-    }, [form, isOpen]);
+    const currentForm = form;
 
     function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setFormErrors({});
+
+        if (isEdit && !editEvent?.capabilities.update) return;
 
         const payload = toBackendPayload(form);
 
@@ -123,12 +134,21 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
     }
 
     function resetForm() {
-        setForm(initForm(undefined, undefined));
+        setForm(initForm(undefined, undefined, defaultType));
     }
 
     function handleClose(o: boolean) {
-        if (!o) { resetForm(); setFormErrors({}); }
+        if (!o) { resetForm(); setFormErrors({}); setDeleteConfirmOpen(false); }
         onOpenChange(o);
+    }
+
+    function handleDelete() {
+        if (!editEvent?.capabilities.delete) return;
+
+        router.delete(`/calendar/events/${editEvent.id}`, {
+            preserveScroll: true,
+            onSuccess: () => handleClose(false),
+        });
     }
 
     const typeHint = currentForm.type === 'task'
@@ -140,6 +160,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                 : null;
 
     return (
+        <>
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={handleClose}
@@ -147,8 +168,13 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
             description={isEdit ? `#${editEvent?.eventNumber || ''}` : t('calendar.drawer.createDescription')}
             footer={
                 <>
+                    {isEdit && editEvent?.capabilities.delete ? (
+                        <AppButton variant="danger-soft" className="mr-auto" onPress={() => setDeleteConfirmOpen(true)}>
+                            <IconTrash size={15} /> Supprimer
+                        </AppButton>
+                    ) : null}
                     <AppButton variant="secondary" onPress={() => handleClose(false)}>{t('calendar.drawer.cancel')}</AppButton>
-                    <AppButton variant="primary" type="submit" form="calendar-event-form">
+                    <AppButton variant="primary" type="submit" form="calendar-event-form" isDisabled={isEdit && !editEvent?.capabilities.update}>
                         {isEdit ? t('calendar.drawer.update') : t('calendar.drawer.create')}
                     </AppButton>
                 </>
@@ -162,7 +188,10 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                             <DrawerField label={t('calendar.drawer.fields.type')} error={firstError(formErrors, 'type')}>
                                 <DrawerSelect
                                     value={currentForm.type}
-                                    onChange={(v) => setForm((p) => ({ ...p, type: (v as CalendarEventType) || 'task', color: (v as CalendarEventType) || 'task' }))}
+                                    onChange={(v) => {
+                                        const type = (v as CalendarEventType) || 'task';
+                                        setForm((p) => ({ ...p, type, color: colorFor(type) }));
+                                    }}
                                     options={Object.keys(EVENT_TYPE_CLASSES).map((id) => ({ id: id as CalendarEventType, label: t(`calendar.eventTypes.${id}`) }))}
                                     placeholder={t('calendar.drawer.fields.type')}
                                 />
@@ -317,7 +346,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                 <DrawerSelect
                                     value={currentForm.visibility}
                                     onChange={(v) => setForm((p) => ({ ...p, visibility: (v as CalendarVisibility) || 'assigned_users' }))}
-                                    options={(['private', 'assigned_users', 'team', 'admins'] as CalendarVisibility[]).map((id) => ({ id, label: t(`calendar.visibility.${id}`) }))}
+                                    options={(['private', 'assigned_users', 'team', ...(canManageAdminVisibility ? ['admins'] : [])] as CalendarVisibility[]).map((id) => ({ id, label: t(`calendar.visibility.${id}`) }))}
                                     placeholder={t('calendar.drawer.fields.visibility')}
                                 />
                             </DrawerField>
@@ -338,9 +367,9 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                             type="button"
                                             isIconOnly
                                             variant="ghost"
-                                            onPress={() => setForm((p) => ({ ...p, color: type }))}
+                                            onPress={() => setForm((p) => ({ ...p, color: colorFor(type) }))}
                                             className={`flex size-8 min-w-8 items-center justify-center rounded-full border-2 p-0 transition ${
-                                                currentForm.color === type ? 'ring-2 ring-[var(--crm-gold)] ring-offset-2 ring-offset-[var(--crm-elevated)]' : ''
+                                                currentForm.color === colorFor(type) ? 'ring-2 ring-[var(--crm-gold)] ring-offset-2 ring-offset-[var(--crm-elevated)]' : ''
                                             } ${borderClass || 'border-[var(--crm-border)]'} ${bgClass || 'bg-zinc-500/20'}`}
                                             aria-label={t(`calendar.eventTypes.${type}`)}>
                                             <span className="text-[8px] font-bold opacity-60">{t(`calendar.eventTypes.${type}`).charAt(0)}</span>
@@ -403,6 +432,16 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                 </DrawerSection>
             </form>
         </AppDrawer>
+        <AppConfirmDialog
+            isOpen={deleteConfirmOpen}
+            title="Supprimer cet événement ?"
+            description={`L’événement « ${editEvent?.title ?? ''} » sera supprimé définitivement.`}
+            confirmLabel="Supprimer"
+            onConfirm={handleDelete}
+            onCancel={() => setDeleteConfirmOpen(false)}
+            variant="danger"
+        />
+        </>
     );
 }
 
@@ -412,7 +451,7 @@ function normalizeList<T>(val: unknown): T[] {
     return [];
 }
 
-function initForm(edit?: CalendarEventRow | null, defaultStart?: string) {
+function initForm(edit?: CalendarEventRow | null, defaultStart?: string, defaultType: CalendarEventType = 'task') {
     if (edit) {
         const participants = normalizeList<{ userId: number }>(edit.participants);
         const reminders = normalizeList<{ offsetMinutes: number | null }>(edit.reminders);
@@ -422,9 +461,9 @@ function initForm(edit?: CalendarEventRow | null, defaultStart?: string) {
             description: edit.description || '',
             status: edit.status,
             priority: edit.priority,
-            color: edit.color || edit.type,
-            startsAt: edit.startsAt?.slice(0, 16) || '',
-            endsAt: edit.endsAt?.slice(0, 16) || '',
+            color: /^#[0-9A-Fa-f]{6}$/.test(edit.color || '') ? edit.color! : colorFor(edit.type),
+            startsAt: edit.startsAt ? fromCalendarDateTime(toCalendarDateTime(edit.startsAt)) : '',
+            endsAt: edit.endsAt ? fromCalendarDateTime(toCalendarDateTime(edit.endsAt)) : '',
             allDay: edit.allDay,
             timezone: edit.timezone,
             visibility: edit.visibility,
@@ -441,13 +480,13 @@ function initForm(edit?: CalendarEventRow | null, defaultStart?: string) {
     }
 
     return {
-        type: 'task' as CalendarEventType,
+        type: defaultType,
         title: '',
         description: '',
         status: 'scheduled' as CalendarEventStatus,
         priority: 'medium' as CalendarEventPriority,
-        color: 'task',
-        startsAt: defaultStart || new Date().toISOString().slice(0, 16),
+        color: colorFor(defaultType),
+        startsAt: defaultStart ? fromCalendarDateTime(toCalendarDateTime(defaultStart)) : localDateTime(),
         endsAt: '',
         allDay: false,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

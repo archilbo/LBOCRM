@@ -3,14 +3,22 @@
 namespace App\Http\Requests\Finance;
 
 use App\Enums\FinanceDocumentType;
+use App\Http\Requests\Concerns\ValidatesTemplatePlaceholders;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreDocumentTemplateRequest extends FormRequest
 {
+    use ValidatesTemplatePlaceholders;
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    {
+        $this->validateTemplatePlaceholders($validator);
     }
 
     public function rules(): array

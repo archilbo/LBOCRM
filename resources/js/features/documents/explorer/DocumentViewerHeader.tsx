@@ -9,11 +9,10 @@ import {
 
 import { AppButton } from '@/components/ui/AppButton';
 import { useTranslation } from '@/lib/i18n';
-import type { ClientProjectDocument } from '@/features/clients/types';
 import { DocumentStatusChip } from './DocumentCard';
 import { DocumentFileIcon } from './DocumentFileIcon';
 import { fileTypeLabelKey } from './documentExplorerFormatters';
-import type { DocumentExplorerItem } from './documentExplorerTypes';
+import type { DocumentExplorerItem, ExplorerDocument } from './documentExplorerTypes';
 
 type DocumentViewerHeaderProps = {
     /** Resolved document; null renders the invalid-state header. */
@@ -22,10 +21,10 @@ type DocumentViewerHeaderProps = {
     detailsOpen: boolean;
     onToggleDetails: () => void;
     onClose: () => void;
-    onDownload: (document: ClientProjectDocument) => void;
-    onPrint: (document: ClientProjectDocument) => void;
-    onReplace: (document: ClientProjectDocument) => void;
-    onDelete: (document: ClientProjectDocument) => void;
+    onDownload: (document: ExplorerDocument) => void;
+    onPrint: (document: ExplorerDocument) => void;
+    onReplace: (document: ExplorerDocument) => void;
+    onDelete: (document: ExplorerDocument) => void;
 };
 
 /**

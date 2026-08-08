@@ -17,7 +17,7 @@ class CalendarActivityResource extends JsonResource
             'oldValue' => $this->old_value,
             'newValue' => $this->new_value,
             'metadata' => $this->metadata,
-            'createdAt' => $this->created_at?->format('Y-m-d H:i:s'),
+            'createdAt' => $this->created_at?->toIso8601String(),
         ];
     }
 }

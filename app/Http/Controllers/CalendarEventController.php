@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Calendar\StoreCalendarEventRequest;
 use App\Http\Requests\Calendar\UpdateCalendarEventRequest;
+use App\Http\Requests\Calendar\MoveCalendarEventRequest;
+use App\Http\Requests\Calendar\ResizeCalendarEventRequest;
 use App\Http\Resources\CalendarEventResource;
 use App\Models\CalendarEvent;
 use App\Services\Calendar\CalendarEventService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 class CalendarEventController extends Controller
 {
@@ -52,19 +53,16 @@ class CalendarEventController extends Controller
     {
         $this->authorize('delete', $calendarEvent);
 
-        $calendarEvent->delete();
+        $this->service->delete($calendarEvent);
 
         return redirect()->route('calendar.index')->with('success', 'Event deleted.');
     }
 
-    public function move(Request $request, CalendarEvent $calendarEvent): JsonResponse
+    public function move(MoveCalendarEventRequest $request, CalendarEvent $calendarEvent): JsonResponse
     {
         $this->authorize('move', $calendarEvent);
 
-        $data = $request->validate([
-            'starts_at' => ['required', 'date'],
-            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
-        ]);
+        $data = $request->validated();
 
         $event = $this->service->move(
             $calendarEvent,
@@ -76,13 +74,11 @@ class CalendarEventController extends Controller
         return response()->json(new CalendarEventResource($event));
     }
 
-    public function resize(Request $request, CalendarEvent $calendarEvent): JsonResponse
+    public function resize(ResizeCalendarEventRequest $request, CalendarEvent $calendarEvent): JsonResponse
     {
         $this->authorize('resize', $calendarEvent);
 
-        $data = $request->validate([
-            'ends_at' => ['required', 'date'],
-        ]);
+        $data = $request->validated();
 
         $event = $this->service->resize(
             $calendarEvent,

@@ -79,6 +79,11 @@ class Dossier extends Model
         return $this->hasOne(Contract::class);
     }
 
+    public function efficiencySheet(): HasOne
+    {
+        return $this->hasOne(ProjectEfficiencySheet::class);
+    }
+
     public function financeRecords(): HasMany
     {
         return $this->hasMany(FinanceRecord::class);

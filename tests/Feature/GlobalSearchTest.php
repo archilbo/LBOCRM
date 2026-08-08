@@ -27,7 +27,7 @@ class GlobalSearchTest extends TestCase
         $company = Company::factory()->create();
         $user = $this->userFor($company, ['manage dossiers', 'manage archives']);
 
-        $dossier = $this->dossierWithArchive($company, 'Architecture ESSAI R+2', 'ARC-2026-0001', 'SALLE-B');
+        $dossier = $this->dossierWithArchive($company, 'Architecture ESSAI R+2', 'ARC-2026-0001', 'SALLE-B', 'MAR', 'Ahmed Alaoui');
 
         $this->actingAs($user)
             ->getJson(route('global-search.index', ['q' => 'essai']))
@@ -37,6 +37,7 @@ class GlobalSearchTest extends TestCase
             ->assertJsonPath('results.0.archive.city', 'MARRAKECH')
             ->assertJsonPath('results.0.archive.number', 'ARC-2026-0001')
             ->assertJsonPath('results.0.archive.room', 'SALLE-B')
+            ->assertJsonPath('results.0.archive.requestedBy', 'Ahmed Alaoui')
             ->assertJsonPath('results.0.archive.href', '/archives/' . $dossier->archiveRecord->id)
             ->assertJsonPath('results.0.archive.cityColor', $dossier->city->color);
     }
@@ -62,7 +63,7 @@ class GlobalSearchTest extends TestCase
         $user = $this->userFor($companyA, ['manage dossiers', 'manage archives']);
 
         $own = $this->dossierWithArchive($companyA, 'Architecture ESSAI R+2', 'ARC-2026-0001', 'SALLE-B', 'MAR');
-        $foreign = $this->dossierWithArchive($companyB, 'Architecture ESSAI R+2', 'ARC-2026-9999', 'SALLE-X', 'RAB');
+        $foreign = $this->dossierWithArchive($companyB, 'Architecture ESSAI R+2', 'ARC-2026-9999', 'SALLE-X', 'RAB', null, 'RABAT');
 
         $this->actingAs($user)
             ->getJson(route('global-search.index', ['q' => 'essai']))
@@ -262,10 +263,10 @@ class GlobalSearchTest extends TestCase
         $this->assertLessThan(3000, $elapsedMs, 'Search must stay fast at volume (got ' . round($elapsedMs, 1) . ' ms).');
     }
 
-    private function dossierWithArchive(Company $company, string $projectObject, string $archiveNumber, ?string $room, string $cityCode = 'MAR'): Dossier
+    private function dossierWithArchive(Company $company, string $projectObject, string $archiveNumber, ?string $room, string $cityCode = 'MAR', ?string $requestedBy = null, string $cityName = 'MARRAKECH'): Dossier
     {
         $city = City::create([
-            'name' => 'MARRAKECH',
+            'name' => $cityName,
             'code' => $cityCode,
             'color' => '#8b5cf6',
             'is_active' => true,
@@ -291,6 +292,7 @@ class GlobalSearchTest extends TestCase
             'room' => $room,
             'shelf' => null,
             'box' => null,
+            'requested_by' => $requestedBy,
         ]);
 
         return $dossier;

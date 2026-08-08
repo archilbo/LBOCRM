@@ -117,257 +117,37 @@ class FinanceFoundationSeeder extends Seeder
         $scope = ['company_id' => $admin?->company_id, 'branch_id' => $admin?->branch_id];
         $factory = app(DefaultFinanceTemplateFactory::class);
 
-        $defaultQuote = FinanceTemplate::updateOrCreate(
-            ['slug' => 'default-quote'],
-            array_merge($factory->quote(), $scope, ['slug' => 'default-quote', 'created_by' => $admin?->id]),
-        );
+        $created = [];
 
-        $defaultInvoice = FinanceTemplate::updateOrCreate(
-            ['slug' => 'default-invoice'],
-            array_merge($factory->invoice(), $scope, ['slug' => 'default-invoice', 'created_by' => $admin?->id]),
-        );
+        foreach (['quote', 'invoice', 'receipt'] as $type) {
+            $definition = $factory->forType($type);
+            $existing = FinanceTemplate::query()
+                ->where($scope)
+                ->where('slug', $definition['slug'])
+                ->exists();
 
-        $defaultReceipt = FinanceTemplate::updateOrCreate(
-            ['slug' => 'default-receipt'],
-            array_merge($factory->receipt(), $scope, ['slug' => 'default-receipt', 'created_by' => $admin?->id]),
-        );
+            if ($existing) {
+                continue;
+            }
 
-        $this->command?->info('Default document templates seeded.');
-        $this->command?->info("  - Quote: {$defaultQuote->slug}");
-        $this->command?->info("  - Invoice: {$defaultInvoice->slug}");
-        $this->command?->info("  - Receipt: {$defaultReceipt->slug}");
-    }
+            // Never steal the user's chosen default: only become default when
+            // no default already exists for this document type.
+            $hasDefault = FinanceTemplate::query()
+                ->where($scope)
+                ->where('type', $type)
+                ->where('is_default', true)
+                ->exists();
 
-    private function getDefaultQuoteHtml(): string
-    {
-        return <<<'HTML'
-<div class="document">
-  <div class="header">
-    <div class="company-info">
-      <h1>{{company_name}}</h1>
-      <p>{{company_address}}</p>
-      <p>Tél: {{company_phone}}</p>
-      <p>Email: {{company_email}}</p>
-      <p>ICE: {{company_ice}}</p>
-    </div>
-    <div class="document-title">
-      <h2>DEVIS</h2>
-      <p>N° {{document_number}}</p>
-      <p>Date: {{issue_date}}</p>
-      <p>Valable jusqu'au: {{valid_until}}</p>
-    </div>
-  </div>
+            FinanceTemplate::create([
+                ...$scope,
+                ...$definition,
+                'is_default' => ! $hasDefault,
+                'created_by' => $admin?->id,
+            ]);
 
-  <div class="client-info">
-    <h3>Client</h3>
-    <p><strong>{{client_civility}}</strong> {{client_name}}</p>
-    <p>{{client_address}}</p>
-    <p>Tél: {{client_phone}} | Email: {{client_email}}</p>
-    <p>CIN: {{client_cin}} | ICE: {{client_ice}}</p>
-    <p>Dossier: {{dossier_number}}</p>
-  </div>
+            $created[] = $type;
+        }
 
-  <div class="project-info">
-    <p><strong>Objet:</strong> {{project_object}}</p>
-    <p><strong>Adresse projet:</strong> {{project_address}}</p>
-  </div>
-
-  <table class="items">
-    <thead>
-      <tr>
-        <th>Désignation</th>
-        <th>Qté</th>
-        <th>PU HT</th>
-        <th>Total HT</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{items_rows}}
-    </tbody>
-    <tfoot>
-      <tr>
-        <td colspan="3" class="text-right">Total HT</td>
-        <td class="text-right">{{total_ht}}</td>
-      </tr>
-      <tr>
-        <td colspan="3" class="text-right">TVA ({{tva_rate}}%)</td>
-        <td class="text-right">{{tax_total}}</td>
-      </tr>
-      <tr class="total">
-        <td colspan="3" class="text-right">Total TTC</td>
-        <td class="text-right">{{total_ttc}}</td>
-      </tr>
-    </tfoot>
-  </table>
-
-  <div class="terms">
-    <h4>Conditions</h4>
-    <p>{{payment_terms}}</p>
-  </div>
-
-  <div class="bank-info">
-    <h4>Coordonnées bancaires</h4>
-    <p>{{bank_name}} - RIB: {{bank_rib}}</p>
-    <p>IBAN: {{bank_iban}} - BIC: {{bank_bic}}</p>
-  </div>
-</div>
-HTML;
-    }
-
-    private function getDefaultInvoiceHtml(): string
-    {
-        return <<<'HTML'
-<div class="document">
-  <div class="header">
-    <div class="company-info">
-      <h1>{{company_name}}</h1>
-      <p>{{company_address}}</p>
-      <p>Tél: {{company_phone}}</p>
-      <p>Email: {{company_email}}</p>
-      <p>ICE: {{company_ice}}</p>
-    </div>
-    <div class="document-title">
-      <h2>FACTURE</h2>
-      <p>N° {{document_number}}</p>
-      <p>Date d'émission: {{issue_date}}</p>
-      <p>Échéance: {{due_date}}</p>
-    </div>
-  </div>
-
-  <div class="client-info">
-    <h3>Client</h3>
-    <p><strong>{{client_civility}}</strong> {{client_name}}</p>
-    <p>{{client_address}}</p>
-    <p>Tél: {{client_phone}} | Email: {{client_email}}</p>
-    <p>CIN: {{client_cin}} | ICE: {{client_ice}}</p>
-    <p>Dossier: {{dossier_number}}</p>
-  </div>
-
-  <div class="project-info">
-    <p><strong>Objet:</strong> {{project_object}}</p>
-    <p><strong>Adresse projet:</strong> {{project_address}}</p>
-  </div>
-
-  <table class="items">
-    <thead>
-      <tr>
-        <th>Désignation</th>
-        <th>Qté</th>
-        <th>PU HT</th>
-        <th>Total HT</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{items_rows}}
-    </tbody>
-    <tfoot>
-      <tr>
-        <td colspan="3" class="text-right">Total HT</td>
-        <td class="text-right">{{total_ht}}</td>
-      </tr>
-      <tr>
-        <td colspan="3" class="text-right">TVA ({{tva_rate}}%)</td>
-        <td class="text-right">{{tax_total}}</td>
-      </tr>
-      <tr class="total">
-        <td colspan="3" class="text-right">Total TTC</td>
-        <td class="text-right">{{total_ttc}}</td>
-      </tr>
-      <tr>
-        <td colspan="3" class="text-right">Montant payé</td>
-        <td class="text-right">{{paid_total}}</td>
-      </tr>
-      <tr>
-        <td colspan="3" class="text-right">Reste à payer</td>
-        <td class="text-right">{{remaining_total}}</td>
-      </tr>
-    </tfoot>
-  </table>
-
-  <div class="terms">
-    <h4>Conditions de paiement</h4>
-    <p>{{payment_terms}} — Délai: {{payment_days}} jours</p>
-  </div>
-
-  <div class="bank-info">
-    <h4>Coordonnées bancaires</h4>
-    <p>{{bank_name}} - RIB: {{bank_rib}}</p>
-    <p>IBAN: {{bank_iban}} - BIC: {{bank_bic}}</p>
-  </div>
-</div>
-HTML;
-    }
-
-    private function getDefaultReceiptHtml(): string
-    {
-        return <<<'HTML'
-<div class="document">
-  <div class="header">
-    <div class="company-info">
-      <h1>{{company_name}}</h1>
-      <p>{{company_address}}</p>
-      <p>Tél: {{company_phone}}</p>
-      <p>Email: {{company_email}}</p>
-      <p>ICE: {{company_ice}}</p>
-    </div>
-    <div class="document-title">
-      <h2>REÇU</h2>
-      <p>N° {{document_number}}</p>
-      <p>Date: {{issue_date}}</p>
-    </div>
-  </div>
-
-  <div class="client-info">
-    <h3>Reçu de la part de</h3>
-    <p><strong>{{client_civility}}</strong> {{client_name}}</p>
-    <p>{{client_address}}</p>
-    <p>Tél: {{client_phone}} | Email: {{client_email}}</p>
-    <p>Dossier: {{dossier_number}}</p>
-  </div>
-
-  <div class="payment-detail">
-    <p><strong>Montant reçu:</strong> {{amount}} {{currency}}</p>
-    <p><strong>Mode de paiement:</strong> {{payment_method}}</p>
-    <p><strong>Référence:</strong> {{payment_reference}}</p>
-    <p><strong>Objet:</strong> {{payment_description}}</p>
-  </div>
-
-  <div class="project-info">
-    <p><strong>Projet:</strong> {{project_object}}</p>
-    <p><strong>Adresse:</strong> {{project_address}}</p>
-  </div>
-
-  <div class="bank-info">
-    <h4>Coordonnées bancaires</h4>
-    <p>{{bank_name}} - RIB: {{bank_rib}}</p>
-    <p>IBAN: {{bank_iban}} - BIC: {{bank_bic}}</p>
-  </div>
-</div>
-HTML;
-    }
-
-    private function getDefaultDocumentCss(): string
-    {
-        return <<<'CSS'
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'DejaVu Sans', sans-serif; font-size: 10pt; color: #333; line-height: 1.5; padding: 20px; }
-.document { max-width: 210mm; margin: 0 auto; }
-.header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #1a365d; padding-bottom: 15px; }
-.company-info h1 { font-size: 18pt; color: #1a365d; margin-bottom: 5px; }
-.company-info p { font-size: 9pt; color: #555; margin: 1px 0; }
-.document-title { text-align: right; }
-.document-title h2 { font-size: 16pt; color: #1a365d; margin-bottom: 5px; }
-.client-info, .project-info { margin: 15px 0; }
-.client-info h3 { font-size: 11pt; color: #1a365d; margin-bottom: 5px; }
-table.items { width: 100%; border-collapse: collapse; margin: 20px 0; }
-table.items th { background: #1a365d; color: #fff; padding: 8px 10px; text-align: left; font-size: 9pt; }
-table.items td { padding: 6px 10px; border-bottom: 1px solid #ddd; font-size: 9pt; }
-table.items tbody tr:nth-child(even) { background: #f7fafc; }
-.text-right { text-align: right; }
-tfoot td { font-weight: bold; padding: 6px 10px; font-size: 9pt; }
-tfoot .total td { font-size: 11pt; color: #1a365d; border-top: 2px solid #1a365d; }
-.terms, .bank-info, .payment-detail { margin: 15px 0; padding: 10px; background: #f7fafc; border-radius: 4px; }
-.terms h4, .bank-info h4, .payment-detail h4 { font-size: 10pt; color: #1a365d; margin-bottom: 5px; }
-CSS;
+        $this->command?->info('Default document templates seeded: ' . ($created === [] ? 'none (all already present)' : implode(', ', $created)));
     }
 }

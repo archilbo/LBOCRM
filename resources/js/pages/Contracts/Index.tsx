@@ -11,7 +11,7 @@ import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
 import { ContractDrawer } from '@/components/drawers';
-import type { ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow, ContractStatus } from '@/features/contracts/types';
+import type { ArchitectFeeOption, ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow, ContractStatus } from '@/features/contracts/types';
 import { cn } from '@/lib/cn';
 import { formatCompactMoney } from '@/lib/currency';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -20,6 +20,7 @@ type PageProps = {
     contracts: ContractRow[];
     dossiers: ContractDossierOption[];
     clients: ContractClientOption[];
+    architectFeeOptions: ArchitectFeeOption[];
     metrics: { total: number; draft: number; generated: number; signed: number; totalTtc: number };
 };
 
@@ -43,7 +44,7 @@ type ActionId = 'preview' | 'edit' | 'print' | 'mark-signed' | 'generate-docx' |
 type SortKey = 'contractNumber' | 'dossierNumber' | 'clientName' | 'ttc' | 'status' | 'updatedAt';
 type SortDir = 'asc' | 'desc';
 
-export default function ContractsIndex({ contracts, dossiers, clients, metrics }: PageProps) {
+export default function ContractsIndex({ contracts, dossiers, clients, architectFeeOptions, metrics }: PageProps) {
     const { can } = usePermissions();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('create');
@@ -470,6 +471,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, metrics }
                     contract={drawerMode === 'edit' ? selectedContract : null}
                     clients={clients}
                     dossiers={dossiers}
+                    architectFeeOptions={architectFeeOptions}
                     onOpenChange={setDrawerOpen}
                     onSubmit={handleSubmit}
                     errors={formErrors}

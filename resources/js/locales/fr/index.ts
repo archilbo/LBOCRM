@@ -12,5 +12,6 @@ import { frTasks } from './tasks';
 import { frCalendar } from './calendar';
 import { frUsers } from './users';
 import { frAuth } from './auth';
+import { frDossiers } from './dossiers';
 
-export const fr = { ...frCommon, ...frDashboard, ...frClients, ...frIntermediaries, ...frGlobalSearch, ...frDocuments, ...frDocumentsExplorer, ...frArchives, ...frNotifications, ...frInbox, ...frTasks, ...frCalendar, ...frUsers, ...frAuth };
+export const fr = { ...frCommon, ...frDashboard, ...frClients, ...frIntermediaries, ...frGlobalSearch, ...frDocuments, ...frDocumentsExplorer, ...frArchives, ...frNotifications, ...frInbox, ...frTasks, ...frCalendar, ...frUsers, ...frAuth, ...frDossiers };

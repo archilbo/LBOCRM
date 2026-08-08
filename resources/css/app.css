@@ -708,13 +708,6 @@ html.pd-editor-fullscreen .dossier-show-root {
     padding-right: 0 !important;
 }
 
-html.pd-editor-fullscreen .pd-tabs-container {
-    margin-top: 0 !important;
-    border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-}
-
 /* Left file browser — no horizontal scrollbar */
 .pd-browser-panel {
     overflow-x: hidden;

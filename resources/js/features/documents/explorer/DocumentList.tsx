@@ -1,16 +1,15 @@
 import { useTranslation } from '@/lib/i18n';
-import type { ClientProjectDocument } from '@/features/clients/types';
 import { DocumentListRow } from './DocumentListRow';
-import type { DocumentExplorerItem } from './documentExplorerTypes';
+import type { DocumentExplorerItem, ExplorerDocument } from './documentExplorerTypes';
 
 type DocumentListProps = {
     documents: DocumentExplorerItem[];
     projectLabel: string;
     onOpen: (document: DocumentExplorerItem) => void;
-    onPrint: (document: ClientProjectDocument) => void;
-    onDownload: (document: ClientProjectDocument) => void;
-    onReplace: (document: ClientProjectDocument) => void;
-    onDelete: (document: ClientProjectDocument) => void;
+    onPrint: (document: ExplorerDocument) => void;
+    onDownload: (document: ExplorerDocument) => void;
+    onReplace: (document: ExplorerDocument) => void;
+    onDelete: (document: ExplorerDocument) => void;
 };
 
 /**
@@ -34,7 +33,7 @@ export function DocumentList({
         <div role="list" aria-label={t('documentsExplorer.list.ariaLabel')} className="min-w-0 max-w-full space-y-1.5">
             {documents.map((item) => (
                 <DocumentListRow
-                    key={item.id}
+                    key={item.key}
                     item={item}
                     projectLabel={projectLabel}
                     onOpen={onOpen}

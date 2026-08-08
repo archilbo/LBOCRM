@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Collaboration\RelatedRecordScopeGuard;
 use App\Services\Calendar\CalendarActivityService;
 use App\Services\Calendar\CalendarNotificationService;
+use App\Services\Calendar\CalendarRealtimeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,7 @@ class CalendarParticipantController extends Controller
     public function __construct(
         protected CalendarNotificationService $notificationService,
         protected CalendarActivityService $activityService,
+        protected CalendarRealtimeService $realtimeService,
         protected RelatedRecordScopeGuard $scopeGuard,
     ) {}
 
@@ -29,6 +31,8 @@ class CalendarParticipantController extends Controller
 
         $this->scopeGuard->assertUserIds($request->user(), [$data['user_id']]);
 
+        $previousRecipientIds = $this->realtimeService->recipientIds($calendarEvent);
+
         $calendarEvent->participants()->firstOrCreate(
             ['user_id' => $data['user_id']],
             ['role' => $data['role'] ?? 'assignee'],
@@ -40,6 +44,7 @@ class CalendarParticipantController extends Controller
         }
 
         $this->activityService->log($calendarEvent, $request->user()->id, 'participant_added', null, ['user_id' => $data['user_id']]);
+        $this->realtimeService->publish($calendarEvent->fresh(), 'participants_updated', $previousRecipientIds);
 
         return redirect()->back()->with('success', 'Participant added.');
     }
@@ -49,9 +54,12 @@ class CalendarParticipantController extends Controller
         $this->authorize('update', $calendarEvent);
         $this->scopeGuard->assertUserIds(request()->user(), [$user->id]);
 
+        $previousRecipientIds = $this->realtimeService->recipientIds($calendarEvent);
+
         $calendarEvent->participants()->where('user_id', $user->id)->where('role', '!=', 'owner')->delete();
 
         $this->activityService->log($calendarEvent, request()->user()->id, 'participant_removed', null, ['user_id' => $user->id]);
+        $this->realtimeService->publish($calendarEvent->fresh(), 'participants_updated', $previousRecipientIds);
 
         return redirect()->back()->with('success', 'Participant removed.');
     }

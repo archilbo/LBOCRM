@@ -15,6 +15,7 @@ import type {
 import type { FormErrors } from '@/lib/formErrors';
 import { firstError } from '@/lib/formErrors';
 import { dossierStatusOptions, dossierWorkflowOptions } from '@/config/statuses';
+import { useTranslation } from '@/lib/i18n';
 
 type ProjectDrawerProps = {
     isOpen: boolean;
@@ -60,6 +61,7 @@ export function ProjectDrawer({
     onSubmit,
     errors = {},
 }: ProjectDrawerProps) {
+    const { t } = useTranslation();
     const [form, setForm] = useState<DossierFormPayload>(emptyForm);
 
     const cityOptions = useMemo(() =>
@@ -107,21 +109,21 @@ export function ProjectDrawer({
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            title={mode === 'create' ? 'Nouveau projet' : 'Modifier le projet'}
+            title={mode === 'create' ? t('dossiers.drawer.createTitle') : t('dossiers.drawer.editTitle')}
             description={
                 mode === 'create'
-                    ? 'Renseignez les informations du nouveau dossier.'
-                    : 'Mettez à jour les informations du dossier.'
+                    ? t('dossiers.drawer.createDescription')
+                    : t('dossiers.drawer.editDescription')
             }
             size="lg"
             placement="right"
             footer={
                 <div className="flex w-full items-center justify-end gap-2">
                     <AppButton variant="light" onPress={() => onOpenChange(false)}>
-                        Annuler
+                        {t('dossiers.drawer.cancel')}
                     </AppButton>
                     <AppButton variant="solid" color="primary" type="submit" form="project-form">
-                        Enregistrer
+                        {t('dossiers.drawer.save')}
                     </AppButton>
                 </div>
             }
@@ -131,99 +133,99 @@ export function ProjectDrawer({
                 className="min-w-0 space-y-4"
                 onSubmit={handleSubmit}
             >
-                <DrawerSection icon={<IconUsers size={12} />} title="Client & workflow">
+                <DrawerSection icon={<IconUsers size={12} />} title={t('dossiers.drawer.clientWorkflow')}>
                     <div className="flex flex-col gap-2">
-                        <DrawerField label="Client" error={firstError(errors, 'client_id')}>
+                        <DrawerField label={t('dossiers.drawer.client')} error={firstError(errors, 'client_id')}>
                             <AppAutocomplete
                                 value={form.clientId}
                                 onChange={(v) => updateField('clientId', v)}
                                 options={clients}
-                                placeholder="Sélectionner un client"
+                                placeholder={t('dossiers.drawer.selectClient')}
                                 isDisabled={mode === 'edit'}
                             />
                         </DrawerField>
-                        <DrawerField label="Ville" error={firstError(errors, 'city_id')}>
+                        <DrawerField label={t('dossiers.drawer.city')} error={firstError(errors, 'city_id')}>
                             <DrawerSelect
                                 value={form.cityId}
                                 onChange={(v) => updateField('cityId', v)}
                                 options={cityOptions}
-                                placeholder="Sélectionner une ville"
+                                placeholder={t('dossiers.drawer.selectCity')}
                             />
                         </DrawerField>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <DrawerField label="Statut" error={firstError(errors, 'status')}>
+                            <DrawerField label={t('dossiers.drawer.status')} error={firstError(errors, 'status')}>
                                 <DrawerSelect
                                     value={form.status}
                                     onChange={(v) => updateField('status', v)}
                                     options={dossierStatusOptions}
-                                    placeholder="Statut"
+                                    placeholder={t('dossiers.drawer.status')}
                                 />
                             </DrawerField>
-                            <DrawerField label="Étape workflow" error={firstError(errors, 'workflow_step')}>
+                            <DrawerField label={t('dossiers.drawer.workflowStep')} error={firstError(errors, 'workflow_step')}>
                                 <DrawerSelect
                                     value={form.workflowStep}
                                     onChange={(v) => updateField('workflowStep', v)}
                                     options={dossierWorkflowOptions}
-                                    placeholder="Étape workflow"
+                                    placeholder={t('dossiers.drawer.workflowStep')}
                                 />
                             </DrawerField>
                         </div>
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<IconFileText size={12} />} title="Informations projet">
+                <DrawerSection icon={<IconFileText size={12} />} title={t('dossiers.drawer.projectInfo')}>
                     <div className="flex flex-col gap-2">
-                        <DrawerField label="Objet du projet" error={firstError(errors, 'project_object')}>
+                        <DrawerField label={t('dossiers.drawer.projectObject')} error={firstError(errors, 'project_object')}>
                             <Input type="text" value={form.projectObject} onChange={(e) => updateField('projectObject', e.target.value)}
-                                placeholder="Objet du projet" className={drawerStyles.input} />
+                                placeholder={t('dossiers.drawer.projectObject')} className={drawerStyles.input} />
                         </DrawerField>
-                        <DrawerField label="Description" error={firstError(errors, 'description')}>
+                        <DrawerField label={t('dossiers.drawer.description')} error={firstError(errors, 'description')}>
                             <TextArea value={form.description} onChange={(e) => updateField('description', e.target.value)}
-                                placeholder="Description" className={drawerStyles.textarea} />
+                                placeholder={t('dossiers.drawer.description')} className={drawerStyles.textarea} />
                         </DrawerField>
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<IconMapPin size={12} />} title="Localisation">
+                <DrawerSection icon={<IconMapPin size={12} />} title={t('dossiers.drawer.location')}>
                     <div className="flex flex-col gap-2">
-                        <DrawerField label="Adresse du projet" error={firstError(errors, 'project_address', 'address')}>
+                        <DrawerField label={t('dossiers.drawer.address')} error={firstError(errors, 'project_address', 'address')}>
                             <Input type="text" value={form.projectAddress} onChange={(e) => updateField('projectAddress', e.target.value)}
-                                placeholder="Adresse du projet" className={drawerStyles.input} />
+                                placeholder={t('dossiers.drawer.address')} className={drawerStyles.input} />
                         </DrawerField>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <DrawerField label="Province" error={firstError(errors, 'province')}>
+                            <DrawerField label={t('dossiers.drawer.province')} error={firstError(errors, 'province')}>
                                 <Input type="text" value={form.province} onChange={(e) => updateField('province', e.target.value)}
-                                    placeholder="Province" className={drawerStyles.input} />
+                                    placeholder={t('dossiers.drawer.province')} className={drawerStyles.input} />
                             </DrawerField>
-                            <DrawerField label="Commune" error={firstError(errors, 'commune')}>
+                            <DrawerField label={t('dossiers.drawer.commune')} error={firstError(errors, 'commune')}>
                                 <Input type="text" value={form.commune} onChange={(e) => updateField('commune', e.target.value)}
-                                    placeholder="Commune" className={drawerStyles.input} />
+                                    placeholder={t('dossiers.drawer.commune')} className={drawerStyles.input} />
                             </DrawerField>
                         </div>
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<IconRuler size={12} />} title="Terrain & superficie">
+                <DrawerSection icon={<IconRuler size={12} />} title={t('dossiers.drawer.landSection')}>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        <DrawerField label="N° titre foncier" error={firstError(errors, 'land_title_number')}>
+                        <DrawerField label={t('dossiers.drawer.landTitleNumber')} error={firstError(errors, 'land_title_number')}>
                             <Input type="text" value={form.landTitleNumber} onChange={(e) => updateField('landTitleNumber', e.target.value)}
-                                placeholder="N° titre foncier" className={drawerStyles.input} />
+                                placeholder={t('dossiers.drawer.landTitleNumber')} className={drawerStyles.input} />
                         </DrawerField>
-                        <DrawerField label="Surface terrain" error={firstError(errors, 'land_surface')}>
+                        <DrawerField label={t('dossiers.drawer.landSurface')} error={firstError(errors, 'land_surface')}>
                             <Input type="text" value={form.landSurface} onChange={(e) => updateField('landSurface', e.target.value)}
-                                placeholder="Surface terrain" className={drawerStyles.input} />
+                                placeholder={t('dossiers.drawer.landSurface')} className={drawerStyles.input} />
                         </DrawerField>
-                        <DrawerField label="Surface plancher" error={firstError(errors, 'floor_area')}>
+                        <DrawerField label={t('dossiers.drawer.floorArea')} error={firstError(errors, 'floor_area')}>
                             <Input type="text" value={form.floorArea} onChange={(e) => updateField('floorArea', e.target.value)}
-                                placeholder="Surface plancher" className={drawerStyles.input} />
+                                placeholder={t('dossiers.drawer.floorArea')} className={drawerStyles.input} />
                         </DrawerField>
                     </div>
                 </DrawerSection>
 
-                <DrawerSection icon={<IconMessage2 size={12} />} title="Notes">
-                    <DrawerField label="Notes" error={firstError(errors, 'notes')}>
+                <DrawerSection icon={<IconMessage2 size={12} />} title={t('dossiers.drawer.notes')}>
+                    <DrawerField label={t('dossiers.drawer.notes')} error={firstError(errors, 'notes')}>
                         <TextArea value={form.notes} onChange={(e) => updateField('notes', e.target.value)}
-                            placeholder="Notes internes" className={drawerStyles.textarea} />
+                            placeholder={t('dossiers.drawer.notesPlaceholder')} className={drawerStyles.textarea} />
                     </DrawerField>
                 </DrawerSection>
             </form>

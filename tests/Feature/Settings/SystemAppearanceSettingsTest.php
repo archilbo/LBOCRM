@@ -235,4 +235,104 @@ class SystemAppearanceSettingsTest extends TestCase
 
         $this->assertSame('ARCHI HOLDING', $this->systemSettings->get('app.name'));
     }
+
+    public function test_identity_route_updates_only_identity_values(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->put(route('settings.system-appearance.identity.update'), [
+                'app_name' => 'Nouvelle Raison',
+                'short_name' => 'NR',
+                'description' => 'Architecture moderne',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Les paramètres système ont été mis à jour.');
+
+        $this->assertSame('Nouvelle Raison', $this->systemSettings->get('app.name'));
+        $this->assertSame('NR', $this->systemSettings->get('app.short_name'));
+        $this->assertSame('Architecture moderne', $this->systemSettings->get('app.description'));
+
+        // The accent color is left untouched by the identity route.
+        $this->assertDatabaseCount('company_settings', 3);
+        $this->assertSame((string) config('system_branding.accent_color'), $this->systemSettings->get('branding.accent_color'));
+    }
+
+    public function test_identity_route_rejects_invalid_payload(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->put(route('settings.system-appearance.identity.update'), [
+                'app_name' => 'A',
+                'short_name' => '',
+                'description' => str_repeat('a', 181),
+            ])
+            ->assertSessionHasErrors(['app_name', 'short_name', 'description']);
+
+        $this->assertDatabaseCount('company_settings', 0);
+    }
+
+    public function test_identity_route_requires_update_permission(): void
+    {
+        $user = $this->userWithCustomModules('staff', [
+            'Système' => ['access' => 'view', 'scope' => 'all'],
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('settings.system-appearance.identity.update'), [
+                'app_name' => 'Nouvelle Raison',
+                'short_name' => 'NR',
+            ])
+            ->assertStatus(403);
+
+        $this->assertDatabaseCount('company_settings', 0);
+    }
+
+    public function test_appearance_route_updates_only_accent_color(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->put(route('settings.system-appearance.appearance.update'), [
+                'accent_color' => '  #10b981  ',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Les paramètres système ont été mis à jour.');
+
+        // Accent is trimmed and uppercased by the request.
+        $this->assertSame('#10B981', $this->systemSettings->get('branding.accent_color'));
+
+        // The app identity is left untouched by the appearance route.
+        $this->assertDatabaseCount('company_settings', 1);
+        $this->assertSame((string) config('system_branding.app_name'), $this->systemSettings->get('app.name'));
+    }
+
+    public function test_appearance_route_rejects_invalid_color(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->put(route('settings.system-appearance.appearance.update'), [
+                'accent_color' => '#12',
+            ])
+            ->assertSessionHasErrors('accent_color');
+
+        $this->assertDatabaseCount('company_settings', 0);
+    }
+
+    public function test_appearance_route_requires_update_permission(): void
+    {
+        $user = $this->userWithCustomModules('staff', [
+            'Système' => ['access' => 'view', 'scope' => 'all'],
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('settings.system-appearance.appearance.update'), [
+                'accent_color' => '#C9A227',
+            ])
+            ->assertStatus(403);
+
+        $this->assertDatabaseCount('company_settings', 0);
+    }
 }

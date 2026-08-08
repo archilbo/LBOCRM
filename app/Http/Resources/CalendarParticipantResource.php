@@ -16,7 +16,7 @@ class CalendarParticipantResource extends JsonResource
             'userId' => $this->user_id,
             'role' => $this->role,
             'responseStatus' => $this->response_status,
-            'lastReadAt' => $this->last_read_at?->format('Y-m-d H:i:s'),
+            'lastReadAt' => $this->last_read_at?->toIso8601String(),
         ];
     }
 }

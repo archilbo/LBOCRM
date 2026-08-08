@@ -3,16 +3,15 @@ import { Download as DownloadIcon, Eye as EyeIcon, Pencil as PencilIcon, Printer
 
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
-import type { ClientProjectDocument } from '@/features/clients/types';
-import type { DocumentExplorerItem } from './documentExplorerTypes';
+import type { DocumentExplorerItem, ExplorerDocument } from './documentExplorerTypes';
 
 type DocumentActionsMenuProps = {
     item: DocumentExplorerItem;
     onOpen: (document: DocumentExplorerItem) => void;
-    onPrint: (document: ClientProjectDocument) => void;
-    onDownload: (document: ClientProjectDocument) => void;
-    onReplace: (document: ClientProjectDocument) => void;
-    onDelete: (document: ClientProjectDocument) => void;
+    onPrint: (document: ExplorerDocument) => void;
+    onDownload: (document: ExplorerDocument) => void;
+    onReplace: (document: ExplorerDocument) => void;
+    onDelete: (document: ExplorerDocument) => void;
 };
 
 type MenuEntry = {

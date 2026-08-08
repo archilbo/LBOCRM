@@ -89,6 +89,13 @@ class DocumentController extends Controller
                 $data['dossier_id']
             );
 
+        // Client-context uploads must never target another Client's Project:
+        // the optional client_id claim is checked against the resolved
+        // Project's real owner, not trusted as-is.
+        if (filled($data['client_id'] ?? null) && (int) $dossier->client_id !== (int) $data['client_id']) {
+            abort(403, 'Le projet sélectionné n\'appartient pas à ce client.');
+        }
+
         $template = DocumentTemplate::query()
             ->where('is_active', true)
             ->findOrFail(

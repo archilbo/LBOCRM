@@ -8,10 +8,11 @@ import { useTranslation } from '@/lib/i18n';
 type Props = {
     events: CalendarEventRow[];
     onEventClick: (e: CalendarEventRow) => void;
-    onCreateEvent: () => void;
+    onCreateEvent: (type?: 'task' | 'note') => void;
+    canCreate: boolean;
 };
 
-export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Props) {
+export function CalendarRightPanel({ events, onEventClick, onCreateEvent, canCreate }: Props) {
     const { t, locale } = useTranslation();
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
@@ -109,7 +110,7 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                                 <span className={`size-2 shrink-0 rounded-full ${EVENT_TYPE_CLASSES[e.type]?.split(' ')[0] || 'bg-zinc-400'}`} />
                                 <span className="min-w-0 flex-1 truncate text-[10px] font-medium">{e.title}</span>
                                 <span className="text-[9px] text-red-400/60">
-                                    {t('calendar.daysAgo', { count: Math.ceil((Date.now() - new Date(e.startsAt).getTime()) / 86400000) })}
+                                    {t('calendar.daysAgo', { count: Math.ceil((now.getTime() - new Date(e.startsAt).getTime()) / 86400000) })}
                                 </span>
                             </Button>
                         ))}
@@ -127,14 +128,16 @@ export function CalendarRightPanel({ events, onEventClick, onCreateEvent }: Prop
                     <Button
                         type="button"
                         variant="outline"
-                        onPress={onCreateEvent}
+                        onPress={() => onCreateEvent()}
+                        isDisabled={!canCreate}
                         className="flex h-auto min-h-0 items-center gap-2 rounded-lg border-white/8 px-3 py-2.5 text-[10px] font-medium transition hover:bg-white/5">
                         <IconCalendarMonth size={13} className="text-[var(--crm-gold)]" /> {t('calendar.newEvent')}
                     </Button>
                     <Button
                         type="button"
                         variant="outline"
-                        onPress={onCreateEvent}
+                        onPress={() => onCreateEvent('note')}
+                        isDisabled={!canCreate}
                         className="flex h-auto min-h-0 items-center gap-2 rounded-lg border-white/8 px-3 py-2.5 text-[10px] font-medium transition hover:bg-white/5">
                         <IconPlus size={13} className="text-blue-400" /> {t('calendar.newNote')}
                     </Button>

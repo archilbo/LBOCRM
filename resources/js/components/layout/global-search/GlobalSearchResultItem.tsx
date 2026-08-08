@@ -1,5 +1,5 @@
-import { Fragment, useMemo, type ButtonHTMLAttributes, type DetailedHTMLProps } from 'react';
-import { IconChevronRight } from '@tabler/icons-react';
+import { Fragment, useMemo, type ButtonHTMLAttributes, type CSSProperties, type DetailedHTMLProps } from 'react';
+import { IconChevronRight, IconUserCircle } from '@tabler/icons-react';
 
 import { Chip, ListBox, Tooltip } from '@heroui/react';
 import {
@@ -13,6 +13,18 @@ import {
 
 function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Stored archive numbers follow {CITYCODE}-{YEAR}-{SEQ:04d} (e.g.
+ * BNG-2026-0001). Chips display the compact form {CITYCODE}-{SEQ} (BNG-0001):
+ * the year segment is dropped, anything unexpected is left untouched.
+ */
+function archiveNumberWithoutYear(archiveNumber: string): string {
+    const parts = archiveNumber.split('-');
+    if (parts.length < 3) return archiveNumber;
+    parts.splice(parts.length - 2, 1);
+    return parts.join('-');
 }
 
 function HighlightMatch({ text, query }: { text: string; query: string }) {
@@ -60,9 +72,22 @@ export function GlobalSearchResultItem({
 
     const archive = result.archive;
     const archiveHref = archive?.href ?? null;
+    const cityColor = archive?.cityColor ?? null;
+
+    // Theme the chip with the archive's city color when available; the class
+    // tokens below remain the neutral fallback (inline style wins when set).
+    const cityColorTheme = cityColor
+        ? ({
+              borderColor: `color-mix(in_srgb, ${cityColor} 35%, transparent)`,
+              '--chip-bg': `color-mix(in_srgb, ${cityColor} 15%, var(--surface))`,
+              '--chip-fg': `color-mix(in_srgb, ${cityColor} 80%, var(--text))`,
+          } as CSSProperties)
+        : undefined;
 
     const archiveChipLabel = useMemo(() => {
-        const parts = [result.archive?.city, result.archive?.number, result.archive?.room].filter(
+        // Compact archive identity: city + number without the year segment
+        // (BENGUERIR - BNG-0001). The room stays in the subtitle line.
+        const parts = [result.archive?.city, result.archive?.number && archiveNumberWithoutYear(result.archive.number)].filter(
             (piece): piece is string => typeof piece === 'string' && piece.trim() !== '',
         );
 
@@ -76,6 +101,7 @@ export function GlobalSearchResultItem({
                     size="sm"
                     variant="soft"
                     className="h-5 min-h-0 max-w-full cursor-pointer border border-[color-mix(in_srgb,var(--secondary)_28%,transparent)] px-1.5 text-[9.5px] font-medium transition-opacity motion-reduce:transition-none hover:opacity-80 [--chip-bg:var(--secondary-soft)] [--chip-fg:var(--secondary-soft-foreground)]"
+                    style={cityColorTheme}
                     render={({ className, children, ...domProps }) => (
                         <button
                             type="button"
@@ -113,6 +139,45 @@ export function GlobalSearchResultItem({
         </Tooltip>
     ) : null;
 
+    const responsableName = archive?.requestedBy?.trim();
+    const responsableChip = archive && responsableName && archiveHref ? (
+        <Tooltip delay={450}>
+            <Tooltip.Trigger className="flex max-w-full min-w-0">
+                <Chip
+                    size="sm"
+                    variant="soft"
+                    className="h-5 min-h-0 max-w-full cursor-pointer border border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] px-1.5 text-[9.5px] font-medium transition-opacity motion-reduce:transition-none hover:opacity-80 [--chip-bg:var(--surface-2)] [--chip-fg:var(--text-muted)]"
+                    render={({ className, children, ...domProps }) => (
+                        <button
+                            type="button"
+                            className={className}
+                            {...(domProps as unknown as DetailedHTMLProps<
+                                ButtonHTMLAttributes<HTMLButtonElement>,
+                                HTMLButtonElement
+                            >)}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onOpenArchive?.(archiveHref);
+                            }}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onPointerUp={(event) => event.stopPropagation()}
+                        >
+                            {children}
+                        </button>
+                    )}
+                >
+                    <span className="flex min-w-0 items-center gap-1">
+                        <IconUserCircle size={10} aria-hidden="true" className="shrink-0" />
+                        <span className="truncate">{responsableName}</span>
+                    </span>
+                </Chip>
+            </Tooltip.Trigger>
+            <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">
+                {responsableName}
+            </Tooltip.Content>
+        </Tooltip>
+    ) : null;
+
     return (
         <ListBox.Item
             id={result.id}
@@ -134,6 +199,7 @@ export function GlobalSearchResultItem({
                     <HighlightMatch text={result.title} query={query} />
                 </span>
                 {archiveChip ? <div className="min-w-0 shrink-0">{archiveChip}</div> : null}
+                {responsableChip ? <div className="min-w-0 shrink-0">{responsableChip}</div> : null}
                 {showStatusChip && status.label ? (
                     <Chip size="sm" variant="soft" color={status.tone} className="h-[18px] min-h-0 max-sm:hidden px-1.5 text-[9px]">
                         {status.label}

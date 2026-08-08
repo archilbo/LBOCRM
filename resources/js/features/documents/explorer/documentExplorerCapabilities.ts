@@ -1,4 +1,3 @@
-import type { ClientProjectDocument } from '@/features/clients/types';
 import type { DocumentExplorerCapabilities, DocumentPreviewKind } from './documentExplorerTypes';
 
 /**
@@ -6,7 +5,11 @@ import type { DocumentExplorerCapabilities, DocumentPreviewKind } from './docume
  * completed with the explorer's own preview classification.
  * Only these fields drive capability normalization.
  */
-type DocumentCapabilitySource = Pick<ClientProjectDocument, 'canPreview' | 'hasFile'> & {
+type DocumentCapabilitySource = {
+    canPreview: boolean;
+    hasFile: boolean;
+    /** Backend-authorized delete flag; absent sources never expose delete. */
+    canDelete?: boolean;
     previewKind: DocumentPreviewKind;
 };
 
@@ -17,7 +20,9 @@ type DocumentCapabilitySource = Pick<ClientProjectDocument, 'canPreview' | 'hasF
  * Contract confirmed in Task 1 / Task 2:
  * - view and print actions are enabled when `canPreview` is true (backend
  *   aborts documents.view / documents.print with 422 otherwise);
- * - download is enabled when the file exists (`hasFile`).
+ * - download is enabled when the file exists (`hasFile`);
+ * - delete is enabled only when the backend explicitly authorizes it
+ *   (presentation gate; the destroy route stays policy-guarded).
  *
  * Images are never printable: print is only offered for page-layout formats
  * (PDF/Word/…), even though images preview fine. The backend print route
@@ -41,6 +46,6 @@ export function normalizeDocumentCapabilities(
         canPrint: canPreview && document.previewKind !== 'image',
         canReplace: false,
         canUpdateStatus: false,
-        canDelete: false,
+        canDelete: document.canDelete === true,
     };
 }

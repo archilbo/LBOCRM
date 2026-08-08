@@ -9,13 +9,14 @@ import { drawerStyles, DrawerSelect, type SelectOption, type DrawerBaseProps } f
 import { cn } from '@/lib/cn';
 import { formatCompactMoney } from '@/lib/currency';
 import { firstError, hasErrors } from '@/lib/formErrors';
-import type { ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow, } from '@/features/contracts/types';
+import type { ArchitectFeeOption, ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow, } from '@/features/contracts/types';
 
 export type ContractDrawerProps = DrawerBaseProps & {
     mode: 'create' | 'edit';
     contract: ContractRow | null;
     clients: ContractClientOption[];
     dossiers: ContractDossierOption[];
+    architectFeeOptions?: ArchitectFeeOption[];
     initialDossierId?: string;
     initialFloorArea?: number | string | null;
     lockProject?: boolean;
@@ -28,6 +29,7 @@ const emptyForm: ContractFormPayload = {
     surface: '',
     price_per_square_meter: '900',
     calculation_mode: 'percentage',
+    architect_fee_option_id: '',
     fee_rate_percent: '0.5',
     forfait_ttc: '',
     notes: '',
@@ -60,6 +62,7 @@ const createSteps = [
 const fieldToStep: Record<string, number> = {
     dossier_id: 0, status: 0, client_id: 0,
     surface: 1, price_per_square_meter: 1, fee_rate_percent: 1, forfait_ttc: 1, calculation_mode: 1,
+    architect_fee_option_id: 1,
 };
 
 function isStepValid(step: number, form: ContractFormPayload, selectedClientId: string | null, isForfait: boolean): boolean {
@@ -199,17 +202,25 @@ type CalculationSectionProps = {
     ttc: number;
     lockProject?: boolean;
     mode: 'create' | 'edit';
+    architectFeeOptions: ArchitectFeeOption[];
+    onArchitectFeeOptionChange: (id: string) => void;
 };
 
 function CalculationSection({
-    form, errors, updateField, isForfait, estimation, ht, tva, ttc, lockProject, mode,
+    form, errors, updateField, isForfait, estimation, ht, tva, ttc, lockProject, mode, architectFeeOptions, onArchitectFeeOptionChange,
 }: CalculationSectionProps) {
     const surfaceDisabled = lockProject && mode === 'create';
     return (
         <>
             <div className={drawerStyles.fieldGroup}>
-                <label className={drawerStyles.label}>Mode de calcul</label>
-                <DrawerSelect value={form.calculation_mode} onChange={(v) => updateField('calculation_mode', v)} options={calculationModeOptions} />
+                <label className={drawerStyles.label}>Taux architecte</label>
+                <DrawerSelect value={form.architect_fee_option_id} onChange={onArchitectFeeOptionChange}
+                    options={architectFeeOptions.map((option) => ({ id: option.id, label: option.isDefault ? `${option.name} · Par défaut` : option.name }))} />
+                {form.architect_fee_option_id ? (
+                    <p className="text-[9px] text-[var(--text-muted)]">
+                        Modèle appliqué : {architectFeeOptions.find((option) => option.id === form.architect_fee_option_id)?.contractTemplateName ?? 'Aucun modèle associé'}
+                    </p>
+                ) : <p className="text-[9px] text-[var(--danger)]">Aucun taux architecte configuré.</p>}
             </div>
             {isForfait ? (
                 <div className={drawerStyles.fieldGroup}>
@@ -319,6 +330,8 @@ type EditFormProps = {
     dossierOptions: { id: string; label: string }[];
     onDossierSelect: (key: string) => void;
     visibleStatusOptions: SelectOption[];
+    architectFeeOptions: ArchitectFeeOption[];
+    onArchitectFeeOptionChange: (id: string) => void;
 };
 
 function EditForm({
@@ -326,6 +339,7 @@ function EditForm({
     selectedClientId, clientOptions,
     onClientSelect, dossier_id, dossierOptions, onDossierSelect,
     visibleStatusOptions,
+    architectFeeOptions, onArchitectFeeOptionChange,
 }: EditFormProps) {
     return (
         <div className="flex flex-col gap-3">
@@ -353,6 +367,8 @@ function EditForm({
                 ttc={ttc}
                 lockProject={lockProject}
                 mode={mode}
+                architectFeeOptions={architectFeeOptions}
+                onArchitectFeeOptionChange={onArchitectFeeOptionChange}
             />
             <div className={drawerStyles.fieldGroup}>
                 <label className={drawerStyles.label}>Notes</label>
@@ -405,7 +421,7 @@ function DrawerFooter({ mode, step, isSubmitting, stepValid, onOpenChange, onBac
 /* ──── Main Component ──── */
 
 export function ContractDrawer({
-    isOpen, mode, contract, clients, dossiers,
+    isOpen, mode, contract, clients, dossiers, architectFeeOptions = [],
     initialDossierId = '', initialFloorArea, lockProject = false, onOpenChange, onSubmit, errors = {}, isSubmitting = false,
 }: ContractDrawerProps) {
     const [form, setForm] = useState<ContractFormPayload>(emptyForm);
@@ -437,6 +453,7 @@ export function ContractDrawer({
                 surface: contract.surface != null ? String(contract.surface) : '',
                 price_per_square_meter: contract.pricePerSquareMeter != null ? String(contract.pricePerSquareMeter) : '',
                 calculation_mode: contract.calculationMode || 'percentage',
+                architect_fee_option_id: contract.architectFeeOptionId ?? '',
                 fee_rate_percent: contract.feeRatePercent != null ? String(contract.feeRatePercent) : '',
                 forfait_ttc: contract.forfaitTtc != null ? String(contract.forfaitTtc) : '',
                 notes: contract.notes || '',
@@ -455,12 +472,21 @@ export function ContractDrawer({
                 ...emptyForm,
                 dossier_id: initialDossierId,
                 surface: floorArea != null ? String(floorArea) : '',
+                architect_fee_option_id: architectFeeOptions.find((option) => option.isDefault && option.isActive)?.id ?? '',
+                calculation_mode: architectFeeOptions.find((option) => option.isDefault && option.isActive)?.calculationType ?? 'percentage',
+                fee_rate_percent: architectFeeOptions.find((option) => option.isDefault && option.isActive)?.percentageRate ?? '',
             });
             return;
         }
         setSelectedClientId(null);
-        setForm(emptyForm);
-    }, [contract, clients, initialDossierId, initialFloorArea, isOpen, mode]);
+        const defaultOption = architectFeeOptions.find((option) => option.isDefault && option.isActive);
+        setForm({
+            ...emptyForm,
+            architect_fee_option_id: defaultOption?.id ?? '',
+            calculation_mode: defaultOption?.calculationType ?? 'percentage',
+            fee_rate_percent: defaultOption?.percentageRate ?? '',
+        });
+    }, [architectFeeOptions, contract, clients, initialDossierId, initialFloorArea, isOpen, mode]);
 
     useEffect(() => {
         if (!hasErrors(errors) || mode !== 'create') return;
@@ -519,6 +545,17 @@ export function ContractDrawer({
         }
     }, [updateField, clientDossiers]);
 
+    const handleArchitectFeeOptionChange = useCallback((id: string) => {
+        const option = architectFeeOptions.find((candidate) => candidate.id === id);
+        if (!option) return;
+        setForm((previous) => ({
+            ...previous,
+            architect_fee_option_id: option.id,
+            calculation_mode: option.calculationType,
+            fee_rate_percent: option.percentageRate ?? '',
+        }));
+    }, [architectFeeOptions]);
+
     const handleStepBack = useCallback(() => setStep((s) => s - 1), []);
     const handleStepForward = useCallback(() => setStep((s) => s + 1), []);
 
@@ -543,6 +580,8 @@ export function ContractDrawer({
             dossierOptions={dossierOptions}
             onDossierSelect={handleDossierSelect}
             visibleStatusOptions={visibleStatusOptions}
+            architectFeeOptions={architectFeeOptions}
+            onArchitectFeeOptionChange={handleArchitectFeeOptionChange}
         />
     ) : (
         <>
@@ -569,6 +608,8 @@ export function ContractDrawer({
                     ttc={ttc}
                     lockProject={lockProject}
                     mode={mode}
+                    architectFeeOptions={architectFeeOptions}
+                    onArchitectFeeOptionChange={handleArchitectFeeOptionChange}
                 />
             )}
             {(step === 2 || step === 3) && (

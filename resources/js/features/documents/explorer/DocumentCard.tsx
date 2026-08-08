@@ -3,11 +3,10 @@ import { Download as DownloadIcon, Eye as EyeIcon } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
-import type { ClientProjectDocument } from '@/features/clients/types';
-import { documentStatusLabel, fileTypeLabelKey, formatDocumentDate, formatFileSize } from './documentExplorerFormatters';
+import { documentStatusLabel, fileTypeLabelKey, formatDocumentDate, formatDocumentVersion, formatFileSize } from './documentExplorerFormatters';
 import { DocumentActionsMenu } from './DocumentActionsMenu';
 import { DocumentThumbnail } from './DocumentThumbnail';
-import type { DocumentExplorerItem } from './documentExplorerTypes';
+import type { DocumentExplorerItem, ExplorerDocument } from './documentExplorerTypes';
 
 export function DocumentStatusChip({ status, className }: { status: string; className?: string }) {
     const { t } = useTranslation();
@@ -31,10 +30,10 @@ type DocumentCardProps = {
     item: DocumentExplorerItem;
     projectLabel: string;
     onOpen: (document: DocumentExplorerItem) => void;
-    onPrint: (document: ClientProjectDocument) => void;
-    onDownload: (document: ClientProjectDocument) => void;
-    onReplace: (document: ClientProjectDocument) => void;
-    onDelete: (document: ClientProjectDocument) => void;
+    onPrint: (document: ExplorerDocument) => void;
+    onDownload: (document: ExplorerDocument) => void;
+    onReplace: (document: ExplorerDocument) => void;
+    onDelete: (document: ExplorerDocument) => void;
 };
 
 function OverlayActionButton({ label, icon, onPress }: { label: string; icon: React.ReactNode; onPress: () => void }) {
@@ -72,7 +71,9 @@ export function DocumentCard({
     const typeKey = fileTypeLabelKey(item.previewKind, item.extension);
     const sizeText = formatFileSize(null, item.sizeLabel) ?? t('documentsExplorer.metadata.unknownSize');
     const dateText = formatDocumentDate(item.uploadedAt, locale) ?? t('documentsExplorer.metadata.unknownDate');
+    const versionText = formatDocumentVersion(item.version);
     const openLabel = t('documentsExplorer.actions.open');
+    const cardProjectLabel = item.projectLabel ?? projectLabel;
 
     return (
         <div
@@ -89,7 +90,12 @@ export function DocumentCard({
                     className="flex w-full flex-col items-start gap-1.5 px-3 pb-3 pt-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)]"
                 >
                     <div className="flex w-full items-center justify-between gap-2">
-                        <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-muted)]">{t(typeKey)}</span>
+                        <div className="flex min-w-0 items-center gap-1.5">
+                            <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-muted)]">{t(typeKey)}</span>
+                            {versionText ? (
+                                <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-subtle)]">{versionText}</span>
+                            ) : null}
+                        </div>
                         <DocumentStatusChip status={item.status} />
                     </div>
                     <p className="line-clamp-2 w-full break-words text-[12px] font-medium leading-snug text-[var(--foreground)]" title={item.name}>
@@ -99,13 +105,18 @@ export function DocumentCard({
                         {t(typeKey)} · {sizeText}
                     </p>
                     <p className="w-full truncate text-[10px] text-[var(--text-subtle)]">
-                        {projectLabel} · {dateText}
+                        {cardProjectLabel} · {dateText}
                     </p>
                 </button>
             ) : (
                 <div className="flex w-full flex-col items-start gap-1.5 px-3 pb-3 pt-2.5">
                     <div className="flex w-full items-center justify-between gap-2">
-                        <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-muted)]">{t(typeKey)}</span>
+                        <div className="flex min-w-0 items-center gap-1.5">
+                            <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-muted)]">{t(typeKey)}</span>
+                            {versionText ? (
+                                <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-subtle)]">{versionText}</span>
+                            ) : null}
+                        </div>
                         <DocumentStatusChip status={item.status} />
                     </div>
                     <p className="line-clamp-2 w-full break-words text-[12px] font-medium leading-snug text-[var(--foreground)]" title={item.name}>
@@ -115,7 +126,7 @@ export function DocumentCard({
                         {t(typeKey)} · {sizeText}
                     </p>
                     <p className="w-full truncate text-[10px] text-[var(--text-subtle)]">
-                        {projectLabel} · {dateText}
+                        {cardProjectLabel} · {dateText}
                     </p>
                 </div>
             )}

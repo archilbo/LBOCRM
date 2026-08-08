@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button, Checkbox, FieldError, Input, Label, TextField } from '@heroui/react';
 import { useTranslation } from '@/lib/i18n';
 import { useBranding } from '@/hooks/useBranding';
+import { cn } from '@/lib/cn';
 
 const FORCE_LOGIN_REDESIGN_53L = true;
 
@@ -94,8 +95,15 @@ export default function Login({ errors = {}, status }: PageProps) {
                         <div className="absolute inset-x-0 bottom-0 h-[48%] bg-[linear-gradient(0deg,rgba(8,7,5,0.94)_0%,rgba(8,7,5,0.52)_56%,transparent_100%)]" />
                         <div className="relative z-10 flex h-full flex-col">
                             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 backdrop-blur-sm">
-                                <div className="flex size-11 items-center justify-center rounded-xl bg-[var(--crm-accent)] text-black shadow-[0_10px_24px_rgba(234,179,8,0.18)]">
-                                    <IconBuilding size={24} />
+                                <div className={cn(
+                                    'flex size-11 items-center justify-center',
+                                    branding.logoDarkUrl ? 'bg-transparent' : 'rounded-xl bg-[var(--crm-accent)] text-black shadow-[0_10px_24px_rgba(234,179,8,0.18)]',
+                                )}>
+                                    {branding.logoDarkUrl ? (
+                                        <img src={branding.logoDarkUrl} alt="" className="size-11 object-contain p-1" />
+                                    ) : (
+                                        <IconBuilding size={24} />
+                                    )}
                                 </div>
                                 <div>
                                     <p className="text-[16px] font-semibold tracking-[-0.03em]">
@@ -153,8 +161,15 @@ export default function Login({ errors = {}, status }: PageProps) {
                     <section className="flex h-[100dvh] items-center justify-center overflow-y-auto bg-[var(--crm-bg)] p-5 sm:p-8 lg:px-10 xl:px-14">
                         <div className="w-full max-w-lg py-4">
                             <div className="mb-8 flex items-center gap-3 lg:hidden">
-                                <div className="flex size-11 items-center justify-center rounded-2xl bg-[var(--crm-accent)] text-black">
-                                    <IconBuilding size={22} />
+                                <div className={cn(
+                                    'flex size-11 items-center justify-center',
+                                    branding.logoLightUrl ? 'bg-transparent' : 'rounded-2xl bg-[var(--crm-accent)] text-black',
+                                )}>
+                                    {branding.logoLightUrl ? (
+                                        <img src={branding.logoLightUrl} alt="" className="size-11 object-contain p-1" />
+                                    ) : (
+                                        <IconBuilding size={22} />
+                                    )}
                                 </div>
                                 <div>
                                     <p className="text-[16px] font-semibold tracking-[-0.03em]">
@@ -175,7 +190,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                             <p className="crm-eyebrow">{t('auth.login.privateAccess')}</p>
                                             <h2 className="mt-3 text-[29px] font-semibold leading-[1.1] tracking-[-0.042em]">{t('auth.login.signIn')}</h2>
                                             <p className="mt-2.5 text-[13px] leading-6 text-[var(--crm-muted)]">
-                                                {t('auth.login.subtitle')}
+                                                {branding.description || t('auth.login.subtitle')}
                                             </p>
                                         </div>
                                         <div className="flex size-11 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-[var(--crm-accent)]">

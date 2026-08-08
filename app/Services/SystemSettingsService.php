@@ -10,6 +10,7 @@ use DomainException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Single application source for global (system-level) settings.
@@ -293,7 +294,9 @@ class SystemSettingsService
             return null;
         }
 
-        return asset($path);
+        // The public disk's configured URL (APP_URL/storage) prefixes stored
+        // relative paths, so branding URLs resolve to /storage/system/branding/…
+        return Storage::disk('public')->url($path);
     }
 
     private function recordAudit(User $user, array $changes): void

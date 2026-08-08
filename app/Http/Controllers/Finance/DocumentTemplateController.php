@@ -9,7 +9,6 @@ use App\Http\Requests\Finance\UpdateDocumentTemplateRequest;
 use App\Http\Resources\DocumentTemplateResource;
 use App\Models\FinanceTemplate;
 use App\Services\Finance\DefaultFinanceTemplateFactory;
-use App\Services\Finance\FinanceSettingsService;
 use App\Services\Finance\FinanceActivityService;
 use App\Services\Finance\FinanceContextService;
 use App\Services\Finance\FinanceTemplatePlaceholderRegistry;
@@ -23,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class DocumentTemplateController extends Controller
 {
@@ -46,10 +46,21 @@ class DocumentTemplateController extends Controller
             'templates' => DocumentTemplateResource::collection($templates)->resolve($request),
             'templatesByType' => DocumentTemplateResource::collection($templates)->resolve($request),
             'placeholders' => $this->placeholders->all(),
+            'placeholdersByType' => [
+                'quote' => $this->placeholders->all('quote'),
+                'invoice' => $this->placeholders->all('invoice'),
+                'receipt' => $this->placeholders->all('receipt'),
+            ],
+            'knownByType' => [
+                'quote' => $this->placeholders->knownForType('quote'),
+                'invoice' => $this->placeholders->knownForType('invoice'),
+                'receipt' => $this->placeholders->knownForType('receipt'),
+            ],
             'sampleData' => $this->sampleData(),
             'routes' => [
                 'store' => route('finance.templates.store'),
                 'close' => route('finance.documents.index', ['tab' => 'templates']),
+                'previewDraft' => route('finance.templates.preview-draft'),
             ],
         ]);
     }
@@ -190,9 +201,49 @@ class DocumentTemplateController extends Controller
     public function preview(FinanceTemplate $documentTemplate): JsonResponse
     {
         $this->authorize('view', $documentTemplate);
-        return response()->json([
-            'html' => $this->renderer->renderTemplatePreview($documentTemplate, $this->sampleData()),
+
+        try {
+            $html = $this->renderer->renderTemplatePreview($documentTemplate, $this->sampleData($documentTemplate->type));
+
+            return response()->json(['html' => $html]);
+        } catch (RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    public function previewDraft(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', FinanceTemplate::class);
+
+        $data = $request->validate([
+            'type' => ['required', 'string', 'in:quote,invoice,receipt'],
+            'header_html' => ['nullable', 'string'],
+            'body_html' => ['nullable', 'string'],
+            'footer_html' => ['nullable', 'string'],
+            'css' => ['nullable', 'string'],
         ]);
+
+        $unknown = [];
+
+        foreach (['header_html', 'body_html', 'footer_html'] as $field) {
+            foreach ($this->placeholders->unknownPlaceholdersIn((string) ($data[$field] ?? '')) as $token) {
+                $unknown[$token] = true;
+            }
+        }
+
+        if ($unknown !== []) {
+            return response()->json([
+                'error' => 'Variable inconnue : ' . implode(', ', array_keys($unknown)),
+            ], 422);
+        }
+
+        try {
+            $html = $this->renderer->renderTemplatePreview(new FinanceTemplate($data), $this->sampleData($data['type'] ?? null));
+
+            return response()->json(['html' => $html]);
+        } catch (RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
     }
 
     private function uniqueSlug(string $value, ?int $ignoreId = null): string
@@ -208,32 +259,8 @@ class DocumentTemplateController extends Controller
         return $slug;
     }
 
-    private function sampleData(): array
+    private function sampleData(?string $type = null): array
     {
-        $currency = FinanceSettingsService::getCurrency();
-
-        return [
-            'company' => [
-                'name' => FinanceSettingsService::getCompanyName() ?: 'ARCHI LBO SARLAU',
-                'address' => FinanceSettingsService::getCompanyAddress() ?: 'Adresse societe',
-                'phone' => FinanceSettingsService::getCompanyPhone() ?: '+212 000 000 000',
-                'email' => FinanceSettingsService::getCompanyEmail() ?: 'contact@archilbo.local',
-                'ice' => FinanceSettingsService::getCompanyIce() ?: '000000000000000',
-                'tva' => (string) FinanceSettingsService::getTvaRate(),
-                'patente' => '123456',
-                'cnss' => '654321',
-                'logo_path' => '',
-            ],
-            'bank' => ['name' => FinanceSettingsService::getBankName() ?: 'Banque Exemple', 'rib' => FinanceSettingsService::getBankRib() ?: '000 000 000000000000 00'],
-            'document' => ['number' => 'DEV-2026-0001', 'type_label' => 'Devis', 'status' => 'draft', 'issue_date' => '27/06/2026', 'due_date' => '27/07/2026', 'valid_until' => '27/07/2026', 'currency' => $currency, 'notes' => 'Note interne exemple.', 'terms' => 'Paiement a reception.'],
-            'client' => ['name' => 'Client Exemple', 'cin' => 'AA000000', 'address' => 'Adresse client', 'phone' => '+212 600 000 000', 'email' => 'client@example.test'],
-            'dossier' => ['number' => 'DOS-2026-0001', 'project_object' => 'Projet de construction', 'address' => 'Adresse projet', 'commune' => 'Commune', 'province' => 'Province'],
-            'items' => [
-                ['position' => 1, 'title' => 'Etudes architecturales', 'description' => 'Plans et dossier administratif', 'quantity' => 1, 'unit' => 'forfait', 'unit_price_display' => '8 000.00 ' . $currency, 'total_ht_display' => '8 000.00 ' . $currency, 'total_ttc_display' => '8 000.00 ' . $currency],
-                ['position' => 2, 'title' => 'Suivi dossier', 'description' => 'Suivi administratif', 'quantity' => 1, 'unit' => 'forfait', 'unit_price_display' => '2 000.00 ' . $currency, 'total_ht_display' => '2 000.00 ' . $currency, 'total_ttc_display' => '2 000.00 ' . $currency],
-            ],
-            'totals' => ['subtotal_ht' => '10 000.00 ' . $currency, 'discount_total' => '0.00 ' . $currency, 'tax_total' => '2 000.00 ' . $currency, 'total_ttc' => '12 000.00 ' . $currency, 'paid_total' => '4 000.00 ' . $currency, 'remaining_total' => '8 000.00 ' . $currency],
-            'payments' => [['payment_number' => 'PAY-2026-0001', 'paid_at' => '27/06/2026', 'method' => 'Virement', 'reference' => 'REF-001', 'amount_display' => '4 000.00 ' . $currency]],
-        ];
+        return $this->placeholders->sampleData($type);
     }
 }

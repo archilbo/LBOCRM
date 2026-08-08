@@ -6,6 +6,7 @@ use App\Http\Requests\Settings\UpsertCityRequest;
 use App\Models\City;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\PermissionRegistry;
+use App\Services\SystemSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,6 +27,8 @@ class CityController extends Controller
         $canViewFinance = $user && $this->permissions->allows($user, 'finance.settings.view');
         $canManageFinance = $user && $this->permissions->allows($user, 'finance.settings.update');
         $canViewSystemAppearance = $user && $this->permissions->allows($user, 'system.settings.view');
+        $canUpdateSystemAppearance = $user && $this->permissions->allows($user, 'system.settings.update');
+        $canUpdateBranding = $user && $this->permissions->allows($user, 'system.branding.update');
 
         abort_unless(
             $user && ($canViewCities || $canViewFinance || $canViewSystemAppearance),
@@ -45,11 +48,21 @@ class CityController extends Controller
             'canViewSystemAppearance' => $canViewSystemAppearance,
             'financeSettings' => $canViewFinance ? [
                 'settings' => app(FinanceSettingsService::class)->allGrouped(),
+                'architectRates' => FinanceSettingsService::architectRates(),
+                'architectFeeOptions' => FinanceSettingsService::architectFeeOptions(),
+                'contractTemplateOptions' => FinanceSettingsService::contractTemplateOptions(),
                 'routes' => [
                     'update' => route('finance.settings.update'),
                     'uploadLogo' => route('finance.settings.logo.store'),
                     'deleteLogo' => route('finance.settings.logo.destroy'),
+                    'architectFeeOptionsStore' => route('finance.architect-fee-options.store'),
                 ],
+            ] : null,
+            'branding' => $canViewSystemAppearance ? app(SystemSettingsService::class)->publicBrandingArray() : null,
+            'permissions' => $canViewSystemAppearance ? [
+                'view' => $canViewSystemAppearance,
+                'update' => $canUpdateSystemAppearance,
+                'branding_update' => $canUpdateBranding,
             ] : null,
         ]);
     }

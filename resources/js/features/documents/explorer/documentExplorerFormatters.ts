@@ -28,7 +28,7 @@ export const SPREADSHEET_EXTENSIONS = new Set(['xls', 'xlsx', 'ods']);
 const CODE_EXTENSIONS = new Set(['json', 'xml', 'yaml', 'yml', 'ini', 'html', 'htm']);
 
 /** Statuses with a dedicated `documents.status.*` label; others render raw. */
-const DOCUMENT_STATUS_KEYS = new Set(['uploaded', 'verified', 'missing', 'rejected', 'templates']);
+const DOCUMENT_STATUS_KEYS = new Set(['uploaded', 'verified', 'missing', 'rejected', 'templates', 'generated', 'signed']);
 
 /** Formats a numeric byte count (B, KB, MB, GB). Returns null when absent/invalid. */
 export function formatBytes(bytes: number | null | undefined): string | null {
@@ -144,4 +144,9 @@ export function resolveFileIcon(kind: DocumentPreviewKind, extension: string | n
 /** Localized status label; unknown statuses render their raw safe value. */
 export function documentStatusLabel(t: (key: string) => string, status: string): string {
     return DOCUMENT_STATUS_KEYS.has(status) ? t(`documents.status.${status}`) : status;
+}
+
+/** "v2" chip text for generated artifacts; null when the source has no version. */
+export function formatDocumentVersion(version: number | null | undefined): string | null {
+    return version == null ? null : `v${version}`;
 }

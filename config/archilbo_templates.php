@@ -12,6 +12,7 @@ return [
     */
 
     'contracts' => [
+        'master_directory' => storage_path('app/private/archi-templates/contracts'),
         'default_rate' => env('ARCHI_LBO_DEFAULT_CONTRACT_RATE', '0.5'),
         'construction_unit_price' => env('ARCHI_LBO_CONSTRUCTION_UNIT_PRICE', 900),
         'tva_rate' => env('ARCHI_LBO_CONTRACT_TVA_RATE', 20),
@@ -21,6 +22,22 @@ return [
             '2' => storage_path('app/private/archi-templates/contracts/contrat_architecte_2.docx'),
             'forfait' => storage_path('app/private/archi-templates/contracts/contrat_architecte_forfait.docx'),
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fiche efficacité template
+    |--------------------------------------------------------------------------
+    |
+    | Master template, copied (never edited) at generation time. The DOCX
+    | contains [USAGE_DU_BATIMENT], [NOM_PROJET], [PROJET_ADDRESS],
+    | [NOM_PRENOM_DOUVRAGE], [CLIENT_ADDRESS], [ENTREPRISE_PHONE] and
+    | [ENTREPRISE_FAX] placeholders — see ProjectEfficiencySheetGenerator.
+    |
+    */
+
+    'fiche_efficacite' => [
+        'template' => storage_path('app/private/archi-templates/fiche_efficacite/fiche_efficacite.docx'),
     ],
 
     'finance' => [

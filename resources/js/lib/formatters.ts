@@ -7,11 +7,11 @@ export function formatFileSize(bytes: number): string {
     return `${size} ${units[i]}`;
 }
 
-export function formatDate(dateStr: string | null | undefined): string {
+export function formatDate(dateStr: string | null | undefined, locale: string = 'en-US'): string {
     if (!dateStr) return '—';
     try {
         const d = new Date(dateStr);
-        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        return d.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
     } catch {
         return dateStr;
     }

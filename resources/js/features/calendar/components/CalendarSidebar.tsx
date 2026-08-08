@@ -21,6 +21,7 @@ type Props = {
     onDayClick: (d: Date) => void;
     users: UserOption[];
     onCreateClick: () => void;
+    canCreate: boolean;
     events: CalendarEventRow[];
     onEventClick: (e: CalendarEventRow) => void;
 };
@@ -30,7 +31,7 @@ const TYPE_IDS: string[] = ['', ...Object.keys(EVENT_TYPE_CLASSES)];
 export function CalendarSidebar({
     search, onSearchChange, filterType, onFilterTypeChange,
     filterUserId, onFilterUserIdChange, currentDate, onDateChange,
-    onDayClick, users, onCreateClick, events, onEventClick,
+    onDayClick, users, onCreateClick, canCreate, events, onEventClick,
 }: Props) {
     const { t } = useTranslation();
     const now = new Date();
@@ -49,7 +50,8 @@ export function CalendarSidebar({
                 <Button
                     type="button"
                     variant="primary"
-                    onPress={onCreateClick}
+                    onPress={() => onCreateClick()}
+                    isDisabled={!canCreate}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--crm-gold)] px-3 py-2 text-xs font-semibold text-black transition hover:brightness-110">
                     <IconPlus size={14} /> {t('calendar.newEvent')}
                 </Button>

@@ -327,9 +327,16 @@ export function AppSidebar() {
                         <button type="button" onClick={() => goTo('/', true)}
                             onMouseEnter={(e) => handleEnter(e, shortName)}
                             onMouseLeave={handleLeave}
-                            className="flex size-9 items-center justify-center rounded-[10px] bg-accent text-accent-fg"
+                            className={cn(
+                                'flex size-9 items-center justify-center',
+                                branding.logoCompactUrl ? 'bg-transparent' : 'rounded-[10px] bg-accent text-accent-fg',
+                            )}
                             aria-label={shortName}>
-                            <IconBuildingSkyscraper size={18} />
+                            {branding.logoCompactUrl ? (
+                                <img src={branding.logoCompactUrl} alt="" className="size-9 object-contain p-1" />
+                            ) : (
+                                <IconBuildingSkyscraper size={18} />
+                            )}
                         </button>
                         <button type="button" onClick={toggleSidebar}
                             onMouseEnter={(e) => handleEnter(e, 'Expand')}
@@ -480,8 +487,15 @@ export function AppSidebar() {
             <div className="relative shrink-0 border-b border-border" ref={wsRef}>
                 <button type="button" onClick={() => setWsOpen((o) => !o)}
                     className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-surface-2">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-accent text-accent-fg">
-                        <IconBuildingSkyscraper size={16} />
+                    <div className={cn(
+                        'flex size-8 shrink-0 items-center justify-center',
+                        branding.logoCompactUrl ? 'bg-transparent' : 'rounded-[9px] bg-accent text-accent-fg',
+                    )}>
+                        {branding.logoCompactUrl ? (
+                            <img src={branding.logoCompactUrl} alt="" className="size-8 object-contain p-1" />
+                        ) : (
+                            <IconBuildingSkyscraper size={16} />
+                        )}
                     </div>
                     <div className="min-w-0 flex-1">
                         <p className="truncate text-[12px] font-semibold leading-tight text-foreground">
@@ -490,7 +504,7 @@ export function AppSidebar() {
                             </>) : appName}
                         </p>
                         <p className="truncate text-[10px] leading-tight text-muted">
-                            {t('app.description')}
+                            {branding.description || t('app.description')}
                         </p>
                     </div>
                     <IconChevronDown size={13} className={cn('shrink-0 text-subtle transition', wsOpen && 'rotate-180')} />
@@ -505,12 +519,19 @@ export function AppSidebar() {
                 {wsOpen ? (
                     <div className="absolute left-3 right-3 top-full z-[60] mt-1 rounded-xl border border-border bg-surface p-1.5 shadow-lg">
                         <div className="flex items-center gap-2.5 border-b border-border px-2.5 py-2">
-                            <div className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-accent text-accent-fg">
-                                <IconBuildingSkyscraper size={14} />
+                            <div className={cn(
+                                'flex size-7 shrink-0 items-center justify-center',
+                                branding.logoCompactUrl ? 'bg-transparent' : 'rounded-[8px] bg-accent text-accent-fg',
+                            )}>
+                                {branding.logoCompactUrl ? (
+                                    <img src={branding.logoCompactUrl} alt="" className="size-7 object-contain p-1" />
+                                ) : (
+                                    <IconBuildingSkyscraper size={14} />
+                                )}
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-xs font-semibold text-foreground">{appName}</p>
-                                <p className="truncate text-[9px] text-muted">{t('app.description')}</p>
+                                <p className="truncate text-[9px] text-muted">{branding.description || t('app.description')}</p>
                             </div>
                             <IconCheck size={13} className="shrink-0 text-accent" />
                         </div>

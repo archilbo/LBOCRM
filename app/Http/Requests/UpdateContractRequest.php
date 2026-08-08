@@ -43,6 +43,7 @@ class UpdateContractRequest extends FormRequest
             'surface' => ['nullable', 'numeric', 'min:0'],
             'price_per_square_meter' => ['nullable', 'numeric', 'min:0'],
             'calculation_mode' => ['nullable', 'string', Rule::in(['percentage', 'forfait'])],
+            'architect_fee_option_id' => ['nullable', 'integer', 'exists:architect_fee_options,id'],
             'fee_rate_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'forfait_ttc' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:5000'],

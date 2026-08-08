@@ -21,6 +21,7 @@ class ClientWorkspaceService
         private readonly DossierDocumentFileService $documentFiles,
         private readonly DossierFinanceEligibilityService $financeEligibility,
         private readonly PermissionRegistry $permissions,
+        private readonly ClientDocumentExplorerService $clientExplorer,
     ) {
     }
 
@@ -83,6 +84,7 @@ class ClientWorkspaceService
                 ->map(fn (Dossier $dossier) => $this->contractSummary($dossier->contract, $dossier))
                 ->values()
                 ->all(),
+            'explorer' => $this->clientExplorer->forClient($client, $viewer),
         ];
     }
 

@@ -3,6 +3,9 @@
 namespace App\Services\Finance;
 
 use App\Models\CompanySetting;
+use App\Models\Contract;
+use App\Models\ArchitectFeeOption;
+use App\Services\Contracts\ContractTemplateNamingService;
 use Illuminate\Support\Facades\Storage;
 
 class FinanceSettingsService
@@ -32,8 +35,10 @@ class FinanceSettingsService
     {
         return [
             'companyName' => self::getCompanyName(),
+            'companyLegalRepresentative' => self::getCompanyLegalRepresentative(),
             'companyAddress' => self::getCompanyAddress(),
             'companyPhone' => self::getCompanyPhone(),
+            'companyFax' => self::getCompanyFax(),
             'companyEmail' => self::getCompanyEmail(),
             'companyIce' => self::getCompanyIce(),
             'companyTva' => self::getCompanyTva(),
@@ -167,8 +172,12 @@ class FinanceSettingsService
             'unit_price' => 'default_unit_price_m2',
             'architect_rate' => 'default_architect_rate',
             'name' => 'company_name',
+            'legal_representative' => 'company_legal_representative',
+            'representative' => 'company_legal_representative',
+            'ceo' => 'company_legal_representative',
             'address' => 'company_address',
             'phone' => 'company_phone',
+            'fax' => 'company_fax',
             'email' => 'company_email',
             'ice' => 'company_ice',
             'tva' => 'company_tva',
@@ -270,9 +279,63 @@ class FinanceSettingsService
         return self::getArchitectRate();
     }
 
+    /**
+     * Distinct architect rates already used on contracts, as floats. These
+     * feed the "Taux architecte par défaut" dropdown in the Finance settings
+     * so users pick an existing rate instead of typing a free-form value.
+     */
+    public static function architectRates(): array
+    {
+        return Contract::query()
+            ->select('fee_rate_percent')
+            ->distinct()
+            ->orderBy('fee_rate_percent')
+            ->get()
+            ->pluck('fee_rate_percent')
+            ->map(fn ($rate) => (float) $rate)
+            ->values()
+            ->all();
+    }
+
+    public static function architectFeeOptions(bool $activeOnly = false): array
+    {
+        $query = ArchitectFeeOption::query()->orderByDesc('is_default')->orderBy('sort_order')->orderBy('name');
+
+        if ($activeOnly) {
+            $query->where('is_active', true);
+        }
+
+        return $query->get()->map(fn (ArchitectFeeOption $option) => [
+            'id' => (string) $option->id,
+            'name' => $option->name,
+            'calculationType' => $option->calculation_type,
+            'percentageRate' => $option->percentage_rate !== null ? (string) $option->percentage_rate : null,
+            'flatAmount' => $option->flat_amount !== null ? (string) $option->flat_amount : null,
+            'contractTemplateKey' => $option->contract_template_key,
+            'contractTemplateName' => app(ContractTemplateNamingService::class)->filenameFor(
+                $option->calculation_type,
+                $option->percentage_rate,
+            ),
+            'templateDetected' => is_file(app(ContractTemplateNamingService::class)->pathForKey($option->contract_template_key)),
+            'isDefault' => $option->is_default,
+            'isActive' => $option->is_active,
+            'sortOrder' => $option->sort_order,
+        ])->all();
+    }
+
+    public static function contractTemplateOptions(): array
+    {
+        return [];
+    }
+
     public static function getCompanyName(): string
     {
         return (string) CompanySetting::getValue('company', 'company_name', 'ARCHI LBO SARLAU');
+    }
+
+    public static function getCompanyLegalRepresentative(): string
+    {
+        return (string) CompanySetting::getValue('company', 'company_legal_representative', '');
     }
 
     public static function getCompanyAddress(): string
@@ -283,6 +346,11 @@ class FinanceSettingsService
     public static function getCompanyPhone(): string
     {
         return (string) CompanySetting::getValue('company', 'company_phone', '');
+    }
+
+    public static function getCompanyFax(): string
+    {
+        return (string) CompanySetting::getValue('company', 'company_fax', '');
     }
 
     public static function getCompanyEmail(): string
@@ -308,6 +376,38 @@ class FinanceSettingsService
     public static function getCompanyCnss(): string
     {
         return (string) CompanySetting::getValue('company', 'company_cnss', '5850815');
+    }
+
+    /**
+     * Single line with the legal identifiers that are actually set.
+     * Used by the template footer so missing values never render as "ICE :".
+     */
+    public static function getCompanyLegalLine(): string
+    {
+        return collect([
+            'ICE' => self::getCompanyIce(),
+            'CNSS' => self::getCompanyCnss(),
+            'PATENTE' => self::getCompanyPatente(),
+            'TVA' => self::getCompanyTva(),
+        ])->filter(fn (string $value) => trim($value) !== '')
+            ->map(fn (string $value, string $label) => $label . ' ' . $value)
+            ->values()
+            ->implode(' · ');
+    }
+
+    /**
+     * Single line with the contact details that are actually set.
+     */
+    public static function getCompanyContactLine(): string
+    {
+        return collect([
+            'EMAIL' => self::getCompanyEmail(),
+            'TEL' => self::getCompanyPhone(),
+            'FAX' => self::getCompanyFax(),
+        ])->filter(fn (string $value) => trim($value) !== '')
+            ->map(fn (string $value, string $label) => $label . ' ' . $value)
+            ->values()
+            ->implode(' · ');
     }
 
     public static function getCompanyLogoPath(): string

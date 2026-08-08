@@ -24,11 +24,12 @@ class FinanceSettingsController extends Controller
         CompanySetting::setValue('finance', 'default_payment_terms_days', $finance['default_payment_terms_days'] ?? 30, 'integer', 'Payment terms days');
         CompanySetting::setValue('finance', 'default_quote_validity_days', $finance['default_quote_validity_days'] ?? 30, 'integer', 'Quote validity days');
         CompanySetting::setValue('finance', 'default_unit_price_m2', $finance['default_unit_price_m2'] ?? 900, 'decimal', 'Default unit price m2');
-        CompanySetting::setValue('finance', 'default_architect_rate', $finance['default_architect_rate'] ?? 0.5, 'decimal', 'Default architect rate');
 
         CompanySetting::setValue('company', 'company_name', $company['company_name'] ?? '', 'string', 'Company name');
+        CompanySetting::setValue('company', 'company_legal_representative', $company['company_legal_representative'] ?? '', 'string', 'Legal representative');
         CompanySetting::setValue('company', 'company_address', $company['company_address'] ?? '', 'string', 'Company address');
         CompanySetting::setValue('company', 'company_phone', $company['company_phone'] ?? '', 'string', 'Company phone');
+        CompanySetting::setValue('company', 'company_fax', $company['company_fax'] ?? '', 'string', 'Company fax');
         CompanySetting::setValue('company', 'company_email', $company['company_email'] ?? '', 'string', 'Company email');
         CompanySetting::setValue('company', 'company_ice', $company['company_ice'] ?? '', 'string', 'ICE');
         CompanySetting::setValue('company', 'company_tva', $company['company_tva'] ?? '', 'string', 'TVA');

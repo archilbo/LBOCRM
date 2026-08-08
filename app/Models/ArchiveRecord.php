@@ -56,6 +56,11 @@ class ArchiveRecord extends Model
         return $this->belongsTo(Dossier::class);
     }
 
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
+    }
+
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requester_id');
