@@ -16,6 +16,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DossierController;
+use App\Http\Controllers\DossierCahierController;
 use App\Http\Controllers\DossierWorkflowRequirementController;
 use App\Http\Controllers\ProjectDesignController;
 use App\Http\Controllers\ProjectDesignUploadSessionController;
@@ -67,6 +68,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/global-search', [GlobalSearchController::class, 'index'])->name('global-search.index')->middleware(['permission.route', 'throttle:30,1']);
 
+    Route::post('/clients/bulk-delete', [ClientController::class, 'bulkDestroy'])->name('clients.bulk.destroy')->middleware('permission.route');
     Route::resource('clients', ClientController::class)->only([
         'index',
         'show',
@@ -84,6 +86,7 @@ Route::middleware('auth')->group(function () {
         'update',
         'destroy',
     ])->middleware('permission.route');
+    Route::post('/intermediaries/bulk-delete', [IntermediaryController::class, 'bulkDestroy'])->name('intermediaries.bulk.destroy')->middleware('permission.route');
 
     Route::resource('dossiers', DossierController::class)->only([
         'index',
@@ -94,6 +97,9 @@ Route::middleware('auth')->group(function () {
     ])->middleware('permission.route');
     Route::put('/dossiers/{dossier}/workflow-requirements', [DossierWorkflowRequirementController::class, 'update'])
         ->name('dossiers.workflow-requirements.update')
+        ->middleware('permission.route');
+    Route::put('/dossiers/{dossier}/cahier', [DossierCahierController::class, 'update'])
+        ->name('dossiers.cahier.update')
         ->middleware('permission.route');
     Route::get('/dossiers/{dossier}/efficiency-sheet', [ProjectEfficiencySheetController::class, 'show'])
         ->name('dossiers.efficiency-sheet.show')
@@ -215,6 +221,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/finance/documents', [FinanceDocumentController::class, 'index'])->name('finance.documents.index');
     Route::post('/finance/documents', [FinanceDocumentController::class, 'store'])->name('finance.documents.store');
+    Route::post('/finance/documents/bulk-delete', [FinanceDocumentController::class, 'bulkDestroy'])->name('finance.documents.bulk.destroy');
     Route::get('/finance/documents/{financeDocument}', [FinanceDocumentController::class, 'show'])->name('finance.documents.show');
     Route::put('/finance/documents/{financeDocument}', [FinanceDocumentController::class, 'update'])->name('finance.documents.update');
     Route::delete('/finance/documents/{financeDocument}', [FinanceDocumentController::class, 'destroy'])->name('finance.documents.destroy');
@@ -239,6 +246,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/finance/payments', [PaymentController::class, 'store'])->name('finance.payments.store');
     Route::put('/finance/payments/{payment}', [PaymentController::class, 'update'])->name('finance.payments.update');
     Route::delete('/finance/payments/{payment}', [PaymentController::class, 'destroy'])->name('finance.payments.destroy');
+    Route::post('/finance/documents/{financeDocument}/payment-reminders', [\App\Http\Controllers\Finance\FinancePaymentReminderController::class, 'store'])->name('finance.payment-reminders.store');
+    Route::put('/finance/payment-reminders/{financePaymentReminder}/snooze', [\App\Http\Controllers\Finance\FinancePaymentReminderController::class, 'snooze'])->name('finance.payment-reminders.snooze');
+    Route::delete('/finance/payment-reminders/{financePaymentReminder}', [\App\Http\Controllers\Finance\FinancePaymentReminderController::class, 'destroy'])->name('finance.payment-reminders.destroy');
+    Route::put('/finance/documents/{financeDocument}/payment-schedule', [\App\Http\Controllers\Finance\FinancePaymentScheduleController::class, 'replace'])->name('finance.payment-schedules.replace');
+    Route::post('/finance/documents/{financeDocument}/payment-promises', [\App\Http\Controllers\Finance\FinancePaymentPromiseController::class, 'store'])->name('finance.payment-promises.store');
+    Route::delete('/finance/payment-promises/{financePaymentPromise}', [\App\Http\Controllers\Finance\FinancePaymentPromiseController::class, 'destroy'])->name('finance.payment-promises.destroy');
 
     Route::get('/finance/expenses', [ExpenseController::class, 'index'])->name('finance.expenses.index');
     Route::post('/finance/expenses', [ExpenseController::class, 'store'])->name('finance.expenses.store');
@@ -255,6 +268,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/archives/move', [ArchiveController::class, 'moveArchives'])->name('archives.move');
         Route::post('/archives/bulk/status', [ArchiveController::class, 'bulkStatus'])->name('archives.bulk.status');
         Route::post('/archives/bulk/move', [ArchiveController::class, 'bulkMove'])->name('archives.bulk.move');
+        Route::post('/archives/bulk/delete', [ArchiveController::class, 'bulkDestroy'])->name('archives.bulk.destroy');
         Route::get('/archives/boxes/{box}/contents', [ArchiveController::class, 'boxContents'])->name('archives.boxes.contents');
         // Wildcard routes last
         Route::get('/archives', [ArchiveController::class, 'index'])->name('archives.index');
@@ -276,6 +290,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/settings/system-appearance/appearance', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'updateAppearance'])->name('settings.system-appearance.appearance.update')->middleware('permission.route');
     Route::post('/settings/system-appearance/assets', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'uploadAsset'])->name('settings.system-appearance.assets.store')->middleware('permission.route');
     Route::delete('/settings/system-appearance/assets', [\App\Http\Controllers\Settings\SystemAppearanceController::class, 'removeAsset'])->name('settings.system-appearance.assets.destroy')->middleware('permission.route');
+    Route::post('/settings/recovery/{recoveryRecord}/restore', [\App\Http\Controllers\Settings\RecoveryController::class, 'restore'])->name('settings.recovery.restore')->middleware('permission.route');
+    Route::delete('/settings/recovery/{recoveryRecord}/purge', [\App\Http\Controllers\Settings\RecoveryController::class, 'purge'])->name('settings.recovery.purge')->middleware('permission.route');
 
     Route::prefix('api')->middleware('permission.route')->group(function () {
         Route::get('/clients/search', [ApiClientController::class, 'search'])->name('api.clients.search');

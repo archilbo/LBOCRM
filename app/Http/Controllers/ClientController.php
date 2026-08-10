@@ -25,6 +25,7 @@ use App\Services\Cin\CinScanner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\City;
@@ -211,6 +212,30 @@ class ClientController extends Controller
         return redirect()
             ->route('clients.index')
             ->with('success', 'Client deleted successfully.');
+    }
+
+    public function bulkDestroy(Request $request, CompanyContext $companyContext): RedirectResponse
+    {
+        $data = $request->validate([
+            'client_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'client_ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $clients = $companyContext->applyTo(Client::query(), $request->user())
+            ->whereKey($data['client_ids'])
+            ->get();
+
+        abort_unless($clients->count() === count($data['client_ids']), 404);
+
+        foreach ($clients as $client) {
+            $this->authorize('delete', $client);
+        }
+
+        DB::transaction(fn () => $clients->each->delete());
+
+        return redirect()
+            ->route('clients.index')
+            ->with('success', "{$clients->count()} client(s) deleted successfully.");
     }
 
     public function scanCin(

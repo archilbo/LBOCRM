@@ -2,8 +2,8 @@ import { FormEvent, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { IconTrash, IconX, IconInfoCircle } from '@tabler/icons-react';
 
-import { CalendarDateTime, type DateValue } from '@internationalized/date';
-import { Button, Calendar, Checkbox, DateField, DatePicker, Input, TextArea } from '@heroui/react';
+import { CalendarDateTime, getLocalTimeZone, today, type DateValue } from '@internationalized/date';
+import { Calendar, Card, Checkbox, DateField, DatePicker, Input, TextArea } from '@heroui/react';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppFormErrorSummary } from '@/components/ui/AppFormErrorSummary';
@@ -104,6 +104,8 @@ function toBackendPayload(f: CalendarEventForm) {
 export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, defaultStart, defaultType = 'task', canManageAdminVisibility }: Props) {
     const { t } = useTranslation();
     const isEdit = !!editEvent;
+    const currentDate = today(getLocalTimeZone());
+    const earliestDate = isEdit ? undefined : new CalendarDateTime(currentDate.year, currentDate.month, currentDate.day, 0, 0);
     const [form, setForm] = useState(() => initForm(editEvent, defaultStart, defaultType));
     const [formErrors, setFormErrors] = useState<FormErrors>({});
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -164,6 +166,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
         <AppDrawer
             isOpen={isOpen}
             onOpenChange={handleClose}
+            size="lg"
             title={isEdit ? t('calendar.drawer.editTitle') : t('calendar.newEvent')}
             description={isEdit ? `#${editEvent?.eventNumber || ''}` : t('calendar.drawer.createDescription')}
             footer={
@@ -184,7 +187,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
 
                 <DrawerSection title={t('calendar.drawer.details')}>
                     <div className={drawerStyles.sectionGrid}>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <DrawerField label={t('calendar.drawer.fields.type')} error={firstError(formErrors, 'type')}>
                                 <DrawerSelect
                                     value={currentForm.type}
@@ -207,10 +210,10 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                         </div>
 
                         {typeHint && (
-                            <div className="flex items-start gap-2 rounded-lg border border-[var(--crm-gold)]/20 bg-[var(--crm-gold)]/8 px-3 py-2">
+                            <Card className="flex items-start gap-2 border border-[color-mix(in_srgb,var(--accent)_28%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] px-3 py-2 shadow-none">
                                 <IconInfoCircle size={13} className="mt-0.5 shrink-0 text-[var(--crm-gold)]" />
                                 <p className="text-[10px] text-[var(--crm-text-muted)]">{typeHint}</p>
-                            </div>
+                            </Card>
                         )}
 
                         <DrawerField label={t('calendar.drawer.fields.title')} error={firstError(formErrors, 'title')}>
@@ -229,10 +232,11 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
 
                 <DrawerSection title={t('calendar.drawer.schedule')}>
                     <div className={drawerStyles.sectionGrid}>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <DrawerField label={t('calendar.drawer.fields.start')} error={firstError(formErrors, 'starts_at')}>
                             <DatePicker
                                 value={toCalendarDateTime(currentForm.startsAt)}
+                                minValue={earliestDate}
                                 onChange={(v) => setForm((p) => ({ ...p, startsAt: fromCalendarDateTime(v) }))}
                                 granularity="minute"
                             >
@@ -246,8 +250,8 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                         </DatePicker.Trigger>
                                     </DateField.Suffix>
                                 </DateField.Group>
-                                <DatePicker.Popover isNonModal className={drawerStyles.popover}>
-                                    <Calendar aria-label={t('calendar.drawer.fields.startAria')}>
+                                <DatePicker.Popover className={drawerStyles.popover}>
+                                    <Calendar aria-label={t('calendar.drawer.fields.startAria')} minValue={earliestDate}>
                                         <Calendar.Header>
                                             <Calendar.YearPickerTrigger>
                                                 <Calendar.YearPickerTriggerHeading />
@@ -276,6 +280,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                             <DrawerField label={t('calendar.drawer.fields.end')} error={firstError(formErrors, 'ends_at')}>
                             <DatePicker
                                 value={toCalendarDateTime(currentForm.endsAt)}
+                                minValue={earliestDate}
                                 onChange={(v) => setForm((p) => ({ ...p, endsAt: fromCalendarDateTime(v) }))}
                                 granularity="minute"
                             >
@@ -289,8 +294,8 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                         </DatePicker.Trigger>
                                     </DateField.Suffix>
                                 </DateField.Group>
-                                <DatePicker.Popover isNonModal className={drawerStyles.popover}>
-                                    <Calendar aria-label={t('calendar.drawer.fields.endAria')}>
+                                <DatePicker.Popover className={drawerStyles.popover}>
+                                    <Calendar aria-label={t('calendar.drawer.fields.endAria')} minValue={earliestDate}>
                                         <Calendar.Header>
                                             <Calendar.YearPickerTrigger>
                                                 <Calendar.YearPickerTriggerHeading />
@@ -333,7 +338,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
 
                 <DrawerSection title={t('calendar.drawer.statusVisibility')}>
                     <div className={drawerStyles.sectionGrid}>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <DrawerField label={t('calendar.drawer.fields.status')} error={firstError(formErrors, 'status')}>
                                 <DrawerSelect
                                     value={currentForm.status}
@@ -358,22 +363,21 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                     <div className={drawerStyles.sectionGrid}>
                         <DrawerField label={t('calendar.drawer.fields.color')}>
                             <div className="flex flex-wrap gap-2">
-                                {(Object.entries(EVENT_TYPE_CLASSES) as [CalendarEventType, string][]).map(([type, cls]) => {
-                                    const bgClass = cls.split(' ')[0];
-                                    const borderClass = cls.split(' ')[2];
+                                {(Object.keys(EVENT_TYPE_CLASSES) as CalendarEventType[]).map((type) => {
                                     return (
-                                        <Button
+                                        <AppButton
                                             key={type}
                                             type="button"
                                             isIconOnly
                                             variant="ghost"
                                             onPress={() => setForm((p) => ({ ...p, color: colorFor(type) }))}
-                                            className={`flex size-8 min-w-8 items-center justify-center rounded-full border-2 p-0 transition ${
-                                                currentForm.color === colorFor(type) ? 'ring-2 ring-[var(--crm-gold)] ring-offset-2 ring-offset-[var(--crm-elevated)]' : ''
-                                            } ${borderClass || 'border-[var(--crm-border)]'} ${bgClass || 'bg-zinc-500/20'}`}
+                                            style={{ backgroundColor: colorFor(type) }}
+                                            className={`flex size-9 min-w-9 items-center justify-center rounded-full border-2 border-transparent p-0 text-black shadow-sm transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
+                                                currentForm.color === colorFor(type) ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--surface)]' : ''
+                                            }`}
                                             aria-label={t(`calendar.eventTypes.${type}`)}>
                                             <span className="text-[8px] font-bold opacity-60">{t(`calendar.eventTypes.${type}`).charAt(0)}</span>
-                                        </Button>
+                                        </AppButton>
                                     );
                                 })}
                             </div>
@@ -406,7 +410,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                                 {initials(u.name)}
                                             </span>
                                             {u.name}
-                                            <Button
+                                            <AppButton
                                                 type="button"
                                                 isIconOnly
                                                 variant="ghost"
@@ -415,7 +419,7 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
                                                 aria-label={t('calendar.drawer.removeUser', { name: u.name })}
                                                 className="size-4 min-w-4 rounded p-0 text-[var(--crm-muted)] hover:text-red-400">
                                                 <IconX size={12} />
-                                            </Button>
+                                            </AppButton>
                                         </span>
                                     ) : null;
                                 })}
@@ -434,9 +438,9 @@ export function CalendarEventDrawer({ isOpen, onOpenChange, users, editEvent, de
         </AppDrawer>
         <AppConfirmDialog
             isOpen={deleteConfirmOpen}
-            title="Supprimer cet événement ?"
-            description={`L’événement « ${editEvent?.title ?? ''} » sera supprimé définitivement.`}
-            confirmLabel="Supprimer"
+            title="Déplacer cet événement dans la corbeille ?"
+            description={`L’événement « ${editEvent?.title ?? ''} » pourra être restauré depuis la corbeille.`}
+            confirmLabel="Déplacer vers la corbeille"
             onConfirm={handleDelete}
             onCancel={() => setDeleteConfirmOpen(false)}
             variant="danger"

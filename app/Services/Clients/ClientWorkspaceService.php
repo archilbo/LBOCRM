@@ -11,6 +11,7 @@ use App\Services\Dossiers\DossierWorkflowStepperService;
 use App\Services\Documents\DossierDocumentFileService;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\Finance\DossierFinanceEligibilityService;
+use App\Services\Finance\FinanceReceivablesService;
 use App\Services\PermissionRegistry;
 use Illuminate\Support\Facades\Storage;
 
@@ -20,6 +21,7 @@ class ClientWorkspaceService
         private readonly DossierWorkflowStepperService $workflowStepper,
         private readonly DossierDocumentFileService $documentFiles,
         private readonly DossierFinanceEligibilityService $financeEligibility,
+        private readonly FinanceReceivablesService $receivables,
         private readonly PermissionRegistry $permissions,
         private readonly ClientDocumentExplorerService $clientExplorer,
     ) {
@@ -33,6 +35,7 @@ class ClientWorkspaceService
             'intermediary',
             'dossiers.documents.template',
             'dossiers.contract',
+            'dossiers.cahier',
             'dossiers.workflowRequirements.checkedBy',
             'dossiers.archiveRecord',
         ];
@@ -93,6 +96,7 @@ class ClientWorkspaceService
         $financeDocuments = $includeFinance ? $dossier->financeDocuments : collect();
         $invoices = $financeDocuments->where('type', 'invoice');
         $payments = $includeFinance ? $dossier->payments : collect();
+        $receivables = $invoices->map(fn ($invoice) => $this->receivables->forInvoice($invoice));
 
         return [
             'id' => $dossier->id,
@@ -111,8 +115,12 @@ class ClientWorkspaceService
             'paymentsCount' => $payments->count(),
             'quotesTotal' => (float) $financeDocuments->where('type', 'quote')->sum('total_ttc'),
             'invoicesTotal' => (float) $invoices->sum('total_ttc'),
-            'paidTotal' => (float) $payments->sum('amount'),
-            'remainingTotal' => (float) $invoices->sum('remaining_total'),
+            'paidTotal' => (float) $receivables->sum('paid'),
+            'remainingTotal' => (float) $receivables->sum('outstanding'),
+            'overdueTotal' => (float) $invoices
+                ->filter(fn ($invoice) => $this->receivables->forInvoice($invoice)['dueState'] === 'overdue')
+                ->map(fn ($invoice) => $this->receivables->forInvoice($invoice)['outstanding'])
+                ->sum(),
             'updatedAt' => optional($dossier->updated_at)->toISOString(),
         ];
     }
@@ -186,6 +194,14 @@ class ClientWorkspaceService
                 'inDate' => optional($dossier->archiveRecord->in_date)->toISOString(),
                 'outDate' => optional($dossier->archiveRecord->out_date)->toISOString(),
                 'returnedAt' => optional($dossier->archiveRecord->returned_at)->toISOString(),
+            ] : null,
+            // The client workspace always exposes the currently selected
+            // project's Cahier. It never aggregates Cahiers from the client's
+            // other projects into a single workflow.
+            'cahier' => $dossier->cahier ? [
+                'number' => (string) $dossier->cahier->cahier_number,
+                'receivedAt' => optional($dossier->cahier->received_at)->toDateString(),
+                'deliveredAt' => optional($dossier->cahier->delivered_at)->toDateString(),
             ] : null,
             'workflow' => $this->workflowStepper->evaluate($dossier),
             'timeline' => $this->buildTimeline($dossier, $includeFinance),

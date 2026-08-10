@@ -329,6 +329,7 @@ export function ProjectDesignEditorLayout({
     if (isXl) {
         panels = (
             <Group
+                key="project-design-xl"
                 orientation="horizontal"
                 defaultLayout={{
                     browser: persisted.browserCollapsed ? 0 : BROWSER_LAYOUT,
@@ -371,6 +372,7 @@ export function ProjectDesignEditorLayout({
     } else if (isLg) {
         panels = (
             <Group
+                key="project-design-lg"
                 orientation="horizontal"
                 defaultLayout={{
                     browser: persisted.browserCollapsed ? 0 : BROWSER_LAYOUT,

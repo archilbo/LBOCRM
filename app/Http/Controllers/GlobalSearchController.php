@@ -27,7 +27,7 @@ class GlobalSearchController extends Controller
             ]);
         }
 
-        $tokens = $this->tokens($query);
+        $tokens = $this->tokens($this->normalizeCahierPrefix($query));
 
         $user = $request->user();
         $canViewArchive = $permissions->allows($user, 'archive.view');
@@ -144,7 +144,7 @@ class GlobalSearchController extends Controller
     private function dossiers(array $tokens, Request $request, CompanyContext $companyContext, bool $canViewArchive): Collection
     {
         return $companyContext->applyTo(Dossier::query(), $request->user())
-            ->with(['client', ...$canViewArchive ? ['archiveRecord', 'city'] : []])
+            ->with(['client', 'cahier', ...$canViewArchive ? ['archiveRecord', 'city'] : []])
             ->where(function (Builder $builder) use ($tokens) {
                 foreach ($tokens as $token) {
                     $builder->where(function (Builder $tokenQuery) use ($token) {
@@ -154,6 +154,9 @@ class GlobalSearchController extends Controller
                         $this->orWhereToken($tokenQuery, 'commune', $token);
                         $this->orWhereToken($tokenQuery, 'province', $token);
                         $this->orWhereToken($tokenQuery, 'land_title_number', $token);
+                        $tokenQuery->orWhereHas('cahier', function (Builder $cahierQuery) use ($token) {
+                            $this->whereToken($cahierQuery, 'cahier_number', $token);
+                        });
                         $tokenQuery->orWhereHas('client', function (Builder $clientQuery) use ($token) {
                             $this->whereToken($clientQuery, 'full_name', $token);
                             $this->orWhereToken($clientQuery, 'client_number', $token);
@@ -176,6 +179,12 @@ class GlobalSearchController extends Controller
                 ]),
                 'href' => '/dossiers/' . $dossier->id,
                 'badge' => $dossier->workflow_step,
+                'cahier' => $dossier->cahier
+                    ? [
+                        'number' => (string) $dossier->cahier->cahier_number,
+                        'href' => '/dossiers/' . $dossier->id . '?tab=workflow',
+                    ]
+                    : null,
                 'archive' => $canViewArchive && $dossier->relationLoaded('archiveRecord') && $dossier->archiveRecord
                     ? [
                         'number' => $dossier->archiveRecord->archive_number,
@@ -189,6 +198,11 @@ class GlobalSearchController extends Controller
                     ]
                     : null,
             ]);
+    }
+
+    private function normalizeCahierPrefix(string $query): string
+    {
+        return preg_replace('/(?:^|\\s)n[°º]\\s*/iu', ' ', $query) ?? $query;
     }
 
     private function documents(array $tokens, Request $request, CompanyContext $companyContext): Collection

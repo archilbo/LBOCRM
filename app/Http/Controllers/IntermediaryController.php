@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -213,6 +214,29 @@ class IntermediaryController extends Controller
         return redirect()
             ->route('intermediaries.index')
             ->with('success', 'Intermediary deleted successfully.');
+    }
+
+    public function bulkDestroy(Request $request, CompanyContext $companyContext): RedirectResponse
+    {
+        $data = $request->validate([
+            'intermediary_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'intermediary_ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $intermediaries = $companyContext->applyTo(Intermediary::query(), $request->user())
+            ->whereKey($data['intermediary_ids'])
+            ->get();
+
+        abort_unless($intermediaries->count() === count($data['intermediary_ids']), 404);
+
+        foreach ($intermediaries as $intermediary) {
+            $this->authorize('delete', $intermediary);
+        }
+
+        DB::transaction(fn () => $intermediaries->each->delete());
+
+        return redirect()->route('intermediaries.index')
+            ->with('success', "{$intermediaries->count()} intermediary(s) deleted successfully.");
     }
 
     private function nextIntermediaryCode(): string

@@ -121,6 +121,7 @@ export type DossierWorkflowRequirement = {
     checkedBy: string | null;
     actionLabel: string | null;
     actionUrl: string | null;
+    hasFile: boolean;
 };
 
 export type DossierWorkflowStep = {
@@ -217,6 +218,11 @@ export type ClientSelectedProjectWorkspace = ClientProjectSummary & {
         paymentReason: string | null;
     };
     archiveRecord: ClientProjectArchiveRecord | null;
+    cahier: {
+        number: string;
+        receivedAt: string;
+        deliveredAt: string | null;
+    } | null;
     workflow: DossierWorkflowProgress | null;
     timeline: DossierTimelineEvent[];
 };

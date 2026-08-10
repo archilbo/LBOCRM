@@ -11,3 +11,4 @@ Artisan::command('inspire', function () {
 Schedule::command('app:task-overdue-notify')->dailyAt('08:00');
 Schedule::command('app:archive-overdue-notify')->dailyAt('08:30');
 Schedule::command('calendar:process-reminders')->everyMinute();
+Schedule::command('finance:process-payment-reminders')->everyFiveMinutes()->withoutOverlapping();

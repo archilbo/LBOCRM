@@ -389,6 +389,11 @@ export function AppGlobalSearch() {
         router.visit(href);
     }
 
+    function openCahier(href: string) {
+        setIsOpen(false);
+        router.visit(href);
+    }
+
     function handleAction(key: ReactKey) {
         const id = String(key);
 
@@ -654,6 +659,7 @@ export function AppGlobalSearch() {
                                                 result={result}
                                                 query={trimmedQuery}
                                                 onOpenArchive={openArchive}
+                                                onOpenCahier={openCahier}
                                             />
                                         ))}
                                     </ListBox.Section>

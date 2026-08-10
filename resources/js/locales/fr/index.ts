@@ -13,5 +13,6 @@ import { frCalendar } from './calendar';
 import { frUsers } from './users';
 import { frAuth } from './auth';
 import { frDossiers } from './dossiers';
+import { frFinance } from './finance';
 
-export const fr = { ...frCommon, ...frDashboard, ...frClients, ...frIntermediaries, ...frGlobalSearch, ...frDocuments, ...frDocumentsExplorer, ...frArchives, ...frNotifications, ...frInbox, ...frTasks, ...frCalendar, ...frUsers, ...frAuth, ...frDossiers };
+export const fr = { ...frCommon, ...frDashboard, ...frClients, ...frIntermediaries, ...frGlobalSearch, ...frDocuments, ...frDocumentsExplorer, ...frArchives, ...frNotifications, ...frInbox, ...frTasks, ...frCalendar, ...frUsers, ...frAuth, ...frDossiers, ...frFinance };

@@ -113,6 +113,7 @@ export function AppKpiCard({
             ) : (
                 <p className={cn('text-xl font-bold leading-none tracking-tight text-[var(--text)] tabular-nums', valueClassName)} title={title}>{value}</p>
             )}
+            {detail ? <p className="text-xs text-[var(--text-muted)]">{detail}</p> : null}
         </div>
     ) : (
         <>

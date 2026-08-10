@@ -145,6 +145,12 @@ export type ArchivesPageProps = {
         overdue: number;
         lost: number;
     };
+    reports: {
+        overdue: Array<{ id: number; archiveNumber: string; projectObject: string; dueAt: string | null; overdueDays: number }>;
+        monthly: Array<{ period: string; total: number }>;
+        lost: Array<{ id: number; archiveNumber: string; projectObject: string; lostReason: string | null; lostAt: string | null }>;
+        kpis: { totalOverdue: number; totalLost: number; avgOverdueDays: number };
+    };
     filters: {
         q?: string;
         status?: string[];

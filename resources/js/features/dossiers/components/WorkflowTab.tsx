@@ -1,40 +1,39 @@
 import { useCallback, useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
-import { IconAlertCircle, IconArrowLeft, IconArrowRight, IconCheck, IconCircle, IconCircleDot, IconExternalLink } from '@tabler/icons-react';
+import { IconAlertCircle, IconArrowLeft, IconArrowRight, IconCheck, IconCircle, IconCircleDot, IconExternalLink, IconEye, IconNotebook, IconUpload, IconX } from '@tabler/icons-react';
 
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
 import { AppModal } from '@/components/ui/AppModal';
+import { AppDatePicker } from '@/components/ui/AppDatePicker';
+import { AppButton } from '@/components/ui/AppButton';
 import type { WorkflowData } from '@/types/workflow';
-import { Button } from '@heroui/react';
+import { Input } from '@heroui/react';
 
-export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId, onOpenUpload, onOpenArchive }: {
-    workflow: WorkflowData; selectedStepKey: string | null; onSelectStep: (key: string) => void; dossierId: number; onOpenUpload?: (stepKey: string, reqKey: string) => void; onOpenArchive?: () => void;
+type CahierSummary = { number: string; receivedAt: string; deliveredAt: string | null } | null;
+
+export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId, cahier, canUpdateWorkflow, onOpenUpload, onOpenDocuments, onOpenArchive }: {
+    workflow: WorkflowData; selectedStepKey?: string | null; onSelectStep?: (key: string) => void; dossierId: number; cahier: CahierSummary; canUpdateWorkflow: boolean; onOpenUpload?: (stepKey: string, reqKey: string) => void; onOpenDocuments?: () => void; onOpenArchive?: () => void;
 }) {
     const [modalState, setModalState] = useState<{
         stepKey: string; reqKey: string; isDone: boolean; notes: string;
     } | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [isCahierOpen, setIsCahierOpen] = useState(false);
+    const [cahierForm, setCahierForm] = useState({ number: '', receivedAt: '', deliveredAt: '' });
+    const [internalSelectedStepKey, setInternalSelectedStepKey] = useState<string | null>(workflow.currentStep ?? workflow.steps[0]?.key ?? null);
+    const activeStepKey = selectedStepKey ?? internalSelectedStepKey;
+    const selectStep = onSelectStep ?? setInternalSelectedStepKey;
 
     const activeStep = useMemo(
-        () => workflow.steps.find((step) => step.key === selectedStepKey) ?? workflow.steps[0] ?? null,
-        [selectedStepKey, workflow.steps],
+        () => workflow.steps.find((step) => step.key === activeStepKey) ?? workflow.steps[0] ?? null,
+        [activeStepKey, workflow.steps],
     );
 
     const activeIndex = activeStep ? workflow.steps.findIndex((s) => s.key === activeStep.key) : -1;
     const prevStep = activeIndex > 0 ? workflow.steps[activeIndex - 1] : null;
     const nextStep = activeIndex >= 0 ? workflow.steps[activeIndex + 1] : null;
     const isComplete = activeStep?.status === 'completed';
-
-    if (!workflow || workflow.steps.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-                <IconCircleDot size={32} className="mb-3 text-[var(--text-subtle)]" />
-                <p className="text-sm font-medium text-[var(--foreground)]">Aucun workflow defini</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Ce projet n'a pas de workflow configure.</p>
-            </div>
-        );
-    }
 
     function statusLabel(status: string) {
         if (status === 'completed') return { label: 'Termine', color: 'text-emerald-400' };
@@ -60,6 +59,33 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
         }
         if (!url) return;
         router.visit(url, { preserveScroll: true });
+    }
+
+    function openCahier() {
+        const today = new Date().toISOString().slice(0, 10);
+        setCahierForm({ number: cahier?.number ?? '', receivedAt: cahier?.receivedAt ?? today, deliveredAt: cahier?.deliveredAt ?? '' });
+        setIsCahierOpen(true);
+    }
+
+    function saveCahier() {
+        setSubmitting(true);
+        router.put(`/dossiers/${dossierId}/cahier`, {
+            cahier_number: cahierForm.number,
+            received_at: cahierForm.receivedAt,
+            delivered_at: cahierForm.deliveredAt || null,
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                toast.success('Cahier de chantier mis a jour.');
+                setIsCahierOpen(false);
+                setSubmitting(false);
+            },
+            onError: () => {
+                toast.error('Verifiez le numero et les dates du cahier.');
+                setSubmitting(false);
+            },
+        });
     }
 
     const openRequirementModal = useCallback((stepKey: string, reqKey: string, isDone: boolean) => {
@@ -89,16 +115,26 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
         });
     }, [modalState, dossierId]);
 
+    if (workflow.steps.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+                <IconCircleDot size={32} className="mb-3 text-[var(--text-subtle)]" />
+                <p className="text-sm font-medium text-[var(--foreground)]">Aucun workflow defini</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Ce projet n'a pas de workflow configure.</p>
+            </div>
+        );
+    }
+
     return (
         <div>
             {/* Mobile chips */}
             <div className="flex gap-1.5 overflow-x-auto pb-1 sm:hidden">
                 {workflow.steps.map((step) => {
-                    const isActive = step.key === selectedStepKey;
+                    const isActive = step.key === activeStepKey;
                     const isCompleted = step.status === 'completed';
                     const isBlocked = step.status === 'blocked';
                     return (
-                        <button key={step.key} type="button" onClick={() => onSelectStep(step.key)}
+                        <button key={step.key} type="button" onClick={() => selectStep(step.key)}
                             className={cn(
                                 'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition',
                                 isActive && !isCompleted && 'bg-[var(--accent)]/10 text-[var(--accent)] ring-1 ring-[var(--accent)]/20',
@@ -137,13 +173,13 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                         <p className="mb-4 text-right text-[10px] font-medium text-[var(--text-muted)]">{workflow.percent}%</p>
                         <div className="space-y-0">
                             {workflow.steps.map((step, idx) => {
-                                const isActive = step.key === selectedStepKey;
+                                const isActive = step.key === activeStepKey;
                                 const isCompleted = step.status === 'completed';
                                 const isBlocked = step.status === 'blocked';
                                 const s = statusLabel(step.status);
                                 return (
                                     <div key={step.key}>
-                                        <button type="button" onClick={() => onSelectStep(step.key)} className={cn(
+                                        <button type="button" onClick={() => selectStep(step.key)} className={cn(
                                             'group relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all',
                                             isActive ? 'bg-[var(--accent)]/8 shadow-sm' : 'hover:bg-[var(--surface-2)]',
                                             isActive && 'ring-1 ring-[var(--accent)]/20',
@@ -243,30 +279,37 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                     <div className="flex items-center justify-between gap-2">
                                                         <span className="text-[12px] text-[var(--foreground)]">{req.label}</span>
                                                         <div className="flex items-center gap-1.5 shrink-0">
-                                                            {!req.done && req.actionUrl && (
-                                                                 <button type="button" onClick={() => openAction(req.actionUrl, req.actionLabel === 'Televerser / ouvrir', req.key, activeStep.key, req.actionLabel)}
-                                                                    className="flex items-center gap-1 h-7 rounded-md border border-[var(--border)] px-2.5 text-[10px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
-                                                                    {req.actionLabel || 'Ouvrir'}
-                                                                </button>
-                                                            )}
-                                                            {req.manual && (
-                                                                <button type="button"
-                                                                    onClick={() => openRequirementModal(activeStep.key, req.key, !req.done)}
-                                                                    className={cn(
-                                                                        'flex items-center gap-1 h-7 rounded-md border px-2.5 text-[10px] font-medium transition',
-                                                                        req.done
-                                                                            ? 'border-red-400/30 text-red-400 hover:bg-red-400/8'
-                                                                            : 'border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/8',
-                                                                    )}>
-                                                                    <IconCheck size={12} />
-                                                                    {req.done ? 'Annuler' : 'Fait'}
-                                                                </button>
-                                                            )}
-                                                            {req.done && !req.manual && (
-                                                                <button type="button" onClick={() => openRequirementModal(activeStep.key, req.key, false)}
-                                                                    className="flex items-center gap-1 h-7 rounded-md border border-red-400/30 px-2.5 text-[10px] font-medium text-red-400 transition hover:bg-red-400/8">
-                                                                    Annuler
-                                                                </button>
+                                                            {activeStep.key === 'cahier_chantier' && req.key === 'cahier_received' ? (
+                                                                <AppButton size="sm" compact isIconOnly className="size-7 min-h-7 min-w-7" variant="accent" tooltip={cahier ? 'Gerer le cahier' : 'Saisir le cahier'} aria-label={cahier ? 'Gerer le cahier' : 'Saisir le cahier'} onPress={openCahier} isDisabled={!canUpdateWorkflow}>
+                                                                    <IconNotebook size={13} />
+                                                                </AppButton>
+                                                            ) : (
+                                                                <>
+                                                                    {req.hasFile ? (
+                                                                        <AppButton size="sm" compact isIconOnly className="size-7 min-h-7 min-w-7" variant="quiet" tooltip="Voir le document" aria-label="Voir le document" onPress={() => onOpenDocuments?.()}>
+                                                                            <IconEye size={13} />
+                                                                        </AppButton>
+                                                                    ) : null}
+                                                                    {req.actionUrl && req.actionLabel ? (
+                                                                        <AppButton size="sm" compact isIconOnly className="size-7 min-h-7 min-w-7" variant="toolbar" tooltip={req.actionLabel} aria-label={req.actionLabel} onPress={() => openAction(req.actionUrl, req.actionLabel === 'Televerser', req.key, activeStep.key, req.actionLabel)}>
+                                                                            <IconUpload size={13} />
+                                                                        </AppButton>
+                                                                    ) : null}
+                                                                    <AppButton
+                                                                        size="sm"
+                                                                        compact
+                                                                        isIconOnly
+                                                                        className="size-7 min-h-7 min-w-7"
+                                                                        variant={req.done ? 'danger-soft' : 'solid'}
+                                                                        color={req.done ? 'default' : 'success'}
+                                                                        tooltip={req.done ? 'Annuler la validation' : 'Marquer comme fait'}
+                                                                        aria-label={req.done ? 'Annuler la validation' : 'Marquer comme fait'}
+                                                                        isDisabled={!canUpdateWorkflow}
+                                                                        onPress={() => openRequirementModal(activeStep.key, req.key, !req.done)}
+                                                                    >
+                                                                        {req.done ? <IconX size={13} /> : <IconCheck size={13} />}
+                                                                    </AppButton>
+                                                                </>
                                                             )}
                                                         </div>
                                                     </div>
@@ -278,6 +321,11 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                             {[req.checkedBy, req.checkedAt].filter(Boolean).join(' \u00B7 ')}
                                                         </p>
                                                     )}
+                                                    {activeStep.key === 'cahier_chantier' && req.key === 'cahier_received' && cahier ? (
+                                                        <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+                                                            N° {cahier.number} · Recu le {cahier.receivedAt}{cahier.deliveredAt ? ` · Delivre le ${cahier.deliveredAt}` : ''}
+                                                        </p>
+                                                    ) : null}
                                                 </div>
                                             </div>
                                         ))}
@@ -288,33 +336,29 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                             <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4">
                                 <div>
                                     {prevStep && (
-                                        <button type="button" onClick={() => onSelectStep(prevStep.key)}
-                                            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
+                                        <AppButton variant="quiet" compact onPress={() => selectStep(prevStep.key)}>
                                             <IconArrowLeft size={14} />
                                             Precedent
-                                        </button>
+                                        </AppButton>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {isComplete && nextStep ? (
-                                        <button type="button" onClick={() => onSelectStep(nextStep.key)}
-                                            className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-1.5 text-[11px] font-semibold text-[var(--accent-foreground)] transition hover:brightness-110">
+                                        <AppButton variant="accent" compact onPress={() => selectStep(nextStep.key)}>
                                             Suivante
                                             <IconArrowRight size={14} />
-                                        </button>
+                                        </AppButton>
                                     ) : null}
                                     {activeStep.primaryActionUrl && activeStep.key === 'archive' && onOpenArchive ? (
-                                        <button type="button" onClick={onOpenArchive}
-                                            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                                        <AppButton variant="bordered" compact onPress={onOpenArchive}>
                                             <IconExternalLink size={13} />
                                             {activeStep.primaryActionLabel || 'Ouvrir'}
-                                        </button>
+                                        </AppButton>
                                     ) : activeStep.primaryActionUrl ? (
-                                        <button type="button" onClick={() => openAction(activeStep.primaryActionUrl)}
-                                            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-1.5 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--surface-2)]">
+                                        <AppButton variant="bordered" compact onPress={() => openAction(activeStep.primaryActionUrl)}>
                                             <IconExternalLink size={13} />
                                             {activeStep.primaryActionLabel || 'Ouvrir'}
-                                        </button>
+                                        </AppButton>
                                     ) : null}
                                 </div>
                             </div>
@@ -344,17 +388,37 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                         className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[12px] text-[var(--foreground)] placeholder:text-[var(--text-subtle)] outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] resize-none"
                     />
                     <div className="flex justify-end gap-2">
-                        <Button variant="bordered" onPress={() => setModalState(null)} isDisabled={submitting}>
+                        <AppButton variant="bordered" onPress={() => setModalState(null)} isDisabled={submitting}>
                             Annuler
-                        </Button>
-                        <Button
+                        </AppButton>
+                        <AppButton
                             variant="solid"
                             color={modalState?.isDone ? 'primary' : 'danger'}
                             onPress={confirmRequirement}
-                            isLoading={submitting}
+                            isDisabled={submitting}
                         >
                             Confirmer
-                        </Button>
+                        </AppButton>
+                    </div>
+                </div>
+            </AppModal>
+
+            <AppModal isOpen={isCahierOpen} onOpenChange={setIsCahierOpen} title="Cahier de chantier" size="sm">
+                <div className="space-y-4">
+                    <p className="text-xs leading-relaxed text-[var(--text-muted)]">Enregistrez le numero et la reception. Cette action finalise uniquement l'etape « Cahier recu » ; aucun fichier n'est cree.</p>
+                    <label className="block text-[11px] font-medium text-[var(--foreground)]" htmlFor="cahier-number">Numero du cahier</label>
+                    <Input
+                        id="cahier-number"
+                        type="text"
+                        placeholder="Ex. 055945"
+                        value={cahierForm.number}
+                        onChange={(event) => setCahierForm((current) => ({ ...current, number: event.target.value }))}
+                    />
+                    <AppDatePicker label="Date de reception" value={cahierForm.receivedAt} onChange={(receivedAt) => setCahierForm((current) => ({ ...current, receivedAt }))} isRequired />
+                    <AppDatePicker label="Date de livraison (optionnelle)" value={cahierForm.deliveredAt} minValue={cahierForm.receivedAt} onChange={(deliveredAt) => setCahierForm((current) => ({ ...current, deliveredAt }))} />
+                    <div className="flex justify-end gap-2">
+                        <AppButton variant="bordered" onPress={() => setIsCahierOpen(false)} isDisabled={submitting}>Annuler</AppButton>
+                        <AppButton color="primary" onPress={saveCahier} isDisabled={submitting}>Enregistrer</AppButton>
                     </div>
                 </div>
             </AppModal>

@@ -661,7 +661,7 @@ code, pre, kbd, samp {
     min-width: 0;
 }
 
-@container (min-width: 980px) {
+@container (min-width: 1180px) {
     .finance-builder-layout {
         grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
         align-items: start;

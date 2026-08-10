@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
-import { Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
-import { IconAlertTriangle, IconFileDownload, IconFileSpreadsheet, IconFileText, IconPrinter, IconReceipt2 } from '@tabler/icons-react';
+import { IconAlertTriangle, IconCircleCheck, IconPrinter, IconReceipt2 } from '@tabler/icons-react';
 
-import { Button, Card, Input, ListBox, Select, TextArea } from '@heroui/react';
+import { Button, Card, Input, ListBox, Modal, Select, TextArea } from '@heroui/react';
 import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { toast } from 'sonner';
 import { AppDrawer } from '@/components/ui/AppDrawer';
@@ -29,7 +28,20 @@ type PaymentDrawerProps = {
 
 type PaymentForm = { financeDocumentId: string; dossierId: string; amount: string; method: string; reference: string; paidAt: string; notes: string; };
 
-type PaymentReceiptFlash = { paymentNumber: string; number: string; showUrl: string | null; generatePdfUrl: string | null; generateExcelUrl: string | null; pdfDownloadUrl: string | null; excelDownloadUrl: string | null; };
+type PaymentReceiptFlash = {
+    paymentNumber: string;
+    number: string;
+    clientName: string | null;
+    amount: number;
+    currency: string;
+    remainingTotal: number;
+    showUrl: string | null;
+    printUrl: string | null;
+    generatePdfUrl: string | null;
+    generateExcelUrl: string | null;
+    pdfDownloadUrl: string | null;
+    excelDownloadUrl: string | null;
+};
 
 type PaymentSuccessPage = { props?: { flash?: { receipt?: PaymentReceiptFlash | null; }; }; };
 
@@ -58,9 +70,39 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
     const [form, setForm] = useState<PaymentForm>(() => makeForm(invoice, defaultDossierId));
     const [selectedClientId, setSelectedClientId] = useState(defaultClientId || '');
     const [receiptPrompt, setReceiptPrompt] = useState<PaymentReceiptFlash | null>(null);
+    const clientOptions = useMemo(() => {
+        if (!invoice?.client || clients.some((client) => client.id === String(invoice.client?.id))) return clients;
+
+        return [{
+            id: String(invoice.client.id),
+            label: invoice.client.name,
+            cin: invoice.client.cin,
+            address: invoice.client.address,
+        }, ...clients];
+    }, [clients, invoice]);
+    const dossierOptions = useMemo(() => {
+        if (!invoice?.dossier || dossiers.some((dossier) => dossier.id === String(invoice.dossier?.id))) return dossiers;
+
+        return [{
+            id: String(invoice.dossier.id),
+            label: [invoice.dossier.number, invoice.dossier.projectObject].filter(Boolean).join(' - '),
+            clientId: invoice.client ? String(invoice.client.id) : '',
+            projectObject: invoice.dossier.projectObject,
+            address: invoice.dossier.address,
+            floorArea: invoice.dossier.floorArea,
+            landSurface: invoice.dossier.landSurface,
+        }, ...dossiers];
+    }, [dossiers, invoice]);
     const payableInvoices = useMemo(
-        () => invoices.filter((item) => item.type === 'invoice' && item.status !== 'cancelled' && item.remainingTotal > 0),
-        [invoices],
+        () => {
+            const payable = invoices.filter((item) => item.type === 'invoice' && item.status !== 'cancelled' && item.remainingTotal > 0);
+            if (!invoice || payable.some((item) => item.id === invoice.id) || invoice.type !== 'invoice' || invoice.status === 'cancelled' || invoice.remainingTotal <= 0) {
+                return payable;
+            }
+
+            return [invoice, ...payable];
+        },
+        [invoices, invoice],
     );
     const activeInvoices = useMemo(
         () => invoices.filter((item) => item.type === 'invoice' && item.status !== 'cancelled'),
@@ -76,8 +118,8 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
         [form.dossierId, payableInvoices, selectedClientId],
     );
     const filteredDossiers = useMemo(
-        () => dossiers.filter((dossier) => !selectedClientId || dossier.clientId === selectedClientId),
-        [dossiers, selectedClientId],
+        () => dossierOptions.filter((dossier) => !selectedClientId || dossier.clientId === selectedClientId),
+        [dossierOptions, selectedClientId],
     );
     const settledInvoiceCount = useMemo(
         () => activeInvoices.filter((item) => (!selectedClientId || String(item.client?.id) === selectedClientId) && item.remainingTotal <= 0).length,
@@ -124,11 +166,6 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
 
     function openUrl(url: string | null | undefined, msg = 'Lien indisponible.') { if (!url) { toast.error(msg); return; } window.open(url, '_blank'); }
 
-    function generateReceiptFile(url: string | null | undefined, label: string) {
-        if (!url) { toast.error('Action indisponible.'); return; }
-        router.put(url, { return_to: returnTo || null }, { preserveScroll: true, preserveState: true, onStart: () => toast.loading(`${label}...`, { id: label }), onSuccess: () => toast.success(`${label} fait.`, { id: label }), onError: () => toast.error(`${label} impossible.`, { id: label }) });
-    }
-
     return (
         <>
             <AppDrawer
@@ -145,7 +182,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                 <div className="space-y-3">
                     <Card className="p-3 space-y-3">
                         <div className="flex items-center gap-1.5 mb-2"><IconReceipt2 size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Paiement</p></div>
-                        {clients.length > 0 ? (
+                        {clientOptions.length > 0 ? (
                             <div className="flex min-w-0 flex-col gap-1">
                                 <label className={labelCls}>Client</label>
                                 <AppAutocomplete
@@ -154,13 +191,13 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                         setSelectedClientId(v);
                                         setForm((prev) => ({ ...prev, financeDocumentId: '', dossierId: '' }));
                                     }}
-                                    options={clients}
+                                    options={clientOptions}
                                     placeholder="Tous les clients"
                                     isDisabled={lockClientContext}
                                 />
                             </div>
                         ) : null}
-                        {dossiers.length > 0 ? (
+                        {dossierOptions.length > 0 ? (
                             <div className="flex min-w-0 flex-col gap-1">
                                 <label className={labelCls}>Dossier</label>
                                 <AppAutocomplete
@@ -183,7 +220,13 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                 onSelectionChange={(key) => {
                                     const id = key != null ? String(key) : '';
                                     const selected = filteredInvoices.find((item) => String(item.id) === id);
-                                    setForm((prev) => ({ ...prev, financeDocumentId: id, amount: selected ? String(selected.remainingTotal) : '' }));
+                                    setSelectedClientId(selected?.client?.id ? String(selected.client.id) : '');
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        financeDocumentId: id,
+                                        dossierId: selected?.dossier?.id ? String(selected.dossier.id) : '',
+                                        amount: selected ? String(selected.remainingTotal) : '',
+                                    }));
                                 }}
                             >
                                 <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
@@ -278,30 +321,31 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                 </div>
             </AppDrawer>
 
-            <ModalOverlay isOpen={Boolean(receiptPrompt)} onOpenChange={(open) => { if (!open) setReceiptPrompt(null); }} className="app-modal-overlay app-dialog-overlay" isDismissable>
-                <Modal className="app-dialog-panel max-w-xl">
-                    <Dialog className="outline-none">
-                        {({ close }) => (
-                            <div className="p-5">
-                                <div className="flex gap-4">
-                                    <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"><IconReceipt2 size={20} /></div>
-                                    <div className="min-w-0">
-                                        <Heading slot="title" className="text-base font-semibold">Reçu créé : {receiptPrompt?.number}</Heading>
-                                        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">Paiement {receiptPrompt?.paymentNumber} enregistre. Voulez-vous ouvrir, imprimer ou sauvegarder le recu ?</p>
-                                    </div>
-                                </div>
-                                <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                                    <Button color="warning" size="sm" onPress={() => openUrl(receiptPrompt?.showUrl)}><IconPrinter size={14} /> Ouvrir / imprimer</Button>
-                                    <Button variant="flat" size="sm" onPress={() => generateReceiptFile(receiptPrompt?.generatePdfUrl, 'Generation PDF')}><IconFileText size={14} /> Generer PDF</Button>
-                                    <Button variant="flat" size="sm" onPress={() => openUrl(receiptPrompt?.pdfDownloadUrl, 'PDF non genere.')}><IconFileDownload size={14} /> Telecharger PDF</Button>
-                                    <Button variant="flat" size="sm" onPress={() => receiptPrompt?.excelDownloadUrl ? openUrl(receiptPrompt.excelDownloadUrl) : generateReceiptFile(receiptPrompt?.generateExcelUrl, 'Generation Excel')}><IconFileSpreadsheet size={14} /> Excel</Button>
-                                </div>
-                                <div className="mt-5 flex justify-end"><Button variant="light" size="sm" onPress={close}>Plus tard</Button></div>
+            <Modal.Backdrop isOpen={Boolean(receiptPrompt)} onOpenChange={(open) => { if (!open) setReceiptPrompt(null); }} isDismissable className="z-[90] bg-black/65 backdrop-blur-sm">
+                <Modal.Container size="md" placement="center" className="p-3">
+                    <Modal.Dialog className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-2xl">
+                        <Modal.Header className="border-b border-[var(--border)] px-5 py-4 pr-12">
+                            <div className="flex min-w-0 items-center gap-3">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/12 text-emerald-500"><IconCircleCheck size={21} /></div>
+                                <div className="min-w-0"><Modal.Heading className="text-sm font-semibold">Paiement enregistré</Modal.Heading><p className="mt-0.5 text-xs text-[var(--text-muted)]">Reçu {receiptPrompt?.number} prêt.</p></div>
                             </div>
-                        )}
-                    </Dialog>
-                </Modal>
-            </ModalOverlay>
+                            <Modal.CloseTrigger aria-label="Fermer" />
+                        </Modal.Header>
+                        <Modal.Body className="space-y-4 px-5 py-4">
+                            <div className="grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/60 p-3 text-xs sm:grid-cols-2">
+                                <div><p className={labelCls}>Client</p><p className="mt-1 truncate font-semibold">{receiptPrompt?.clientName || 'Client non renseigné'}</p></div>
+                                <div><p className={labelCls}>Montant reçu</p><p className="mt-1 font-semibold tabular-nums text-emerald-500">{formatCompactMoney(receiptPrompt?.amount || 0, receiptPrompt?.currency || 'MAD')}</p></div>
+                                <div className="sm:col-span-2"><p className={labelCls}>Reste à encaisser</p><p className="mt-1 font-semibold tabular-nums">{formatCompactMoney(receiptPrompt?.remainingTotal || 0, receiptPrompt?.currency || 'MAD')}</p></div>
+                            </div>
+                        </Modal.Body>
+                        <Modal.Footer className="flex flex-col-reverse gap-2 border-t border-[var(--border)] px-5 py-3 sm:flex-row sm:justify-end">
+                            <Button variant="ghost" size="sm" onPress={() => setReceiptPrompt(null)}>Plus tard</Button>
+                            <Button variant="secondary" size="sm" onPress={() => openUrl(receiptPrompt?.showUrl, 'Reçu indisponible.')}><IconReceipt2 size={14} /> Ouvrir</Button>
+                            <Button color="warning" size="sm" onPress={() => openUrl(receiptPrompt?.printUrl, 'Impression indisponible.')}><IconPrinter size={14} /> Imprimer maintenant</Button>
+                        </Modal.Footer>
+                    </Modal.Dialog>
+                </Modal.Container>
+            </Modal.Backdrop>
         </>
     );
 }

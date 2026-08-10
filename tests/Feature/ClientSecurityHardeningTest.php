@@ -169,6 +169,40 @@ class ClientSecurityHardeningTest extends TestCase
         $this->assertDatabaseHas('clients', ['id' => $foreignClient->id, 'status' => 'active']);
     }
 
+    public function test_bulk_client_delete_removes_only_authorized_clients(): void
+    {
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+        $user = $this->userFor($companyA, ['manage clients']);
+        $first = Client::factory()->create(['company_id' => $companyA->id, 'branch_id' => null]);
+        $second = Client::factory()->create(['company_id' => $companyA->id, 'branch_id' => null]);
+        $foreign = Client::factory()->create(['company_id' => $companyB->id, 'branch_id' => null]);
+
+        $this->actingAs($user)
+            ->post(route('clients.bulk.destroy'), ['client_ids' => [$first->id, $second->id]])
+            ->assertRedirect(route('clients.index'));
+
+        $this->assertDatabaseMissing('clients', ['id' => $first->id]);
+        $this->assertDatabaseMissing('clients', ['id' => $second->id]);
+        $this->assertDatabaseHas('clients', ['id' => $foreign->id]);
+    }
+
+    public function test_bulk_client_delete_rejects_foreign_ids_without_partial_deletion(): void
+    {
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+        $user = $this->userFor($companyA, ['manage clients']);
+        $own = Client::factory()->create(['company_id' => $companyA->id, 'branch_id' => null]);
+        $foreign = Client::factory()->create(['company_id' => $companyB->id, 'branch_id' => null]);
+
+        $this->actingAs($user)
+            ->post(route('clients.bulk.destroy'), ['client_ids' => [$own->id, $foreign->id]])
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('clients', ['id' => $own->id]);
+        $this->assertDatabaseHas('clients', ['id' => $foreign->id]);
+    }
+
     private function userFor(Company $company, array $permissions): User
     {
         $permissionModels = collect($permissions)

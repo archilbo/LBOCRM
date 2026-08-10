@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { IconBuilding, IconCircleCheck, IconCircleDot, IconCircleOff, IconMapPin, IconPalette, IconPencil, IconPlus, IconPower, IconSettings2, IconTrash } from '@tabler/icons-react';
+import { IconBuilding, IconCircleCheck, IconCircleDot, IconCircleOff, IconMapPin, IconPalette, IconPencil, IconPlus, IconPower, IconRestore, IconSettings2, IconTrash, IconTrashX } from '@tabler/icons-react';
 
 import { Button, Chip, Input, Pagination, Switch, Table } from '@heroui/react';
 import { TabPanel } from 'react-aria-components';
@@ -40,6 +40,21 @@ type PageProps = {
     financeSettings?: FinanceSettingsFormProps | null;
     branding?: PublicBrandingSettings | null;
     permissions?: SystemAppearancePermissions | null;
+    recovery?: RecoveryWorkspace;
+};
+
+type RecoveryWorkspace = {
+    items: RecoveryItem[];
+    pagination: { currentPage: number; lastPage: number; total: number };
+    filters: { search: string; type: string; deletedBy: string };
+    types: Array<{ key: string; label: string; count: number }>;
+    summary: { total: number; tasks: number; calendar: number };
+};
+
+type RecoveryItem = {
+    key: string; id: number; entityType: string; entityLabel: string; title: string;
+    subtitle?: string | null; deletedAt: string; deletedBy?: { id: number; name: string } | null;
+    capabilities: { restore: boolean; purge: boolean };
 };
 
 const SWATCHES = ['#E08D3C', '#4A90D9', '#7EB36A', '#C0392B', '#8E44AD', '#2C3E50', '#D35400', '#16A085', '#F39C12', '#2980B9'];
@@ -56,13 +71,14 @@ function visiblePageNumbers(currentPage: number, totalPages: number): number[] {
     return Array.from({ length: count }, (_, index) => start + index);
 }
 
-export default function AdminSettings({ cities, usedColors, canViewCities = false, canManageCities = false, canDeleteCities = false, canViewFinanceSettings = false, canManageFinanceSettings = false, canViewSystemAppearance = false, financeSettings, branding, permissions }: PageProps) {
+export default function AdminSettings({ cities, usedColors, canViewCities = false, canManageCities = false, canDeleteCities = false, canViewFinanceSettings = false, canManageFinanceSettings = false, canViewSystemAppearance = false, financeSettings, branding, permissions, recovery }: PageProps) {
     const { url } = usePage();
 
     const tabs: AppWorkspaceTab[] = [
         ...(canViewCities ? BASE_TABS : []),
         ...(canViewFinanceSettings ? [{ id: 'company', label: 'Entreprise', icon: IconBuilding }, { id: 'finance', label: 'Finance', icon: IconSettings2 }] : []),
         ...(canViewSystemAppearance ? [{ id: 'system-appearance', label: 'Système & apparence', icon: IconPalette }] : []),
+        ...(recovery ? [{ id: 'recovery', label: 'Corbeille & récupération', icon: IconTrashX }] : []),
     ];
 
     function handleTabChange(key: string) {
@@ -71,7 +87,7 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
 
     const [activeTab, setActiveTab] = useState<string>(() => {
         const tab = new URL(url, window.location.origin).searchParams.get('tab');
-        if (tab && ((canViewFinanceSettings && ['company', 'finance'].includes(tab)) || (canViewSystemAppearance && tab === 'system-appearance'))) {
+        if (tab && ((canViewFinanceSettings && ['company', 'finance'].includes(tab)) || (canViewSystemAppearance && tab === 'system-appearance') || (recovery && tab === 'recovery'))) {
             return tab;
         }
 
@@ -93,6 +109,8 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
                                     ? 'Gérez l’identité, le logo, les mentions légales et les coordonnées bancaires.'
                                     : activeTab === 'system-appearance'
                                         ? 'Personnalisez l’identité, la couleur de marque et les logos de l’application.'
+                                        : activeTab === 'recovery'
+                                            ? 'Consultez et restaurez les données supprimées de l’entreprise.'
                                         : 'Gérez les villes utilisées pour l’organisation des dossiers et archives.'}
                         />
 
@@ -140,12 +158,67 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
                                     <SystemAppearancePanel branding={branding} permissions={permissions} embedded />
                                 </TabPanel>
                             ) : null}
+                            {recovery ? <TabPanel id="recovery"><RecoveryTab recovery={recovery} /></TabPanel> : null}
                         </AppWorkspaceTabs>
                     </div>
                 </div>
             </AppShell>
         </>
     );
+}
+
+function RecoveryTab({ recovery }: { recovery: RecoveryWorkspace }) {
+    const [search, setSearch] = useState(recovery.filters.search);
+    const [purgeTarget, setPurgeTarget] = useState<RecoveryItem | null>(null);
+    const [pendingId, setPendingId] = useState<number | null>(null);
+
+    const visit = (params: Record<string, string | number>) => router.get('/settings', { tab: 'recovery', ...params }, { preserveScroll: true, preserveState: true });
+    const restore = (item: RecoveryItem) => {
+        setPendingId(item.id);
+        router.post(`/settings/recovery/${item.id}/restore`, {}, { preserveScroll: true, onFinish: () => setPendingId(null) });
+    };
+    const purge = () => {
+        if (!purgeTarget) return;
+        setPendingId(purgeTarget.id);
+        router.delete(`/settings/recovery/${purgeTarget.id}/purge`, { preserveScroll: true, onFinish: () => { setPendingId(null); setPurgeTarget(null); } });
+    };
+
+    return <section className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+            <RecoveryMetric label="Éléments supprimés" value={recovery.summary.total} />
+            <RecoveryMetric label="Tâches" value={recovery.summary.tasks} />
+            <RecoveryMetric label="Calendrier" value={recovery.summary.calendar} />
+        </div>
+        <AppCard className="p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <form onSubmit={(event) => { event.preventDefault(); visit({ search, type: recovery.filters.type }); }} className="w-full max-w-md">
+                    <AppSearchInput value={search} onChange={setSearch} placeholder="Rechercher une donnée supprimée" />
+                </form>
+                <div className="flex flex-wrap gap-2">
+                    <AppButton size="sm" variant={!recovery.filters.type ? 'secondary' : 'ghost'} onPress={() => visit({ search, type: '' })}>Tous ({recovery.summary.total})</AppButton>
+                    {recovery.types.map((type) => <AppButton key={type.key} size="sm" variant={recovery.filters.type === type.key ? 'secondary' : 'ghost'} onPress={() => visit({ search, type: type.key })}>{type.label} ({type.count})</AppButton>)}
+                </div>
+            </div>
+            <div className="mt-4 space-y-2">
+                {recovery.items.length ? recovery.items.map((item) => <div key={item.key} className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0"><p className="text-xs font-semibold text-[var(--accent)]">{item.entityLabel}</p><p className="truncate text-sm font-semibold text-[var(--text)]">{item.title}</p><p className="mt-1 text-xs text-[var(--text-muted)]">Supprimé {new Date(item.deletedAt).toLocaleString('fr-FR')}{item.deletedBy ? ` par ${item.deletedBy.name}` : ''}</p></div>
+                    <div className="flex shrink-0 gap-2">
+                        {item.capabilities.restore ? <AppButton size="sm" variant="secondary" isDisabled={pendingId === item.id} onPress={() => restore(item)}><IconRestore size={15} />Restaurer</AppButton> : null}
+                        {item.capabilities.purge ? <AppButton size="sm" variant="danger-soft" isDisabled={pendingId === item.id} onPress={() => setPurgeTarget(item)}><IconTrash size={15} />Supprimer</AppButton> : null}
+                    </div>
+                </div>) : <div className="py-12 text-center"><IconTrashX className="mx-auto mb-3 text-[var(--text-muted)]" size={30} /><p className="font-semibold text-[var(--text)]">Corbeille vide</p><p className="mt-1 text-sm text-[var(--text-muted)]">Aucune donnée supprimée à restaurer.</p></div>}
+            </div>
+            {recovery.pagination.lastPage > 1 ? <div className="mt-4 flex justify-end"><Pagination page={recovery.pagination.currentPage} total={recovery.pagination.lastPage} onChange={(page) => visit({ search, type: recovery.filters.type, page })} /></div> : null}
+        </AppCard>
+        <AppModal isOpen={Boolean(purgeTarget)} onOpenChange={(open) => !open && setPurgeTarget(null)} title="Supprimer définitivement ?" size="sm">
+            <p className="text-sm text-[var(--text-muted)]">Cette action est irréversible depuis ARCHI LBO.</p>
+            <div className="mt-5 flex justify-end gap-2"><AppButton variant="ghost" onPress={() => setPurgeTarget(null)}>Annuler</AppButton><AppButton className="bg-[var(--danger)] text-white hover:bg-[var(--danger-hover)]" isDisabled={pendingId === purgeTarget?.id} onPress={purge}>Supprimer</AppButton></div>
+        </AppModal>
+    </section>;
+}
+
+function RecoveryMetric({ label, value }: { label: string; value: number }) {
+    return <AppCard className="p-4"><p className="text-2xl font-bold text-[var(--text)]">{value}</p><p className="mt-1 text-xs font-medium text-[var(--text-muted)]">{label}</p></AppCard>;
 }
 
 function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities: CityRow[]; usedColors: string[]; canManage: boolean; canDelete: boolean }) {

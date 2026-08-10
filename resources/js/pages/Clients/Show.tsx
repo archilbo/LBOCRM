@@ -16,7 +16,6 @@ import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { ClientFormPayload, ClientProjectPayment, ClientRow, ClientStatus, ClientWorkspace } from '@/features/clients/types';
-import type { DossierWorkflowRequirement, DossierWorkflowStep } from '@/features/clients/types';
 import type { ExplorerDocument } from '@/features/documents/explorer/documentExplorerTypes';
 import type { DossierFormPayload } from '@/features/dossiers/types';
 import type { FinanceDocument, FinanceDocumentType, FinanceSettings, TemplateOption } from '@/features/finance/types';
@@ -24,7 +23,7 @@ import { ClientDrawer } from '@/components/drawers';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
 import { FinanceDocumentBuilderDrawer, PaymentDrawer } from '@/components/drawers';
 import type { FinanceDocumentActionHandlers } from '@/features/finance/components/FinanceDocumentActions';
-import { AppWorkflowStepper, type WorkflowRequirementActionContext } from '@/components/ui/AppWorkflowStepper';
+import { WorkflowTab } from '@/features/dossiers/components/WorkflowTab';
 import { DocumentDrawer } from '@/components/drawers';
 import type { DocumentUploadPayload } from '@/features/documents/types';
 import { ContractDrawer } from '@/components/drawers';
@@ -36,7 +35,6 @@ import { ClientDocumentsTab } from '@/features/documents/client/ClientDocumentsT
 import { ClientFinanceTab } from '@/features/clients/components/ClientFinanceTab';
 import { ConfirmActionModal } from '@/features/clients/components/ConfirmActionModal';
 import { DossierTimeline } from '@/features/clients/components/DossierTimeline';
-import { getRequirementActionType, getStepActionType, getModuleRoute } from '@/features/clients/components/workflowActionTypes';
 import type { FormErrors } from '@/lib/formErrors';
 
 const AVATAR_COLORS = [
@@ -258,82 +256,6 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
             onSuccess: () => { toast.success(t('clients.deleted')); setDeleteTarget(null); },
             onError: () => toast.error(t('clients.deleteError')),
         });
-    }
-
-    function handleWorkflowRequirementAction(context: WorkflowRequirementActionContext) {
-        const { step, requirement } = context;
-        const actionType = getRequirementActionType(step.key, requirement.key);
-
-        switch (actionType) {
-            case 'upload_document':
-                setDocumentFormErrors({});
-                setUploadRequirementKey(requirement.key);
-                setUploadStepKey(step.key);
-                setUploadDrawerOpen(true);
-                break;
-            case 'create_contract':
-                openContractDrawer();
-                break;
-            case 'generate_contract':
-                if (!selectedProject?.contract) {
-                    toast.error(t('workflow.createContractFirst'));
-                    return;
-                }
-                setConfirmActionConfig({
-                    title: t('workflow.generateContract'),
-                    description: t('workflow.generateContractDesc'),
-                    confirmLabel: t('workflow.confirmGenerate'),
-                    method: 'put',
-                    url: `/contracts/${selectedProject.contract.id}/generate`,
-                    extraPayload: { return_to: clientWorkspacePath('workflow') },
-                });
-                setConfirmActionOpen(true);
-                break;
-            case 'mark_signed':
-                if (!selectedProject?.contract) {
-                    toast.error(t('workflow.createContractFirst'));
-                    return;
-                }
-                setConfirmActionConfig({
-                    title: t('workflow.markSigned'),
-                    description: t('workflow.markSignedDesc'),
-                    confirmLabel: t('workflow.confirmSigned'),
-                    method: 'put',
-                    url: `/contracts/${selectedProject.contract.id}/signed`,
-                    extraPayload: { return_to: clientWorkspacePath('workflow') },
-                });
-                setConfirmActionOpen(true);
-                break;
-            case 'mark_done':
-                setConfirmActionConfig({
-                    title: requirement.actionLabel || t('workflow.confirmDone'),
-                    description: requirement.label,
-                    confirmLabel: t('workflow.confirmDone'),
-                    method: 'put',
-                    url: `/dossiers/${selectedProject?.id}/workflow-requirements`,
-                    extraPayload: {
-                        step_key: step.key,
-                        requirement_key: requirement.key,
-                        is_done: true,
-                        return_to: clientWorkspacePath('workflow'),
-                    },
-                });
-                setConfirmActionOpen(true);
-                break;
-            case 'open_module':
-                if (selectedProject) {
-                    router.visit(getModuleRoute(step.key, selectedProject.id), { preserveScroll: true });
-                }
-                break;
-            case 'no_action':
-                toast.info(t('workflow.actionNotAvailable'));
-                break;
-        }
-    }
-
-    function handleWorkflowStepAction(step: DossierWorkflowStep | undefined) {
-        if (!step?.primaryActionUrl) return;
-        router.visit(step.primaryActionUrl, { preserveScroll: true });
     }
 
     function openProjectWorkflow(projectId: number) {
@@ -1219,11 +1141,20 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                             )}
 
                             {selectedProject && selectedProject.workflow ? (
-                                <AppWorkflowStepper
+                                <WorkflowTab
+                                    key={selectedProject.id}
                                     dossierId={selectedProject.id}
                                     workflow={selectedProject.workflow}
-                                    onRequirementAction={handleWorkflowRequirementAction}
-                                    onStepAction={handleWorkflowStepAction}
+                                    cahier={selectedProject.cahier}
+                                    canUpdateWorkflow={can('dossiers.workflow.update')}
+                                    onOpenUpload={(stepKey, requirementKey) => {
+                                        setDocumentFormErrors({});
+                                        setUploadStepKey(stepKey);
+                                        setUploadRequirementKey(requirementKey);
+                                        setUploadDrawerOpen(true);
+                                    }}
+                                    onOpenDocuments={() => router.visit(`/dossiers/${selectedProject.id}?tab=documents`, { preserveScroll: true })}
+                                    onOpenArchive={() => router.visit(`/archives?dossier_id=${selectedProject.id}`, { preserveScroll: true })}
                                 />
                             ) : projects.length === 0 ? (
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">

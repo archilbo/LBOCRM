@@ -303,6 +303,26 @@ class ArchiveNumberingTest extends TestCase
         $this->assertSame(6, $next['sequence']);
     }
 
+    public function test_legacy_excel_reference_preserves_its_sequence_and_advances_the_counter(): void
+    {
+        Carbon::setTestNow('2026-06-01 10:00:00');
+
+        $company = Company::factory()->create();
+        $city = $this->city('BNG');
+        $dossier = $this->dossierFor($company, $city);
+
+        $legacy = DB::transaction(fn () => $this->service()->reserveLegacyReference($dossier, 'BG226', 2026));
+
+        $this->assertNotNull($legacy);
+        $this->assertSame('BNG-2026-0226', $legacy['number']);
+        $this->assertSame(226, $legacy['sequence']);
+
+        $next = DB::transaction(fn () => $this->service()->reserve($dossier));
+
+        $this->assertSame('BNG-2026-0227', $next['number']);
+        $this->assertSame(227, $next['sequence']);
+    }
+
     public function test_year_comes_from_server_date_not_client_input(): void
     {
         Carbon::setTestNow('2027-03-15 10:00:00');

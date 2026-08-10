@@ -1,6 +1,8 @@
 import { IconReceipt2 } from '@tabler/icons-react';
 
 import type { FinanceDocument } from '@/features/finance/types';
+import { financeDocumentTypeLabel, financeStatusLabel } from '@/features/finance/components/FinanceStatusBadge';
+import { useTranslation } from '@/lib/i18n';
 
 type FinanceSidebarDetailsProps = {
     document: FinanceDocument;
@@ -26,16 +28,17 @@ function dateLabel(value: string | null | undefined) {
 }
 
 export function FinanceSidebarDetails({ document }: FinanceSidebarDetailsProps) {
+    const { t } = useTranslation();
     const rows: { label: string; value: React.ReactNode }[] = [
         {
-            label: 'Type',
-            value:                     <span className="font-semibold text-[var(--foreground)]">{document.typeLabel}</span>,
+            label: t('finance.documentShow.type'),
+            value: <span className="font-semibold text-[var(--foreground)]">{financeDocumentTypeLabel(document.type, t)}</span>,
         },
         {
-            label: 'Status',
+            label: t('finance.documentShow.status'),
             value: (
                 <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[9px] font-bold ${statusClass(document.status)}`}>
-                    {document.status?.replace(/_/g, ' ') || document.status}
+                    {financeStatusLabel(document.status || '', t)}
                 </span>
             ),
         },
@@ -43,7 +46,7 @@ export function FinanceSidebarDetails({ document }: FinanceSidebarDetailsProps) 
             label: 'PDF',
             value: (
                 <span className={`font-semibold ${document.hasPdf ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`}>
-                    {document.hasPdf ? 'Ready' : 'Missing'}
+                    {document.hasPdf ? t('finance.documentShow.ready') : t('finance.documentShow.missing')}
                 </span>
             ),
         },
@@ -51,17 +54,17 @@ export function FinanceSidebarDetails({ document }: FinanceSidebarDetailsProps) 
             label: 'Excel',
             value: (
                 <span className={`font-semibold ${document.hasExcel ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`}>
-                    {document.hasExcel ? 'Ready' : 'Missing'}
+                    {document.hasExcel ? t('finance.documentShow.ready') : t('finance.documentShow.missing')}
                 </span>
             ),
         },
         {
-            label: 'Generated',
-            value:                             <span className="font-semibold text-[var(--foreground)]">{dateLabel(document.generatedAt)}</span>,
+            label: t('finance.documentShow.generatedAt'),
+            value: <span className="font-semibold text-[var(--foreground)]">{dateLabel(document.generatedAt)}</span>,
         },
         {
-            label: 'Created',
-            value:                             <span className="font-semibold text-[var(--foreground)]">{dateLabel(document.createdAt)}</span>,
+            label: t('finance.documentShow.createdAt'),
+            value: <span className="font-semibold text-[var(--foreground)]">{dateLabel(document.createdAt)}</span>,
         },
     ];
 
@@ -69,7 +72,7 @@ export function FinanceSidebarDetails({ document }: FinanceSidebarDetailsProps) 
         <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
                 <IconReceipt2 size={14} className="text-[var(--text-muted)]" />
-                <h2 className="text-xs font-semibold text-[var(--foreground)]">Details</h2>
+                <h2 className="text-xs font-semibold text-[var(--foreground)]">{t('finance.documentShow.details')}</h2>
             </div>
             <div className="divide-y divide-[var(--border)] text-xs">
                 {rows.map((row) => (

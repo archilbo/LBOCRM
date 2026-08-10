@@ -172,7 +172,7 @@ export function ConversationList({
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]"><IconMessageCircle size={17} /></div>
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2"><h1 className="truncate text-base font-semibold tracking-tight text-[var(--foreground)]">{t('inbox.title')} <span className="text-[var(--accent)]">({conversations.length})</span></h1><span className={`size-1.5 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-[var(--text-muted)]'}`} /></div>
-                        <p className="mt-0.5 truncate text-[9px] text-[var(--text-muted)]">{isConnected ? t('inbox.online') : realtimeState === 'connecting' ? t('inbox.connecting') : t('inbox.offline')}</p>
+                        <p className="mt-0.5 truncate text-[9px] text-[var(--text-muted)]">{isConnected ? t('inbox.connectionOnline') : realtimeState === 'connecting' ? t('inbox.connecting') : t('inbox.connectionOffline')}</p>
                     </div>
                     {onNewConversation ? <InboxIconButton label={t('inbox.newConversation')} tone="accent" onPress={onNewConversation} className="bg-[var(--accent-soft)]"><IconPlus size={17} /></InboxIconButton> : null}
                 </div>

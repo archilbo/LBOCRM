@@ -16,6 +16,7 @@ use App\Models\FinanceDocument;
 use App\Models\FinanceDocumentItem;
 use App\Models\FinanceTemplate;
 use App\Models\Payment;
+use App\Models\User;
 use App\Services\Finance\FinanceExcelExporter;
 use App\Services\Finance\FinanceActivityService;
 use App\Services\Finance\FinanceContextService;
@@ -55,6 +56,7 @@ class FinanceDocumentController extends Controller
         $context->payload($user);
 
         $canViewPayments = app(PermissionRegistry::class)->allows($user, 'finance.payments.view');
+        $canViewCollections = app(PermissionRegistry::class)->allows($user, 'finance.collections.view');
         $canViewExpenses = app(PermissionRegistry::class)->allows($user, 'finance.expenses.view');
         $canViewTemplates = app(PermissionRegistry::class)->allows($user, 'finance.templates.view');
         $currency = FinanceSettingsService::getCurrency();
@@ -85,6 +87,12 @@ class FinanceDocumentController extends Controller
             'payments' => $canViewPayments
                 ? PaymentResource::collection($queries->payments($request, $user))
                 : [],
+            'receivables' => $canViewCollections
+                ? FinanceDocumentResource::collection($queries->receivables($request, $user))
+                : [],
+            'collectionMetrics' => $canViewCollections
+                ? $queries->collectionMetrics($user, $currency)
+                : null,
             'expenses' => $expenses,
             'monthlySummaries' => $monthlySummaryService->months(null, $user),
             'metrics' => $queries->metrics($user, $currency),
@@ -139,6 +147,7 @@ class FinanceDocumentController extends Controller
                 'date_from', 'date_to', 'sort', 'direction', 'per_page', 'page',
                 'payment_search', 'payment_sort', 'payment_direction', 'payments_per_page', 'payments_page',
                 'expense_search', 'expense_category', 'expense_sort', 'expense_direction', 'expenses_per_page', 'expenses_page',
+                'collection_filter', 'collection_search', 'collection_sort', 'collection_client_id', 'collection_dossier_id', 'collection_per_page', 'collection_page',
             ]),
         ]);
     }
@@ -234,7 +243,7 @@ class FinanceDocumentController extends Controller
     public function show(FinanceDocument $financeDocument): Response
     {
         $this->authorize('view', $financeDocument);
-        $financeDocument->loadMissing(['client', 'dossier', 'items', 'payments', 'template', 'creator']);
+        $financeDocument->loadMissing(['client', 'dossier', 'items', 'payments', 'paymentScheduleItems', 'paymentPromises', 'template', 'creator']);
 
         return Inertia::render('Finance/Documents/Show', [
             'document' => (new FinanceDocumentResource($financeDocument))->resolve(request()),
@@ -333,20 +342,7 @@ class FinanceDocumentController extends Controller
             $this->authorize('delete', $linkedPayment);
         }
 
-        DB::transaction(function () use ($financeDocument, $linkedPayment, $ledger, $request) {
-            if ($linkedPayment) {
-                app(FinanceActivityService::class)->log($linkedPayment, $request->user(), 'finance.payment.reversed_by_receipt_deletion', $linkedPayment->toArray());
-                $ledger->deletePayment($linkedPayment);
-            }
-
-            if ($financeDocument->isInvoice()) {
-                $ledger->releaseAdvancesFromInvoice($financeDocument);
-            }
-
-            app(FinanceActivityService::class)->log($financeDocument, $request->user(), 'finance.document.deleted', $financeDocument->toArray());
-            $financeDocument->forceFill(['active_invoice_dossier_key' => null])->save();
-            $financeDocument->delete();
-        });
+        DB::transaction(fn () => $this->deleteDocumentRecord($financeDocument, $linkedPayment, $ledger, $request->user()));
 
         $successMessage = $linkedPayment
             ? "Recu {$number} et paiement lie supprimes."
@@ -358,6 +354,59 @@ class FinanceDocumentController extends Controller
 
         return redirect()->route('finance.documents.index')
             ->with('success', $successMessage);
+    }
+
+    public function bulkDestroy(Request $request, PaymentLedgerService $ledger, FinanceContextService $context): RedirectResponse
+    {
+        $data = $request->validate([
+            'document_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'document_ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $documents = $context->apply(FinanceDocument::query(), $request->user())
+            ->whereKey($data['document_ids'])
+            ->get();
+
+        abort_unless($documents->count() === count($data['document_ids']), 404);
+
+        $linkedPayments = Payment::query()
+            ->whereIn('receipt_document_id', $documents->pluck('id'))
+            ->get()
+            ->keyBy('receipt_document_id');
+
+        foreach ($documents as $document) {
+            $this->authorize('delete', $document);
+            app(FinanceDocumentLockGuard::class)->assertCanEditContent($document);
+
+            if ($linkedPayment = $linkedPayments->get($document->id)) {
+                $this->authorize('delete', $linkedPayment);
+            }
+        }
+
+        DB::transaction(function () use ($documents, $linkedPayments, $ledger, $request) {
+            foreach ($documents as $document) {
+                $this->deleteDocumentRecord($document, $linkedPayments->get($document->id), $ledger, $request->user());
+            }
+        });
+
+        return redirect()->route('finance.documents.index')
+            ->with('success', "{$documents->count()} document(s) supprime(s).");
+    }
+
+    private function deleteDocumentRecord(FinanceDocument $financeDocument, ?Payment $linkedPayment, PaymentLedgerService $ledger, User $user): void
+    {
+        if ($linkedPayment) {
+            app(FinanceActivityService::class)->log($linkedPayment, $user, 'finance.payment.reversed_by_receipt_deletion', $linkedPayment->toArray());
+            $ledger->deletePayment($linkedPayment);
+        }
+
+        if ($financeDocument->isInvoice()) {
+            $ledger->releaseAdvancesFromInvoice($financeDocument);
+        }
+
+        app(FinanceActivityService::class)->log($financeDocument, $user, 'finance.document.deleted', $financeDocument->toArray());
+        $financeDocument->forceFill(['active_invoice_dossier_key' => null])->save();
+        $financeDocument->delete();
     }
 
     public function generate(Request $request, FinanceDocument $financeDocument, FinancePdfGenerator $pdfGenerator, FinanceExcelExporter $excelExporter): RedirectResponse

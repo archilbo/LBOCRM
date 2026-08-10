@@ -23,7 +23,7 @@ class StoreCalendarEventRequest extends FormRequest
             'status' => ['nullable', 'string', 'in:scheduled,in_progress,completed,cancelled,overdue'],
             'priority' => ['nullable', 'string', 'in:low,medium,high,urgent'],
             'color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'starts_at' => ['required', 'date'],
+            'starts_at' => ['required', 'date', 'after_or_equal:today'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'all_day' => ['nullable', 'boolean'],
             'timezone' => ['nullable', 'timezone'],

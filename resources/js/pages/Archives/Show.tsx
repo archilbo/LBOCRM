@@ -138,7 +138,8 @@ export default function ArchiveShow({ archiveRecord, events, tree = [], clients 
         <>
             <Head title={record.archiveNumber} />
             <AppShell>
-                <AppButton variant="quiet" size="sm" className="-ml-2 mb-3" onPress={() => router.visit('/archives')}>
+                <div className="mx-auto w-full max-w-[1540px] px-4 py-6 sm:px-6 lg:px-8">
+                <AppButton variant="ghost" size="sm" className="-ml-2 mb-4" onPress={() => router.visit('/archives')}>
                     <IconArrowLeft size={13} /> {t('archiveShow.backToArchives')}
                 </AppButton>
 
@@ -164,11 +165,11 @@ export default function ArchiveShow({ archiveRecord, events, tree = [], clients 
                         </p>
                     </div>
                     <div className="flex shrink-0 gap-1">
-                        <AppButton variant="quiet" size="sm" isIconOnly tooltip={t('archiveShow.edit')} onPress={() => setShowEdit(true)}>
+                        <AppButton variant="secondary" size="sm" isIconOnly tooltip={t('archiveShow.edit')} aria-label={t('archiveShow.edit')} onPress={() => setShowEdit(true)}>
                             <IconPencil size={14} />
                         </AppButton>
-                        <AppButton variant="quiet" size="sm" isIconOnly tooltip={t('archiveShow.delete')} onPress={() => setShowDelete(true)}>
-                            <IconTrash size={14} className="text-[var(--crm-danger)]" />
+                        <AppButton variant="danger-soft" size="sm" isIconOnly tooltip={t('archiveShow.delete')} aria-label={t('archiveShow.delete')} onPress={() => setShowDelete(true)}>
+                            <IconTrash size={14} />
                         </AppButton>
                     </div>
                 </div>
@@ -308,6 +309,7 @@ export default function ArchiveShow({ archiveRecord, events, tree = [], clients 
                         <AppTextField label={t('archiveShow.box')} value={moveBox} onChange={setMoveBox} placeholder={t('archiveShow.boxPlaceholder')} isRequired />
                     </form>
                 </AppDrawer>
+                </div>
             </AppShell>
         </>
     );

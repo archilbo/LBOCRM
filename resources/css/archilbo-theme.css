@@ -2,36 +2,36 @@
 :root {
     color-scheme: light;
 
-    --crm-bg: #f6f4ef;
-    --crm-bg-2: #f0ede5;
-    --crm-bg-3: #eae6db;
+    --crm-bg: var(--background);
+    --crm-bg-2: var(--surface-2);
+    --crm-bg-3: var(--surface-3);
 
-    --crm-surface: #fcfbf7;
-    --crm-surface-2: #f2efe7;
-    --crm-surface-3: #eae5d9;
-    --crm-surface-hover: #e4dfd1;
-    --crm-elevated: #ffffff;
+    --crm-surface: var(--surface);
+    --crm-surface-2: var(--surface-2);
+    --crm-surface-3: var(--surface-3);
+    --crm-surface-hover: var(--surface-3);
+    --crm-elevated: var(--surface);
 
-    --crm-border: #ddd7c8;
-    --crm-border-strong: #c7c0ab;
+    --crm-border: var(--border);
+    --crm-border-strong: var(--border-strong);
     --crm-border-soft: color-mix(in srgb, var(--crm-border) 70%, transparent);
 
-    --crm-text: #211e17;
-    --crm-text-muted: #5d574a;
-    --crm-text-soft: #8f8878;
+    --crm-text: var(--foreground);
+    --crm-text-muted: var(--text-muted);
+    --crm-text-soft: var(--text-subtle);
 
-    --crm-gold: #a16e07;
-    --crm-gold-2: #8a5e04;
+    --crm-gold: var(--accent);
+    --crm-gold-2: var(--accent-hover);
     --crm-gold-soft: color-mix(in srgb, var(--crm-gold) 14%, transparent);
-    --crm-gold-brand: #f6b725;
+    --crm-gold-brand: var(--accent);
 
-    --crm-success: #15803d;
+    --crm-success: var(--success);
     --crm-success-soft: color-mix(in srgb, var(--crm-success) 14%, transparent);
-    --crm-danger: #dc2626;
+    --crm-danger: var(--danger);
     --crm-danger-soft: color-mix(in srgb, var(--crm-danger) 14%, transparent);
-    --crm-info: #2563eb;
+    --crm-info: var(--info);
     --crm-info-soft: color-mix(in srgb, var(--crm-info) 14%, transparent);
-    --crm-violet: #7c3aed;
+    --crm-violet: var(--secondary);
     --crm-violet-soft: color-mix(in srgb, var(--crm-violet) 14%, transparent);
 
     --crm-sidebar-w: 264px;
@@ -63,36 +63,36 @@
 .dark {
     color-scheme: dark;
 
-    --crm-bg: #070808;
-    --crm-bg-2: #0b0c0d;
-    --crm-bg-3: #0f1011;
+    --crm-bg: var(--background);
+    --crm-bg-2: var(--surface-2);
+    --crm-bg-3: var(--surface-3);
 
-    --crm-surface: #101111;
-    --crm-surface-2: #151513;
-    --crm-surface-3: #1b1a16;
-    --crm-surface-hover: #1f1d18;
-    --crm-elevated: #161712;
+    --crm-surface: var(--surface);
+    --crm-surface-2: var(--surface-2);
+    --crm-surface-3: var(--surface-3);
+    --crm-surface-hover: var(--surface-3);
+    --crm-elevated: var(--surface);
 
-    --crm-border: #2b2921;
-    --crm-border-strong: #3a3528;
+    --crm-border: var(--border);
+    --crm-border-strong: var(--border-strong);
     --crm-border-soft: color-mix(in srgb, var(--crm-border) 70%, transparent);
 
-    --crm-text: #f5f1e8;
-    --crm-text-muted: #a9a294;
-    --crm-text-soft: #756f64;
+    --crm-text: var(--foreground);
+    --crm-text-muted: var(--text-muted);
+    --crm-text-soft: var(--text-subtle);
 
-    --crm-gold: #f6b725;
-    --crm-gold-2: #d79516;
+    --crm-gold: var(--accent);
+    --crm-gold-2: var(--accent-hover);
     --crm-gold-soft: color-mix(in srgb, var(--crm-gold) 14%, transparent);
-    --crm-gold-brand: #f6b725;
+    --crm-gold-brand: var(--accent);
 
-    --crm-success: #4ade80;
+    --crm-success: var(--success);
     --crm-success-soft: color-mix(in srgb, var(--crm-success) 14%, transparent);
-    --crm-danger: #fb5c5c;
+    --crm-danger: var(--danger);
     --crm-danger-soft: color-mix(in srgb, var(--crm-danger) 14%, transparent);
-    --crm-info: #7fb0ff;
+    --crm-info: var(--info);
     --crm-info-soft: color-mix(in srgb, var(--crm-info) 14%, transparent);
-    --crm-violet: #a78bfa;
+    --crm-violet: var(--secondary);
     --crm-violet-soft: color-mix(in srgb, var(--crm-violet) 14%, transparent);
 
     --crm-shadow-panel: 0 18px 60px rgb(0 0 0 / 0.36);

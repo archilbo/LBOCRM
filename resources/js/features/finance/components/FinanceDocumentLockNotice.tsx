@@ -3,6 +3,7 @@ import { IconLock } from '@tabler/icons-react';
 
 import type { FinanceDocument } from '../types';
 import { Tooltip } from '@heroui/react';
+import { useTranslation } from '@/lib/i18n';
 
 export type FinanceDocumentLockStateLike = {
     isLocked?: boolean;
@@ -44,16 +45,21 @@ export function getFinanceDocumentLockedAt(document?: LockableFinanceDocument | 
     return document?.lock?.lockedAtFormatted ?? document?.numberLockedAt ?? document?.lock?.lockedAt ?? null;
 }
 
-export function getFinanceDocumentLockMessage(document?: LockableFinanceDocument | null): string {
-    return document?.lock?.message ?? 'Document verrouillé après export. Le numéro, le type et la date d\'émission ne peuvent plus être modifiés.';
+export function getFinanceDocumentLockMessage(
+    document?: LockableFinanceDocument | null,
+    fallbackMessage = 'Document verrouillé après export. Le numéro, le type et la date d\'émission ne peuvent plus être modifiés.',
+): string {
+    return document?.lock?.message ?? fallbackMessage;
 }
 
 export function FinanceDocumentLockBadge({ document, compact: _compact = false, className = '' }: Pick<NoticeProps, 'document' | 'compact' | 'className'>) {
+    const { t } = useTranslation();
+
     if (!isFinanceDocumentLocked(document)) {
         return null;
     }
 
-    const message = getFinanceDocumentLockMessage(document);
+    const message = getFinanceDocumentLockMessage(document, t('finance.documentShow.lockMessage'));
 
     return (
         <Tooltip delay={500}>
@@ -74,6 +80,7 @@ export function FinanceDocumentLockNotice({
     compact = false,
     className = '',
 }: NoticeProps) {
+    const { t } = useTranslation();
     const locked = isLocked ?? isFinanceDocumentLocked(document);
 
     if (!locked) {
@@ -81,12 +88,12 @@ export function FinanceDocumentLockNotice({
     }
 
     const displayLockedAt = lockedAtFormatted ?? lockedAt ?? getFinanceDocumentLockedAt(document);
-    const displayMessage = message ?? getFinanceDocumentLockMessage(document);
+    const displayMessage = message ?? getFinanceDocumentLockMessage(document, t('finance.documentShow.lockMessage'));
 
     if (compact) {
         return (
             <span className={`inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-200 ${className}`}>
-                Locked
+                {t('finance.documentShow.locked')}
                 {displayLockedAt ? <span className="font-normal text-amber-100/60">{displayLockedAt}</span> : null}
             </span>
         );
@@ -96,9 +103,9 @@ export function FinanceDocumentLockNotice({
         <div className={`rounded-[var(--radius-md)] border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100 ${className}`}>
             <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-amber-500">
-                    Locked
+                    {t('finance.documentShow.locked')}
                 </span>
-                {displayLockedAt ? <span className="text-xs text-amber-100/60">Locked at {displayLockedAt}</span> : null}
+                {displayLockedAt ? <span className="text-xs text-amber-100/60">{t('finance.documentShow.lockedAt', { date: displayLockedAt })}</span> : null}
             </div>
             <p className="mt-2 text-amber-100/80">{displayMessage}</p>
         </div>

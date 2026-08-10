@@ -4,7 +4,7 @@ import type { Icon } from '@tabler/icons-react';
 
 
 import { useEffect, useMemo, useState } from 'react';
-import { Dropdown, Input } from '@heroui/react';
+import { Checkbox, Dropdown, Input } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
@@ -90,6 +90,8 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     const [sortField, setSortField] = useState<SortField>('updatedAt');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
     const [deleteTarget, setDeleteTarget] = useState<ClientRow | null>(null);
+    const [selectedClientIds, setSelectedClientIds] = useState<Set<number>>(new Set());
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [page, setPage] = useState(0);
     const statusOptions = [
         { id: 'all' as const, label: t('clients.status.all'), count: clients.length },
@@ -124,6 +126,8 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     const pageSize = 10;
     const pageCount = Math.max(1, Math.ceil(filteredClients.length / pageSize));
     const pageClients = filteredClients.slice(page * pageSize, (page + 1) * pageSize);
+    const deletablePageClients = pageClients.filter((client) => client.capabilities.delete);
+    const allDeletablePageClientsSelected = deletablePageClients.length > 0 && deletablePageClients.every((client) => selectedClientIds.has(client.id));
 
     useEffect(() => {
         setPage((currentPage) => Math.min(currentPage, pageCount - 1));
@@ -211,6 +215,42 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
         });
     }
 
+    function toggleClientSelection(clientId: number) {
+        setSelectedClientIds((current) => {
+            const next = new Set(current);
+            if (next.has(clientId)) next.delete(clientId);
+            else next.add(clientId);
+            return next;
+        });
+    }
+
+    function togglePageSelection() {
+        setSelectedClientIds((current) => {
+            const next = new Set(current);
+            if (allDeletablePageClientsSelected) {
+                deletablePageClients.forEach((client) => next.delete(client.id));
+            } else {
+                deletablePageClients.forEach((client) => next.add(client.id));
+            }
+            return next;
+        });
+    }
+
+    function confirmBulkDelete() {
+        const clientIds = [...selectedClientIds];
+        if (clientIds.length === 0) return;
+
+        router.post('/clients/bulk-delete', { client_ids: clientIds }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success(t('clients.bulkDeleted', { count: clientIds.length }));
+                setSelectedClientIds(new Set());
+                setShowBulkDeleteConfirm(false);
+            },
+            onError: () => toast.error(t('clients.bulkDeleteError')),
+        });
+    }
+
     function RowMenu({ client }: { client: ClientRow }) {
         const items = client.capabilities.delete
             ? [{ id: 'delete', label: t('clients.delete'), icon: <IconTrash size={14} />, action: () => setDeleteTarget(client), danger: true }]
@@ -218,11 +258,11 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
 
         return (
             <div className="flex items-center gap-0.5 shrink-0">
-                {client.capabilities.view ? <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label={t('clients.view')} onClick={() => router.visit(`/clients/${client.id}`)}><IconEye size={11} /></button> : null}
-                {client.capabilities.update ? <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label={t('clients.edit')} onClick={() => openEditDrawer(client)}><IconPencil size={11} /></button> : null}
+                {client.capabilities.view ? <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label={t('clients.view')} onClick={() => router.visit(`/clients/${client.id}`)}><IconEye size={13} /></button> : null}
+                {client.capabilities.update ? <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label={t('clients.edit')} onClick={() => openEditDrawer(client)}><IconPencil size={13} /></button> : null}
                 {items.length ? <Dropdown>
                     <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]" aria-label={t('clients.actions')}>
-                        <IconDots size={11} />
+                        <IconDots size={13} />
                     </Dropdown.Trigger>
                     <Dropdown.Popover placement="bottom end" className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                         <Dropdown.Menu aria-label={t('clients.actions')} onAction={(key) => items.find((item) => item.id === key)?.action()} itemClasses={{ base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]' }}>
@@ -239,6 +279,33 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
     }
 
     const clientColumns: AppWorkspaceTableColumn<ClientRow>[] = [
+        {
+            id: 'select',
+            label: can('clients.delete') ? (
+                <Checkbox isSelected={allDeletablePageClientsSelected} onChange={togglePageSelection} aria-label={t('clients.selectAll')}>
+                    <Checkbox.Content>
+                        <Checkbox.Control className="size-4 rounded border border-[color-mix(in_srgb,var(--text-muted)_35%,transparent)] bg-[var(--surface)] data-[selected]:border-[var(--accent)] data-[selected]:bg-[var(--accent)]">
+                            <Checkbox.Indicator className="text-black" />
+                        </Checkbox.Control>
+                    </Checkbox.Content>
+                </Checkbox>
+            ) : null,
+            headerClassName: 'w-10',
+            cellClassName: 'w-10',
+            fixedPosition: 'start',
+            reorderable: false,
+            render: (client) => client.capabilities.delete ? (
+                <span onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+                    <Checkbox isSelected={selectedClientIds.has(client.id)} onChange={() => toggleClientSelection(client.id)} aria-label={t('clients.selectClient', { name: client.fullName })}>
+                        <Checkbox.Content>
+                            <Checkbox.Control className="size-4 rounded border border-[color-mix(in_srgb,var(--text-muted)_35%,transparent)] bg-[var(--surface)] data-[selected]:border-[var(--accent)] data-[selected]:bg-[var(--accent)]">
+                                <Checkbox.Indicator className="text-black" />
+                            </Checkbox.Control>
+                        </Checkbox.Content>
+                    </Checkbox>
+                </span>
+            ) : null,
+        },
         {
             id: 'avatar',
             label: '',
@@ -347,6 +414,13 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                                     {query ? <button type="button" onClick={() => { setQuery(''); setPage(0); }} className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]" aria-label={t('clients.resetFilters')}><IconX size={12} /></button> : null}
                                 </div>
                                 <div className="ml-auto flex items-center gap-1">
+                                    {selectedClientIds.size > 0 ? (
+                                        <>
+                                            <span className="mr-1 text-[10px] font-semibold text-[var(--accent)]">{t('clients.selected', { count: selectedClientIds.size })}</span>
+                                            <AppButton isIconOnly compact size="sm" variant="danger-soft" tooltip={t('clients.bulkDelete')} aria-label={t('clients.bulkDelete')} onPress={() => setShowBulkDeleteConfirm(true)} className="size-7"><IconTrash size={13} /></AppButton>
+                                            <AppButton isIconOnly compact size="sm" variant="quiet" tooltip={t('clients.clearSelection')} aria-label={t('clients.clearSelection')} onPress={() => setSelectedClientIds(new Set())} className="size-7"><IconX size={13} /></AppButton>
+                                        </>
+                                    ) : null}
                                     <Dropdown>
                                         <Dropdown.Trigger className={cn('inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-medium transition hover:border-[var(--accent)]/30', statusFilter !== 'all' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}>
                                             <span className="contents"><IconFilter size={12} />{statusOptions.find((option) => option.id === statusFilter)?.label}<span className="rounded bg-[var(--surface-2)] px-1 py-px text-[9px] font-semibold text-[var(--text-muted)]">{statusOptions.find((option) => option.id === statusFilter)?.count ?? clients.length}</span></span>
@@ -363,6 +437,7 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                         }
                         renderMobileRow={(client) => (
                             <div key={client.id} className="flex items-start gap-2 p-3 transition hover:bg-[var(--surface-2)]">
+                                {client.capabilities.delete ? <span className="pt-1" onClick={(event) => event.stopPropagation()}><Checkbox isSelected={selectedClientIds.has(client.id)} onChange={() => toggleClientSelection(client.id)} aria-label={t('clients.selectClient', { name: client.fullName })}><Checkbox.Content><Checkbox.Control className="size-4 rounded border border-[color-mix(in_srgb,var(--text-muted)_35%,transparent)] bg-[var(--surface)] data-[selected]:border-[var(--accent)] data-[selected]:bg-[var(--accent)]"><Checkbox.Indicator className="text-black" /></Checkbox.Control></Checkbox.Content></Checkbox></span> : null}
                                 <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold', avatarColor(client.id))}>{initials(client)}</span>
                                 <AppButton variant="ghost" size="sm" onPress={() => router.visit(`/clients/${client.id}`)} className="h-auto min-w-0 flex-1 justify-start p-0 text-left"><span className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-[12px] font-semibold text-[var(--foreground)]">{client.fullName}</p><StatusPill label={t(`clients.status.${client.status}`, client.status)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" /></div><p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{client.cin ? `${client.cin} · ` : ''}{client.phone || client.email || '-'}</p><div className="mt-1 flex items-center gap-3 text-[10px] text-[var(--text-muted)]"><span>{t('clients.pagination.projects', { count: client.projectsCount })}</span><span>{client.updatedAt || '-'}</span></div></span></AppButton>
                                 <RowMenu client={client} />
@@ -404,9 +479,21 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                         <AppButton variant="bordered" onPress={() => setDeleteTarget(null)}>
                             {t('clients.cancel')}
                         </AppButton>
-                        <AppButton color="danger" variant="solid" onPress={confirmDelete}>
+                        <AppButton color="danger" variant="solid" className="bg-[var(--danger)] text-white hover:bg-[var(--danger-hover)]" onPress={confirmDelete}>
                             {t('clients.delete')}
                         </AppButton>
+                    </div>
+                </AppModal>
+
+                <AppModal
+                    isOpen={showBulkDeleteConfirm}
+                    onOpenChange={setShowBulkDeleteConfirm}
+                    title={t('clients.bulkDeleteTitle')}
+                >
+                    <p className="mb-5 text-sm text-[var(--text-muted)]">{t('clients.bulkDeleteDescription', { count: selectedClientIds.size })}</p>
+                    <div className="flex justify-end gap-2">
+                        <AppButton variant="bordered" onPress={() => setShowBulkDeleteConfirm(false)}>{t('clients.cancel')}</AppButton>
+                        <AppButton color="danger" variant="solid" className="bg-[var(--danger)] text-white hover:bg-[var(--danger-hover)]" onPress={confirmBulkDelete}>{t('clients.delete')}</AppButton>
                     </div>
                 </AppModal>
             </AppShell>

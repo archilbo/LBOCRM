@@ -109,6 +109,11 @@ class Dossier extends Model
         return $this->hasMany(DossierWorkflowRequirement::class);
     }
 
+    public function cahier(): HasOne
+    {
+        return $this->hasOne(DossierCahier::class);
+    }
+
     public function workflowRequirementHistories(): HasMany
     {
         return $this->hasMany(DossierWorkflowRequirementHistory::class);

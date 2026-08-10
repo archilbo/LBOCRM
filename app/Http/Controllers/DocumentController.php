@@ -14,7 +14,6 @@ use App\Notifications\DocumentNotification;
 use App\Services\Documents\DocumentGroupingService;
 use App\Services\Documents\DossierDocumentFileService;
 use App\Services\Documents\DossierDocumentUploadService;
-use App\Services\Documents\WorkflowDocumentCompletionService;
 use App\Services\Documents\WorkflowDocumentTemplateResolver;
 use App\Services\Dossiers\DossierPathBuilder;
 use App\Services\CompanyContext;
@@ -66,7 +65,6 @@ class DocumentController extends Controller
         StoreDossierDocumentRequest $request,
         CompanyContext $companyContext,
         DossierDocumentUploadService $uploads,
-        WorkflowDocumentCompletionService $workflowCompletion,
         WorkflowDocumentTemplateResolver $templateResolver,
     ): RedirectResponse {
         $this->authorize(
@@ -130,17 +128,6 @@ class DocumentController extends Controller
             $data['status'] ?? 'uploaded',
             $data['notes'] ?? null,
         );
-
-        $workflowCompletion
-            ->completeWhenSatisfied(
-                $dossier,
-                $template,
-                $data['workflow_step_key']
-                    ?? null,
-                $data['workflow_req_key']
-                    ?? null,
-                $request->user(),
-            );
 
         $firstDocument =
             $documents->first();

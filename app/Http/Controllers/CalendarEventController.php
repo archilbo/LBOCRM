@@ -12,6 +12,7 @@ use App\Services\Calendar\CalendarEventService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class CalendarEventController extends Controller
 {
@@ -49,13 +50,13 @@ class CalendarEventController extends Controller
         return redirect()->back()->with('success', 'Event updated.');
     }
 
-    public function destroy(CalendarEvent $calendarEvent): RedirectResponse
+    public function destroy(Request $request, CalendarEvent $calendarEvent): RedirectResponse
     {
         $this->authorize('delete', $calendarEvent);
 
-        $this->service->delete($calendarEvent);
+        $this->service->delete($calendarEvent, $request->user());
 
-        return redirect()->route('calendar.index')->with('success', 'Event deleted.');
+        return redirect()->route('calendar.index')->with('success', 'Événement déplacé dans la corbeille.');
     }
 
     public function move(MoveCalendarEventRequest $request, CalendarEvent $calendarEvent): JsonResponse

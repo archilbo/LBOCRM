@@ -7,6 +7,7 @@ type AppSearchInputProps = {
     onChange: (value: string) => void;
     placeholder?: string;
     ariaLabel?: string;
+    inputId?: string;
     className?: string;
     maxWidth?: string;
 };
@@ -16,6 +17,7 @@ export function AppSearchInput({
     onChange,
     placeholder = 'Rechercher...',
     ariaLabel = 'Barre de recherche',
+    inputId,
     className = '',
     maxWidth = 'sm:max-w-[240px]',
 }: AppSearchInputProps) {
@@ -23,6 +25,7 @@ export function AppSearchInput({
         <div className={`relative w-full ${maxWidth} ${className}`}>
             <IconSearch size={13} className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[var(--text-muted)]" />
             <Input
+                id={inputId}
                 aria-label={ariaLabel}
                 value={value}
                 onChange={(event) => onChange(event.target.value)}

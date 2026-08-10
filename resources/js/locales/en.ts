@@ -1,4 +1,41 @@
 export const en = {
+    finance: {
+        actions: {
+            open: 'Open document', edit: 'Edit', preview: 'Preview', print: 'Print', downloadPdf: 'Download PDF', downloadExcel: 'Download Excel',
+            generatePdf: 'Generate PDF', regeneratePdf: 'Regenerate PDF', generateExcel: 'Generate Excel', regenerateExcel: 'Regenerate Excel',
+            acceptQuote: 'Accept quote', convertToInvoice: 'Convert to invoice', rejectQuote: 'Reject quote', registerPayment: 'Register payment',
+            cancelDocument: 'Cancel document', delete: 'Delete', moreActions: 'More actions', actionMenu: 'Finance actions',
+        },
+        table: {
+            refresh: 'Refresh', filters: 'Filters', clearSearch: 'Clear search', clearSelection: 'Clear selection', selected: '{count} selected',
+            generatePdf: 'Generate PDFs', generateExcel: 'Generate Excel files', allTypes: 'All types', status: 'Status', type: 'Type',
+            document: 'Document', clientProject: 'Client / Project', total: 'Total', paid: 'Paid', remaining: 'Remaining', actions: 'Actions',
+            selectAll: 'Select all visible documents', selectDocument: 'Select {number}', documentsCount: '{count} document(s)',
+            noDocumentsTitle: 'No finance documents found', noDocumentsDescription: 'Change the search or create a new document.',
+            searchDocuments: 'Search quotes, invoices, or receipts…', searchPayments: 'Search payments, invoices, or clients…',
+            payment: 'Payment', invoiceClient: 'Invoice / Client', amount: 'Amount', receipt: 'Receipt', paymentsCount: '{count} payment(s)',
+            methodReference: 'Method / reference', noReference: 'No reference', referenceLabel: 'Reference:',
+            noPaymentsTitle: 'No payments found', noPaymentsDescription: 'Record a payment from an invoice.', pageTotal: 'Page total',
+        },
+        types: { quote: 'Quote', invoice: 'Invoice', receipt: 'Receipt' },
+        paymentMethods: { cash: 'Cash', bankTransfer: 'Bank transfer', check: 'Cheque', card: 'Card', other: 'Other' },
+        statuses: { all: 'All', draft: 'Draft', issued: 'Issued', sent: 'Sent', accepted: 'Accepted', partiallyPaid: 'Partial', paid: 'Paid', overdue: 'Overdue', rejected: 'Rejected', converted: 'Converted', cancelled: 'Cancelled' },
+        expenses: { administrative: 'Administrative', travel: 'Travel', supplies: 'Supplies', equipment: 'Equipment', utilities: 'Utilities', professionalFees: 'Professional fees', taxes: 'Taxes', other: 'Other' },
+        sidebar: { actions: 'Actions', exports: 'Export', quote: 'Quote', dangerZone: 'Danger zone', view: 'View', print: 'Print', generateFiles: 'Generate PDF and Excel', accept: 'Accept', reject: 'Reject', convert: 'Convert', cancel: 'Cancel' },
+        documentShow: {
+            back: 'Back', locked: 'Locked', lockedAt: 'Locked at {date}', lockMessage: 'Document locked after export. The number, type, and issue date can no longer be changed.',
+            totalTtc: 'Total incl. tax', remaining: 'Remaining', issueDate: 'Issue date', dueDate: 'Due date', validUntil: 'Valid until', client: 'Client', dossier: 'Project',
+            subtotalHt: 'Subtotal excl. tax', beforeTax: 'Before VAT', taxRate: '{rate}% VAT rate', grandTotal: 'Grand total', stillToCollect: 'Still to collect', fullyPaid: 'Fully paid',
+            documentLines: 'Document lines', itemsCount: '{count} item(s)', item: 'Item', quantity: 'Qty', unit: 'Unit', price: 'Price', total: 'Total', noItems: 'No items in this document.',
+            payments: 'Payments', paymentsCount: '{count} payment(s)', reference: 'Reference', method: 'Method', date: 'Date', amount: 'Amount', noPayments: 'No payments recorded for this document.',
+            notesAndTerms: 'Notes and terms', notes: 'Notes', terms: 'Terms', noNotes: 'No notes saved.', noTerms: 'No terms saved.',
+            details: 'Details', type: 'Type', status: 'Status', generatedAt: 'Generated', createdAt: 'Created', ready: 'Ready', missing: 'Missing',
+            clientProject: 'Client and project', project: 'Project', viewClient: 'View client', viewProject: 'View project',
+            deleteTitle: 'Delete document?', deleteDescription: 'Delete {number}? This action cannot be undone.', cancel: 'Cancel',
+            actionUnavailable: 'Action is not available.', actionFailed: 'Action failed.', fileUnavailable: 'File is not available.', documentDeleted: 'Document deleted.', documentDeleteFailed: 'Document could not be deleted.',
+            documentGenerated: 'Document generated.', pdfGenerated: 'PDF generated.', excelGenerated: 'Excel file generated.', quoteAccepted: 'Quote accepted.', quoteRejected: 'Quote rejected.', invoiceCreated: 'Invoice created.', documentCancelled: 'Document cancelled.',
+        },
+    },
     app: {
         name: 'ARCHI LBO OS',
         shortName: 'ARCHI LBO',
@@ -286,9 +323,9 @@ export const en = {
         pinnedAria: 'Pinned conversation',
         archiveAria: 'Archive conversation',
         restoreAria: 'Restore conversation',
-        online: 'Team available',
+        connectionOnline: 'Team available',
         connecting: 'Connecting...',
-        offline: 'Offline mode',
+        connectionOffline: 'Offline mode',
         newConversation: 'New conversation',
         searchConversationAria: 'Search conversations',
         filterConversationsAria: 'Filter conversations',
@@ -500,6 +537,7 @@ export const en = {
     },
 
     dashboard: {
+        attention: { title: 'Take action', detail: 'Tasks and calendar events that need your attention soon', empty: 'No urgent actions in the next 48 hours.', task: 'Task', calendar: 'Calendar event' },
         eyebrow: 'Command center',
         title: 'Dashboard',
         subtitle: 'Live overview of projects, documents, Rokhas follow-up, finance, and daily actions.',
@@ -575,6 +613,15 @@ export const en = {
         deactivateClient: 'Deactivate client',
         formError: 'Please check client form errors.',
         deleteError: 'Client could not be deleted.',
+        selectAll: 'Select all visible clients',
+        selectClient: 'Select {name}',
+        selected: '{count} selected',
+        clearSelection: 'Clear selection',
+        bulkDelete: 'Delete selected clients',
+        bulkDeleteTitle: 'Delete selected clients?',
+        bulkDeleteDescription: 'Delete {count} selected client(s)? This action cannot be undone and may remove linked projects.',
+        bulkDeleted: '{count} client(s) deleted successfully.',
+        bulkDeleteError: 'Selected clients could not be deleted.',
         status: {
             all: 'All',
             active: 'Active',
@@ -819,6 +866,9 @@ export const en = {
         createSuccess: 'Intermediary created successfully.',
         updateSuccess: 'Intermediary updated successfully.',
         deleteSuccess: 'Intermediary deleted successfully.',
+        selectAll: 'Select all visible intermediaries', selectIntermediary: 'Select {name}', selected: '{count} selected', clearSelection: 'Clear selection',
+        bulkDelete: 'Delete selected intermediaries', bulkDeleteTitle: 'Delete selected intermediaries?', bulkDeleteDescription: 'Delete {count} selected intermediary(s)? This action cannot be undone.',
+        bulkDeleted: '{count} intermediary(s) deleted successfully.', bulkDeleteError: 'Selected intermediaries could not be deleted.',
         formError: 'Please check the form.',
         viewIntermediary: 'View intermediary',
         type: 'Type',
@@ -3007,5 +3057,3 @@ export const en = {
 } as const;
 
 export type AppLocale = typeof en;
-
-

@@ -7,6 +7,7 @@ use App\Models\Dossier;
 use App\Models\FinanceDocument;
 use App\Models\FinanceDocumentItem;
 use App\Models\Payment;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -15,6 +16,8 @@ class PaymentLedgerService
 {
     public function __construct(
         private readonly DossierFinanceEligibilityService $eligibility,
+        private readonly FinancePaymentReminderService $reminders,
+        private readonly FinancePaymentPromiseService $promises,
     ) {
     }
 
@@ -45,6 +48,8 @@ class PaymentLedgerService
             ]);
 
             $invoice = $this->recalculateInvoice($invoice);
+            $this->reminders->completeForInvoice($invoice);
+            $this->promises->reconcileForInvoice($invoice);
 
             $receipt = $this->createOrUpdateReceiptForPayment($invoice, $payment->fresh());
 
@@ -197,6 +202,8 @@ class PaymentLedgerService
             }
 
             $newInvoice = $this->recalculateInvoice($newInvoice->fresh());
+            $this->reminders->completeForInvoice($newInvoice);
+            $this->promises->reconcileForInvoice($newInvoice);
 
             $receipt = $this->createOrUpdateReceiptForPayment($newInvoice, $payment->fresh());
 
@@ -208,9 +215,9 @@ class PaymentLedgerService
         });
     }
 
-    public function deletePayment(Payment $payment): void
+    public function deletePayment(Payment $payment, ?User $cancelledBy = null, ?string $cancellationReason = null): void
     {
-        DB::transaction(function () use ($payment) {
+        DB::transaction(function () use ($payment, $cancelledBy, $cancellationReason) {
             $payment = $payment->fresh(['document', 'receiptDocument']);
 
             $invoice = $payment->document;
@@ -223,10 +230,16 @@ class PaymentLedgerService
                 ])->save();
             }
 
+            $payment->forceFill([
+                'cancelled_at' => now(),
+                'cancelled_by' => $cancelledBy?->id,
+                'cancellation_reason' => $cancellationReason,
+            ])->save();
             $payment->delete();
 
             if ($invoice) {
-                $this->recalculateInvoice($invoice->fresh());
+                $invoice = $this->recalculateInvoice($invoice->fresh());
+                $this->promises->reconcileForInvoice($invoice);
             }
         });
     }

@@ -28,33 +28,53 @@ class ArchiveNumberingService
      */
     public function reserve(Dossier $dossier, Carbon|string|null $date = null): array
     {
-        $companyId = $dossier->company_id;
-        $city = $dossier->city;
-
-        if (! $companyId) {
-            throw new ArchiveNumberingException(
-                "Impossible de générer le numéro d'archive : le dossier n'est rattaché à aucune société.",
-            );
-        }
-
-        if (! $city || trim((string) $city->code) === '') {
-            throw new ArchiveNumberingException(
-                "Impossible de générer le numéro d'archive : le dossier n'a pas de ville (ou de code de ville) valide.",
-            );
-        }
-
         $year = (int) $this->date($date)->format('Y');
-        $cityCode = strtoupper(trim((string) $city->code));
-
-        $sequence = $this->nextSequence((int) $companyId, (int) $city->id, $year);
+        $scope = $this->scope($dossier, $year);
+        $sequence = $this->nextSequence($scope['companyId'], $scope['cityId'], $year);
 
         return [
-            'number' => $this->format($cityCode, $year, $sequence),
+            'number' => $this->format($scope['cityCode'], $year, $sequence),
             'year' => $year,
             'sequence' => $sequence,
-            'company_id' => (int) $companyId,
-            'city_id' => (int) $city->id,
+            'company_id' => $scope['companyId'],
+            'city_id' => $scope['cityId'],
         ];
+    }
+
+    /**
+     * Reserve the original sequence from a legacy Excel reference such as BG226.
+     * Call inside the same transaction that creates its ArchiveRecord.
+     *
+     * @return array{number:string, year:int, sequence:int, company_id:int, city_id:int}|null
+     */
+    public function reserveLegacyReference(Dossier $dossier, string $reference, int $year): ?array
+    {
+        $sequence = $this->legacySequence($reference);
+        if ($sequence === null) {
+            return null;
+        }
+
+        $scope = $this->scope($dossier, $year);
+        $this->ensureSequenceAtLeast($scope['companyId'], $scope['cityId'], $year, $sequence);
+
+        return [
+            'number' => $this->format($scope['cityCode'], $year, $sequence),
+            'year' => $year,
+            'sequence' => $sequence,
+            'company_id' => $scope['companyId'],
+            'city_id' => $scope['cityId'],
+        ];
+    }
+
+    public function legacySequence(string $reference): ?int
+    {
+        if (! preg_match('/(\d{1,9})$/', trim($reference), $matches)) {
+            return null;
+        }
+
+        $sequence = (int) $matches[1];
+
+        return $sequence > 0 ? $sequence : null;
     }
 
     /**
@@ -79,6 +99,22 @@ class ArchiveNumberingService
             ]);
 
         return $next;
+    }
+
+    private function ensureSequenceAtLeast(int $companyId, int $cityId, int $year, int $sequence): void
+    {
+        $counter = $this->lockCounter($companyId, $cityId, $year);
+
+        if ($counter->last_sequence >= $sequence) {
+            return;
+        }
+
+        DB::table('archive_number_sequences')
+            ->where('id', $counter->id)
+            ->update([
+                'last_sequence' => $sequence,
+                'updated_at' => now(),
+            ]);
     }
 
     /**
@@ -148,5 +184,38 @@ class ArchiveNumberingService
         }
 
         return now();
+    }
+
+    /**
+     * @return array{companyId:int, cityId:int, cityCode:string}
+     */
+    private function scope(Dossier $dossier, int $year): array
+    {
+        $companyId = $dossier->company_id;
+        $city = $dossier->city;
+
+        if (! $companyId) {
+            throw new ArchiveNumberingException(
+                "Impossible de générer le numéro d'archive : le dossier n'est rattaché à aucune société.",
+            );
+        }
+
+        if (! $city || trim((string) $city->code) === '') {
+            throw new ArchiveNumberingException(
+                "Impossible de générer le numéro d'archive : le dossier n'a pas de ville (ou de code de ville) valide.",
+            );
+        }
+
+        if ($year < 1) {
+            throw new ArchiveNumberingException(
+                "Impossible de générer le numéro d'archive : l'année est invalide.",
+            );
+        }
+
+        return [
+            'companyId' => (int) $companyId,
+            'cityId' => (int) $city->id,
+            'cityCode' => strtoupper(trim((string) $city->code)),
+        ];
     }
 }

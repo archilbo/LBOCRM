@@ -1,5 +1,5 @@
 import { AppWorkspaceTabs, type AppWorkspaceTab } from '@/components/ui/AppWorkspaceTabs';
-import { IconChartBar, IconCalendarDue, IconFileText, IconLayoutDashboard, IconReceipt2, IconSettings2, IconShoppingCart, IconWallet } from '@tabler/icons-react';
+import { IconChartBar, IconCalendarDue, IconCash, IconFileText, IconLayoutDashboard, IconReceipt2, IconSettings2, IconShoppingCart, IconWallet } from '@tabler/icons-react';
 
 import type { ReactNode } from 'react';
 
@@ -7,6 +7,7 @@ export const financeTabs: AppWorkspaceTab[] = [
     { id: 'overview', label: 'Vue generale', icon: IconLayoutDashboard },
     { id: 'quotes', label: 'Devis', icon: IconFileText },
     { id: 'invoices', label: 'Factures', icon: IconReceipt2 },
+    { id: 'collections', label: 'À encaisser', icon: IconCash },
     { id: 'payments', label: 'Paiements', icon: IconWallet },
     { id: 'expenses', label: 'Depenses', icon: IconShoppingCart },
     { id: 'monthly', label: 'Mensuel', icon: IconCalendarDue },

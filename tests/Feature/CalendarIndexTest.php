@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Events\Calendar\CalendarChanged;
 use App\Models\CalendarEvent;
 use App\Models\Company;
 use App\Models\User;
-use App\Events\Calendar\CalendarChanged;
-use Illuminate\Support\Facades\Event;
+use App\Services\Calendar\CalendarRealtimeService;
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -64,6 +67,36 @@ class CalendarIndexTest extends TestCase
             ->assertSessionHasErrors('color');
     }
 
+    public function test_creating_tasks_or_calendar_events_in_the_past_is_rejected(): void
+    {
+        $user = $this->calendarUser('calendar.create', 'tasks.create');
+        $pastDate = now()->subDay()->toDateString();
+
+        $this->actingAs($user)
+            ->from(route('calendar.index'))
+            ->post(route('calendar.events.store'), [
+                'type' => 'meeting',
+                'title' => 'Past calendar event',
+                'starts_at' => $pastDate.'T10:00',
+            ])
+            ->assertRedirect(route('calendar.index'))
+            ->assertSessionHasErrors('starts_at');
+
+        $this->actingAs($user)
+            ->from(route('tasks.index'))
+            ->post(route('tasks.store'), [
+                'title' => 'Past task',
+                'type' => 'general',
+                'status' => 'not_started',
+                'priority' => 'medium',
+                'category' => 'general_admin',
+                'start_date' => $pastDate,
+                'due_date' => $pastDate,
+            ])
+            ->assertRedirect(route('tasks.index'))
+            ->assertSessionHasErrors(['start_date', 'due_date']);
+    }
+
     public function test_creating_an_event_broadcasts_a_private_calendar_refresh_without_event_data(): void
     {
         $user = $this->calendarUser('calendar.view', 'calendar.create');
@@ -81,6 +114,46 @@ class CalendarIndexTest extends TestCase
         Event::assertDispatched(CalendarChanged::class, fn (CalendarChanged $event) => $event->recipientId === $user->id
             && $event->action === 'created'
             && str_starts_with($event->eventKey, 'calendar_event:'));
+    }
+
+    public function test_an_event_owner_can_move_an_event_with_iso_timestamps(): void
+    {
+        $user = $this->calendarUser('calendar.view', 'calendar.update');
+        $event = $this->event($user, 'CAL-MOVE-001', 'Movable event', '2026-09-10 09:00:00', '2026-09-10 10:00:00');
+        Event::fake([CalendarChanged::class]);
+
+        $this->actingAs($user)
+            ->putJson(route('calendar.events.move', $event), [
+                'starts_at' => '2026-09-12T13:30:00.000Z',
+                'ends_at' => '2026-09-12T14:30:00.000Z',
+            ])
+            ->assertOk()
+            ->assertJsonPath('id', $event->id);
+
+        $this->assertDatabaseHas('calendar_events', [
+            'id' => $event->id,
+            'starts_at' => '2026-09-12 13:30:00',
+            'ends_at' => '2026-09-12 14:30:00',
+        ]);
+    }
+
+    public function test_an_unavailable_realtime_broadcaster_does_not_break_calendar_writes(): void
+    {
+        Log::spy();
+        Event::shouldReceive('dispatch')
+            ->once()
+            ->andThrow(new BroadcastException('Realtime server unavailable.'));
+
+        app(CalendarRealtimeService::class)->publishTo([123], 'calendar_event:456', 'created');
+
+        Log::shouldHaveReceived('warning')
+            ->once()
+            ->with('Calendar realtime broadcast was unavailable.', [
+                'recipient_id' => 123,
+                'event_key' => 'calendar_event:456',
+                'action' => 'created',
+                'exception' => BroadcastException::class,
+            ]);
     }
 
     private function calendarUser(string ...$permissions): User

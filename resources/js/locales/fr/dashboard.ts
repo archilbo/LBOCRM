@@ -11,5 +11,6 @@ export const frDashboard = {
         activity: { documentUpdated: 'Document mis a jour', paymentRecorded: 'Paiement enregistre', projectUpdated: 'Projet mis a jour' },
         chart: { noFinanceData: 'Aucune donnee financiere', noFinanceDataDetail: 'Les factures et paiements apparaitront ici des leur creation.', invoiced: 'Facture', collected: 'Encaisse', noActiveProjects: 'Aucun dossier actif', noActiveProjectsDetail: "La repartition apparaitra des qu'un projet sera ouvert.", active: 'actifs', dossierCount: '{count} dossier(s)' },
         states: { noRecentProject: 'Aucun projet recent.', allStable: 'Tout est stable.', noRecentUpdates: 'Aucune mise a jour recente.', documents: 'documents', days: 'j', overdue: 'Retard', urgent: 'Urgent' },
+        attention: { title: 'A agir maintenant', detail: 'Taches et rendez-vous proches qui demandent votre attention', empty: 'Aucune action urgente dans les 48 prochaines heures.', task: 'Tache', calendar: 'Evenement calendrier' },
     },
 };

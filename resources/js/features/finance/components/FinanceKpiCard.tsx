@@ -3,7 +3,7 @@ import { IconArrowDownRight, IconArrowUpRight } from '@tabler/icons-react';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 
 import { cn } from '@/lib/cn';
-import { formatFullMoney } from '@/features/finance/utils/calculations';
+import { formatCompactMoney, formatFullMoney } from '@/lib/currency';
 
 export type FinanceKpiMetricSemantic = 'revenue' | 'expense' | 'overdue';
 
@@ -45,54 +45,8 @@ type ParsedValue = {
     currency: string;
 };
 
-const compactNumberFormatterCache = new Map<number, Intl.NumberFormat>();
-
-function compactFormatter(maximumFractionDigits: number): Intl.NumberFormat {
-    const cached = compactNumberFormatterCache.get(maximumFractionDigits);
-
-    if (cached) {
-        return cached;
-    }
-
-    const formatter = new Intl.NumberFormat('fr-FR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits,
-    });
-
-    compactNumberFormatterCache.set(maximumFractionDigits, formatter);
-
-    return formatter;
-}
-
 function formatCompactMoneyParts(value: number, currency: string): ParsedValue {
-    const absoluteValue = Math.abs(value);
-
-    let divisor = 1;
-    let suffix = '';
-
-    if (absoluteValue >= 1_000_000_000) {
-        divisor = 1_000_000_000;
-        suffix = 'Md';
-    } else if (absoluteValue >= 1_000_000) {
-        divisor = 1_000_000;
-        suffix = 'M';
-    } else if (absoluteValue >= 1_000) {
-        divisor = 1_000;
-        suffix = 'k';
-    }
-
-    const compactValue = value / divisor;
-    const compactAbsoluteValue = Math.abs(compactValue);
-
-    const maximumFractionDigits =
-        compactAbsoluteValue >= 100 ? 0 : compactAbsoluteValue >= 10 ? 1 : 2;
-
-    const formattedAmount = compactFormatter(maximumFractionDigits).format(compactValue);
-
-    return {
-        amount: suffix ? `${formattedAmount}\u00A0${suffix}` : formattedAmount,
-        currency,
-    };
+    return parseFormattedValue(formatCompactMoney(value, currency), currency, true);
 }
 
 function parseFormattedValue(

@@ -119,6 +119,18 @@ export type DashboardRecentMessage = {
     unread: boolean;
 };
 
+export type DashboardAttentionItem = {
+    id: string;
+    kind: 'task' | 'calendar';
+    title: string;
+    context: string;
+    at: string;
+    urgency: 'overdue' | 'today' | 'upcoming';
+    tone: DashboardTone;
+    icon: DashboardIconKey;
+    href: string;
+};
+
 export type DashboardCommandCenter = {
     kpis: DashboardKpi[];
     nextActions: DashboardAction[];
@@ -130,6 +142,7 @@ export type DashboardCommandCenter = {
     activityFeed: DashboardActivity[];
     urgentTaskList: DashboardUrgentTask[];
     recentMessageList: DashboardRecentMessage[];
+    attentionItems: DashboardAttentionItem[];
     quickLinks: DashboardQuickLink[];
     systemHealth: DashboardSystemHealth[];
 };

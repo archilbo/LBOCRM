@@ -12,6 +12,8 @@ import type { Expense } from '@/features/finance/types';
 import { formatCompactMoney } from '@/features/finance/utils/calculations';
 import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirection } from '@/features/finance/components/FinanceSortableHeader';
 import { FinanceRowActions } from '@/features/finance/components/FinanceRowActions';
+import { financeExpenseCategoryLabel } from '@/features/finance/components/FinanceStatusBadge';
+import { useTranslation } from '@/lib/i18n';
 
 type ExpensesWorkspaceProps = {
     expenses: Expense[];
@@ -40,11 +42,10 @@ const categoryOptions = [
     { id: 'other', label: 'Autre' },
 ];
 
-const categoryLabels: Record<string, string> = Object.fromEntries(categoryOptions.map((c) => [c.id, c.label]));
-
 const categoryFilterOptions = [{ id: 'all', label: 'Toutes' }, ...categoryOptions];
 
 export function ExpensesWorkspace({ expenses, currency, onEdit, onView, pagination, filters, canEdit, canDelete }: ExpensesWorkspaceProps) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState(filters?.expense_search || '');
     const [categoryFilter, setCategoryFilter] = useState(filters?.expense_category || 'all');
     const [showFilters, setShowFilters] = useState(false);
@@ -182,7 +183,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                                     <td className="px-3 py-2 font-semibold text-[var(--text)]">{expense.expenseDate}</td>
                                     <td className="px-3 py-2">
                                         <span className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold ${categoryBadge(expense.category)}`}>
-                                            {categoryLabels[expense.category] || expense.category}
+                                            {financeExpenseCategoryLabel(expense.category, t)}
                                         </span>
                                     </td>
                                     <td className="px-3 py-2 text-[var(--text)]">{expense.vendor || <span className="text-[var(--text-muted)]">-</span>}</td>
@@ -225,7 +226,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                     <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${categoryBadge(expense.category)}`}>
-                                        {categoryLabels[expense.category] || expense.category}
+                                        {financeExpenseCategoryLabel(expense.category, t)}
                                     </span>
                                     <span className="text-[9px] text-[var(--text-muted)]">{expense.expenseDate}</span>
                                 </div>
@@ -262,7 +263,7 @@ export function ExpensesWorkspace({ expenses, currency, onEdit, onView, paginati
             <AppConfirmDialog
                 isOpen={Boolean(deleteTarget)}
                 title="Supprimer la depense ?"
-                description={`Confirmer la suppression de la depense ${categoryLabels[deleteTarget?.category || 'other']} de ${deleteTarget ? formatCompactMoney(deleteTarget.amount, currency) : ''}.`}
+                description={`Confirmer la suppression de la dépense ${financeExpenseCategoryLabel(deleteTarget?.category || 'other', t)} de ${deleteTarget ? formatCompactMoney(deleteTarget.amount, currency) : ''}.`}
                 confirmLabel="Supprimer"
                 onConfirm={handleDelete}
                 onCancel={() => setDeleteTarget(null)}

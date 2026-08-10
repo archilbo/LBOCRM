@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\StorePaymentRequest;
+use App\Http\Requests\Finance\CancelPaymentRequest;
 use App\Http\Requests\Finance\UpdatePaymentRequest;
 use App\Models\Dossier;
 use App\Models\FinanceDocument;
@@ -89,13 +90,13 @@ class PaymentController extends Controller
         return $this->redirectToReturnPath($request, $returnTo, "Paiement {$payment->payment_number} mis a jour. Recu: {$receiptNumber}");
     }
 
-    public function destroy(Request $request, Payment $payment, PaymentLedgerService $ledger): RedirectResponse
+    public function destroy(CancelPaymentRequest $request, Payment $payment, PaymentLedgerService $ledger): RedirectResponse
     {
         $this->authorize('delete', $payment);
         $number = $payment->payment_number;
         app(FinanceActivityService::class)->log($payment, $request->user(), 'finance.payment.reversed', $payment->toArray());
 
-        $ledger->deletePayment($payment);
+        $ledger->deletePayment($payment, $request->user(), $request->validated('cancellation_reason'));
 
         return $this->redirectToReturnPath($request, $request->input('return_to'), "Paiement {$number} supprime. Le recu lie a ete annule.");
     }
@@ -114,7 +115,7 @@ class PaymentController extends Controller
 
     private function receiptFlashPayload(Payment $payment): ?array
     {
-        $payment->loadMissing('receiptDocument');
+        $payment->loadMissing(['document.client', 'receiptDocument']);
         $receipt = $payment->receiptDocument;
 
         if (! $receipt) {
@@ -124,7 +125,12 @@ class PaymentController extends Controller
         return [
             'paymentNumber' => $payment->payment_number,
             'number' => $receipt->number,
+            'clientName' => $payment->document?->client?->full_name,
+            'amount' => (float) $payment->amount,
+            'currency' => $payment->document?->currency ?? $receipt->currency,
+            'remainingTotal' => (float) ($payment->document?->remaining_total ?? 0),
             'showUrl' => route('finance.documents.show', $receipt),
+            'printUrl' => route('finance.documents.print', $receipt),
             'generatePdfUrl' => route('finance.documents.generate-pdf', $receipt),
             'generateExcelUrl' => route('finance.documents.generate-excel', $receipt),
             'pdfDownloadUrl' => $receipt->pdf_path ? route('finance.documents.download-pdf', $receipt) : null,

@@ -10,6 +10,8 @@ import { formatCompactMoney } from '@/features/finance/utils/calculations';
 import { AppPagination } from '@/components/ui/AppPagination';
 import { AppKpiCard } from '@/components/ui/AppKpiCard';
 import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirection } from '@/features/finance/components/FinanceSortableHeader';
+import { financeStatusLabel } from '@/features/finance/components/FinanceStatusBadge';
+import { useTranslation } from '@/lib/i18n';
 
 type Props = {
     months: FinanceMonthSummaryType[];
@@ -31,14 +33,6 @@ function statusStyle(status: string) {
     return colors[status] || colors.draft;
 }
 
-function statusLabel(status: string) {
-    const labels: Record<string, string> = {
-        draft: 'Brouillon', sent: 'Envoye', accepted: 'Accepte', rejected: 'Refuse',
-        cancelled: 'Annule', paid: 'Paye', partial: 'Partiel', overdue: 'En retard', converted: 'Converti',
-    };
-    return labels[status] || status;
-}
-
 function typeMeta(type: string) {
     if (type === 'quote') return { label: 'D', color: 'text-sky-300', bg: 'bg-sky-400/10' };
     if (type === 'invoice') return { label: 'F', color: 'text-violet-300', bg: 'bg-violet-400/10' };
@@ -50,6 +44,7 @@ function typeMeta(type: string) {
 type Row = (FinanceMonthDocumentRow & { _type: 'document' }) | (FinanceMonthPaymentRow & { _type: 'payment' });
 
 export function FinanceMonthlySummary({ months, currency }: Props) {
+    const { t } = useTranslation();
     const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set(months.length ? months.map((m) => m.key) : []));
     const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
@@ -309,12 +304,12 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
             {/* Aggregated KPIs */}
             {selectedMonths.length > 0 ? (
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-                    <AppKpiCard label="Devis" value={formatCompactMoney(aggregated.quotesTotal, currency)} detail={`${aggregated.quotesCount} doc(s)`} valueClassName="text-sky-300" />
-                    <AppKpiCard label="Factures" value={formatCompactMoney(aggregated.invoicesTotal, currency)} detail={`${aggregated.invoicesCount} doc(s)`} valueClassName="text-violet-300" />
-                    <AppKpiCard label="Encaisse" value={formatCompactMoney(aggregated.paidTotal, currency)} detail={`${aggregated.paymentsCount} paiement(s)`} valueClassName="text-emerald-300" />
-                    <AppKpiCard label="Depenses" value={formatCompactMoney(aggregated.expensesTotal, currency)} detail={`sur ${selectedMonths.length} mois`} valueClassName="text-rose-300" />
-                    <AppKpiCard label="Net" value={formatCompactMoney(netTotal, currency)} detail={netTotal >= 0 ? 'Recettes - Depenses' : 'Depenses > Recettes'} valueClassName={netTotal >= 0 ? 'text-emerald-300' : 'text-rose-300'} />
-                    <AppKpiCard label="En retard" value={formatCompactMoney(aggregated.overdueTotal, currency)} detail={`Restant: ${formatCompactMoney(aggregated.remainingTotal, currency)}`} valueClassName="text-red-300" />
+                    <AppKpiCard stacked keepCurrencyAttached label="Devis" value={formatCompactMoney(aggregated.quotesTotal, currency)} detail={`${aggregated.quotesCount} doc(s)`} valueClassName="text-sky-300" />
+                    <AppKpiCard stacked keepCurrencyAttached label="Factures" value={formatCompactMoney(aggregated.invoicesTotal, currency)} detail={`${aggregated.invoicesCount} doc(s)`} valueClassName="text-violet-300" />
+                    <AppKpiCard stacked keepCurrencyAttached label="Encaisse" value={formatCompactMoney(aggregated.paidTotal, currency)} detail={`${aggregated.paymentsCount} paiement(s)`} valueClassName="text-emerald-300" />
+                    <AppKpiCard stacked keepCurrencyAttached label="Depenses" value={formatCompactMoney(aggregated.expensesTotal, currency)} detail={`sur ${selectedMonths.length} mois`} valueClassName="text-rose-300" />
+                    <AppKpiCard stacked keepCurrencyAttached label="Net" value={formatCompactMoney(netTotal, currency)} detail={netTotal >= 0 ? 'Recettes - Depenses' : 'Depenses > Recettes'} valueClassName={netTotal >= 0 ? 'text-emerald-300' : 'text-rose-300'} />
+                    <AppKpiCard stacked keepCurrencyAttached label="En retard" value={formatCompactMoney(aggregated.overdueTotal, currency)} detail={`Restant: ${formatCompactMoney(aggregated.remainingTotal, currency)}`} valueClassName="text-red-300" />
                 </div>
             ) : (
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-6 text-center text-xs text-[var(--text-muted)]">
@@ -437,7 +432,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                                         <td className="px-3 py-2">
                                             {row._type === 'document' ? (
                                                 <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${statusStyle(row.status)}`}>
-                                                    {statusLabel(row.status)}
+                                                    {financeStatusLabel(row.status, t)}
                                                 </span>
                                             ) : (
                                                 <span className="text-[9px] text-[var(--text-muted)]">Paiement</span>

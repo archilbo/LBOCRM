@@ -2,6 +2,7 @@
 
 namespace App\Services\Dashboard;
 
+use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
@@ -69,13 +70,12 @@ class DashboardCommandCenterService
         $workflowDistribution = $this->workflowDistribution($user);
 
         $urgentTaskList = $this->assignedTasks($user)
-            ->with(['assignees'])
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->where(function ($q) {
                 $q->where('priority', 'urgent')
-                  ->orWhere(fn ($q2) => $q2->whereNotNull('due_date')->where('due_date', '<', now()));
+                    ->orWhere(fn ($q2) => $q2->whereNotNull('due_date')->where('due_date', '<', now()));
             })
-            ->orderByRaw("CASE WHEN due_date < ? THEN 0 ELSE 1 END", [now()])
+            ->orderByRaw('CASE WHEN due_date < ? THEN 0 ELSE 1 END', [now()])
             ->orderBy('due_date')
             ->limit(5)
             ->get()
@@ -87,10 +87,19 @@ class DashboardCommandCenterService
                 'priority' => $t->priority,
                 'dueDate' => $t->due_date?->format('Y-m-d'),
                 'isOverdue' => $t->due_date && $t->due_date->isPast(),
-            ]);
+            ])
+            ->values()
+            ->all();
 
-        $recentMessageList = Message::with(['user', 'conversation.participants'])
-            ->whereHas('conversation.participants', fn ($q) => $q->where('user_id', $user->id))
+        $recentMessageList = Message::query()
+            ->with([
+                'user:id,name',
+                'reads' => fn ($query) => $query->where('user_id', $user->id),
+            ])
+            ->whereHas('conversation', function (Builder $query) use ($user) {
+                $this->companyContext->applyTo($query, $user)
+                    ->whereHas('participants', fn (Builder $participants) => $participants->where('user_id', $user->id));
+            })
             ->where('user_id', '!=', $user->id)
             ->latest()
             ->limit(5)
@@ -99,10 +108,12 @@ class DashboardCommandCenterService
                 'id' => $m->id,
                 'conversationId' => $m->conversation_id,
                 'sender' => $m->user?->name ?? '-',
-                'body' => mb_strlen($m->body) > 80 ? mb_substr($m->body, 0, 80) . '…' : $m->body,
+                'body' => mb_strlen($m->body) > 80 ? mb_substr($m->body, 0, 80).'…' : $m->body,
                 'createdAt' => $m->created_at?->locale('fr')->diffForHumans() ?? '-',
-                'unread' => ! $m->reads->contains('user_id', $user->id),
-            ]);
+                'unread' => $m->reads->isEmpty(),
+            ])
+            ->values()
+            ->all();
 
         return [
             'kpis' => [
@@ -184,6 +195,7 @@ class DashboardCommandCenterService
             'activityFeed' => $this->activityFeed($user),
             'urgentTaskList' => $urgentTaskList,
             'recentMessageList' => $recentMessageList,
+            'attentionItems' => $this->attentionItems($user),
             'quickLinks' => $this->quickLinks($user),
             'systemHealth' => [
                 ['label' => 'Clients', 'value' => (string) $this->clients($user)->count(), 'icon' => 'clients', 'tone' => 'blue'],
@@ -215,6 +227,95 @@ class DashboardCommandCenterService
         ));
     }
 
+    private function attentionItems(User $user): array
+    {
+        $now = now();
+        $horizon = $now->copy()->addHours(48);
+        $items = collect();
+
+        if ($this->permissions->allows($user, 'tasks.view')) {
+            $this->assignedTasks($user)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->whereNotNull('due_date')
+                ->where('due_date', '<=', $horizon->toDateString())
+                ->orderBy('due_date')
+                ->limit(4)
+                ->get(['id', 'task_number', 'title', 'due_date', 'priority'])
+                ->each(function (Task $task) use ($items) {
+                    $urgency = $task->due_date->isPast()
+                        ? 'overdue'
+                        : ($task->due_date->isToday() ? 'today' : 'upcoming');
+
+                    $items->push([
+                        'id' => 'task-'.$task->id,
+                        'kind' => 'task',
+                        'title' => $task->title,
+                        'context' => $task->task_number,
+                        'at' => $task->due_date->copy()->startOfDay()->toIso8601String(),
+                        'urgency' => $urgency,
+                        'tone' => $urgency === 'overdue' ? 'red' : ($task->priority === 'urgent' ? 'gold' : 'blue'),
+                        'icon' => 'tasks',
+                        'href' => '/tasks?task='.$task->id,
+                        'sortAt' => $task->due_date->copy()->startOfDay(),
+                    ]);
+                });
+        }
+
+        if ($this->permissions->allows($user, 'calendar.view')) {
+            $this->visibleCalendarEvents($user)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->whereBetween('starts_at', [$now, $horizon])
+                ->orderBy('starts_at')
+                ->limit(4)
+                ->get(['id', 'event_number', 'title', 'type', 'starts_at'])
+                ->each(function (CalendarEvent $event) use ($items) {
+                    $urgency = $event->starts_at->isToday() ? 'today' : 'upcoming';
+
+                    $items->push([
+                        'id' => 'calendar-'.$event->id,
+                        'kind' => 'calendar',
+                        'title' => $event->title,
+                        'context' => $event->event_number,
+                        'at' => $event->starts_at->toIso8601String(),
+                        'urgency' => $urgency,
+                        'tone' => $urgency === 'today' ? 'gold' : 'violet',
+                        'icon' => 'clock',
+                        'href' => '/calendar?start='.$event->starts_at->toDateString().'&end='.$event->starts_at->toDateString().'&event='.$event->id,
+                        'sortAt' => $event->starts_at,
+                    ]);
+                });
+        }
+
+        return $items
+            ->sortBy('sortAt')
+            ->take(8)
+            ->map(fn (array $item) => collect($item)->except('sortAt')->all())
+            ->values()
+            ->all();
+    }
+
+    private function visibleCalendarEvents(User $user): Builder
+    {
+        $query = CalendarEvent::query()
+            ->whereHas('creator', fn (Builder $creator) => $this->companyContext->applyTo($creator, $user));
+
+        if ($this->permissions->isProtected($user)) {
+            return $query;
+        }
+
+        return $query
+            ->where('visibility', '!=', 'admins')
+            ->where(function (Builder $events) use ($user) {
+                $events->where('created_by', $user->id)
+                    ->orWhere('visibility', 'team')
+                    ->orWhere(function (Builder $assignedEvents) use ($user) {
+                        $assignedEvents
+                            ->where('visibility', 'assigned_users')
+                            ->whereHas('participants', fn (Builder $participants) => $participants->where('user_id', $user->id));
+                    });
+            });
+    }
+
     private function nextActions(User $user): array
     {
         $actions = collect();
@@ -227,9 +328,9 @@ class DashboardCommandCenterService
             ->get()
             ->each(function (DossierDocument $document) use ($actions) {
                 $actions->push([
-                    'id' => 'document-' . $document->id,
+                    'id' => 'document-'.$document->id,
                     'kind' => 'missingDocument',
-                    'context' => trim(($document->dossier?->dossier_number ?? '-') . ' - ' . ($document->dossier?->client?->full_name ?? '-')),
+                    'context' => trim(($document->dossier?->dossier_number ?? '-').' - '.($document->dossier?->client?->full_name ?? '-')),
                     'dueKey' => 'today',
                     'tone' => 'red',
                     'icon' => 'upload',
@@ -246,9 +347,9 @@ class DashboardCommandCenterService
             ->get()
             ->each(function (FinanceDocument $invoice) use ($actions) {
                 $actions->push([
-                    'id' => 'invoice-' . $invoice->id,
+                    'id' => 'invoice-'.$invoice->id,
                     'kind' => 'unpaidInvoice',
-                    'context' => trim(($invoice->number ?? '-') . ' - ' . ($invoice->client?->full_name ?? '-')),
+                    'context' => trim(($invoice->number ?? '-').' - '.($invoice->client?->full_name ?? '-')),
                     'dueKey' => $invoice->status === 'overdue' ? 'overdue' : 'open',
                     'tone' => $invoice->status === 'overdue' ? 'red' : 'blue',
                     'icon' => 'invoices',
@@ -274,7 +375,14 @@ class DashboardCommandCenterService
     private function recentProjects(User $user): array
     {
         return $this->dossiers($user)
-            ->with(['client', 'documents', 'financeDocuments'])
+            ->with('client:id,full_name')
+            ->withCount([
+                'documents as missing_documents_count' => fn (Builder $query) => $query->where('status', 'missing'),
+            ])
+            ->withSum([
+                'financeDocuments as invoice_remaining_total' => fn (Builder $query) => $query
+                    ->where('type', 'invoice'),
+            ], 'remaining_total')
             ->latest()
             ->limit(8)
             ->get()
@@ -283,14 +391,12 @@ class DashboardCommandCenterService
                 'dossierNumber' => $dossier->dossier_number,
                 'project' => $dossier->project_object ?? $dossier->dossier_number,
                 'client' => $dossier->client?->full_name ?? '-',
-                'location' => trim(($dossier->province ?? '-') . ' / ' . ($dossier->commune ?? '-')),
+                'location' => trim(($dossier->province ?? '-').' / '.($dossier->commune ?? '-')),
                 'step' => $dossier->workflow_step ?? '-',
                 'status' => $dossier->status ?? '-',
-                'missingDocs' => $dossier->documents->where('status', 'missing')->count(),
-                'remaining' => (float) $dossier->financeDocuments
-                    ->where('type', 'invoice')
-                    ->sum('remaining_total'),
-                'href' => '/dossiers/' . $dossier->id,
+                'missingDocs' => (int) $dossier->missing_documents_count,
+                'remaining' => (float) ($dossier->invoice_remaining_total ?? 0),
+                'href' => '/dossiers/'.$dossier->id,
             ])
             ->values()
             ->all();
@@ -335,15 +441,15 @@ class DashboardCommandCenterService
     private function activityFeed(User $user): array
     {
         $documents = $this->dossierDocuments($user)
-            ->with('dossier')
+            ->with('dossier:id,dossier_number')
             ->latest()
             ->limit(4)
             ->get()
             ->toBase()
             ->map(fn (DossierDocument $document) => [
-                'id' => 'doc-' . $document->id,
+                'id' => 'doc-'.$document->id,
                 'kind' => 'documentUpdated',
-                'description' => trim(($document->original_filename ?? '-') . ' - ' . ($document->dossier?->dossier_number ?? '-')),
+                'description' => trim(($document->original_filename ?? '-').' - '.($document->dossier?->dossier_number ?? '-')),
                 'time' => $document->updated_at?->locale('fr')->diffForHumans() ?? '-',
                 'tone' => $document->status === 'verified' ? 'green' : ($document->status === 'missing' ? 'red' : 'gold'),
                 'icon' => 'documents',
@@ -357,9 +463,9 @@ class DashboardCommandCenterService
             ->get()
             ->toBase()
             ->map(fn (Payment $payment) => [
-                'id' => 'payment-' . $payment->id,
+                'id' => 'payment-'.$payment->id,
                 'kind' => 'paymentRecorded',
-                'description' => trim(($payment->payment_number ?? '-') . ' - ' . ($payment->document?->number ?? '-')),
+                'description' => trim(($payment->payment_number ?? '-').' - '.($payment->document?->number ?? '-')),
                 'time' => $payment->created_at?->locale('fr')->diffForHumans() ?? '-',
                 'tone' => 'blue',
                 'icon' => 'payments',
@@ -372,9 +478,9 @@ class DashboardCommandCenterService
             ->get()
             ->toBase()
             ->map(fn (Dossier $dossier) => [
-                'id' => 'project-' . $dossier->id,
+                'id' => 'project-'.$dossier->id,
                 'kind' => 'projectUpdated',
-                'description' => trim(($dossier->dossier_number ?? '-') . ' - ' . ($dossier->project_object ?? '')),
+                'description' => trim(($dossier->dossier_number ?? '-').' - '.($dossier->project_object ?? '')),
                 'time' => $dossier->updated_at?->locale('fr')->diffForHumans() ?? '-',
                 'tone' => 'neutral',
                 'icon' => 'projects',
@@ -397,7 +503,10 @@ class DashboardCommandCenterService
         $stepLabels = collect($config)->pluck('label', 'key')->all();
 
         return $this->dossiers($user)
-            ->with(['client', 'documents'])
+            ->with('client:id,full_name')
+            ->withCount([
+                'documents as missing_documents_count' => fn (Builder $query) => $query->where('status', 'missing'),
+            ])
             ->whereIn('status', ['opened', 'active'])
             ->where('updated_at', '<', now()->subDays(7))
             ->latest('updated_at')
@@ -411,8 +520,8 @@ class DashboardCommandCenterService
                 'step' => $stepLabels[$dossier->workflow_step] ?? $dossier->workflow_step ?? '-',
                 'stepKey' => $dossier->workflow_step ?? '-',
                 'daysStuck' => (int) $dossier->updated_at->diffInDays(now()),
-                'missingDocs' => $dossier->documents?->where('status', 'missing')->count() ?? 0,
-                'href' => '/dossiers/' . $dossier->id,
+                'missingDocs' => (int) $dossier->missing_documents_count,
+                'href' => '/dossiers/'.$dossier->id,
             ])
             ->values()
             ->all();
@@ -506,6 +615,8 @@ class DashboardCommandCenterService
 
     private function assignedTasks(User $user): Builder
     {
-        return Task::query()->whereHas('assignees', fn (Builder $query) => $query->whereKey($user->id));
+        return Task::query()
+            ->whereHas('creator', fn (Builder $query) => $this->companyContext->applyTo($query, $user))
+            ->whereHas('assignees', fn (Builder $query) => $query->whereKey($user->id));
     }
 }

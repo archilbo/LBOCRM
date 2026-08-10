@@ -80,6 +80,17 @@ export type FinanceDocument = {
     totalTtc: number;
     paidTotal: number;
     remainingTotal: number;
+    receivable?: {
+        total: number;
+        paid: number;
+        outstanding: number;
+        dueState: 'paid' | 'upcoming' | 'due_today' | 'overdue';
+        daysOverdue: number;
+        agingBucket: 'current' | '1_7' | '8_30' | '31_60' | '61_plus';
+        nextPaymentDue: string | null;
+    } | null;
+    paymentScheduleItems?: Array<{ id: number; label: string; amount: number; paid: number; outstanding: number; dueDate: string; position: number; status: 'paid' | 'upcoming' | 'overdue'; daysOverdue: number }>;
+    paymentPromises?: Array<{ id: number; amount: number; promisedFor: string | null; status: 'active' | 'fulfilled' | 'broken' | 'cancelled'; note: string | null }>;
     notes: string | null;
     terms: string | null;
     templateId: number | string | null;

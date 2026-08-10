@@ -11,6 +11,10 @@ class FinanceDocumentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $receivable = $this->isInvoice()
+            ? app(\App\Services\Finance\FinanceReceivablesService::class)->forInvoice($this->resource)
+            : null;
+
         return [
             'id' => $this->id,
             'type' => $this->type,
@@ -45,8 +49,21 @@ class FinanceDocumentResource extends JsonResource
             'discountTotal' => (float) $this->discount_total,
             'taxTotal' => (float) $this->tax_total,
             'totalTtc' => (float) $this->total_ttc,
-            'paidTotal' => (float) $this->paid_total,
-            'remainingTotal' => (float) $this->remaining_total,
+            'paidTotal' => $receivable['paid'] ?? (float) $this->paid_total,
+            'remainingTotal' => $receivable['outstanding'] ?? (float) $this->remaining_total,
+            'receivable' => $receivable,
+            'paymentScheduleItems' => $this->when(
+                $this->relationLoaded('paymentScheduleItems'),
+                fn () => app(\App\Services\Finance\FinancePaymentScheduleService::class)->itemsForInvoice($this->resource)->values(),
+                [],
+            ),
+            'paymentPromises' => $this->when($this->relationLoaded('paymentPromises'), fn () => $this->paymentPromises->map(fn ($promise) => [
+                'id' => $promise->id,
+                'amount' => (float) $promise->amount,
+                'promisedFor' => $promise->promised_for?->toDateString(),
+                'status' => $promise->status,
+                'note' => $promise->note,
+            ])->values(), []),
             'notes' => $this->notes,
             'terms' => $this->terms,
             'templateId' => $this->template_id,

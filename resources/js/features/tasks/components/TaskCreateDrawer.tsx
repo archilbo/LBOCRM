@@ -1,4 +1,5 @@
 import { IconX } from '@tabler/icons-react';
+import { getLocalTimeZone, today } from '@internationalized/date';
 
 import { FormEvent } from 'react';
 import { Button, Chip, Input, TextArea } from '@heroui/react';
@@ -32,6 +33,7 @@ type Props = {
 
 export function TaskCreateDrawer({ isOpen, users, form, formErrors, onOpenChange, onFormChange, onSubmit }: Props) {
     const { t } = useTranslation();
+    const earliestDate = today(getLocalTimeZone());
     return (
         <AppDrawer isOpen={isOpen} onOpenChange={onOpenChange}
             title={t('tasks.create.newTitle')} description={t('tasks.create.subtitle')}
@@ -133,8 +135,8 @@ export function TaskCreateDrawer({ isOpen, users, form, formErrors, onOpenChange
 
                 <DrawerSection title={t('tasks.create.sections.dates')}>
                     <div className="grid grid-cols-2 gap-3">
-                        <DateField label={t('tasks.create.fields.startDate')} value={strToDate(form.start_date)} onChange={(d) => onFormChange({ ...form, start_date: dateToStr(d) })} />
-                        <DateField label={t('tasks.create.fields.dueDate')} value={strToDate(form.due_date)} onChange={(d) => onFormChange({ ...form, due_date: dateToStr(d) })} />
+                        <DateField label={t('tasks.create.fields.startDate')} value={strToDate(form.start_date)} minValue={earliestDate} onChange={(d) => onFormChange({ ...form, start_date: dateToStr(d) })} />
+                        <DateField label={t('tasks.create.fields.dueDate')} value={strToDate(form.due_date)} minValue={earliestDate} onChange={(d) => onFormChange({ ...form, due_date: dateToStr(d) })} />
                     </div>
                 </DrawerSection>
 

@@ -25,6 +25,9 @@ class Payment extends Model
         'reference',
         'paid_at',
         'notes',
+        'cancelled_at',
+        'cancelled_by',
+        'cancellation_reason',
         'receipt_document_id',
         'created_by',
     ];
@@ -35,6 +38,7 @@ class Payment extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'paid_at' => 'date',
+        'cancelled_at' => 'datetime',
         'payment_kind' => PaymentKind::class,
     ];
 

@@ -1,7 +1,7 @@
 import { Head, router } from '@inertiajs/react';
-import { IconArchive, IconChevronLeft, IconChevronRight, IconChartBar, IconBuilding, IconFileText, IconLayersLinked, IconList, IconMap, IconRefresh, IconSearch, IconAdjustmentsHorizontal, IconX } from '@tabler/icons-react';
+import { IconArchive, IconChevronLeft, IconChevronRight, IconChartBar, IconBuilding, IconFileText, IconLayersLinked, IconList, IconMap, IconAdjustmentsHorizontal, IconAlertCircle, IconAlertTriangle, IconTrendingUp } from '@tabler/icons-react';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Input, TextArea } from '@heroui/react';
 import { AppButton } from '@/components/ui/AppButton';
@@ -11,6 +11,12 @@ import { AppModal } from '@/components/ui/AppModal';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { DrawerSection, DrawerField, drawerStyles } from '@/components/drawers';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppSearchInput } from '@/components/ui/AppSearchInput';
+import { AppPageHeader } from '@/components/ui/AppPageHeader';
+import { AppWorkspaceTabs, type AppWorkspaceTab } from '@/components/ui/AppWorkspaceTabs';
+import { AppKpiCard } from '@/components/ui/AppKpiCard';
+import { AppCard } from '@/components/ui/AppCard';
+import { TabPanel } from 'react-aria-components';
 import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
 import { CheckoutDrawer } from '@/features/archives/drawers/CheckoutDrawer';
 import { ReturnDrawer } from '@/features/archives/drawers/ReturnDrawer';
@@ -25,17 +31,16 @@ import { useArchiveFilters } from '@/features/archives/hooks/useArchiveFilters';
 import { useHotkeys } from '@/features/archives/hooks/useHotkeys';
 import type { ArchiveFormPayload, ArchiveRecordRow, ArchivesPageProps } from '@/features/archives/types';
 import { ARCHIVE_STATUS, defaultDue } from '@/config/statuses';
-import { cn } from '@/lib/cn';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from '@/lib/i18n';
 
 export default function ArchivesIndex(props: ArchivesPageProps) {
     const { can } = usePermissions();
     const { t } = useTranslation();
-    const { filters, patch, debouncedPatch, reset, activeCount, activeChips } = useArchiveFilters({
+    const { filters, patch, debouncedPatch, reset, activeCount } = useArchiveFilters({
         initial: {
             ...props.filters,
-            viewMode: (props.filters.viewMode === 'map' || props.filters.viewMode === 'list') ? props.filters.viewMode : undefined,
+            viewMode: (props.filters.viewMode === 'map' || props.filters.viewMode === 'list' || props.filters.viewMode === 'reports') ? props.filters.viewMode : undefined,
         } as ArchiveFilters,
         route: '/archives',
     });
@@ -45,8 +50,8 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     const [drawerMode, setDrawerMode] = useState<'create' | 'edit'>('create');
     const [selectedArchive, setSelectedArchive] = useState<ArchiveRecordRow | null>(null);
     const [previewRecord, setPreviewRecord] = useState<ArchiveRecordRow | null>(props.archives[0] ?? null);
-    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [deleteTarget, setDeleteTarget] = useState<ArchiveRecordRow | null>(null);
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [checkoutDrawerOpen, setCheckoutDrawerOpen] = useState(false);
     const [returnDrawerOpen, setReturnDrawerOpen] = useState(false);
@@ -62,8 +67,6 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     const [roomSubmitting, setRoomSubmitting] = useState(false);
     const [roomErrors, setRoomErrors] = useState<Record<string, string>>({});
 
-    const searchRef = useRef<HTMLInputElement>(null);
-
     useEffect(() => {
         const t = setTimeout(() => {
             if (query !== (filters.q || '')) {
@@ -74,7 +77,12 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }, [query]);
 
     const allSelected = props.archives.length > 0 && props.archives.every((r) => selectedIds.has(r.id));
-    const viewMode = (filters.viewMode as 'list' | 'map') || 'list';
+    const viewMode = (filters.viewMode as 'list' | 'map' | 'reports') || 'list';
+    const workspaceTabs: AppWorkspaceTab[] = [
+        { id: 'list', label: t('actions.listView'), icon: IconList },
+        { id: 'map', label: t('actions.mapView'), icon: IconMap },
+        { id: 'reports', label: t('actions.reports'), icon: IconChartBar },
+    ];
 
     function handleKpiFilter(key: string | null) {
         if (!key) { patch({ status: undefined, overdueOnly: undefined }); return; }
@@ -94,7 +102,6 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
         if (!can('archive.create')) return;
         setSelectedArchive(null);
         setDrawerMode('create');
-        setFormErrors({});
         setDrawerOpen(true);
     }
 
@@ -102,7 +109,6 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
         if (!can('archive.update')) return;
         setSelectedArchive(record);
         setDrawerMode('edit');
-        setFormErrors({});
         setDrawerOpen(true);
     }
 
@@ -124,15 +130,15 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
         if (drawerMode === 'edit' && selectedArchive) {
             router.put(`/archives/${selectedArchive.id}`, backendPayload, {
                 preserveScroll: true,
-                onSuccess: () => { setDrawerOpen(false); setFormErrors({}); toast.success('Updated.'); },
-                onError: (err) => { setFormErrors(err as Record<string, string>); },
+                onSuccess: () => { setDrawerOpen(false); toast.success('Updated.'); },
+                onError: () => toast.error('Unable to update the archive.'),
             });
             return;
         }
         router.post('/archives', backendPayload, {
             preserveScroll: true,
-            onSuccess: () => { setDrawerOpen(false); setFormErrors({}); toast.success('Created.'); },
-            onError: (err) => { setFormErrors(err as Record<string, string>); },
+            onSuccess: () => { setDrawerOpen(false); toast.success('Created.'); },
+            onError: () => toast.error('Unable to create the archive.'),
         });
     }
 
@@ -195,6 +201,17 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
         });
     }
 
+    function confirmBulkDelete() {
+        const archiveIds = [...selectedIds];
+        if (archiveIds.length === 0 || !can('archive.delete')) return;
+
+        router.post('/archives/bulk/delete', { archive_ids: archiveIds }, {
+            preserveScroll: true,
+            onSuccess: () => { setSelectedIds(new Set()); setShowBulkDeleteConfirm(false); toast.success('Deleted.'); },
+            onError: () => toast.error('Delete failed.'),
+        });
+    }
+
     function submitRoom() {
         setRoomSubmitting(true);
         setRoomErrors({});
@@ -248,7 +265,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     }
 
     useHotkeys([
-        { key: 'k', meta: true, handler: () => searchRef.current?.focus() },
+        { key: 'k', meta: true, handler: () => document.getElementById('archive-search')?.focus() },
         { key: 'n', handler: openCreateDrawer },
         { key: 'c', handler: () => setCheckoutDrawerOpen(true) },
         { key: 'r', handler: () => setReturnDrawerOpen(true) },
@@ -262,92 +279,44 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
             <Head title={t('archivesWorkspace.title')} />
             <AppShell>
                 <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6 flex flex-col min-h-0 space-y-4">
-                    <div className="flex items-center justify-between shrink-0">
-                        <h1 className="text-2xl font-semibold text-[var(--crm-text)]">{t('archivesWorkspace.title')}</h1>
-                        {can('archive.create') ? (
-                            <div className="flex items-center gap-2">
-                                <AppButton variant="ghost" compact isIconOnly onPress={() => setRoomModalOpen(true)} tooltip={t('actions.createRoom')}>
-                                    <IconBuilding size={16} />
-                                </AppButton>
-                                <AppButton variant="primary" compact isIconOnly onPress={openCreateDrawer} tooltip={t('archivesWorkspace.newArchive')}>
-                                    <IconArchive size={16} />
-                                </AppButton>
-                            </div>
-                        ) : null}
-                    </div>
+                    <AppPageHeader
+                        eyebrow="Archives"
+                        title={t('archivesWorkspace.title')}
+                        subtitle="Organisez, localisez et suivez les dossiers archivés."
+                        actions={can('archive.create') ? <>
+                            <AppButton variant="secondary" compact isIconOnly onPress={() => setRoomModalOpen(true)} tooltip={t('actions.createRoom')} aria-label={t('actions.createRoom')}><IconBuilding size={16} /></AppButton>
+                            <AppButton variant="primary" compact onPress={openCreateDrawer}><IconArchive size={16} />{t('archivesWorkspace.newArchive')}</AppButton>
+                        </> : null}
+                    />
 
                     <KpiStrip kpis={props.kpis} activeFilter={filters.overdueOnly ? 'overdue' : (filters.status?.[0] ?? null)} onFilter={handleKpiFilter} />
 
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        <div className="relative w-64">
-                            <IconSearch size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--crm-text-muted)]" />
-                            <input
-                                ref={searchRef}
-                                type="text"
+                    <AppWorkspaceTabs
+                        tabs={workspaceTabs}
+                        selectedKey={viewMode}
+                        onSelectionChange={(tab) => patch({ viewMode: tab as 'list' | 'map' | 'reports' })}
+                        counts={{ list: props.paginator.total, reports: props.reports.kpis.totalOverdue + props.reports.kpis.totalLost }}
+                        headerEnd={<>
+                            <AppSearchInput
                                 value={query}
-                                onChange={(e) => setQuery(e.target.value)}
+                                onChange={setQuery}
                                 placeholder={t('searchPlaceholder')}
-                                className="h-8 w-full rounded-lg border border-[var(--crm-border)] bg-[var(--crm-surface-2)] pl-8 pr-7 text-[12px] text-[var(--crm-text)] outline-none placeholder:text-[var(--crm-text-muted)] focus:border-[var(--crm-gold)]/50 focus:ring-2 focus:ring-[var(--crm-gold)]/20"
+                                ariaLabel={t('searchPlaceholder')}
+                                inputId="archive-search"
+                                maxWidth="sm:max-w-[256px]"
                             />
-                            {query ? (
-                                <button type="button" onClick={() => { setQuery(''); debouncedPatch({ q: undefined }); }}
-                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 flex size-5 items-center justify-center rounded text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]">
-                                    <IconX size={12} />
-                                </button>
-                            ) : null}
-                        </div>
-
-                        <AppTooltip label={t('actions.filters')}>
-                            <button type="button" onClick={() => setFilterDrawerOpen(true)}
-                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]', activeCount > 0 && 'text-[var(--crm-gold)]')}
-                                aria-label={t('actions.filters')}>
-                                <IconAdjustmentsHorizontal size={14} />
-                            </button>
-                        </AppTooltip>
-
-                        <div className="h-5 w-px bg-[var(--crm-border)]" />
-
-                        <AppTooltip label={t('actions.listView')}>
-                            <button type="button" onClick={() => patch({ viewMode: 'list' })}
-                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'list' ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]')}
-                                aria-label={t('actions.listView')}><IconList size={14} /></button>
-                        </AppTooltip>
-                        <AppTooltip label={t('actions.mapView')}>
-                            <button type="button" onClick={() => patch({ viewMode: 'map' })}
-                                className={cn('flex h-8 w-8 items-center justify-center rounded-lg', viewMode === 'map' ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]')}
-                                aria-label={t('actions.mapView')}><IconMap size={14} /></button>
-                        </AppTooltip>
-
-                        <AppTooltip label={t('actions.refresh')}>
-                            <button type="button" onClick={() => router.reload({ only: ['archives', 'kpis', 'tree', 'cells'] })}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]" aria-label={t('actions.refresh')}>
-                                <IconRefresh size={14} />
-                            </button>
-                        </AppTooltip>
-
-                        <div className="h-5 w-px bg-[var(--crm-border)]" />
-
-                        <AppTooltip label={t('actions.reports')}>
-                            <button type="button" onClick={() => router.visit('/archives/reports')}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-surface)]" aria-label={t('actions.reports')}>
-                                <IconChartBar size={14} />
-                            </button>
-                        </AppTooltip>
-
-                        {activeChips.length > 0 ? (
-                            <div className="flex items-center gap-1.5 flex-wrap shrink-0 ml-auto">
-                                {activeChips.map((chip) => (
-                                    <span key={chip.key} className="inline-flex items-center gap-1 rounded-md border border-[var(--crm-border)] px-2 py-1 text-xs text-[var(--crm-text-muted)]">
-                                        {chip.label}
-                                        <button type="button" onClick={chip.onRemove} className="ml-0.5 text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]"><IconX size={12} /></button>
-                                    </span>
-                                ))}
-                                <button type="button" onClick={reset} className="text-xs text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]">{t('actions.clearAll')}</button>
-                            </div>
-                        ) : null}
-                    </div>
+                            <AppTooltip label={t('actions.filters')}>
+                                <AppButton variant={activeCount > 0 ? 'secondary' : 'ghost'} compact isIconOnly onPress={() => setFilterDrawerOpen(true)} aria-label={t('actions.filters')}><IconAdjustmentsHorizontal size={14} /></AppButton>
+                            </AppTooltip>
+                        </>}
+                    >
+                        <TabPanel id="list" />
+                        <TabPanel id="map" />
+                        <TabPanel id="reports" />
+                    </AppWorkspaceTabs>
 
                     {/* Preview card — full width */}
+                    {viewMode === 'reports' ? <ArchiveReportsTab reports={props.reports} /> : <>
                     <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-surface)] shrink-0">
                         <PreviewPanel record={previewRecord} />
                     </div>
@@ -457,11 +426,13 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                                 onCheckout={() => setCheckoutDrawerOpen(true)}
                                 onReturn={() => setReturnDrawerOpen(true)}
                                 onMove={() => setMoveDrawerOpen(true)}
+                                onDelete={can('archive.delete') ? () => setShowBulkDeleteConfirm(true) : undefined}
                                 onClear={() => setSelectedIds(new Set())}
                             />
                         </div>
                     </div>
 
+                    </>}
                     <button
                         type="button"
                         onClick={() => setSidebarDrawerOpen(true)}
@@ -633,6 +604,11 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                     </div>
                 </AppModal>
 
+                <AppModal isOpen={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm} title={t('modals.deleteTitle')} size="sm">
+                    <p className="mb-4 text-[12px] text-[var(--crm-text-muted)]">Supprimer {selectedIds.size} archive(s) selectionnee(s) ? Cette action est irreversible.</p>
+                    <div className="flex justify-end gap-2"><AppButton variant="bordered" size="sm" onPress={() => setShowBulkDeleteConfirm(false)}>{t('modals.cancel')}</AppButton><AppButton color="danger" variant="solid" size="sm" onPress={confirmBulkDelete}>{t('modals.delete')}</AppButton></div>
+                </AppModal>
+
                 <AppModal isOpen={roomModalOpen} onOpenChange={setRoomModalOpen} title={t('modals.createRoom')} size="sm">
                     <div className="flex flex-col gap-3">
                         <DrawerSection icon={<IconBuilding size={12} />} title={t('modals.room')}>
@@ -696,4 +672,30 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
             </AppShell>
         </>
     );
+}
+
+function ArchiveReportsTab({ reports }: { reports: ArchivesPageProps['reports'] }) {
+    const maxMonthly = Math.max(...reports.monthly.map((row) => row.total), 1);
+
+    return <div className="grid gap-4">
+        <div className="grid gap-3 md:grid-cols-3">
+            <AppKpiCard label="En retard" value={reports.kpis.totalOverdue} detail={`${reports.kpis.avgOverdueDays} jours en moyenne`} icon={<IconAlertCircle size={16} className="text-[var(--danger)]" />} valueClassName="text-[var(--danger)]" />
+            <AppKpiCard label="Créées ce mois" value={reports.monthly.at(-1)?.total ?? 0} detail="Suivi des 12 derniers mois" icon={<IconTrendingUp size={16} className="text-[var(--accent)]" />} />
+            <AppKpiCard label="Archives perdues" value={reports.kpis.totalLost} detail="À traiter en priorité" icon={<IconAlertTriangle size={16} className="text-[var(--warning)]" />} valueClassName="text-[var(--warning)]" />
+        </div>
+        <div className="grid gap-4 xl:grid-cols-2">
+            <AppCard className="p-4">
+                <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--text)]"><IconTrendingUp size={15} className="text-[var(--accent)]" />Création mensuelle</h2>
+                <div className="space-y-3">{reports.monthly.length ? reports.monthly.map((row) => <div key={row.period} className="flex items-center gap-3"><span className="w-16 text-xs text-[var(--text-muted)]">{row.period}</span><div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--surface-3)]"><div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${(row.total / maxMonthly) * 100}%` }} /></div><span className="w-5 text-right text-xs font-semibold text-[var(--text)]">{row.total}</span></div>) : <p className="text-sm text-[var(--text-muted)]">Aucune activité à afficher.</p>}</div>
+            </AppCard>
+            <AppCard className="p-4">
+                <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--text)]"><IconAlertCircle size={15} className="text-[var(--danger)]" />Archives en retard</h2>
+                <div className="space-y-2">{reports.overdue.length ? reports.overdue.map((row) => <button key={row.id} type="button" onClick={() => router.visit(`/archives/${row.id}`)} className="flex w-full items-center justify-between rounded-lg p-2 text-left hover:bg-[var(--surface-2)]"><span className="min-w-0"><span className="block text-xs font-semibold text-[var(--text)]">{row.archiveNumber}</span><span className="block truncate text-xs text-[var(--text-muted)]">{row.projectObject}</span></span><span className="text-xs font-semibold text-[var(--danger)]">{row.overdueDays} j</span></button>) : <p className="text-sm text-[var(--text-muted)]">Aucune archive en retard.</p>}</div>
+            </AppCard>
+        </div>
+        <AppCard className="overflow-hidden p-0">
+            <div className="border-b border-[var(--border)] px-4 py-3"><h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]"><IconAlertTriangle size={15} className="text-[var(--warning)]" />Registre des pertes</h2></div>
+            {reports.lost.length ? <div className="divide-y divide-[var(--border)]">{reports.lost.map((row) => <button key={row.id} type="button" onClick={() => router.visit(`/archives/${row.id}`)} className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 px-4 py-3 text-left hover:bg-[var(--surface-2)]"><span><span className="block text-xs font-semibold text-[var(--text)]">{row.archiveNumber}</span><span className="block truncate text-xs text-[var(--text-muted)]">{row.projectObject}{row.lostReason ? ` · ${row.lostReason}` : ''}</span></span><span className="text-xs text-[var(--text-muted)]">{row.lostAt || '—'}</span></button>)}</div> : <p className="px-4 py-8 text-sm text-[var(--text-muted)]">Aucune archive perdue.</p>}
+        </AppCard>
+    </div>;
 }

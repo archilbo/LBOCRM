@@ -12,7 +12,7 @@ class DossierWorkflowStepperService
 {
     public function evaluate(Dossier $dossier): array
     {
-        $dossier->loadMissing(['documents.template', 'contract', 'workflowRequirements.checkedBy']);
+        $dossier->loadMissing(['documents.template', 'contract', 'cahier', 'workflowRequirements.checkedBy']);
 
         $steps = collect(config('archilbo_workflow.client_project_steps', []))
             ->map(fn (array $step, int $index) => $this->evaluateStep($dossier, $step, $index))
@@ -47,8 +47,9 @@ class DossierWorkflowStepperService
                     'notes' => $manualRecord?->notes,
                     'checkedAt' => optional($manualRecord?->checked_at)->format('Y-m-d H:i'),
                     'checkedBy' => $manualRecord?->checkedBy?->name,
-                    'actionLabel' => $isManualConfig ? null : $this->requirementActionLabel($dossier, (string) $step['key'], (string) $requirement['key']),
-                    'actionUrl' => $isManualConfig ? null : $this->requirementActionUrl($dossier, (string) $step['key'], (string) $requirement['key']),
+                    'actionLabel' => $this->requirementActionLabel($dossier, (string) $step['key'], (string) $requirement['key']),
+                    'actionUrl' => $this->requirementActionUrl($dossier, (string) $step['key'], (string) $requirement['key']),
+                    'hasFile' => $this->requirementHasFile($dossier, (string) $step['key'], (string) $requirement['key']),
                 ];
             })
             ->values();
@@ -108,37 +109,28 @@ class DossierWorkflowStepperService
         }
 
         return match ($step . '.' . $requirement) {
-            'documents.cin' =>
-                $this->hasCompleteCin($dossier),
-            'documents.certificat_propriete' => $this->hasDocument($dossier, ['certificat propriete', 'certificat de propriete', 'titre foncier']),
-            'documents.plan_cadastral' => $this->hasDocument($dossier, ['plan cadastral'])
-                || $this->isTerrainAlternativeSatisfied($dossier),
-            'documents.calcul_contenance' => $this->hasDocument($dossier, ['calcul contenance', 'contenance'])
-                || $this->isTerrainAlternativeSatisfied($dossier),
-            'documents.plan_parcellaire' => $this->hasDocument($dossier, ['plan parcellaire'])
-                || $this->isTerrainPrimarySatisfied($dossier),
+            'documents.cin',
+            'documents.certificat_propriete',
+            'documents.plan_cadastral',
+            'documents.calcul_contenance',
+            'documents.plan_parcellaire',
+            'rokhas.rokhas_upload',
+            'rokhas.fiche_energetique',
+            'bureau_etude.contract_bureau_etude',
+            'bureau_etude.plan_beton',
+            'bureau_etude.attestation_implantation',
+            'bureau_etude.contrat_topographie',
+            'bureau_etude.contrat_laboratoire',
+            'bureau_etude.bureau_controle',
+            'permis_habiter.demande_permis_habiter',
+            'permis_habiter.site_images',
+            'permis_habiter.recent_certificat_propriete' => false,
 
             'contract.contract_created' => (bool) $dossier->contract,
             'contract.contract_generated' => filled($dossier->contract?->generated_document_path) || filled($dossier->contract?->generated_at),
             'contract.contract_signed' => filled($dossier->contract?->signed_at) || in_array($dossier->contract?->status, ['signed', 'cachete', 'contrat_cachete'], true),
 
-            'cahier_chantier.engineer_request' => $this->hasDocument($dossier, ['demande ingenieur', 'centre ingenieur', 'cahier chantier demande']),
-            'cahier_chantier.cahier_received' => $this->hasDocument($dossier, ['cahier de chantier', 'cahier chantier']),
-
-            'rokhas.rokhas_upload' => $this->hasDocument($dossier, ['rokhas', 'depot dossier', 'recepisse depot']),
-            'rokhas.fiche_energetique' => $this->hasDocument($dossier, ['fiche energetique', 'efficacite energetique', 'efficacite energetic']),
-
-            'bureau_etude.contract_bureau_etude' => $this->hasDocument($dossier, ['contrat bureau etude', 'contract bureau etude']),
-            'bureau_etude.plan_beton' => $this->hasDocument($dossier, ['plan beton', 'beton arme', 'plan ba']),
-            'bureau_etude.attestation_implantation' => $this->hasDocument($dossier, ['attestation implantation', 'implantation']),
-            'bureau_etude.contrat_topographie' => $this->hasDocument($dossier, ['contrat topographie', 'topographie', 'topographe']),
-            'bureau_etude.contrat_laboratoire' => $this->hasDocument($dossier, ['contrat laboratoire', 'laboratoire']),
-            'bureau_etude.bureau_controle' => $this->hasDocument($dossier, ['bureau de controle', 'controle technique']),
-
-            'permis_habiter.demande_permis_habiter' => $this->hasDocument($dossier, ['demande permis habiter', 'permis d habiter', 'permis habiter']),
-            'permis_habiter.site_images' => $this->hasDocument($dossier, ['image site', 'photo site', 'photos site', 'location']),
-            'permis_habiter.recent_certificat_propriete' => $this->hasDocument($dossier, ['certificat propriete recent', 'certificat de propriete recent'])
-                || $this->hasDocument($dossier, ['certificat propriete', 'certificat de propriete', 'titre foncier']),
+            'cahier_chantier.engineer_request', 'cahier_chantier.cahier_received' => false,
 
             'archive.documents_verified' => $this->archiveDocumentsVerified($dossier),
             'archive.archive_created' => (bool) $dossier->archiveRecord,
@@ -152,24 +144,6 @@ class DossierWorkflowStepperService
     {
         return $dossier->workflowRequirements
             ->first(fn ($item) => $item->step_key === $step && $item->requirement_key === $requirement);
-    }
-
-    private function isTerrainAlternativeSatisfied(Dossier $dossier): bool
-    {
-        $manual = $this->manualRequirement($dossier, 'documents', 'plan_parcellaire');
-        if ($manual !== null) {
-            return (bool) $manual->is_done;
-        }
-        return $this->hasDocument($dossier, ['plan parcellaire']);
-    }
-
-    private function isTerrainPrimarySatisfied(Dossier $dossier): bool
-    {
-        $manualPlan = $this->manualRequirement($dossier, 'documents', 'plan_cadastral');
-        $manualCalcul = $this->manualRequirement($dossier, 'documents', 'calcul_contenance');
-        $planDone = $manualPlan !== null ? (bool) $manualPlan->is_done : $this->hasDocument($dossier, ['plan cadastral']);
-        $calculDone = $manualCalcul !== null ? (bool) $manualCalcul->is_done : $this->hasDocument($dossier, ['calcul contenance', 'contenance']);
-        return $planDone && $calculDone;
     }
 
     private function archiveDocumentsVerified(Dossier $dossier): bool
@@ -317,7 +291,9 @@ class DossierWorkflowStepperService
             'archive.documents_verified' => null,
             'archive.archive_created' => $dossier->archiveRecord ? 'Ouvrir la fiche d archive' : 'Creer la fiche d archive',
             'archive.file_stored' => 'Ouvrir la fiche d archive',
-            default => 'Televerser / ouvrir',
+            'cahier_chantier.engineer_request' => null,
+            'cahier_chantier.cahier_received' => 'Gerer le cahier',
+            default => 'Televerser',
         };
     }
 
@@ -329,6 +305,29 @@ class DossierWorkflowStepperService
             'archive.documents_verified' => null,
             'archive.archive_created', 'archive.file_stored' => route('archives.index', ['dossier_id' => $dossier->id]),
             default => route('documents.index', ['dossier_id' => $dossier->id]),
+        };
+    }
+
+    private function requirementHasFile(Dossier $dossier, string $step, string $requirement): bool
+    {
+        return match ($step . '.' . $requirement) {
+            'documents.cin' => $this->hasCompleteCin($dossier),
+            'documents.certificat_propriete' => $this->hasDocument($dossier, ['certificat propriete', 'certificat de propriete', 'titre foncier']),
+            'documents.plan_cadastral' => $this->hasDocument($dossier, ['plan cadastral']),
+            'documents.calcul_contenance' => $this->hasDocument($dossier, ['calcul contenance', 'contenance']),
+            'documents.plan_parcellaire' => $this->hasDocument($dossier, ['plan parcellaire']),
+            'rokhas.rokhas_upload' => $this->hasDocument($dossier, ['rokhas', 'depot dossier', 'recepisse depot']),
+            'rokhas.fiche_energetique' => $this->hasDocument($dossier, ['fiche energetique', 'efficacite energetique', 'efficacite energetic']),
+            'bureau_etude.contract_bureau_etude' => $this->hasDocument($dossier, ['contrat bureau etude', 'contract bureau etude']),
+            'bureau_etude.plan_beton' => $this->hasDocument($dossier, ['plan beton', 'beton arme', 'plan ba']),
+            'bureau_etude.attestation_implantation' => $this->hasDocument($dossier, ['attestation implantation', 'implantation']),
+            'bureau_etude.contrat_topographie' => $this->hasDocument($dossier, ['contrat topographie', 'topographie', 'topographe']),
+            'bureau_etude.contrat_laboratoire' => $this->hasDocument($dossier, ['contrat laboratoire', 'laboratoire']),
+            'bureau_etude.bureau_controle' => $this->hasDocument($dossier, ['bureau de controle', 'controle technique']),
+            'permis_habiter.demande_permis_habiter' => $this->hasDocument($dossier, ['demande permis habiter', 'permis d habiter', 'permis habiter']),
+            'permis_habiter.site_images' => $this->hasDocument($dossier, ['image site', 'photo site', 'photos site', 'location']),
+            'permis_habiter.recent_certificat_propriete' => $this->hasDocument($dossier, ['certificat propriete recent', 'certificat de propriete recent']),
+            default => false,
         };
     }
 }

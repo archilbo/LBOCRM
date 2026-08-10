@@ -98,6 +98,24 @@ class FinanceDocumentShowTest extends TestCase
         $response->assertStatus(404);
     }
 
+    public function test_bulk_delete_removes_selected_finance_documents(): void
+    {
+        $this->document->forceFill(['status' => 'draft', 'issued_at' => null, 'number_locked' => false])->save();
+        $second = $this->document->replicate();
+        $second->number = 'FAC-TEST-002';
+        $second->status = 'draft';
+        $second->issued_at = null;
+        $second->number_locked = false;
+        $second->save();
+
+        $this->actingAs($this->user)
+            ->post(route('finance.documents.bulk.destroy'), ['document_ids' => [$this->document->id, $second->id]])
+            ->assertRedirect(route('finance.documents.index'));
+
+        $this->assertSoftDeleted('finance_documents', ['id' => $this->document->id]);
+        $this->assertSoftDeleted('finance_documents', ['id' => $second->id]);
+    }
+
     public function test_show_redirects_unauthenticated(): void
     {
         $response = $this->get("/finance/documents/{$this->document->id}");

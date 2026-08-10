@@ -1,5 +1,5 @@
 import { Fragment, useMemo, type ButtonHTMLAttributes, type CSSProperties, type DetailedHTMLProps } from 'react';
-import { IconChevronRight, IconUserCircle } from '@tabler/icons-react';
+import { IconBook2, IconChevronRight, IconUserCircle } from '@tabler/icons-react';
 
 import { Chip, ListBox, Tooltip } from '@heroui/react';
 import {
@@ -58,10 +58,12 @@ export function GlobalSearchResultItem({
     result,
     query,
     onOpenArchive,
+    onOpenCahier,
 }: {
     result: BackendSearchResult;
     query: string;
     onOpenArchive?: (href: string) => void;
+    onOpenCahier?: (href: string) => void;
 }) {
     const Icon = TYPE_ICONS[result.type] ?? TYPE_ICONS.Document;
     const categoryColor = CATEGORY_COLORS[categoryOf(result.type) as keyof typeof CATEGORY_COLORS];
@@ -178,6 +180,34 @@ export function GlobalSearchResultItem({
         </Tooltip>
     ) : null;
 
+    const cahier = result.cahier;
+    const cahierChip = cahier ? (
+        <Tooltip delay={450}>
+            <Tooltip.Trigger className="flex max-w-full min-w-0">
+                <Chip
+                    size="sm"
+                    variant="soft"
+                    className="h-5 min-h-0 max-w-full cursor-pointer border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] px-1.5 text-[9.5px] font-medium transition-opacity hover:opacity-80 [--chip-bg:color-mix(in_srgb,var(--accent)_12%,var(--surface))] [--chip-fg:var(--accent)]"
+                    render={({ className, children, ...domProps }) => (
+                        <button
+                            type="button"
+                            className={className}
+                            {...(domProps as unknown as DetailedHTMLProps<ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement>)}
+                            onClick={(event) => { event.stopPropagation(); onOpenCahier?.(cahier.href); }}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onPointerUp={(event) => event.stopPropagation()}
+                        >
+                            {children}
+                        </button>
+                    )}
+                >
+                    <span className="flex min-w-0 items-center gap-1"><IconBook2 size={10} /><span className="truncate">N° {cahier.number}</span></span>
+                </Chip>
+            </Tooltip.Trigger>
+            <Tooltip.Content className="border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">Cahier de chantier N° {cahier.number}</Tooltip.Content>
+        </Tooltip>
+    ) : null;
+
     return (
         <ListBox.Item
             id={result.id}
@@ -199,6 +229,7 @@ export function GlobalSearchResultItem({
                     <HighlightMatch text={result.title} query={query} />
                 </span>
                 {archiveChip ? <div className="min-w-0 shrink-0">{archiveChip}</div> : null}
+                {cahierChip ? <div className="min-w-0 shrink-0">{cahierChip}</div> : null}
                 {responsableChip ? <div className="min-w-0 shrink-0">{responsableChip}</div> : null}
                 {showStatusChip && status.label ? (
                     <Chip size="sm" variant="soft" color={status.tone} className="h-[18px] min-h-0 max-sm:hidden px-1.5 text-[9px]">

@@ -1,8 +1,9 @@
 import { Head, router } from '@inertiajs/react';
-import { IconArrowDownToArc, IconArrowsSort, IconCheck, IconCircleCheck, IconCurrencyDollar, IconDownload, IconEye, IconFileSpreadsheet, IconFileText, IconPencil, IconPrinter, IconRefresh, IconReceipt2, IconSearch, IconSettings2, IconShoppingCart, IconStopwatch, IconTrash, IconWallet, IconWand, IconX, IconCircleX } from '@tabler/icons-react';
+import { IconArrowDownToArc, IconArrowsSort, IconCircleCheck, IconCurrencyDollar, IconDownload, IconEye, IconFileSpreadsheet, IconFileText, IconPencil, IconPrinter, IconRefresh, IconReceipt2, IconSearch, IconSettings2, IconShoppingCart, IconStopwatch, IconTrash, IconWallet, IconWand, IconX, IconCircleX } from '@tabler/icons-react';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { TabPanel } from 'react-aria-components';
+import { Checkbox } from '@heroui/react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
@@ -12,13 +13,18 @@ import { AppFilterTabs } from '@/components/ui/AppFilterTabs';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppPagination } from '@/components/ui/AppPagination';
+import { AppWorkspaceTable } from '@/components/ui/AppWorkspaceTable';
 import { type FinanceMetrics } from '@/features/finance/components/FinanceMetricCards';
-import { calculateAgingBuckets, type AgingBucket } from '@/features/finance/utils/calculations';
+import type { AgingBucket } from '@/features/finance/utils/calculations';
 import { formatCompactMoney } from '@/lib/currency';
 import { TreasuryDashboard } from '@/features/finance/components/TreasuryDashboard';
 import { FinanceMonthlySummary } from '@/features/finance/components/FinanceMonthlySummary';
 import { FinanceDocumentLockBadge, getFinanceDocumentLockedAt } from '@/features/finance/components/FinanceDocumentLockNotice';
+import { financeDocumentTypeLabel, financeStatusLabel } from '@/features/finance/components/FinanceStatusBadge';
 import { FinanceTabs } from '@/features/finance/components/FinanceTabs';
+import { ReceivablesWorkspace } from '@/features/finance/components/ReceivablesWorkspace';
+import { PaymentReminderDrawer } from '@/features/finance/components/PaymentReminderDrawer';
+import { PaymentPromiseDrawer } from '@/features/finance/components/PaymentPromiseDrawer';
 import { FinanceTemplateManager } from '@/features/finance/components/FinanceTemplateManager';
 import { FinanceSettingsSummary } from '@/features/finance/components/FinanceSettingsSummary';
 import { FinanceWorkspaceHeader } from '@/features/finance/components/FinanceWorkspaceHeader';
@@ -30,6 +36,8 @@ import { FinanceSortableHeader, nextFinanceSortDirection, type FinanceSortDirect
 import { FinanceRowActions, type FinanceRowAction } from '@/features/finance/components/FinanceRowActions';
 import { createFinanceDocumentActions, type FinanceDocumentActionHandlers } from '@/features/finance/components/FinanceDocumentActions';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTranslation } from '@/lib/i18n';
+import { paymentMethodLabel } from '@/features/finance/paymentMethodLabel';
 import type {
     ClientOption,
     DossierOption,
@@ -67,9 +75,11 @@ type Paginated<T> = {
 type PageProps = {
     documents?: Paginated<FinanceDocument> | FinanceDocument[];
     payments?: Paginated<Payment> | Payment[];
+    receivables?: Paginated<FinanceDocument> | FinanceDocument[];
     expenses?: Paginated<Expense> | Expense[];
     monthlySummaries?: FinanceMonthSummary[];
     metrics?: Partial<FinanceMetrics>;
+    collectionMetrics?: { toReceive: number; overdue: number; dueToday: number; promisesUpcoming?: number; currency: string; aging?: Record<string, number>; clientsToRemind?: Array<{ clientId: number; clientName: string; outstanding: number; oldestDueDate: string | null }> } | null;
     clients?: ClientOption[];
     dossiers?: DossierOption[];
     templates?: TemplateOption[];
@@ -83,6 +93,8 @@ type PageProps = {
         payments_page?: number; payments_per_page?: number;
         expense_search?: string; expense_category?: string; expense_sort?: string;
         expense_direction?: FinanceSortDirection; expenses_page?: number; expenses_per_page?: number;
+        collection_filter?: string; collection_search?: string; collection_sort?: string;
+        collection_page?: number; collection_per_page?: number;
     };
 };
 
@@ -98,6 +110,7 @@ function paginationOf<T>(value?: Paginated<T> | T[]) {
 
 type DocumentActionHandlers = FinanceDocumentActionHandlers & {
     onSelect: (document: FinanceDocument) => void;
+    onView: (document: FinanceDocument) => void;
 };
 
 function unwrap<T>(value?: Paginated<T> | T[] | { data?: unknown }): T[] {
@@ -149,26 +162,6 @@ function documentMatches(document: FinanceDocument, query: string, statusFilter?
         .includes(query.trim().toLowerCase());
 }
 
-const statusFilterOptions = [
-    { id: 'all', label: 'Tous' },
-    { id: 'draft', label: 'Brouillon' },
-    { id: 'issued', label: 'Emis' },
-    { id: 'sent', label: 'Envoye' },
-    { id: 'accepted', label: 'Accepte' },
-    { id: 'partially_paid', label: 'Partiel' },
-    { id: 'paid', label: 'Paye' },
-    { id: 'overdue', label: 'En retard' },
-    { id: 'rejected', label: 'Refuse' },
-    { id: 'cancelled', label: 'Annule' },
-];
-
-const typeFilterOptions = [
-    { id: 'all', label: 'All types' },
-    { id: 'quote', label: 'Devis' },
-    { id: 'invoice', label: 'Facture' },
-    { id: 'receipt', label: 'Recu' },
-];
-
 function DocumentFileBadges({ document }: { document: FinanceDocument }) {
     return (
         <div className="flex flex-nowrap items-center gap-1">
@@ -186,6 +179,20 @@ function DocumentFileBadges({ document }: { document: FinanceDocument }) {
             </span>
             <FinanceDocumentLockBadge document={document} compact />
         </div>
+    );
+}
+
+function FinanceTableCheckbox({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+    return (
+        <span className="inline-flex shrink-0" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+            <Checkbox isSelected={checked} onChange={onChange} aria-label={label}>
+                <Checkbox.Content>
+                    <Checkbox.Control className="size-4 rounded border border-[color-mix(in_srgb,var(--text-muted)_35%,transparent)] bg-[var(--surface)]">
+                        <Checkbox.Indicator className="text-black" />
+                    </Checkbox.Control>
+                </Checkbox.Content>
+            </Checkbox>
+        </span>
     );
 }
 
@@ -325,6 +332,7 @@ function FinanceDocumentWorkspace({
     pagination,
     filters,
     activeTab,
+    onBulkDelete,
 }: {
     documents: FinanceDocument[];
     currency: string;
@@ -335,13 +343,26 @@ function FinanceDocumentWorkspace({
     pagination: { page: number; pageSize: number; total: number };
     filters?: PageProps['filters'];
     activeTab: string;
+    onBulkDelete: (documentIds: number[]) => void;
 }) {
     const { can } = usePermissions();
+    const { t } = useTranslation();
     const [query, setQuery] = useState(filters?.search || '');
     const [showFilters, setShowFilters] = useState(false);
     const [statusFilter, setStatusFilter] = useState(filters?.status || 'all');
     const [typeFilter, setTypeFilter] = useState(filters?.type || 'all');
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const statusFilterOptions = useMemo(() => [
+        { id: 'all', label: t('finance.statuses.all') }, { id: 'draft', label: t('finance.statuses.draft') },
+        { id: 'issued', label: t('finance.statuses.issued') }, { id: 'sent', label: t('finance.statuses.sent') },
+        { id: 'accepted', label: t('finance.statuses.accepted') }, { id: 'partially_paid', label: t('finance.statuses.partiallyPaid') },
+        { id: 'paid', label: t('finance.statuses.paid') }, { id: 'overdue', label: t('finance.statuses.overdue') },
+        { id: 'rejected', label: t('finance.statuses.rejected') }, { id: 'cancelled', label: t('finance.statuses.cancelled') },
+    ], [t]);
+    const typeFilterOptions = useMemo(() => [
+        { id: 'all', label: t('finance.table.allTypes') }, { id: 'quote', label: t('finance.types.quote') },
+        { id: 'invoice', label: t('finance.types.invoice') }, { id: 'receipt', label: t('finance.types.receipt') },
+    ], [t]);
     const filtered = documents;
     const [selectedRows, setSelectedRows] = useState<number[]>([]);
     const pagedFiltered = filtered;
@@ -376,7 +397,7 @@ function FinanceDocumentWorkspace({
             ...actions,
             onOpen: () => router.visit(docShowUrl(document.id)),
             onPreview: actions.onView,
-        }, can);
+        }, can, t);
     }
 
     function toggleRow(documentId: number) {
@@ -410,27 +431,6 @@ function FinanceDocumentWorkspace({
         return 'bg-zinc-500/10 text-zinc-300 border-zinc-500/20';
     }
 
-    function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
-        return (
-            <button
-                type="button"
-                role="checkbox"
-                aria-checked={checked}
-                aria-label={label}
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === ' ') { e.preventDefault(); onChange(); } }}
-                onClick={(e) => { e.stopPropagation(); onChange(); }}
-                className={`flex size-4 shrink-0 items-center justify-center rounded border transition ${
-                    checked
-                        ? 'border-[var(--accent)] bg-[var(--accent)] text-black'
-                        : 'border-[var(--border)] bg-transparent hover:border-[var(--accent)]'
-                }`}
-            >
-                {checked ? <IconCheck size={11} strokeWidth={3} /> : null}
-            </button>
-        );
-    }
-
     return (
         <section className="min-w-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
             {/* Toolbar */}
@@ -446,38 +446,35 @@ function FinanceDocumentWorkspace({
                             className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                         />
                         {query ? (
-                            <button
-                                type="button"
-                                onClick={() => {
+                            <AppButton
+                                isIconOnly
+                                compact
+                                variant="quiet"
+                                tooltip={t('finance.table.clearSearch')}
+                                aria-label={t('finance.table.clearSearch')}
+                                onPress={() => {
                                     setQuery('');
                                     applyServerFilters({ search: undefined, page: 1 });
                                 }}
-                                className="absolute right-0.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
+                                className="absolute right-0.5 top-1/2 size-6 min-h-6 min-w-6 -translate-y-1/2"
                             >
                                 <IconX size={11} />
-                            </button>
+                            </AppButton>
                         ) : null}
                     </div>
-                    <button type="button" className={`flex h-7 items-center gap-1 rounded-lg border border-[var(--border)] px-2 text-[10px] font-medium transition hover:bg-[var(--surface-2)] ${
-                        isRefreshing ? 'bg-[var(--surface)] text-[var(--accent)]' : 'bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)]'
-                    }`} disabled={isRefreshing} onClick={() => { setIsRefreshing(true); router.reload({ only: ['documents'], onFinish: () => setIsRefreshing(false) }); }}>
+                    <AppButton isIconOnly compact variant="toolbar" tooltip={t('finance.table.refresh')} aria-label={t('finance.table.refresh')} isDisabled={isRefreshing} className="size-7 min-h-7 min-w-7" onPress={() => { setIsRefreshing(true); router.reload({ only: ['documents'], onFinish: () => setIsRefreshing(false) }); }}>
                         <IconRefresh size={11} className={isRefreshing ? 'animate-spin' : ''} />
-                        {isRefreshing ? '...' : null}
-                    </button>
-                    <button type="button" className={`flex h-7 items-center gap-1 rounded-lg border px-2 text-[10px] font-medium transition ${
-                        showFilters
-                            ? 'border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]'
-                            : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
-                    }`} onClick={() => setShowFilters((v) => !v)}>
+                    </AppButton>
+                    <AppButton isIconOnly compact variant={showFilters ? 'accent' : 'toolbar'} tooltip={t('finance.table.filters')} aria-label={t('finance.table.filters')} className="size-7 min-h-7 min-w-7" onPress={() => setShowFilters((v) => !v)}>
                         <IconSettings2 size={11} />
                         {statusFilter !== 'all' || typeFilter !== 'all' ? (
                             <span className="ml-0.5 flex size-3.5 items-center justify-center rounded-full bg-[var(--accent)] text-[8px] font-bold text-black">!</span>
                         ) : null}
-                    </button>
+                    </AppButton>
                 </div>
 
                 <div className="ml-auto hidden text-[10px] font-medium text-[var(--text-muted)] md:block">
-                    {filtered.length} document{filtered.length !== 1 ? 's' : ''}
+                    {t('finance.table.documentsCount', { count: filtered.length })}
                 </div>
             </div>
 
@@ -486,7 +483,7 @@ function FinanceDocumentWorkspace({
                 <div className="border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--surface-2)_35%,transparent)] px-3 py-3">
                     <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
                         <AppFilterTabs
-                            label="Statut"
+                            label={t('finance.table.status')}
                             value={statusFilter}
                             options={statusFilterOptions}
                             onChange={(value) => {
@@ -495,7 +492,7 @@ function FinanceDocumentWorkspace({
                             }}
                         />
                         <AppFilterTabs
-                            label="Type de document"
+                            label={t('finance.table.type')}
                             value={typeFilter}
                             options={typeFilterOptions}
                             onChange={(value) => {
@@ -510,18 +507,21 @@ function FinanceDocumentWorkspace({
             {/* Bulk action bar */}
             {selectedRows.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] px-3 py-2">
-                    <span className="text-xs font-semibold text-[var(--accent)]">{selectedRows.length} selected</span>
+                    <span className="text-xs font-semibold text-[var(--accent)]">{t('finance.table.selected', { count: selectedRows.length })}</span>
                     <div className="ml-auto flex items-center gap-1">
-                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGeneratePdf(doc); }); }}>
-                            <IconFileText size={12} /> PDF
-                        </button>
-                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGenerateExcel(doc); }); }}>
-                            <IconFileSpreadsheet size={12} /> Excel
-                        </button>
+                        <AppButton compact size="sm" variant="toolbar" onPress={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGeneratePdf(doc); }); }}>
+                            <IconFileText size={12} /> {t('finance.table.generatePdf')}
+                        </AppButton>
+                        <AppButton compact size="sm" variant="toolbar" onPress={() => { selectedRows.forEach((id) => { const doc = filtered.find((d) => d.id === id); if (doc) actions.onGenerateExcel(doc); }); }}>
+                            <IconFileSpreadsheet size={12} /> {t('finance.table.generateExcel')}
+                        </AppButton>
+                        {can('finance.documents.delete') ? <AppButton compact size="sm" variant="danger-soft" onPress={() => onBulkDelete(selectedRows)}>
+                            <IconTrash size={12} /> {t('finance.actions.delete')}
+                        </AppButton> : null}
                         <div className="mx-1 h-5 w-px bg-[var(--border)]" />
-                        <button type="button" className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-[10px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" onClick={() => setSelectedRows([])}>
-                            <IconX size={12} /> Clear
-                        </button>
+                        <AppButton compact size="sm" variant="quiet" onPress={() => setSelectedRows([])}>
+                            <IconX size={12} /> {t('finance.table.clearSelection')}
+                        </AppButton>
                     </div>
                 </div>
             ) : null}
@@ -532,21 +532,21 @@ function FinanceDocumentWorkspace({
                     <thead>
                         <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                             <th className="w-10 px-3 py-2">
-                                <Checkbox checked={allPageRowsSelected} onChange={togglePageRows} label="Select all visible" />
+                                <FinanceTableCheckbox checked={allPageRowsSelected} onChange={togglePageRows} label={t('finance.table.selectAll')} />
                             </th>
-                            <FinanceSortableHeader column="number" label={<><IconReceipt2 size={11} /> Document</>} sort={sort} direction={direction} onSort={changeSort} />
-                            <FinanceSortableHeader column="type" label="Type" sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="number" label={<><IconReceipt2 size={11} /> {t('finance.table.document')}</>} sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="type" label={t('finance.table.type')} sort={sort} direction={direction} onSort={changeSort} />
                             <th className="px-3 py-2">
                                 <span className="inline-flex items-center gap-1.5">
                                     <IconFileText size={11} />
-                                    Client / Dossier
+                                    {t('finance.table.clientProject')}
                                 </span>
                             </th>
-                            <FinanceSortableHeader column="status" label="Status" sort={sort} direction={direction} onSort={changeSort} />
-                            <FinanceSortableHeader column="total_ttc" label="Total" sort={sort} direction={direction} onSort={changeSort} align="right" />
-                            <FinanceSortableHeader column="paid_total" label="Paid" sort={sort} direction={direction} onSort={changeSort} align="right" />
-                            <FinanceSortableHeader column="remaining_total" label="Remaining" sort={sort} direction={direction} onSort={changeSort} align="right" />
-                            <th className="w-24 px-3 py-2 text-right">Actions</th>
+                            <FinanceSortableHeader column="status" label={t('finance.table.status')} sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="total_ttc" label={t('finance.table.total')} sort={sort} direction={direction} onSort={changeSort} align="right" />
+                            <FinanceSortableHeader column="paid_total" label={t('finance.table.paid')} sort={sort} direction={direction} onSort={changeSort} align="right" />
+                            <FinanceSortableHeader column="remaining_total" label={t('finance.table.remaining')} sort={sort} direction={direction} onSort={changeSort} align="right" />
+                            <th className="w-24 px-3 py-2 text-right">{t('finance.table.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -566,7 +566,7 @@ function FinanceDocumentWorkspace({
                                         }`}
                                     >
                                         <td className="px-3 py-2">
-                                            <Checkbox checked={rowChecked} onChange={() => toggleRow(document.id)} label={`Select ${document.number}`} />
+                                            <FinanceTableCheckbox checked={rowChecked} onChange={() => toggleRow(document.id)} label={t('finance.table.selectDocument', { number: document.number })} />
                                         </td>
                                         <td className="px-3 py-2">
                                             <div className="flex items-center gap-2">
@@ -582,7 +582,7 @@ function FinanceDocumentWorkspace({
                                             </div>
                                         </td>
                                         <td className="px-3 py-2">
-                                            <span className="text-[10px] font-medium text-[var(--text-muted)]">{document.typeLabel || typeLabel(document.type)}</span>
+                                            <span className="text-[10px] font-medium text-[var(--text-muted)]">{financeDocumentTypeLabel(document.type, t)}</span>
                                         </td>
                                         <td className="px-3 py-2">
                                             <p className="max-w-[180px] truncate text-xs font-medium text-[var(--text)]">{document.client?.name || '-'}</p>
@@ -590,7 +590,7 @@ function FinanceDocumentWorkspace({
                                         </td>
                                         <td className="px-3 py-2">
                                             <span className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold ${statusStyle(document.status)}`}>
-                                                {document.status?.replace(/_/g, ' ') || document.status}
+                                                {financeStatusLabel(document.status, t)}
                                             </span>
                                         </td>
                                         <td className="px-3 py-2 text-right text-xs font-semibold text-[var(--text)]">{formatCompactMoney(document.totalTtc, currency)}</td>
@@ -609,8 +609,8 @@ function FinanceDocumentWorkspace({
                                 <td colSpan={9} className="p-6 text-center">
                                     <div className="flex flex-col items-center gap-1.5">
                                         <IconFileText size={24} className="text-[var(--text-muted)]" />
-                                        <p className="text-xs font-semibold text-[var(--text)]">No finance documents found</p>
-                                        <p className="text-[10px] text-[var(--text-muted)]">Change search or create a new document.</p>
+                                        <p className="text-xs font-semibold text-[var(--text)]">{t('finance.table.noDocumentsTitle')}</p>
+                                        <p className="text-[10px] text-[var(--text-muted)]">{t('finance.table.noDocumentsDescription')}</p>
                                     </div>
                                 </td>
                             </tr>
@@ -634,7 +634,7 @@ function FinanceDocumentWorkspace({
                                 </div>
                             </div>
                             <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${statusStyle(document.status)}`}>
-                                {document.status?.replace(/_/g, ' ') || document.status}
+                                {financeStatusLabel(document.status, t)}
                             </span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-[10px]">
@@ -666,6 +666,7 @@ function PaymentWorkspace({
     filters?: PageProps['filters'];
 }) {
     const { can } = usePermissions();
+    const { t } = useTranslation();
     const [query, setQuery] = useState(filters?.payment_search || '');
     const pagedFiltered = payments;
     const sort = filters?.payment_sort || 'paid_at';
@@ -694,15 +695,17 @@ function PaymentWorkspace({
     }
 
     function paymentActionsFor(payment: Payment): FinanceRowAction[] {
-        return [
-            can('finance.payments.view') && payment.receipt?.urls?.show && { id: 'view-receipt', label: 'Voir le recu', icon: <IconEye size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.show) },
-            can('finance.payments.view') && payment.receipt?.urls?.pdf && { id: 'download-pdf', label: 'Telecharger PDF', icon: <IconFileText size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.pdf), tone: 'accent' },
-            can('finance.payments.view') && payment.receipt?.urls?.excel && { id: 'download-excel', label: 'Telecharger Excel', icon: <IconFileSpreadsheet size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.excel), tone: 'accent' },
-        ].filter((action): action is FinanceRowAction => Boolean(action));
+        const actions: Array<FinanceRowAction | false> = [
+            can('finance.payments.view') && Boolean(payment.receipt?.urls?.show) && { id: 'view-receipt', label: t('finance.actions.open'), icon: <IconEye size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.show) },
+            can('finance.payments.view') && Boolean(payment.receipt?.urls?.pdf) && { id: 'download-pdf', label: t('finance.actions.downloadPdf'), icon: <IconFileText size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.pdf), tone: 'accent' },
+            can('finance.payments.view') && Boolean(payment.receipt?.urls?.excel) && { id: 'download-excel', label: t('finance.actions.downloadExcel'), icon: <IconFileSpreadsheet size={13} />, onPress: () => onReceipt(payment.receipt?.urls?.excel), tone: 'accent' },
+        ];
+
+        return actions.filter((action): action is FinanceRowAction => action !== false);
     }
 
     return (
-        <section className="min-w-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+        <AppWorkspaceTable ariaLabel={t('finance.table.payment')} className="min-w-0 overflow-hidden">
             {/* Toolbar */}
             <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center">
                 <div className="flex min-w-0 items-center gap-1.5">
@@ -712,26 +715,30 @@ function PaymentWorkspace({
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
                             onKeyDown={(event) => { if (event.key === 'Enter') applyPaymentFilters({ payment_search: query || undefined, payments_page: 1 }); }}
-                            placeholder="Rechercher paiements, factures, clients..."
+                            placeholder={t('finance.table.searchPayments')}
                             className="h-7 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-7 pr-6 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_18%,transparent)]"
                         />
                         {query && (
-                            <button
-                                type="button"
-                                onClick={() => {
+                            <AppButton
+                                isIconOnly
+                                compact
+                                variant="quiet"
+                                tooltip={t('finance.table.clearSearch')}
+                                aria-label={t('finance.table.clearSearch')}
+                                onPress={() => {
                                     setQuery('');
                                     applyPaymentFilters({ payment_search: undefined, payments_page: 1 });
                                 }}
-                                className="absolute right-0.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
+                                className="absolute right-0.5 top-1/2 size-6 min-h-6 min-w-6 -translate-y-1/2"
                             >
                                 <IconX size={11} />
-                            </button>
+                            </AppButton>
                         )}
                     </div>
                 </div>
 
                 <div className="ml-auto hidden text-[10px] font-medium text-[var(--text-muted)] md:block">
-                    {pagination.total} paiement{pagination.total !== 1 ? 's' : ''} / page {formatCompactMoney(totalAmount, currency)}
+                    {t('finance.table.paymentsCount', { count: pagination.total })} · {t('finance.table.pageTotal')} {formatCompactMoney(totalAmount, currency)}
                 </div>
             </div>
 
@@ -740,16 +747,17 @@ function PaymentWorkspace({
                 <table className="finance-table min-w-[720px] text-sm">
                     <thead>
                         <tr className="border-b border-[var(--border)] text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                            <FinanceSortableHeader column="payment_number" label={<><IconCurrencyDollar size={11} /> Paiement</>} sort={sort} direction={direction} onSort={changeSort} />
+                            <FinanceSortableHeader column="payment_number" label={<><IconCurrencyDollar size={11} /> {t('finance.table.payment')}</>} sort={sort} direction={direction} onSort={changeSort} />
                             <th className="px-3 py-2">
                                 <span className="inline-flex items-center gap-1.5">
                                     <IconReceipt2 size={11} />
-                                    Facture / Client
+                                    {t('finance.table.invoiceClient')}
                                 </span>
                             </th>
-                            <FinanceSortableHeader column="amount" label="Montant" sort={sort} direction={direction} onSort={changeSort} align="right" />
-                            <th className="px-3 py-2">Recu</th>
-                            <th className="w-24 px-3 py-2 text-right">Actions</th>
+                            <FinanceSortableHeader column="amount" label={t('finance.table.amount')} sort={sort} direction={direction} onSort={changeSort} align="right" />
+                            <th className="px-3 py-2">{t('finance.table.methodReference')}</th>
+                            <th className="px-3 py-2">{t('finance.table.receipt')}</th>
+                            <th className="w-24 px-3 py-2 text-right">{t('finance.table.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -764,8 +772,7 @@ function PaymentWorkspace({
                                             <div className="min-w-0">
                                                 <p className="text-xs font-semibold text-[var(--text)]">{payment.paymentNumber}</p>
                                                 <p className="text-[9px] text-[var(--text-muted)]">
-                                                    {payment.paidAt || '-'}
-                                                    {payment.method ? <><span className="mx-1">·</span>{payment.method}</> : null}
+                                                    {payment.paidAt || '—'}
                                                 </p>
                                             </div>
                                         </div>
@@ -775,6 +782,10 @@ function PaymentWorkspace({
                                         <p className="max-w-[180px] truncate text-[9px] text-[var(--text-muted)]">{payment.client?.name || '-'}</p>
                                     </td>
                                     <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums text-emerald-400">{formatCompactMoney(payment.amount, currency)}</td>
+                                    <td className="px-3 py-2">
+                                        <p className="text-xs text-[var(--text)]">{paymentMethodLabel(payment.method, t)}</p>
+                                        <p className="max-w-[140px] truncate text-[9px] text-[var(--text-muted)]">{payment.reference || t('finance.table.noReference')}</p>
+                                    </td>
                                     <td className="px-3 py-2">
                                         {payment.receipt ? (
                                             <div className="flex items-center gap-1.5">
@@ -792,11 +803,11 @@ function PaymentWorkspace({
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={5} className="p-6 text-center">
+                                <td colSpan={6} className="p-6 text-center">
                                     <div className="flex flex-col items-center gap-1.5">
                                         <IconWallet size={24} className="text-[var(--text-muted)]" />
-                                        <p className="text-xs font-semibold text-[var(--text)]">Aucun paiement trouvé</p>
-                                        <p className="text-[10px] text-[var(--text-muted)]">Enregistrez un paiement depuis une facture.</p>
+                                        <p className="text-xs font-semibold text-[var(--text)]">{t('finance.table.noPaymentsTitle')}</p>
+                                        <p className="text-[10px] text-[var(--text-muted)]">{t('finance.table.noPaymentsDescription')}</p>
                                     </div>
                                 </td>
                             </tr>
@@ -817,29 +828,30 @@ function PaymentWorkspace({
                                     </div>
                                     <div className="min-w-0">
                                         <p className="truncate text-xs font-semibold text-[var(--text)]">{payment.paymentNumber}</p>
-                                        <p className="truncate text-[10px] text-[var(--text-muted)]">{payment.paidAt || '-'} / {payment.method || '-'}</p>
+                                        <p className="truncate text-[10px] text-[var(--text-muted)]">{payment.paidAt || '—'} · {paymentMethodLabel(payment.method, t)}</p>
                                     </div>
                                 </div>
                                 <span className="shrink-0 text-xs font-semibold tabular-nums text-emerald-400">{formatCompactMoney(payment.amount, currency)}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-[10px]">
-                                <span className="text-[var(--text-muted)]">Invoice <span className="font-semibold text-[var(--text)]">{payment.document?.number || '-'}</span></span>
+                                <span className="text-[var(--text-muted)]">{t('finance.types.invoice')} <span className="font-semibold text-[var(--text)]">{payment.document?.number || '-'}</span></span>
                                 <span className="text-[var(--text-muted)]">Client <span className="font-semibold text-[var(--text)]">{payment.client?.name || '-'}</span></span>
                             </div>
+                            {payment.reference ? <p className="text-[10px] text-[var(--text-muted)]">{t('finance.table.referenceLabel')} <span className="font-medium text-[var(--text)]">{payment.reference}</span></p> : null}
                             <FinanceRowActions actions={paymentActionsFor(payment)} visibleCount={1} className="justify-end" />
                         </div>
                     ))
                 ) : (
                     <div className="flex flex-col items-center gap-1.5 px-4 py-12 text-center">
                         <IconWallet size={24} className="text-[var(--text-muted)]" />
-                        <p className="text-xs font-semibold text-[var(--text)]">Aucun paiement trouvé</p>
-                        <p className="text-[10px] text-[var(--text-muted)]">Enregistrez un paiement depuis une facture.</p>
+                        <p className="text-xs font-semibold text-[var(--text)]">{t('finance.table.noPaymentsTitle')}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">{t('finance.table.noPaymentsDescription')}</p>
                     </div>
                 )}
             </div>
 
             <AppPagination page={pagination.page} pageSize={pagination.pageSize} total={pagination.total} onChange={(page) => applyPaymentFilters({ payments_page: page })} />
-        </section>
+        </AppWorkspaceTable>
     );
 };
 
@@ -861,6 +873,7 @@ function OverviewWorkspace({
     currency,
     monthlySummaries,
     allDocuments,
+    collectionMetrics,
     onSelect,
 }: {
     metrics: FinanceMetrics;
@@ -869,10 +882,9 @@ function OverviewWorkspace({
     currency: string;
     monthlySummaries: FinanceMonthSummary[];
     allDocuments: FinanceDocument[];
+    collectionMetrics: PageProps['collectionMetrics'];
     onSelect: (document: FinanceDocument) => void;
 }) {
-    const agingBuckets = useMemo(() => calculateAgingBuckets(allDocuments), [allDocuments]);
-
     const sparklines = useMemo(() => ({
         quotes: sparklineFor(monthlySummaries, (m) => m.quotesTotalTtc),
         invoices: sparklineFor(monthlySummaries, (m) => m.invoicesTotalTtc),
@@ -886,6 +898,8 @@ function OverviewWorkspace({
         <section className="space-y-4">
             <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
                 <AppKpiCard
+                    stacked
+                    keepCurrencyAttached
                     icon={<IconFileText size={16} className="text-sky-400" />}
                     label="Quotes"
                     value={formatCompactMoney(metrics.totalQuotes, currency)}
@@ -896,6 +910,8 @@ function OverviewWorkspace({
                     currency={currency}
                 />
                 <AppKpiCard
+                    stacked
+                    keepCurrencyAttached
                     icon={<IconReceipt2 size={16} className="text-violet-400" />}
                     label="Invoices"
                     value={formatCompactMoney(metrics.totalInvoices, currency)}
@@ -906,6 +922,8 @@ function OverviewWorkspace({
                     currency={currency}
                 />
                 <AppKpiCard
+                    stacked
+                    keepCurrencyAttached
                     icon={<IconCurrencyDollar size={16} className="text-amber-400" />}
                     label="Remaining"
                     value={formatCompactMoney(metrics.remainingTotal, currency)}
@@ -916,6 +934,8 @@ function OverviewWorkspace({
                     currency={currency}
                 />
                 <AppKpiCard
+                    stacked
+                    keepCurrencyAttached
                     icon={<IconStopwatch size={16} className="text-rose-400" />}
                     label="Overdue"
                     value={formatCompactMoney(metrics.overdueTotal, currency)}
@@ -926,6 +946,8 @@ function OverviewWorkspace({
                     currency={currency}
                 />
                 <AppKpiCard
+                    stacked
+                    keepCurrencyAttached
                     icon={<IconArrowDownToArc size={16} className="text-emerald-400" />}
                     label="Encaisse"
                     value={formatCompactMoney(metrics.paidTotal, currency)}
@@ -936,6 +958,8 @@ function OverviewWorkspace({
                     currency={currency}
                 />
                 <AppKpiCard
+                    stacked
+                    keepCurrencyAttached
                     icon={<IconShoppingCart size={16} className="text-orange-400" />}
                     label="Dépenses"
                     value={formatCompactMoney(metrics.totalExpenses ?? 0, currency)}
@@ -948,6 +972,16 @@ function OverviewWorkspace({
             </section>
 
             <TreasuryDashboard months={monthlySummaries} currency={currency} />
+
+            <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+                <AppCard className="p-4">
+                    <div className="flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-[var(--text)]">Ancienneté des impayés</h2><p className="mt-0.5 text-xs text-[var(--text-muted)]">Montants restant à encaisser par retard.</p></div><span className="shrink-0 text-xs font-semibold text-[var(--accent)]">{formatCompactMoney(collectionMetrics?.toReceive || 0, currency)}</span></div>
+                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                        {[['À jour', 'current', 'text-sky-400'], ['1–7 j', '1_7', 'text-amber-400'], ['8–30 j', '8_30', 'text-orange-400'], ['31–60 j', '31_60', 'text-red-400'], ['61+ j', '61_plus', 'text-red-500']].map(([label, key, color]) => <div key={key} className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/50 p-2"><p className="text-[10px] text-[var(--text-muted)]">{label}</p><p className={`mt-1 text-xs font-semibold tabular-nums ${color}`}>{formatCompactMoney(collectionMetrics?.aging?.[key] || 0, currency)}</p></div>)}
+                    </div>
+                </AppCard>
+                <AppCard className="overflow-hidden p-0"><div className="border-b border-[var(--border)] px-4 py-3"><h2 className="text-sm font-semibold text-[var(--text)]">Clients à relancer</h2></div><div className="divide-y divide-[var(--border)]">{collectionMetrics?.clientsToRemind?.length ? collectionMetrics.clientsToRemind.map((client) => <button type="button" key={client.clientId} onClick={() => router.visit(`/finance/documents?tab=collections&collection_filter=overdue&collection_client_id=${client.clientId}`)} className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition hover:bg-[var(--surface-2)]"><div className="min-w-0"><p className="truncate text-xs font-semibold text-[var(--text)]">{client.clientName}</p><p className="mt-0.5 text-[10px] text-[var(--text-muted)]">Depuis le {client.oldestDueDate || '—'}</p></div><span className="shrink-0 text-xs font-semibold tabular-nums text-amber-400">{formatCompactMoney(client.outstanding, currency)}</span></button>) : <p className="px-4 py-8 text-center text-xs text-[var(--text-muted)]">Aucun client à relancer.</p>}</div></AppCard>
+            </div>
 
             <div className="grid gap-4 xl:grid-cols-2">
                 <RecentDocuments title="Derniers devis" documents={quotes.slice(0, 6)} onSelect={onSelect} />
@@ -1085,9 +1119,11 @@ function RecentDocuments({ title, documents, onSelect, agingBuckets, currency }:
 export default function FinanceDocumentsIndex({
     documents: rawDocuments,
     payments: rawPayments,
+    receivables: rawReceivables,
     expenses: rawExpenses,
     monthlySummaries = [],
     metrics: rawMetrics,
+    collectionMetrics,
     clients = [],
     dossiers = [],
     templates = [],
@@ -1097,10 +1133,13 @@ export default function FinanceDocumentsIndex({
     filters,
 }: PageProps) {
     const { can } = usePermissions();
+    const { t } = useTranslation();
     const documents = unwrap(rawDocuments);
     const documentPagination = paginationOf(rawDocuments);
     const payments = unwrap(rawPayments);
+    const receivables = unwrap(rawReceivables);
     const paymentPagination = paginationOf(rawPayments);
+    const receivablePagination = paginationOf(rawReceivables);
     const expenses = unwrap(rawExpenses) as Expense[];
     const expensePagination = paginationOf(rawExpenses);
 
@@ -1110,6 +1149,7 @@ export default function FinanceDocumentsIndex({
         'overview',
         'quotes',
         'invoices',
+        ...(can('finance.collections.view') ? ['collections'] : []),
         'monthly',
         ...(can('finance.payments.view') ? ['payments'] : []),
         ...(can('finance.expenses.view') ? ['expenses'] : []),
@@ -1123,7 +1163,10 @@ export default function FinanceDocumentsIndex({
     const [selectedDocument, setSelectedDocument] = useState<FinanceDocument | null>(documents[0] ?? null);
     const [paymentOpen, setPaymentOpen] = useState(false);
     const [paymentInvoice, setPaymentInvoice] = useState<FinanceDocument | null>(null);
+    const [reminderInvoice, setReminderInvoice] = useState<FinanceDocument | null>(null);
+    const [promiseInvoice, setPromiseInvoice] = useState<FinanceDocument | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<FinanceDocument | null>(null);
+    const [bulkDeleteDocumentIds, setBulkDeleteDocumentIds] = useState<number[]>([]);
     const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
     const [expenseDrawerMode, setExpenseDrawerMode] = useState<ExpenseViewMode>('create');
     const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
@@ -1138,7 +1181,7 @@ export default function FinanceDocumentsIndex({
             preserveState: true,
             preserveScroll: true,
             replace: true,
-            only: ['documents', 'payments', 'expenses', 'filters'],
+            only: ['documents', 'payments', 'receivables', 'collectionMetrics', 'expenses', 'filters'],
         });
     }
 
@@ -1193,6 +1236,15 @@ export default function FinanceDocumentsIndex({
         }
 
         window.open(url, '_blank');
+    }
+
+    function applyCollectionQuery(query: Record<string, string | number | undefined>) {
+        router.get('/finance/documents', { tab: 'collections', ...query }, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+            only: ['receivables', 'collectionMetrics', 'filters'],
+        });
     }
 
     function openTemplateRename(template: TemplateOption) {
@@ -1259,6 +1311,16 @@ export default function FinanceDocumentsIndex({
         });
     }
 
+    function handleBulkDelete() {
+        if (bulkDeleteDocumentIds.length === 0) return;
+
+        router.post('/finance/documents/bulk-delete', { document_ids: bulkDeleteDocumentIds }, {
+            preserveScroll: true,
+            onSuccess: () => { toast.success(`${bulkDeleteDocumentIds.length} document(s) supprime(s).`); setBulkDeleteDocumentIds([]); },
+            onError: () => toast.error('Impossible de supprimer les documents selectionnes.'),
+        });
+    }
+
     const commonActions: DocumentActionHandlers = {
         onOpen: (document) => router.visit(docShowUrl(document.id)),
         onView: (document) => window.open(document.viewUrl || document.showUrl || docShowUrl(document.id), '_blank', 'noopener,noreferrer'),
@@ -1303,6 +1365,7 @@ export default function FinanceDocumentsIndex({
                     counts={{
                         quotes: quotes.length,
                         invoices: invoices.length,
+                        collections: receivablePagination.total,
                         payments: paymentPagination.total,
                         expenses: expensePagination.total,
                         monthly: monthlySummaries.length,
@@ -1317,6 +1380,7 @@ export default function FinanceDocumentsIndex({
                             currency={settings.defaultCurrency}
                             monthlySummaries={monthlySummaries}
                             allDocuments={documents}
+                            collectionMetrics={collectionMetrics ?? null}
                             onSelect={(document) => {
                                 setSelectedDocument(document);
                                 setActiveTab(document.type === 'invoice' ? 'invoices' : 'quotes');
@@ -1331,10 +1395,11 @@ export default function FinanceDocumentsIndex({
                             selected={selectedDocument}
                             onSelect={setSelectedDocument}
                             actions={commonActions}
-                            searchPlaceholder="IconSearch quotes, clients, dossiers..."
+                            searchPlaceholder={t('finance.table.searchDocuments')}
                             pagination={documentPagination}
                             filters={filters}
                             activeTab={activeTab}
+                            onBulkDelete={setBulkDeleteDocumentIds}
                         />
                     </TabPanel>
 
@@ -1345,12 +1410,32 @@ export default function FinanceDocumentsIndex({
                             selected={selectedDocument}
                             onSelect={setSelectedDocument}
                             actions={commonActions}
-                            searchPlaceholder="IconSearch invoices, clients, dossiers..."
+                            searchPlaceholder={t('finance.table.searchDocuments')}
                             pagination={documentPagination}
                             filters={filters}
                             activeTab={activeTab}
+                            onBulkDelete={setBulkDeleteDocumentIds}
                         />
                     </TabPanel>
+
+                    {can('finance.collections.view') ? (
+                        <TabPanel id="collections" className="outline-none">
+                            <ReceivablesWorkspace
+                                receivables={receivables}
+                                metrics={collectionMetrics ?? null}
+                                filters={filters}
+                                pagination={receivablePagination}
+                                canCreatePayment={can('finance.payments.create')}
+                                canManageReminders={can('finance.reminders.manage')}
+                                canManagePromises={can('finance.promises.manage')}
+                                onQuery={applyCollectionQuery}
+                                onPayment={openPayment}
+                                onReminder={setReminderInvoice}
+                                onPromise={setPromiseInvoice}
+                                onOpen={(document) => router.visit(docShowUrl(document.id))}
+                            />
+                        </TabPanel>
+                    ) : null}
 
                     <TabPanel id="monthly" className="outline-none">
                         <FinanceMonthlySummary months={monthlySummaries} currency={settings.defaultCurrency} />
@@ -1431,6 +1516,18 @@ export default function FinanceDocumentsIndex({
                 allowAdvancePayment={true}
             />
 
+            <PaymentReminderDrawer
+                isOpen={Boolean(reminderInvoice)}
+                onOpenChange={(open) => { if (!open) setReminderInvoice(null); }}
+                invoice={reminderInvoice}
+            />
+
+            <PaymentPromiseDrawer
+                isOpen={Boolean(promiseInvoice)}
+                onOpenChange={(open) => { if (!open) setPromiseInvoice(null); }}
+                invoice={promiseInvoice}
+            />
+
             <ExpenseDrawer
                 isOpen={expenseDrawerOpen}
                 onOpenChange={setExpenseDrawerOpen}
@@ -1471,6 +1568,11 @@ export default function FinanceDocumentsIndex({
                 onCancel={() => setDeleteTarget(null)}
                 variant="danger"
             />
+
+            <AppModal isOpen={bulkDeleteDocumentIds.length > 0} onOpenChange={(open) => { if (!open) setBulkDeleteDocumentIds([]); }} title="Supprimer les documents selectionnes ?" size="sm">
+                <p className="mb-5 text-sm text-[var(--text-muted)]">Supprimer {bulkDeleteDocumentIds.length} document(s) selectionne(s) ? Cette action est irreversible.</p>
+                <div className="flex justify-end gap-2"><AppButton variant="bordered" onPress={() => setBulkDeleteDocumentIds([])}>Annuler</AppButton><AppButton variant="solid" color="danger" className="bg-[var(--danger)] text-white hover:bg-[var(--danger-hover)]" onPress={handleBulkDelete}>Supprimer</AppButton></div>
+            </AppModal>
         </>
     );
 }

@@ -222,6 +222,7 @@ class ArchiveController extends Controller
                 'overdue' => $this->scopedRecords($request->user())->overdue()->count(),
                 'lost' => $this->scopedRecords($request->user())->where('is_lost', true)->count(),
             ],
+            'reports' => $this->reportPayload($request->user()),
             'filters' => $request->only([
                 'q', 'status', 'view', 'room', 'shelf', 'box',
                 'requesterId', 'dossierId', 'dueFrom', 'dueTo',
@@ -489,6 +490,29 @@ class ArchiveController extends Controller
         return redirect()
             ->route('archives.index')
             ->with('success', 'Archive record deleted successfully.');
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'archive_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'archive_ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $records = $this->scopedRecords($request->user())
+            ->whereKey($data['archive_ids'])
+            ->get();
+
+        abort_unless($records->count() === count($data['archive_ids']), 404);
+
+        foreach ($records as $record) {
+            $this->authorize('delete', $record);
+        }
+
+        DB::transaction(fn () => $records->each->delete());
+
+        return redirect()->route('archives.index')
+            ->with('success', "{$records->count()} archive record(s) deleted successfully.");
     }
 
     public function markLost(Request $request, ArchiveRecord $archiveRecord): RedirectResponse
@@ -783,55 +807,39 @@ class ArchiveController extends Controller
         return ((int) $lastFolder) + 1;
     }
 
-    public function reports(Request $request): Response
+    public function reports(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', ArchiveRecord::class);
 
-        $overdue = $this->scopedRecords($request->user())->with('dossier.client')
-            ->overdue()
-            ->orderBy('due_at')
-            ->get()
+        return redirect()->route('archives.index', ['viewMode' => 'reports']);
+    }
+
+    private function reportPayload(User $user): array
+    {
+        $overdue = $this->scopedRecords($user)->with('dossier.client')
+            ->overdue()->orderBy('due_at')->get()
             ->map(fn ($r) => [
-                'id' => $r->id,
-                'archiveNumber' => $r->archive_number,
-                'dossierNumber' => $r->dossier?->dossier_number ?? '-',
-                'projectObject' => $r->dossier?->project_object ?? '-',
-                'clientName' => $r->dossier?->client?->full_name ?? '-',
-                'requestedBy' => $r->requested_by,
-                'dueAt' => optional($r->due_at)->format('Y-m-d'),
-                'overdueDays' => (int) max(0, Carbon::parse($r->due_at)->diffInDays(now(), false)),
+                'id' => $r->id, 'archiveNumber' => $r->archive_number,
+                'dossierNumber' => $r->dossier?->dossier_number ?? '-', 'projectObject' => $r->dossier?->project_object ?? '-',
+                'clientName' => $r->dossier?->client?->full_name ?? '-', 'requestedBy' => $r->requested_by,
+                'dueAt' => optional($r->due_at)->format('Y-m-d'), 'overdueDays' => (int) max(0, Carbon::parse($r->due_at)->diffInDays(now(), false)),
             ]);
 
-        $monthly = $this->scopedRecords($request->user())->selectRaw($this->monthExpression() . ' as period, COUNT(*) as total')
-            ->where('created_at', '>=', now()->subMonths(12))
-            ->groupBy('period')
-            ->orderBy('period')
-            ->get()
+        $monthly = $this->scopedRecords($user)->selectRaw($this->monthExpression().' as period, COUNT(*) as total')
+            ->where('created_at', '>=', now()->subMonths(12))->groupBy('period')->orderBy('period')->get()
             ->map(fn ($r) => ['period' => $r->period, 'total' => (int) $r->total]);
 
-        $lost = $this->scopedRecords($request->user())->with('dossier.client')
-            ->where('is_lost', true)
-            ->orderByDesc('updated_at')
-            ->get()
+        $lost = $this->scopedRecords($user)->with('dossier.client')->where('is_lost', true)->orderByDesc('updated_at')->get()
             ->map(fn ($r) => [
-                'id' => $r->id,
-                'archiveNumber' => $r->archive_number,
-                'dossierNumber' => $r->dossier?->dossier_number ?? '-',
-                'projectObject' => $r->dossier?->project_object ?? '-',
-                'lostReason' => $r->lost_reason,
+                'id' => $r->id, 'archiveNumber' => $r->archive_number, 'dossierNumber' => $r->dossier?->dossier_number ?? '-',
+                'projectObject' => $r->dossier?->project_object ?? '-', 'lostReason' => $r->lost_reason,
                 'lostAt' => optional($r->updated_at)->format('Y-m-d'),
             ]);
 
-        return Inertia::render('Archives/Reports', [
-            'overdue' => $overdue,
-            'monthly' => $monthly,
-            'lost' => $lost,
-            'kpis' => [
-                'totalOverdue' => $overdue->count(),
-                'totalLost' => $lost->count(),
-                'avgOverdueDays' => $overdue->isEmpty() ? 0 : (int) round($overdue->avg('overdueDays')),
-            ],
-        ]);
+        return [
+            'overdue' => $overdue->values(), 'monthly' => $monthly->values(), 'lost' => $lost->values(),
+            'kpis' => ['totalOverdue' => $overdue->count(), 'totalLost' => $lost->count(), 'avgOverdueDays' => $overdue->isEmpty() ? 0 : (int) round($overdue->avg('overdueDays'))],
+        ];
     }
 
     private function clientOptions(User $user): array

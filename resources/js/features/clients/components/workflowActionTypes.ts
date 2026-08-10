@@ -15,7 +15,6 @@ export function getRequirementActionType(stepKey: string, requirementKey: string
         case 'documents.plan_cadastral':
         case 'documents.calcul_contenance':
         case 'documents.plan_parcellaire':
-        case 'cahier_chantier.cahier_received':
         case 'rokhas.fiche_energetique':
         case 'bureau_etude.contract_bureau_etude':
         case 'bureau_etude.plan_beton':
@@ -38,6 +37,7 @@ export function getRequirementActionType(stepKey: string, requirementKey: string
         case 'archive.file_stored':
             return 'mark_done';
         case 'rokhas.rokhas_upload':
+        case 'cahier_chantier.cahier_received':
         case 'archive.archive_created':
             return 'open_module';
         default:
@@ -68,6 +68,8 @@ export function getModuleRoute(stepKey: string, dossierId: number): string {
             return `/dossiers/${dossierId}`;
         case 'archive':
             return `/archives?dossier_id=${dossierId}`;
+        case 'cahier_chantier':
+            return `/dossiers/${dossierId}?tab=workflow`;
         default:
             return `/documents?dossier_id=${dossierId}`;
     }

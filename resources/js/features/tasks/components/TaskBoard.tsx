@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent } from 'react';
-import { ScrollShadow } from '@heroui/react';
+import { Card } from '@heroui/react';
 
 import { useTranslation } from '@/lib/i18n';
 import { TaskBoardColumn } from '@/features/tasks/components/TaskBoardColumn';
@@ -120,9 +120,9 @@ export function TaskBoard({
     }, [columns, onStatusChange, resetDragState]);
 
     return (
-        <section aria-label={t('tasks.board.label')} className="relative isolate w-full">
-            <ScrollShadow orientation="horizontal" hideScrollBar className="w-full">
-                <div className="flex items-start gap-3 px-0.5 pb-1">
+        <Card aria-label={t('tasks.board.label')} className="relative isolate gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none">
+            <Card.Content className="p-0">
+                <div className="grid grid-cols-1 items-start gap-2 px-0.5 pb-0.5 md:grid-cols-2 xl:grid-cols-4">
                     {BOARD_COLUMNS.map((status) => (
                         <TaskBoardColumn
                             key={status}
@@ -142,7 +142,7 @@ export function TaskBoard({
                         />
                     ))}
                 </div>
-            </ScrollShadow>
-        </section>
+            </Card.Content>
+        </Card>
     );
 }

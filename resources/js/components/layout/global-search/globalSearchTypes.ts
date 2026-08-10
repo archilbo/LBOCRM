@@ -19,6 +19,10 @@ export type BackendSearchResult = {
         requestedBy?: string | null;
         href: string;
     } | null;
+    cahier?: {
+        number: string;
+        href: string;
+    } | null;
     /** Optional structured metadata pieces, one fact per entry. */
     meta?: string[];
 };

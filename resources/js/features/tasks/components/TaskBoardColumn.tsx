@@ -1,12 +1,12 @@
 import { Plus } from 'lucide-react';
 import type { DragEvent } from 'react';
-import { Button, Card, Chip } from '@heroui/react';
+import { Button, Card, Chip, ScrollShadow } from '@heroui/react';
 
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
 import { TaskBoardEmptyState } from '@/features/tasks/components/TaskBoardEmptyState';
 import { TaskCard } from '@/features/tasks/components/TaskCard';
-import { STATUS_BG_COLORS, STATUS_COLORS, STATUS_DOT_COLORS } from '@/features/tasks/types';
+import { BOARD_COLUMNS, STATUS_COLORS, STATUS_DOT_COLORS } from '@/features/tasks/types';
 import type { TaskRow, TaskStatus } from '@/features/tasks/types';
 
 type Props = {
@@ -23,6 +23,18 @@ type Props = {
     onDragLeave: (event: DragEvent<HTMLDivElement>) => void;
     onDrop: (event: DragEvent<HTMLDivElement>, status: string) => void;
     onDragEnd: () => void;
+};
+
+const dragBorderClasses: Record<TaskStatus, string> = {
+    backlog: 'border-zinc-300/90 ring-1 ring-zinc-300/55 shadow-[0_0_16px_rgba(212,212,216,0.24)]',
+    not_started: 'border-zinc-300/90 ring-1 ring-zinc-300/55 shadow-[0_0_16px_rgba(212,212,216,0.24)]',
+    in_progress: 'border-blue-300/90 ring-1 ring-blue-300/55 shadow-[0_0_16px_rgba(147,197,253,0.3)]',
+    waiting_client: 'border-violet-300/90 ring-1 ring-violet-300/55 shadow-[0_0_16px_rgba(196,181,253,0.3)]',
+    waiting_admin: 'border-cyan-300/90 ring-1 ring-cyan-300/55 shadow-[0_0_16px_rgba(103,232,249,0.3)]',
+    blocked: 'border-red-300/90 ring-1 ring-red-300/55 shadow-[0_0_16px_rgba(252,165,165,0.3)]',
+    in_review: 'border-amber-300/90 ring-1 ring-amber-300/55 shadow-[0_0_16px_rgba(252,211,77,0.3)]',
+    completed: 'border-emerald-300/90 ring-1 ring-emerald-300/55 shadow-[0_0_16px_rgba(110,231,183,0.3)]',
+    cancelled: 'border-zinc-300/90 ring-1 ring-zinc-300/55 shadow-[0_0_16px_rgba(212,212,216,0.24)]',
 };
 
 export function TaskBoardColumn({
@@ -46,6 +58,7 @@ export function TaskBoardColumn({
     const countLabel = count === 1
         ? t('tasks.board.tasksCountOne', { count })
         : t('tasks.board.tasksCountMany', { count });
+    const toneOffset = BOARD_COLUMNS.indexOf(status);
 
     return (
         <Card
@@ -53,17 +66,21 @@ export function TaskBoardColumn({
             onDragLeave={onDragLeave}
             onDrop={(event) => onDrop(event, status)}
             className={cn(
-                'flex w-[min(calc(100vw-3rem),340px)] min-w-[280px] shrink-0 flex-col overflow-visible rounded-2xl border bg-[var(--surface)]',
-                'transition-[border-color,background-color,box-shadow] duration-200 sm:w-[300px]',
+                'flex min-w-0 w-full flex-col overflow-hidden rounded-xl border bg-[color-mix(in_srgb,var(--surface)_92%,var(--surface-2))]',
+                'transition-[border-color,background-color,box-shadow,transform] duration-200',
                 isDragOver
-                    ? 'z-20 border-[var(--accent)]/60 bg-[var(--accent)]/[0.04] shadow-[0_0_0_3px_rgba(252,177,45,0.12)]'
+                    ? `z-20 -translate-y-0.5 bg-[color-mix(in_srgb,var(--surface)_94%,transparent)] ${dragBorderClasses[status]}`
                     : 'border-[var(--border)] shadow-sm hover:border-[var(--border-strong)]',
             )}
         >
-            {/* Column header: dot + name + count + add button */}
-            <div className="flex h-11 shrink-0 items-center gap-2 rounded-t-2xl border-b border-[var(--border)] bg-[var(--surface-2)]/60 px-3">
-                <span className={cn('size-2 shrink-0 rounded-full', STATUS_DOT_COLORS[status])} aria-hidden="true" />
-                <h2 className="truncate text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">{statusName}</h2>
+            <div className="relative m-1.5 flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-[color-mix(in_srgb,var(--surface-2)_78%,transparent)] px-2.5">
+                <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-md border border-current/10 bg-[var(--surface)]', STATUS_COLORS[status])} aria-hidden="true">
+                    <span className={cn('size-1.5 rounded-full', STATUS_DOT_COLORS[status])} />
+                </span>
+                <div className="min-w-0 flex-1">
+                    <h2 className="truncate text-[9px] font-bold uppercase tracking-[0.09em] text-[var(--foreground)]">{statusName}</h2>
+                    <span className="block text-[8px] leading-3 text-[var(--text-muted)]">{countLabel}</span>
+                </div>
                 <Chip size="sm" aria-label={countLabel} className={cn('h-5 min-w-5 shrink-0 rounded-md border px-1.5 text-[9px] font-bold tabular-nums', STATUS_COLORS[status])}>{count}</Chip>
                 {canAdd && onCreateInStatus ? (
                     <Button
@@ -72,16 +89,16 @@ export function TaskBoardColumn({
                         size="sm"
                         aria-label={t('tasks.board.createTaskIn', { status: statusName })}
                         onPress={() => onCreateInStatus(status)}
-                        className="ml-auto size-6 min-w-6 rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-3)] hover:text-[var(--foreground)]"
+                        className="ml-auto size-5 min-w-5 rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-3)] hover:text-[var(--foreground)]"
                     >
                         <Plus size={13} />
                     </Button>
                 ) : null}
             </div>
 
-            {/* Column body: cards, empty state, add-task row */}
-            <div className={cn('relative flex flex-1 flex-col gap-2 rounded-b-2xl p-2', STATUS_BG_COLORS[status])}>
-                {tasks.map((task) => {
+            <ScrollShadow orientation="vertical" hideScrollBar className="h-[360px] xl:h-[410px]">
+                <div className="relative flex min-h-full flex-col gap-1.5 p-1.5">
+                    {tasks.map((task, taskIndex) => {
                     const isDragging = draggingTaskId === task.id;
 
                     return (
@@ -92,42 +109,44 @@ export function TaskBoardColumn({
                             onDragEnd={onDragEnd}
                             className={cn(
                                 'relative min-w-0 shrink-0 cursor-grab rounded-xl',
-                                'transition-[opacity,box-shadow] duration-150',
+                                'transition-[opacity,transform] duration-150',
                                 'active:cursor-grabbing focus-within:z-30 hover:z-10',
-                                isDragging ? 'z-30 scale-[0.99] opacity-70 shadow-2xl shadow-black/25' : 'opacity-100',
+                                isDragging ? 'z-30 scale-[0.99] opacity-70' : 'opacity-100',
                             )}
                         >
                             <TaskCard
                                 task={task}
+                                toneIndex={taskIndex + toneOffset}
                                 onOpen={() => onTaskClick(task)}
                                 onStatusChange={onStatusChange}
                             />
                         </div>
                     );
-                })}
+                    })}
 
-                {tasks.length === 0 ? (
-                    <TaskBoardEmptyState
-                        canAdd={canAdd && !!onCreateInStatus}
-                        onAddTask={onCreateInStatus ? () => onCreateInStatus(status) : undefined}
-                    />
-                ) : null}
+                    {tasks.length === 0 ? (
+                        <TaskBoardEmptyState
+                            canAdd={canAdd && !!onCreateInStatus}
+                            onAddTask={onCreateInStatus ? () => onCreateInStatus(status) : undefined}
+                        />
+                    ) : null}
 
-                {canAdd && onCreateInStatus && tasks.length > 0 ? (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onPress={() => onCreateInStatus(status)}
-                        className="mt-0.5 h-7 min-h-7 w-full gap-1 rounded-lg border border-dashed border-[var(--border)] px-2 text-[10px] font-semibold text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--accent)]"
-                    >
-                        <Plus size={11} /> {t('tasks.board.addTask')}
-                    </Button>
-                ) : null}
+                    {canAdd && onCreateInStatus && tasks.length > 0 ? (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onPress={() => onCreateInStatus(status)}
+                            className="mt-0.5 h-6 min-h-6 w-full gap-1 rounded-md border border-dashed border-[var(--border)] bg-[var(--surface)]/45 px-2 text-[9px] font-semibold text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--accent)]"
+                        >
+                            <Plus size={11} /> {t('tasks.board.addTask')}
+                        </Button>
+                    ) : null}
 
-                {isDragOver ? (
-                    <div aria-hidden="true" className="pointer-events-none absolute inset-1.5 z-40 rounded-xl border-2 border-dashed border-[var(--accent)]/45 bg-[var(--accent)]/[0.025]" />
-                ) : null}
-            </div>
+                    {isDragOver ? (
+                        <div aria-hidden="true" className="pointer-events-none absolute inset-1 z-40 rounded-lg border-2 border-dashed border-[var(--accent)]/45 bg-[var(--accent)]/[0.025]" />
+                    ) : null}
+                </div>
+            </ScrollShadow>
         </Card>
     );
 }

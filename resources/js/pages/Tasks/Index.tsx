@@ -126,7 +126,15 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
         }
         return 'overview';
     });
-    const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
+    const [selectedTask, setSelectedTask] = useState<TaskRow | null>(() => {
+        if (typeof window === 'undefined') return null;
+
+        const taskId = Number(new URLSearchParams(window.location.search).get('task'));
+
+        return Number.isSafeInteger(taskId) && taskId > 0
+            ? tasks.find((task) => task.id === taskId) ?? null
+            : null;
+    });
     const [createOpen, setCreateOpen] = useState(false);
     const [form, setForm] = useState({
         title: '', description: '', status: 'not_started' as string,
@@ -250,6 +258,14 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
             },
         });
     }, [form, t]);
+
+    const closeTaskDrawer = useCallback(() => {
+        setSelectedTask(null);
+
+        const url = new URL(window.location.href);
+        url.searchParams.delete('task');
+        window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }, []);
 
     const handleCreateInStatus = useCallback((status: string) => {
         setForm((prev) => ({ ...prev, status }));
@@ -554,7 +570,7 @@ export default function TasksIndex({ tasks, users, currentUserId, activeFilter, 
 
                     <TaskDetailDrawer
                         task={selectedTask}
-                        onClose={() => setSelectedTask(null)}
+                        onClose={closeTaskDrawer}
                         onComplete={(t) => updateStatus(t, 'completed')}
                         onChecklistToggle={toggleChecklistItem}
                         onChecklistAdd={addChecklistItem}

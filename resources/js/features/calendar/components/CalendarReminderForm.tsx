@@ -1,4 +1,4 @@
-import { Button } from '@heroui/react';
+import { AppButton } from '@/components/ui/AppButton';
 import { drawerStyles } from '@/components/drawers';
 import { useTranslation } from '@/lib/i18n';
 
@@ -25,10 +25,10 @@ export function CalendarReminderForm({ value, onChange }: Props) {
         <div className={drawerStyles.sectionGrid}>
             <div className="flex flex-wrap gap-1.5">
                 {OPTIONS.map((opt) => (
-                    <Button key={String(opt.value)} type="button" variant="outline" size="sm" onPress={() => onChange(opt.value)}
+                    <AppButton key={String(opt.value)} type="button" variant="toolbar" compact onPress={() => onChange(opt.value)}
                         className={`h-auto min-h-0 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition ${value === opt.value ? 'border-[var(--crm-gold)] bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'border-[var(--crm-border)] text-[var(--crm-text-muted)] hover:text-[var(--crm-text)]'}`}>
                         {opt.count !== undefined ? t(opt.tKey, { count: opt.count }) : t(opt.tKey)}
-                    </Button>
+                    </AppButton>
                 ))}
             </div>
         </div>

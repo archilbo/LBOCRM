@@ -1,159 +1,154 @@
-import { IconPlus, IconAlertTriangle } from '@tabler/icons-react';
-import { Button, Chip } from '@heroui/react';
+import { IconAlertTriangle, IconChevronDown, IconFilter, IconPlus, IconSearch, IconUser } from '@tabler/icons-react';
+import { Card, Chip, Input, ListBox, Select } from '@heroui/react';
 
 import type { CalendarEventRow, CalendarEventType } from '@/features/calendar/types';
-import { EVENT_TYPE_CLASSES } from '@/features/calendar/types';
+import { AppButton } from '@/components/ui/AppButton';
+import { EVENT_TYPE_COLORS } from '@/features/calendar/types';
 import { MiniCalendar } from '@/features/calendar/components/MiniCalendar';
-import { AppSearchInput } from '@/components/ui/AppSearchInput';
 import { useTranslation } from '@/lib/i18n';
 
 type UserOption = { id: number; name: string; email: string };
 
 type Props = {
     search: string;
-    onSearchChange: (v: string) => void;
+    onSearchChange: (value: string) => void;
     filterType: string;
-    onFilterTypeChange: (v: string) => void;
+    onFilterTypeChange: (value: string) => void;
     filterUserId: string;
-    onFilterUserIdChange: (v: string) => void;
+    onFilterUserIdChange: (value: string) => void;
     currentDate: Date;
-    onDateChange: (d: Date) => void;
-    onDayClick: (d: Date) => void;
+    onSelectDate: (date: Date) => void;
     users: UserOption[];
     onCreateClick: () => void;
     canCreate: boolean;
     events: CalendarEventRow[];
-    onEventClick: (e: CalendarEventRow) => void;
 };
 
-const TYPE_IDS: string[] = ['', ...Object.keys(EVENT_TYPE_CLASSES)];
+const EVENT_TYPES = Object.keys(EVENT_TYPE_COLORS) as CalendarEventType[];
 
 export function CalendarSidebar({
-    search, onSearchChange, filterType, onFilterTypeChange,
-    filterUserId, onFilterUserIdChange, currentDate, onDateChange,
-    onDayClick, users, onCreateClick, canCreate, events, onEventClick,
+    search,
+    onSearchChange,
+    filterType,
+    onFilterTypeChange,
+    filterUserId,
+    onFilterUserIdChange,
+    currentDate,
+    onSelectDate,
+    users,
+    onCreateClick,
+    canCreate,
+    events,
 }: Props) {
-    const { t } = useTranslation();
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
+    const { t, locale } = useTranslation();
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const overdueCount = events.filter(
-        (e) => e.startsAt < todayStr && e.status !== 'completed' && e.status !== 'cancelled',
+        (event) => event.startsAt < todayStr && event.status !== 'completed' && event.status !== 'cancelled',
     ).length;
-
-    const todayEvents = events.filter((e) => e.startsAt?.startsWith(todayStr)).slice(0, 5);
+    const currentDateLabel = currentDate.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', {
+        month: 'long',
+        year: 'numeric',
+    });
 
     return (
-        <div className="flex flex-col gap-3 overflow-y-auto">
-            <div className="rounded-xl border border-white/8 bg-[color-mix(in_srgb,var(--crm-elevated)_70%,#000)] p-[14px]">
-
-                {/* New event button */}
-                <Button
+        <Card className="border-0 bg-transparent shadow-none">
+            <Card.Header className="flex items-center justify-between gap-3 px-1 pb-3 pt-1">
+                <div className="min-w-0">
+                    <Card.Title className="text-sm font-semibold text-[var(--foreground)]">{t('calendar.title')}</Card.Title>
+                    <Card.Description className="mt-0.5 text-[10px] capitalize">{currentDateLabel}</Card.Description>
+                </div>
+                <AppButton
                     type="button"
-                    variant="primary"
-                    onPress={() => onCreateClick()}
+                    variant="accent"
+                    isIconOnly
+                    compact
+                    onPress={onCreateClick}
                     isDisabled={!canCreate}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--crm-gold)] px-3 py-2 text-xs font-semibold text-black transition hover:brightness-110">
-                    <IconPlus size={14} /> {t('calendar.newEvent')}
-                </Button>
+                    aria-label={t('calendar.newEvent')}
+                    tooltip={t('calendar.newEvent')}>
+                    <IconPlus size={15} />
+                </AppButton>
+            </Card.Header>
 
-                {/* Search */}
-                <AppSearchInput
-                    value={search}
-                    onChange={onSearchChange}
-                    placeholder={t('calendar.search')}
-                    ariaLabel={t('calendar.search')}
-                    maxWidth=""
-                    className="mt-3"
-                />
+            <Card.Content className="space-y-5 overflow-visible px-1 pb-1">
+                <div className="relative">
+                    <IconSearch size={14} className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <Input
+                        type="search"
+                        aria-label={t('calendar.search')}
+                        value={search}
+                        onChange={(event) => onSearchChange(event.target.value)}
+                        placeholder={t('calendar.search')}
+                        className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/60 pl-9 pr-3 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)]" />
+                </div>
 
-                {/* Divider */}
-                <div className="my-3 border-t border-white/8" />
+                <section className="border-y border-[var(--border)] py-4">
+                    <MiniCalendar currentDate={currentDate} onSelectDate={onSelectDate} />
+                </section>
 
-                {/* Mini calendar */}
-                <MiniCalendar currentDate={currentDate} onDateChange={onDateChange} onDayClick={onDayClick} />
-
-                {/* Overdue badge */}
-                {overdueCount > 0 && (
-                    <Chip
-                        variant="soft"
-                        color="danger"
-                        className="mt-3 h-auto w-full justify-start gap-2 rounded-lg border border-red-500/20 bg-red-500/8 px-3 py-2 text-xs font-semibold text-red-400">
-                        <IconAlertTriangle size={13} className="text-red-400" /> {t('calendar.todayOverdue', { count: overdueCount })}
-                    </Chip>
-                )}
-
-                {/* Today mini-list */}
-                {todayEvents.length > 0 && (
-                    <div className="mt-3">
-                        <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-gold)]">{t('calendar.today')}</p>
-                        <div className="space-y-0.5">
-                            {todayEvents.map((e) => (
-                                <Button
-                                    key={e.id}
-                                    type="button"
-                                    variant="ghost"
-                                    onPress={() => onEventClick(e)}
-                                    className="flex h-auto min-h-0 w-full items-center gap-2 rounded px-2 py-1 text-left text-[10px] font-medium text-white/70 transition hover:bg-white/5 hover:text-white">
-                                    <span className={`size-1.5 shrink-0 rounded-full ${EVENT_TYPE_CLASSES[e.type]?.split(' ')[0] || 'bg-zinc-400'}`} />
-                                    <span className="min-w-0 flex-1 truncate">{e.title}</span>
-                                </Button>
-                            ))}
-                        </div>
+                <section className="space-y-2.5">
+                    <div className="flex items-center justify-between px-0.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{t('calendar.eventType')}</span>
+                        {filterType ? <Chip size="sm" variant="soft" className="bg-[var(--surface-2)] text-[9px] text-[var(--accent)]">1</Chip> : null}
                     </div>
-                )}
+                    <Select
+                        selectedKey={filterType || 'all'}
+                        onSelectionChange={(key) => onFilterTypeChange(key === 'all' ? '' : String(key))}>
+                        <Select.Trigger className="flex h-9 w-full items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-left text-xs text-[var(--foreground)] transition hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border))]">
+                            <IconFilter size={13} className="shrink-0 text-[var(--text-muted)]" />
+                            <Select.Value className="min-w-0 flex-1 truncate" />
+                            <Select.Indicator><IconChevronDown size={14} className="text-[var(--text-muted)]" /></Select.Indicator>
+                        </Select.Trigger>
+                        <Select.Popover className="min-w-[220px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                            <ListBox className="max-h-64 overflow-y-auto" aria-label={t('calendar.eventType')}>
+                                <ListBox.Item id="all" textValue={t('calendar.allTypes')} className="rounded-lg px-2.5 py-2 text-xs text-[var(--foreground)] outline-none data-[focused]:bg-[var(--surface-2)]">
+                                    {t('calendar.allTypes')}
+                                </ListBox.Item>
+                                {EVENT_TYPES.map((type) => (
+                                    <ListBox.Item key={type} id={type} textValue={t(`calendar.eventTypes.${type}`)} className="rounded-lg px-2.5 py-2 text-xs text-[var(--foreground)] outline-none data-[focused]:bg-[var(--surface-2)]">
+                                        <span className="flex items-center gap-2"><span className="size-2 rounded-full" style={{ backgroundColor: EVENT_TYPE_COLORS[type] }} />{t(`calendar.eventTypes.${type}`)}</span>
+                                    </ListBox.Item>
+                                ))}
+                            </ListBox>
+                        </Select.Popover>
+                    </Select>
+                </section>
 
-                {/* Divider */}
-                <div className="my-3 border-t border-white/8" />
+                <section className="space-y-2.5">
+                    <div className="flex items-center justify-between px-0.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{t('calendar.user')}</span>
+                        <Chip size="sm" variant="soft" className="bg-[var(--surface-2)] text-[9px] text-[var(--text-muted)]">{filterUserId ? 1 : users.length}</Chip>
+                    </div>
+                    <Select
+                        selectedKey={filterUserId || 'all'}
+                        onSelectionChange={(key) => onFilterUserIdChange(key === 'all' ? '' : String(key))}>
+                        <Select.Trigger className="flex h-9 w-full items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 text-left text-xs text-[var(--foreground)] transition hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border))]">
+                            <IconUser size={13} className="shrink-0 text-[var(--text-muted)]" />
+                            <Select.Value className="min-w-0 flex-1 truncate" />
+                            <Select.Indicator><IconChevronDown size={14} className="text-[var(--text-muted)]" /></Select.Indicator>
+                        </Select.Trigger>
+                        <Select.Popover className="min-w-[220px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                            <ListBox className="max-h-64 overflow-y-auto" aria-label={t('calendar.user')}>
+                                <ListBox.Item id="all" textValue={t('calendar.allUsers')} className="rounded-lg px-2.5 py-2 text-xs text-[var(--foreground)] outline-none data-[focused]:bg-[var(--surface-2)]">
+                                    {t('calendar.allUsers')}
+                                </ListBox.Item>
+                                {users.map((user) => (
+                                    <ListBox.Item key={user.id} id={String(user.id)} textValue={user.name} className="rounded-lg px-2.5 py-2 text-xs text-[var(--foreground)] outline-none data-[focused]:bg-[var(--surface-2)]">
+                                        <span className="flex min-w-0 items-center gap-2"><span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-[9px] font-bold">{user.name.slice(0, 1).toUpperCase()}</span><span className="truncate">{user.name}</span></span>
+                                    </ListBox.Item>
+                                ))}
+                            </ListBox>
+                        </Select.Popover>
+                    </Select>
+                </section>
 
-                {/* Event type filter */}
-                <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">{t('calendar.eventType')}</p>
-                <div className="space-y-0.5">
-                    {TYPE_IDS.map((id) => (
-                        <Button
-                            key={id}
-                            type="button"
-                            variant="ghost"
-                            onPress={() => onFilterTypeChange(id)}
-                            className={`flex h-auto min-h-0 w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
-                                filterType === id
-                                    ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]'
-                                    : 'text-[var(--crm-text-muted)] hover:bg-white/5 hover:text-white'
-                            }`}>
-                            {id ? (
-                                <span className={`size-2 rounded-full ${EVENT_TYPE_CLASSES[id as CalendarEventType]?.split(' ')[0] || 'bg-zinc-400'}`} />
-                            ) : null}
-                            {id ? t(`calendar.eventTypes.${id}`) : t('calendar.allTypes')}
-                        </Button>
-                    ))}
-                </div>
-
-                {/* Divider */}
-                <div className="my-3 border-t border-white/8" />
-
-                {/* User filter */}
-                <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-[var(--crm-text-muted)]">{t('calendar.user')}</p>
-                <div className="flex flex-wrap gap-1">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        onPress={() => onFilterUserIdChange('')}
-                        className={`h-auto min-h-0 rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${
-                            filterUserId === '' ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)] hover:text-white'
-                        }`}>{t('calendar.allUsers')}</Button>
-                    {users.map((u) => (
-                        <Button
-                            key={u.id}
-                            type="button"
-                            variant="ghost"
-                            onPress={() => onFilterUserIdChange(String(u.id))}
-                            className={`h-auto min-h-0 rounded-lg px-2.5 py-1 text-[10px] font-medium transition ${
-                                filterUserId === String(u.id) ? 'bg-[var(--crm-gold-soft)] text-[var(--crm-gold)]' : 'text-[var(--crm-text-muted)] hover:text-white'
-                            }`}>
-                            {u.name.split(' ')[0]}
-                        </Button>
-                    ))}
-                </div>
-            </div>
-        </div>
+                {overdueCount > 0 ? (
+                    <Chip variant="soft" color="danger" className="h-auto w-full justify-start gap-2 rounded-lg border border-red-500/15 bg-red-500/8 px-3 py-2 text-xs font-semibold text-red-400">
+                        <IconAlertTriangle size={13} /> {t('calendar.todayOverdue', { count: overdueCount })}
+                    </Chip>
+                ) : null}
+            </Card.Content>
+        </Card>
     );
 }

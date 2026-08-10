@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Services\CompanyContext;
 use App\Services\Collaboration\RelatedRecordScopeGuard;
 use App\Services\PermissionRegistry;
+use App\Services\Recovery\RecoveryService;
+use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -23,6 +25,7 @@ class CalendarEventService
         protected RelatedRecordScopeGuard $scopeGuard,
         protected PermissionRegistry $permissions,
         protected CalendarRealtimeService $realtimeService,
+        protected RecoveryService $recovery,
     ) {}
 
     public function indexPayload(User $user, array $filters): array
@@ -250,12 +253,16 @@ class CalendarEventService
         return $event;
     }
 
-    public function delete(CalendarEvent $event): void
+    public function delete(CalendarEvent $event, User $user): void
     {
         $recipientIds = $this->realtimeService->recipientIds($event);
         $eventKey = "calendar_event:{$event->id}";
 
-        $event->delete();
+        \DB::transaction(function () use ($event, $user): void {
+            $event->delete();
+            $this->recovery->moveToTrash($event, $user);
+            $this->activityService->log($event, $user->id, 'moved_to_trash');
+        });
 
         $this->realtimeService->publishTo($recipientIds, $eventKey, 'deleted');
     }

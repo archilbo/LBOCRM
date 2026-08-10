@@ -7,6 +7,7 @@ use App\Models\City;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\PermissionRegistry;
 use App\Services\SystemSettingsService;
+use App\Services\Recovery\RecoveryWorkspaceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,9 +30,10 @@ class CityController extends Controller
         $canViewSystemAppearance = $user && $this->permissions->allows($user, 'system.settings.view');
         $canUpdateSystemAppearance = $user && $this->permissions->allows($user, 'system.settings.update');
         $canUpdateBranding = $user && $this->permissions->allows($user, 'system.branding.update');
+        $canViewRecovery = $user && $this->permissions->allows($user, 'system.recovery.view');
 
         abort_unless(
-            $user && ($canViewCities || $canViewFinance || $canViewSystemAppearance),
+            $user && ($canViewCities || $canViewFinance || $canViewSystemAppearance || $canViewRecovery),
             403
         );
 
@@ -64,6 +66,7 @@ class CityController extends Controller
                 'update' => $canUpdateSystemAppearance,
                 'branding_update' => $canUpdateBranding,
             ] : null,
+            ...($canViewRecovery ? app(RecoveryWorkspaceService::class)->payload($user, $request->only(['search', 'type', 'deleted_by'])) : []),
         ]);
     }
 

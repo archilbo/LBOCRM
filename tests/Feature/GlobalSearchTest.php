@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Dossier;
+use App\Models\DossierCahier;
 use App\Models\DossierDocument;
 use App\Models\FinanceDocument;
 use App\Models\User;
@@ -21,6 +22,24 @@ use Tests\TestCase;
 class GlobalSearchTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_project_search_matches_normalized_cahier_numbers_and_returns_the_chip_payload(): void
+    {
+        $company = Company::factory()->create();
+        $user = $this->userFor($company, ['manage dossiers']);
+        $client = Client::factory()->create(['company_id' => $company->id, 'branch_id' => null]);
+        $dossier = Dossier::factory()->create(['company_id' => $company->id, 'branch_id' => null, 'client_id' => $client->id]);
+        $cahier = DossierCahier::create(['dossier_id' => $dossier->id, 'cahier_number' => '0055945', 'received_at' => '2026-08-08']);
+        $legacyNumber = "N\u{00B0}N\u{00B0}0055945";
+        DB::table('dossier_cahiers')->whereKey($cahier->id)->update(['cahier_number' => $legacyNumber]);
+
+        $this->actingAs($user)
+            ->getJson(route('global-search.index', ['q' => 'N° 0055945']))
+            ->assertOk()
+            ->assertJsonPath('results.0.id', 'dossier-' . $dossier->id)
+            ->assertJsonPath('results.0.cahier.number', '0055945')
+            ->assertJsonPath('results.0.cahier.href', '/dossiers/' . $dossier->id . '?tab=workflow');
+    }
 
     public function test_archive_metadata_is_returned_structurally_for_authorized_project_results(): void
     {

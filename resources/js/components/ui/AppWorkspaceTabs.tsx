@@ -20,40 +20,45 @@ export type AppWorkspaceTabsProps = {
     selectedKey: string;
     onSelectionChange: (key: string) => void;
     counts?: Partial<Record<string, number>>;
+    /** Optional controls aligned to the right of the tab list. */
+    headerEnd?: ReactNode;
     /** Extra classes appended to the root `<Tabs>` element (e.g. flex layout for embedded editor workspaces). */
     className?: string;
     children: ReactNode;
 };
 
-export function AppWorkspaceTabs({ tabs, selectedKey, onSelectionChange, counts = {}, className, children }: AppWorkspaceTabsProps) {
+export function AppWorkspaceTabs({ tabs, selectedKey, onSelectionChange, counts = {}, headerEnd, className, children }: AppWorkspaceTabsProps) {
     return (
         <Tabs
             selectedKey={selectedKey}
             onSelectionChange={(key) => onSelectionChange(String(key))}
             className={cn('min-w-0', className)}
         >
-            <div className="mb-3 overflow-hidden">
-                <TabList className="flex min-w-max gap-1 overflow-x-auto">
-                    {tabs.map((tab) => {
-                        const Icon = tab.icon;
-                        const count = counts[tab.id];
-                        return (
-                            <Tab
-                                key={tab.id}
-                                id={tab.id}
-                                className="group relative flex h-10 shrink-0 cursor-pointer items-center gap-2 border-x-0 border-y-0 bg-transparent px-3 text-xs font-medium text-[var(--text-muted)] shadow-none outline-none transition data-[hovered]:text-[var(--text)] data-[selected]:border-x-0 data-[selected]:border-y-0 data-[selected]:bg-transparent data-[selected]:font-semibold data-[selected]:text-[var(--accent)] data-[selected]:shadow-none data-[focus-visible]:text-[var(--accent)] data-[focus-visible]:underline data-[focus-visible]:decoration-[var(--accent)] data-[focus-visible]:underline-offset-4"
-                            >
-                                <span className="flex size-6 items-center justify-center text-[var(--text-muted)] transition group-data-[selected]:text-[var(--accent)]">
-                                    <Icon size={14} />
-                                </span>
-                                <span>{tab.label}</span>
-                                {typeof count === 'number' ? (
-                                    <span className="text-[9px] font-semibold text-[var(--text-muted)] group-data-[selected]:text-[var(--accent)]">{count}</span>
-                                ) : null}
-                            </Tab>
-                        );
-                    })}
-                </TabList>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0 overflow-hidden">
+                    <TabList className="flex min-w-max gap-1 overflow-x-auto">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            const count = counts[tab.id];
+                            return (
+                                <Tab
+                                    key={tab.id}
+                                    id={tab.id}
+                                    className="group relative flex h-10 shrink-0 cursor-pointer items-center gap-2 border-x-0 border-y-0 bg-transparent px-3 text-xs font-medium text-[var(--text-muted)] shadow-none outline-none transition data-[hovered]:text-[var(--text)] data-[selected]:border-x-0 data-[selected]:border-y-0 data-[selected]:bg-transparent data-[selected]:font-semibold data-[selected]:text-[var(--accent)] data-[selected]:shadow-none data-[focus-visible]:text-[var(--accent)] data-[focus-visible]:underline data-[focus-visible]:decoration-[var(--accent)] data-[focus-visible]:underline-offset-4"
+                                >
+                                    <span className="flex size-6 items-center justify-center text-[var(--text-muted)] transition group-data-[selected]:text-[var(--accent)]">
+                                        <Icon size={14} />
+                                    </span>
+                                    <span>{tab.label}</span>
+                                    {typeof count === 'number' ? (
+                                        <span className="text-[9px] font-semibold text-[var(--text-muted)] group-data-[selected]:text-[var(--accent)]">{count}</span>
+                                    ) : null}
+                                </Tab>
+                            );
+                        })}
+                    </TabList>
+                </div>
+                {headerEnd ? <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:flex-none">{headerEnd}</div> : null}
             </div>
             {children}
         </Tabs>

@@ -56,6 +56,7 @@ type ArchiveSummary = {
     requestedBy?: string; notes?: string; isOverdue?: boolean; isLost?: boolean;
     lostReason?: string; locationLabel?: string;
 } | null;
+type CahierSummary = { number: string; receivedAt: string; deliveredAt: string | null } | null;
 
 type ArchiveLocationOption = { id: number; code: string; name: string; roomId?: number; shelfId?: number; };
 
@@ -67,6 +68,7 @@ type PageProps = {
     contract: ContractSummary;
     financeRecords: FinanceSummary[];
     archiveRecord: ArchiveSummary;
+    cahier: CahierSummary;
     clients: ClientOption[];
     cities: City[];
     dossiers: DossierOption[];
@@ -85,6 +87,7 @@ type PageProps = {
         canUpdateEfficiencySheet?: boolean;
         canCreateDocuments?: boolean;
         canViewArchive?: boolean;
+        canUpdateWorkflow?: boolean;
     };
 };
 
@@ -134,7 +137,7 @@ function dossierStatusLabel(status: string, t: (key: string) => string) {
 }
 
 export default function DossierShow({
-    dossier, workflow, explorerDocuments, contract, financeRecords, archiveRecord,
+    dossier, workflow, explorerDocuments, contract, financeRecords, archiveRecord, cahier,
     clients,
     cities,
     dossiers: dossiersOptions,
@@ -567,7 +570,7 @@ export default function DossierShow({
                                     archiveRecord={archiveRecord} canViewArchive={capabilities?.canViewArchive ?? false} />
                             )}
                             {activeTab === 'workflow' && (
-                                <WorkflowTab workflow={workflow} selectedStepKey={selectedStepKey} onSelectStep={setSelectedStepKey} dossierId={dossier.id} onOpenUpload={handleOpenUpload} onOpenArchive={() => setArchiveDrawerOpen(true)} />
+                                <WorkflowTab workflow={workflow} selectedStepKey={selectedStepKey} onSelectStep={setSelectedStepKey} dossierId={dossier.id} cahier={cahier} canUpdateWorkflow={capabilities?.canUpdateWorkflow ?? false} onOpenUpload={handleOpenUpload} onOpenDocuments={() => handleTabChange('documents')} onOpenArchive={() => setArchiveDrawerOpen(true)} />
                             )}
                             {activeTab === 'documents' && (
                                 <ProjectDocumentsTab

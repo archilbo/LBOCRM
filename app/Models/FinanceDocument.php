@@ -119,6 +119,16 @@ class FinanceDocument extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function paymentScheduleItems(): HasMany
+    {
+        return $this->hasMany(FinancePaymentScheduleItem::class)->orderBy('position');
+    }
+
+    public function paymentPromises(): HasMany
+    {
+        return $this->hasMany(FinancePaymentPromise::class)->orderByDesc('promised_for');
+    }
+
     public function isQuote(): bool
     {
         return $this->type === 'quote';

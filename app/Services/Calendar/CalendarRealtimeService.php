@@ -7,6 +7,7 @@ use App\Models\CalendarEvent;
 use App\Models\User;
 use App\Services\CompanyContext;
 use App\Services\PermissionRegistry;
+use Illuminate\Support\Facades\Log;
 
 class CalendarRealtimeService
 {
@@ -57,7 +58,18 @@ class CalendarRealtimeService
     public function publishTo(array $recipientIds, string $eventKey, string $action): void
     {
         foreach (array_values(array_unique($recipientIds)) as $recipientId) {
-            CalendarChanged::dispatch($recipientId, $eventKey, $action);
+            try {
+                CalendarChanged::dispatch($recipientId, $eventKey, $action);
+            } catch (\Throwable $exception) {
+                // Realtime refresh is additive. An unavailable broadcaster must not
+                // roll back an already-persisted calendar change for the user.
+                Log::warning('Calendar realtime broadcast was unavailable.', [
+                    'recipient_id' => $recipientId,
+                    'event_key' => $eventKey,
+                    'action' => $action,
+                    'exception' => $exception::class,
+                ]);
+            }
         }
     }
 

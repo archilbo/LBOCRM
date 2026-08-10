@@ -8,10 +8,13 @@ use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use App\Services\Task\TaskMutationService;
 use App\Services\Task\TaskQueryService;
+use App\Services\Task\TaskActivityService;
+use App\Services\Recovery\RecoveryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -86,12 +89,18 @@ class TaskController extends Controller
         return redirect()->back()->with('success', 'Task updated.');
     }
 
-    public function destroy(Task $task): RedirectResponse
+    public function destroy(Task $task, RecoveryService $recovery, TaskActivityService $activity): RedirectResponse
     {
         $this->authorize('delete', $task);
-        $task->delete();
+        $user = request()->user();
 
-        return redirect()->route('tasks.index')->with('success', 'Task deleted.');
+        DB::transaction(function () use ($task, $recovery, $activity, $user): void {
+            $task->delete();
+            $recovery->moveToTrash($task, $user);
+            $activity->log($task, $user->id, 'moved_to_trash', 'Task moved to recovery trash.');
+        });
+
+        return redirect()->route('tasks.index')->with('success', 'Tâche déplacée dans la corbeille.');
     }
 
     public function updateStatus(Request $request, Task $task): RedirectResponse

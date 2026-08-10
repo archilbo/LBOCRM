@@ -8,6 +8,7 @@ export type WorkflowRequirement = {
     checkedBy: string | null;
     actionLabel: string | null;
     actionUrl: string | null;
+    hasFile: boolean;
 };
 
 export type WorkflowStep = {

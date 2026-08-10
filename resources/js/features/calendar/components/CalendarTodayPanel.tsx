@@ -1,5 +1,4 @@
-import { Button } from '@heroui/react';
-
+import { AppButton } from '@/components/ui/AppButton';
 import type { CalendarEventRow } from '@/features/calendar/types';
 import { EVENT_TYPE_CLASSES } from '@/features/calendar/types';
 import { useTranslation } from '@/lib/i18n';
@@ -54,7 +53,7 @@ function Section({ id, title, count, events, onEventClick, accent, todayStr }: {
             ) : (
                 <div className="space-y-1">
                     {events.map((e) => (
-                        <Button key={e.id} type="button" variant="ghost" onPress={() => onEventClick(e)}
+                        <AppButton key={e.id} type="button" variant="quiet" onPress={() => onEventClick(e)}
                             className="flex h-auto min-h-0 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-[var(--crm-surface-2)]">
                             <span className={`size-2 shrink-0 rounded-full ${EVENT_TYPE_CLASSES[e.type]?.split(' ')[0] || 'bg-zinc-400'}`} />
                             <span className="min-w-0 flex-1 truncate text-[10px] font-medium">{e.title}</span>
@@ -63,7 +62,7 @@ function Section({ id, title, count, events, onEventClick, accent, todayStr }: {
                                     {new Date(e.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             ) : null}
-                        </Button>
+                        </AppButton>
                     ))}
                 </div>
             )}

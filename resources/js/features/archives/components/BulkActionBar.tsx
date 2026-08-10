@@ -1,4 +1,4 @@
-import { IconLogout, IconArrowMoveRight, IconArrowBackUp, IconX } from '@tabler/icons-react';
+import { IconLogout, IconArrowMoveRight, IconArrowBackUp, IconTrash, IconX } from '@tabler/icons-react';
 import { useTranslation } from '@/lib/i18n';
 
 type BulkActionBarProps = {
@@ -6,10 +6,11 @@ type BulkActionBarProps = {
     onCheckout: () => void;
     onReturn: () => void;
     onMove: () => void;
+    onDelete?: () => void;
     onClear: () => void;
 };
 
-export function BulkActionBar({ count, onCheckout, onReturn, onMove, onClear }: BulkActionBarProps) {
+export function BulkActionBar({ count, onCheckout, onReturn, onMove, onDelete, onClear }: BulkActionBarProps) {
     const { t } = useTranslation();
     if (count === 0) return null;
 
@@ -31,6 +32,10 @@ export function BulkActionBar({ count, onCheckout, onReturn, onMove, onClear }: 
                     className="flex items-center gap-1.5 rounded-lg border border-[var(--crm-border)] px-2.5 py-1.5 text-xs text-[var(--crm-text-muted)] hover:text-[var(--crm-text)] hover:bg-[var(--crm-elevated)] transition">
                     <IconArrowMoveRight size={13} /> {t('table.move')}
                 </button>
+                {onDelete ? <button type="button" onClick={onDelete}
+                    className="flex items-center gap-1.5 rounded-lg border border-[var(--crm-danger)]/35 px-2.5 py-1.5 text-xs text-[var(--crm-danger)] hover:bg-[var(--crm-danger)]/10 transition">
+                    <IconTrash size={13} /> {t('table.delete')}
+                </button> : null}
             </div>
 
             <button type="button" onClick={onClear}

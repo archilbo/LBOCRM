@@ -1,4 +1,4 @@
-import { IconFileText, IconPencil, IconReceipt2, IconSearch, IconSettings2, IconStar, IconWallet, IconX } from '@tabler/icons-react';
+import { IconCode, IconFileText, IconPencil, IconReceipt2, IconSearch, IconSettings2, IconStar, IconWallet, IconX } from '@tabler/icons-react';
 
 import { useMemo, useState } from 'react';
 import { AppButton } from '@/components/ui/AppButton';
@@ -60,9 +60,17 @@ export function FinanceTemplateManager({ templates, editorUrl, onOpenEditor, onR
                     <p className="mt-0.5 text-xs text-[var(--text-muted)]">Modeles disponibles pour les devis, factures et recus.</p>
                 </div>
                 {canManage ? (
-                    <AppButton size="sm" variant="ghost" className="bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]" onPress={() => onOpenEditor(editorUrl)}>
-                        <IconSettings2 size={14} />
-                        Ouvrir l editeur
+                    <AppButton
+                        isIconOnly
+                        compact
+                        size="sm"
+                        variant="ghost"
+                        tooltip="Ouvrir l’éditeur"
+                        aria-label="Ouvrir l’éditeur"
+                        className="size-8 min-h-8 min-w-8 bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)]"
+                        onPress={() => onOpenEditor(editorUrl)}
+                    >
+                        <IconCode size={15} />
                     </AppButton>
                 ) : null}
             </header>

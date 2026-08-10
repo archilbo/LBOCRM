@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Services\CompanyContext;
 use App\Services\Documents\WorkflowDocumentTemplateResolver;
 use App\Services\Finance\DossierFinanceEligibilityService;
+use App\Services\Finance\FinanceReceivablesService;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\PermissionRegistry;
 use Illuminate\Http\Request;
@@ -33,6 +34,7 @@ class ProjectWorkspaceDataService
         private readonly WorkflowDocumentTemplateResolver $documentTemplateResolver,
         private readonly DossierWorkflowStepperService $workflowStepper,
         private readonly DossierFinanceEligibilityService $financeEligibility,
+        private readonly FinanceReceivablesService $receivables,
         private readonly ProjectActivityService $activity,
         private readonly ProjectDocumentExplorerService $documentExplorer,
     ) {
@@ -45,6 +47,7 @@ class ProjectWorkspaceDataService
         $relations = [
             'client.intermediary',
             'city',
+            'cahier',
             'workflowRequirementHistories.changedBy',
         ];
 
@@ -141,6 +144,7 @@ class ProjectWorkspaceDataService
             // Existing frontend compatibility.
             'canDesign' => $capabilities['canViewProjectDesign'],
             'workflow' => $this->workflowStepper->evaluate($dossier),
+            'cahier' => $this->cahierPayload($dossier),
             'documents' => $documents->values(),
             'explorerDocuments' => $explorerDocuments->values(),
             'explorerContext' => [
@@ -296,6 +300,21 @@ class ProjectWorkspaceDataService
             });
     }
 
+    private function cahierPayload(Dossier $dossier): ?array
+    {
+        $cahier = $dossier->cahier;
+
+        if (! $cahier) {
+            return null;
+        }
+
+        return [
+            'number' => (string) $cahier->cahier_number,
+            'receivedAt' => optional($cahier->received_at)->format('Y-m-d'),
+            'deliveredAt' => optional($cahier->delivered_at)->format('Y-m-d'),
+        ];
+    }
+
     /**
      * Explorer payload for the Project Documents tab — delegated to
      * ProjectDocumentExplorerService, the single aggregator that combines
@@ -343,6 +362,9 @@ class ProjectWorkspaceDataService
         $documents = $dossier->financeDocuments
             ->sortByDesc(fn (FinanceDocument $document) => $document->issue_date ?? $document->created_at)
             ->values();
+        $receivableByDocument = $documents
+            ->filter(fn (FinanceDocument $document) => $document->isInvoice())
+            ->mapWithKeys(fn (FinanceDocument $document) => [$document->id => $this->receivables->forInvoice($document)]);
 
         $documentPayload = $documents->map(fn (FinanceDocument $document) => [
             'id' => $document->id,
@@ -354,8 +376,9 @@ class ProjectWorkspaceDataService
             'validUntil' => optional($document->valid_until)->format('Y-m-d'),
             'currency' => $document->currency ?: 'MAD',
             'totalTtc' => (float) $document->total_ttc,
-            'paidTotal' => (float) $document->paid_total,
-            'remainingTotal' => (float) $document->remaining_total,
+            'paidTotal' => (float) ($receivableByDocument[$document->id]['paid'] ?? $document->paid_total),
+            'remainingTotal' => (float) ($receivableByDocument[$document->id]['outstanding'] ?? $document->remaining_total),
+            'receivable' => $receivableByDocument[$document->id] ?? null,
             'acceptedAt' => optional($document->accepted_at)->toIso8601String(),
             'issuedAt' => optional($document->issued_at)->toIso8601String(),
             'generatedAt' => optional($document->generated_at)->toIso8601String(),
@@ -399,6 +422,12 @@ class ProjectWorkspaceDataService
             'remaining' => $document['remainingTotal'],
         ]);
 
+        $invoiceReceivables = $activeInvoices->map(fn (FinanceDocument $document) => $receivableByDocument[$document->id]);
+        $nextDue = $activeInvoices
+            ->filter(fn (FinanceDocument $document) => ($receivableByDocument[$document->id]['outstanding'] ?? 0) > 0 && $document->due_date)
+            ->sortBy('due_date')
+            ->first();
+
         return [
             'documents' => $documentPayload,
             'payments' => $paymentPayload,
@@ -411,8 +440,15 @@ class ProjectWorkspaceDataService
                 'quotesCount' => $documents->where('type', 'quote')->count(),
                 'activeInvoicesCount' => $activeInvoices->count(),
                 'totalTtc' => (float) $activeInvoices->sum('total_ttc'),
-                'paidTotal' => (float) $activeInvoices->sum('paid_total'),
-                'remainingTotal' => (float) $activeInvoices->sum('remaining_total'),
+                'paidTotal' => (float) $invoiceReceivables->sum('paid'),
+                'remainingTotal' => (float) $invoiceReceivables->sum('outstanding'),
+                'collectionProgress' => (float) $activeInvoices->sum('total_ttc') > 0
+                    ? round(((float) $invoiceReceivables->sum('paid') / (float) $activeInvoices->sum('total_ttc')) * 100, 2)
+                    : 0,
+                'nextDue' => $nextDue ? [
+                    'date' => $nextDue->due_date->toDateString(),
+                    'amount' => (float) $receivableByDocument[$nextDue->id]['outstanding'],
+                ] : null,
                 'unappliedAdvancesTotal' => (float) $payments
                     ->filter(function ($payment): bool {
                         $kind = $payment->payment_kind instanceof PaymentKind

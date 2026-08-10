@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CalendarDate } from '@internationalized/date';
+import { type CalendarDate } from '@internationalized/date';
 import { Calendar, CalendarYearPicker, Button, Popover } from '@heroui/react';
 import { IconCalendar, IconX } from '@tabler/icons-react';
 
@@ -14,6 +14,7 @@ type DateFieldProps = {
     placeholder?: string;
     error?: string;
     isDisabled?: boolean;
+    minValue?: CalendarDate;
 };
 
 export function DateField({
@@ -23,6 +24,7 @@ export function DateField({
     placeholder = 'Choisir une date',
     error,
     isDisabled = false,
+    minValue,
 }: DateFieldProps) {
     const calDate = toCalendarDate(value);
     const [isOpen, setIsOpen] = useState(false);
@@ -87,6 +89,7 @@ export function DateField({
                 <Popover.Content className="w-auto min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0 shadow-lg">
                     <Calendar.Root
                         value={calDate ?? undefined}
+                        minValue={minValue}
                         onChange={(cd: CalendarDate) => { onChange(fromCalendarDate(cd)); setIsOpen(false); }}
                         className="[&_[data-slot=calendar-header]]:px-3 [&_[data-slot=calendar-header]]:pt-3"
                     >

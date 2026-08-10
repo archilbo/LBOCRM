@@ -5,17 +5,18 @@ namespace App\Services\Dossiers;
 use App\Models\Dossier;
 use App\Models\DossierWorkflowRequirement;
 use App\Models\DossierWorkflowRequirementHistory;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class DossierWorkflowRequirementService
 {
-    public function update(Dossier $dossier, array $data): DossierWorkflowRequirement
+    public function update(Dossier $dossier, array $data, ?User $actor = null): DossierWorkflowRequirement
     {
         $this->assertRequirementExists((string) $data['step_key'], (string) $data['requirement_key']);
 
-        return DB::transaction(function () use ($dossier, $data) {
+        return DB::transaction(function () use ($dossier, $data, $actor) {
             $keys = [
                 'dossier_id' => $dossier->id,
                 'step_key' => $data['step_key'],
@@ -27,13 +28,14 @@ class DossierWorkflowRequirementService
             $oldNotes = $existing?->notes;
             $newDone = (bool) $data['is_done'];
             $newNotes = $data['notes'] ?? $oldNotes;
+            $actorId = $actor?->id ?? Auth::id();
 
             $requirement = DossierWorkflowRequirement::updateOrCreate(
                 $keys,
                 [
                     'is_done' => $newDone,
-                    'checked_at' => $newDone ? now() : null,
-                    'checked_by' => $newDone ? Auth::id() : null,
+                    'checked_at' => $newDone ? ($existing?->checked_at ?? now()) : null,
+                    'checked_by' => $newDone ? ($existing?->checked_by ?? $actorId) : null,
                     'notes' => $newNotes,
                 ],
             );
@@ -47,7 +49,7 @@ class DossierWorkflowRequirementService
                 'new_is_done' => $newDone,
                 'old_notes' => $oldNotes,
                 'new_notes' => $newNotes,
-                'changed_by' => Auth::id(),
+                'changed_by' => $actorId,
                 'changed_at' => now(),
             ]);
 

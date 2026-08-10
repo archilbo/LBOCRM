@@ -1,6 +1,7 @@
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
-import { Button } from '@heroui/react';
+import { ButtonGroup } from '@heroui/react';
 
+import { AppButton } from '@/components/ui/AppButton';
 import { useTranslation } from '@/lib/i18n';
 
 type Props = {
@@ -28,59 +29,59 @@ export function CalendarToolbar({ currentDate, viewMode, onViewModeChange, onPre
     }).format(currentDate);
 
     return (
-        <div className="flex h-[54px] items-center justify-between border-b border-white/8 px-4">
-            <div className="flex items-center gap-2">
-                <Button
+        <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2 sm:px-4">
+            <div className="flex items-center gap-1.5">
+                <AppButton
                     type="button"
-                    variant="outline"
-                    size="sm"
+                    variant="toolbar"
+                    compact
                     onPress={onToday}
-                    className="h-7 min-h-7 rounded-lg border-white/8 px-3 text-[10px] font-semibold text-white/70 transition hover:bg-white/5 hover:text-white">
+                    className="px-3 text-[11px]">
                     {t('calendar.today')}
-                </Button>
-                <div className="flex items-center">
-                    <Button
+                </AppButton>
+                <ButtonGroup variant="outline" className="gap-0">
+                    <AppButton
                         type="button"
                         isIconOnly
-                        size="sm"
-                        variant="outline"
+                        compact
+                        variant="toolbar"
                         onPress={onPrev}
                         aria-label={t('calendar.previous')}
-                        className="size-7 min-w-7 rounded-l-lg rounded-r-none border-white/8 p-0 text-white/40 transition hover:bg-white/5 hover:text-white">
+                        className="rounded-l-lg rounded-r-none">
                         <IconChevronLeft size={14} />
-                    </Button>
-                    <Button
+                    </AppButton>
+                    <AppButton
                         type="button"
                         isIconOnly
-                        size="sm"
-                        variant="outline"
+                        compact
+                        variant="toolbar"
                         onPress={onNext}
                         aria-label={t('calendar.next')}
-                        className="-ml-px size-7 min-w-7 rounded-l-none rounded-r-lg border-white/8 p-0 text-white/40 transition hover:bg-white/5 hover:text-white">
+                        className="-ml-px rounded-l-none rounded-r-lg">
                         <IconChevronRight size={14} />
-                    </Button>
-                </div>
+                    </AppButton>
+                </ButtonGroup>
             </div>
 
-            <h2 className="text-sm font-semibold">{title}</h2>
+            <h2 className="order-3 w-full truncate px-1 text-center text-sm font-semibold text-[var(--foreground)] sm:order-none sm:w-auto sm:px-0">{title}</h2>
 
-            <div className="flex rounded-lg border border-white/8 p-0.5">
+            <ButtonGroup variant="ghost" className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5">
                 {VIEWS.map((v) => (
-                    <Button
+                    <AppButton
                         key={v.key}
                         type="button"
-                        variant="ghost"
-                        size="sm"
+                        variant={viewMode === v.key ? 'accent' : 'quiet'}
+                        compact
                         onPress={() => onViewModeChange(v.key)}
-                        className={`h-7 min-h-7 rounded-md px-3 text-[10px] font-semibold transition ${
+                        className={`rounded-md px-2.5 text-[11px] transition sm:px-3 ${
                             viewMode === v.key
-                                ? 'bg-[var(--crm-gold)] text-black hover:brightness-110'
-                                : 'text-white/50 hover:text-white'
+                                ? 'text-[var(--accent-foreground)]'
+                                : ''
                         }`}>
                         {t(v.tKey)}
-                    </Button>
+                    </AppButton>
                 ))}
-            </div>
+            </ButtonGroup>
         </div>
     );
 }
