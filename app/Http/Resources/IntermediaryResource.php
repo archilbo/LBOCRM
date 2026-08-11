@@ -18,7 +18,7 @@ class IntermediaryResource extends JsonResource
             'email' => $this->email,
             'notes' => $this->notes,
             'isActive' => (bool) $this->is_active,
-            'clientsCount' => $this->clients_count ?? $this->clients()->count(),
+            'projectsCount' => $this->dossiers_count ?? $this->dossiers()->count(),
             'createdAt' => optional($this->created_at)->format('Y-m-d'),
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
             'capabilities' => [

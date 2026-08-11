@@ -22,6 +22,8 @@ export type ContractRow = {
     ht: number;
     tva: number;
     ttc: number;
+    financeTtc: number;
+    customFinanceTtc: number | null;
 
     generatedDocumentPath: string | null;
     pdfPath: string | null;
@@ -74,5 +76,6 @@ export type ContractFormPayload = {
     architect_fee_option_id: string;
     fee_rate_percent: string;
     forfait_ttc: string;
+    finance_ttc: string;
     notes: string;
 };

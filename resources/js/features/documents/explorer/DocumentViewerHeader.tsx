@@ -13,6 +13,7 @@ import { DocumentStatusChip } from './DocumentCard';
 import { DocumentFileIcon } from './DocumentFileIcon';
 import { fileTypeLabelKey } from './documentExplorerFormatters';
 import type { DocumentExplorerItem, ExplorerDocument } from './documentExplorerTypes';
+import { DOCUMENT_VIEWER_TOOLBAR_HOST_ID } from './viewers/viewerTypes';
 
 type DocumentViewerHeaderProps = {
     /** Resolved document; null renders the invalid-state header. */
@@ -55,9 +56,10 @@ export function DocumentViewerHeader({
         : t('documentsExplorer.viewer.details');
 
     return (
-        <div className="flex shrink-0 items-center gap-2 border-b border-[var(--border)] px-3 py-2">
-            {document ? (
-                <>
+        <div className="grid shrink-0 grid-cols-[minmax(180px,1fr)_auto_minmax(180px,1fr)] items-center gap-2 overflow-x-auto border-b border-[var(--border)] px-3 py-2">
+            <div className="flex min-w-0 items-center gap-2">
+                {document ? (
+                    <>
                     <DocumentFileIcon
                         kind={document.previewKind}
                         extension={document.extension}
@@ -75,14 +77,17 @@ export function DocumentViewerHeader({
                         </p>
                     </div>
                     <DocumentStatusChip status={document.status} />
-                </>
-            ) : (
-                <p className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[var(--foreground)]">
-                    {t('documentsExplorer.viewer.title')}
-                </p>
-            )}
+                    </>
+                ) : (
+                    <p className="min-w-0 truncate text-[12px] font-semibold text-[var(--foreground)]">
+                        {t('documentsExplorer.viewer.title')}
+                    </p>
+                )}
+            </div>
 
-            <div className="flex shrink-0 items-center gap-1">
+            <div id={DOCUMENT_VIEWER_TOOLBAR_HOST_ID} className="flex min-w-max items-center justify-self-center" />
+
+            <div className="flex min-w-max items-center justify-self-end gap-1">
                 {document ? (
                     <>
                         {document.capabilities.canDownload ? (

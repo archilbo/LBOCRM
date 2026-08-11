@@ -37,6 +37,8 @@ class DossierResource extends JsonResource
             'clientNumber' => $this->client?->client_number ?? '-',
             'clientCin' => $this->client?->cin ?? '-',
             'clientPhone' => $this->client?->phone ?? '-',
+            'intermediaryId' => $this->intermediary_id ? (string) $this->intermediary_id : '',
+            'intermediaryName' => $this->intermediary?->name ?? null,
             'cityId' => $this->city_id ? (string) $this->city_id : '',
             'dossierNumber' => $this->dossier_number,
             'sequenceNumber' => $this->sequence_number,

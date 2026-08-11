@@ -284,6 +284,8 @@ return [
         'intermediaries.store' => 'intermediaries.create',
         'intermediaries.update' => 'intermediaries.update',
         'intermediaries.destroy' => 'intermediaries.delete',
+        'intermediaries.finance.payments.store' => 'finance.payments.create',
+        'intermediaries.finance.payments.destroy' => 'finance.payments.reverse',
         'dossiers.index' => 'dossiers.view',
         'dossiers.show' => 'dossiers.view',
         'dossiers.store' => 'dossiers.create',

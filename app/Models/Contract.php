@@ -28,6 +28,7 @@ class Contract extends Model
         'ht',
         'tva',
         'ttc',
+        'finance_ttc',
         'generated_document_path',
         'pdf_path',
         'generated_at',
@@ -45,6 +46,7 @@ class Contract extends Model
         'ht' => 'decimal:2',
         'tva' => 'decimal:2',
         'ttc' => 'decimal:2',
+        'finance_ttc' => 'decimal:2',
         'generated_at' => 'datetime',
         'signed_at' => 'datetime',
     ];
@@ -57,5 +59,10 @@ class Contract extends Model
     public function architectFeeOption(): BelongsTo
     {
         return $this->belongsTo(ArchitectFeeOption::class);
+    }
+
+    public function effectiveFinanceTtc(): float
+    {
+        return (float) ($this->finance_ttc ?? $this->ttc);
     }
 }

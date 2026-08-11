@@ -10,7 +10,7 @@ class OfficeDocumentConverter
 
     public function __construct()
     {
-        $envPath = env('LIBREOFFICE_PATH');
+        $envPath = config('services.libreoffice.path');
 
         if ($envPath && file_exists($envPath)) {
             $this->libreOfficePath = $envPath;

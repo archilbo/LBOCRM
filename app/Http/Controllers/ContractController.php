@@ -80,10 +80,15 @@ class ContractController extends Controller
     {
         $this->authorize('update', $contract);
         $hadGeneratedFiles = $contract->generated_document_path || $contract->pdf_path;
+        $data = $this->prepareContractData($request->validated(), false, $contract);
 
-        $contract->update($this->prepareContractData($request->validated(), false, $contract));
+        $contract->fill($data);
+        $hasContractContentChanges = $contract->isDirty(array_keys(array_diff_key($data, ['finance_ttc' => true])));
+        $contract->save();
 
-        $this->invalidateGeneratedFiles($contract, $hadGeneratedFiles);
+        if ($hasContractContentChanges) {
+            $this->invalidateGeneratedFiles($contract, $hadGeneratedFiles);
+        }
 
         $request->user()->notify(new ContractNotification($contract->fresh(), 'updated', 'Contract updated: ' . $contract->contract_number));
 
@@ -94,7 +99,7 @@ class ContractController extends Controller
         return redirect()
             ->route('contracts.index')
             ->with('success', 'Contrat mis a jour avec succes.')
-            ->with('warning', $hadGeneratedFiles ? 'Les documents generes ont ete marques comme a regenerer.' : null);
+            ->with('warning', $hasContractContentChanges && $hadGeneratedFiles ? 'Les documents generes ont ete marques comme a regenerer.' : null);
     }
 
     public function destroy(Request $request, Contract $contract): RedirectResponse
@@ -480,6 +485,11 @@ class ContractController extends Controller
             'ht' => $ht,
             'tva' => $tva,
             'ttc' => $ttc,
+            'finance_ttc' => array_key_exists('finance_ttc', $data)
+                ? (filled($data['finance_ttc'])
+                    ? DecimalMoney::fromCents(DecimalMoney::parse($data['finance_ttc']))
+                    : null)
+                : $existing?->finance_ttc,
             'notes' => $data['notes'] ?? null,
         ];
     }

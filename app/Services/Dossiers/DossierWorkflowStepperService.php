@@ -12,9 +12,9 @@ class DossierWorkflowStepperService
 {
     public function evaluate(Dossier $dossier): array
     {
-        $dossier->loadMissing(['documents.template', 'contract', 'cahier', 'workflowRequirements.checkedBy']);
+        $dossier->loadMissing(['client', 'documents.template', 'contract', 'cahier', 'workflowRequirements.checkedBy']);
 
-        $steps = collect(config('archilbo_workflow.client_project_steps', []))
+        $steps = collect($this->stepsForClient($dossier))
             ->map(fn (array $step, int $index) => $this->evaluateStep($dossier, $step, $index))
             ->values();
 
@@ -114,6 +114,10 @@ class DossierWorkflowStepperService
             'documents.plan_cadastral',
             'documents.calcul_contenance',
             'documents.plan_parcellaire',
+            'documents.statut',
+            'documents.rce',
+            'documents.desistement',
+            'documents.procuration',
             'rokhas.rokhas_upload',
             'rokhas.fiche_energetique',
             'bureau_etude.contract_bureau_etude',
@@ -122,6 +126,8 @@ class DossierWorkflowStepperService
             'bureau_etude.contrat_topographie',
             'bureau_etude.contrat_laboratoire',
             'bureau_etude.bureau_controle',
+            'bureau_etude.attestation_situation_reguliere',
+            'bureau_etude.topographe',
             'permis_habiter.demande_permis_habiter',
             'permis_habiter.site_images',
             'permis_habiter.recent_certificat_propriete' => false,
@@ -148,7 +154,7 @@ class DossierWorkflowStepperService
 
     private function archiveDocumentsVerified(Dossier $dossier): bool
     {
-        $allSteps = config('archilbo_workflow.client_project_steps', []);
+        $allSteps = $this->stepsForClient($dossier);
 
         foreach ($allSteps as $step) {
             if ($step['key'] === 'archive') {
@@ -163,6 +169,37 @@ class DossierWorkflowStepperService
         }
 
         return true;
+    }
+
+    /**
+     * Existing records created before client_type are personal clients.
+     */
+    private function stepsForClient(Dossier $dossier): array
+    {
+        $clientType = $dossier->client?->client_type === 'company'
+            ? 'company'
+            : 'person';
+
+        return collect(config('archilbo_workflow.client_project_steps', []))
+            ->map(function (array $step) use ($clientType): array {
+                $step['requirements'] = collect($step['requirements'] ?? [])
+                    ->filter(function (array $requirement) use ($clientType): bool {
+                        $allowedTypes = $requirement['client_types'] ?? null;
+
+                        return ! is_array($allowedTypes)
+                            || in_array($clientType, $allowedTypes, true);
+                    })
+                    ->map(function (array $requirement): array {
+                        unset($requirement['client_types']);
+
+                        return $requirement;
+                    })
+                    ->values()
+                    ->all();
+
+                return $step;
+            })
+            ->all();
     }
 
     private function hasCompleteCin(
@@ -316,6 +353,10 @@ class DossierWorkflowStepperService
             'documents.plan_cadastral' => $this->hasDocument($dossier, ['plan cadastral']),
             'documents.calcul_contenance' => $this->hasDocument($dossier, ['calcul contenance', 'contenance']),
             'documents.plan_parcellaire' => $this->hasDocument($dossier, ['plan parcellaire']),
+            'documents.statut' => $this->hasDocument($dossier, ['statut', 'statuts']),
+            'documents.rce' => $this->hasDocument($dossier, ['rce', 'registre commerce', 'registre du commerce']),
+            'documents.desistement' => $this->hasDocument($dossier, ['desistement']),
+            'documents.procuration' => $this->hasDocument($dossier, ['procuration']),
             'rokhas.rokhas_upload' => $this->hasDocument($dossier, ['rokhas', 'depot dossier', 'recepisse depot']),
             'rokhas.fiche_energetique' => $this->hasDocument($dossier, ['fiche energetique', 'efficacite energetique', 'efficacite energetic']),
             'bureau_etude.contract_bureau_etude' => $this->hasDocument($dossier, ['contrat bureau etude', 'contract bureau etude']),
@@ -324,6 +365,8 @@ class DossierWorkflowStepperService
             'bureau_etude.contrat_topographie' => $this->hasDocument($dossier, ['contrat topographie', 'topographie', 'topographe']),
             'bureau_etude.contrat_laboratoire' => $this->hasDocument($dossier, ['contrat laboratoire', 'laboratoire']),
             'bureau_etude.bureau_controle' => $this->hasDocument($dossier, ['bureau de controle', 'controle technique']),
+            'bureau_etude.attestation_situation_reguliere' => $this->hasDocument($dossier, ['attestation situation reguliere']),
+            'bureau_etude.topographe' => $this->hasDocument($dossier, ['topographe']),
             'permis_habiter.demande_permis_habiter' => $this->hasDocument($dossier, ['demande permis habiter', 'permis d habiter', 'permis habiter']),
             'permis_habiter.site_images' => $this->hasDocument($dossier, ['image site', 'photo site', 'photos site', 'location']),
             'permis_habiter.recent_certificat_propriete' => $this->hasDocument($dossier, ['certificat propriete recent', 'certificat de propriete recent']),

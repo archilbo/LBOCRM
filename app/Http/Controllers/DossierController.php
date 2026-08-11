@@ -9,12 +9,14 @@ use App\Models\AuditLog;
 use App\Models\City;
 use App\Models\Client;
 use App\Models\Dossier;
+use App\Models\Intermediary;
 use App\Models\User;
 use App\Services\CompanyContext;
 use App\Services\Dossiers\DossierLocationGroupingService;
 use App\Services\Dossiers\DossierNumberService;
 use App\Services\Dossiers\ProjectWorkspaceDataService;
 use App\Services\PermissionRegistry;
+use App\Services\Recovery\RecoveryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +41,7 @@ class DossierController extends Controller
         $canViewArchive = $permissions->allows($user, 'archive.view');
 
         $query = $companyContext->applyTo(Dossier::query(), $user)
-            ->with(['client', 'city']);
+            ->with(['client', 'city', 'intermediary']);
 
         if ($canViewDocuments) {
             $query->withCount('documents');
@@ -94,6 +96,9 @@ class DossierController extends Controller
                     ->where('is_active', true)
                     ->orderBy('name')
                     ->get(['id', 'name', 'code', 'color'])
+                : [],
+            'intermediaries' => $canMutateProjects
+                ? $this->intermediaryOptions($user, $companyContext)
                 : [],
             'monthlyProjects' => $monthlyProjects,
             'metrics' => [
@@ -205,6 +210,7 @@ class DossierController extends Controller
 
         $original = $dossier->only([
             'client_id',
+            'intermediary_id',
             'city_id',
             'project_object',
             'status',
@@ -240,7 +246,7 @@ class DossierController extends Controller
         );
     }
 
-    public function destroy(Request $request, Dossier $dossier): RedirectResponse
+    public function destroy(Request $request, Dossier $dossier, RecoveryService $recovery): RedirectResponse
     {
         $this->authorize('delete', $dossier);
 
@@ -260,7 +266,10 @@ class DossierController extends Controller
             'created_at' => now(),
         ]);
 
-        $dossier->delete();
+        DB::transaction(function () use ($dossier, $request, $recovery): void {
+            $recovery->moveToTrash($dossier, $request->user());
+            $dossier->delete();
+        });
 
         return redirect()
             ->route('dossiers.index')
@@ -295,6 +304,20 @@ class DossierController extends Controller
                 'id' => (string) $client->id,
                 'label' => $client->cin.' - '.$client->full_name,
                 'cin' => $client->cin,
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function intermediaryOptions(User $user, CompanyContext $companyContext): array
+    {
+        return $companyContext->applyTo(Intermediary::query(), $user)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Intermediary $intermediary) => [
+                'id' => (string) $intermediary->id,
+                'label' => $intermediary->name,
             ])
             ->values()
             ->all();

@@ -106,18 +106,21 @@ class ChatService
 
             $message->load(['user', 'attachments', 'replyTo.user', 'forwardedFrom.user', 'reads']);
 
-            try { broadcast(new MessageCreated($message)); } catch (\Throwable $e) { Log::debug('Broadcast failed: ' . $e->getMessage()); }
+            DB::afterCommit(function () use ($message, $conversation, $user): void {
+                try { broadcast(new MessageCreated($message)); } catch (\Throwable $e) { Log::debug('Broadcast failed: '.$e->getMessage()); }
 
-            $conversation->load(['participants.user']);
-            $this->loadLatestMessagePreviews(collect([$conversation]));
-            $convResource = (new ConversationResource($conversation))->resolve();
-            $conversation->participants()
-                ->where('user_id', '!=', $user->id)
-                ->each(fn (ConversationParticipant $p) => $this->broadcastInboxSafely($p->user_id, [
-                    'eventType' => 'message_created',
-                    'conversation' => $convResource,
-                    'unreadCount' => $this->unreadCount($p->user),
-                ]));
+                $conversation->load(['participants.user']);
+                $this->loadLatestMessagePreviews(collect([$conversation]));
+                $convResource = (new ConversationResource($conversation))->resolve();
+                $conversation->participants()
+                    ->where('user_id', '!=', $user->id)
+                    ->each(fn (ConversationParticipant $p) => $this->broadcastInboxSafely($p->user_id, [
+                        'eventType' => 'message_created',
+                        'conversation' => $convResource,
+                        'unreadCount' => $this->unreadCount($p->user),
+                    ]));
+                $this->sendMessageAfterCommit($conversation, $user, $message);
+            });
 
             return $message;
         });

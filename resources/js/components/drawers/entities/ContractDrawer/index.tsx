@@ -32,6 +32,7 @@ const emptyForm: ContractFormPayload = {
     architect_fee_option_id: '',
     fee_rate_percent: '0.5',
     forfait_ttc: '',
+    finance_ttc: '',
     notes: '',
 };
 
@@ -61,7 +62,7 @@ const createSteps = [
 
 const fieldToStep: Record<string, number> = {
     dossier_id: 0, status: 0, client_id: 0,
-    surface: 1, price_per_square_meter: 1, fee_rate_percent: 1, forfait_ttc: 1, calculation_mode: 1,
+    surface: 1, price_per_square_meter: 1, fee_rate_percent: 1, forfait_ttc: 1, finance_ttc: 1, calculation_mode: 1,
     architect_fee_option_id: 1,
 };
 
@@ -260,6 +261,17 @@ function CalculationSection({
                 </>
             )}
             <CalculationSummary estimation={!isForfait ? estimation : undefined} ht={ht} tva={tva} ttc={ttc} />
+            <div className={drawerStyles.fieldGroup}>
+                <label className={drawerStyles.label}>Montant TTC pour la finance (facultatif)</label>
+                <Input type="text" inputMode="decimal" value={form.finance_ttc}
+                    onChange={(e) => updateField('finance_ttc', e.target.value)}
+                    aria-invalid={firstError(errors, 'finance_ttc') ? true : undefined}
+                    className={drawerStyles.input}
+                    placeholder="Utiliser le TTC du contrat" />
+                <p className="text-[9px] text-[var(--text-muted)]">
+                    Laissez vide pour utiliser le TTC du contrat ({formatCompactMoney(ttc)}). Ce montant n&apos;apparaît pas dans le contrat.
+                </p>
+            </div>
         </>
     );
 }
@@ -288,6 +300,10 @@ function ReviewStep({ form, dossiers, isForfait, estimation, ht, tva, ttc, updat
                 { label: 'Surface', value: form.surface ? `${form.surface} m²` : '-' },
                 { label: 'Prix / m²', value: form.price_per_square_meter ? formatCompactMoney(Number(form.price_per_square_meter)) : '-' },
             ]
+        ),
+        ...(form.finance_ttc
+            ? [{ label: 'TTC pour la finance', value: formatCompactMoney(parseAmount(form.finance_ttc)) }]
+            : [{ label: 'TTC pour la finance', value: 'TTC du contrat' }]
         ),
     ];
     return (
@@ -456,6 +472,7 @@ export function ContractDrawer({
                 architect_fee_option_id: contract.architectFeeOptionId ?? '',
                 fee_rate_percent: contract.feeRatePercent != null ? String(contract.feeRatePercent) : '',
                 forfait_ttc: contract.forfaitTtc != null ? String(contract.forfaitTtc) : '',
+                finance_ttc: contract.customFinanceTtc != null ? String(contract.customFinanceTtc) : '',
                 notes: contract.notes || '',
             });
             return;

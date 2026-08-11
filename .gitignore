@@ -1,8 +1,8 @@
 *.log
 .DS_Store
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
 .phpactor.json
 .phpunit.result.cache
 /.codex
@@ -26,10 +26,12 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
-/docs
 tessdata/
 
 /.repair-backups
+/backups
+/_diagnostics
 
 /storage/tus
 *.bak*
+/deployment

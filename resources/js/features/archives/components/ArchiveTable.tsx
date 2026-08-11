@@ -120,7 +120,12 @@ export function ArchiveTable({
         {
             id: 'project',
             label: t('table.project'),
-            render: (record) => <span className="block max-w-[220px] truncate text-[var(--crm-text)]">{record.projectObject}</span>,
+            render: (record) => (
+                <div className="min-w-0 max-w-[220px]">
+                    <p className="truncate font-medium text-[var(--crm-text)]">{record.projectObject || '-'}</p>
+                    <p className="truncate text-[11px] text-[var(--crm-text-muted)]">{record.clientName || '-'}</p>
+                </div>
+            ),
         },
         {
             id: 'city',

@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\HasIntermediaryPayloadRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateDossierRequest extends FormRequest
 {
+    use HasIntermediaryPayloadRule;
+
     public function authorize(): bool
     {
         return true;
@@ -15,6 +18,7 @@ class UpdateDossierRequest extends FormRequest
     {
         return [
             'client_id' => ['required', 'integer', 'exists:clients,id'],
+            'intermediary_id' => $this->intermediaryPayloadRule(),
             'city_id' => ['sometimes', 'nullable', 'integer', 'exists:cities,id'],
             'project_object' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],

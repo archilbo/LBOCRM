@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import type { MessageAttachmentRow } from '@/features/chat/types';
 import { FileTypeIcon } from '@/features/inbox/components/FileTypeIcon';
-import { formatFileSize, getFileTypeAppearance, canPreviewFile, getAttachmentDisplayName } from '@/features/inbox/utils/fileFormatters';
+import { formatFileSize, getFileTypeAppearance, canPreviewFile, getAttachmentDisplayName, getAttachmentDownloadUrl } from '@/features/inbox/utils/fileFormatters';
 import { cn } from '@/lib/cn';
 
 type Props = {
@@ -21,8 +21,7 @@ export function FileMessageCard({ attachment, isMine, onPreview }: Props) {
 
     async function handleDownload(e: React.MouseEvent) {
         e.stopPropagation();
-        const url = attachment.downloadUrl || attachment.url;
-        if (!url) { toast.error('Fichier non disponible'); return; }
+        const url = getAttachmentDownloadUrl(attachment);
         setDownloading(true);
         try {
             const a = document.createElement('a');

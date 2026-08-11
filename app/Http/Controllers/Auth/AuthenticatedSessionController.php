@@ -27,6 +27,10 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        if ($request->requiresTwoFactorChallenge()) {
+            return redirect()->route('two-factor.challenge');
+        }
+
         return redirect()
             ->intended(route('dashboard'))
             ->with('success', 'Welcome back.');

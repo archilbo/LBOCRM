@@ -26,6 +26,7 @@ type PageProps = {
     dossiers: DossierRow[];
     locationGroups: { province: string; communes: { commune: string; stats: unknown; dossiers: unknown[] }[] }[];
     clients: { id: string; label: string }[];
+    intermediaries: { id: string; label: string }[];
     cities: City[];
     monthlyProjects: MonthlyCount[];
     metrics: { total: number; active: number; opened: number; closed: number; documentsTotal: number };
@@ -35,6 +36,7 @@ function toBackendPayload(payload: DossierFormPayload) {
     const current = payload as DossierFormPayload & { address?: string; projectAddress?: string; notes?: string };
     return {
         client_id: payload.clientId,
+        intermediary_id: payload.intermediaryId || null,
         city_id: payload.cityId,
         project_object: payload.projectObject,
         description: payload.description || null,
@@ -57,7 +59,7 @@ function formatNumber(value: number) {
 type SortField = 'projectObject' | 'clientName' | 'status' | 'documentsCount' | 'updatedAt';
 type SortDir = 'asc' | 'desc';
 
-export default function DossiersIndex({ dossiers, locationGroups, clients, cities, metrics }: PageProps) {
+export default function DossiersIndex({ dossiers, locationGroups, clients, intermediaries, cities, metrics }: PageProps) {
     const { can, canAny } = usePermissions();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -500,6 +502,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, citie
                             mode={drawerMode}
                             dossier={selectedDossier}
                             clients={clients}
+                            intermediaries={intermediaries}
                             cities={cities}
                             onOpenChange={setDrawerOpen}
                             onSubmit={handleSubmit}

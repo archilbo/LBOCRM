@@ -19,7 +19,9 @@ use App\Services\Clients\ClientWorkspaceService;
 use App\Services\CompanyContext;
 use App\Services\Finance\FinanceContextService;
 use App\Services\PermissionRegistry;
+use App\Services\Recovery\RecoveryService;
 use App\Services\Finance\FinanceSettingsService;
+use App\Services\Documents\WorkflowDocumentTemplateResolver;
 use App\Exceptions\CinScanException;
 use App\Services\Cin\CinScanner;
 use Illuminate\Http\JsonResponse;
@@ -62,6 +64,7 @@ class ClientController extends Controller
         ClientWorkspaceService $workspaceService,
         FinanceContextService $financeContext,
         CompanyContext $companyContext,
+        WorkflowDocumentTemplateResolver $workflowTemplateResolver,
     ): Response
     {
         $this->authorize('view', $client);
@@ -78,15 +81,12 @@ class ClientController extends Controller
             'workspace' => $workspaceService->forClient($client, $selectedDossierId, $request->user()),
             'documentTemplates' => DocumentTemplate::query()
                 ->where('is_active', true)
+                ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get()
-                ->map(fn (DocumentTemplate $template) => [
-                    'id' => (string) $template->id,
-                    'label' => $template->name,
-                    'code' => $template->code,
-                    'type' => $template->document_type,
-                ])
+                ->map(fn (DocumentTemplate $template) => $workflowTemplateResolver->option($template))
                 ->values(),
+            'workflowTemplateMap' => $workflowTemplateResolver->requirementTemplateMap(),
             'financeTemplates' => $canViewFinance && app(PermissionRegistry::class)->allows($request->user(), 'finance.templates.view')
                 ? $financeContext->apply(FinanceTemplate::query(), $request->user())
                 ->active()
@@ -203,18 +203,20 @@ class ClientController extends Controller
         return back()->with('success', 'Client status updated successfully.');
     }
 
-    public function destroy(Client $client): RedirectResponse
+    public function destroy(Request $request, Client $client, RecoveryService $recovery): RedirectResponse
     {
         $this->authorize('delete', $client);
-
-        $client->delete();
+        DB::transaction(function () use ($client, $request, $recovery): void {
+            $recovery->moveToTrash($client, $request->user());
+            $client->delete();
+        });
 
         return redirect()
             ->route('clients.index')
             ->with('success', 'Client deleted successfully.');
     }
 
-    public function bulkDestroy(Request $request, CompanyContext $companyContext): RedirectResponse
+    public function bulkDestroy(Request $request, CompanyContext $companyContext, RecoveryService $recovery): RedirectResponse
     {
         $data = $request->validate([
             'client_ids' => ['required', 'array', 'min:1', 'max:100'],
@@ -231,7 +233,12 @@ class ClientController extends Controller
             $this->authorize('delete', $client);
         }
 
-        DB::transaction(fn () => $clients->each->delete());
+        DB::transaction(function () use ($clients, $request, $recovery): void {
+            $clients->each(function (Client $client) use ($request, $recovery): void {
+                $recovery->moveToTrash($client, $request->user());
+                $client->delete();
+            });
+        });
 
         return redirect()
             ->route('clients.index')
@@ -268,6 +275,30 @@ class ClientController extends Controller
 
     private function prepareClientData(array $data): array
     {
+        $data['client_type'] = $data['client_type'] ?? 'person';
+        $data['status'] = $data['status'] ?? ClientStatus::Active->value;
+
+        if ($data['client_type'] === 'company') {
+            $data['company_name'] = trim((string) ($data['company_name'] ?? ''));
+            $data['full_name'] = $data['company_name'];
+            $data['ice'] = trim((string) ($data['ice'] ?? '')) ?: null;
+            $data['managers'] = collect($data['managers'] ?? [])
+                ->map(fn ($manager) => trim((string) $manager))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+            $data['civility'] = 'Company';
+            $data['first_name'] = null;
+            $data['last_name'] = null;
+            $data['cin'] = null;
+            $data['father_name'] = null;
+            $data['mother_name'] = null;
+            $data['cni_expiration_date'] = null;
+
+            return $data;
+        }
+
         $firstName = trim((string) ($data['first_name'] ?? ''));
         $lastName = trim((string) ($data['last_name'] ?? ''));
 
@@ -277,7 +308,9 @@ class ClientController extends Controller
             $data['full_name'] = 'Unnamed client';
         }
 
-        $data['status'] = $data['status'] ?? ClientStatus::Active->value;
+        $data['company_name'] = null;
+        $data['ice'] = null;
+        $data['managers'] = null;
 
         if (($data['intermediary_id'] ?? null) === '') {
             $data['intermediary_id'] = null;

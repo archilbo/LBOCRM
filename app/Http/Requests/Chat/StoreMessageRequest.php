@@ -18,6 +18,8 @@ class StoreMessageRequest extends FormRequest
             'body' => ['nullable', 'string', 'max:10000', 'required_without:files'],
             'files' => ['nullable', 'array', 'max:'.config('chat.max_attachments', 10), 'required_without:body'],
             'files.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx,csv,zip', 'max:'.config('chat.max_attachment_kilobytes', 15360)],
+            'images' => ['nullable', 'array', 'max:'.config('chat.max_attachments', 10)],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:'.config('chat.max_attachment_kilobytes', 15360)],
             'reply_to_message_id' => ['nullable', 'integer', 'exists:messages,id'],
             'client_message_id' => ['nullable', 'string', 'max:255'],
         ];

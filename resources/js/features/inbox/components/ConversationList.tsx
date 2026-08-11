@@ -1,9 +1,10 @@
-import { Avatar, Button, Dropdown, Input, ListBox, Select, Spinner } from '@heroui/react';
+import { Avatar, Button, Dropdown, ListBox, Select, Spinner } from '@heroui/react';
 import { IconArchive, IconBookmark, IconCheck, IconCircleDot, IconMessageCircle, IconMessage2, IconPlus, IconSearch, IconAdjustmentsHorizontal, IconUsers } from '@tabler/icons-react';
 
 import { useMemo, useState } from 'react';
 import type { ConversationRow } from '@/features/chat/types';
 import { InboxIconButton } from '@/features/inbox/components/InboxIconButton';
+import { AppSearchInput } from '@/components/ui/AppSearchInput';
 import type { RealtimeState } from '@/features/inbox/components/useRealtimeConnection';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -50,6 +51,10 @@ function isParticipantOnline(conversation: ConversationRow, currentUserId: numbe
         .some((participant) => participant?.user?.id !== currentUserId && onlineUserIds.has(Number(participant?.user?.id)));
 }
 
+function initials(name: string): string {
+    return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || '?';
+}
+
 function ConversationListItem({
     conversation,
     selectedConversationId,
@@ -74,19 +79,19 @@ function ConversationListItem({
     const isOnline = isParticipantOnline(conversation, currentUserId, onlineUserIds);
 
     return (
-        <div className={`group flex items-center gap-1 rounded-xl transition-colors ${isSelected ? 'bg-[color-mix(in_srgb,var(--accent)_11%,var(--surface-2))]' : 'hover:bg-[var(--surface-2)]'}`}>
+        <div className={`group flex items-center gap-1 rounded-xl border border-transparent transition-colors duration-150 ${isSelected ? 'border-[color-mix(in_srgb,var(--accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--accent)_13%,var(--surface-2))] shadow-[inset_2px_0_0_var(--accent)]' : 'hover:bg-[color-mix(in_srgb,var(--surface-2)_78%,var(--surface))]'}`}>
             <Button
                 variant="ghost"
                 onPress={() => onSelect(conversation)}
-                className="h-auto min-h-[62px] min-w-0 flex-1 justify-start gap-2.5 rounded-xl px-2.5 py-2 text-left"
+                className="h-auto min-h-[58px] min-w-0 flex-1 justify-start gap-2.5 rounded-xl px-2.5 py-2 text-left outline-none data-[hovered]:bg-transparent data-[pressed]:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] data-[focus-visible]:ring-1 data-[focus-visible]:ring-inset data-[focus-visible]:ring-[var(--focus-ring)]"
             >
-                <div className="relative shrink-0">
-                    <Avatar size="sm" name={isGroup ? undefined : name} className={`${avatarTone.bg} ${avatarTone.text}`}>
-                        {isGroup ? <IconUsers size={15} /> : getConversationInitials(conversation, currentUserId)}
+                <div className="relative shrink-0 transition-transform duration-150 group-hover:scale-[1.04]">
+                    <Avatar size="sm" name={isGroup ? undefined : name} className={`${avatarTone.bg} ${avatarTone.text} font-semibold`}>
+                        <Avatar.Fallback>{isGroup ? <IconUsers size={15} /> : getConversationInitials(conversation, currentUserId)}</Avatar.Fallback>
                     </Avatar>
                     {isOnline ? <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-[var(--surface)] bg-emerald-400" /> : null}
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 leading-tight">
                     <div className="flex items-center gap-2">
                         <p className={`min-w-0 flex-1 truncate text-[12px] ${conversation.unreadCount > 0 ? 'font-semibold text-[var(--foreground)]' : 'font-medium text-[var(--foreground)]'}`}>{name}</p>
                         {conversation.isPinned ? <IconBookmark size={11} className="shrink-0 fill-[var(--accent)] text-[var(--accent)]" aria-label={t('inbox.pinnedAria')} /> : null}
@@ -99,7 +104,7 @@ function ConversationListItem({
                     {isGroup && conversation.category ? <p className={`mt-0.5 truncate text-[8px] font-medium ${category.tone.text}`}>{getCategoryLabel(conversation.category, t)}</p> : null}
                 </div>
             </Button>
-            {onArchiveToggle ? <InboxIconButton label={conversation.archivedAt ? t('inbox.restoreAria') : t('inbox.archiveAria')} onPress={() => onArchiveToggle(conversation)} className="mr-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100">
+            {onArchiveToggle ? <InboxIconButton label={conversation.archivedAt ? t('inbox.restoreAria') : t('inbox.archiveAria')} onPress={() => onArchiveToggle(conversation)} className="pointer-events-none mr-1 size-6 min-w-6 rounded-full opacity-0 transition-all duration-150 group-hover:pointer-events-auto group-hover:opacity-100 data-[focus-visible]:pointer-events-auto data-[focus-visible]:opacity-100 data-[hovered]:bg-[var(--surface)] data-[hovered]:text-[var(--accent)]">
                 {conversation.archivedAt ? <IconArchive size={14} /> : <IconArchive size={14} />}
             </InboxIconButton> : null}
         </div>
@@ -177,7 +182,7 @@ export function ConversationList({
                     {onNewConversation ? <InboxIconButton label={t('inbox.newConversation')} tone="accent" onPress={onNewConversation} className="bg-[var(--accent-soft)]"><IconPlus size={17} /></InboxIconButton> : null}
                 </div>
                 <div className="mt-3 flex gap-1.5">
-                    <Input aria-label={t('inbox.searchConversationAria')} value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={t('inbox.searchPlaceholder')} size="sm" startContent={<IconSearch size={13} />} className="min-w-0 flex-1" classNames={{ inputWrapper: 'h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] shadow-none data-[focus-visible=true]:border-[var(--accent)]', input: 'text-[10px] text-[var(--foreground)] placeholder:text-[var(--text-muted)]' }} />
+                    <AppSearchInput ariaLabel={t('inbox.searchConversationAria')} value={search} onChange={onSearchChange} placeholder={t('inbox.searchPlaceholder')} className="min-w-0 flex-1" maxWidth="" />
                     <Dropdown>
                         <Dropdown.Trigger aria-label={t('inbox.filterConversationsAria')} className={`flex size-8 shrink-0 items-center justify-center rounded-lg border transition ${activeTab !== 'active' ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]'}`}><IconAdjustmentsHorizontal size={13} /></Dropdown.Trigger>
                         <Dropdown.Popover placement="bottom end" className="min-w-52 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">
@@ -187,7 +192,7 @@ export function ConversationList({
                         </Dropdown.Popover>
                     </Dropdown>
                 </div>
-                <div className="mt-2 flex items-center justify-between"><p className="flex items-center gap-1 text-[9px] text-[var(--text-muted)]"><ActiveFilterIcon size={10} />{t(activeFilter.labelKey)}</p>{onlinePeople.length > 0 ? <div className="flex -space-x-1.5">{onlinePeople.slice(0, 5).map((person) => <Avatar key={person.id} size="sm" name={person.name} className={`${getAvatarTone(person.id).bg} ${getAvatarTone(person.id).text} size-5 border border-[var(--surface)] text-[7px]`} />)}{onlinePeople.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{onlinePeople.length - 5}</span> : null}</div> : null}</div>
+                <div className="mt-2 flex items-center justify-between"><p className="flex items-center gap-1 text-[9px] text-[var(--text-muted)]"><ActiveFilterIcon size={10} />{t(activeFilter.labelKey)}</p>{onlinePeople.length > 0 ? <div className="flex -space-x-1.5">{onlinePeople.slice(0, 5).map((person) => <Avatar key={person.id} size="sm" name={person.name} className={`${getAvatarTone(person.id).bg} ${getAvatarTone(person.id).text} size-5 border border-[var(--surface)] text-[7px]`}><Avatar.Fallback>{initials(person.name)}</Avatar.Fallback></Avatar>)}{onlinePeople.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{onlinePeople.length - 5}</span> : null}</div> : null}</div>
             </header>
 
             {activeTab === 'groups' ? <div className="border-b border-[var(--border)] px-4 py-2"><Select selectedKey={categoryFilter} onSelectionChange={(key) => setCategoryFilter(String(key ?? ''))} aria-label={t('inbox.groupCategoryAria')}><Select.Trigger className="h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 text-xs text-[var(--foreground)]"><Select.Value className="flex-1 truncate text-left" placeholder={t('inbox.allCategories')} /><Select.Indicator /></Select.Trigger><Select.Popover isNonModal className="z-[120] min-w-[260px] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl"><ListBox aria-label={t('inbox.groupCategoryListAria')} className="gap-0"><ListBox.Item id="" textValue={t('inbox.allCategories')} className="rounded-lg px-3 py-2 text-xs">{t('inbox.allCategories')}</ListBox.Item>{CATEGORY_OPTIONS.filter((category) => category.id !== 'custom').map((category) => <ListBox.Item key={category.id} id={category.id} textValue={getCategoryLabel(category.id, t)} className="rounded-lg px-3 py-2 text-xs">{getCategoryLabel(category.id, t)}</ListBox.Item>)}</ListBox></Select.Popover></Select></div> : null}

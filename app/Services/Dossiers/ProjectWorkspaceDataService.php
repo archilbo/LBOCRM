@@ -13,6 +13,7 @@ use App\Models\DocumentTemplate;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
 use App\Models\FinanceDocument;
+use App\Models\Intermediary;
 use App\Models\Room;
 use App\Models\Shelf;
 use App\Models\User;
@@ -45,7 +46,8 @@ class ProjectWorkspaceDataService
         $capabilities = $this->capabilities($dossier, $user);
 
         $relations = [
-            'client.intermediary',
+            'client',
+            'intermediary',
             'city',
             'cahier',
             'workflowRequirementHistories.changedBy',
@@ -181,6 +183,9 @@ class ProjectWorkspaceDataService
                     ->where('is_active', true)
                     ->orderBy('name')
                     ->get(['id', 'name', 'code', 'color'])
+                : [],
+            'intermediaries' => $canMutateProject
+                ? $this->intermediaryOptions($user)
                 : [],
             'dossiers' => (
                 $capabilities['canViewDocuments']
@@ -348,6 +353,8 @@ class ProjectWorkspaceDataService
             'ht' => (float) $contract->ht,
             'tva' => (float) $contract->tva,
             'ttc' => (float) $contract->ttc,
+            'financeTtc' => $contract->effectiveFinanceTtc(),
+            'customFinanceTtc' => $contract->finance_ttc !== null ? (float) $contract->finance_ttc : null,
             'notes' => $contract->notes,
             'generatedAt' => optional($contract->generated_at)->format('Y-m-d'),
             'signedAt' => optional($contract->signed_at)->format('Y-m-d'),
@@ -533,6 +540,20 @@ class ProjectWorkspaceDataService
             ->map(fn (Client $client) => [
                 'id' => (string) $client->id,
                 'label' => $client->cin . ' - ' . $client->full_name,
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function intermediaryOptions(User $user): array
+    {
+        return $this->companyContext->applyTo(Intermediary::query(), $user)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Intermediary $intermediary) => [
+                'id' => (string) $intermediary->id,
+                'label' => $intermediary->name,
             ])
             ->values()
             ->all();

@@ -23,7 +23,7 @@ import { DocumentDrawer } from '@/components/drawers';
 import { ContractDrawer } from '@/components/drawers';
 import { FinanceDrawer } from '@/components/drawers';
 import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
-import type { DossierRow, ClientOption, City } from '@/features/dossiers/types';
+import type { DossierFormPayload, DossierRow, ClientOption, City } from '@/features/dossiers/types';
 import type { DossierOption, DocumentTemplateOption, DocumentUploadPayload } from '@/features/documents/types';
 import type { ArchitectFeeOption, ContractClientOption, ContractFormPayload, ContractRow } from '@/features/contracts/types';
 import type { FinanceDossierOption, FinanceFormPayload } from '@/features/finance/types';
@@ -40,7 +40,7 @@ type ContractSummary = {
     id: number; dossierId: string; contractNumber: string; status: string;
     surface: number; pricePerSquareMeter: number; feeRatePercent: number;
     calculationMode: string; forfaitTtc: number;
-    ht: number; tva: number; ttc: number;
+    ht: number; tva: number; ttc: number; financeTtc: number; customFinanceTtc: number | null;
     notes: string | null;
     generatedAt: string | null; signedAt: string | null; createdAt: string | null;
     hasGeneratedDoc: boolean; hasPdf: boolean;
@@ -70,6 +70,7 @@ type PageProps = {
     archiveRecord: ArchiveSummary;
     cahier: CahierSummary;
     clients: ClientOption[];
+    intermediaries: ClientOption[];
     cities: City[];
     dossiers: DossierOption[];
     templates: DocumentTemplateOption[];
@@ -139,6 +140,7 @@ function dossierStatusLabel(status: string, t: (key: string) => string) {
 export default function DossierShow({
     dossier, workflow, explorerDocuments, contract, financeRecords, archiveRecord, cahier,
     clients,
+    intermediaries,
     cities,
     dossiers: dossiersOptions,
     templates,
@@ -283,8 +285,23 @@ export default function DossierShow({
         [contractClients],
     );
 
-    function handleProjectSubmit(payload: Record<string, unknown>) {
-        router.put(`/dossiers/${dossier.id}`, payload, {
+    function handleProjectSubmit(payload: DossierFormPayload) {
+        router.put(`/dossiers/${dossier.id}`, {
+            client_id: payload.clientId,
+            intermediary_id: payload.intermediaryId || null,
+            city_id: payload.cityId || null,
+            project_object: payload.projectObject,
+            description: payload.description || null,
+            project_address: payload.projectAddress || null,
+            province: payload.province || null,
+            commune: payload.commune || null,
+            land_title_number: payload.landTitleNumber || null,
+            land_surface: payload.landSurface || null,
+            floor_area: payload.floorArea || null,
+            status: payload.status,
+            workflow_step: payload.workflowStep,
+            notes: payload.notes || null,
+        }, {
             preserveScroll: true,
             onSuccess: () => { setEditDrawerOpen(false); setFormErrors({}); toast.success(t('dossiers.show.toasts.projectUpdated')); },
             onError: (err) => { setFormErrors(err as FormErrors); toast.error(t('dossiers.show.toasts.projectUpdateFailed')); },
@@ -596,6 +613,7 @@ export default function DossierShow({
                     mode="edit"
                     dossier={dossier}
                     clients={clients}
+                    intermediaries={intermediaries}
                     cities={cities}
                     onOpenChange={setEditDrawerOpen}
                     onSubmit={handleProjectSubmit}

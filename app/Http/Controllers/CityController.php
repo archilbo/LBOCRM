@@ -8,6 +8,7 @@ use App\Services\Finance\FinanceSettingsService;
 use App\Services\PermissionRegistry;
 use App\Services\SystemSettingsService;
 use App\Services\Recovery\RecoveryWorkspaceService;
+use App\Services\Security\TwoFactorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -30,10 +31,12 @@ class CityController extends Controller
         $canViewSystemAppearance = $user && $this->permissions->allows($user, 'system.settings.view');
         $canUpdateSystemAppearance = $user && $this->permissions->allows($user, 'system.settings.update');
         $canUpdateBranding = $user && $this->permissions->allows($user, 'system.branding.update');
-        $canViewRecovery = $user && $this->permissions->allows($user, 'system.recovery.view');
+        $isSuperAdmin = $user && $user->hasRole(config('archilbo_roles.super_admin_role'));
+        $canViewRecovery = $isSuperAdmin && $this->permissions->allows($user, 'system.recovery.view');
+        $canManageAccountSecurity = (bool) $isSuperAdmin;
 
         abort_unless(
-            $user && ($canViewCities || $canViewFinance || $canViewSystemAppearance || $canViewRecovery),
+            $user && ($canViewCities || $canViewFinance || $canViewSystemAppearance || $canViewRecovery || $canManageAccountSecurity),
             403
         );
 
@@ -48,6 +51,14 @@ class CityController extends Controller
             'canViewFinanceSettings' => $canViewFinance,
             'canManageFinanceSettings' => $canManageFinance,
             'canViewSystemAppearance' => $canViewSystemAppearance,
+            'accountSecurity' => $canManageAccountSecurity ? [
+                'email' => $user->email,
+                'recoveryEmails' => $user->recoveryEmails()->orderBy('created_at')->get()->map(fn ($email) => ['id' => $email->id, 'email' => $email->email, 'verifiedAt' => $email->verified_at?->toIso8601String()])->all(),
+                'twoFactorEnabled' => $user->two_factor_confirmed_at !== null,
+                'twoFactorSetupKey' => $user->two_factor_secret && ! $user->two_factor_confirmed_at ? $user->two_factor_secret : null,
+                'twoFactorProvisioningUri' => $user->two_factor_secret && ! $user->two_factor_confirmed_at ? app(TwoFactorService::class)->provisioningUri($user, $user->two_factor_secret) : null,
+                'recoveryCodes' => $request->session()->pull('two_factor_recovery_codes', []),
+            ] : null,
             'financeSettings' => $canViewFinance ? [
                 'settings' => app(FinanceSettingsService::class)->allGrouped(),
                 'architectRates' => FinanceSettingsService::architectRates(),
@@ -107,12 +118,6 @@ class CityController extends Controller
     {
         $this->authorizeArchive($request, 'archive.update');
         $data = $request->validated();
-
-        if ($city->dossiers()->exists() && $data['code'] !== $city->code) {
-            return back()->withErrors([
-                'code' => 'Le code ne peut plus être modifié après la création de dossiers.',
-            ]);
-        }
 
         $city->update($data);
 

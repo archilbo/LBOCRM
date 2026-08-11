@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class ContractResource extends JsonResource
 {
@@ -35,6 +34,8 @@ class ContractResource extends JsonResource
             'ht' => (float) $this->ht,
             'tva' => (float) $this->tva,
             'ttc' => (float) $this->ttc,
+            'financeTtc' => $this->effectiveFinanceTtc(),
+            'customFinanceTtc' => $this->finance_ttc !== null ? (float) $this->finance_ttc : null,
 
             'generatedDocumentPath' => $this->generated_document_path,
             'pdfPath' => $this->pdf_path,
@@ -48,7 +49,9 @@ class ContractResource extends JsonResource
             'hasPdf' => $hasPdf,
             'generatedDocumentDownloadUrl' => $hasGeneratedDocument ? route('contracts.download.generated', $this->id) : null,
             'pdfDownloadUrl' => $hasPdf ? route('contracts.download.pdf', $this->id) : null,
-            'generatedDocumentPublicUrl' => $hasGeneratedDocument ? Storage::disk('public')->url($this->generated_document_path) : null,
+            // Kept for backwards-compatible clients. The value is now the
+            // policy-protected download route rather than a public storage URL.
+            'generatedDocumentPublicUrl' => $hasGeneratedDocument ? route('contracts.download.generated', $this->id) : null,
             'pdfPublicUrl' => $hasPdf ? route('contracts.preview.pdf', $this->id) : null,
         ];
     }

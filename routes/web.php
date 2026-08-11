@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\AdminUserInvitationController;
 use App\Http\Controllers\Admin\AdminUserPasswordResetController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Auth\AccountSecurityController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\Api\ClientController as ApiClientController;
 use App\Http\Controllers\BackendQaController;
 use App\Http\Controllers\CalendarController;
@@ -41,6 +43,10 @@ use Inertia\Inertia;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
+    Route::get('/forgot-password', fn () => Inertia::render('Auth/ForgotPassword'))->name('password.request');
+    Route::post('/forgot-password', [AccountSecurityController::class, 'forgot'])->name('password.email')->middleware('throttle:5,1');
+    Route::get('/two-factor-challenge', [TwoFactorChallengeController::class, 'create'])->name('two-factor.challenge');
+    Route::post('/two-factor-challenge', [TwoFactorChallengeController::class, 'store'])->name('two-factor.challenge.store')->middleware('throttle:10,1');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'create'])->name('password.reset')->middleware('throttle:10,1');
     Route::post('/reset-password', [PasswordResetController::class, 'store'])->name('password.update')->middleware('throttle:10,1');
 });
@@ -56,6 +62,12 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
 Route::middleware('auth')->group(function () {
+    Route::put('/settings/security/password', [AccountSecurityController::class, 'changePassword'])->name('settings.security.password.update')->middleware('throttle:5,1');
+    Route::post('/settings/security/recovery-emails', [AccountSecurityController::class, 'addRecoveryEmail'])->name('settings.security.recovery-emails.store')->middleware('throttle:5,1');
+    Route::delete('/settings/security/recovery-emails/{recoveryEmail}', [AccountSecurityController::class, 'removeRecoveryEmail'])->name('settings.security.recovery-emails.destroy')->middleware('throttle:5,1');
+    Route::post('/settings/security/two-factor', [AccountSecurityController::class, 'startTwoFactor'])->name('settings.security.two-factor.start')->middleware('throttle:5,1');
+    Route::post('/settings/security/two-factor/confirm', [AccountSecurityController::class, 'confirmTwoFactor'])->name('settings.security.two-factor.confirm')->middleware('throttle:10,1');
+    Route::delete('/settings/security/two-factor', [AccountSecurityController::class, 'disableTwoFactor'])->name('settings.security.two-factor.destroy')->middleware('throttle:5,1');
     Route::put('/finance/settings', [FinanceSettingsController::class, 'update'])->name('finance.settings.update')->middleware('permission.route');
     Route::post('/finance/settings/architect-fee-options', [\App\Http\Controllers\Finance\ArchitectFeeOptionController::class, 'store'])->name('finance.architect-fee-options.store')->middleware('permission.route');
     Route::put('/finance/settings/architect-fee-options/{architectFeeOption}', [\App\Http\Controllers\Finance\ArchitectFeeOptionController::class, 'update'])->name('finance.architect-fee-options.update')->middleware('permission.route');
@@ -87,6 +99,8 @@ Route::middleware('auth')->group(function () {
         'destroy',
     ])->middleware('permission.route');
     Route::post('/intermediaries/bulk-delete', [IntermediaryController::class, 'bulkDestroy'])->name('intermediaries.bulk.destroy')->middleware('permission.route');
+    Route::post('/intermediaries/{intermediary}/finance/payments', [\App\Http\Controllers\Finance\IntermediaryPaymentController::class, 'store'])->name('intermediaries.finance.payments.store')->middleware('permission.route');
+    Route::delete('/intermediaries/{intermediary}/finance/payments/{batch}', [\App\Http\Controllers\Finance\IntermediaryPaymentController::class, 'destroy'])->name('intermediaries.finance.payments.destroy')->middleware('permission.route');
 
     Route::resource('dossiers', DossierController::class)->only([
         'index',
@@ -392,3 +406,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/planning', [\App\Http\Controllers\PlanningController::class, 'index'])->name('planning.index')->middleware('permission.route');
 });
+
+Route::get('/settings/security/recovery-emails/{recoveryEmail}/verify/{token}', [AccountSecurityController::class, 'verifyRecoveryEmail'])
+    ->name('security.recovery-email.verify')->middleware('signed', 'throttle:10,1');

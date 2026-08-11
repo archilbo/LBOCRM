@@ -48,8 +48,23 @@ class LoginRequest extends FormRequest
             $this->rejectLogin();
         }
 
+        if ($user->two_factor_confirmed_at) {
+            $this->session()->put('login.two_factor_user_id', $user->id);
+            $this->session()->put('login.two_factor_remember', $remember);
+            Auth::logout();
+            RateLimiter::clear($this->throttleKey());
+            $this->session()->regenerate();
+
+            return;
+        }
+
         RateLimiter::clear($this->throttleKey());
         $this->session()->regenerate();
+    }
+
+    public function requiresTwoFactorChallenge(): bool
+    {
+        return $this->session()->has('login.two_factor_user_id');
     }
 
     public function ensureIsNotRateLimited(): void

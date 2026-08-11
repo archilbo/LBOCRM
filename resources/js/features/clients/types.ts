@@ -1,13 +1,18 @@
 export type ClientStatus = 'active' | 'inactive' | 'archived';
+export type ClientType = 'person' | 'company';
 
 export type ClientRow = {
     id: number;
     clientNumber: string;
+    clientType: ClientType;
     civility: string;
     firstName: string | null;
     lastName: string | null;
     fullName: string;
+    companyName: string | null;
     cin: string | null;
+    ice: string | null;
+    managers: string[];
     phone: string | null;
     email: string | null;
     address: string | null;
@@ -42,10 +47,14 @@ export type IntermediaryOption = {
 };
 
 export type ClientFormPayload = {
+    clientType: ClientType;
     civility: string;
     firstName: string;
     lastName: string;
+    companyName: string;
     cin: string;
+    ice: string;
+    managers: string[];
     phone: string;
     email: string;
     address: string;
@@ -158,6 +167,8 @@ export type ClientContractSummary = {
     calculationMode: string | null;
     forfaitTtc: number | null;
     ttc: number;
+    financeTtc: number;
+    customFinanceTtc: number | null;
     generatedAt: string | null;
     signedAt: string | null;
     createdAt: string | null;
@@ -179,6 +190,8 @@ export type ClientProjectContract = {
     feeRatePercent: number | null;
     forfaitTtc: number | null;
     ttc: number;
+    financeTtc: number;
+    customFinanceTtc: number | null;
     notes: string | null;
     createdAt: string | null;
     generatedAt: string | null;

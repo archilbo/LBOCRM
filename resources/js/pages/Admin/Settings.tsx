@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { IconBuilding, IconCircleCheck, IconCircleDot, IconCircleOff, IconMapPin, IconPalette, IconPencil, IconPlus, IconPower, IconRestore, IconSettings2, IconTrash, IconTrashX } from '@tabler/icons-react';
+import { IconBuilding, IconCircleCheck, IconCircleDot, IconCircleOff, IconKey, IconMail, IconMapPin, IconPalette, IconPencil, IconPlus, IconPower, IconRestore, IconSettings2, IconShieldLock, IconTrash, IconTrashX } from '@tabler/icons-react';
 
 import { Button, Chip, Input, Pagination, Switch, Table } from '@heroui/react';
 import { TabPanel } from 'react-aria-components';
@@ -13,6 +13,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { AppPageHeader } from '@/components/ui/AppPageHeader';
 import { AppWorkspaceTabs, type AppWorkspaceTab } from '@/components/ui/AppWorkspaceTabs';
 import { AppSearchInput } from '@/components/ui/AppSearchInput';
+import { AppTextField } from '@/components/ui/AppTextField';
 import { FinanceSettingsForm, type FinanceSettingsFormProps } from '@/features/finance/components/FinanceSettingsForm';
 import { SystemAppearancePanel, type SystemAppearancePermissions } from '@/components/settings/system-appearance-panel';
 import { DrawerSection, DrawerField, drawerStyles } from '@/components/drawers';
@@ -41,7 +42,10 @@ type PageProps = {
     branding?: PublicBrandingSettings | null;
     permissions?: SystemAppearancePermissions | null;
     recovery?: RecoveryWorkspace;
+    accountSecurity?: AccountSecurity;
 };
+
+type AccountSecurity = { email: string; recoveryEmails: Array<{ id: number; email: string; verifiedAt: string | null }>; twoFactorEnabled: boolean; twoFactorSetupKey: string | null; twoFactorProvisioningUri: string | null; recoveryCodes: string[] };
 
 type RecoveryWorkspace = {
     items: RecoveryItem[];
@@ -71,7 +75,7 @@ function visiblePageNumbers(currentPage: number, totalPages: number): number[] {
     return Array.from({ length: count }, (_, index) => start + index);
 }
 
-export default function AdminSettings({ cities, usedColors, canViewCities = false, canManageCities = false, canDeleteCities = false, canViewFinanceSettings = false, canManageFinanceSettings = false, canViewSystemAppearance = false, financeSettings, branding, permissions, recovery }: PageProps) {
+export default function AdminSettings({ cities, usedColors, canViewCities = false, canManageCities = false, canDeleteCities = false, canViewFinanceSettings = false, canManageFinanceSettings = false, canViewSystemAppearance = false, financeSettings, branding, permissions, recovery, accountSecurity }: PageProps) {
     const { url } = usePage();
 
     const tabs: AppWorkspaceTab[] = [
@@ -79,6 +83,7 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
         ...(canViewFinanceSettings ? [{ id: 'company', label: 'Entreprise', icon: IconBuilding }, { id: 'finance', label: 'Finance', icon: IconSettings2 }] : []),
         ...(canViewSystemAppearance ? [{ id: 'system-appearance', label: 'Système & apparence', icon: IconPalette }] : []),
         ...(recovery ? [{ id: 'recovery', label: 'Corbeille & récupération', icon: IconTrashX }] : []),
+        ...(accountSecurity ? [{ id: 'security', label: 'Securite du compte', icon: IconShieldLock }] : []),
     ];
 
     function handleTabChange(key: string) {
@@ -87,11 +92,11 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
 
     const [activeTab, setActiveTab] = useState<string>(() => {
         const tab = new URL(url, window.location.origin).searchParams.get('tab');
-        if (tab && ((canViewFinanceSettings && ['company', 'finance'].includes(tab)) || (canViewSystemAppearance && tab === 'system-appearance') || (recovery && tab === 'recovery'))) {
+        if (tab && ((canViewFinanceSettings && ['company', 'finance'].includes(tab)) || (canViewSystemAppearance && tab === 'system-appearance') || (recovery && tab === 'recovery') || (accountSecurity && tab === 'security'))) {
             return tab;
         }
 
-        return canViewCities ? 'cities' : 'company';
+        return canViewCities ? 'cities' : accountSecurity ? 'security' : 'company';
     });
 
     return (
@@ -159,12 +164,34 @@ export default function AdminSettings({ cities, usedColors, canViewCities = fals
                                 </TabPanel>
                             ) : null}
                             {recovery ? <TabPanel id="recovery"><RecoveryTab recovery={recovery} /></TabPanel> : null}
+                            {accountSecurity ? <TabPanel id="security"><AccountSecurityTab security={accountSecurity} /></TabPanel> : null}
                         </AppWorkspaceTabs>
                     </div>
                 </div>
             </AppShell>
         </>
     );
+}
+
+function AccountSecurityTab({ security }: { security: AccountSecurity }) {
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [password, setPassword] = useState('');
+    const [passwordConfirmation, setPasswordConfirmation] = useState('');
+    const [backupEmail, setBackupEmail] = useState('');
+    const [isAddingBackupEmail, setIsAddingBackupEmail] = useState(false);
+    const [code, setCode] = useState('');
+    const request = (url: string, data: Record<string, string>, method: 'post' | 'put' | 'delete' = 'post') => {
+        const options = { preserveScroll: true, onSuccess: () => { setCurrentPassword(''); setPassword(''); setPasswordConfirmation(''); setBackupEmail(''); setCode(''); } };
+        if (method === 'put') router.put(url, data, options);
+        else if (method === 'delete') router.delete(url, { ...options, data });
+        else router.post(url, data, options);
+    };
+
+    return <div className="mx-auto grid max-w-5xl gap-5 py-5 lg:grid-cols-2">
+        <AppCard className="space-y-4 p-5"><div className="flex items-start gap-3"><IconKey className="mt-0.5 text-[var(--accent)]" size={19} /><div><h2 className="font-semibold">Mot de passe</h2><p className="text-sm text-[var(--text-muted)]">Utilisez un mot de passe unique et robuste.</p></div></div><AppTextField label="Mot de passe actuel" type="password" value={currentPassword} onChange={setCurrentPassword} /><AppTextField label="Nouveau mot de passe" type="password" value={password} onChange={setPassword} description="12 caractères minimum, majuscule, minuscule, chiffre et symbole." /><AppTextField label="Confirmer le nouveau mot de passe" type="password" value={passwordConfirmation} onChange={setPasswordConfirmation} /><AppButton variant="primary" onPress={() => request('/settings/security/password', { current_password: currentPassword, password, password_confirmation: passwordConfirmation }, 'put')}>Changer le mot de passe</AppButton></AppCard>
+        <AppCard className="space-y-4 p-5"><div className="flex items-start gap-3"><IconMail className="mt-0.5 text-[var(--accent)]" size={19} /><div><h2 className="font-semibold">E-mails de secours</h2><p className="text-sm text-[var(--text-muted)]">Ajoutez jusqu’à quatre adresses vérifiées pour recevoir un lien de réinitialisation.</p></div></div><p className="rounded-xl bg-[var(--surface-2)] px-3 py-2 text-sm">Adresse de connexion : <strong>{security.email}</strong></p>{security.recoveryEmails.map((email) => <div key={email.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] px-3 py-2 text-sm"><span className="min-w-0 truncate">{email.email} <span className="text-[var(--text-muted)]">{email.verifiedAt ? '· Vérifié' : '· En attente de vérification'}</span></span><Button isIconOnly size="sm" variant="ghost" aria-label="Supprimer l’adresse" onPress={() => request(`/settings/security/recovery-emails/${email.id}`, { current_password: currentPassword }, 'delete')}><IconTrash size={15} /></Button></div>)}{isAddingBackupEmail ? <div className="space-y-3 rounded-xl border border-[var(--border)] p-3"><AppTextField label="Nouvel e-mail de secours" type="email" value={backupEmail} onChange={setBackupEmail} /><AppTextField label="Mot de passe actuel" type="password" value={currentPassword} onChange={setCurrentPassword} /><div className="flex gap-2"><AppButton variant="secondary" onPress={() => request('/settings/security/recovery-emails', { email: backupEmail, current_password: currentPassword })}>Envoyer le lien</AppButton><AppButton variant="ghost" onPress={() => setIsAddingBackupEmail(false)}>Annuler</AppButton></div></div> : security.recoveryEmails.length < 4 ? <AppButton variant="secondary" onPress={() => setIsAddingBackupEmail(true)}>Ajouter un e-mail de secours</AppButton> : null}</AppCard>
+        <AppCard className="space-y-4 p-5 lg:col-span-2"><div className="flex items-start gap-3"><IconShieldLock className="mt-0.5 text-[var(--accent)]" size={19} /><div><h2 className="font-semibold">Vérification en deux étapes</h2><p className="text-sm text-[var(--text-muted)]">Protégez votre compte avec une application d’authentification.</p></div></div>{security.twoFactorEnabled ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[color-mix(in_srgb,var(--success)_35%,transparent)] bg-[color-mix(in_srgb,var(--success)_8%,transparent)] p-3"><span className="text-sm font-medium text-[var(--success)]">La vérification en deux étapes est active.</span><AppButton variant="danger" onPress={() => request('/settings/security/two-factor', { current_password: currentPassword }, 'delete')}>Désactiver</AppButton></div> : security.twoFactorSetupKey ? <div className="grid gap-4 rounded-xl border border-[var(--border)] p-4 md:grid-cols-2"><div><p className="text-sm font-medium">Clé de configuration</p><code className="mt-2 block break-all rounded-lg bg-[var(--surface-2)] p-3 text-xs">{security.twoFactorSetupKey}</code><p className="mt-2 text-xs text-[var(--text-muted)]">Ajoutez cette clé dans Google Authenticator, Microsoft Authenticator ou 1Password.</p></div><div className="space-y-3"><AppTextField label="Code à 6 chiffres" inputMode="numeric" value={code} onChange={setCode} /><AppButton variant="primary" onPress={() => request('/settings/security/two-factor/confirm', { code })}>Confirmer et activer</AppButton></div></div> : <div className="flex flex-wrap items-end gap-3"><div className="min-w-64 flex-1"><AppTextField label="Mot de passe actuel" type="password" value={currentPassword} onChange={setCurrentPassword} /></div><AppButton variant="primary" onPress={() => request('/settings/security/two-factor', { current_password: currentPassword })}>Configurer</AppButton></div>}{security.recoveryCodes.length ? <div className="rounded-xl border border-[var(--accent)]/30 bg-[var(--crm-gold-soft)] p-4"><p className="font-medium">Codes de récupération — enregistrez-les maintenant</p><div className="mt-2 grid grid-cols-2 gap-2 font-mono text-sm">{security.recoveryCodes.map((recoveryCode) => <span key={recoveryCode}>{recoveryCode}</span>)}</div></div> : null}</AppCard>
+    </div>;
 }
 
 function RecoveryTab({ recovery }: { recovery: RecoveryWorkspace }) {
@@ -203,8 +230,8 @@ function RecoveryTab({ recovery }: { recovery: RecoveryWorkspace }) {
                 {recovery.items.length ? recovery.items.map((item) => <div key={item.key} className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0"><p className="text-xs font-semibold text-[var(--accent)]">{item.entityLabel}</p><p className="truncate text-sm font-semibold text-[var(--text)]">{item.title}</p><p className="mt-1 text-xs text-[var(--text-muted)]">Supprimé {new Date(item.deletedAt).toLocaleString('fr-FR')}{item.deletedBy ? ` par ${item.deletedBy.name}` : ''}</p></div>
                     <div className="flex shrink-0 gap-2">
-                        {item.capabilities.restore ? <AppButton size="sm" variant="secondary" isDisabled={pendingId === item.id} onPress={() => restore(item)}><IconRestore size={15} />Restaurer</AppButton> : null}
-                        {item.capabilities.purge ? <AppButton size="sm" variant="danger-soft" isDisabled={pendingId === item.id} onPress={() => setPurgeTarget(item)}><IconTrash size={15} />Supprimer</AppButton> : null}
+                        {item.capabilities.restore ? <AppButton size="sm" variant="secondary" compact isIconOnly tooltip="Restaurer" aria-label="Restaurer" isDisabled={pendingId === item.id} onPress={() => restore(item)}><IconRestore size={15} /></AppButton> : null}
+                        {item.capabilities.purge ? <AppButton size="sm" variant="danger-soft" compact isIconOnly tooltip="Supprimer définitivement" aria-label="Supprimer définitivement" isDisabled={pendingId === item.id} onPress={() => setPurgeTarget(item)}><IconTrash size={15} /></AppButton> : null}
                     </div>
                 </div>) : <div className="py-12 text-center"><IconTrashX className="mx-auto mb-3 text-[var(--text-muted)]" size={30} /><p className="font-semibold text-[var(--text)]">Corbeille vide</p><p className="mt-1 text-sm text-[var(--text-muted)]">Aucune donnée supprimée à restaurer.</p></div>}
             </div>
@@ -250,7 +277,6 @@ function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities
         if (s === form.color) return true;
         return !usedColors.includes(s);
     });
-    const isCodeLocked = Boolean(editCity && editCity.dossiersCount > 0);
     const activeCitiesCount = cities.filter((city) => city.isActive).length;
     const inactiveCitiesCount = cities.length - activeCitiesCount;
     const totalPages = Math.max(1, Math.ceil(filteredCities.length / CITIES_PAGE_SIZE));
@@ -301,11 +327,6 @@ function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            return;
-        }
-
-        if (editCity && editCity.dossiersCount > 0 && normalizedCode !== editCity.code) {
-            setErrors({ code: 'Le code est verrouillé car des dossiers utilisent cette ville.' });
             return;
         }
 
@@ -507,12 +528,10 @@ function CitiesTabContent({ cities, usedColors, canManage, canDelete }: { cities
                                         onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })}
                                         placeholder="Ex. MRK"
                                         maxLength={8}
-                                        disabled={isCodeLocked}
                                         className={drawerStyles.input}
                                     />
                                 </DrawerField>
                                 <p className="text-[10px] leading-4 text-[var(--text-muted)]">2 à 8 lettres en majuscules, par exemple MAR, MAD ou FES.</p>
-                                {isCodeLocked ? <p className="text-[10px] leading-4 text-[var(--text-muted)]">Le code est verrouillé pour préserver les numéros de dossiers existants.</p> : null}
                             </div>
                         </DrawerSection>
 

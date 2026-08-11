@@ -22,14 +22,12 @@ class ApplySecurityHeaders
         // are not sent to cross-site subframes).
         $isFrameableView = $request->routeIs('documents.view');
 
-        $csp = "base-uri 'self'; form-action 'self'".($isFrameableView ? '' : "; frame-ancestors 'none'");
+        $csp = "base-uri 'self'; form-action 'self'; frame-ancestors ".($isFrameableView ? "'self'" : "'none'");
         $response->headers->set('Content-Security-Policy', $csp);
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
-        if (! $isFrameableView) {
-            $response->headers->set('X-Frame-Options', 'DENY');
-        }
+        $response->headers->set('X-Frame-Options', $isFrameableView ? 'SAMEORIGIN' : 'DENY');
 
         if ($request->routeIs('login', 'login.store', 'logout')) {
             $response->headers->set('Cache-Control', 'no-store, private, max-age=0');

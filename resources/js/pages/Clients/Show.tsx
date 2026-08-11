@@ -25,7 +25,7 @@ import { FinanceDocumentBuilderDrawer, PaymentDrawer } from '@/components/drawer
 import type { FinanceDocumentActionHandlers } from '@/features/finance/components/FinanceDocumentActions';
 import { WorkflowTab } from '@/features/dossiers/components/WorkflowTab';
 import { DocumentDrawer } from '@/components/drawers';
-import type { DocumentUploadPayload } from '@/features/documents/types';
+import type { DocumentTemplateOption, DocumentUploadPayload } from '@/features/documents/types';
 import { ContractDrawer } from '@/components/drawers';
 import type { ArchitectFeeOption, ContractFormPayload, ContractClientOption, ContractDossierOption } from '@/features/contracts/types';
 import { formatDate } from '@/lib/formatters';
@@ -65,7 +65,8 @@ type PageProps = {
     dossiers: DossierSummary[];
     workspace: ClientWorkspace;
     intermediaries: { id: string; label: string }[];
-    documentTemplates: { id: string; label: string; type?: string | null }[];
+    documentTemplates: DocumentTemplateOption[];
+    workflowTemplateMap: Record<string, string>;
     financeTemplates: TemplateOption[];
     financeSettings: FinanceSettings;
     architectFeeOptions: ArchitectFeeOption[];
@@ -81,11 +82,14 @@ function initials(client: ClientRow) {
 
 function toBackendPayload(payload: ClientFormPayload, status: ClientStatus = 'active') {
     return {
-        intermediary_id: payload.intermediaryId || null,
+        client_type: payload.clientType,
         civility: payload.civility || null,
         first_name: payload.firstName || null,
         last_name: payload.lastName || null,
+        company_name: payload.companyName || null,
         cin: payload.cin || null,
+        ice: payload.ice || null,
+        managers: payload.managers.filter(Boolean),
         phone: payload.phone || null,
         email: payload.email || null,
         address: payload.address || null,
@@ -104,7 +108,7 @@ function isClientTab(value: string | undefined): value is TabId {
     return validTabs.includes(value as TabId);
 }
 
-export default function ClientShow({ client, dossiers, workspace, cities, intermediaries, documentTemplates, financeTemplates, financeSettings, architectFeeOptions, tab }: PageProps) {
+export default function ClientShow({ client, dossiers, workspace, cities, intermediaries, documentTemplates, workflowTemplateMap, financeTemplates, financeSettings, architectFeeOptions, tab }: PageProps) {
     const { t } = useTranslation();
     const { can } = usePermissions();
 
@@ -278,6 +282,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
     function toDossierBackendPayload(payload: DossierFormPayload, clientId: number) {
     return {
         client_id: payload.clientId || String(clientId),
+        intermediary_id: payload.intermediaryId || null,
         city_id: payload.cityId || null,
         project_object: payload.projectObject || null,
         description: payload.description || null,
@@ -1243,7 +1248,6 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     isOpen={drawerOpen}
                     mode={drawerMode}
                     client={drawerMode === 'edit' ? client : null}
-                    intermediaries={intermediaries}
                     onOpenChange={setDrawerOpen}
                     onSubmit={handleSubmit}
                     errors={formErrors}
@@ -1257,6 +1261,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     templates={documentTemplates}
                     initialClientId={String(client.id)}
                     initialDossierId={selectedProject ? String(selectedProject.id) : ''}
+                    initialTemplateId={uploadRequirementKey ? workflowTemplateMap[uploadRequirementKey] ?? '' : ''}
                     lockProject
                     onOpenChange={(open) => { setDocumentFormErrors({}); if (!open) { setUploadRequirementKey(null); setUploadStepKey(null); } setUploadDrawerOpen(open); }}
                     onSubmit={handleDocumentUpload}
@@ -1289,6 +1294,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     mode="create"
                     dossier={null}
                     clients={[{ id: String(client.id), label: client.fullName }]}
+                    intermediaries={intermediaries}
                     cities={cities}              // ← add this, wherever the page's city list comes from
                     initialClientId={String(client.id)}
                     onOpenChange={setProjectDrawerOpen}
@@ -1312,6 +1318,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     settings={financeSettings}
                     defaultClientId={String(client.id)}
                     defaultDossierId={selectedProject ? String(selectedProject.id) : undefined}
+                    defaultFinanceTtc={financeDrawerMode === 'create' ? selectedProject?.contract?.financeTtc : undefined}
                     returnTo={financeReturnTo}
                     onSaved={afterCreateReload}
                 />

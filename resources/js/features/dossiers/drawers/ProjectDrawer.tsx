@@ -22,6 +22,7 @@ type ProjectDrawerProps = {
     mode: 'create' | 'edit';
     dossier: DossierRow | null;
     clients: ClientOption[];
+    intermediaries: ClientOption[];
     cities: City[];
     initialClientId?: string;
     onOpenChange: (isOpen: boolean) => void;
@@ -31,6 +32,7 @@ type ProjectDrawerProps = {
 
 const emptyForm: DossierFormPayload = {
     clientId: '',
+    intermediaryId: '',
     cityId: '',
     projectObject: '',
     description: '',
@@ -55,6 +57,7 @@ export function ProjectDrawer({
     mode,
     dossier,
     clients,
+    intermediaries,
     cities = [],
     initialClientId = '',
     onOpenChange,
@@ -75,6 +78,7 @@ export function ProjectDrawer({
             const current = dossier as unknown as Record<string, unknown>;
             setForm({
                 clientId: stringValue(current.clientId),
+                intermediaryId: stringValue(current.intermediaryId),
                 cityId: stringValue((current as Record<string, unknown>).city && typeof (current as Record<string, unknown>).city === 'object'
                     ? ((current as Record<string, unknown>).city as Record<string, unknown>).id ?? ''
                     : ''),
@@ -150,6 +154,14 @@ export function ProjectDrawer({
                                 onChange={(v) => updateField('cityId', v)}
                                 options={cityOptions}
                                 placeholder={t('dossiers.drawer.selectCity')}
+                            />
+                        </DrawerField>
+                        <DrawerField label={t('clients.form.intermediaryName')} error={firstError(errors, 'intermediary_id')}>
+                            <DrawerSelect
+                                value={form.intermediaryId}
+                                onChange={(v) => updateField('intermediaryId', v)}
+                                options={intermediaries}
+                                placeholder={t('clients.selectIntermediary')}
                             />
                         </DrawerField>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

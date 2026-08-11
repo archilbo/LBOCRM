@@ -10,6 +10,9 @@ use App\Models\Client;
 use App\Models\Dossier;
 use App\Models\Intermediary;
 use App\Services\CompanyContext;
+use App\Services\Finance\IntermediaryPaymentService;
+use App\Services\PermissionRegistry;
+use App\Services\Recovery\RecoveryService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,11 +28,11 @@ class IntermediaryController extends Controller
         $this->authorize('viewAny', Intermediary::class);
 
         $intermediaries = $companyContext->applyTo(Intermediary::query(), $request->user())
-            ->withCount(['clients' => fn (Builder $query) => $companyContext->applyTo($query, $request->user())])
+            ->withCount(['dossiers' => fn (Builder $query) => $companyContext->applyTo($query, $request->user())])
             ->latest()
             ->get();
 
-        $monthlyClients = $companyContext->applyTo(Client::query(), $request->user())
+        $monthlyProjects = $companyContext->applyTo(Dossier::query(), $request->user())
             ->whereNotNull('intermediary_id')
             ->selectRaw($this->monthExpression().' as month, count(*) as count')
             ->groupBy('month')
@@ -37,17 +40,17 @@ class IntermediaryController extends Controller
             ->pluck('count', 'month')
             ->toArray();
 
-        $clientsThisMonth = $companyContext->applyTo(Client::query(), $request->user())
+        $projectsThisMonth = $companyContext->applyTo(Dossier::query(), $request->user())
             ->whereNotNull('intermediary_id')
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
 
-        $topIntermediaries = $intermediaries->sortByDesc('clients_count')->take(5)->values()
+        $topIntermediaries = $intermediaries->sortByDesc('dossiers_count')->take(5)->values()
             ->map(fn ($intermediary) => [
                 'id' => $intermediary->id,
                 'name' => $intermediary->name,
-                'clientsCount' => $intermediary->clients_count,
+                'projectsCount' => $intermediary->dossiers_count,
             ]);
 
         return Inertia::render('Intermediaries/Index', [
@@ -56,29 +59,29 @@ class IntermediaryController extends Controller
                 'total' => $intermediaries->count(),
                 'active' => $intermediaries->where('is_active', true)->count(),
                 'inactive' => $intermediaries->where('is_active', false)->count(),
-                'linkedClients' => $intermediaries->sum('clients_count'),
-                'clientsThisMonth' => $clientsThisMonth,
+                'linkedProjects' => $intermediaries->sum('dossiers_count'),
+                'projectsThisMonth' => $projectsThisMonth,
             ],
-            'monthlyClients' => collect($monthlyClients)
+            'monthlyProjects' => collect($monthlyProjects)
                 ->map(fn ($count, $month) => ['month' => $month, 'count' => $count])
                 ->values(),
             'topIntermediaries' => $topIntermediaries,
         ]);
     }
 
-    public function show(Request $request, Intermediary $intermediary, CompanyContext $companyContext): Response
+    public function show(Request $request, Intermediary $intermediary, CompanyContext $companyContext, IntermediaryPaymentService $intermediaryPayments, PermissionRegistry $permissions): Response
     {
         $this->authorize('view', $intermediary);
 
-        $clients = $this->clientsQuery($intermediary, $request, $companyContext)
-            ->withCount('dossiers')
+        $projects = $companyContext->applyTo(Dossier::query(), $request->user())
+            ->where('intermediary_id', $intermediary->id)
+            ->with('client:id,full_name')
             ->latest()
             ->get();
 
-        $clientIds = $clients->pluck('id');
-        $projects = $companyContext->applyTo(Dossier::query(), $request->user())
-            ->whereIn('client_id', $clientIds)
-            ->with('client:id,full_name')
+        $clients = $companyContext->applyTo(Client::query(), $request->user())
+            ->whereIn('id', $projects->pluck('client_id')->filter()->unique())
+            ->withCount('dossiers')
             ->latest()
             ->get();
 
@@ -125,9 +128,11 @@ class IntermediaryController extends Controller
             'updatedAt' => optional($dossier->updated_at)->diffForHumans(),
         ])->values();
 
+        $canViewFinance = $permissions->allows($request->user(), 'finance.payments.view');
+
         return Inertia::render('Intermediaries/Show', [
             'intermediary' => IntermediaryResource::make(
-                $intermediary->setAttribute('clients_count', $clients->count()),
+                $intermediary->setAttribute('dossiers_count', $projects->count()),
             )->resolve(),
             'metrics' => [
                 'totalClients' => $clients->count(),
@@ -152,6 +157,17 @@ class IntermediaryController extends Controller
             'clients' => $clientsList,
             'projects' => $projectsList,
             'activity' => $this->relationshipActivity($intermediary, $clients, $projects),
+            'finance' => $canViewFinance ? $intermediaryPayments->data($intermediary, $request->user()) : [
+                'currency' => 'MAD',
+                'summary' => ['invoiced' => 0, 'paid' => 0, 'remaining' => 0, 'projectsCount' => 0],
+                'projects' => [],
+                'batches' => [],
+            ],
+            'financeCapabilities' => [
+                'view' => $canViewFinance,
+                'create' => $permissions->allows($request->user(), 'finance.payments.create'),
+                'reverse' => $permissions->allows($request->user(), 'finance.payments.reverse'),
+            ],
         ]);
     }
 
@@ -205,18 +221,20 @@ class IntermediaryController extends Controller
             ->with('success', 'Intermediary updated successfully.');
     }
 
-    public function destroy(Intermediary $intermediary): RedirectResponse
+    public function destroy(Request $request, Intermediary $intermediary, RecoveryService $recovery): RedirectResponse
     {
         $this->authorize('delete', $intermediary);
-
-        $intermediary->delete();
+        DB::transaction(function () use ($intermediary, $request, $recovery): void {
+            $recovery->moveToTrash($intermediary, $request->user());
+            $intermediary->delete();
+        });
 
         return redirect()
             ->route('intermediaries.index')
             ->with('success', 'Intermediary deleted successfully.');
     }
 
-    public function bulkDestroy(Request $request, CompanyContext $companyContext): RedirectResponse
+    public function bulkDestroy(Request $request, CompanyContext $companyContext, RecoveryService $recovery): RedirectResponse
     {
         $data = $request->validate([
             'intermediary_ids' => ['required', 'array', 'min:1', 'max:100'],
@@ -233,7 +251,12 @@ class IntermediaryController extends Controller
             $this->authorize('delete', $intermediary);
         }
 
-        DB::transaction(fn () => $intermediaries->each->delete());
+        DB::transaction(function () use ($intermediaries, $request, $recovery): void {
+            $intermediaries->each(function (Intermediary $intermediary) use ($request, $recovery): void {
+                $recovery->moveToTrash($intermediary, $request->user());
+                $intermediary->delete();
+            });
+        });
 
         return redirect()->route('intermediaries.index')
             ->with('success', "{$intermediaries->count()} intermediary(s) deleted successfully.");
@@ -252,15 +275,6 @@ class IntermediaryController extends Controller
         return $code;
     }
 
-    private function clientsQuery(
-        Intermediary $intermediary,
-        Request $request,
-        CompanyContext $companyContext,
-    ): Builder {
-        return $companyContext->applyTo(Client::query(), $request->user())
-            ->where('intermediary_id', $intermediary->id);
-    }
-
     private function monthlyCounts(Collection $items): Collection
     {
         return $items
@@ -276,7 +290,7 @@ class IntermediaryController extends Controller
 
     private function monthExpression(): string
     {
-        return match (Client::query()->getConnection()->getDriverName()) {
+        return match (Dossier::query()->getConnection()->getDriverName()) {
             'sqlite' => "strftime('%Y-%m', created_at)",
             'pgsql' => "to_char(created_at, 'YYYY-MM')",
             default => "DATE_FORMAT(created_at, '%Y-%m')",

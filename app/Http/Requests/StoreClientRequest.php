@@ -16,6 +16,14 @@ class StoreClientRequest extends FormRequest
 
     public function rules(): array
     {
-        return $this->clientPayloadRules();
+        return $this->clientPayloadRules(requirePersonalCniExpiry: true);
+    }
+
+    public function messages(): array
+    {
+        return [
+            'cni_expiration_date.required' => 'La date d’expiration de la CNI est obligatoire pour une personne.',
+            'cni_expiration_date.after' => 'La date d’expiration de la CNI doit être supérieure à trois mois à compter d’aujourd’hui.',
+        ];
     }
 }

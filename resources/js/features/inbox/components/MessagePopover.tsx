@@ -37,7 +37,7 @@ function ConversationPreview({ conversation, currentUserId, onSelect, t }: {
         <div className={`group flex items-center border-b border-[color-mix(in_srgb,var(--border)_55%,transparent)] px-2 py-1 last:border-0 ${conversation.unreadCount > 0 ? 'bg-[color-mix(in_srgb,var(--accent)_6%,transparent)]' : ''}`}>
             <Button variant="ghost" onPress={onSelect} className="h-auto min-w-0 flex-1 justify-start rounded-lg px-2 py-2 text-left">
                 <div className="relative shrink-0">
-                    <Avatar size="sm" name={name} className={`${isGroup ? 'rounded-lg' : ''} ${tone.bg} ${tone.text}`}>{isGroup ? <IconUsers size={15} /> : getConversationInitials(conversation, currentUserId)}</Avatar>
+                    <Avatar size="sm" name={name} className={`${isGroup ? 'rounded-lg' : ''} ${tone.bg} ${tone.text}`}><Avatar.Fallback>{isGroup ? <IconUsers size={15} /> : getConversationInitials(conversation, currentUserId)}</Avatar.Fallback></Avatar>
                     {online ? <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--surface)] bg-emerald-400" /> : null}
                 </div>
                 <span className="min-w-0 flex-1">

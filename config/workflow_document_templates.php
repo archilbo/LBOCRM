@@ -60,6 +60,49 @@ return [
         'sort_order' => 50,
     ],
 
+    'statut' => [
+        'canonical_code' => 'STATUT',
+        'code_aliases' => [],
+        'name_aliases' => ['Statut', 'Statuts'],
+        'name' => 'Statut',
+        'document_type' => 'company',
+        'upload_mode' => 'single',
+        'is_required' => true,
+        'sort_order' => 55,
+    ],
+
+    'rce' => [
+        'canonical_code' => 'RCE',
+        'code_aliases' => ['REGISTRE_COMMERCE'],
+        'name_aliases' => ['RCE', 'Registre de commerce', 'Registre du commerce'],
+        'name' => 'RCE',
+        'document_type' => 'company',
+        'upload_mode' => 'single',
+        'is_required' => true,
+        'sort_order' => 56,
+    ],
+
+    'desistement' => [
+        'canonical_code' => 'DESISTEMENT',
+        'code_aliases' => [],
+        'name_aliases' => ['Désistement', 'Desistement'],
+        'name' => 'Désistement',
+        'document_type' => 'administrative',
+        'upload_mode' => 'single',
+        'is_required' => true,
+        'sort_order' => 57,
+    ],
+
+    'procuration' => [
+        'canonical_code' => 'PROCURATION',
+        'code_aliases' => [],
+        'name' => 'Procuration',
+        'document_type' => 'administrative',
+        'upload_mode' => 'single',
+        'is_required' => true,
+        'sort_order' => 58,
+    ],
+
     'engineer_request' => [
         'canonical_code' => 'DEMANDE_INGENIEUR',
         'code_aliases' => [],
@@ -191,6 +234,28 @@ return [
         'upload_mode' => 'single',
         'is_required' => true,
         'sort_order' => 150,
+    ],
+
+    'attestation_situation_reguliere' => [
+        'canonical_code' => 'ATTESTATION_SITUATION_REGULIERE',
+        'code_aliases' => [],
+        'name_aliases' => ['Attestation de situation régulière', 'Attestation de situation reguliere'],
+        'name' => 'Attestation de situation régulière',
+        'document_type' => 'bureau_etude',
+        'upload_mode' => 'single',
+        'is_required' => true,
+        'sort_order' => 155,
+    ],
+
+    'topographe' => [
+        'canonical_code' => 'TOPOGRAPHE',
+        'code_aliases' => [],
+        'name_aliases' => ['Topographe'],
+        'name' => 'Topographe',
+        'document_type' => 'bureau_etude',
+        'upload_mode' => 'single',
+        'is_required' => true,
+        'sort_order' => 156,
     ],
 
     'demande_permis_habiter' => [

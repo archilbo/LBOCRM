@@ -9,15 +9,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Dossier extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'company_id',
         'branch_id',
         'client_id',
+        'intermediary_id',
         'city_id',
         'dossier_number',
         'sequence_number',
@@ -52,6 +54,11 @@ class Dossier extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function intermediary(): BelongsTo
+    {
+        return $this->belongsTo(Intermediary::class);
     }
 
     public function company(): BelongsTo

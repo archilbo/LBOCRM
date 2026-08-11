@@ -106,6 +106,7 @@ class FinanceDocumentController extends Controller
                     'address' => $c->address,
                 ]),
             'dossiers' => $context->apply(Dossier::query()->select('id', 'client_id', 'dossier_number', 'project_object', 'project_address', 'floor_area', 'land_surface'), $user)
+                ->with('contract:id,dossier_id,ttc,finance_ttc')
                 ->orderBy('dossier_number')
                 ->get()
                 ->map(fn ($d) => [
@@ -116,6 +117,7 @@ class FinanceDocumentController extends Controller
                     'address' => $d->project_address,
                     'floorArea' => $d->floor_area,
                     'landSurface' => $d->land_surface,
+                    'financeTtc' => $d->contract?->effectiveFinanceTtc(),
                 ]),
             'templates' => $financeTemplates->map(fn ($template) => [
                     'id' => (string) $template->id,

@@ -49,6 +49,10 @@ function shouldGroup(prev: MessageRow | undefined, curr: MessageRow): boolean {
     return currDate.getTime() - prevDate.getTime() < 300000;
 }
 
+function avatarInitials(name: string): string {
+    return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || '?';
+}
+
 function ImageGrid({ attachments, onImageClick }: { attachments: MessageAttachmentRow[]; onImageClick?: (index: number) => void }) {
     const { t } = useTranslation();
     const images = attachments.filter((a) => isImageAttachment(a));
@@ -106,7 +110,7 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
         <div className={`group/message mb-1 flex items-start gap-2.5 ${isMine ? 'justify-end' : 'justify-start'} ${grouped ? '' : 'mt-3'}`}>
             {!isMine ? (
                 <div className="w-8 shrink-0 pt-4">
-                    {!grouped ? <Avatar size="sm" name={msg.user?.name || msg.userName || ''} className={`${avatarTone.bg} ${avatarTone.text}`} /> : null}
+                    {!grouped ? <Avatar size="sm" name={msg.user?.name || msg.userName || ''} className={`${avatarTone.bg} ${avatarTone.text}`}><Avatar.Fallback>{avatarInitials(msg.user?.name || msg.userName || '')}</Avatar.Fallback></Avatar> : null}
                 </div>
             ) : null}
             {isMine ? (
@@ -114,13 +118,13 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
                     <MessageActionToolbar isMine={isMine} body={msg.body} onReply={() => onReply(msg)} onForward={() => onForwardMsg(msg)} onEdit={() => onEdit?.(msg)} onDelete={() => onDelete?.(msg)} />
                 </div>
             ) : null}
-            <div className="min-w-0 max-w-[82%] sm:max-w-[68%]">
+            <div className="min-w-0 max-w-[88%] sm:max-w-[76%] xl:max-w-[70%]">
                 {!grouped ? <div className={`mb-1 flex items-center gap-2 px-1 ${isMine ? 'justify-end' : 'justify-start'}`}><p className={`text-[10px] font-semibold ${isMine ? 'text-[var(--foreground)]' : avatarTone.text}`}>{isMine ? t('inbox.you') : msg.user?.name || msg.userName || t('inbox.user')}</p><span className="text-[8px] text-[var(--text-muted)]">{formatTime(msg.createdAt)}</span>{isGroup && !isMine ? <Chip size="sm" variant="soft" className="h-4 px-1 text-[7px]">{t('inbox.member')}</Chip> : null}</div> : null}
                 {msg.isForwarded ? <p className={`mb-0.5 text-[9px] text-[var(--crm-muted)] ${isMine ? 'text-right' : 'text-left'}`}>{t('inbox.forwarded')}</p> : null}
                 {msg.replyTo ? (
                     <ReplyPreview replyTo={msg.replyTo} isMine={isMine} onClick={() => onReplyClick?.(msg.replyTo!.id)} />
                 ) : null}
-                <Card className={`overflow-hidden ${isMediaOnly ? 'rounded-xl border-0 bg-transparent text-[var(--text)] shadow-none' : isMine ? 'rounded-2xl rounded-br-md border-transparent bg-[var(--accent)] text-black shadow-[0_8px_20px_rgb(0_0_0_/_0.10)]' : 'rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] shadow-[0_8px_20px_rgb(0_0_0_/_0.10)]'}`}>
+                <Card className={`overflow-hidden ${isMediaOnly ? 'rounded-xl border-0 bg-transparent text-[var(--text)] shadow-none' : isMine ? 'rounded-2xl rounded-br-md border-transparent bg-[var(--accent)] text-black shadow-sm' : 'rounded-2xl rounded-bl-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] shadow-sm'}`}>
                     {msg.attachments && msg.attachments.length > 0 ? (
                         <div className={`${msg.body ? 'rounded-t-xl' : 'rounded-xl'} overflow-hidden`}>
                             {images.length > 0 ? <ImageGrid attachments={images} onImageClick={(imgIdx) => onImageClick(msg.attachments || [], imgIdx)} /> : null}
@@ -141,7 +145,7 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
                     <MessageDeliveryStatus createdAt={msg.createdAt} isMine={isMine} readBy={msg.readBy} isEdited={msg.isEdited} isFailed={msg.isFailed} onRetry={() => onRetry?.(msg)} />
                 </div>
             </div>
-            {isMine ? (!grouped ? <Avatar size="sm" name={t('inbox.you')} className="mt-4 shrink-0 bg-[var(--accent-soft)] text-[var(--accent)]">V</Avatar> : <div className="w-8 shrink-0" />) : null}
+            {isMine ? (!grouped ? <Avatar size="sm" name={msg.user?.name || msg.userName || t('inbox.you')} className={`mt-4 shrink-0 ${avatarTone.bg} ${avatarTone.text}`}><Avatar.Fallback>{avatarInitials(msg.user?.name || msg.userName || t('inbox.you'))}</Avatar.Fallback></Avatar> : <div className="w-8 shrink-0" />) : null}
             {!isMine ? (
                 <div className="self-start pt-[10px]">
                     <MessageActionToolbar isMine={isMine} body={msg.body} onReply={() => onReply(msg)} onForward={() => onForwardMsg(msg)} onEdit={() => onEdit?.(msg)} onDelete={() => onDelete?.(msg)} />
@@ -417,7 +421,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                 <InboxIconButton label={t('inbox.back')} onPress={onBack} className="lg:hidden"><IconChevronLeft size={18} /></InboxIconButton>
                 {!isGroup ? <div className="relative shrink-0">
                     <Avatar size="md" name={otherName} className={`${avatarTone.bg} ${avatarTone.text}`}>
-                        {getConversationInitials(conversation, currentUserId)}
+                        <Avatar.Fallback>{getConversationInitials(conversation, currentUserId)}</Avatar.Fallback>
                     </Avatar>
                     {others.length === 1 && statusLine === t('inbox.onlineNow') ? (
                         <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--crm-surface)] bg-emerald-400" />
@@ -430,7 +434,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                             <Chip size="sm" variant="flat" className={`${catMeta.tone.bg} ${catMeta.tone.text}`}>{catMeta.label}</Chip>
                         ) : null}
                     </div>
-                    {isGroup ? <div className="mt-1 flex items-center gap-2"><div className="flex -space-x-1.5">{parts.slice(0, 5).map((participant) => <Avatar key={participant.id} size="sm" name={participant.user?.name || t('inbox.user')} className="size-5 border border-[var(--surface)] text-[7px]" />)}{parts.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{parts.length - 5}</span> : null}</div>{canManageGroup ? <Button variant="ghost" size="sm" onPress={openGroupSettings} className="h-5 rounded-md px-1.5 text-[8px] text-[var(--accent)]"><IconUserPlus size={10} />{t('inbox.newMember')}</Button> : null}</div> : statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
+                    {isGroup ? <div className="mt-1 flex items-center gap-2"><div className="flex -space-x-1.5">{parts.slice(0, 5).map((participant) => <Avatar key={participant.id} size="sm" name={participant.user?.name || t('inbox.user')} className="size-5 border border-[var(--surface)] text-[7px]"><Avatar.Fallback>{avatarInitials(participant.user?.name || t('inbox.user'))}</Avatar.Fallback></Avatar>)}{parts.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{parts.length - 5}</span> : null}</div>{canManageGroup ? <Button variant="ghost" size="sm" onPress={openGroupSettings} className="h-5 rounded-md px-1.5 text-[8px] text-[var(--accent)]"><IconUserPlus size={10} />{t('inbox.newMember')}</Button> : null}</div> : statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
                 </div>
                 {searchOpen ? (
                     <div className="flex items-center gap-1">
@@ -455,7 +459,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                 {/* Messages area */}
                 <div className="flex-1 flex flex-col min-w-0">
                     <div className="flex-1 overflow-y-auto bg-[color-mix(in_srgb,var(--surface-2)_45%,var(--surface))] scrollbar-none" onScroll={onScroll}>
-                        <div className="mx-auto min-h-full w-full max-w-[56rem] px-3 py-5 sm:px-7">
+                        <div className="min-h-full w-full px-4 py-5 sm:px-6 lg:px-8 xl:px-10">
                         {loading ? (
                             <div className="flex items-center justify-center py-8"><Spinner color="warning" /></div>
                         ) : messages.length === 0 ? (
@@ -573,8 +577,8 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                     ) : null}
 
                     {/* Composer */}
-                    <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-3 pb-3 pt-2.5 sm:px-5">
-                        <Card className="mx-auto flex w-full max-w-[62rem] flex-row items-end gap-1.5 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.14)]">
+                    <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-4 pb-4 pt-3 sm:px-6 lg:px-8 xl:px-10">
+                        <Card className="flex w-full flex-row items-end gap-1.5 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-sm">
                             {!editingMsg ? <InboxIconButton label={t('inbox.attachFile')} tone="accent" onPress={() => fileInputRef.current?.click()} className="shrink-0 rounded-full"><IconPaperclip size={17} /></InboxIconButton> : <div className="size-9 shrink-0" />}
                             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.zip" multiple className="hidden" onChange={handleImageSelect} />
                             <TextArea ref={textareaRef} value={text} onChange={(event) => { setText(event.target.value); sendTyping(); event.target.style.height = 'auto'; event.target.style.height = `${Math.min(event.target.scrollHeight, 120)}px`; }} onKeyDown={handleKeyDown}
@@ -621,7 +625,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                     <ScrollShadow className="max-h-48 space-y-1 rounded-xl border border-[var(--border)] p-1.5">
                                         {parts.filter((participant) => participant?.user?.id !== currentUserId).map((participant) => (
                                             <Card key={participant.id} className="flex-row items-center gap-3 border-0 bg-[var(--surface-2)] px-3 py-2 shadow-none">
-                                                <Avatar size="sm" name={participant.user?.name || ''} />
+                                                <Avatar size="sm" name={participant.user?.name || ''}><Avatar.Fallback>{avatarInitials(participant.user?.name || '')}</Avatar.Fallback></Avatar>
                                                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{participant.user?.name}</span>
                                                 <InboxIconButton label={t('inbox.removeParticipant', { name: participant.user?.name || t('inbox.removeParticipantFallback') })} tone="danger" onPress={() => handleRemoveParticipant(participant.user!.id)}><IconUserMinus size={14} /></InboxIconButton>
                                             </Card>

@@ -8,7 +8,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('app:task-overdue-notify')->dailyAt('08:00');
-Schedule::command('app:archive-overdue-notify')->dailyAt('08:30');
-Schedule::command('calendar:process-reminders')->everyMinute();
-Schedule::command('finance:process-payment-reminders')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('app:task-overdue-notify')->dailyAt('08:00')->withoutOverlapping()->onOneServer();
+Schedule::command('app:archive-overdue-notify')->dailyAt('08:30')->withoutOverlapping()->onOneServer();
+Schedule::command('calendar:process-reminders')->everyMinute()->withoutOverlapping()->onOneServer();
+Schedule::command('finance:process-payment-reminders')->everyFiveMinutes()->withoutOverlapping()->onOneServer();

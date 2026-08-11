@@ -184,6 +184,7 @@ export type DossierOption = {
     label: string;
     clientId: string;
     projectObject?: string | null;
+    financeTtc?: number | null;
     address?: string | null;
     floorArea?: number | string | null;
     landSurface?: number | string | null;

@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Document, Page } from 'react-pdf';
 import type { PDFPageProxy } from 'pdfjs-dist';
 import {
+    ArrowLeftRight as ArrowLeftRightIcon,
     ChevronLeft as ChevronLeftIcon,
     ChevronRight as ChevronRightIcon,
-    Download as DownloadIcon,
     Loader2 as Loader2Icon,
+    Maximize as MaximizeIcon,
     RotateCcw as RotateCcwIcon,
     RotateCw as RotateCwIcon,
+    Scan as ScanIcon,
     ZoomIn as ZoomInIcon,
     ZoomOut as ZoomOutIcon,
 } from 'lucide-react';
@@ -25,10 +28,11 @@ import {
     normalizeRotation,
     snapZoom,
 } from '../documentViewerConstants';
-import type { DocumentViewerProps } from './viewerTypes';
+import { DOCUMENT_VIEWER_TOOLBAR_HOST_ID, type DocumentViewerProps } from './viewerTypes';
 
 type PdfFitMode = 'width' | 'page' | null;
 type PdfPhase = 'loading' | 'ready' | 'failed';
+type PdfPanState = { pointerId: number; x: number; y: number; scrollLeft: number; scrollTop: number } | null;
 
 /**
  * Dedicated PDF preview built on react-pdf + the locally bundled pdfjs
@@ -47,7 +51,6 @@ export function PdfDocumentViewer({ document, onDownload }: DocumentViewerProps)
     const [numPages, setNumPages] = useState(0);
     const [pageNumber, setPageNumber] = useState(1);
     const [pageInput, setPageInput] = useState('');
-    const [pageReady, setPageReady] = useState(false);
     /** null = manual scale; 'width' / 'page' = fit modes. */
     const [fit, setFit] = useState<PdfFitMode>('width');
     const [scale, setScale] = useState(1);
@@ -56,9 +59,12 @@ export function PdfDocumentViewer({ document, onDownload }: DocumentViewerProps)
     const [pageSize, setPageSize] = useState<{ width: number; height: number } | null>(null);
     const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
     const [loadError, setLoadError] = useState<Error | null>(null);
+    const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
 
     const stageRef = useRef<HTMLDivElement>(null);
+    const pageRefs = useRef(new Map<number, HTMLDivElement>());
     const effectiveScaleRef = useRef(1);
+    const panRef = useRef<PdfPanState>(null);
 
     const canDownload = document.capabilities.canDownload;
     const normalizedRotation = normalizeRotation(rotation);
@@ -71,11 +77,20 @@ export function PdfDocumentViewer({ document, onDownload }: DocumentViewerProps)
             : 1;
 
     const effectiveScale = fit ? fitScale : scale;
+    const canPan = fit === null && effectiveScale > 1;
 
     // Keep the latest effective scale available to the stable wheel handler.
     useEffect(() => {
         effectiveScaleRef.current = effectiveScale;
     });
+
+    useEffect(() => {
+        const frame = window.requestAnimationFrame(() => {
+            setToolbarHost(window.document.getElementById(DOCUMENT_VIEWER_TOOLBAR_HOST_ID));
+        });
+
+        return () => window.cancelAnimationFrame(frame);
+    }, []);
 
     const isPasswordError = loadError instanceof Error && loadError.name === 'PasswordException';
 
@@ -106,19 +121,31 @@ export function PdfDocumentViewer({ document, onDownload }: DocumentViewerProps)
         setRotation((current) => normalizeRotation(current + ROTATION_STEP));
     };
 
-    /** Clamps any number into the valid page range; NaN falls back to the current page. */
+    const scrollToPage = useCallback((targetPage: number) => {
+        requestAnimationFrame(() => {
+            const stage = stageRef.current;
+            const target = pageRefs.current.get(targetPage);
+
+            if (!stage || !target) {
+                return;
+            }
+
+            stage.scrollTo({
+                top: Math.max(0, target.offsetTop - 16),
+                behavior: 'smooth',
+            });
+        });
+    }, []);
+
+    /** Clamps any number into the valid page range and scrolls it into view. */
     const goToPage = (next: number) => {
         if (!Number.isFinite(next) || numPages <= 0) {
             return;
         }
 
         const clamped = Math.min(Math.max(1, Math.floor(next)), numPages);
-        if (clamped === pageNumber) {
-            return;
-        }
-
         setPageNumber(clamped);
-        setPageReady(false);
+        scrollToPage(clamped);
     };
 
     const commitPageInput = () => {
@@ -145,17 +172,15 @@ export function PdfDocumentViewer({ document, onDownload }: DocumentViewerProps)
     const handlePageRenderSuccess = useCallback(
         (page: PDFPageProxy) => {
             const viewport = page.getViewport({ scale: 1, rotation: normalizedRotation });
-            if (viewport.width > 0 && viewport.height > 0) {
+            if (page.pageNumber === 1 && viewport.width > 0 && viewport.height > 0) {
                 setPageSize({ width: viewport.width, height: viewport.height });
             }
-            setPageReady(true);
         },
         [normalizedRotation],
     );
 
     const handleRetry = useCallback(() => {
         setLoadError(null);
-        setPageReady(false);
         setPhase('loading');
         setRetryKey((key) => key + 1);
     }, []);
@@ -254,6 +279,67 @@ export function PdfDocumentViewer({ document, onDownload }: DocumentViewerProps)
         // stays owned by the modal.
     };
 
+    const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (!canPan || event.button !== 0 || (event.target as HTMLElement).closest('button, input')) {
+            return;
+        }
+
+        const stage = event.currentTarget;
+        panRef.current = {
+            pointerId: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+            scrollLeft: stage.scrollLeft,
+            scrollTop: stage.scrollTop,
+        };
+        stage.setPointerCapture(event.pointerId);
+    };
+
+    const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+        const pan = panRef.current;
+        if (!pan || pan.pointerId !== event.pointerId) {
+            return;
+        }
+
+        const stage = event.currentTarget;
+        stage.scrollLeft = pan.scrollLeft - (event.clientX - pan.x);
+        stage.scrollTop = pan.scrollTop - (event.clientY - pan.y);
+    };
+
+    const endPan = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (panRef.current?.pointerId !== event.pointerId) {
+            return;
+        }
+
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        panRef.current = null;
+    };
+
+    const handleStageScroll = (event: React.UIEvent<HTMLDivElement>) => {
+        const stage = event.currentTarget;
+        const viewportMiddle = stage.scrollTop + stage.clientHeight / 2;
+        let nearestPage = pageNumber;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+
+        pageRefs.current.forEach((page, number) => {
+            if (page.offsetHeight <= 0) {
+                return;
+            }
+
+            const pageMiddle = page.offsetTop + page.offsetHeight / 2;
+            const distance = Math.abs(pageMiddle - viewportMiddle);
+
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestPage = number;
+            }
+        });
+
+        setPageNumber((current) => (current === nearestPage ? current : nearestPage));
+    };
+
     const fitWidthLabel = t('documentsExplorer.viewer.fitWidth');
     const fitPageLabel = t('documentsExplorer.viewer.fitPage');
     const zoomOutLabel = t('documentsExplorer.viewer.zoomOut');
@@ -263,105 +349,37 @@ export function PdfDocumentViewer({ document, onDownload }: DocumentViewerProps)
     const rotateRightLabel = t('documentsExplorer.viewer.rotateRight');
     const previousPageLabel = t('documentsExplorer.viewer.previousPage');
     const nextPageLabel = t('documentsExplorer.viewer.nextPage');
-    const downloadLabel = t('documentsExplorer.viewer.downloadOriginal');
 
-    return (
-        <div className="flex min-h-0 flex-1 flex-col">
-            {phase !== 'failed' ? (
-                <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-[var(--border)] bg-[var(--surface)] px-2 py-1.5">
-                    <AppButton
-                        compact
-                        size="sm"
-                        variant="quiet"
-                        isDisabled={fit === 'width'}
-                        tooltip={fitWidthLabel}
-                        aria-label={fitWidthLabel}
-                        onPress={setFitWidth}
-                    >
-                        {fitWidthLabel}
-                    </AppButton>
+    const toolbar = phase !== 'failed' ? (
+                <div className="grid min-w-max grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+                    <div className="flex min-w-max items-center gap-1">
+                        <AppButton isIconOnly compact size="sm" variant="quiet" isDisabled={fit === 'width'} tooltip={fitWidthLabel} aria-label={fitWidthLabel} onPress={setFitWidth}>
+                            <ArrowLeftRightIcon size={14} />
+                        </AppButton>
+                        <AppButton isIconOnly compact size="sm" variant="quiet" isDisabled={fit === 'page'} tooltip={fitPageLabel} aria-label={fitPageLabel} onPress={setFitPage}>
+                            <MaximizeIcon size={14} />
+                        </AppButton>
+                    </div>
 
-                    <AppButton
-                        compact
-                        size="sm"
-                        variant="quiet"
-                        isDisabled={fit === 'page'}
-                        tooltip={fitPageLabel}
-                        aria-label={fitPageLabel}
-                        onPress={setFitPage}
-                    >
-                        {fitPageLabel}
-                    </AppButton>
-
-                    <span className="mx-1 h-4 w-px bg-[var(--border)]" aria-hidden="true" />
-
-                    <AppButton
-                        isIconOnly
-                        compact
-                        size="sm"
-                        variant="quiet"
-                        isDisabled={fit === null && effectiveScale <= PDF_SCALE_MIN}
-                        tooltip={zoomOutLabel}
-                        aria-label={zoomOutLabel}
-                        onPress={() => applyScaleDelta(-1)}
-                    >
-                        <ZoomOutIcon size={14} />
-                    </AppButton>
-
-                    <AppButton
-                        compact
-                        size="sm"
-                        variant="quiet"
-                        isDisabled={fit === null && scale === 1}
-                        tooltip={actualSizeLabel}
-                        aria-label={actualSizeLabel}
-                        onPress={setActualSize}
-                    >
-                        {Math.round(effectiveScale * 100)}%
-                    </AppButton>
-
-                    <AppButton
-                        isIconOnly
-                        compact
-                        size="sm"
-                        variant="quiet"
-                        isDisabled={fit === null && effectiveScale >= PDF_SCALE_MAX}
-                        tooltip={zoomInLabel}
-                        aria-label={zoomInLabel}
-                        onPress={() => applyScaleDelta(1)}
-                    >
-                        <ZoomInIcon size={14} />
-                    </AppButton>
-
-                    <span className="mx-1 h-4 w-px bg-[var(--border)]" aria-hidden="true" />
-
-                    <AppButton
-                        isIconOnly
-                        compact
-                        size="sm"
-                        variant="quiet"
-                        tooltip={rotateLeftLabel}
-                        aria-label={rotateLeftLabel}
-                        onPress={rotateLeft}
-                    >
-                        <RotateCcwIcon size={14} />
-                    </AppButton>
-
-                    <AppButton
-                        isIconOnly
-                        compact
-                        size="sm"
-                        variant="quiet"
-                        tooltip={rotateRightLabel}
-                        aria-label={rotateRightLabel}
-                        onPress={rotateRight}
-                    >
-                        <RotateCwIcon size={14} />
-                    </AppButton>
-
-                    <span className="mx-auto" aria-hidden="true" />
-
-                    <AppButton
+                    <div className="flex min-w-max items-center gap-1 justify-self-center">
+                        <AppButton isIconOnly compact size="sm" variant="quiet" isDisabled={fit === null && effectiveScale <= PDF_SCALE_MIN} tooltip={zoomOutLabel} aria-label={zoomOutLabel} onPress={() => applyScaleDelta(-1)}>
+                            <ZoomOutIcon size={14} />
+                        </AppButton>
+                        <AppButton isIconOnly compact size="sm" variant="quiet" isDisabled={fit === null && scale === 1} tooltip={`${actualSizeLabel} (${Math.round(effectiveScale * 100)}%)`} aria-label={actualSizeLabel} onPress={setActualSize}>
+                            <ScanIcon size={14} />
+                        </AppButton>
+                        <AppButton isIconOnly compact size="sm" variant="quiet" isDisabled={fit === null && effectiveScale >= PDF_SCALE_MAX} tooltip={zoomInLabel} aria-label={zoomInLabel} onPress={() => applyScaleDelta(1)}>
+                            <ZoomInIcon size={14} />
+                        </AppButton>
+                        <span className="mx-1 h-4 w-px bg-[var(--border)]" aria-hidden="true" />
+                        <AppButton isIconOnly compact size="sm" variant="quiet" tooltip={rotateLeftLabel} aria-label={rotateLeftLabel} onPress={rotateLeft}>
+                            <RotateCcwIcon size={14} />
+                        </AppButton>
+                        <AppButton isIconOnly compact size="sm" variant="quiet" tooltip={rotateRightLabel} aria-label={rotateRightLabel} onPress={rotateRight}>
+                            <RotateCwIcon size={14} />
+                        </AppButton>
+                        <span className="mx-1 h-4 w-px bg-[var(--border)]" aria-hidden="true" />
+                        <AppButton
                         isIconOnly
                         compact
                         size="sm"
@@ -409,25 +427,16 @@ export function PdfDocumentViewer({ document, onDownload }: DocumentViewerProps)
                     >
                         <ChevronRightIcon size={14} />
                     </AppButton>
+                    </div>
 
-                    {canDownload ? (
-                        <>
-                            <span className="mx-1 h-4 w-px bg-[var(--border)]" aria-hidden="true" />
-                            <AppButton
-                                isIconOnly
-                                compact
-                                size="sm"
-                                variant="quiet"
-                                tooltip={downloadLabel}
-                                aria-label={downloadLabel}
-                                onPress={() => onDownload(document)}
-                            >
-                                <DownloadIcon size={14} />
-                            </AppButton>
-                        </>
-                    ) : null}
+                    <div aria-hidden="true" />
                 </div>
-            ) : null}
+            ) : null;
+    return (
+        <>
+            {toolbarHost && toolbar ? createPortal(toolbar, toolbarHost) : null}
+            <div className="flex min-h-0 flex-1 flex-col">
+                {!toolbarHost ? toolbar : null}
 
             {phase === 'failed' ? (
                 <DocumentViewerFallback
@@ -444,7 +453,12 @@ export function PdfDocumentViewer({ document, onDownload }: DocumentViewerProps)
                     tabIndex={0}
                     aria-label={t('documentsExplorer.viewer.title')}
                     onKeyDown={handleKeyDown}
-                    className="relative min-h-0 flex-1 overflow-auto bg-[var(--surface-2)]/40 outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_35%,transparent)] focus-visible:ring-inset"
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={endPan}
+                    onPointerCancel={endPan}
+                    onScroll={handleStageScroll}
+                    className={`relative min-h-0 flex-1 overflow-auto bg-[var(--surface-2)]/40 outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_35%,transparent)] focus-visible:ring-inset ${canPan ? 'cursor-grab select-none active:cursor-grabbing' : ''}`}
                 >
                     <Document
                         key={retryKey}
@@ -461,28 +475,39 @@ export function PdfDocumentViewer({ document, onDownload }: DocumentViewerProps)
                             </div>
                         )}
                     >
-                        <div className="flex min-h-full items-start justify-center p-6">
-                            <div className="relative">
-                                {!pageReady ? (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <Loader2Icon size={16} className="animate-spin text-[var(--text-muted)]" />
+                        <div className="flex min-h-full flex-col items-center gap-4 p-6">
+                            {Array.from({ length: numPages }, (_, index) => {
+                                const currentPage = index + 1;
+
+                                return (
+                                    <div
+                                        key={currentPage}
+                                        ref={(element) => {
+                                            if (element) {
+                                                pageRefs.current.set(currentPage, element);
+                                            } else {
+                                                pageRefs.current.delete(currentPage);
+                                            }
+                                        }}
+                                        className="overflow-hidden rounded-sm bg-white shadow-[0_8px_30px_rgb(0_0_0_/_0.18)]"
+                                    >
+                                        <Page
+                                            pageNumber={currentPage}
+                                            scale={effectiveScale}
+                                            rotate={normalizedRotation}
+                                            renderTextLayer={false}
+                                            renderAnnotationLayer={false}
+                                            onRenderSuccess={handlePageRenderSuccess}
+                                            onLoadError={handleDocumentLoadError}
+                                        />
                                     </div>
-                                ) : null}
-                                <Page
-                                    pageNumber={pageNumber}
-                                    scale={effectiveScale}
-                                    rotate={normalizedRotation}
-                                    renderTextLayer={false}
-                                    renderAnnotationLayer={false}
-                                    onRenderSuccess={handlePageRenderSuccess}
-                                    onLoadError={handleDocumentLoadError}
-                                    className="overflow-hidden rounded-sm bg-white shadow-[0_8px_30px_rgb(0_0_0_/_0.18)]"
-                                />
-                            </div>
+                                );
+                            })}
                         </div>
                     </Document>
                 </div>
             )}
-        </div>
+            </div>
+        </>
     );
 }

@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { Input } from '@heroui/react';
-import { IconActivity, IconArrowLeft, IconChartBar, IconBuilding, IconCalendarMonth, IconCircleCheck, IconChevronLeft, IconChevronRight, IconArrowsSort, IconChevronDown, IconChevronUp, IconCircleDot, IconUserCircle, IconEye, IconFolder, IconHistory, IconIdBadge, IconMail, IconMapPin, IconPencil, IconPhone, IconRefresh, IconSearch, IconTrash, IconUserCheck, IconUsers, IconX } from '@tabler/icons-react';
+import { IconActivity, IconArrowLeft, IconChartBar, IconBuilding, IconCalendarMonth, IconCircleCheck, IconChevronLeft, IconChevronRight, IconArrowsSort, IconChevronDown, IconChevronUp, IconCircleDot, IconUserCircle, IconEye, IconFolder, IconHistory, IconIdBadge, IconMail, IconMapPin, IconPencil, IconPhone, IconRefresh, IconSearch, IconTrash, IconUserCheck, IconUsers, IconWallet, IconX } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 
 
@@ -19,6 +19,7 @@ import { AppModal } from '@/components/ui/AppModal';
 import { AppWorkspaceTable, type AppWorkspaceTableColumn } from '@/components/ui/AppWorkspaceTable';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { IntermediaryDrawer } from '@/features/intermediaries/drawers/IntermediaryDrawer';
+import { IntermediaryFinanceTab } from '@/features/intermediaries/components/IntermediaryFinanceTab';
 import type {
     ClientBrief,
     IntermediaryActivityItem,
@@ -32,7 +33,7 @@ import { cn } from '@/lib/cn';
 import type { FormErrors } from '@/lib/formErrors';
 import { useTranslation } from '@/lib/i18n';
 
-type TabId = 'overview' | 'clients' | 'projects' | 'analytics' | 'activity';
+type TabId = 'overview' | 'clients' | 'projects' | 'finance' | 'analytics' | 'activity';
 type SortDirection = 'asc' | 'desc';
 type ClientSortField = 'fullName' | 'cin' | 'projectsCount' | 'status' | 'createdAt';
 type ProjectSortField = 'projectObject' | 'clientName' | 'commune' | 'status' | 'createdAt';
@@ -96,7 +97,7 @@ function humanizeStatus(value: string): string {
 function initialTab(): TabId {
     if (typeof window === 'undefined') return 'overview';
     const tab = new URLSearchParams(window.location.search).get('tab');
-    const validTabs: TabId[] = ['overview', 'clients', 'projects', 'analytics', 'activity'];
+    const validTabs: TabId[] = ['overview', 'clients', 'projects', 'finance', 'analytics', 'activity'];
     return validTabs.includes(tab as TabId) ? (tab as TabId) : 'overview';
 }
 
@@ -187,6 +188,8 @@ export default function IntermediaryShow({
     clients,
     projects,
     activity,
+    finance,
+    financeCapabilities,
 }: IntermediaryShowProps) {
     const { t } = useTranslation();
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -212,6 +215,7 @@ export default function IntermediaryShow({
         { id: 'overview', label: t('intermediaries.overview'), icon: IconUserCircle },
         { id: 'clients', label: t('intermediaries.clients'), icon: IconUsers },
         { id: 'projects', label: t('intermediaries.projects'), icon: IconFolder },
+        { id: 'finance', label: t('intermediaries.finance'), icon: IconWallet },
         { id: 'analytics', label: t('intermediaries.analytics'), icon: IconChartBar },
         { id: 'activity', label: t('intermediaries.activity'), icon: IconHistory },
     ], [t]);
@@ -499,6 +503,7 @@ export default function IntermediaryShow({
                     counts={{
                         clients: clients.length,
                         projects: projects.length,
+                        finance: finance.projects.length,
                         activity: activity.length,
                     }}
                 >
@@ -575,6 +580,10 @@ export default function IntermediaryShow({
                         </div>
                     </TabPanel>
 
+                    <TabPanel id="finance" className="outline-none">
+                        {financeCapabilities.view ? <IntermediaryFinanceTab intermediaryId={intermediary.id} finance={finance} canCreate={financeCapabilities.create} canReverse={financeCapabilities.reverse} /> : <AppEmptyState title="Accès finance non autorisé" />}
+                    </TabPanel>
+
                     <TabPanel id="analytics" className="outline-none">
                         <div>
                             <p className="mb-3 text-xs text-[var(--text-muted)]">{t('intermediaries.show.analyticsDescription')}</p>
@@ -600,7 +609,7 @@ export default function IntermediaryShow({
 
                 <AppModal isOpen={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }} title={t('intermediaries.deleteIntermediary')} size="sm">
                     <p className="mb-5 text-sm text-[var(--text-muted)]">{t('intermediaries.deleteConfirm')} <strong>{deleteTarget?.name}</strong>? {t('intermediaries.deleteWarning')}</p>
-                    {deleteTarget && deleteTarget.clientsCount > 0 ? <div className="mb-4 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-3 py-2 text-[11px] text-[var(--danger)]">{t('intermediaries.deleteHasClients', { count: deleteTarget.clientsCount })}</div> : null}
+                    {deleteTarget && deleteTarget.projectsCount > 0 ? <div className="mb-4 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-3 py-2 text-[11px] text-[var(--danger)]">{t('intermediaries.deleteHasClients', { count: deleteTarget.projectsCount })}</div> : null}
                     <div className="flex justify-end gap-2"><AppButton variant="bordered" onPress={() => setDeleteTarget(null)}>{t('intermediaries.cancel')}</AppButton><AppButton color="danger" variant="solid" onPress={confirmDelete}>{t('intermediaries.delete')}</AppButton></div>
                 </AppModal>
             </AppShell>

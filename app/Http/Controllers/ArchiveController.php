@@ -18,6 +18,7 @@ use App\Services\Archive\ArchiveNotificationService;
 use App\Services\Archive\ArchiveNumberingException;
 use App\Services\Archive\ArchiveNumberingService;
 use App\Services\CompanyContext;
+use App\Services\Recovery\RecoveryService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -482,17 +483,20 @@ class ArchiveController extends Controller
             ->with('success', 'Archive status updated successfully.');
     }
 
-    public function destroy(ArchiveRecord $archiveRecord): RedirectResponse
+    public function destroy(Request $request, ArchiveRecord $archiveRecord, RecoveryService $recovery): RedirectResponse
     {
         $this->authorize('delete', $archiveRecord);
-        $archiveRecord->delete();
+        DB::transaction(function () use ($archiveRecord, $request, $recovery): void {
+            $recovery->moveToTrash($archiveRecord, $request->user());
+            $archiveRecord->delete();
+        });
 
         return redirect()
             ->route('archives.index')
             ->with('success', 'Archive record deleted successfully.');
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    public function bulkDestroy(Request $request, RecoveryService $recovery): RedirectResponse
     {
         $data = $request->validate([
             'archive_ids' => ['required', 'array', 'min:1', 'max:100'],
@@ -509,7 +513,12 @@ class ArchiveController extends Controller
             $this->authorize('delete', $record);
         }
 
-        DB::transaction(fn () => $records->each->delete());
+        DB::transaction(function () use ($records, $request, $recovery): void {
+            $records->each(function (ArchiveRecord $record) use ($request, $recovery): void {
+                $recovery->moveToTrash($record, $request->user());
+                $record->delete();
+            });
+        });
 
         return redirect()->route('archives.index')
             ->with('success', "{$records->count()} archive record(s) deleted successfully.");

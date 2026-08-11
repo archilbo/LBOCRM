@@ -58,7 +58,12 @@ function NotifCard({ n, onClose }: { n: EnrichedNotification; onClose: () => voi
     }
 
     return (
-        <button type="button" onClick={handleClick}
+        <div role="button" tabIndex={0} onClick={handleClick} onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                handleClick();
+            }
+        }}
             className={`group relative flex w-full gap-3 px-3 py-2.5 text-left transition hover:bg-[var(--crm-surface)] ${n.isRead ? '' : 'bg-[var(--crm-gold)]/[0.04]'}`}>
             {!n.isRead ? <span className={`absolute left-2.5 top-[14px] size-1.5 rounded-full ${sev.dot}`} /> : null}
             <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${n.isRead ? 'bg-[var(--crm-surface-2)] text-[var(--crm-text-muted)]' : `${sev.bg} ${sev.dot.replace('bg-', 'text-').replace('-400', '-400')}`}`}>
@@ -88,7 +93,7 @@ function NotifCard({ n, onClose }: { n: EnrichedNotification; onClose: () => voi
                 </div>
             </div>
             {!n.isRead ? <MarkAsReadBtn id={n.id} /> : null}
-        </button>
+        </div>
     );
 }
 

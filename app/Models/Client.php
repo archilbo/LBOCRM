@@ -6,21 +6,26 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'company_id',
         'branch_id',
         'intermediary_id',
         'client_number',
+        'client_type',
         'civility',
         'first_name',
         'last_name',
         'full_name',
+        'company_name',
         'cin',
+        'ice',
+        'managers',
         'phone',
         'email',
         'address',
@@ -33,6 +38,7 @@ class Client extends Model
 
     protected $casts = [
         'cni_expiration_date' => 'date',
+        'managers' => 'array',
     ];
 
     public function intermediary(): BelongsTo

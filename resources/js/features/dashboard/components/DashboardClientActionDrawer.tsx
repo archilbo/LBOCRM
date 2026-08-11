@@ -12,11 +12,14 @@ type Props = {
 
 function payloadForClient(payload: ClientFormPayload) {
     return {
-        intermediary_id: payload.intermediaryId || null,
+        client_type: payload.clientType,
         civility: payload.civility || null,
         first_name: payload.firstName || null,
         last_name: payload.lastName || null,
+        company_name: payload.companyName || null,
         cin: payload.cin || null,
+        ice: payload.ice || null,
+        managers: payload.managers.filter(Boolean),
         phone: payload.phone || null,
         email: payload.email || null,
         address: payload.address || null,
@@ -51,7 +54,6 @@ export function DashboardClientActionDrawer({ isOpen, onOpenChange }: Props) {
             isOpen={isOpen}
             mode="create"
             client={null}
-            intermediaries={[]}
             onOpenChange={onOpenChange}
             onSubmit={handleSubmit}
             errors={errors}

@@ -37,7 +37,6 @@ class IntermediaryShowWorkspaceTest extends TestCase
         $client = Client::factory()->create([
             'company_id' => $company->id,
             'branch_id' => null,
-            'intermediary_id' => $intermediary->id,
             'full_name' => 'Client Intermédiaire Démo',
             'status' => 'active',
         ]);
@@ -46,6 +45,7 @@ class IntermediaryShowWorkspaceTest extends TestCase
             'company_id' => $company->id,
             'branch_id' => null,
             'client_id' => $client->id,
+            'intermediary_id' => $intermediary->id,
             'project_object' => 'Projet Intermédiaire Démo',
             'commune' => 'Agadir',
             'status' => 'active',

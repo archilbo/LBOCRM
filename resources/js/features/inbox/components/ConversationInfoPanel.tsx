@@ -27,6 +27,10 @@ function isOnline(lastSeenAt?: string | null, explicit?: boolean): boolean {
     return Boolean(explicit || (lastSeenAt && Date.now() - new Date(lastSeenAt).getTime() < 300000));
 }
 
+function initials(name: string): string {
+    return name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || '?';
+}
+
 function InfoSection({ icon: Icon, title, children }: { icon: typeof IconUsers; title: string; children: React.ReactNode }) {
     return <section><div className="mb-2 flex items-center gap-2"><Icon size={13} className="text-[var(--accent)]" /><h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{title}</h3></div>{children}</section>;
 }
@@ -78,7 +82,7 @@ export function ConversationInfoPanel({ conversation, messages, currentUserId, o
                 <ScrollShadow className="min-h-0 flex-1 space-y-4 px-4 py-4">
                     <section className="text-center">
                         <Avatar size="lg" name={name} className="mx-auto size-16 bg-[var(--accent-soft)] text-lg font-bold text-[var(--accent)]">
-                            {conversation.type === 'group' ? <IconUsers size={23} /> : conversationInitial(conversation, currentUserId)}
+                            <Avatar.Fallback>{conversation.type === 'group' ? <IconUsers size={23} /> : conversationInitial(conversation, currentUserId)}</Avatar.Fallback>
                         </Avatar>
                         <h2 className="mt-2 truncate text-sm font-semibold">{name}</h2>
                         <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{conversation.type === 'group' ? t('inbox.membersOnline', { count: participants.length, online: onlineCount }) : status}</p>
@@ -100,7 +104,7 @@ export function ConversationInfoPanel({ conversation, messages, currentUserId, o
                             {participants.map((participant) => {
                                 const user = participant.user ?? participant;
                                 const online = isOnline(user?.lastSeenAt, user?.isOnline);
-                                return <div key={participant.id} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-[var(--surface-2)]"><div className="relative"><Avatar size="sm" name={user?.name || t('inbox.user')} />{online ? <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--surface)] bg-emerald-400" /> : null}</div><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{user?.name || t('inbox.user')}</span><span className="block truncate text-[10px] text-[var(--text-muted)]">{online ? t('inbox.online') : user?.email || t('inbox.offline')}</span></span>{participant.role && participant.role !== 'member' ? <Chip size="sm" variant="soft" className="h-5 text-[9px]">{participant.role}</Chip> : null}</div>;
+                                return <div key={participant.id} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-[var(--surface-2)]"><div className="relative"><Avatar size="sm" name={user?.name || t('inbox.user')}><Avatar.Fallback>{initials(user?.name || t('inbox.user'))}</Avatar.Fallback></Avatar>{online ? <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--surface)] bg-emerald-400" /> : null}</div><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{user?.name || t('inbox.user')}</span><span className="block truncate text-[10px] text-[var(--text-muted)]">{online ? t('inbox.online') : user?.email || t('inbox.offline')}</span></span>{participant.role && participant.role !== 'member' ? <Chip size="sm" variant="soft" className="h-5 text-[9px]">{participant.role}</Chip> : null}</div>;
                             })}
                         </div>
                     </InfoSection>
@@ -123,5 +127,5 @@ export function ConversationInfoPanel({ conversation, messages, currentUserId, o
         );
     }, [attachments, conversation, currentUserId, locale, messages, onArchiveToggle, onMarkUnread, onPreference, t]);
 
-    return <><aside className={`hidden shrink-0 border-l border-[var(--border)] bg-[var(--surface)] xl:flex ${collapsed ? 'w-12 items-start justify-center' : 'w-[288px]'}`}>{collapsed ? <div className="space-y-3 py-3"><InboxIconButton label={t('inbox.showDetails')} tone="accent" onPress={onToggleCollapsed} className="border border-[var(--border)]"><IconLayoutSidebarRightExpand size={15} /></InboxIconButton>{conversation ? <Avatar size="sm" name={conversationName(conversation, currentUserId)}>{conversationInitial(conversation, currentUserId)}</Avatar> : null}</div> : <div className="relative h-full min-h-0 w-full"><InboxIconButton label={t('inbox.hideDetails')} onPress={onToggleCollapsed} className="absolute right-3 top-3 z-10 border border-[var(--border)] bg-[var(--surface)]"><IconLayoutSidebarRightCollapse size={15} /></InboxIconButton>{panel || <div className="flex h-full items-center justify-center p-8 text-center text-sm text-[var(--text-muted)]">{t('inbox.selectConversation')}</div>}</div>}</aside><AppDrawer isOpen={mobileOpen} onOpenChange={(open) => { if (!open) onMobileClose?.(); }} hideHeader isDismissable panelClassName="xl:hidden !w-[min(100vw,384px)]" contentClassName="!p-0">{panel}</AppDrawer></>;
+    return <><aside className={`hidden shrink-0 border-l border-[var(--border)] bg-[var(--surface)] xl:flex ${collapsed ? 'w-12 items-start justify-center' : 'w-[288px]'}`}>{collapsed ? <div className="space-y-3 py-3"><InboxIconButton label={t('inbox.showDetails')} tone="accent" onPress={onToggleCollapsed} className="border border-[var(--border)]"><IconLayoutSidebarRightExpand size={15} /></InboxIconButton>{conversation ? <Avatar size="sm" name={conversationName(conversation, currentUserId)}><Avatar.Fallback>{conversationInitial(conversation, currentUserId)}</Avatar.Fallback></Avatar> : null}</div> : <div className="relative h-full min-h-0 w-full"><InboxIconButton label={t('inbox.hideDetails')} onPress={onToggleCollapsed} className="absolute right-3 top-3 z-10 border border-[var(--border)] bg-[var(--surface)]"><IconLayoutSidebarRightCollapse size={15} /></InboxIconButton>{panel || <div className="flex h-full items-center justify-center p-8 text-center text-sm text-[var(--text-muted)]">{t('inbox.selectConversation')}</div>}</div>}</aside><AppDrawer isOpen={mobileOpen} onOpenChange={(open) => { if (!open) onMobileClose?.(); }} hideHeader isDismissable panelClassName="xl:hidden !w-[min(100vw,384px)]" contentClassName="!p-0">{panel}</AppDrawer></>;
 }

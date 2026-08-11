@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['company_id', 'branch_id', 'name', 'email', 'password', 'invitation_token', 'consumed_invitation_token', 'invited_at', 'invitation_expires_at', 'accepted_at', 'invited_by', 'last_seen_at', 'module_permissions', 'suspended_at'])]
-#[Hidden(['password', 'remember_token', 'invitation_token', 'consumed_invitation_token'])]
+#[Hidden(['password', 'remember_token', 'invitation_token', 'consumed_invitation_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -44,6 +45,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Task::class, 'task_watchers');
     }
 
+    public function recoveryEmails(): HasMany
+    {
+        return $this->hasMany(UserRecoveryEmail::class);
+    }
+
     protected function casts(): array
     {
         return [
@@ -55,6 +61,8 @@ class User extends Authenticatable
             'last_seen_at' => 'datetime',
             'suspended_at' => 'datetime',
             'module_permissions' => 'array',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
         ];
     }
 }

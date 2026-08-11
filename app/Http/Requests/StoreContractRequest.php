@@ -20,12 +20,18 @@ class StoreContractRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $this->merge([
+        $data = [
             'forfait_ttc' => $this->normalizeDecimal($this->input('forfait_ttc')),
             'surface' => $this->normalizeDecimal($this->input('surface')),
             'price_per_square_meter' => $this->normalizeDecimal($this->input('price_per_square_meter')),
             'fee_rate_percent' => $this->normalizeDecimal($this->input('fee_rate_percent')),
-        ]);
+        ];
+
+        if ($this->has('finance_ttc')) {
+            $data['finance_ttc'] = $this->normalizeDecimal($this->input('finance_ttc'));
+        }
+
+        $this->merge($data);
     }
 
     public function rules(): array
@@ -44,6 +50,7 @@ class StoreContractRequest extends FormRequest
             'architect_fee_option_id' => ['required', 'integer', 'exists:architect_fee_options,id'],
             'fee_rate_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'forfait_ttc' => ['nullable', 'numeric', 'min:0'],
+            'finance_ttc' => ['nullable', 'numeric', 'gt:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'return_to' => ['nullable', 'string', 'max:2000', 'starts_with:/'],
         ];

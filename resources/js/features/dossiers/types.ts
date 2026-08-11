@@ -14,6 +14,8 @@ export type DossierRow = {
     clientNumber: string;
     clientCin: string;
     clientPhone: string;
+    intermediaryId: string;
+    intermediaryName: string | null;
 
     dossierNumber: string;
     sequenceNumber: number | null;
@@ -52,6 +54,7 @@ export type ClientOption = {
 
 export type DossierFormPayload = {
     clientId: string;
+    intermediaryId: string;
     cityId: string;
     projectObject: string;
     description: string;

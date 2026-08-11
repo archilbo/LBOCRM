@@ -45,6 +45,7 @@ type FinanceDocumentBuilderDrawerProps = {
     onSaved?: (type: FinanceDocumentType) => void;
     defaultClientId?: string;
     defaultDossierId?: string;
+    defaultFinanceTtc?: number | null;
     returnTo?: string;
     restrictedDossierIds?: string[];
 };
@@ -73,7 +74,7 @@ function addDays(date: string, days: number): string {
     return value.toISOString().slice(0, 10);
 }
 
-function createForm(type: FinanceDocumentType, settings: FinanceSettings, document?: FinanceDocument | null, defaultClientId?: string, defaultDossierId?: string, templates?: TemplateOption[]): BuilderForm {
+function createForm(type: FinanceDocumentType, settings: FinanceSettings, document?: FinanceDocument | null, defaultClientId?: string, defaultDossierId?: string, templates?: TemplateOption[], defaultFinanceTtc?: number | null): BuilderForm {
     const issueDate = document?.issueDate || today();
     if (document) {
         return {
@@ -100,7 +101,10 @@ function createForm(type: FinanceDocumentType, settings: FinanceSettings, docume
         dueDate: type === 'invoice' ? addDays(issueDate, settings.defaultPaymentTermsDays) : '',
         validUntil: type === 'quote' ? addDays(issueDate, settings.defaultQuoteValidityDays) : '',
         currency: normalizeCurrency(settings.defaultCurrency), tvaRate: settings.defaultTvaRate, discountTotal: 0,
-        notes: '', terms: '', templateId: defaultTemplate ? String(defaultTemplate.id) : '', items: [createEmptyItem()],
+        notes: '', terms: '', templateId: defaultTemplate ? String(defaultTemplate.id) : '',
+        items: defaultFinanceTtc && defaultFinanceTtc > 0
+            ? [calculateItem({ position: 1, title: 'Honoraires architecte', quantity: 1, unit: 'forfait', unitPrice: defaultFinanceTtc })]
+            : [createEmptyItem()],
     };
 }
 
@@ -118,9 +122,9 @@ const steps = [
 ];
 
 export function FinanceDocumentBuilderDrawer({
-    isOpen, onOpenChange, mode, type, document, clients, dossiers, templates, settings, onSaved, defaultClientId, defaultDossierId, returnTo, restrictedDossierIds = [],
+    isOpen, onOpenChange, mode, type, document, clients, dossiers, templates, settings, onSaved, defaultClientId, defaultDossierId, defaultFinanceTtc, returnTo, restrictedDossierIds = [],
 }: FinanceDocumentBuilderDrawerProps) {
-    const [form, setForm] = useState<BuilderForm>(() => createForm(type, settings, isOpen ? null : document, defaultClientId, defaultDossierId, templates));
+    const [form, setForm] = useState<BuilderForm>(() => createForm(type, settings, isOpen ? null : document, defaultClientId, defaultDossierId, templates, defaultFinanceTtc));
     const [step, setStep] = useState(0);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewHtml, setPreviewHtml] = useState<string | null>(null);
@@ -131,12 +135,12 @@ export function FinanceDocumentBuilderDrawer({
     const lockMessage = isLocked ? getFinanceDocumentLockMessage(document) : undefined;
     const selectedTemplate = templates.find((t) => String(t.id) === form.templateId);
 
-    const formInitRef = useRef({ type, settings, document, defaultClientId, defaultDossierId, templates });
-    useEffect(() => { formInitRef.current = { type, settings, document, defaultClientId, defaultDossierId, templates }; });
+    const formInitRef = useRef({ type, settings, document, defaultClientId, defaultDossierId, templates, defaultFinanceTtc });
+    useEffect(() => { formInitRef.current = { type, settings, document, defaultClientId, defaultDossierId, templates, defaultFinanceTtc }; });
     useEffect(() => {
         if (isOpen) {
-            const { type: t, settings: s, document: d, defaultClientId: c, defaultDossierId: dossierId, templates: tmpl } = formInitRef.current;
-            setForm(createForm(t, s, d, c, dossierId, tmpl));
+            const { type: t, settings: s, document: d, defaultClientId: c, defaultDossierId: dossierId, templates: tmpl, defaultFinanceTtc: financeTtc } = formInitRef.current;
+            setForm(createForm(t, s, d, c, dossierId, tmpl, financeTtc));
             setStep(0);
             setPreviewHtml(null);
         }
@@ -305,7 +309,21 @@ export function FinanceDocumentBuilderDrawer({
                                 <FinanceClientDossierFields
                                     clientId={form.clientId} dossierId={form.dossierId}
                                     clients={clients} dossiers={userDossiers}
-                                    onClientChange={(v) => update('clientId', v)} onDossierChange={(v) => update('dossierId', v)}
+                                    onClientChange={(v) => update('clientId', v)} onDossierChange={(v) => {
+                                        update('dossierId', v);
+                                        const financeTtc = userDossiers.find((dossier) => dossier.id === v)?.financeTtc;
+
+                                        if (mode === 'create' && financeTtc && financeTtc > 0) {
+                                            setForm((current) => {
+                                                const isEmptySingleLine = current.items.length === 1
+                                                    && current.items[0].totalTtc === 0;
+
+                                                return isEmptySingleLine
+                                                    ? { ...current, items: [calculateItem({ position: 1, title: 'Honoraires architecte', quantity: 1, unit: 'forfait', unitPrice: financeTtc })] }
+                                                    : current;
+                                            });
+                                        }
+                                    }}
                                     disabled={mode === 'edit'}
                                     restrictedDossierIds={restrictedDossierIds}
                                 />

@@ -83,13 +83,13 @@ function SelectedRecipients({
     return (
         <div className="flex flex-wrap gap-1.5">
             {users.map((user) => {
-                const t = getAvatarTone(user.id);
+                const avatarTone = getAvatarTone(user.id);
                 return (
                     <span
                         key={user.id}
                         className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-2)] py-0.5 pl-0.5 pr-1 text-xs"
                     >
-                        <Avatar size="sm" name={user.name} className={`size-5 min-w-5 text-[9px] ${t.bg} ${t.text}`} />
+                        <Avatar size="sm" name={user.name} className={`size-5 min-w-5 text-[9px] ${avatarTone.bg} ${avatarTone.text}`} />
                         <span className="max-w-24 truncate">{user.name}</span>
                         <button
                             type="button"

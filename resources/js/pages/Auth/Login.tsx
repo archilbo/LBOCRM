@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { IconArrowRight, IconCoin, IconBuilding, IconCircleCheck, IconEye, IconEyeOff, IconFileCheck, IconFolder, IconLock, IconMail, IconShieldCheck } from '@tabler/icons-react';
+import { IconArrowRight, IconCoin, IconBuilding, IconCircleCheck, IconEye, IconEyeOff, IconFileCheck, IconFolder, IconLock, IconShieldCheck } from '@tabler/icons-react';
 
 import { FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -265,6 +265,10 @@ export default function Login({ errors = {}, status }: PageProps) {
                                         <IconShieldCheck size={16} className="shrink-0 text-[var(--crm-muted)]" />
                                     </Checkbox>
 
+                                    <a href="/forgot-password" className="-mt-2 text-right text-xs font-medium text-[var(--crm-accent)] hover:underline">
+                                        Forgot password?
+                                    </a>
+
                                     <Button
                                         type="submit"
                                         variant="primary"
@@ -276,12 +280,6 @@ export default function Login({ errors = {}, status }: PageProps) {
                                     </Button>
                                 </form>
 
-                                <div className="border-t border-[var(--crm-border)] bg-black/10 px-6 py-4 sm:px-7">
-                                    <div className="flex items-center gap-2 text-[10px] leading-4 text-[var(--crm-muted)]">
-                                        <IconMail size={14} />
-                                        {t('auth.login.footerNote')}
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </section>

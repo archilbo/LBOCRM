@@ -16,23 +16,25 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
 import { usePermissions } from '@/hooks/usePermissions';
-import type { ClientFormPayload, ClientRow, ClientStatus, IntermediaryOption } from '@/features/clients/types';
+import type { ClientFormPayload, ClientRow, ClientStatus } from '@/features/clients/types';
 import { ClientDrawer } from '@/components/drawers';
 import type { FormErrors } from '@/lib/formErrors';
 
 type PageProps = {
     clients: ClientRow[];
-    intermediaries: IntermediaryOption[];
     metrics: { total: number; active: number; inactive: number; archived: number };
 };
 
 function toBackendPayload(payload: ClientFormPayload, status: ClientStatus = 'active') {
     return {
-        intermediary_id: payload.intermediaryId || null,
+        client_type: payload.clientType,
         civility: payload.civility || null,
         first_name: payload.firstName || null,
         last_name: payload.lastName || null,
+        company_name: payload.companyName || null,
         cin: payload.cin || null,
+        ice: payload.ice || null,
+        managers: payload.managers.filter(Boolean),
         phone: payload.phone || null,
         email: payload.email || null,
         address: payload.address || null,
@@ -77,7 +79,7 @@ function formatContact(value: string | null | undefined) {
 type SortField = 'fullName' | 'cin' | 'projectsCount' | 'status' | 'updatedAt';
 type SortDir = 'asc' | 'desc';
 
-export default function ClientsIndex({ clients, intermediaries, metrics }: PageProps) {
+export default function ClientsIndex({ clients, metrics }: PageProps) {
     const { t } = useTranslation();
     const { can } = usePermissions();
 
@@ -454,7 +456,6 @@ export default function ClientsIndex({ clients, intermediaries, metrics }: PageP
                     isOpen={drawerOpen}
                     mode={drawerMode}
                     client={drawerMode === 'edit' ? selectedClient : null}
-                    intermediaries={intermediaries}
                     onOpenChange={setDrawerOpen}
                     onSubmit={handleSubmit}
                     errors={formErrors}

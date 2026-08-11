@@ -26,9 +26,9 @@ class MessageAttachmentController extends Controller
 
     private function response(MessageAttachment $attachment, string $disposition): BinaryFileResponse
     {
-        $disk = $attachment->disk ?: 'public';
         $path = $attachment->storagePath();
-        abort_unless(Storage::disk($disk)->exists($path), 404, 'Le fichier est introuvable.');
+        $disk = $this->resolveDisk($attachment, $path);
+        abort_unless($disk !== null, 404, 'Le fichier est introuvable.');
 
         $response = response()->file(Storage::disk($disk)->path($path), [
             'Content-Type' => $attachment->mime_type ?: 'application/octet-stream',
@@ -42,5 +42,23 @@ class MessageAttachmentController extends Controller
         $response->setContentDisposition($disposition, $filename, $fallback);
 
         return $response;
+    }
+
+    private function resolveDisk(MessageAttachment $attachment, string $path): ?string
+    {
+        $candidates = array_unique(array_filter([
+            $attachment->disk,
+            config('chat.attachment_disk'),
+            'local',
+            'public',
+        ]));
+
+        foreach ($candidates as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                return $disk;
+            }
+        }
+
+        return null;
     }
 }

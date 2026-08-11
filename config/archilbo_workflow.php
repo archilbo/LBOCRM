@@ -19,6 +19,10 @@ return [
                 ['key' => 'plan_cadastral', 'label' => 'Plan cadastral'],
                 ['key' => 'calcul_contenance', 'label' => 'Calcul de contenance'],
                 ['key' => 'plan_parcellaire', 'label' => 'Plan parcellaire'],
+                ['key' => 'statut', 'label' => 'Statut', 'client_types' => ['company']],
+                ['key' => 'rce', 'label' => 'RCE', 'client_types' => ['company']],
+                ['key' => 'desistement', 'label' => 'Désistement'],
+                ['key' => 'procuration', 'label' => 'Procuration'],
             ],
         ],
         [
@@ -60,6 +64,8 @@ return [
                 ['key' => 'contrat_topographie', 'label' => 'Contrat topographie'],
                 ['key' => 'contrat_laboratoire', 'label' => 'Contrat laboratoire'],
                 ['key' => 'bureau_controle', 'label' => 'Bureau de controle'],
+                ['key' => 'attestation_situation_reguliere', 'label' => 'Attestation de situation régulière', 'client_types' => ['person']],
+                ['key' => 'topographe', 'label' => 'Topographe', 'client_types' => ['person']],
             ],
         ],
         [
