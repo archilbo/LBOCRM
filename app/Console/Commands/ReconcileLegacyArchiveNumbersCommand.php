@@ -14,12 +14,17 @@ final class ReconcileLegacyArchiveNumbersCommand extends Command
         {report : Dry-run JSON path}
         {--company-id=1 : Company scope}
         {--city-code= : Restrict the preview or reconciliation to one city code}
-        {--confirm : Apply the reviewed reconciliation}';
+        {--confirm : Apply the reviewed reconciliation}
+        {--rollback= : Restore archive numbers from a reconciliation audit file}';
 
-    protected $description = 'Preview or safely reconcile imported archive numbers with their Excel references.';
+    protected $description = 'Preview or safely make imported archive numbers exactly match their Excel references.';
 
     public function handle(ArchiveNumberingService $numbering): int
     {
+        if ($rollback = $this->option('rollback')) {
+            return $this->rollback((string) $rollback);
+        }
+
         $path = (string) $this->argument('report');
         if (! is_file($path)) {
             $this->error('REPORT_FILE_NOT_FOUND');
@@ -50,7 +55,7 @@ final class ReconcileLegacyArchiveNumbersCommand extends Command
 
         $summary = collect($mappings)->countBy('status')->all();
         $this->table(
-            ['Legacy ref', 'Current', 'Expected', 'Status'],
+            ['Excel ref', 'Current', 'Target', 'Status'],
             collect($mappings)->take(25)->map(fn (array $mapping) => [
                 $mapping['legacyReference'],
                 $mapping['currentNumber'] ?? '—',
@@ -67,11 +72,9 @@ final class ReconcileLegacyArchiveNumbersCommand extends Command
             return self::SUCCESS;
         }
 
-        $blocking = array_values(array_filter($mappings, fn (array $mapping) => in_array($mapping['status'], ['DUPLICATE_LEGACY_REFERENCE', 'NUMBER_COLLISION'], true)));
+        $blocking = array_values(array_filter($mappings, fn (array $mapping) => in_array($mapping['status'], ['DUPLICATE_LEGACY_REFERENCE', 'DUPLICATE_PROJECT_MAPPING', 'NUMBER_COLLISION'], true)));
         if ($blocking !== []) {
-            $this->error('Reconciliation blocked: resolve all legacy-reference duplicates and number collisions before applying changes.');
-
-            return self::FAILURE;
+            $this->warn(count($blocking).' row(s) have duplicate Excel references, duplicate project mappings, or archive-number collisions and will be left unchanged.');
         }
 
         $missing = count(array_filter($mappings, fn (array $mapping) => $mapping['status'] === 'MISSING_IMPORTED_RECORD'));
@@ -91,7 +94,6 @@ final class ReconcileLegacyArchiveNumbersCommand extends Command
                     ->whereKey($mapping['archiveId'])
                     ->update([
                         'archive_number' => 'LEGACY-TMP-'.$mapping['archiveId'],
-                        'archive_sequence' => 900000000 + $mapping['archiveId'],
                     ]);
             }
 
@@ -100,18 +102,18 @@ final class ReconcileLegacyArchiveNumbersCommand extends Command
                     ->whereKey($mapping['archiveId'])
                     ->update([
                         'archive_number' => $mapping['expectedNumber'],
-                        'archive_year' => $mapping['year'],
-                        'archive_sequence' => $mapping['sequence'],
+                        'legacy_reference' => $mapping['legacyReference'],
                     ]);
             }
 
             foreach (collect($ready)->groupBy(fn (array $mapping) => $mapping['companyId'].'|'.$mapping['cityId'].'|'.$mapping['year']) as $group) {
                 $first = $group->first();
-                $maxSequence = (int) ArchiveRecord::query()
+                $maxSequence = max((int) $group->max('sequence'), (int) ArchiveRecord::query()
+                    ->withTrashed()
                     ->where('company_id', $first['companyId'])
                     ->where('city_id', $first['cityId'])
                     ->where('archive_year', $first['year'])
-                    ->max('archive_sequence');
+                    ->max('archive_sequence'));
                 $counter = DB::table('archive_number_sequences')
                     ->where('company_id', $first['companyId'])
                     ->where('city_id', $first['cityId'])
@@ -169,9 +171,9 @@ final class ReconcileLegacyArchiveNumbersCommand extends Command
             $archive = ArchiveRecord::query()
                 ->where('company_id', $companyId)
                 ->where('city_id', (int) $city['id'])
-                ->when($dossierId, fn ($query) => $query->where('dossier_id', $dossierId), fn ($query) => $query->where('notes', 'Import historique — réf. '.$legacyReference))
+                ->when($dossierId, fn ($query) => $query->where('dossier_id', $dossierId), fn ($query) => $query->where('legacy_reference', $legacyReference)->orWhere('notes', 'like', '%'.$legacyReference.'%'))
                 ->first();
-            $expectedNumber = $numbering->format((string) $city['code'], $year, $sequence);
+            $expectedNumber = $legacyReference;
 
             $mappings[] = [
                 'archiveId' => $archive?->id,
@@ -183,11 +185,62 @@ final class ReconcileLegacyArchiveNumbersCommand extends Command
                 'legacyReference' => $legacyReference,
                 'currentNumber' => $archive?->archive_number,
                 'expectedNumber' => $expectedNumber,
-                'status' => $archive === null ? 'MISSING_IMPORTED_RECORD' : ($archive->archive_number === $expectedNumber && (int) $archive->archive_sequence === $sequence ? 'ALREADY_MATCHED' : 'PENDING'),
+                'status' => $archive === null ? 'MISSING_IMPORTED_RECORD' : ($archive->archive_number === $expectedNumber ? 'ALREADY_MATCHED' : 'PENDING'),
             ];
         }
 
+        $duplicateArchiveIds = collect($mappings)
+            ->filter(fn (array $mapping) => $mapping['archiveId'] !== null)
+            ->countBy('archiveId')
+            ->filter(fn (int $count) => $count > 1)
+            ->keys()
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        foreach ($mappings as &$mapping) {
+            if (in_array((int) ($mapping['archiveId'] ?? 0), $duplicateArchiveIds, true)) {
+                $mapping['status'] = 'DUPLICATE_PROJECT_MAPPING';
+            }
+        }
+        unset($mapping);
+
         return $mappings;
+    }
+
+    private function rollback(string $path): int
+    {
+        if (! is_file($path)) {
+            $this->error('RECONCILIATION_AUDIT_NOT_FOUND');
+
+            return self::FAILURE;
+        }
+
+        $audit = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        $originals = collect($audit['updated'] ?? [])
+            ->filter(fn (array $mapping) => ! empty($mapping['archiveId']) && array_key_exists('currentNumber', $mapping))
+            ->groupBy('archiveId')
+            ->map(function ($mappings): array {
+                $numbers = $mappings->pluck('currentNumber')->filter()->unique()->values();
+                if ($numbers->count() !== 1) {
+                    throw new \RuntimeException('ROLLBACK_AMBIGUOUS_ORIGINAL_NUMBER');
+                }
+
+                return ['id' => (int) $mappings->first()['archiveId'], 'archive_number' => $numbers->first()];
+            })
+            ->values();
+
+        DB::transaction(function () use ($originals): void {
+            foreach ($originals as $original) {
+                ArchiveRecord::query()->whereKey($original['id'])->update(['archive_number' => 'ROLLBACK-TMP-'.$original['id']]);
+            }
+
+            foreach ($originals as $original) {
+                ArchiveRecord::query()->whereKey($original['id'])->update(['archive_number' => $original['archive_number'], 'legacy_reference' => null]);
+            }
+        });
+
+        $this->info('Restored '.$originals->count().' archive number(s) from the reconciliation audit.');
+
+        return self::SUCCESS;
     }
 
     /**
@@ -210,6 +263,7 @@ final class ReconcileLegacyArchiveNumbersCommand extends Command
             }
 
             $owner = ArchiveRecord::query()
+                ->withTrashed()
                 ->where('company_id', $companyId)
                 ->where('archive_number', $mapping['expectedNumber'])
                 ->first();

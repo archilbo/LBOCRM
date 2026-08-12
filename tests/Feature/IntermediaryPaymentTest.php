@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Dossier;
+use App\Models\FinanceActivityLog;
 use App\Models\FinanceDocument;
 use App\Models\Intermediary;
 use App\Models\User;
@@ -45,11 +46,27 @@ class IntermediaryPaymentTest extends TestCase
         $this->assertSame(600.0, $finance['summary']['paid']);
         $this->assertCount(3, $finance['projects']);
         $this->assertSame('no_invoice', $finance['projects']->firstWhere('invoicesCount', 0)['status']);
+        $this->assertDatabaseHas('finance_activity_logs', [
+            'company_id' => $company->id,
+            'user_id' => $user->id,
+            'subject_type' => $batch->getMorphClass(),
+            'subject_id' => $batch->id,
+            'action' => 'finance.intermediary_payment.recorded',
+        ]);
 
-        $service->cancel($batch, $intermediary, $user, 'Erreur de saisie');
+        $this->assertTrue($service->cancel($batch, $intermediary, $user, 'Erreur de saisie'));
+        $this->assertFalse($service->cancel($batch, $intermediary, $user, 'Nouvelle tentative'));
         $this->assertSame('500.00', $invoiceA->fresh()->remaining_total);
         $this->assertSame('600.00', $invoiceB->fresh()->remaining_total);
         $this->assertNotNull($batch->fresh()->cancelled_at);
+        $this->assertDatabaseHas('finance_activity_logs', [
+            'company_id' => $company->id,
+            'user_id' => $user->id,
+            'subject_type' => $batch->getMorphClass(),
+            'subject_id' => $batch->id,
+            'action' => 'finance.intermediary_payment.cancelled',
+        ]);
+        $this->assertSame(2, FinanceActivityLog::query()->where('subject_id', $batch->id)->count());
     }
 
     private function invoice(Company $company, Client $client, Dossier $dossier, string $number, int $amount, string $date): FinanceDocument

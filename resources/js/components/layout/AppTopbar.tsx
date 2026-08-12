@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Dropdown } from '@heroui/react';
 import { IconClipboardList, IconFileText, IconFolder, IconPlus, IconUserPlus } from '@tabler/icons-react';
 
 import { useTranslation } from '@/lib/i18n';
@@ -17,43 +17,36 @@ const QUICK_ACTIONS = [
 
 export function AppTopbar() {
     const { t } = useTranslation();
-    const [newOpen, setNewOpen] = useState(false);
 
     return (
-        <header className="flex h-16 shrink-0 items-center border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-3 backdrop-blur-[18px] lg:px-6">
+        <header className="relative z-[100] flex h-16 shrink-0 items-center border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-3 backdrop-blur-[18px] lg:px-6">
             <div className="flex min-w-0 flex-1 items-center gap-1.5 lg:gap-3">
                 <AppGlobalSearch />
 
                 <div className="min-w-0 flex-1" />
 
                 <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-                    <div className="relative">
-                        <button
-                            type="button"
-                            onClick={() => setNewOpen((o) => !o)}
-                            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] max-sm:hidden"
+                    <Dropdown>
+                        <Dropdown.Trigger
+                            aria-label={t('topbar.new')}
+                            className="relative z-20 flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] max-sm:hidden"
                         >
                             <IconPlus size={14} strokeWidth={2.5} />
                             <span className="hidden lg:inline">{t('topbar.new')}</span>
-                        </button>
-                        {newOpen && (
-                            <>
-                                <div className="fixed inset-0 z-40" onClick={() => setNewOpen(false)} />
-                                <div className="absolute right-0 top-full z-50 mt-1.5 w-52 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1.5 shadow-2xl shadow-black/50 backdrop-blur-sm">
-                                    {QUICK_ACTIONS.map((a) => {
-                                        const Icon = a.icon;
-                                        return (
-                                            <button key={a.labelKey} type="button" onClick={() => { setNewOpen(false); router.visit(a.href); }}
-                                                className="flex w-full items-center gap-3 px-3 py-2 text-[11px] font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-                                                <Icon size={14} className="text-[var(--text-muted)]" />
-                                                {t(a.labelKey)}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </>
-                        )}
-                    </div>
+                        </Dropdown.Trigger>
+                        <Dropdown.Popover placement="bottom end" className="z-[110] mt-1.5 w-52 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-2xl shadow-black/50 backdrop-blur-sm">
+                            <Dropdown.Menu onAction={(key) => router.visit(String(key))}>
+                                {QUICK_ACTIONS.map((action) => {
+                                    const Icon = action.icon;
+                                    return (
+                                        <Dropdown.Item key={action.href} id={action.href} textValue={t(action.labelKey)} className="rounded-lg px-2 py-2 text-[11px] font-medium text-[var(--text-muted)] data-[hovered]:bg-[var(--surface-2)] data-[hovered]:text-[var(--text)]">
+                                            <div className="flex items-center gap-3"><Icon size={14} className="text-[var(--text-muted)]" />{t(action.labelKey)}</div>
+                                        </Dropdown.Item>
+                                    );
+                                })}
+                            </Dropdown.Menu>
+                        </Dropdown.Popover>
+                    </Dropdown>
 
                     <MessagePopover />
 

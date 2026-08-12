@@ -973,6 +973,8 @@ export const en = {
             activityTypes: {
                 intermediary_updated: 'Intermediary updated',
                 client_created: 'Client added to relationship',
+                intermediary_payment_recorded: 'Intermediary payment recorded',
+                intermediary_payment_cancelled: 'Intermediary payment cancelled',
                 client_updated: 'Client updated',
                 project_created: 'Project created',
                 project_updated: 'Project updated',
@@ -2491,6 +2493,8 @@ export const en = {
             financeCancelled: '{type} {number} cancelled',
             financeConverted: 'Quote {number} converted to invoice',
             financePaymentReceived: 'Payment received for {type} {number}',
+            intermediaryPaymentRecorded: 'Payment of {amount} recorded for {name}',
+            intermediaryPaymentCancelled: 'Payment of {amount} cancelled for {name}',
             financeNumber: '{type} {number}',
             archiveOverdue: 'Archive {number} is overdue',
             archiveCheckedOut: 'Archive {number} checked out',

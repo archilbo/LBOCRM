@@ -25,6 +25,7 @@ class ArchiveRecordResource extends JsonResource
             'clientCin' => $this->dossier?->client?->cin ?? '-',
 
             'archiveNumber' => $this->archive_number,
+            'legacyReference' => $this->legacy_reference,
             'status' => $this->status,
 
             'room' => $this->room,

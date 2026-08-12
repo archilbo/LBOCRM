@@ -175,6 +175,8 @@ function activityIcon(type: IntermediaryActivityType): ReactNode {
     if (type === 'client_updated') return <IconUserCircle size={14} />;
     if (type === 'project_created') return <IconFolder size={14} />;
     if (type === 'project_updated') return <IconRefresh size={14} />;
+    if (type === 'intermediary_payment_recorded') return <IconWallet size={14} />;
+    if (type === 'intermediary_payment_cancelled') return <IconTrash size={14} />;
     return <IconPencil size={14} />;
 }
 

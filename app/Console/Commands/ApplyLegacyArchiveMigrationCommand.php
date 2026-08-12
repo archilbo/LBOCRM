@@ -15,7 +15,6 @@ use App\Services\Archive\ArchiveNumberingService;
 use App\Services\Dossiers\DossierNumberService;
 use App\Services\Finance\FinanceNumberService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -55,7 +54,7 @@ final class ApplyLegacyArchiveMigrationCommand extends Command
                     $project = trim((string) ($row['project']['raw'] ?: 'Projet non renseigné'));
                     $dossier = Dossier::query()->where($scope)->where('client_id', $client->id)->where('project_object', $project)->first();
                     if (! $dossier) { $number = $dossiers->generate(); $dossier = Dossier::create([...$scope, 'client_id' => $client->id, 'city_id' => $city->id, 'dossier_number' => $number['number'], 'sequence_number' => $number['sequence'], 'period' => $number['period'], 'project_object' => $project, 'project_address' => $row['project']['address_raw'] ?: null, 'floor_area' => is_numeric($row['project']['surface_raw']) ? $row['project']['surface_raw'] : null, 'status' => 'opened', 'workflow_step' => 'client', 'notes' => 'Import historique — réf. '.$row['legacy_archive_ref'].($row['project']['raw'] ? '' : '; projet non renseigné.')]); $audit['created_dossiers']++; }
-                    if (! ArchiveRecord::query()->where('dossier_id', $dossier->id)->exists()) { $number = $archives->reserveLegacyReference($dossier, (string) $row['legacy_archive_ref'], $sourceYear) ?? $archives->reserve($dossier, Carbon::create($sourceYear, 1, 1)); ArchiveRecord::create(['company_id' => $number['company_id'], 'city_id' => $number['city_id'], 'archive_number' => $number['number'], 'archive_year' => $number['year'], 'archive_sequence' => $number['sequence'], 'dossier_id' => $dossier->id, 'status' => 'ready_to_archive', 'notes' => 'Import historique — réf. '.$row['legacy_archive_ref']]); $audit['created_archives']++; }
+                    if (! ArchiveRecord::query()->where('dossier_id', $dossier->id)->exists()) { $number = $archives->reserveLegacyReference($dossier, (string) $row['legacy_archive_ref'], $sourceYear); ArchiveRecord::create(['company_id' => $number['company_id'], 'city_id' => $number['city_id'], 'archive_number' => $number['number'], 'legacy_reference' => trim((string) $row['legacy_archive_ref']) ?: null, 'archive_year' => $number['year'], 'archive_sequence' => $number['sequence'], 'dossier_id' => $dossier->id, 'status' => 'ready_to_archive', 'notes' => 'Import historique — réf. '.$row['legacy_archive_ref']]); $audit['created_archives']++; }
                     if (($row['cahier']['number_raw'] ?? '') !== '' && ($row['cahier']['received_at_normalized'] ?? null) !== null && ! DossierCahier::query()->where('dossier_id', $dossier->id)->exists()) { DossierCahier::create(['dossier_id' => $dossier->id, 'cahier_number' => $row['cahier']['number_raw'], 'received_at' => $row['cahier']['received_at_normalized'], 'delivered_at' => $row['cahier']['delivered_at_normalized']]); $audit['created_cahiers']++; }
                     $finance = $row['finance']; if (($finance['finance_status'] ?? '') !== 'FINANCE_READY') return;
                     $invoice = FinanceDocument::query()->where($scope)->where('dossier_id', $dossier->id)->where('type', 'invoice')->first();

@@ -17,6 +17,7 @@ class ArchiveRecord extends Model
         'company_id',
         'city_id',
         'archive_number',
+        'legacy_reference',
         'archive_year',
         'archive_sequence',
         'status',

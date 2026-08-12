@@ -26,6 +26,7 @@ export type ArchiveRecordRow = {
     clientName: string;
     clientCin: string;
     archiveNumber: string;
+    legacyReference: string | null;
     status: ArchiveStatus;
     room: string | null;
     shelf: string | null;

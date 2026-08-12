@@ -7,8 +7,10 @@ use App\Http\Requests\Finance\CancelIntermediaryPaymentRequest;
 use App\Http\Requests\Finance\StoreIntermediaryPaymentRequest;
 use App\Models\Intermediary;
 use App\Models\IntermediaryPaymentBatch;
+use App\Notifications\IntermediaryPaymentNotification;
 use App\Services\Finance\IntermediaryPaymentService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 
 class IntermediaryPaymentController extends Controller
 {
@@ -16,7 +18,8 @@ class IntermediaryPaymentController extends Controller
     {
         $this->authorize('view', $intermediary);
         $this->authorize('create', \App\Models\Payment::class);
-        $payments->record($intermediary, $request->user(), $request->validated());
+        $batch = $payments->record($intermediary, $request->user(), $request->validated());
+        DB::afterCommit(fn () => $request->user()->notify(new IntermediaryPaymentNotification($intermediary, $batch, 'intermediary_payment_recorded')));
         return back()->with('success', 'Paiement intermediaire enregistre et reparti entre les projets.');
     }
 
@@ -24,7 +27,11 @@ class IntermediaryPaymentController extends Controller
     {
         $this->authorize('view', $intermediary);
         $this->authorize('delete', \App\Models\Payment::class);
-        $payments->cancel($batch, $intermediary, $request->user(), $request->validated('cancellation_reason'));
+        $wasCancelled = $payments->cancel($batch, $intermediary, $request->user(), $request->validated('cancellation_reason'));
+        if ($wasCancelled) {
+            $batch->refresh();
+            DB::afterCommit(fn () => $request->user()->notify(new IntermediaryPaymentNotification($intermediary, $batch, 'intermediary_payment_cancelled')));
+        }
         return back()->with('success', 'Paiement intermediaire annule et montants restaures sur les factures.');
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ArchiveRecord;
+use App\Http\Resources\ArchiveRecordResource;
 use App\Models\City;
 use App\Models\Client;
 use App\Models\Company;
@@ -303,6 +304,29 @@ class ArchiveNumberingTest extends TestCase
         $this->assertSame(6, $next['sequence']);
     }
 
+    public function test_legacy_excel_reference_is_the_canonical_number_for_the_physical_archive_file(): void
+    {
+        $company = Company::factory()->create();
+        $city = $this->city('MAR');
+        $dossier = $this->dossierFor($company, $city);
+        $record = ArchiveRecord::create([
+            'dossier_id' => $dossier->id,
+            'company_id' => $company->id,
+            'city_id' => $city->id,
+            'archive_number' => 'M001',
+            'legacy_reference' => 'M001',
+            'archive_year' => 2026,
+            'archive_sequence' => 1,
+            'status' => 'stored',
+        ]);
+
+        $this->assertSame('M001', $record->archive_number);
+        $this->assertSame('M001', $record->legacy_reference);
+
+        $payload = (new ArchiveRecordResource($record->load(['dossier.client', 'dossier.city'])))->resolve();
+        $this->assertSame('M001', $payload['legacyReference']);
+    }
+
     public function test_legacy_excel_reference_preserves_its_sequence_and_advances_the_counter(): void
     {
         Carbon::setTestNow('2026-06-01 10:00:00');
@@ -314,13 +338,22 @@ class ArchiveNumberingTest extends TestCase
         $legacy = DB::transaction(fn () => $this->service()->reserveLegacyReference($dossier, 'BG226', 2026));
 
         $this->assertNotNull($legacy);
-        $this->assertSame('BNG-2026-0226', $legacy['number']);
+        $this->assertSame('BG226', $legacy['number']);
         $this->assertSame(226, $legacy['sequence']);
 
         $next = DB::transaction(fn () => $this->service()->reserve($dossier));
 
         $this->assertSame('BNG-2026-0227', $next['number']);
         $this->assertSame(227, $next['sequence']);
+    }
+
+    public function test_legacy_excel_reference_is_never_silently_replaced_with_an_automatic_number(): void
+    {
+        $company = Company::factory()->create();
+        $dossier = $this->dossierFor($company, $this->city('MAR'));
+
+        $this->expectException(\App\Services\Archive\ArchiveNumberingException::class);
+        DB::transaction(fn () => $this->service()->reserveLegacyReference($dossier, 'ARCHIVE-SANS-SEQUENCE', 2026));
     }
 
     public function test_year_comes_from_server_date_not_client_input(): void

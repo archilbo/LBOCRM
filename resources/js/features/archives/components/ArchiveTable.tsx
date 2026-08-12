@@ -115,7 +115,7 @@ export function ArchiveTable({
         {
             id: 'arc',
             label: <SortHeader label={t('table.arc')} sortKey="archive_number" sort={sort} onSortChange={onSortChange} />,
-            render: (record) => <span className="text-[12px] text-[var(--crm-text)] whitespace-nowrap">{formatArchiveNumber(record.archiveNumber)}</span>,
+            render: (record) => <span className="block whitespace-nowrap"><span className="block text-[12px] text-[var(--crm-text)]">{formatArchiveNumber(record.archiveNumber)}</span>{record.legacyReference && record.legacyReference !== record.archiveNumber ? <span className="mt-0.5 block text-[10px] text-[var(--crm-text-muted)]">Excel : {record.legacyReference}</span> : null}</span>,
         },
         {
             id: 'project',

@@ -2,6 +2,7 @@
 
 namespace App\Services\Archive;
 
+use App\Models\ArchiveRecord;
 use App\Models\Dossier;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -42,23 +43,49 @@ class ArchiveNumberingService
     }
 
     /**
-     * Reserve the original sequence from a legacy Excel reference such as BG226.
+     * Reserve an exact legacy Excel reference such as BG226.
+     *
+     * Historical physical files are labelled with this identifier, so it must
+     * remain the canonical archive number instead of being reformatted.
      * Call inside the same transaction that creates its ArchiveRecord.
      *
-     * @return array{number:string, year:int, sequence:int, company_id:int, city_id:int}|null
+     * @return array{number:string, year:int, sequence:int, company_id:int, city_id:int}
      */
     public function reserveLegacyReference(Dossier $dossier, string $reference, int $year): ?array
     {
+        $reference = trim($reference);
         $sequence = $this->legacySequence($reference);
         if ($sequence === null) {
-            return null;
+            throw new ArchiveNumberingException("Le numéro d'archive historique {$reference} est invalide.");
         }
 
         $scope = $this->scope($dossier, $year);
+        $existingNumber = ArchiveRecord::query()
+            ->where('company_id', $scope['companyId'])
+            ->where('archive_number', $reference)
+            ->lockForUpdate()
+            ->exists();
+
+        if ($existingNumber) {
+            throw new ArchiveNumberingException("Le numéro d'archive historique {$reference} existe déjà dans cette société.");
+        }
+
+        $existingSequence = ArchiveRecord::query()
+            ->where('company_id', $scope['companyId'])
+            ->where('city_id', $scope['cityId'])
+            ->where('archive_year', $year)
+            ->where('archive_sequence', $sequence)
+            ->lockForUpdate()
+            ->exists();
+
+        if ($existingSequence) {
+            throw new ArchiveNumberingException("La séquence historique {$reference} est déjà attribuée dans cette ville pour cette année.");
+        }
+
         $this->ensureSequenceAtLeast($scope['companyId'], $scope['cityId'], $year, $sequence);
 
         return [
-            'number' => $this->format($scope['cityCode'], $year, $sequence),
+            'number' => $reference,
             'year' => $year,
             'sequence' => $sequence,
             'company_id' => $scope['companyId'],

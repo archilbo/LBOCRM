@@ -102,6 +102,7 @@ class ArchiveController extends Controller
             $like = '%' . $q . '%';
             $query->where(function ($qry) use ($q, $like) {
                 $qry->where('archive_number', 'like', $like)
+                    ->orWhere('legacy_reference', 'like', $like)
                     ->orWhere('room', 'like', $like)
                     ->orWhere('shelf', 'like', $like)
                     ->orWhere('box', 'like', $like)

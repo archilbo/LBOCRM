@@ -134,6 +134,8 @@ export const frIntermediaries = {
             activityTypes: {
                 intermediary_updated: 'Intermédiaire mis à jour',
                 client_created: 'Client ajouté à la relation',
+                intermediary_payment_recorded: 'Paiement intermédiaire enregistré',
+                intermediary_payment_cancelled: 'Paiement intermédiaire annulé',
                 client_updated: 'Client mis à jour',
                 project_created: 'Projet créé',
                 project_updated: 'Projet mis à jour',

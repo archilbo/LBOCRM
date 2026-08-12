@@ -13,7 +13,11 @@ use Illuminate\Validation\ValidationException;
 
 class IntermediaryPaymentService
 {
-    public function __construct(private readonly FinanceContextService $context, private readonly PaymentLedgerService $ledger) {}
+    public function __construct(
+        private readonly FinanceContextService $context,
+        private readonly PaymentLedgerService $ledger,
+        private readonly FinanceActivityService $activity,
+    ) {}
 
     public function record(Intermediary $intermediary, User $user, array $data): IntermediaryPaymentBatch
     {
@@ -49,20 +53,34 @@ class IntermediaryPaymentService
                 $unallocated = round($unallocated - $allocation, 2);
             }
 
+            $this->activity->log($batch, $user, 'finance.intermediary_payment.recorded', [], [
+                'intermediary_id' => $intermediary->id,
+                'amount' => $batch->amount,
+                'allocations_count' => $batch->allocations()->count(),
+            ]);
+
             return $batch->fresh(['allocations']);
         });
     }
 
-    public function cancel(IntermediaryPaymentBatch $batch, Intermediary $intermediary, User $user, ?string $reason): void
+    public function cancel(IntermediaryPaymentBatch $batch, Intermediary $intermediary, User $user, ?string $reason): bool
     {
-        DB::transaction(function () use ($batch, $intermediary, $user, $reason) {
+        return DB::transaction(function () use ($batch, $intermediary, $user, $reason) {
             $batch = $this->context->apply(IntermediaryPaymentBatch::query(), $user)
                 ->where('intermediary_id', $intermediary->id)->with('allocations.payment')->lockForUpdate()->findOrFail($batch->id);
-            if ($batch->cancelled_at) return;
+            if ($batch->cancelled_at) return false;
+            $old = $batch->only(['cancelled_at', 'cancelled_by', 'cancellation_reason']);
             foreach ($batch->allocations as $allocation) {
                 if ($allocation->payment) $this->ledger->deletePayment($allocation->payment, $user, $reason);
             }
             $batch->update(['cancelled_at' => now(), 'cancelled_by' => $user->id, 'cancellation_reason' => $reason]);
+            $this->activity->log($batch, $user, 'finance.intermediary_payment.cancelled', $old, [
+                ...$batch->only(['cancelled_at', 'cancelled_by', 'cancellation_reason']),
+                'intermediary_id' => $intermediary->id,
+                'amount' => $batch->amount,
+            ]);
+
+            return true;
         });
     }
 
@@ -75,7 +93,7 @@ class IntermediaryPaymentService
             ->get();
         $invoices = $this->allInvoices($intermediary, $user)->groupBy('dossier_id');
         $batches = $this->context->apply(IntermediaryPaymentBatch::query(), $user)->where('intermediary_id', $intermediary->id)
-            ->with(['allocations.dossier:id,dossier_number,project_object', 'allocations.document:id,number', 'creator:id,name'])->latest('paid_at')->latest('id')->get();
+            ->with(['allocations.dossier:id,dossier_number,project_object', 'allocations.document:id,number', 'allocations.payment.receiptDocument:id,number', 'creator:id,name'])->latest('paid_at')->latest('id')->get();
         return [
             'currency' => FinanceSettingsService::getCurrency(),
             'summary' => ['invoiced' => (float) $invoices->flatten()->sum('total_ttc'), 'paid' => (float) $invoices->flatten()->sum('paid_total'), 'remaining' => (float) $invoices->flatten()->sum('remaining_total'), 'projectsCount' => $projects->count()],
@@ -86,7 +104,7 @@ class IntermediaryPaymentService
                 $remaining = (float) $projectInvoices->sum('remaining_total');
                 return ['id' => $project->id, 'number' => $project->dossier_number, 'name' => $project->project_object, 'clientName' => $project->client?->full_name, 'invoicesCount' => $projectInvoices->count(), 'total' => $total, 'paid' => $paid, 'remaining' => $remaining, 'status' => $projectInvoices->isEmpty() ? 'no_invoice' : ($remaining <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'))];
             })->values(),
-            'batches' => $batches->map(fn (IntermediaryPaymentBatch $b) => ['id' => $b->id, 'amount' => (float) $b->amount, 'paidAt' => $b->paid_at?->format('Y-m-d'), 'method' => $b->method, 'reference' => $b->reference, 'cancelledAt' => $b->cancelled_at?->toIso8601String(), 'canCancel' => ! $b->cancelled_at, 'allocations' => $b->allocations->map(fn ($a) => ['id' => $a->id, 'amount' => (float) $a->amount, 'invoiceNumber' => $a->document?->number, 'projectName' => $a->dossier?->project_object ?: $a->dossier?->dossier_number])->values()])->values(),
+            'batches' => $batches->map(fn (IntermediaryPaymentBatch $b) => ['id' => $b->id, 'amount' => (float) $b->amount, 'paidAt' => $b->paid_at?->format('Y-m-d'), 'method' => $b->method, 'reference' => $b->reference, 'cancelledAt' => $b->cancelled_at?->toIso8601String(), 'canCancel' => ! $b->cancelled_at, 'allocations' => $b->allocations->map(fn ($a) => ['id' => $a->id, 'amount' => (float) $a->amount, 'invoiceNumber' => $a->document?->number, 'projectName' => $a->dossier?->project_object ?: $a->dossier?->dossier_number, 'receiptUrl' => $a->payment?->receiptDocument ? route('finance.documents.view', $a->payment->receiptDocument) : null])->values()])->values(),
         ];
     }
 

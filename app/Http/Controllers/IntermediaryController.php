@@ -8,7 +8,9 @@ use App\Http\Resources\IntermediaryResource;
 use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Dossier;
+use App\Models\FinanceActivityLog;
 use App\Models\Intermediary;
+use App\Models\IntermediaryPaymentBatch;
 use App\Services\CompanyContext;
 use App\Services\Finance\IntermediaryPaymentService;
 use App\Services\PermissionRegistry;
@@ -156,7 +158,7 @@ class IntermediaryController extends Controller
             'projectStatusBreakdown' => $projectStatusBreakdown,
             'clients' => $clientsList,
             'projects' => $projectsList,
-            'activity' => $this->relationshipActivity($intermediary, $clients, $projects),
+            'activity' => $this->relationshipActivity($intermediary, $clients, $projects, $request->user(), $canViewFinance),
             'finance' => $canViewFinance ? $intermediaryPayments->data($intermediary, $request->user()) : [
                 'currency' => 'MAD',
                 'summary' => ['invoiced' => 0, 'paid' => 0, 'remaining' => 0, 'projectsCount' => 0],
@@ -301,6 +303,8 @@ class IntermediaryController extends Controller
         Intermediary $intermediary,
         Collection $clients,
         Collection $projects,
+        \App\Models\User $user,
+        bool $includeFinance,
     ): Collection {
         $activity = collect();
 
@@ -366,6 +370,31 @@ class IntermediaryController extends Controller
                     occurredAt: $project->updated_at,
                     href: route('dossiers.show', $project, false),
                     causerName: $this->causerFor(Dossier::class, $project->id),
+                ));
+            }
+        }
+
+        if ($includeFinance) {
+            $paymentActivities = FinanceActivityLog::query()
+                ->where('company_id', $user->company_id)
+                ->when($user->branch_id, fn (Builder $query) => $query->where('branch_id', $user->branch_id))
+                ->where('subject_type', (new IntermediaryPaymentBatch())->getMorphClass())
+                ->whereJsonContains('new_values->intermediary_id', $intermediary->id)
+                ->with('user:id,name')
+                ->latest()
+                ->get()
+                ->take(40);
+
+            foreach ($paymentActivities as $log) {
+                $amount = $log->new_values['amount'] ?? null;
+                $activity->push($this->activityItem(
+                    id: "finance-activity-{$log->id}",
+                    type: $log->action === 'finance.intermediary_payment.cancelled' ? 'intermediary_payment_cancelled' : 'intermediary_payment_recorded',
+                    subjectName: 'Paiement intermédiaire',
+                    subjectCode: is_numeric($amount) ? number_format((float) $amount, 2, ',', ' ').' MAD' : null,
+                    occurredAt: $log->created_at,
+                    href: route('intermediaries.show', $intermediary, false).'?tab=finance',
+                    causerName: $log->user?->name,
                 ));
             }
         }

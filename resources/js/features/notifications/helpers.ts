@@ -39,6 +39,8 @@ export const ACTION_LABELS: Record<string, string> = {
     cancelled: 'notifications.actions.cancelled',
     converted: 'notifications.actions.converted',
     payment_received: 'notifications.actions.payment_received',
+    intermediary_payment_recorded: 'notifications.actions.intermediary_payment_recorded',
+    intermediary_payment_cancelled: 'notifications.actions.intermediary_payment_cancelled',
     checked_out: 'notifications.actions.checked_out',
     returned: 'notifications.actions.returned',
 };
@@ -51,7 +53,7 @@ export function getNotificationModule(n: NotificationRow): NotificationModule {
     if (type === 'CalendarEventNotification' || data.calendar_event_id || data.event_number) return 'calendar';
     if (type === 'DocumentNotification' || data.document_number) return 'documents';
     if (type === 'ContractNotification' || data.contract_number) return 'contracts';
-    if (type === 'FinanceDocumentNotification' || data.finance_number) return 'finance';
+    if (type === 'FinanceDocumentNotification' || type === 'IntermediaryPaymentNotification' || data.finance_number || data.intermediary_id) return 'finance';
     if (data.finance_document_id || data.finance_number) return 'finance';
     if (type === 'ArchiveOverdueNotification' || data.archive_record_id || data.archive_number) return 'archives';
     if (data.suggestion) return 'system';
@@ -67,7 +69,7 @@ export function getNotificationSeverity(n: NotificationRow, module: Notification
     if (action === 'overdue') return 'urgent';
     if (action === 'blocked') return 'warning';
     if (action === 'completed' || action === 'accepted') return 'success';
-    if (action === 'payment_received') return 'success';
+    if (action === 'payment_received' || action === 'intermediary_payment_recorded') return 'success';
     if (action === 'generated') return 'success';
     if (action === 'signed') return 'success';
     if (action === 'returned') return 'success';
@@ -109,6 +111,8 @@ const BODY_KEYS: Record<string, string | null> = {
     'finance.cancelled': 'notifications.bodies.financeCancelled',
     'finance.converted': 'notifications.bodies.financeConverted',
     'finance.payment_received': 'notifications.bodies.financePaymentReceived',
+    'finance.intermediary_payment_recorded': 'notifications.bodies.intermediaryPaymentRecorded',
+    'finance.intermediary_payment_cancelled': 'notifications.bodies.intermediaryPaymentCancelled',
     'finance.number': 'notifications.bodies.financeNumber',
     'archives.overdue': 'notifications.bodies.archiveOverdue',
     'archives.checked_out': 'notifications.bodies.archiveCheckedOut',
@@ -185,6 +189,16 @@ export function getNotificationText(n: NotificationRow): NotificationText {
         };
     }
 
+    if (type === 'IntermediaryPaymentNotification') {
+        values.name = (data.intermediary_name as string) || '—';
+        values.amount = new Intl.NumberFormat(undefined, { style: 'currency', currency: (data.currency as string) || 'MAD' }).format(Number(data.amount || 0));
+        return {
+            title: actionTitle || 'notifications.defaults.financeUpdate',
+            body: BODY_KEYS[`finance.${action}`] ?? null,
+            values,
+        };
+    }
+
     if (type === 'ArchiveOverdueNotification') {
         values.number = (data.archive_number as string) || String((data.archive_record_id as number) || '');
         return {
@@ -226,6 +240,7 @@ export function getNotificationEntity(n: NotificationRow): { label: string | nul
     if (docNumber) return { label: docNumber, type: 'document', id: (data.document_id as number) || null };
     if (archiveNumber) return { label: archiveNumber, type: 'archive', id: (data.archive_record_id as number) || null };
     if (data.conversation_id) return { label: 'Conversation', type: 'chat', id: (data.conversation_id as number) || null };
+    if (data.intermediary_id) return { label: (data.intermediary_name as string) || 'Intermédiaire', type: 'intermediary', id: (data.intermediary_id as number) || null };
     if (data.dossier_id) return { label: 'Dossier', type: 'dossier', id: (data.dossier_id as number) || null };
 
     return { label: null, type: null, id: null };

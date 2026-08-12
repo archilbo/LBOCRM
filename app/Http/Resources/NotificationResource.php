@@ -12,7 +12,9 @@ class NotificationResource extends JsonResource
         $data = $this->data;
 
         $actionUrl = null;
-        if (isset($data['task_id'])) {
+        if (isset($data['intermediary_id'])) {
+            $actionUrl = "/intermediaries/{$data['intermediary_id']}";
+        } elseif (isset($data['task_id'])) {
             $actionUrl = "/tasks/{$data['task_id']}";
         } elseif (isset($data['conversation_id'])) {
             $actionUrl = '/inbox';

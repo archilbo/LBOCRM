@@ -66,7 +66,9 @@ export type IntermediaryActivityType =
     | 'client_created'
     | 'client_updated'
     | 'project_created'
-    | 'project_updated';
+    | 'project_updated'
+    | 'intermediary_payment_recorded'
+    | 'intermediary_payment_cancelled';
 
 export type IntermediaryActivityItem = {
     id: string;
@@ -106,4 +108,4 @@ export type IntermediaryShowProps = {
     financeCapabilities: { view: boolean; create: boolean; reverse: boolean };
 };
 
-export type IntermediaryFinance = { currency: string; summary: { invoiced: number; paid: number; remaining: number; projectsCount: number }; projects: { id: number; number: string; name: string | null; clientName: string | null; invoicesCount: number; total: number; paid: number; remaining: number; status: 'no_invoice' | 'paid' | 'partial' | 'unpaid' }[]; batches: { id: number; amount: number; paidAt: string | null; method: string | null; reference: string | null; cancelledAt: string | null; canCancel: boolean; allocations: { id: number; amount: number; invoiceNumber: string | null; projectName: string | null }[] }[] };
+export type IntermediaryFinance = { currency: string; summary: { invoiced: number; paid: number; remaining: number; projectsCount: number }; projects: { id: number; number: string; name: string | null; clientName: string | null; invoicesCount: number; total: number; paid: number; remaining: number; status: 'no_invoice' | 'paid' | 'partial' | 'unpaid' }[]; batches: { id: number; amount: number; paidAt: string | null; method: string | null; reference: string | null; cancelledAt: string | null; canCancel: boolean; allocations: { id: number; amount: number; invoiceNumber: string | null; projectName: string | null; receiptUrl: string | null }[] }[] };
