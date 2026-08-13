@@ -188,7 +188,6 @@ export function ArchiveTable({
                             <Dropdown.Popover placement="bottom end" className="min-w-36 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] p-1 shadow-xl">
                                 <Dropdown.Menu
                                     aria-label={t('table.actions')}
-                                    itemClasses={{ base: 'rounded-lg px-2 py-1 text-[11px] font-medium text-[var(--crm-text)]/80 transition data-[hover]:bg-[var(--crm-gold)]/10' }}
                                 >
                                     {onCheckoutSingle ? (
                                         <Dropdown.Item key="checkout" textValue={t('table.checkout')} onAction={() => onCheckoutSingle?.(record)}>

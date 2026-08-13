@@ -7,7 +7,7 @@ import {
 } from 'react-aria-components';
 import { cn } from '@/lib/cn';
 
-type AppCompactTabsProps = Omit<TabsProps<object>, 'children'> & {
+type AppCompactTabsProps = Omit<TabsProps, 'children'> & {
     tabs: { id: string; label: string }[];
     children: React.ReactNode;
 };

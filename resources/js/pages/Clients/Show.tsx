@@ -70,7 +70,7 @@ type PageProps = {
     financeTemplates: TemplateOption[];
     financeSettings: FinanceSettings;
     architectFeeOptions: ArchitectFeeOption[];
-    cities: { id: number; name: string }[];
+    cities: { id: number; name: string; code?: string; color?: string }[];
     tab?: string;
 };
 
@@ -227,7 +227,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
     const activeProjects = projects.filter((p) => p.status === 'opened' || p.status === 'active').length;
     const totalDocuments = workspace?.explorer?.documents?.length ?? selectedProject?.documents?.length ?? dossiers.length;
 
-    function openDocumentWindow(url: string | null, unavailableMessage: string) {
+    function openDocumentWindow(url: string | null | undefined, unavailableMessage: string) {
         if (!url) {
             toast.error(unavailableMessage);
             return;
@@ -308,7 +308,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                 setProjectDrawerOpen(false);
                 setProjectFormErrors({});
                 toast.success(t('clients.show.projectCreated'));
-                router.reload({ only: ['dossiers', 'workspace'], preserveScroll: true });
+                router.reload({ only: ['dossiers', 'workspace'] });
             },
             onError: (errors) => {
                 setProjectFormErrors(errors as FormErrors);
@@ -319,7 +319,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
 
 
     function afterCreateReload() {
-        router.reload({ only: ['dossiers', 'workspace'], preserveScroll: true });
+        router.reload({ only: ['dossiers', 'workspace'] });
     }
 
     function openFinanceCreate(type: FinanceDocumentType) {
@@ -434,11 +434,11 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
     const contractClients: ContractClientOption[] = useMemo(() => [{
         id: String(client.id),
         fullName: client.fullName,
-        cin: client.cin,
+        cin: client.cin ?? '',
         dossiers: dossiers.map((d) => ({
             id: String(d.id),
             label: d.dossierNumber,
-            floorArea: d.floorArea ?? null,
+            floorArea: d.floorArea ?? undefined,
             hasContract: !!workspace.selectedProject?.contract && String(workspace.selectedProject.id) === String(d.id),
         })),
     }], [client, dossiers, workspace.selectedProject]);
@@ -447,7 +447,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
         dossiers.map((d) => ({
             id: String(d.id),
             label: d.dossierNumber,
-            floorArea: d.floorArea ?? null,
+            floorArea: d.floorArea ?? undefined,
             hasContract: !!workspace.selectedProject?.contract && String(workspace.selectedProject.id) === String(d.id),
         })),
     [dossiers, workspace.selectedProject]);
@@ -935,10 +935,10 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                                 <div className="mt-2">
                                                     <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--text-muted)]">
                                                         <span className="truncate">{t('clients.show.workflowProgress')}</span>
-                                                        <span>{selectedProject.workflow.percent}%</span>
+                                                        <span>{selectedProject.workflow?.percent ?? 0}%</span>
                                                     </div>
                                                     <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-3)]">
-                                                        <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${selectedProject.workflow.percent}%` }} />
+                                                        <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${selectedProject.workflow?.percent ?? 0}%` }} />
                                                     </div>
                                                 </div>
                                             ) : (
@@ -1295,7 +1295,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     dossier={null}
                     clients={[{ id: String(client.id), label: client.fullName }]}
                     intermediaries={intermediaries}
-                    cities={cities}              // ← add this, wherever the page's city list comes from
+                    cities={cities.map((city) => ({ ...city, code: city.code ?? '', color: city.color ?? '' }))}
                     initialClientId={String(client.id)}
                     onOpenChange={setProjectDrawerOpen}
                     onSubmit={handleProjectSubmit}
@@ -1397,7 +1397,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     </p>
                     {deleteTarget && deleteTarget.projectsCount > 0 ? (
                         <div className="mb-4 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/5 px-3 py-2 text-[11px] text-[var(--danger)]">
-                            {t('clients.deleteHasProjects', 'This client has {count} linked project(s). Deleting will remove them all.', { count: String(deleteTarget.projectsCount) })}
+                            {t('clients.deleteHasProjects', { count: String(deleteTarget.projectsCount) })}
                         </div>
                     ) : null}
                     <div className="flex justify-end gap-2">

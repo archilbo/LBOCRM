@@ -35,3 +35,5 @@ tessdata/
 /storage/tus
 *.bak*
 /deployment
+*.ps1*
+*.sql*

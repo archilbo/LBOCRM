@@ -32,7 +32,7 @@ export function DashboardWorkflowDonut({ steps }: Props) {
                     <PieChart>
                         <Tooltip
                             contentStyle={{ borderColor: 'var(--border)', background: 'var(--surface)', borderRadius: 12, fontSize: 12 }}
-                            formatter={(value: number) => [t('dashboard.chart.dossierCount', { count: value }), '']}
+                            formatter={(value) => t('dashboard.chart.dossierCount', { count: Number(value) })}
                         />
                         <Pie data={activeSteps} dataKey="count" nameKey="label" innerRadius={43} outerRadius={61} paddingAngle={3} stroke="none">
                             {activeSteps.map((step, index) => <Cell key={step.key} fill={COLORS[index % COLORS.length]} />)}

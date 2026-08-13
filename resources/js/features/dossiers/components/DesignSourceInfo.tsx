@@ -38,20 +38,19 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                         Review Assets
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                        <Chip size="sm" variant="flat" color="default" startContent={<IconDatabase size={12} />}>
-                            Source {asset.extension.toUpperCase()}
+                        <Chip size="sm" variant="soft" color="default">
+                            <IconDatabase size={12} /> Source {asset.extension.toUpperCase()}
                         </Chip>
                         {reviewAssets.map((ra) => (
                             <Chip
                                 key={ra.id}
                                 size="sm"
-                                variant="flat"
-                                color={ra.mimeType === 'application/pdf' ? 'primary' : 'default'}
-                                startContent={ra.mimeType === 'application/pdf' ? <IconFileText size={12} /> : <IconPhoto size={12} />}
+                                variant="soft"
+                                color={ra.mimeType === 'application/pdf' ? 'accent' : 'default'}
                                 onClick={() => onOpenReviewAsset?.(ra)}
                                 className="cursor-pointer transition hover:opacity-80"
                             >
-                                {ra.originalFilename}
+                                {ra.mimeType === 'application/pdf' ? <IconFileText size={12} /> : <IconPhoto size={12} />} {ra.originalFilename}
                             </Chip>
                         ))}
                     </div>
@@ -68,18 +67,18 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                         <h3 className="text-base font-semibold text-[var(--foreground)]">{cap?.label ?? asset.extension.toUpperCase()}</h3>
                         <p className="mt-0.5 truncate text-[12px] text-[var(--text-muted)]">{asset.originalFilename}</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                            <Chip size="sm" variant="flat" color="default" startContent={<IconDatabase size={11} />}>
-                                Source stored
+                            <Chip size="sm" variant="soft" color="default">
+                                <IconDatabase size={11} /> Source stored
                             </Chip>
-                            <Chip size="sm" variant="flat" color="warning" startContent={<IconFileAlert size={11} />}>
-                                Desktop editing required
+                            <Chip size="sm" variant="soft" color="warning">
+                                <IconFileAlert size={11} /> Desktop editing required
                             </Chip>
-                            <Chip size="sm" variant="flat" color="danger" startContent={<IconShield size={11} />}>
-                                Browser preview unavailable
+                            <Chip size="sm" variant="soft" color="danger">
+                                <IconShield size={11} /> Browser preview unavailable
                             </Chip>
                             {hasReviewAssets && (
-                                <Chip size="sm" variant="flat" color="success" startContent={<IconFileText size={11} />}>
-                                    {reviewAssets.some(a => a.mimeType === 'application/pdf') ? 'PDF review available' : 'Review available'}
+                                <Chip size="sm" variant="soft" color="success">
+                                    <IconFileText size={11} /> {reviewAssets.some(a => a.mimeType === 'application/pdf') ? 'PDF review available' : 'Review available'}
                                 </Chip>
                             )}
                         </div>
@@ -108,22 +107,20 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                     {asset.downloadUrl ? (
                         <Button
                             size="sm"
-                            variant="bordered"
-                            startContent={<IconDownload size={14} />}
+                            variant="outline"
                         >
                             <a href={asset.downloadUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
-                                IconDownload Source
+                                <IconDownload size={14} /> IconDownload Source
                             </a>
                         </Button>
                     ) : null}
                     {onUploadDerivative && (
                         <Button
                             size="sm"
-                            variant="bordered"
-                            startContent={<IconArrowUpFromArc size={14} />}
+                            variant="outline"
                             onPress={onUploadDerivative}
                         >
-                            Upload Review Asset
+                            <IconArrowUpFromArc size={14} /> Upload Review Asset
                         </Button>
                     )}
                 </div>
@@ -143,13 +140,13 @@ export function DesignSourceInfo({ asset, fileMeta, reviewAssets, onUploadDeriva
                     <MetaRow
                         icon={<IconShield size={12} />}
                         label="Scan status"
-                        value={<Chip size="sm" variant="flat" color={scanColor as any} className="h-5 text-[9px]">{scanLabel}</Chip>}
+                        value={<Chip size="sm" variant="soft" color={scanColor} className="h-5 text-[9px]">{scanLabel}</Chip>}
                     />
                     {asset.conversionStatus && (
                         <MetaRow
                             icon={<IconClock size={12} />}
                             label="Conversion"
-                            value={<Chip size="sm" variant="flat" color={asset.conversionStatus === 'ready' ? 'success' : 'warning'} className="h-5 text-[9px]">{asset.conversionStatus}</Chip>}
+                            value={<Chip size="sm" variant="soft" color={asset.conversionStatus === 'ready' ? 'success' : 'warning'} className="h-5 text-[9px]">{asset.conversionStatus}</Chip>}
                         />
                     )}
                 </div>

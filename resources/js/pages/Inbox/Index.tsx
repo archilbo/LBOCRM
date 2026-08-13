@@ -31,6 +31,13 @@ type PageProps = {
 type InboxEventPayload = { conversation?: ConversationRow; eventType?: string; conversationId?: number };
 type MessageEventPayload = { message?: MessageRow; messageId?: number; conversationId?: number };
 type MessagesReadPayload = { conversationId?: number; userId?: number; lastReadMessageId?: number };
+type MessagePaginator = Required<Paginator>;
+
+function messagePaginator(paginator: Paginator | undefined, messageCount: number): MessagePaginator | null {
+    if (!paginator) return null;
+
+    return { ...paginator, perPage: paginator.perPage ?? messageCount };
+}
 
 function playMessageSound() {
     try {
@@ -108,7 +115,7 @@ function upsertMessages(prev: MessageRow[], incoming: MessageRow[]) {
 
 export default function InboxIndex({ conversations: _conversations, users, currentUserId: pageCurrentUserId, unreadCount: _unreadCount, conversationPaginator: initialConversationPaginator, companyId }: PageProps) {
     const { t } = useTranslation();
-    const authUser = (usePage().props.auth?.user as { id: number; name: string } | undefined) || { id: 0, name: '' };
+    const authUser = ((usePage().props as { auth?: { user?: { id: number; name: string } } }).auth?.user) || { id: 0, name: '' };
     const currentUserId = pageCurrentUserId || authUser.id;
     const onlineUserIds = useInboxPresence(companyId);
     const realtimeState = useRealtimeConnection();
@@ -119,7 +126,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
     const [messages, setMessages] = useState<MessageRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [loadingOlder, setLoadingOlder] = useState(false);
-    const [paginator, setPaginator] = useState<{ currentPage: number; lastPage: number; perPage: number; total: number } | null>(null);
+    const [paginator, setPaginator] = useState<MessagePaginator | null>(null);
     const [newConvOpen, setNewConvOpen] = useState(false);
     const [newConvForm, setNewConvForm] = useState<NewConvFormData>({ type: 'direct', user_ids: [], subject: '', category: 'general', custom_category: '' });
     const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -409,7 +416,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             .then((data) => {
                 if (selectedConvRef.current?.id !== conv.id) return;
                 setMessages(upsertMessages([], (data.messages || []).reverse()));
-                setPaginator(data.paginator || null);
+                setPaginator(messagePaginator(data.paginator, data.messages.length));
                 setConversations((prev) => prev.map((c) =>
                     c.id === conv.id ? { ...c, unreadCount: 0 } : c
                 ));
@@ -429,7 +436,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             .then((data) => {
                 if (selectedConvRef.current?.id !== conversationId) return;
                 setMessages((prev) => upsertMessages(prev, (data.messages || []).reverse()));
-                setPaginator(data.paginator || null);
+                setPaginator(messagePaginator(data.paginator, data.messages.length));
             })
             .catch(() => toast.error(t('inbox.toast.loadOlderError')))
             .finally(() => setLoadingOlder(false));
@@ -616,7 +623,11 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                             onSearchChange={setSearch}
                             onSelect={openConversation}
                             activeTab={convTab}
-                            onTabChange={setConvTab}
+                            onTabChange={(tab) => {
+                                if (tab === 'active' || tab === 'archived' || tab === 'unread' || tab === 'direct' || tab === 'groups') {
+                                    setConvTab(tab);
+                                }
+                            }}
                             onArchiveToggle={toggleArchive}
                             currentUserId={currentUserId}
                             onNewConversation={() => { setFormErrors({}); setNewConvOpen(true); }}

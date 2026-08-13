@@ -162,11 +162,11 @@ export default function FinanceTemplatesIndex({
 
     // Debounce preview (400ms)
     const [previewHtml, setPreviewHtml] = useState(rawPreviewHtml);
-    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => {
-        clearTimeout(debounceRef.current);
+        if (debounceRef.current !== null) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => setPreviewHtml(rawPreviewHtml), 400);
-        return () => clearTimeout(debounceRef.current);
+        return () => { if (debounceRef.current !== null) clearTimeout(debounceRef.current); };
     }, [rawPreviewHtml]);
 
     useEffect(() => {
@@ -302,7 +302,7 @@ export default function FinanceTemplatesIndex({
             toast.error(validation.errors[0]);
             return;
         }
-        router.put(draft.urls.update, templatePayload(draft), {
+        router.put(draft.urls.update, templatePayload(draft) as never, {
             preserveScroll: true,
             onStart: () => setSaving(true),
             onSuccess: () => toast.success('Template saved.'),

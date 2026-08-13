@@ -356,8 +356,8 @@ export default function FinanceTemplateVersions({ template, versions, routes }: 
                 >
                     <p className="mb-5 text-sm text-[var(--text-muted)]">
                         {actionTarget?.action === 'restore'
-                            ? <>Restore version <strong>#{actionTarget.version.versionNumber}</strong>? Current template will be saved as a new version before restore.</>
-                            : <>Delete version <strong>#{actionTarget.version.versionNumber}</strong>? This action cannot be undone.</>
+                            ? <>Restore version <strong>#{actionTarget?.version.versionNumber}</strong>? Current template will be saved as a new version before restore.</>
+                            : <>Delete version <strong>#{actionTarget?.version.versionNumber}</strong>? This action cannot be undone.</>
                         }
                     </p>
                     <div className="flex justify-end gap-2">

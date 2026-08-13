@@ -7,7 +7,7 @@ import {
     useState,
 } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import type { PDFPageProxy } from 'pdfjs-dist';
+import type { PageCallback } from 'react-pdf/dist/shared/types.js';
 import { IconChevronLeft, IconChevronRight, IconDownload, IconFileAlert, IconLoader2 } from '@tabler/icons-react';
 
 import { Button, Input, Tooltip } from '@heroui/react';
@@ -49,7 +49,7 @@ const PdfPageCanvas = memo(function PdfPageCanvas({
     pageNumber: number;
     renderScale: number;
     rotation: number;
-    onRenderSuccess: (page: PDFPageProxy) => void;
+    onRenderSuccess: (page: PageCallback) => void;
 }) {
     return (
         <Page
@@ -219,7 +219,7 @@ export default function PdfDesignViewer({
         }
     }, [controlledPageNumber, onPageChange, onTotalPages]);
 
-    const handlePageRenderSuccess = useCallback((page: PDFPageProxy) => {
+    const handlePageRenderSuccess = useCallback((page: PageCallback) => {
         const viewport = page.getViewport({ scale: 1, rotation: 0 });
         const metrics = { width: viewport.width, height: viewport.height };
         pageMetricsRef.current = metrics;

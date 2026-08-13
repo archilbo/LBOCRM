@@ -97,10 +97,10 @@ export function ExpenseDrawer({ isOpen, onOpenChange, expense, mode = expense ? 
             description={isViewOnly ? '' : 'Enregistrez une dépense.'}
             footer={
                 isViewOnly
-                    ? <Button variant="light" size="sm" onPress={() => onOpenChange(false)}>Fermer</Button>
+                    ? <Button variant="ghost" size="sm" onPress={() => onOpenChange(false)}>Fermer</Button>
                     : <div className="flex items-center gap-2">
-                        <Button variant="light" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button>
-                        <Button color="warning" size="sm" onPress={submit}>{isEditing ? 'Enregistrer' : 'Ajouter'}</Button>
+                        <Button variant="ghost" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button>
+                        <Button variant="primary" size="sm" onPress={submit}>{isEditing ? 'Enregistrer' : 'Ajouter'}</Button>
                     </div>
             }
         >
@@ -142,7 +142,7 @@ export function ExpenseDrawer({ isOpen, onOpenChange, expense, mode = expense ? 
                         <label className={labelCls}>Categorie</label>
                         <Select
                             placeholder="Choisir une categorie"
-                            selectedKeys={[form.category]}
+                            selectedKey={form.category}
                             onSelectionChange={(key) => { update('category', key != null ? String(key) : ''); }}
                         >
                             <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
@@ -168,7 +168,7 @@ export function ExpenseDrawer({ isOpen, onOpenChange, expense, mode = expense ? 
                         <div className="flex min-w-0 flex-col gap-1">
                             <label className={labelCls}>Mode de paiement</label>
                             <Select
-                                selectedKeys={[form.paymentMethod]}
+                                selectedKey={form.paymentMethod}
                                 onSelectionChange={(key) => { update('paymentMethod', key != null ? String(key) : ''); }}
                             >
                                 <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>

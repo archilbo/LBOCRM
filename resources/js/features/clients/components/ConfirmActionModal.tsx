@@ -60,7 +60,7 @@ export function ConfirmActionModal({
             payload[dateFieldName] = date;
         }
 
-        router[method](url, payload, {
+        router[method](url, payload as Record<string, string | number | boolean | null | undefined>, {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success(title);

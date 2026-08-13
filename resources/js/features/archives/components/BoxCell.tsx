@@ -30,7 +30,7 @@ export function BoxCell({ box, isSelected, isDrawerOpen, onSelect }: BoxCellProp
     const [showTooltip, setShowTooltip] = useState(false);
     const [pos, setPos] = useState<TooltipPos>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
-    const hideTimer = useRef<ReturnType<typeof setTimeout>>();
+    const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const recalc = useCallback(() => {
         if (!wrapperRef.current) return;
@@ -39,7 +39,7 @@ export function BoxCell({ box, isSelected, isDrawerOpen, onSelect }: BoxCellProp
     }, []);
 
     const handleMouseEnter = useCallback(() => {
-        clearTimeout(hideTimer.current);
+        if (hideTimer.current !== null) clearTimeout(hideTimer.current);
         recalc();
         setShowTooltip(true);
     }, [recalc]);

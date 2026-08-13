@@ -53,10 +53,10 @@ export function DateField({
                 <label className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">{label}</label>
             ) : null}
 
-            <Popover placement="bottom" isOpen={isOpen} onOpenChange={setIsOpen}>
+            <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
                 <Popover.Trigger>
                     <Button
-                        variant="flat"
+                        variant="tertiary"
                         className={cn(
                             'h-8 w-full justify-start gap-2 rounded-[var(--radius-md)] border px-2.5 text-xs font-normal outline-none transition',
                             'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]',
@@ -86,7 +86,7 @@ export function DateField({
                     </Button>
                 </Popover.Trigger>
 
-                <Popover.Content className="w-auto min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0 shadow-lg">
+                <Popover.Content placement="bottom" className="w-auto min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0 shadow-lg">
                     <Calendar.Root
                         value={calDate ?? undefined}
                         minValue={minValue}
@@ -122,7 +122,7 @@ export function DateField({
                     <div className="flex items-center justify-between border-t border-[var(--border)] px-3 py-2">
                         <Button
                             size="sm"
-                            variant="light"
+                            variant="ghost"
                             onPress={() => { onChange(new Date()); setIsOpen(false); }}
                             className="h-8 px-3 text-xs text-[var(--text-muted)] hover:text-[var(--foreground)]"
                         >
@@ -131,7 +131,7 @@ export function DateField({
                         {value ? (
                             <Button
                                 size="sm"
-                                variant="light"
+                                variant="ghost"
                                 onPress={() => { onChange(null); setIsOpen(false); }}
                                 className="h-8 px-3 text-xs text-[var(--text-muted)] hover:text-[var(--foreground)]"
                             >

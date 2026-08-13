@@ -15,7 +15,7 @@ import { DocumentDrawer } from '@/components/drawers';
 import { DocumentGroupedExplorer } from '@/features/documents/components/DocumentGroupedExplorer';
 import type {
     ClientOption, DocumentStatus, DocumentTemplateOption, DocumentUploadPayload,
-    DocumentLocationGroup, DossierDocumentRow, DossierOption,
+    DocumentLocationGroup, DocumentGroupRow, DossierDocumentRow, DossierOption,
 } from '@/features/documents/types';
 import { cn } from '@/lib/cn';
 import { useTranslation } from '@/lib/i18n';
@@ -47,6 +47,10 @@ const STATUS_COLORS: Record<string, 'success' | 'primary' | 'warning' | 'danger'
     rejected: 'danger',
 };
 
+function chipColor(status: string): 'success' | 'accent' | 'warning' | 'danger' | 'default' {
+    return STATUS_COLORS[status] === 'primary' ? 'accent' : STATUS_COLORS[status] || 'default';
+}
+
 function fileTypeBadge(mimeType: string | null | undefined): { label: string; color: string } {
     if (!mimeType) return { label: 'Fichier', color: 'bg-[var(--surface-3)] text-[var(--text-muted)]' };
     if (mimeType === 'application/pdf') return { label: 'PDF', color: 'bg-rose-500/10 text-rose-600' };
@@ -71,7 +75,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
     const [statusFilter, setStatusFilter] = useState('all');
     const [viewMode, setViewMode] = useState<ViewMode>('workspace');
     const [query, setQuery] = useState('');
-    const [previewDoc, setPreviewDoc] = useState<DossierDocumentRow | null>(null);
+    const [previewDoc, setPreviewDoc] = useState<DossierDocumentRow | DocumentGroupRow | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<DossierDocumentRow | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
@@ -135,7 +139,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
         });
     }
 
-    function updateStatus(document: DossierDocumentRow, status: string) {
+    function updateStatus(document: DossierDocumentRow | DocumentGroupRow, status: string) {
         if (!can('documents.update')) return;
         router.put(`/documents/${document.id}/status`, { status, notes: document.notes || '' }, {
             preserveScroll: true,
@@ -168,9 +172,6 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                             else if (key === 'project') router.visit(`/dossiers/${doc.dossierId}`);
                             else if (key === 'missing') updateStatus(doc, 'missing');
                             else if (key === 'delete') setDeleteTarget(doc);
-                        }}
-                        itemClasses={{
-                            base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]',
                         }}
                     >
                         <Dropdown.Item key="preview" id="preview">
@@ -207,7 +208,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                 <span>{t('documents.menu.markMissing')}</span>
                             </div>
                         </Dropdown.Item> : null}
-                        {can('documents.delete') ? <Dropdown.Section title={t('documents.menu.danger')} classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
+                        {can('documents.delete') ? <Dropdown.Section className="mt-1 border-t border-[var(--border)] pt-1">
                             <Dropdown.Item key="delete" id="delete" className="text-red-600 data-[hover]:bg-red-500/10">
                                 <div className="flex items-center gap-2">
                                     <IconTrash size={14} className="shrink-0 text-red-600" />
@@ -327,7 +328,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
             accessorKey: 'status',
             header: t('documents.headers.status'),
             cell: ({ row }) => (
-                <Chip variant="flat" size="sm" color={STATUS_COLORS[row.original.status] || 'default'}>{t(`documents.status.${row.original.status}`)}</Chip>
+                <Chip variant="soft" size="sm" color={chipColor(row.original.status)}>{t(`documents.status.${row.original.status}`)}</Chip>
             ),
         },
         {
@@ -483,7 +484,6 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                     selectedKeys={[statusFilter]}
                                                     disabledKeys={statusOptions.filter((o) => o.count === 0).map((o) => o.id)}
                                                     onAction={(key) => setStatusFilter(key as string)}
-                                                    itemClasses={{ base: 'rounded-lg px-2 py-1.5 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40' }}
                                                 >
                                                     {statusOptions.map((opt) => (
                                                         <Dropdown.Item key={opt.id} id={opt.id} textValue={opt.label}>
@@ -521,7 +521,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                         </p>
                                                         <p className="text-[9px] text-[var(--text-muted)]">{doc.dossierNumber || ''}</p>
                                                         <div className="mt-0.5 flex items-center gap-1.5">
-                                                            <Chip variant="flat" size="sm" color={STATUS_COLORS[doc.status] || 'default'}>{t(`documents.status.${doc.status}`)}</Chip>
+                                                            <Chip variant="soft" size="sm" color={chipColor(doc.status)}>{t(`documents.status.${doc.status}`)}</Chip>
                                                             <span className={cn('inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold', badge.color)}>
                                                                 {badge.label}
                                                             </span>
@@ -539,9 +539,6 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                                     else if (key === 'download') window.location.href = doc.downloadUrl!;
                                                                     else if (key === 'delete') setDeleteTarget(doc);
                                                                 }}
-                                                                itemClasses={{
-                                                                    base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]',
-                                                                }}
                                                             >
                                                                 <Dropdown.Item key="preview"><div className="flex items-center gap-2"><IconEye size={14} className="shrink-0 text-sky-600" /><span>{t('documents.menu.preview')}</span></div></Dropdown.Item>
                                                                 {doc.status !== 'verified' && (
@@ -550,7 +547,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                                                 {doc.hasFile && doc.downloadUrl && (
                                                                     <Dropdown.Item key="download"><div className="flex items-center gap-2"><IconDownload size={14} className="shrink-0 text-blue-600" /><span>{t('documents.menu.download')}</span></div></Dropdown.Item>
                                                                 )}
-                                                                <Dropdown.Section title={t('documents.menu.danger')} classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
+                                                                <Dropdown.Section className="mt-1 border-t border-[var(--border)] pt-1">
                                                                     <Dropdown.Item key="delete" className="text-red-600 data-[hover]:bg-red-500/10"><div className="flex items-center gap-2"><IconTrash size={14} className="shrink-0 text-red-600" /><span>{t('documents.menu.delete')}</span></div></Dropdown.Item>
                                                                 </Dropdown.Section>
                                                             </Dropdown.Menu>
@@ -595,7 +592,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                 <div className="min-w-0 flex-1">
                                     <p className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
                                         {previewDoc.templateName || previewDoc.originalFilename}
-                                        <Chip variant="flat" size="sm" color={STATUS_COLORS[previewDoc.status] || 'default'}>{previewDoc.status}</Chip>
+                                        <Chip variant="soft" size="sm" color={chipColor(previewDoc.status)}>{previewDoc.status}</Chip>
                                     </p>
                                     <p className="text-xs text-[var(--text-muted)]">{previewDoc.documentNumber || previewDoc.documentType}</p>
                                 </div>
@@ -680,7 +677,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                             <IconCircleX size={13} /> {t('documents.preview.missing')}
                                         </AppButton>
                                 <span className="h-5 w-px bg-[var(--border)]" />
-                                        <AppButton size="sm" variant="light" className="min-w-0 h-8 px-2 text-[10px] text-red-600" onPress={() => { setDeleteTarget(previewDoc); setPreviewDoc(null); }}>
+                                        <AppButton size="sm" variant="light" className="min-w-0 h-8 px-2 text-[10px] text-red-600" onPress={() => { if ('documentSide' in previewDoc) setDeleteTarget(previewDoc); setPreviewDoc(null); }}>
                                             <IconTrash size={13} /> {t('documents.preview.delete')}
                                         </AppButton>
                             </div>

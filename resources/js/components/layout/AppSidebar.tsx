@@ -18,12 +18,12 @@ const RAIL = 64;
 
 const routeMap = new Map(appRoutes.map((r) => [r.key, r]));
 function getRoute(key: string): AppRoute | undefined {
-    return routeMap.get(key);
+    return routeMap.get(key as AppRouteKey);
 }
 
-const workspaceItems = ['dashboard', 'clients', 'intermediaries', 'dossiers'];
+const workspaceItems: AppRouteKey[] = ['dashboard', 'clients', 'intermediaries', 'dossiers'];
 
-const followUpItems: { key: string }[] = [
+const followUpItems: { key: AppRouteKey }[] = [
     { key: 'documents' },
     { key: 'contracts' },
     { key: 'archives' },
@@ -31,7 +31,7 @@ const followUpItems: { key: string }[] = [
     { key: 'calendar' },
 ];
 
-const financeChildren: { key: string; labelKey?: string }[] = [
+const financeChildren: { key: AppRouteKey; labelKey?: string }[] = [
     { key: 'finance', labelKey: 'nav.financeOverview' },
     { key: 'financeDocuments' },
     { key: 'financePayments' },
@@ -52,7 +52,7 @@ const financeGroupKeys = [
 
 function isGroupActive(keys: readonly string[], isActive: (r: AppRoute) => boolean): boolean {
     return keys.some((key) => {
-        const route = routeMap.get(key);
+        const route = getRoute(key);
         return route && route.enabled && isActive(route);
     });
 }
@@ -277,7 +277,7 @@ export function AppSidebar() {
         }
 
         function renderFlyoutItem({ key, labelKey }: { key: string; labelKey?: string }) {
-            const route = routeMap.get(key);
+            const route = getRoute(key);
             if (!route || !route.enabled || !canView(route)) return null;
             const Icon = route.icon;
             const active = isActive(route);

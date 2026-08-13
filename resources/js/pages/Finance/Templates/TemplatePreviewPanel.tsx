@@ -109,8 +109,8 @@ export function TemplatePreviewPanel({
         if (!node) return;
 
         function updateScale() {
-            const width = node.clientWidth;
-            const maxHeight = node.clientHeight;
+            const width = node?.clientWidth ?? 0;
+            const maxHeight = node?.clientHeight ?? 0;
             if (width <= 0) return;
 
             const scaleByWidth = (width - 24) / paperWidth;

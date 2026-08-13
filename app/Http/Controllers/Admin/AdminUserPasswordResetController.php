@@ -34,12 +34,12 @@ class AdminUserPasswordResetController extends Controller
 
         Mail::to($user)->send(new UserPasswordReset($user, $url));
 
-        $this->audit($request, 'user.password_reset.sent', "Sent a password reset link to {$user->email}", [
+        $this->audit($request, 'user.password_reset.sent', "Lien de réinitialisation du mot de passe envoyé à {$user->email}", [
             'user_id' => $user->id,
             'email' => $user->email,
         ]);
 
-        return back()->with('success', "A secure password reset link was sent to {$user->email}.");
+        return back()->with('success', "Un lien sécurisé de réinitialisation du mot de passe a été envoyé à {$user->email}.");
     }
 
     private function canResetPasswords(User $user): bool

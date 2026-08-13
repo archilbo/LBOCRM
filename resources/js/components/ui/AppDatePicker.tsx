@@ -239,7 +239,7 @@ export function AppDatePicker({
                         <div className="flex items-center justify-between border-t border-[var(--border)] px-3 py-2">
                             <Button
                                 size="sm"
-                                variant="light"
+                                variant="ghost"
                                 onPress={handleToday}
                                 className="h-8 px-3 text-xs text-[var(--text-muted)] hover:text-[var(--foreground)]"
                             >
@@ -249,7 +249,7 @@ export function AppDatePicker({
                             {value ? (
                                 <Button
                                     size="sm"
-                                    variant="light"
+                                    variant="ghost"
                                     onPress={handleClear}
                                     className="h-8 px-3 text-xs text-[var(--text-muted)] hover:text-[var(--foreground)]"
                                 >

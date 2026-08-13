@@ -358,7 +358,7 @@ export function ProjectDesignFolderTree({
                         variant="secondary"
                         className="m-1 h-7 text-[10px]"
                         style={{ marginLeft: `${6 + depth * 13}px`, width: `calc(100% - ${12 + depth * 13}px)` }}
-                        isDisabled={savingRename}
+                        disabled={savingRename}
                     />
                 ) : (
                     <>
@@ -452,7 +452,7 @@ export function ProjectDesignFolderTree({
                             aria-label="Rename design folder"
                             variant="secondary"
                             className="mx-1 h-7 flex-1 text-[10px]"
-                            isDisabled={savingRename}
+                            disabled={savingRename}
                         />
                     ) : (
                         <Button

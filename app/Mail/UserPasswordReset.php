@@ -15,11 +15,12 @@ class UserPasswordReset extends Mailable
 
     public function __construct(public User $user, public string $resetUrl)
     {
+        $this->locale('fr');
     }
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Reset your '.config('app.name').' password');
+        return new Envelope(subject: 'Réinitialisation de votre mot de passe '.config('app.name'));
     }
 
     public function content(): Content

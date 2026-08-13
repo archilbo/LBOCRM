@@ -98,7 +98,7 @@ export function DesignRemarkComposer({
                 placeholder="Remark title"
                 aria-label="Remark title"
                 maxLength={160}
-                isDisabled={saving}
+                disabled={saving}
                 variant="secondary"
                 fullWidth
                 className="h-8 text-[10px]"
@@ -111,7 +111,7 @@ export function DesignRemarkComposer({
                 aria-label="Remark description"
                 rows={3}
                 maxLength={2000}
-                isDisabled={saving}
+                disabled={saving}
                 variant="secondary"
                 fullWidth
                 className="min-h-20 resize-none text-[10px] leading-relaxed"

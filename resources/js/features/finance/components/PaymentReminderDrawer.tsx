@@ -57,7 +57,7 @@ export function PaymentReminderDrawer({ isOpen, onOpenChange, invoice }: Props) 
             onOpenChange={onOpenChange}
             title="Rappel de paiement"
             description="Programmez un suivi interne pour cette facture."
-            footer={<div className="flex items-center justify-end gap-2"><Button variant="ghost" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button><Button color="warning" size="sm" isDisabled={!invoice || !remindAt || submitting} onPress={submit}><IconBell size={14} /> Enregistrer</Button></div>}
+            footer={<div className="flex items-center justify-end gap-2"><Button variant="ghost" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button><Button variant="secondary" size="sm" isDisabled={!invoice || !remindAt || submitting} onPress={submit}><IconBell size={14} /> Enregistrer</Button></div>}
         >
             {invoice ? <div className="space-y-4">
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/60 p-3 text-xs">

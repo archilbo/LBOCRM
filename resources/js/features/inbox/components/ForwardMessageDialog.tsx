@@ -161,7 +161,7 @@ function ForwardSelectedDestinations({
                             key={conv.id}
                             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/30 bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] py-1 pl-1.5 pr-1"
                         >
-                            <Avatar size="sm" name={conv.displayName} className={`size-5 min-w-5 text-[9px] ${tone.bg} ${tone.text}`}>
+                            <Avatar size="sm" className={`size-5 min-w-5 text-[9px] ${tone.bg} ${tone.text}`}>
                                 {conv.type === 'group' ? <IconUsers size={9} /> : null}
                             </Avatar>
                             <span className="max-w-24 truncate text-[9px] font-medium text-[var(--text)]">{conv.displayName}</span>
@@ -217,7 +217,7 @@ function ForwardConversationRow({
             )}
         >
             <div className="relative shrink-0">
-                <Avatar size="md" name={name} className={`${tone.bg} ${tone.text}`}>
+                <Avatar size="md" className={`${tone.bg} ${tone.text}`}>
                     {conversation.type === 'group' ? <IconUsers size={16} /> : initials}
                 </Avatar>
             </div>
@@ -425,7 +425,6 @@ export function ForwardMessageDialog({ isOpen, onClose, message, conversations, 
             <Modal.Container className="!m-0 !w-[460px] !max-w-[calc(100vw-32px)] !max-h-[min(680px,calc(100dvh-48px))] !rounded-[18px]">
                 <Modal.Dialog
                     className="flex max-h-[min(680px,calc(100dvh-48px))] flex-col overflow-hidden border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] outline-none"
-                    onKeyDown={handleKeyDown}
                 >
                     {/* Header */}
                     <div className="flex items-start justify-between border-b border-[var(--border)] px-5 py-[18px]">

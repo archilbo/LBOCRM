@@ -27,7 +27,7 @@ import { MapView } from '@/features/archives/components/MapView';
 import { PreviewPanel } from '@/features/archives/components/PreviewPanel';
 import { CitySidebar } from '@/features/archives/components/CitySidebar';
 import { ArchiveTable } from '@/features/archives/components/ArchiveTable';
-import { useArchiveFilters } from '@/features/archives/hooks/useArchiveFilters';
+import { useArchiveFilters, type ArchiveFilters } from '@/features/archives/hooks/useArchiveFilters';
 import { useHotkeys } from '@/features/archives/hooks/useHotkeys';
 import type { ArchiveFormPayload, ArchiveRecordRow, ArchivesPageProps } from '@/features/archives/types';
 import { ARCHIVE_STATUS, defaultDue } from '@/config/statuses';
@@ -40,7 +40,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
     const { filters, patch, debouncedPatch, reset, activeCount } = useArchiveFilters({
         initial: {
             ...props.filters,
-            viewMode: (props.filters.viewMode === 'map' || props.filters.viewMode === 'list' || props.filters.viewMode === 'reports') ? props.filters.viewMode : undefined,
+            viewMode: (props.filters.viewMode === 'map' || props.filters.viewMode === 'list') ? props.filters.viewMode : undefined,
         } as ArchiveFilters,
         route: '/archives',
     });
@@ -294,7 +294,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                     <AppWorkspaceTabs
                         tabs={workspaceTabs}
                         selectedKey={viewMode}
-                        onSelectionChange={(tab) => patch({ viewMode: tab as 'list' | 'map' | 'reports' })}
+                        onSelectionChange={(tab) => patch({ viewMode: tab as 'list' | 'map' })}
                         counts={{ list: props.paginator.total, reports: props.reports.kpis.totalOverdue + props.reports.kpis.totalLost }}
                         headerEnd={<>
                             <AppSearchInput
@@ -597,7 +597,7 @@ export default function ArchivesIndex(props: ArchivesPageProps) {
                 </AppModal>
 
                 <AppModal isOpen={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }} title={t('modals.deleteTitle')} size="sm">
-                    <p className="mb-4 text-[12px] text-[var(--crm-text-muted)]">{t('modals.deleteConfirm', { archiveNumber: deleteTarget?.archiveNumber })}</p>
+                    <p className="mb-4 text-[12px] text-[var(--crm-text-muted)]">{t('modals.deleteConfirm', { archiveNumber: deleteTarget?.archiveNumber ?? '' })}</p>
                     <div className="flex justify-end gap-2">
                         <AppButton variant="bordered" size="sm" onPress={() => setDeleteTarget(null)}>{t('modals.cancel')}</AppButton>
                         <AppButton color="danger" variant="solid" size="sm" onPress={confirmDelete}>{t('modals.delete')}</AppButton>

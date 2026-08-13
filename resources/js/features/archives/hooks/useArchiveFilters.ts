@@ -44,7 +44,7 @@ export function useArchiveFilters({ initial, route }: UseArchiveFiltersOptions) 
 
     const nav = useCallback((next: Record<string, unknown>) => {
         const cleaned = cleanFilters({ ...next });
-        router.get(route, cleaned, { preserveState: true, preserveScroll: true, replace: true });
+        router.get(route, cleaned as Record<string, string | number | boolean | null | undefined>, { preserveState: true, preserveScroll: true, replace: true });
     }, [route]);
 
     const patch = useCallback((partial: Partial<ArchiveFilters>) => {

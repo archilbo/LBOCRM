@@ -267,7 +267,7 @@ export default function PlanningIndex() {
                     })}
                 </section>
 
-                <PlanningBoard tasks={tasks} onSelectTask={setSelectedTask} />
+                <PlanningBoard tasks={tasks} onSelectTask={(task) => setSelectedTask(task as PlanningTaskRow)} />
 
                 <section className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="min-w-0 space-y-5">

@@ -18,14 +18,14 @@ const schema = z.object({
     client_id: z.string().min(1, { message: 'Selectionnez un client' }),
     dossier_id: z.string().min(1, { message: 'Selectionnez un projet' }),
     status: z.string().min(1),
-    room: z.string().nullable().default(null),
-    shelf: z.string().nullable().default(null),
-    box: z.string().nullable().default(null),
-    in_date: z.date().nullable().default(null),
-    out_date: z.date().nullable().default(null),
-    returned_at: z.date().nullable().default(null),
-    requested_by: z.string().optional().default(''),
-    notes: z.string().optional().default(''),
+    room: z.string().nullable(),
+    shelf: z.string().nullable(),
+    box: z.string().nullable(),
+    in_date: z.date().nullable(),
+    out_date: z.date().nullable(),
+    returned_at: z.date().nullable(),
+    requested_by: z.string(),
+    notes: z.string(),
 }).refine((d) => !d.out_date || !d.in_date || d.out_date >= d.in_date, {
     message: 'La date de sortie doit etre apres la date d entree',
     path: ['out_date'],
@@ -174,7 +174,7 @@ export function ArchiveDrawer({
     }
 
     function handleFormSubmit(data: FormValues) {
-        const serialize = (d: Date | null) => (d ? format(d, 'yyyy-MM-dd') : null);
+        const serialize = (d: Date | null) => (d ? format(d, 'yyyy-MM-dd') : '');
 
         const payload: ArchiveFormPayload = {
             clientId: data.client_id,

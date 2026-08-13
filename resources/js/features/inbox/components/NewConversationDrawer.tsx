@@ -78,8 +78,8 @@ function SelectedRecipients({
     users: ChatUserOption[];
     onRemove: (id: number) => void;
 }) {
-    if (users.length === 0) return null;
     const { t } = useTranslation();
+    if (users.length === 0) return null;
     return (
         <div className="flex flex-wrap gap-1.5">
             {users.map((user) => {
@@ -89,7 +89,7 @@ function SelectedRecipients({
                         key={user.id}
                         className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-2)] py-0.5 pl-0.5 pr-1 text-xs"
                     >
-                        <Avatar size="sm" name={user.name} className={`size-5 min-w-5 text-[9px] ${avatarTone.bg} ${avatarTone.text}`} />
+                        <Avatar size="sm" className={`size-5 min-w-5 text-[9px] ${avatarTone.bg} ${avatarTone.text}`}><Avatar.Fallback>{user.name.slice(0, 2).toUpperCase()}</Avatar.Fallback></Avatar>
                         <span className="max-w-24 truncate">{user.name}</span>
                         <button
                             type="button"
@@ -148,7 +148,7 @@ function ConversationUserRow({
             >
                 {selected ? <IconCheck size={12} /> : null}
             </div>
-            <Avatar size="sm" name={user.name} className={`shrink-0 ${t.bg} ${t.text}`} />
+            <Avatar size="sm" className={`shrink-0 ${t.bg} ${t.text}`}><Avatar.Fallback>{user.name.slice(0, 2).toUpperCase()}</Avatar.Fallback></Avatar>
             <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium text-[var(--text)]">{user.name}</div>
                 <div className="truncate text-xs text-[var(--text-muted)]">{user.email}</div>

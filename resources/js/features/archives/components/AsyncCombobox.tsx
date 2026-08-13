@@ -186,24 +186,12 @@ export function AsyncCombobox({
                         className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg"
                     >
                         <div className="border-b border-[var(--border)] px-2 py-2">
-                            <Input
+                            <input
                                 ref={searchRef}
                                 value={searchQuery}
-                                onValueChange={setSearchQuery}
+                                onChange={(event) => setSearchQuery(event.target.value)}
                                 placeholder="Rechercher..."
-                                startContent={<IconSearch size={14} className="text-[var(--text-muted)]" />}
-                                isClearable
-                                onClear={() => setSearchQuery('')}
-                                className="[&>div]:h-9 [&>div]:rounded-lg [&_input]:text-xs"
-                                classNames={{
-                                    inputWrapper: [
-                                        'h-9 rounded-lg border border-[var(--border)] bg-[var(--surface)]',
-                                        'hover:border-[var(--accent)]',
-                                        'focus-within:border-[var(--accent)]',
-                                        'group-data-[focus-within]:border-[var(--accent)]',
-                                    ].join(' '),
-                                    input: 'text-xs text-[var(--foreground)] placeholder:text-[var(--text-subtle)]',
-                                }}
+                                className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs text-[var(--foreground)] placeholder:text-[var(--text-subtle)] hover:border-[var(--accent)] focus:border-[var(--accent)]"
                             />
                         </div>
 
@@ -222,9 +210,6 @@ export function AsyncCombobox({
                                     if (item) handleSelect(item);
                                 }}
                                 className="max-h-60 overflow-y-auto border-0 bg-transparent p-1"
-                                classNames={{
-                                    list: 'gap-0.5',
-                                }}
                             >
                                 {(item: ComboboxOption) => (
                                     <ListBoxItem

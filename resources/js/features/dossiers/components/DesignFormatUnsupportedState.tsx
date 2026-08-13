@@ -23,10 +23,10 @@ export function DesignFormatUnsupportedState({ filename, extension, mimeType, me
 
                 <div className="mt-3 flex justify-center gap-1.5">
                     {extension && (
-                        <Chip size="sm" variant="flat" color="warning" className="h-5 text-[9px]">{extension.toUpperCase()}</Chip>
+                        <Chip size="sm" variant="soft" color="warning" className="h-5 text-[9px]">{extension.toUpperCase()}</Chip>
                     )}
                     {mimeType && (
-                        <Chip size="sm" variant="flat" color="default" className="h-5 text-[9px]">{mimeType}</Chip>
+                        <Chip size="sm" variant="soft" color="default" className="h-5 text-[9px]">{mimeType}</Chip>
                     )}
                 </div>
 

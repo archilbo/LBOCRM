@@ -22,7 +22,7 @@ export function DesignReviewQueue({ dossierId }: { dossierId: number }) {
     const [search, setSearch] = useState('');
     const [decisionOpen, setDecisionOpen] = useState(false);
     const [selectedReview, setSelectedReview] = useState<ProjectDesignReview | null>(null);
-    const [previewVersion, setPreviewVersion] = useState<ProjectDesignVersion | null>(null);
+    const [previewVersion, setPreviewVersion] = useState<ProjectDesignReview['version']>(null);
     const { data, isLoading, error } = useReviews(dossierId);
     const startReview = useStartReview(dossierId);
     const decideReview = useDecideReview(dossierId);

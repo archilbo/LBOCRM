@@ -11,9 +11,13 @@ import { formatCompactMoney } from '@/lib/currency';
 import { firstError, hasErrors } from '@/lib/formErrors';
 import type { ArchitectFeeOption, ContractClientOption, ContractDossierOption, ContractFormPayload, ContractRow, } from '@/features/contracts/types';
 
+type ContractFormSource = Pick<ContractRow, 'dossierId' | 'status' | 'surface' | 'pricePerSquareMeter' | 'calculationMode' | 'feeRatePercent' | 'forfaitTtc' | 'customFinanceTtc' | 'notes'> & {
+    architectFeeOptionId?: string | null;
+};
+
 export type ContractDrawerProps = DrawerBaseProps & {
     mode: 'create' | 'edit';
-    contract: ContractRow | null;
+    contract: ContractFormSource | null;
     clients: ContractClientOption[];
     dossiers: ContractDossierOption[];
     architectFeeOptions?: ArchitectFeeOption[];

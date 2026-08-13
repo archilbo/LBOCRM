@@ -41,6 +41,8 @@ const EMPTY_ANNOTATION_COMMANDS: ProjectDesignAnnotationToolbarState = {
     saving: false,
     hasUnsaved: false,
     canRemark: false,
+    canUndo: false,
+    canRedo: false,
 };
 
 const EMPTY_LAYOUT_CONTROLS: ProjectDesignLayoutControls = {
@@ -296,6 +298,13 @@ function EditorWorkspace({
             if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
                 event.preventDefault();
                 void annotationCommands.onSave?.();
+                return;
+            }
+
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+                event.preventDefault();
+                if (event.shiftKey) annotationCommands.onRedo?.();
+                else annotationCommands.onUndo?.();
                 return;
             }
 

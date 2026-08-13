@@ -44,8 +44,8 @@ export function DesignConversionStatus({ conversionStatus, filename, onRetry }: 
 
                 {conversionStatus === 'failed' && onRetry && (
                     <div className="mt-4">
-                        <Button size="sm" variant="bordered" startContent={<IconRefresh size={14} />} onPress={onRetry}>
-                            Retry Conversion
+                        <Button size="sm" variant="outline" onPress={onRetry}>
+                            <IconRefresh size={14} /> Retry Conversion
                         </Button>
                     </div>
                 )}

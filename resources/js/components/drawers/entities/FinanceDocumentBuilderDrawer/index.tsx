@@ -14,24 +14,6 @@ import { FinanceTotalsBox } from '@/features/finance/components/FinanceTotalsBox
 import type { ClientOption, DossierOption, FinanceDocument, FinanceDocumentItem, FinanceDocumentType, FinanceSettings, TemplateOption } from '@/features/finance/types';
 import { calculateItem, calculateTotals, createEmptyItem, formatCompactMoney, normalizeCurrency, normalizeNumber } from '@/features/finance/utils/calculations';
 
-type UiLockAwareFinanceDocument = {
-    numberLocked?: boolean;
-    numberLockedAt?: string | null;
-    lock?: {
-        isLocked?: boolean;
-        lockedAtFormatted?: string | null;
-        message?: string;
-        canEditNumberFields?: boolean;
-        canRegenerateExports?: boolean;
-        canGeneratePdf?: boolean;
-        canGenerateExcel?: boolean;
-    } | null;
-};
-
-function isFinanceDocumentLocked(document: UiLockAwareFinanceDocument | null | undefined) {
-    return Boolean(document?.lock?.isLocked ?? document?.numberLocked);
-}
-
 type FinanceDocumentBuilderDrawerProps = {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
@@ -129,7 +111,7 @@ export function FinanceDocumentBuilderDrawer({
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewHtml, setPreviewHtml] = useState<string | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
-    const previewDebounce = useRef<ReturnType<typeof setTimeout>>();
+    const previewDebounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const isLocked = isFinanceDocumentLocked(document);
     const canEditNumberFields = !isLocked && (document?.lock?.canEditNumberFields ?? true);
     const lockMessage = isLocked ? getFinanceDocumentLockMessage(document) : undefined;
@@ -219,19 +201,15 @@ export function FinanceDocumentBuilderDrawer({
     }
 
     function submit() {
-        const payload: Record<string, unknown> = {
-            type: form.type, client_id: form.clientId || null, dossier_id: form.dossierId || null,
-            issue_date: form.issueDate || null, due_date: form.dueDate || null, valid_until: form.validUntil || null,
+        const payload = {
+            ...(mode === 'edit' && isLocked ? {} : { type: form.type, issue_date: form.issueDate || null }),
+            ...(mode === 'edit' ? {} : { client_id: form.clientId || null, dossier_id: form.dossierId || null }),
+            due_date: form.dueDate || null, valid_until: form.validUntil || null,
             currency: form.currency, tva_rate: form.tvaRate, discount_total: form.discountTotal,
             notes: form.notes || null, terms: form.terms || null, template_id: form.templateId || null,
             return_to: returnTo || null,
             items: form.items.map((item, i) => ({ title: item.title || `Ligne ${i + 1}`, description: item.description || null, quantity: item.quantity || 1, unit: item.unit || null, unit_price: item.unitPrice || 0 })),
         };
-        if (mode === 'edit') {
-            delete payload.client_id;
-            delete payload.dossier_id;
-        }
-        if (mode === 'edit' && isLocked) { delete payload.type; delete payload.issue_date; }
         const opts = { preserveScroll: true, preserveState: false, onSuccess: () => { toast.success(mode === 'edit' ? 'Document mis à jour.' : 'Document créé.'); onSaved?.(form.type); onOpenChange(false); }, onError: () => toast.error("Impossible d'enregistrer le document.") };
         if (mode === 'edit' && document) { router.put(`/finance/documents/${document.id}`, payload, opts); return; }
         router.post('/finance/documents', payload, opts);
@@ -246,19 +224,19 @@ export function FinanceDocumentBuilderDrawer({
             panelClassName="!w-[min(1200px,calc(100vw-24px))] !max-w-[1200px] sm:!w-[min(1200px,calc(100vw-40px))]"
             footer={
                 <div className="flex items-center justify-between gap-2">
-                    <Button variant="light" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button>
+                    <Button variant="ghost" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button>
                     <div className="flex items-center gap-2">
                         {step > 0 ? (
-                            <Button variant="flat" size="sm" onPress={() => setStep(step - 1)}>
+                            <Button variant="tertiary" size="sm" onPress={() => setStep(step - 1)}>
                                 <IconChevronLeft size={14} /> Précédent
                             </Button>
                         ) : null}
                         {step < steps.length - 1 ? (
-                            <Button color="primary" size="sm" isDisabled={step === 0 && !canAdvanceStep0} onPress={() => setStep(step + 1)}>
+                            <Button variant="primary" size="sm" isDisabled={step === 0 && !canAdvanceStep0} onPress={() => setStep(step + 1)}>
                                 Suivant <IconChevronRight size={14} />
                             </Button>
                         ) : (
-                            <Button color="warning" size="sm" onPress={submit} isDisabled={isBlocked}>Creer le document</Button>
+                            <Button variant="primary" size="sm" onPress={submit} isDisabled={isBlocked}>Creer le document</Button>
                         )}
                     </div>
                 </div>
@@ -298,7 +276,7 @@ export function FinanceDocumentBuilderDrawer({
                                 {hasNoDossiers ? <p className="text-[9px] text-amber-400">Impossible de créer un document : ce client n&apos;a aucun dossier</p> : null}
                                 {isDossierRestricted ? <p className="text-[9px] text-red-400">Impossible de créer un document : ce dossier a déjà un devis/facture</p> : null}
                             </div>
-                            <Button variant="light" size="sm" onPress={() => setPreviewOpen((p) => !p)} className="shrink-0">
+                            <Button variant="ghost" size="sm" onPress={() => setPreviewOpen((p) => !p)} className="shrink-0">
                                 {previewOpen ? <IconEyeOff size={14} /> : <IconEye size={14} />}
                                 {previewOpen ? 'Masquer' : 'Apercu'}
                             </Button>
@@ -363,7 +341,7 @@ export function FinanceDocumentBuilderDrawer({
                                     <div className="grid gap-2 sm:grid-cols-2">
                                         <div className="flex min-w-0 flex-col gap-1">
                                             <label className={labelCls}>Remise document</label>
-                                            <Input isDisabled={isBlocked} className={compactInput} type="number" min="0" step="0.01" value={String(form.discountTotal)} onChange={(e) => update('discountTotal', normalizeNumber(e.target.value))} />
+                                            <Input disabled={isBlocked} className={compactInput} type="number" min="0" step="0.01" value={String(form.discountTotal)} onChange={(e) => update('discountTotal', normalizeNumber(e.target.value))} />
                                         </div>
                                     </div>
                                 </Card>
@@ -379,7 +357,7 @@ export function FinanceDocumentBuilderDrawer({
                                         selectedKey={form.templateId || null}
                                         onSelectionChange={(key) => update('templateId', key != null ? String(key) : '')}
                                     >
-                                        <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" placeholder="Template optionnel" /><Select.Indicator /></Select.Trigger>
+                                        <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
                                         <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
                                             <ListBox.Item id="" textValue="Aucun template" className={compactItem}>Aucun template</ListBox.Item>
                                             {templates.filter((t) => t.type === form.type || t.type === 'finance').map((t) => (

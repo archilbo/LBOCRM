@@ -7,6 +7,7 @@ use App\Models\Dossier;
 use App\Models\ProjectDesign\ProjectDesignFile;
 use App\Models\ProjectDesign\ProjectDesignFileVersion;
 use App\Models\ProjectDesign\ProjectDesignFolder;
+use App\Models\ProjectDesign\ProjectDesignAsset;
 use App\Models\ProjectDesign\ProjectDesignRemark;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -317,5 +318,43 @@ class ProjectDesignTest extends TestCase
 
         $this->assertEquals($version->id, $remark->version_id);
         $this->assertTrue($remark->version->is($version));
+    }
+
+    public function test_annotation_cannot_be_created_for_an_asset_from_another_version(): void
+    {
+        $this->grant('project-design.view', 'project-design.annotate');
+        $dossier = $this->dossier();
+        $file = ProjectDesignFile::factory()->create([
+            'dossier_id' => $dossier->id,
+            'company_id' => $this->company->id,
+        ]);
+        $version = ProjectDesignFileVersion::factory()->create([
+            'company_id' => $this->company->id,
+            'dossier_id' => $dossier->id,
+            'file_id' => $file->id,
+        ]);
+        $otherVersion = ProjectDesignFileVersion::factory()->create();
+        $otherAsset = ProjectDesignAsset::query()->create([
+            'company_id' => $otherVersion->company_id,
+            'design_file_id' => $otherVersion->file_id,
+            'version_id' => $otherVersion->id,
+            'asset_type' => 'review_pdf',
+            'disk' => 'local',
+            'path' => 'project-design/test.pdf',
+            'original_filename' => 'test.pdf',
+            'stored_filename' => 'test.pdf',
+            'mime_type' => 'application/pdf',
+            'extension' => 'pdf',
+            'uploaded_by' => $this->user->id,
+        ]);
+
+        $this->actingAs($this->user)
+            ->postJson($this->pdUrl($dossier, "versions/{$version->id}/annotations"), [
+                'asset_id' => $otherAsset->id,
+                'annotation_type' => 'pin',
+                'coordinate_space' => 'page-normalized-v1',
+                'geometry' => ['x' => 0.5, 'y' => 0.5],
+            ])
+            ->assertForbidden();
     }
 }

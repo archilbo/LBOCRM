@@ -174,8 +174,8 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                 description="Reglez une facture ou enregistrez une avance avant la creation des documents financiers."
                 footer={
                     <div className="flex items-center gap-2">
-                        <Button variant="light" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button>
-                        <Button color="warning" size="sm" onPress={submit} isDisabled={!canSubmit}>Enregistrer + recu</Button>
+                        <Button variant="ghost" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button>
+                        <Button variant="primary" size="sm" onPress={submit} isDisabled={!canSubmit}>Enregistrer + recu</Button>
                     </div>
                 }
             >
@@ -272,9 +272,9 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                             <label className={labelCls}>Montant paye</label>
                             <Input className={compactInput} type="number" min="0" step="0.01" value={form.amount}
                                 onChange={(e) => update('amount', e.target.value)}
-                                validationState={isOverpayment ? 'invalid' : 'valid'}
-                                errorMessage={isOverpayment ? 'Dépasse le reste à payer.' : undefined}
+                                aria-invalid={isOverpayment}
                             />
+                            {isOverpayment ? <p className="text-[10px] text-[var(--danger)]">Dépasse le reste à payer.</p> : null}
                         </div>
                         <DateField label="Date paiement" value={strToDate(form.paidAt)} onChange={(d) => update('paidAt', dateToStr(d))} />
                     </div>
@@ -341,7 +341,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                         <Modal.Footer className="flex flex-col-reverse gap-2 border-t border-[var(--border)] px-5 py-3 sm:flex-row sm:justify-end">
                             <Button variant="ghost" size="sm" onPress={() => setReceiptPrompt(null)}>Plus tard</Button>
                             <Button variant="secondary" size="sm" onPress={() => openUrl(receiptPrompt?.showUrl, 'Reçu indisponible.')}><IconReceipt2 size={14} /> Ouvrir</Button>
-                            <Button color="warning" size="sm" onPress={() => openUrl(receiptPrompt?.printUrl, 'Impression indisponible.')}><IconPrinter size={14} /> Imprimer maintenant</Button>
+                            <Button variant="primary" size="sm" onPress={() => openUrl(receiptPrompt?.printUrl, 'Impression indisponible.')}><IconPrinter size={14} /> Imprimer maintenant</Button>
                         </Modal.Footer>
                     </Modal.Dialog>
                 </Modal.Container>

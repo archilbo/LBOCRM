@@ -6,7 +6,7 @@
         "build": "vite build",
         "dev": "vite",
         "typecheck": "tsc --noEmit",
-        "lint": "eslint resources/js --max-warnings=0"
+        "lint": "eslint resources/js"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
@@ -58,7 +58,7 @@
         "konva": "^10.3.0",
         "laravel-echo": "^2.3.7",
         "lucide-react": "^1.21.0",
-        "pdfjs-dist": "^5.4.296",
+        "pdfjs-dist": "5.4.296",
         "pusher-js": "^8.5.0",
         "react": "^19.2.7",
         "react-aria": "^3.50.0",

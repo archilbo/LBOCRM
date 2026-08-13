@@ -37,7 +37,7 @@ function ConversationPreview({ conversation, currentUserId, onSelect, t }: {
         <div className={`group flex items-center border-b border-[color-mix(in_srgb,var(--border)_55%,transparent)] px-2 py-1 last:border-0 ${conversation.unreadCount > 0 ? 'bg-[color-mix(in_srgb,var(--accent)_6%,transparent)]' : ''}`}>
             <Button variant="ghost" onPress={onSelect} className="h-auto min-w-0 flex-1 justify-start rounded-lg px-2 py-2 text-left">
                 <div className="relative shrink-0">
-                    <Avatar size="sm" name={name} className={`${isGroup ? 'rounded-lg' : ''} ${tone.bg} ${tone.text}`}><Avatar.Fallback>{isGroup ? <IconUsers size={15} /> : getConversationInitials(conversation, currentUserId)}</Avatar.Fallback></Avatar>
+                    <Avatar size="sm" className={`${isGroup ? 'rounded-lg' : ''} ${tone.bg} ${tone.text}`}><Avatar.Fallback>{isGroup ? <IconUsers size={15} /> : getConversationInitials(conversation, currentUserId)}</Avatar.Fallback></Avatar>
                     {online ? <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-[var(--surface)] bg-emerald-400" /> : null}
                 </div>
                 <span className="min-w-0 flex-1">
@@ -47,7 +47,7 @@ function ConversationPreview({ conversation, currentUserId, onSelect, t }: {
                     </span>
                     <span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{getLastMessagePreview(conversation, currentUserId)}</span>
                 </span>
-                {conversation.unreadCount > 0 ? <Chip size="sm" color="danger" variant="solid">{conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}</Chip> : null}
+                {conversation.unreadCount > 0 ? <Chip size="sm" color="danger" variant="soft">{conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}</Chip> : null}
             </Button>
         </div>
     );
@@ -71,7 +71,7 @@ export function MessagePopover() {
     useEffect(() => {
         if (!currentUserId) return;
         const channel = echo().private(`user.${currentUserId}.inbox`);
-        channel.listen('.inbox.updated', () => router.reload({ only: ['conversations', 'unreadCount'], preserveState: true, preserveScroll: true }));
+        channel.listen('.inbox.updated', () => router.reload({ only: ['conversations', 'unreadCount'] }));
         return () => echo().leaveChannel(`private-user.${currentUserId}.inbox`);
     }, [currentUserId]);
 
@@ -93,7 +93,7 @@ export function MessagePopover() {
             <Popover.Trigger>
                 <Button isIconOnly variant="ghost" size="sm" aria-label="Messages" className="relative rounded-lg">
                     <IconMessage2 size={15} />
-                    {unreadCount > 0 ? <Chip size="sm" color="danger" variant="solid" className="absolute -right-2 -top-2 min-w-5 px-1">{unreadCount > 99 ? '99+' : unreadCount}</Chip> : null}
+                    {unreadCount > 0 ? <Chip size="sm" color="danger" variant="soft" className="absolute -right-2 -top-2 min-w-5 px-1">{unreadCount > 99 ? '99+' : unreadCount}</Chip> : null}
                 </Button>
             </Popover.Trigger>
             <Popover.Content placement="bottom end" className="w-[min(400px,calc(100vw-20px))] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-0 shadow-2xl">
@@ -102,7 +102,7 @@ export function MessagePopover() {
                         <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]"><IconMessage2 size={17} /></span>
                         <span className="min-w-0 flex-1"><Popover.Heading className="text-sm font-semibold">{t('inbox.title')}</Popover.Heading><span className="block text-[9px] text-[var(--text-muted)]">{t('inbox.subtitle')}</span></span>
                         {unreadCount > 0 ? <Chip size="sm" color="danger">{unreadCount}</Chip> : null}
-                        <Button isIconOnly variant="light" size="sm" onPress={() => visitInbox()} aria-label={t('inbox.openInbox')}><IconExternalLink size={14} /></Button>
+                        <Button isIconOnly variant="ghost" size="sm" onPress={() => visitInbox()} aria-label={t('inbox.openInbox')}><IconExternalLink size={14} /></Button>
                     </header>
 
                     <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-2">

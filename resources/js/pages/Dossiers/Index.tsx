@@ -12,7 +12,7 @@ import { AppModal } from '@/components/ui/AppModal';
 import { AppWorkspaceTable, type AppWorkspaceTableColumn } from '@/components/ui/AppWorkspaceTable';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { cn } from '@/lib/cn';
-import type { City, DossierFormPayload, DossierRow } from '@/features/dossiers/types';
+import type { City, DossierFormPayload, DossierLocationGroup, DossierRow } from '@/features/dossiers/types';
 import type { FormErrors } from '@/lib/formErrors';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
 import { DossierLocationExplorer } from '@/features/dossiers/components/DossierLocationExplorer';
@@ -24,7 +24,7 @@ import type { MonthlyCount } from '@/features/intermediaries/types';
 
 type PageProps = {
     dossiers: DossierRow[];
-    locationGroups: { province: string; communes: { commune: string; stats: unknown; dossiers: unknown[] }[] }[];
+    locationGroups: DossierLocationGroup[];
     clients: { id: string; label: string }[];
     intermediaries: { id: string; label: string }[];
     cities: City[];
@@ -160,7 +160,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
             label: <ColumnHeader label="Client" icon={IconUserCircle} field="clientName" />,
             render: (dossier) => (
                 <div className="flex items-center gap-2">
-                    <Avatar name={dossier.clientName || '?'} size="sm" className="shrink-0 size-6 text-[9px] font-bold" classNames={{ base: 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' }} />
+                    <Avatar size="sm" className="shrink-0 size-6 bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[9px] font-bold text-[var(--accent)]"><Avatar.Fallback>{dossier.clientName || '?'}</Avatar.Fallback></Avatar>
                     <span className="truncate text-[var(--text)]">{dossier.clientName || '-'}</span>
                 </div>
             ),
@@ -188,12 +188,12 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
         {
             id: 'workflow',
             label: <ColumnHeader label="Workflow" icon={IconGitBranch} />,
-            render: (dossier) => <Chip variant="flat" size="sm" color={workflowChipColor[dossier.workflowStep] || 'default'}>{getDossierWorkflowLabel(dossier.workflowStep)}</Chip>,
+            render: (dossier) => <Chip variant="soft" size="sm" color={workflowChipColor[dossier.workflowStep] || 'default'}>{getDossierWorkflowLabel(dossier.workflowStep)}</Chip>,
         },
         {
             id: 'status',
             label: <ColumnHeader label="Statut" icon={IconCircleCheck} field="status" />,
-            render: (dossier) => <Chip variant="flat" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>,
+            render: (dossier) => <Chip variant="soft" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>,
         },
         {
             id: 'updated',
@@ -290,10 +290,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
                     <Dropdown.Popover placement="bottom end"
                         className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0.5 shadow-xl">
                         <Dropdown.Menu aria-label="Actions"
-                            onAction={(key) => handleAction(dossier, key as ActionId)}
-                            itemClasses={{
-                                base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-30',
-                            }}>
+                            onAction={(key) => handleAction(dossier, key as ActionId)}>
                             <Dropdown.Item key="open" id="open" className="text-[var(--text)]">
                                 <div className="flex items-center gap-2">
                                     <IconEye size={13} className="text-[var(--accent)] shrink-0" />
@@ -318,8 +315,8 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
                                     <span>Archiver</span>
                                 </div>
                             </Dropdown.Item> : null}
-                            {can('dossiers.delete') ? <Dropdown.Section title="Danger"
-                                classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
+                            {can('dossiers.delete') ? <Dropdown.Section>
+                                <div className="mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">Danger</div>
                                 <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
                                     <div className="flex items-center gap-2">
                                         <IconTrash size={13} className="shrink-0 text-red-400" />
@@ -443,16 +440,13 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
                                             className="min-w-44 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                                             <Dropdown.Menu aria-label="Filtre workflow" selectionMode="single"
                                                 disabledKeys={statusOptions.filter((o) => o.count === 0).map((o) => o.id)}
-                                                onAction={(key) => { setWorkflowFilter(key as string); setPage(0); }}
-                                                itemClasses={{
-                                                    base: 'rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40',
-                                                }}>
+                                                onAction={(key) => { setWorkflowFilter(key as string); setPage(0); }}>
                                                 {statusOptions.map((opt) => {
                                                     const Icon = opt.id === 'all' ? IconFilter : IconAlertTriangle;
                                                     return (
                                                         <Dropdown.Item key={opt.id}
                                                             id={opt.id}
-                                                            textValue={opt.label}>
+                                                            textValue={opt.label} className="rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40">
                                                             <div className="flex w-full items-center gap-2">
                                                                 <Dropdown.ItemIndicator>
                                                                     <IconCircleCheck size={14} className="text-[var(--accent)]" />
@@ -467,7 +461,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
                                             </Dropdown.Menu>
                                         </Dropdown.Popover>
                                     </Dropdown>
-                                    <AppButton variant="ghost" isIconOnly size="sm" onPress={() => router.reload({ preserveScroll: true })} className="size-7 text-[var(--text-muted)]" aria-label="Actualiser"><IconRefresh size={12} /></AppButton>
+                                    <AppButton variant="ghost" isIconOnly size="sm" onPress={() => router.reload()} className="size-7 text-[var(--text-muted)]" aria-label="Actualiser"><IconRefresh size={12} /></AppButton>
                                 </div>
                                 </div>
                             }
@@ -521,8 +515,8 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
                                 <span>Confirmez la suppression de <strong>{deleteTarget?.dossierNumber}</strong>. Cette action est <span className="font-semibold text-red-400">irreversible</span>.</span>
                             </p>
                             <div className="flex justify-end gap-2">
-                                <Button variant="bordered" color="default" onPress={() => setDeleteTarget(null)} isDisabled={actionLoading}>Annuler</Button>
-                                <Button variant="solid" onPress={confirmDelete} isLoading={actionLoading} className="bg-red-500 text-white hover:bg-red-600">Supprimer</Button>
+                                <Button variant="outline" onPress={() => setDeleteTarget(null)} isDisabled={actionLoading}>Annuler</Button>
+                                <Button variant="danger" onPress={confirmDelete} isPending={actionLoading}>Supprimer</Button>
                             </div>
                         </AppModal>
                     </>
@@ -536,17 +530,17 @@ const statusLabel: Record<string, string> = {
     active: 'Actif', opened: 'Ouvert', closed: 'Ferme', archived: 'Archive', paused: 'Suspendu',
 };
 
-const statusChipColor: Record<string, 'success' | 'primary' | 'default' | 'warning'> = {
-    active: 'success', opened: 'primary', closed: 'default', archived: 'warning', paused: 'warning',
+const statusChipColor: Record<string, 'success' | 'accent' | 'default' | 'warning'> = {
+    active: 'success', opened: 'accent', closed: 'default', archived: 'warning', paused: 'warning',
 };
 
-const workflowChipColor: Record<string, 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger'> = {
-    client: 'primary',
-    bureau_etude: 'secondary',
+const workflowChipColor: Record<string, 'default' | 'accent' | 'success' | 'warning' | 'danger'> = {
+    client: 'accent',
+    bureau_etude: 'accent',
     documents: 'warning',
     contract: 'success',
-    authorization: 'secondary',
-    finance: 'primary',
+    authorization: 'accent',
+    finance: 'accent',
     archive: 'default',
 };
 
@@ -563,23 +557,23 @@ function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDel
                 <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
                         {dossier.projectObject}
-                        <Chip variant="flat" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>
+                        <Chip variant="soft" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>
                     </p>
                     <p className="text-xs text-[var(--text-muted)]">{dossier.dossierNumber}</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
                     <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{dossier.clientName || '-'}</p>
                     <p className="truncate text-xs text-[var(--text-muted)]">{dossier.clientNumber}</p>
                 </Card>
-                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Workflow</p>
                     <p className="mt-1 text-sm font-semibold text-[var(--accent)]">{getDossierWorkflowLabel(dossier.workflowStep)}</p>
                 </Card>
-                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Ville</p>
                     {dossier.city ? (
                         <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--foreground)]">
@@ -590,24 +584,24 @@ function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDel
                         <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">-</p>
                     )}
                 </Card>
-                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Localisation</p>
                     <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{dossier.province || '-'}</p>
                     <p className="truncate text-xs text-[var(--text-muted)]">{dossier.commune || '-'}</p>
                 </Card>
-                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Surface</p>
                     <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">{dossier.floorArea ? `${formatNumber(dossier.floorArea)} m2` : '-'}</p>
                 </Card>
-                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Statut</p>
                     <div className="mt-1">
-                        <Chip variant="flat" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>
+                        <Chip variant="soft" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>
                     </div>
                 </Card>
             </div>
 
-            <Card className="gap-0 p-4" classNames={{ base: 'border border-[var(--border)] shadow-sm' }}>
+            <Card className="gap-0 border border-[var(--border)] p-4 shadow-sm">
                 <div className="mb-3 flex items-center justify-between">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Readiness</p>
                     <span className="text-[10px] text-[var(--text-muted)]">{doneSteps}/6</span>
@@ -630,16 +624,16 @@ function PreviewContent({ dossier, canEdit, canDelete, canArchive, onEdit, onDel
             </Card>
 
             <div className="grid grid-cols-1 gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5 shadow-sm sm:grid-cols-2">
-                <Button variant="solid" color="primary" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
+                <Button variant="primary" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => router.visit(`/dossiers/${dossier.id}`)}>
                     <IconEye size={13} /> View project
                 </Button>
-                {canEdit ? <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => onEdit(dossier)}>
+                {canEdit ? <Button variant="outline" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => onEdit(dossier)}>
                     <IconPencil size={13} /> Modifier
                 </Button> : null}
-                {canArchive ? <Button variant="bordered" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => router.visit('/archives')}>
+                {canArchive ? <Button variant="outline" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap" onPress={() => router.visit('/archives')}>
                     <IconTrash size={13} /> Archiver
                 </Button> : null}
-                {canDelete ? <Button variant="light" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap text-red-400" onPress={() => onDelete(dossier)}>
+                {canDelete ? <Button variant="ghost" size="sm" className="h-8 min-w-0 px-1.5 text-[9px] whitespace-nowrap text-red-400" onPress={() => onDelete(dossier)}>
                     <IconTrash size={13} /> Supprimer
                 </Button> : null}
             </div>

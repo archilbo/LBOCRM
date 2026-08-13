@@ -235,7 +235,7 @@ function RecoveryTab({ recovery }: { recovery: RecoveryWorkspace }) {
                     </div>
                 </div>) : <div className="py-12 text-center"><IconTrashX className="mx-auto mb-3 text-[var(--text-muted)]" size={30} /><p className="font-semibold text-[var(--text)]">Corbeille vide</p><p className="mt-1 text-sm text-[var(--text-muted)]">Aucune donnée supprimée à restaurer.</p></div>}
             </div>
-            {recovery.pagination.lastPage > 1 ? <div className="mt-4 flex justify-end"><Pagination page={recovery.pagination.currentPage} total={recovery.pagination.lastPage} onChange={(page) => visit({ search, type: recovery.filters.type, page })} /></div> : null}
+            {recovery.pagination.lastPage > 1 ? <div className="mt-4 flex justify-end"><Pagination><Pagination.Content><Pagination.Item><Pagination.Previous isDisabled={recovery.pagination.currentPage <= 1} onPress={() => visit({ search, type: recovery.filters.type, page: recovery.pagination.currentPage - 1 })}>Précédent</Pagination.Previous></Pagination.Item><Pagination.Item><Pagination.Link isActive>{recovery.pagination.currentPage}</Pagination.Link></Pagination.Item><Pagination.Item><Pagination.Next isDisabled={recovery.pagination.currentPage >= recovery.pagination.lastPage} onPress={() => visit({ search, type: recovery.filters.type, page: recovery.pagination.currentPage + 1 })}>Suivant</Pagination.Next></Pagination.Item></Pagination.Content></Pagination></div> : null}
         </AppCard>
         <AppModal isOpen={Boolean(purgeTarget)} onOpenChange={(open) => !open && setPurgeTarget(null)} title="Supprimer définitivement ?" size="sm">
             <p className="text-sm text-[var(--text-muted)]">Cette action est irréversible depuis ARCHI LBO.</p>

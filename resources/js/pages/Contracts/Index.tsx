@@ -28,8 +28,8 @@ const statusLabel: Record<string, string> = {
     draft: 'Brouillon', generated: 'Genere', signed: 'Signe', cancelled: 'Annule', completed: 'Complete',
 };
 
-const statusChipColor: Record<string, 'warning' | 'primary' | 'success' | 'danger' | 'default'> = {
-    draft: 'warning', generated: 'primary', signed: 'success', cancelled: 'danger', completed: 'success',
+const statusChipColor: Record<string, 'warning' | 'accent' | 'success' | 'danger' | 'default'> = {
+    draft: 'warning', generated: 'accent', signed: 'success', cancelled: 'danger', completed: 'success',
 };
 
 function hasSearchMatch(contract: ContractRow, query: string) {
@@ -241,10 +241,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
                                     className="min-w-44 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                                     <Dropdown.Menu aria-label="Filtre statut" selectionMode="single"
                                         disabledKeys={statusOptions.filter((o) => o.count === 0).map((o) => o.id)}
-                                        onAction={(key) => { setStatusFilter(key as string); setPage(0); }}
-                                        itemClasses={{
-                                            base: 'rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40',
-                                        }}>
+                                        onAction={(key) => { setStatusFilter(key as string); setPage(0); }}>
                                         {statusOptions.map((opt) => {
                                             const Icon = opt.id === 'all' ? IconFilter
                                                 : opt.id === 'draft' ? IconAlertTriangle
@@ -255,7 +252,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
                                             return (
                                                 <Dropdown.Item key={opt.id}
                                                     id={opt.id}
-                                                    textValue={opt.label}>
+                                                    textValue={opt.label} className="rounded-lg px-2 py-1.5 text-[11px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-40">
                                                     <div className="flex w-full items-center gap-2">
                                                         <Dropdown.ItemIndicator>
                                                             <IconCircleCheck size={14} className="text-[var(--accent)]" />
@@ -270,7 +267,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
                                     </Dropdown.Menu>
                                 </Dropdown.Popover>
                             </Dropdown>
-                            <Button variant="light" size="sm" isIconOnly className="h-7 w-7 min-w-0 text-[var(--text-muted)]" onPress={() => router.reload({ preserveScroll: true })}>
+                            <Button variant="ghost" size="sm" isIconOnly className="h-7 w-7 min-w-0 text-[var(--text-muted)]" onPress={() => router.reload()}>
                                 <IconRefresh size={12} />
                             </Button>
                         </div>
@@ -333,13 +330,13 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
                                         </td>
                                         <td className="px-3 py-2">
                                             <div className="flex items-center gap-2">
-                                                <Avatar name={c.clientName || '?'} size="sm" className="shrink-0 size-6 text-[9px] font-bold" classNames={{ base: 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' }} />
+                                                <Avatar size="sm" className="shrink-0 size-6 bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[9px] font-bold text-[var(--accent)]"><Avatar.Fallback>{c.clientName || '?'}</Avatar.Fallback></Avatar>
                                                 <span className="truncate text-[var(--text)]">{c.clientName || '-'}</span>
                                             </div>
                                         </td>
                                         <td className="px-3 py-2 text-right font-semibold text-[var(--text)]">{formatCompactMoney(c.ttc)}</td>
                                         <td className="px-3 py-2">
-                                            <Chip variant="flat" size="sm" color={statusChipColor[c.status] || 'default'}>
+                                            <Chip variant="soft" size="sm" color={statusChipColor[c.status] || 'default'}>
                                                 {statusLabel[c.status] || c.status}
                                             </Chip>
                                         </td>
@@ -366,12 +363,9 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
                                                         className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0.5 shadow-xl">
                                                         <Dropdown.Menu aria-label="Actions"
                                                             disabledKeys={generating(c.id) ? ['generate-docx', 'generate-pdf'] : []}
-                                                            onAction={(key) => handleAction(c, key as ActionId)}
-                                                            itemClasses={{
-                                                                base: 'rounded-lg px-2 py-1 text-[10px] font-medium text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)] data-[disabled]:opacity-30',
-                                                            }}>
-                                                            <Dropdown.Section title="Document"
-                                                                classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
+                                                            onAction={(key) => handleAction(c, key as ActionId)}>
+                                                            <Dropdown.Section>
+                                                                <div className="mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">Document</div>
                                                                 {c.hasGeneratedDocument ? (
                                                                     <Dropdown.Item key="download-docx" id="download-docx" className="text-[var(--text)]">
                                                                         <div className="flex items-center gap-2">
@@ -423,8 +417,8 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
                                                                     </div>
                                                                 </Dropdown.Item>
                                                             )}
-                                                            <Dropdown.Section title="Danger"
-                                                                classNames={{ heading: 'mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]' }}>
+                                                            <Dropdown.Section>
+                                                                <div className="mb-0.5 px-2 pb-0.5 pt-1.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">Danger</div>
                                                                 <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
                                                                     <div className="flex items-center gap-2">
                                                                         <IconTrash size={13} className="shrink-0 text-red-400" />
@@ -492,7 +486,7 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
                                 <div className="min-w-0 flex-1">
                                     <p className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
                                         {previewContract.contractNumber}
-                                        <Chip variant="flat" size="sm" color={statusChipColor[previewContract.status] || 'default'}>
+                                        <Chip variant="soft" size="sm" color={statusChipColor[previewContract.status] || 'default'}>
                                             {statusLabel[previewContract.status] || previewContract.status}
                                         </Chip>
                                     </p>
@@ -501,30 +495,30 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
-                                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
                                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Client</p>
                                     <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{previewContract.clientName || '-'}</p>
                                     <p className="truncate text-xs text-[var(--text-muted)]">{previewContract.clientCin}</p>
                                 </Card>
-                                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
                                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Dossier</p>
                                     <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">{previewContract.dossierNumber || '-'}</p>
                                 </Card>
-                                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
                                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Montant</p>
                                     <p className="mt-1 text-lg font-semibold text-[var(--accent)]">{formatCompactMoney(previewContract.ttc)}</p>
                                 </Card>
-                                <Card className="gap-0 p-3" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-sm">
                                     <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Statut</p>
                                     <div className="mt-1">
-                                        <Chip variant="flat" size="sm" color={statusChipColor[previewContract.status] || 'default'}>
+                                        <Chip variant="soft" size="sm" color={statusChipColor[previewContract.status] || 'default'}>
                                             {statusLabel[previewContract.status] || previewContract.status}
                                         </Chip>
                                     </div>
                                 </Card>
                             </div>
 
-                            <Card className="gap-0 p-4" classNames={{ base: 'border border-[var(--border)] shadow-sm' }}>
+                            <Card className="gap-0 border border-[var(--border)] p-4 shadow-sm">
                                 <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Calcul</p>
                                 <div className="grid grid-cols-3 gap-2">
                                     <div className="rounded-lg bg-[var(--surface-2)] p-2 text-center">
@@ -557,13 +551,13 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
                             </Card>
 
                             {previewContract.notes ? (
-                                <Card className="gap-0 p-4" classNames={{ base: 'border border-[var(--border)] bg-[var(--surface-2)] shadow-sm' }}>
+                                <Card className="gap-0 border border-[var(--border)] bg-[var(--surface-2)] p-4 shadow-sm">
                                     <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Notes</p>
                                     <p className="text-sm leading-relaxed text-[var(--text-muted)]">{previewContract.notes}</p>
                                 </Card>
                             ) : null}
 
-                            <Card className="gap-0 p-4" classNames={{ base: 'border border-[var(--border)] shadow-sm' }}>
+                            <Card className="gap-0 border border-[var(--border)] p-4 shadow-sm">
                                 <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Chronologie</p>
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
@@ -589,40 +583,40 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
 
                             <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 shadow-sm">
                                 {previewContract.status !== 'signed' && (
-                                    <Button variant="solid" color="primary" size="sm" className="min-w-0 h-8 text-[10px]" onPress={() => { openEditDrawer(previewContract); setPreviewContract(null); }}>
+                                    <Button variant="primary" size="sm" className="min-w-0 h-8 text-[10px]" onPress={() => { openEditDrawer(previewContract); setPreviewContract(null); }}>
                                         <IconPencil size={13} /> Modifier
                                     </Button>
                                 )}
                                 <span className="h-5 w-px bg-[var(--border)]" />
                                 {previewContract.hasGeneratedDocument ? (
-                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.generatedDocumentDownloadUrl!; }}>
+                                    <Button variant="outline" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.generatedDocumentDownloadUrl!; }}>
                                         <IconFileDownload size={13} /> DOCX
                                     </Button>
                                 ) : (
-                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-blue-400/40 text-blue-600 hover:bg-blue-500/10" isLoading={generatingId === previewContract.id} isDisabled={generatingId === previewContract.id} onPress={() => { const id = previewContract.id; generateDocument(id, 'docx'); setPreviewContract(null); }}>
+                                    <Button variant="outline" size="sm" className="min-w-0 h-8 text-[10px] border-blue-400/40 text-blue-600 hover:bg-blue-500/10" isPending={generatingId === previewContract.id} isDisabled={generatingId === previewContract.id} onPress={() => { const id = previewContract.id; generateDocument(id, 'docx'); setPreviewContract(null); }}>
                                         <IconFileUpload size={13} /> DOCX
                                     </Button>
                                 )}
                                 {previewContract.hasPdf ? (
-                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.pdfDownloadUrl!; }}>
+                                    <Button variant="outline" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { window.location.href = previewContract.pdfDownloadUrl!; }}>
                                         <IconDownload size={13} /> PDF
                                     </Button>
                                 ) : previewContract.hasGeneratedDocument ? (
-                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-violet-400/40 text-violet-600 hover:bg-violet-500/10" isLoading={generatingId === previewContract.id} isDisabled={generatingId === previewContract.id} onPress={() => { const id = previewContract.id; generateDocument(id, 'pdf'); setPreviewContract(null); }}>
+                                    <Button variant="outline" size="sm" className="min-w-0 h-8 text-[10px] border-violet-400/40 text-violet-600 hover:bg-violet-500/10" isPending={generatingId === previewContract.id} isDisabled={generatingId === previewContract.id} onPress={() => { const id = previewContract.id; generateDocument(id, 'pdf'); setPreviewContract(null); }}>
                                         <IconFileText size={13} /> PDF
                                     </Button>
                                 ) : null}
                                 <span className="h-5 w-px bg-[var(--border)]" />
-                                <Button variant="bordered" size="sm" className="min-w-0 size-8 p-0 hover:bg-[var(--surface-3)]" onPress={() => { window.open(`/contracts/${previewContract.id}/print`, '_blank', 'noopener,noreferrer'); }} title="Imprimer">
+                                <Button variant="outline" size="sm" className="min-w-0 size-8 p-0 hover:bg-[var(--surface-3)]" onPress={() => { window.open(`/contracts/${previewContract.id}/print`, '_blank', 'noopener,noreferrer'); }} aria-label="Imprimer">
                                     <IconPrinter size={13} />
                                 </Button>
                                 {previewContract.status !== 'signed' && (
-                                    <Button variant="bordered" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { router.put(`/contracts/${previewContract.id}/signed`, {}, { preserveScroll: true, onSuccess: () => { toast.success('Contrat marque comme signe.'); setPreviewContract(null); }, onError: () => toast.error('Erreur lors de la mise a jour.') }); }}>
+                                    <Button variant="outline" size="sm" className="min-w-0 h-8 text-[10px] border-emerald-400/40 text-emerald-600 hover:bg-emerald-500/10" onPress={() => { router.put(`/contracts/${previewContract.id}/signed`, {}, { preserveScroll: true, onSuccess: () => { toast.success('Contrat marque comme signe.'); setPreviewContract(null); }, onError: () => toast.error('Erreur lors de la mise a jour.') }); }}>
                                         <IconCircleCheck size={13} /> Signer
                                     </Button>
                                 )}
                                 <span className="h-5 w-px bg-[var(--border)]" />
-                                <Button variant="solid" color="default" size="sm" className="min-w-0 size-8 p-0 hover:opacity-80" onPress={() => { setDeleteTarget(previewContract); setPreviewContract(null); }}>
+                                <Button variant="danger-soft" size="sm" className="min-w-0 size-8 p-0 hover:opacity-80" onPress={() => { setDeleteTarget(previewContract); setPreviewContract(null); }}>
                                     <IconTrash size={13} className="text-red-400" />
                                 </Button>
                             </div>
@@ -641,8 +635,8 @@ export default function ContractsIndex({ contracts, dossiers, clients, architect
                         <span>Confirmez la suppression de <strong>{deleteTarget?.contractNumber}</strong>. Cette action est <span className="font-semibold text-red-400">irreversible</span>.</span>
                     </p>
                     <div className="flex justify-end gap-2">
-                        <Button variant="bordered" color="default" onPress={() => setDeleteTarget(null)} isDisabled={actionLoading}>Annuler</Button>
-                        <Button variant="solid" onPress={confirmDelete} isLoading={actionLoading} className="bg-red-500 text-white hover:bg-red-600">Supprimer</Button>
+                        <Button variant="outline" onPress={() => setDeleteTarget(null)} isDisabled={actionLoading}>Annuler</Button>
+                        <Button variant="danger" onPress={confirmDelete} isPending={actionLoading}>Supprimer</Button>
                     </div>
                 </AppModal>
             </AppShell>

@@ -477,7 +477,7 @@ export function EfficiencySheetDrawer({
                                                     value={usage}
                                                     onChange={(e) => setUsage(e.target.value)}
                                                     maxLength={255}
-                                                    isDisabled={submitting}
+                                                    disabled={submitting}
                                                     placeholder={t('dossiers.efficiencySheet.usagePlaceholder')}
                                                     className={drawerStyles.input}
                                                     aria-invalid={usage !== '' && !usageValid ? true : undefined}
@@ -502,7 +502,7 @@ export function EfficiencySheetDrawer({
                                                     value={owner}
                                                     onChange={(e) => setOwner(e.target.value)}
                                                     maxLength={255}
-                                                    isDisabled={submitting}
+                                                    disabled={submitting}
                                                     placeholder={t('dossiers.efficiencySheet.fullNamePlaceholder')}
                                                     className={drawerStyles.input}
                                                     aria-invalid={owner !== '' && !ownerValid ? true : undefined}

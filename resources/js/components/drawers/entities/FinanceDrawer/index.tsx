@@ -78,8 +78,8 @@ export function FinanceDrawer({ isOpen, mode, record, dossiers, clients = [], on
             description="Enregistrez un devis, une facture ou un paiement."
             footer={
                 <div className="flex items-center gap-2">
-                    <Button variant="light" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button>
-                    <Button color="warning" size="sm" type="submit" form="finance-form">Enregistrer</Button>
+                    <Button variant="ghost" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button>
+                    <Button variant="primary" size="sm" type="submit" form="finance-form">Enregistrer</Button>
                 </div>
             }
         >
@@ -122,10 +122,9 @@ export function FinanceDrawer({ isOpen, mode, record, dossiers, clients = [], on
                         <div className="flex min-w-0 flex-col gap-1">
                             <label className={labelCls}>Type</label>
                             <Select
-                                selectedKeys={[form.type]}
+                                selectedKey={form.type}
                                 onSelectionChange={(key) => { updateField('type', key != null ? String(key) : ''); }}
-                                validationState={errors.type ? 'invalid' : 'valid'}
-                                errorMessage={firstError(errors, 'type')}
+                                aria-invalid={Boolean(errors.type)}
                             >
                                 <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
                                 <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
@@ -138,10 +137,9 @@ export function FinanceDrawer({ isOpen, mode, record, dossiers, clients = [], on
                         <div className="flex min-w-0 flex-col gap-1">
                             <label className={labelCls}>Statut</label>
                             <Select
-                                selectedKeys={[form.status]}
+                                selectedKey={form.status}
                                 onSelectionChange={(key) => { updateField('status', key != null ? String(key) : ''); }}
-                                validationState={errors.status ? 'invalid' : 'valid'}
-                                errorMessage={firstError(errors, 'status')}
+                                aria-invalid={Boolean(errors.status)}
                             >
                                 <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
                                 <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
@@ -160,13 +158,11 @@ export function FinanceDrawer({ isOpen, mode, record, dossiers, clients = [], on
                 <Card className="p-3 space-y-3">
                     <p className={labelCls}>Montants</p>
                     <div className="grid gap-2 md:grid-cols-2">
-                        {([['ht', 'HT'], ['tva', 'TVA'], ['total_ttc', 'Total TTC'], ['paid', 'Paye']] as const).map(([field, label]) => (
+                        {([['ht', 'HT', 'ht'], ['tva', 'TVA', 'tva'], ['totalTtc', 'Total TTC', 'total_ttc'], ['paid', 'Paye', 'paid']] as const).map(([field, label, errorKey]) => (
                             <div key={field} className="flex min-w-0 flex-col gap-1">
                                 <label className={labelCls}>{label}</label>
-                                <Input className={compactInput} value={form[field]} onChange={(e) => updateField(field, e.target.value)}
-                                    validationState={errors[field] ? 'invalid' : 'valid'}
-                                    errorMessage={firstError(errors, field)}
-                                />
+                                <Input className={compactInput} value={form[field]} onChange={(e) => updateField(field, e.target.value)} aria-invalid={Boolean(errors[errorKey])} />
+                                {firstError(errors, errorKey) ? <p className="text-[10px] text-[var(--danger)]">{firstError(errors, errorKey)}</p> : null}
                             </div>
                         ))}
                     </div>
@@ -185,10 +181,8 @@ export function FinanceDrawer({ isOpen, mode, record, dossiers, clients = [], on
                     <p className={labelCls}>Notes</p>
                     <div className="flex min-w-0 flex-col gap-1">
                         <label className={labelCls}>Notes internes</label>
-                        <TextArea className={compactTextarea} value={form.notes} onChange={(e) => updateField('notes', e.target.value)}
-                            validationState={errors.notes ? 'invalid' : 'valid'}
-                            errorMessage={firstError(errors, 'notes')}
-                        />
+                        <TextArea className={compactTextarea} value={form.notes} onChange={(e) => updateField('notes', e.target.value)} aria-invalid={Boolean(errors.notes)} />
+                        {firstError(errors, 'notes') ? <p className="text-[10px] text-[var(--danger)]">{firstError(errors, 'notes')}</p> : null}
                     </div>
                 </Card>
             </form>

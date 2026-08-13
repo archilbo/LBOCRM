@@ -45,7 +45,7 @@ export function TaskActionsMenu({ task, onOpen, onStatusChange }: Props) {
                         </span>
                     </Dropdown.Item>
                     {onStatusChange ? (
-                        <Dropdown.Section title={t('tasks.actions.moveTo')} className="border-t border-[var(--border)] pt-1">
+                        <Dropdown.Section className="border-t border-[var(--border)] pt-1">
                             {COLUMNS.filter((status) => status !== task.status).map((status) => (
                                 <Dropdown.Item key={status} id={`move:${status}`} textValue={t(`tasks.statuses.${status}`)} className={itemClass}>
                                     <span className="flex items-center gap-2">

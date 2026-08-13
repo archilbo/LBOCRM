@@ -280,7 +280,7 @@ class ProjectDesignController extends Controller
 
     public function preview(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
+        Gate::authorize('previewVersion', [$version, $dossier]);
 
         $previewAsset = $version->assets()->where('previewable', true)->orderBy('sort_order')->first();
 
@@ -332,6 +332,7 @@ class ProjectDesignController extends Controller
     public function getAnnotations(Request $request, Dossier $dossier, ProjectDesignFileVersion $version): JsonResponse
     {
         Gate::authorize('viewProjectDesign', [ProjectDesignFile::class, $dossier]);
+        abort_unless((int) $version->dossier_id === (int) $dossier->id, 403);
 
         $annotations = $version->annotations()
             ->with(['authoredBy', 'createdBy', 'remarks.createdBy', 'asset'])
@@ -346,6 +347,13 @@ class ProjectDesignController extends Controller
         Gate::authorize('annotate', [$version, $dossier]);
         $data = $request->validated();
         $companyId = app(CompanyContext::class)->id($request->user());
+        $asset = ProjectDesignAsset::findOrFail($data['asset_id']);
+        abort_unless(
+            (int) $asset->company_id === (int) $companyId
+            && (int) $asset->version_id === (int) $version->id
+            && (int) $asset->design_file_id === (int) $version->file_id,
+            403,
+        );
         $annotation = ProjectDesignAnnotation::create([
             'company_id' => $companyId,
             'dossier_id' => $dossier->id,

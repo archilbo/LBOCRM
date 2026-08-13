@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Group, Panel, Separator, useGroupRef, usePanelCallbackRef } from 'react-resizable-panels';
 import { IconMaximize, IconMinimize, IconDeviceDesktop, IconSettings2, IconX } from '@tabler/icons-react';
 
 import { Drawer, Dropdown } from '@heroui/react';
@@ -7,18 +6,6 @@ import { cn } from '@/lib/cn';
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import type { ProjectDesignLayoutControls } from './ProjectDesignLayoutContext';
 
-const BROWSER_MIN = 240;
-const BROWSER_MAX_XL = 360;
-const BROWSER_MAX_LG = 340;
-const BROWSER_DEFAULT = 268;
-const INSPECTOR_MIN = 340;
-const INSPECTOR_MAX = 480;
-const INSPECTOR_DEFAULT = 372;
-const CENTER_MIN = 560;
-
-const BROWSER_LAYOUT = BROWSER_DEFAULT;
-const VIEWER_LAYOUT = CENTER_MIN;
-const INSPECTOR_LAYOUT = INSPECTOR_DEFAULT;
 const PERSISTENCE_KEY_PREFIX = 'pd-editor-layout';
 
 type Breakpoint = 'xl' | 'lg' | 'md' | 'sm';
@@ -92,16 +79,6 @@ function PanelSurface({ children, edge }: { children: ReactNode; edge: 'left' | 
         >
             {children}
         </div>
-    );
-}
-
-function ResizeHandle() {
-    return (
-        <Separator
-            className="group relative w-1 shrink-0 cursor-col-resize bg-[var(--border)]/55 outline-none transition-colors hover:bg-[var(--accent)]/35 data-[resize-handle-active]:bg-[var(--accent)]/55 focus-visible:bg-[var(--accent)]/40 focus-visible:ring-1 focus-visible:ring-[var(--accent)]"
-        >
-            <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-transparent group-hover:bg-[var(--accent)]/60" />
-        </Separator>
     );
 }
 
@@ -188,6 +165,7 @@ export function ProjectDesignEditorLayout({
         () => loadLayout(companyId ?? null, userId ?? null),
         [companyId, userId],
     );
+    const [desktopPanels, setDesktopPanels] = useState<PersistedLayout>(persisted);
 
     const [drawerState, setDrawerState] = useState<DrawerState>({
         breakpoint,
@@ -198,9 +176,17 @@ export function ProjectDesignEditorLayout({
     const browserDrawerOpen = drawerState.breakpoint === breakpoint && drawerState.browser;
     const inspectorDrawerOpen = drawerState.breakpoint === breakpoint && drawerState.inspector;
 
-    const groupRef = useGroupRef();
-    const [browserPanelHandle, setBrowserPanelHandle] = usePanelCallbackRef();
-    const [inspectorPanelHandle, setInspectorPanelHandle] = usePanelCallbackRef();
+    useEffect(() => {
+        setDesktopPanels(persisted);
+    }, [persisted]);
+
+    const updateDesktopPanels = useCallback((changes: Partial<PersistedLayout>) => {
+        setDesktopPanels((current) => {
+            const next = { ...current, ...changes };
+            saveLayout(companyId ?? null, userId ?? null, next);
+            return next;
+        });
+    }, [companyId, userId]);
 
     const setBrowserDrawerOpen = useCallback((open: boolean) => {
         setDrawerState((current) => ({
@@ -220,43 +206,41 @@ export function ProjectDesignEditorLayout({
 
     const toggleBrowser = useCallback(() => {
         if (isXl || isLg) {
-            if (browserPanelHandle?.isCollapsed()) browserPanelHandle.expand();
-            else browserPanelHandle?.collapse();
+            updateDesktopPanels({ browserCollapsed: !desktopPanels.browserCollapsed });
             return;
         }
 
         setBrowserDrawerOpen(!browserDrawerOpen);
-    }, [isXl, isLg, browserPanelHandle, browserDrawerOpen, setBrowserDrawerOpen]);
+    }, [isXl, isLg, desktopPanels.browserCollapsed, updateDesktopPanels, browserDrawerOpen, setBrowserDrawerOpen]);
 
     const toggleInspector = useCallback(() => {
         if (isXl) {
-            if (inspectorPanelHandle?.isCollapsed()) inspectorPanelHandle.expand();
-            else inspectorPanelHandle?.collapse();
+            updateDesktopPanels({ inspectorCollapsed: !desktopPanels.inspectorCollapsed });
             return;
         }
 
         setInspectorDrawerOpen(!inspectorDrawerOpen);
-    }, [isXl, inspectorPanelHandle, inspectorDrawerOpen, setInspectorDrawerOpen]);
+    }, [isXl, desktopPanels.inspectorCollapsed, updateDesktopPanels, inspectorDrawerOpen, setInspectorDrawerOpen]);
 
     const openBrowser = useCallback(() => {
-        if (isXl || isLg) browserPanelHandle?.expand();
+        if (isXl || isLg) updateDesktopPanels({ browserCollapsed: false });
         else setBrowserDrawerOpen(true);
-    }, [isXl, isLg, browserPanelHandle, setBrowserDrawerOpen]);
+    }, [isXl, isLg, updateDesktopPanels, setBrowserDrawerOpen]);
 
     const openInspector = useCallback(() => {
-        if (isXl) inspectorPanelHandle?.expand();
+        if (isXl) updateDesktopPanels({ inspectorCollapsed: false });
         else setInspectorDrawerOpen(true);
-    }, [isXl, inspectorPanelHandle, setInspectorDrawerOpen]);
+    }, [isXl, updateDesktopPanels, setInspectorDrawerOpen]);
 
     const closeBrowser = useCallback(() => {
-        if (isXl || isLg) browserPanelHandle?.collapse();
+        if (isXl || isLg) updateDesktopPanels({ browserCollapsed: true });
         else setBrowserDrawerOpen(false);
-    }, [isXl, isLg, browserPanelHandle, setBrowserDrawerOpen]);
+    }, [isXl, isLg, updateDesktopPanels, setBrowserDrawerOpen]);
 
     const closeInspector = useCallback(() => {
-        if (isXl) inspectorPanelHandle?.collapse();
+        if (isXl) updateDesktopPanels({ inspectorCollapsed: true });
         else setInspectorDrawerOpen(false);
-    }, [isXl, inspectorPanelHandle, setInspectorDrawerOpen]);
+    }, [isXl, updateDesktopPanels, setInspectorDrawerOpen]);
 
     const controls = useMemo<ProjectDesignLayoutControls>(() => ({
         toggleBrowser,
@@ -282,13 +266,6 @@ export function ProjectDesignEditorLayout({
         onControlsChange?.(controls);
     }, [controls, onControlsChange]);
 
-    const handleLayoutChange = useCallback((layout: { [panelId: string]: number }) => {
-        saveLayout(companyId ?? null, userId ?? null, {
-            browserCollapsed: (layout.browser ?? 0) <= 0,
-            inspectorCollapsed: (layout.inspector ?? 0) <= 0,
-        });
-    }, [companyId, userId]);
-
     const resetLayout = useCallback(() => {
         const key = persistenceKey(companyId ?? null, userId ?? null);
         if (key && typeof window !== 'undefined') {
@@ -300,104 +277,41 @@ export function ProjectDesignEditorLayout({
         }
 
         setDrawerState({ breakpoint, browser: false, inspector: false });
-
-        if (isXl) {
-            groupRef.current?.setLayout({
-                browser: BROWSER_LAYOUT,
-                viewer: VIEWER_LAYOUT,
-                inspector: INSPECTOR_LAYOUT,
-            });
-            browserPanelHandle?.expand();
-            inspectorPanelHandle?.expand();
-        } else if (isLg) {
-            groupRef.current?.setLayout({ browser: BROWSER_LAYOUT, viewer: VIEWER_LAYOUT });
-            browserPanelHandle?.expand();
-        }
-    }, [
-        breakpoint,
-        companyId,
-        userId,
-        isXl,
-        isLg,
-        groupRef,
-        browserPanelHandle,
-        inspectorPanelHandle,
-    ]);
+        setDesktopPanels(defaultPersistedLayout());
+    }, [breakpoint, companyId, userId]);
 
     let panels: ReactNode;
 
     if (isXl) {
         panels = (
-            <Group
-                key="project-design-xl"
-                orientation="horizontal"
-                defaultLayout={{
-                    browser: persisted.browserCollapsed ? 0 : BROWSER_LAYOUT,
-                    viewer: VIEWER_LAYOUT,
-                    inspector: persisted.inspectorCollapsed ? 0 : INSPECTOR_LAYOUT,
-                }}
-                onLayoutChanged={handleLayoutChange}
-                className="h-full"
-                groupRef={groupRef}
-            >
-                <Panel
-                    id="browser"
-                    defaultSize={persisted.browserCollapsed ? 0 : BROWSER_DEFAULT}
-                    minSize={BROWSER_MIN}
-                    maxSize={BROWSER_MAX_XL}
-                    collapsible
-                    collapsedSize={0}
-                    panelRef={setBrowserPanelHandle}
-                >
-                    <PanelSurface edge="left">{browser}</PanelSurface>
-                </Panel>
-                <ResizeHandle />
-                <Panel id="viewer" defaultSize={CENTER_MIN} minSize={CENTER_MIN} className="min-w-0">
+            <div className="flex h-full min-w-0">
+                {!desktopPanels.browserCollapsed ? (
+                    <aside className="h-full min-h-0 w-[268px] shrink-0 border-r border-[var(--border)]">
+                        <PanelSurface edge="left">{browser}</PanelSurface>
+                    </aside>
+                ) : null}
+                <div className="min-w-0 flex-1">
                     <PanelSurface edge="center">{viewer}</PanelSurface>
-                </Panel>
-                <ResizeHandle />
-                <Panel
-                    id="inspector"
-                    defaultSize={persisted.inspectorCollapsed ? 0 : INSPECTOR_DEFAULT}
-                    minSize={INSPECTOR_MIN}
-                    maxSize={INSPECTOR_MAX}
-                    collapsible
-                    collapsedSize={0}
-                    panelRef={setInspectorPanelHandle}
-                >
-                    <PanelSurface edge="right">{inspector}</PanelSurface>
-                </Panel>
-            </Group>
+                </div>
+                {!desktopPanels.inspectorCollapsed ? (
+                    <aside className="h-full min-h-0 w-[372px] shrink-0 border-l border-[var(--border)]">
+                        <PanelSurface edge="right">{inspector}</PanelSurface>
+                    </aside>
+                ) : null}
+            </div>
         );
     } else if (isLg) {
         panels = (
-            <Group
-                key="project-design-lg"
-                orientation="horizontal"
-                defaultLayout={{
-                    browser: persisted.browserCollapsed ? 0 : BROWSER_LAYOUT,
-                    viewer: VIEWER_LAYOUT,
-                }}
-                onLayoutChanged={handleLayoutChange}
-                className="h-full"
-                groupRef={groupRef}
-            >
-                <Panel
-                    id="browser"
-                    defaultSize={persisted.browserCollapsed ? 0 : BROWSER_DEFAULT}
-                    minSize={BROWSER_MIN}
-                    maxSize={BROWSER_MAX_LG}
-                    collapsible
-                    collapsedSize={0}
-                    panelRef={setBrowserPanelHandle}
-                >
-                    <PanelSurface edge="left">{browser}</PanelSurface>
-                </Panel>
-                <ResizeHandle />
-                <Panel id="viewer" defaultSize={CENTER_MIN} minSize={CENTER_MIN} className="min-w-0">
+            <div className="flex h-full min-w-0">
+                {!desktopPanels.browserCollapsed ? (
+                    <aside className="h-full min-h-0 w-[268px] shrink-0 border-r border-[var(--border)]">
+                        <PanelSurface edge="left">{browser}</PanelSurface>
+                    </aside>
+                ) : null}
+                <div className="min-w-0 flex-1">
                     <PanelSurface edge="center">{viewer}</PanelSurface>
-                </Panel>
-            </Group>
+                </div>
+            </div>
         );
     } else {
         panels = <PanelSurface edge="center">{viewer}</PanelSurface>;
@@ -448,7 +362,7 @@ export function ProjectDesignEditorLayout({
                     portalContainer={portalContainer}
                     maxWidth="max-w-[420px]"
                 >
-                    {browser}
+                    <PanelSurface edge="left">{browser}</PanelSurface>
                 </ResponsiveDrawer>
             ) : null}
 

@@ -14,14 +14,11 @@ export function DonutChart({ data, colorMap, size = 120 }: { data: StatusCount[]
     const r = size * 0.38;
     const strokeWidth = size * 0.12;
 
-    let cumulative = 0;
-    const segments = data.map((d) => {
+    const segments = data.reduce<Array<StatusCount & { startAngle: number; endAngle: number; pct: number }>>((items, d) => {
         const pct = d.count / total;
-        const startAngle = cumulative * 360;
-        cumulative += pct;
-        const endAngle = cumulative * 360;
-        return { ...d, startAngle, endAngle, pct };
-    });
+        const startAngle = (items.at(-1)?.endAngle ?? 0);
+        return [...items, { ...d, startAngle, endAngle: startAngle + (pct * 360), pct }];
+    }, []);
 
     function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
         const angleRad = ((angleDeg - 90) * Math.PI) / 180;

@@ -26,6 +26,7 @@ import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
 import type { DossierFormPayload, DossierRow, ClientOption, City } from '@/features/dossiers/types';
 import type { DossierOption, DocumentTemplateOption, DocumentUploadPayload } from '@/features/documents/types';
 import type { ArchitectFeeOption, ContractClientOption, ContractFormPayload, ContractRow } from '@/features/contracts/types';
+import type { ArchiveFormPayload, BoxOption, ShelfOption } from '@/features/archives/types';
 import type { FinanceDossierOption, FinanceFormPayload } from '@/features/finance/types';
 import type { FormErrors } from '@/lib/formErrors';
 import type { WorkflowData } from '@/types/workflow';
@@ -259,7 +260,7 @@ export default function DossierShow({
         [workflowTemplateMap, t],
     );
 
-    function handleArchiveSubmit(payload: { clientId: string; dossierId: string; status: string; room: string | null; shelf: string | null; box: string | null; folder: string | null; inDate: string | null; outDate: string | null; returnedAt: string | null; requestedBy: string | null; notes: string | null; }) {
+    function handleArchiveSubmit(payload: ArchiveFormPayload) {
         router.post('/archives', { ...payload, dossier_id: payload.dossierId, return_to: window.location.pathname }, {
             preserveScroll: true,
             preserveState: true,
@@ -598,7 +599,7 @@ export default function DossierShow({
                                     onUpload={() => setDocumentDrawerOpen(true)}
                                 />
                             )}
-                            {activeTab === 'contract' && <ContractTab contract={contract} dossierId={dossier.id} contractSigned={contractSigned} onSignedChange={setContractSigned} onEdit={(c) => { setEditContract(c); setContractDrawerOpen(true); }} onShowDocuments={() => handleTabChange('documents')} />}
+                            {activeTab === 'contract' && contract && <ContractTab contract={contract} dossierId={dossier.id} contractSigned={contractSigned} onSignedChange={setContractSigned} onEdit={(c) => { setEditContract(c); setContractDrawerOpen(true); }} onShowDocuments={() => handleTabChange('documents')} />}
                             {activeTab === 'finance' && <FinanceTab records={financeRecords} total={totalFinance} paid={paidFinance} remaining={remainingFinance} />}
                             {activeTab === 'notes' && <NotesTab dossier={dossier} />}
                             {activeTab === 'activity' && <ActivityTab />}
@@ -652,7 +653,7 @@ export default function DossierShow({
                     dossierId={dossier.id}
                     canCreate={canCreateEfficiencySheet}
                     canUpdate={canUpdateEfficiencySheet}
-                    canGenerate={capabilities?.canGenerateEfficiencySheet ?? false}
+                    canGenerate={canCreateEfficiencySheet}
                 />
                 <FinanceDrawer
                     isOpen={financeDrawerOpen}
@@ -668,13 +669,13 @@ export default function DossierShow({
                     isOpen={archiveDrawerOpen}
                     mode="create"
                     archiveRecord={null}
+                    clients={clients}
+                    dossiers={dossiersOptions.map((option) => ({ ...option, hasArchiveRecord: false }))}
                     rooms={archiveRooms}
-                    shelves={archiveShelves}
-                    boxes={archiveBoxes}
+                    shelves={archiveShelves as ShelfOption[]}
+                    boxes={archiveBoxes as BoxOption[]}
                     initialClientId={String(dossier.clientId)}
                     initialDossierId={String(dossier.id)}
-                    initialClientName={dossier.clientName}
-                    initialDossierLabel={`${dossier.projectObject} · ${dossier.dossierNumber}`}
                     lockProject
                     onOpenChange={setArchiveDrawerOpen}
                     onSubmit={handleArchiveSubmit}
@@ -834,9 +835,9 @@ function ArchiveChip({ archive, canView, t }: {
 
 /* ── Workflow tab ── */
 /* ── Contract tab ── */
-function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEdit, onShowDocuments }: { contract: ContractSummary; dossierId: number; contractSigned: boolean; onSignedChange: (v: boolean) => void; onEdit: (c: ContractSummary) => void; onShowDocuments: () => void; }) {
+function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEdit, onShowDocuments }: { contract: NonNullable<ContractSummary>; dossierId: number; contractSigned: boolean; onSignedChange: (v: boolean) => void; onEdit: (c: NonNullable<ContractSummary>) => void; onShowDocuments: () => void; }) {
     const { t } = useTranslation();
-    const [deleteTarget, setDeleteTarget] = useState<ContractSummary>(null);
+    const [deleteTarget, setDeleteTarget] = useState<NonNullable<ContractSummary> | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
     const [generatingId, setGeneratingId] = useState<number | null>(null);
 
@@ -894,7 +895,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
         });
     }
 
-    function handleAction(contract: ContractSummary, action: string) {
+    function handleAction(contract: NonNullable<ContractSummary>, action: string) {
         const returnTo = window.location.pathname;
         switch (action) {
             case 'edit':
@@ -983,7 +984,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                 </div>
                 <div className="flex items-center gap-1.5">
                     {resolvedStatus !== 'signed' && (
-                        <Button variant="light" size="sm" isIconOnly className="size-6 min-w-0 text-[var(--text-muted)]" onPress={() => onEdit(contract)}>
+                        <Button variant="ghost" size="sm" isIconOnly className="size-6 min-w-0 text-[var(--text-muted)]" onPress={() => onEdit(contract)}>
                             <IconPencil size={10} />
                         </Button>
                     )}
@@ -996,11 +997,8 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                             aria-label={t('dossiers.show.contract.actions')}
                             disabledKeys={generatingId === contract.id ? ['generate-docx', 'generate-pdf'] : []}
                             onAction={(key) => handleAction(contract, key as string)}
-                            itemClasses={{
-                                base: 'rounded-lg px-2 py-1 text-[10px] font-medium',
-                            }}
                         >
-                            <Dropdown.Section title={t('dossiers.show.contract.documentSection')}>
+                            <Dropdown.Section>
                                 {contract.hasGeneratedDoc ? (
                                     <Dropdown.Item key="download-docx" id="download-docx">
                                         <IconFileDownload size={13} className="text-emerald-400" />
@@ -1042,7 +1040,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                                 </Dropdown.Item>
                             )}
 
-                            <Dropdown.Section title={t('dossiers.show.contract.danger')}>
+                            <Dropdown.Section className="mt-1 border-t border-[var(--border)] pt-1">
                                 <Dropdown.Item key="delete" id="delete" className="text-red-400 data-[hover]:bg-red-400/10">
                                     <IconTrash size={13} className="shrink-0 text-red-400" />
                                     <span>{t('dossiers.show.contract.delete')}</span>
@@ -1167,10 +1165,10 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                     </span>
                 </p>
                 <div className="flex justify-end gap-2">
-                    <Button variant="bordered" color="default" onPress={() => setDeleteTarget(null)} isDisabled={actionLoading}>
+                    <Button variant="outline" onPress={() => setDeleteTarget(null)} isDisabled={actionLoading}>
                         {t('dossiers.show.contract.cancel')}
                     </Button>
-                    <Button variant="solid" onPress={confirmDelete} isLoading={actionLoading} className="bg-red-500 text-white hover:bg-red-600">
+                    <Button variant="danger" onPress={confirmDelete} isPending={actionLoading} className="bg-red-500 text-white hover:bg-red-600">
                         {t('dossiers.show.contract.delete')}
                     </Button>
                 </div>

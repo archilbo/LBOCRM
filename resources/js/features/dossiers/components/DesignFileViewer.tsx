@@ -45,6 +45,7 @@ export interface AnnotationShape {
     width?: number;
     height?: number;
     points?: number[];
+    text?: string;
     color?: string;
     style?: Record<string, unknown> | null;
     viewport?: Record<string, unknown> | null;
@@ -198,6 +199,7 @@ function buildGeometry(
     if (shape.width != null) geometry.width = shape.width / pageWidth;
     if (shape.height != null) geometry.height = shape.height / pageHeight;
     if (shape.points?.length) geometry.points = normalizePoints(shape.points, pageWidth, pageHeight);
+    if (shape.text) geometry.text = shape.text;
     return geometry;
 }
 
@@ -346,6 +348,7 @@ export function DesignFileViewer({
     const [showComposer, setShowComposer] = useState(false);
     const [saving, setSaving] = useState(false);
     const [viewerFrame, setViewerFrame] = useState<ViewerFrame>(defaultFrame);
+    const [redoStack, setRedoStack] = useState<AnnotationShape[]>([]);
 
     const [localZoom, setLocalZoom] = useState(1);
     const [localPanX, setLocalPanX] = useState(0);
@@ -407,6 +410,11 @@ export function DesignFileViewer({
         && (annotation.pageNumber ?? 1) === resolvedPageNumber
     )), [annotations, assetId, resolvedPageNumber]);
     const hasUnsaved = unsavedForCurrentContext.length > 0;
+    const canUndo = hasUnsaved;
+    const canRedo = redoStack.some((annotation) => (
+        annotation.assetId === assetId
+        && (annotation.pageNumber ?? 1) === resolvedPageNumber
+    ));
     const canRemark = Boolean(selectedAnnotationId && !suppressAnnotations && exactAnnotationContext);
 
     const applyTool = useCallback((tool: AnnotationTool) => {
@@ -616,6 +624,7 @@ export function DesignFileViewer({
                             points: Array.isArray(geometry.points)
                                 ? denormalizePoints(geometry.points as number[], referenceWidth, referenceHeight)
                                 : undefined,
+                            text: typeof geometry.text === 'string' ? geometry.text : undefined,
                             color: geometry.color as string | undefined,
                             style: annotation.style,
                             viewport: annotation.viewport,
@@ -818,6 +827,7 @@ export function DesignFileViewer({
         };
 
         setAnnotations((current) => [...current, scopedShape]);
+        setRedoStack([]);
         setSelectedAnnotationId(scopedShape.id);
         setShowComposer(true);
         composerAnnotationId.current = scopedShape.id;
@@ -831,6 +841,37 @@ export function DesignFileViewer({
         viewerFrame.pageHeight,
         viewerFrame.pageWidth,
     ]);
+
+    const undoUnsavedAnnotation = useCallback(() => {
+        const candidate = [...annotations].reverse().find((annotation) => (
+            !annotation.serverId
+            && annotation.assetId === assetId
+            && (annotation.pageNumber ?? 1) === resolvedPageNumber
+        ));
+        if (!candidate) return;
+
+        setAnnotations((current) => current.filter((annotation) => annotation.id !== candidate.id));
+        setRedoStack((current) => [...current, candidate]);
+        if (selectedAnnotationId === candidate.id) {
+            setSelectedAnnotationId(null);
+            setShowComposer(false);
+            composerAnnotationId.current = null;
+            pendingShapeRef.current = null;
+        }
+    }, [annotations, assetId, resolvedPageNumber, selectedAnnotationId]);
+
+    const redoUnsavedAnnotation = useCallback(() => {
+        const index = [...redoStack].map((annotation, position) => ({ annotation, position })).reverse().find(({ annotation }) => (
+            annotation.assetId === assetId
+            && (annotation.pageNumber ?? 1) === resolvedPageNumber
+        ))?.position;
+        if (index == null) return;
+
+        const annotation = redoStack[index];
+        setRedoStack((current) => current.filter((_, position) => position !== index));
+        setAnnotations((current) => [...current, annotation]);
+        setSelectedAnnotationId(annotation.id);
+    }, [assetId, redoStack, resolvedPageNumber]);
 
     const handleAnnotationSave = useCallback(async (data: DesignRemarkDraft) => {
         const shapeId = composerAnnotationId.current;
@@ -954,17 +995,25 @@ export function DesignFileViewer({
             onSave: saveFromToolbar,
             onDiscard: discardUnsavedAnnotations,
             onRemark: remarkFromToolbar,
+            onUndo: undoUnsavedAnnotation,
+            onRedo: redoUnsavedAnnotation,
             saving,
             hasUnsaved,
             canRemark,
+            canUndo,
+            canRedo,
         });
     }, [
         canRemark,
         hasUnsaved,
         onToolbarStateChange,
         remarkFromToolbar,
+        redoUnsavedAnnotation,
         saveFromToolbar,
         saving,
+        canRedo,
+        canUndo,
+        undoUnsavedAnnotation,
     ]);
 
     useEffect(() => () => {
@@ -972,9 +1021,13 @@ export function DesignFileViewer({
             onSave: undefined,
             onDiscard: undefined,
             onRemark: undefined,
+            onUndo: undefined,
+            onRedo: undefined,
             saving: false,
             hasUnsaved: false,
             canRemark: false,
+            canUndo: false,
+            canRedo: false,
         });
     }, [onToolbarStateChange]);
 
@@ -1127,8 +1180,6 @@ export function DesignFileViewer({
                 rotation={resolvedRotation}
                 hideToolbar={isExternal}
                 activeTool={resolvedActiveTool}
-                isPanning={isPanning}
-                spaceHeld={spaceHeld}
                 continuous={false}
                 onTotalPages={onTotalPages}
             />

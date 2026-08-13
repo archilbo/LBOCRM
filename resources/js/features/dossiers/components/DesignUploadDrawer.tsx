@@ -424,8 +424,8 @@ export function DesignUploadDrawer({
                             {step === 0 ? (
                                 <div className="space-y-3">
                                     <Input
-                                        label="File name"
-                                        isRequired
+                                        aria-label="File name"
+                                        required
                                         value={name}
                                         onChange={(event) => setName(event.target.value)}
                                         placeholder="Ground floor plan"
@@ -473,8 +473,8 @@ export function DesignUploadDrawer({
                                             </Select.Popover>
                                         </Select>
                                     </div>
-                                    <Input label="Code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="A-101" variant="secondary" fullWidth />
-                                    <TextArea label="Description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Optional description" variant="secondary" fullWidth rows={3} />
+                                    <Input aria-label="Code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="A-101" variant="secondary" fullWidth />
+                                    <TextArea aria-label="Description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Optional description" variant="secondary" fullWidth rows={3} />
                                 </div>
                             ) : null}
 
@@ -516,10 +516,10 @@ export function DesignUploadDrawer({
 
                             {step === 2 ? (
                                 <div className="space-y-3">
-                                    <TextArea label="Change summary" value={changeSummary} onChange={(event) => setChangeSummary(event.target.value)} placeholder="What changed in this revision?" variant="secondary" fullWidth rows={3} />
+                                    <TextArea aria-label="Change summary" value={changeSummary} onChange={(event) => setChangeSummary(event.target.value)} placeholder="What changed in this revision?" variant="secondary" fullWidth rows={3} />
                                     <div className="grid gap-3 sm:grid-cols-2">
-                                        <Input label="Revision code" value={revisionCode} onChange={(event) => setRevisionCode(event.target.value)} placeholder="A" variant="secondary" fullWidth />
-                                        <Input label="Internal note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note" variant="secondary" fullWidth />
+                                        <Input aria-label="Revision code" value={revisionCode} onChange={(event) => setRevisionCode(event.target.value)} placeholder="A" variant="secondary" fullWidth />
+                                        <Input aria-label="Internal note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note" variant="secondary" fullWidth />
                                     </div>
                                     <div>
                                         <p className="mb-2 text-[9px] font-medium text-[var(--text-muted)]">After upload</p>

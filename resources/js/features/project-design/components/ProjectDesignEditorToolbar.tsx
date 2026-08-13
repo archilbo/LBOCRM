@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { IconArrowUpRight, IconChevronLeft, IconChevronRight, IconCircle, IconHelpCircle, IconCloud, IconColumns3, IconDownload, IconHandStop, IconHighlight, IconMaximize, IconMinimize, IconMinus, IconPointer, IconPencil, IconPinned, IconRotateClockwise, IconDeviceFloppy, IconScan, IconSquare, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
+import { IconArrowUpRight, IconChevronLeft, IconChevronRight, IconCircle, IconHelpCircle, IconCloud, IconColumns3, IconDownload, IconHandStop, IconHighlight, IconMaximize, IconMinimize, IconMinus, IconPointer, IconPencil, IconPinned, IconRotateClockwise, IconDeviceFloppy, IconScan, IconSquare, IconTextSize, IconZoomIn, IconZoomOut, IconArrowBackUp, IconArrowForwardUp } from '@tabler/icons-react';
 
 import { Button, Input, Tooltip } from '@heroui/react';
 import { cn } from '@/lib/cn';
@@ -22,9 +22,13 @@ export interface ProjectDesignAnnotationToolbarState {
     onSave?: () => Promise<boolean>;
     onDiscard?: () => void;
     onRemark?: () => void;
+    onUndo?: () => void;
+    onRedo?: () => void;
     saving: boolean;
     hasUnsaved: boolean;
     canRemark: boolean;
+    canUndo: boolean;
+    canRedo: boolean;
 }
 
 export interface ProjectDesignEditorToolbarState {
@@ -48,9 +52,13 @@ export interface ProjectDesignEditorToolbarState {
     onPageChange: (page: number) => void;
     onSave?: () => Promise<boolean>;
     onRemark?: () => void;
+    onUndo?: () => void;
+    onRedo?: () => void;
     saving?: boolean;
     hasUnsaved?: boolean;
     canRemark?: boolean;
+    canUndo?: boolean;
+    canRedo?: boolean;
     downloadUrl?: string;
     suppressAnnotations?: boolean;
     continuous?: boolean;
@@ -72,6 +80,7 @@ const MARKUP_TOOLS: { id: AnnotationTool; icon: typeof IconPinned; label: string
     { id: 'cloud', icon: IconCloud, label: 'Revision cloud' },
     { id: 'freehand', icon: IconPencil, label: 'Freehand' },
     { id: 'highlight', icon: IconHighlight, label: 'Highlight' },
+    { id: 'text', icon: IconTextSize, label: 'Text callout' },
 ];
 
 type ToolButtonProps = {
@@ -167,9 +176,13 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
         suppressAnnotations,
         onSave,
         onRemark,
+        onUndo,
+        onRedo,
         saving,
         hasUnsaved,
         canRemark,
+        canUndo,
+        canRedo,
     } = state;
 
     const safeTotal = Math.max(1, totalPages);
@@ -221,6 +234,20 @@ export function ProjectDesignEditorToolbar(state: ProjectDesignEditorToolbarStat
                     </ToolbarGroup>
 
                     <ToolbarGroup label="Annotation actions" className="border-l border-[var(--border)]/75 pl-1.5">
+                        <ToolButton
+                            icon={IconArrowBackUp}
+                            label="Undo unsaved markup"
+                            hint="Ctrl+Z"
+                            onPress={() => onUndo?.()}
+                            isDisabled={!canUndo || !onUndo}
+                        />
+                        <ToolButton
+                            icon={IconArrowForwardUp}
+                            label="Redo unsaved markup"
+                            hint="Ctrl+Shift+Z"
+                            onPress={() => onRedo?.()}
+                            isDisabled={!canRedo || !onRedo}
+                        />
                         <ToolButton
                             icon={IconDeviceFloppy}
                             label={saving ? 'Saving annotations' : 'IconDeviceFloppy annotations'}

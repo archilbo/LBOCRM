@@ -6,6 +6,7 @@ import '../css/app.css';
 import { createInertiaApp, router } from '@inertiajs/react';
 import { configureEcho } from '@laravel/echo-react';
 import { createRoot } from 'react-dom/client';
+import type { ComponentType } from 'react';
 import { AppProviders } from '@/providers/AppProviders';
 import type { PublicBrandingSettings } from '@/types/branding';
 
@@ -14,7 +15,7 @@ import type { PublicBrandingSettings } from '@/types/branding';
 let sharedBranding: PublicBrandingSettings | null = null;
 
 const reverbKey = import.meta.env.VITE_REVERB_APP_KEY || 'local';
-const reverbHost = import.meta.env.VITE_REVERB_HOST || '127.0.0.1';
+const reverbHost = import.meta.env.VITE_REVERB_HOST;
 const reverbPort = import.meta.env.VITE_REVERB_PORT || '8080';
 const reverbScheme = import.meta.env.VITE_REVERB_SCHEME || 'http';
 const useTLS = reverbScheme === 'https';
@@ -53,7 +54,7 @@ createInertiaApp({
             throw new Error(`Page not found: ${name}`);
         }
 
-        return page;
+        return page as { default: ComponentType };
     },
     setup({ el, App, props }) {
         const initial = (props.initialPage as { props?: { branding?: PublicBrandingSettings } }).props?.branding;

@@ -21,7 +21,7 @@ type ClientFinanceTabProps = {
     onDeletePayment: (payment: ClientProjectPayment) => void;
 };
 
-const statusColor = (status: string): 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' => {
+const statusColor = (status: string): 'default' | 'primary' | 'success' | 'warning' | 'danger' => {
     if (status === 'paid' || status === 'accepted') return 'success';
     if (status === 'overdue' || status === 'rejected' || status === 'cancelled') return 'danger';
     if (status === 'partially_paid' || status === 'sent') return 'warning';

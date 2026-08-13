@@ -24,6 +24,7 @@ type AppButtonProps = Omit<HeroButtonProps, 'variant'> & {
     size?: 'sm' | 'md' | 'lg';
     compact?: boolean;
     tooltip?: string;
+    isLoading?: boolean;
 };
 
 type HeroButtonVariant = NonNullable<HeroButtonProps['variant']>;
@@ -47,6 +48,7 @@ export function AppButton({
     size = 'md',
     compact = false,
     tooltip,
+    isLoading = false,
     ...props
 }: AppButtonProps) {
     const button = (
@@ -54,6 +56,8 @@ export function AppButton({
             {...props}
             variant={resolveVariant(variant, color)}
             size={size}
+            isPending={props.isPending || isLoading}
+            isDisabled={props.isDisabled || isLoading}
             className={cn(
                 compact && 'h-8 min-h-8 gap-1.5 rounded-lg px-2.5 text-xs font-semibold',
                 compact && props.isIconOnly && 'size-8 min-w-8 p-0',

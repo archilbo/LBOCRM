@@ -198,8 +198,7 @@ export function BrandingAssetCard({
             return;
         }
 
-        form.delete('/settings/system-appearance/assets', {
-            data: { asset_type: assetType },
+        form.delete(`/settings/system-appearance/assets?asset_type=${encodeURIComponent(assetType)}`, {
             preserveScroll: true,
             onSuccess: () => setConfirmOpen(false),
         });

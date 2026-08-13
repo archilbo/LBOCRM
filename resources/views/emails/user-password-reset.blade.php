@@ -1,16 +1,26 @@
 @component('mail::message')
-# Reset your password
+<div style="margin-bottom: 24px; color: #9a7b2f; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;">
+    {{ config('app.name') }} · Sécurité du compte
+</div>
 
-Hi **{{ $user->name }}**,
+# Réinitialisez votre mot de passe
 
-An ARCHI LBO administrator requested a password reset for your account.
+Bonjour **{{ $user->name }}**,
+
+Une demande de réinitialisation a été effectuée par un administrateur ARCHI LBO pour sécuriser l’accès à votre compte.
+
+@component('mail::panel')
+Utilisez le bouton ci-dessous pour choisir un nouveau mot de passe sécurisé. Cette action ne modifie rien tant que vous n’avez pas validé votre nouveau mot de passe.
+@endcomponent
 
 @component('mail::button', ['url' => $resetUrl, 'color' => 'primary'])
-Set a new password
+Définir un nouveau mot de passe
 @endcomponent
 
-This link expires according to the platform security policy. If you did not expect this request, contact your administrator immediately.
+Ce lien est personnel et expire conformément à la politique de sécurité de la plateforme.
 
-Thanks,<br>
+Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail et contacter immédiatement votre administrateur.
+
+À bientôt,<br>
 {{ config('app.name') }}
-@endcomponent
+@rendcomponent

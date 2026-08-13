@@ -22,7 +22,6 @@ export function DrawerSelect<T extends string = string>({
       onSelectionChange={(k) => onChange((k ?? '') as T)}
       placeholder={placeholder}
       isDisabled={isDisabled}
-      shouldCloseOnBlur={false}
     >
       <Select.Trigger className={cn(drawerStyles.trigger, error && 'border-[var(--danger)]')}>
         <Select.Value className="flex-1 truncate text-left text-xs" />

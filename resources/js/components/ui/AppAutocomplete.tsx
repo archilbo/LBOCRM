@@ -35,11 +35,6 @@ export function AppAutocomplete<T extends string = string>({
       onSelectionChange={(k) => onChange((k ?? '') as T)}
       isDisabled={isDisabled}
       aria-label={label ?? placeholder}
-      popoverProps={{
-        classNames: {
-          content: 'z-50 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-lg',
-        },
-      }}
     >
       <Autocomplete.Trigger
         className={cn(
@@ -57,7 +52,7 @@ export function AppAutocomplete<T extends string = string>({
           </svg>
         </Autocomplete.Indicator>
       </Autocomplete.Trigger>
-      <Autocomplete.Popover>
+      <Autocomplete.Popover className="z-50 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-lg">
         <Autocomplete.Filter filter={contains}>
           <SearchField autoFocus name="search" variant="secondary">
             <SearchField.Group>

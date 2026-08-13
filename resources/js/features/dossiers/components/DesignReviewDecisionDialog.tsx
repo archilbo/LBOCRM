@@ -84,7 +84,7 @@ export function DesignReviewDecisionDialog({
                                 ))}
                             </div>
                             <TextArea
-                                label="Review note"
+                                aria-label="Review note"
                                 value={note}
                                 onChange={(event) => setNote(event.target.value)}
                                 placeholder="Optional decision note"

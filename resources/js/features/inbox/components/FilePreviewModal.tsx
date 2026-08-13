@@ -20,7 +20,8 @@ type Props = {
 function toViewerDocument(attachment: MessageAttachmentRow): DocumentExplorerItem {
     const name = getAttachmentDisplayName(attachment);
     const previewKind = isImageAttachment(attachment) ? 'image' : 'pdf';
-    const extension = name.includes('.') ? (name.split('.').pop() ?? null).toLowerCase() : null;
+    const extensionPart = name.includes('.') ? name.split('.').pop() : null;
+    const extension = extensionPart ? extensionPart.toLowerCase() : null;
 
     return {
         id: attachment.id,

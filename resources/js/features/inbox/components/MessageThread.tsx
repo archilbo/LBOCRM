@@ -110,7 +110,7 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
         <div className={`group/message mb-1 flex items-start gap-2.5 ${isMine ? 'justify-end' : 'justify-start'} ${grouped ? '' : 'mt-3'}`}>
             {!isMine ? (
                 <div className="w-8 shrink-0 pt-4">
-                    {!grouped ? <Avatar size="sm" name={msg.user?.name || msg.userName || ''} className={`${avatarTone.bg} ${avatarTone.text}`}><Avatar.Fallback>{avatarInitials(msg.user?.name || msg.userName || '')}</Avatar.Fallback></Avatar> : null}
+                    {!grouped ? <Avatar size="sm" className={`${avatarTone.bg} ${avatarTone.text}`}><Avatar.Fallback>{avatarInitials(msg.user?.name || msg.userName || '')}</Avatar.Fallback></Avatar> : null}
                 </div>
             ) : null}
             {isMine ? (
@@ -137,7 +137,7 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
                     ) : null}
                     {hasBody ? (
                         <div className={`whitespace-pre-wrap break-words px-2 py-1 text-[11px] leading-2 ${msg.attachments && msg.attachments.length > 0 ? 'border-t border-black/10' : ''}`}>
-                            {highlight(msg.body)}
+                            {highlight(msg.body ?? '')}
                         </div>
                     ) : null}
                 </Card>
@@ -145,7 +145,7 @@ function MessageBubble({ msg, isMine, grouped, isGroup, currentUserId, onReply, 
                     <MessageDeliveryStatus createdAt={msg.createdAt} isMine={isMine} readBy={msg.readBy} isEdited={msg.isEdited} isFailed={msg.isFailed} onRetry={() => onRetry?.(msg)} />
                 </div>
             </div>
-            {isMine ? (!grouped ? <Avatar size="sm" name={msg.user?.name || msg.userName || t('inbox.you')} className={`mt-4 shrink-0 ${avatarTone.bg} ${avatarTone.text}`}><Avatar.Fallback>{avatarInitials(msg.user?.name || msg.userName || t('inbox.you'))}</Avatar.Fallback></Avatar> : <div className="w-8 shrink-0" />) : null}
+            {isMine ? (!grouped ? <Avatar size="sm" className={`mt-4 shrink-0 ${avatarTone.bg} ${avatarTone.text}`}><Avatar.Fallback>{avatarInitials(msg.user?.name || msg.userName || t('inbox.you'))}</Avatar.Fallback></Avatar> : <div className="w-8 shrink-0" />) : null}
             {!isMine ? (
                 <div className="self-start pt-[10px]">
                     <MessageActionToolbar isMine={isMine} body={msg.body} onReply={() => onReply(msg)} onForward={() => onForwardMsg(msg)} onEdit={() => onEdit?.(msg)} onDelete={() => onDelete?.(msg)} />
@@ -199,7 +199,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
     const [searchIndex, setSearchIndex] = useState(0);
     const [filePreview, setFilePreview] = useState<{ attachments: MessageAttachmentRow[]; index: number } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const authUser = (usePage().props.auth?.user as { id: number; name: string } | undefined) || { id: 0, name: '' };
+    const authUser = ((usePage().props as { auth?: { user?: { id: number; name: string } } }).auth?.user) || { id: 0, name: '' };
     const { typingUsers, sendTyping } = useTyping(
         conversation?.id ?? null,
         currentUserId,
@@ -420,7 +420,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
             <div className="flex h-[68px] shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 sm:px-5">
                 <InboxIconButton label={t('inbox.back')} onPress={onBack} className="lg:hidden"><IconChevronLeft size={18} /></InboxIconButton>
                 {!isGroup ? <div className="relative shrink-0">
-                    <Avatar size="md" name={otherName} className={`${avatarTone.bg} ${avatarTone.text}`}>
+                    <Avatar size="md" className={`${avatarTone.bg} ${avatarTone.text}`}>
                         <Avatar.Fallback>{getConversationInitials(conversation, currentUserId)}</Avatar.Fallback>
                     </Avatar>
                     {others.length === 1 && statusLine === t('inbox.onlineNow') ? (
@@ -431,10 +431,10 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                     <div className="flex items-center gap-2">
                         <p className="truncate text-sm font-semibold text-[var(--text)]">{otherName}</p>
                         {isGroup && conversation.category ? (
-                            <Chip size="sm" variant="flat" className={`${catMeta.tone.bg} ${catMeta.tone.text}`}>{catMeta.label}</Chip>
+                            <Chip size="sm" variant="soft" className={`${catMeta.tone.bg} ${catMeta.tone.text}`}>{catMeta.label}</Chip>
                         ) : null}
                     </div>
-                    {isGroup ? <div className="mt-1 flex items-center gap-2"><div className="flex -space-x-1.5">{parts.slice(0, 5).map((participant) => <Avatar key={participant.id} size="sm" name={participant.user?.name || t('inbox.user')} className="size-5 border border-[var(--surface)] text-[7px]"><Avatar.Fallback>{avatarInitials(participant.user?.name || t('inbox.user'))}</Avatar.Fallback></Avatar>)}{parts.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{parts.length - 5}</span> : null}</div>{canManageGroup ? <Button variant="ghost" size="sm" onPress={openGroupSettings} className="h-5 rounded-md px-1.5 text-[8px] text-[var(--accent)]"><IconUserPlus size={10} />{t('inbox.newMember')}</Button> : null}</div> : statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
+                    {isGroup ? <div className="mt-1 flex items-center gap-2"><div className="flex -space-x-1.5">{parts.slice(0, 5).map((participant) => <Avatar key={participant.id} size="sm" className="size-5 border border-[var(--surface)] text-[7px]"><Avatar.Fallback>{avatarInitials(participant.user?.name || t('inbox.user'))}</Avatar.Fallback></Avatar>)}{parts.length > 5 ? <span className="z-10 flex size-5 items-center justify-center rounded-full border border-[var(--surface)] bg-[var(--surface-3)] text-[7px] text-[var(--text-muted)]">+{parts.length - 5}</span> : null}</div>{canManageGroup ? <Button variant="ghost" size="sm" onPress={openGroupSettings} className="h-5 rounded-md px-1.5 text-[8px] text-[var(--accent)]"><IconUserPlus size={10} />{t('inbox.newMember')}</Button> : null}</div> : statusLine ? <p className="mt-0.5 text-[9px] text-[var(--text-muted)]">{statusLine}</p> : null}
                 </div>
                 {searchOpen ? (
                     <div className="flex items-center gap-1">
@@ -613,19 +613,19 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                             <Modal.Header><Modal.Heading>{t('inbox.groupSettings')}</Modal.Heading><Modal.CloseTrigger /></Modal.Header>
                             <Modal.Body className="space-y-5">
                                 <div className="flex items-end gap-2">
-                                    <Input label={t('inbox.groupName')} value={groupSubject} onChange={(event) => setGroupSubject(event.target.value)} variant="secondary" fullWidth />
+                                    <Input aria-label={t('inbox.groupName')} value={groupSubject} onChange={(event) => setGroupSubject(event.target.value)} variant="secondary" className="w-full" />
                                     <Button variant="primary" onPress={handleRenameGroup} isDisabled={!groupSubject.trim()}>{t('inbox.save')}</Button>
                                 </div>
 
                                 <section className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-sm font-semibold">{t('inbox.participants')}</h3>
-                                        <Chip size="sm" variant="flat">{parts.length}</Chip>
+                                    <Chip size="sm" variant="soft">{parts.length}</Chip>
                                     </div>
                                     <ScrollShadow className="max-h-48 space-y-1 rounded-xl border border-[var(--border)] p-1.5">
                                         {parts.filter((participant) => participant?.user?.id !== currentUserId).map((participant) => (
                                             <Card key={participant.id} className="flex-row items-center gap-3 border-0 bg-[var(--surface-2)] px-3 py-2 shadow-none">
-                                                <Avatar size="sm" name={participant.user?.name || ''}><Avatar.Fallback>{avatarInitials(participant.user?.name || '')}</Avatar.Fallback></Avatar>
+                                                <Avatar size="sm"><Avatar.Fallback>{avatarInitials(participant.user?.name || '')}</Avatar.Fallback></Avatar>
                                                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{participant.user?.name}</span>
                                                 <InboxIconButton label={t('inbox.removeParticipant', { name: participant.user?.name || t('inbox.removeParticipantFallback') })} tone="danger" onPress={() => handleRemoveParticipant(participant.user!.id)}><IconUserMinus size={14} /></InboxIconButton>
                                             </Card>
@@ -636,7 +636,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
                                 <div className="flex items-end gap-2">
                                     <Select selectedKey={addUserId || null} onSelectionChange={(key) => setAddUserId(key ? String(key) : '')} aria-label={t('inbox.addParticipantAria')} className="flex-1">
                                         <Select.Trigger className="h-10 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm">
-                                            <Select.Value className="flex-1 truncate text-left" placeholder={t('inbox.chooseUser')} />
+                                            <Select.Value className="flex-1 truncate text-left" />
                                             <Select.Indicator><IconChevronDown size={14} /></Select.Indicator>
                                         </Select.Trigger>
                                         <Select.Popover isNonModal className="z-[100] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl">

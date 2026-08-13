@@ -93,8 +93,8 @@ export function ArchitectFeeOptionsSection({ options, canManage }: Props) {
                                 {!option.templateDetected ? <p className="mt-1 text-xs text-[var(--danger)]">Modèle absent : renommez ou ajoutez {option.contractTemplateName}.</p> : null}
                             </div>
                             {canManage ? <div className="flex items-center gap-1.5">
-                                {!option.isDefault && option.isActive ? <Button isIconOnly size="sm" variant="ghost" aria-label="Définir par défaut" title="Définir par défaut" onPress={() => router.put(`/finance/settings/architect-fee-options/${option.id}/default`, {}, { preserveScroll: true })}><IconStar size={14} /></Button> : null}
-                                <Button isIconOnly size="sm" variant="ghost" aria-label={`Modifier ${option.name}`} title="Modifier" onPress={() => start(option)}><IconEdit size={14} /></Button>
+                                {!option.isDefault && option.isActive ? <Button isIconOnly size="sm" variant="ghost" aria-label="Définir par défaut" onPress={() => router.put(`/finance/settings/architect-fee-options/${option.id}/default`, {}, { preserveScroll: true })}><IconStar size={14} /></Button> : null}
+                                <Button isIconOnly size="sm" variant="ghost" aria-label={`Modifier ${option.name}`} onPress={() => start(option)}><IconEdit size={14} /></Button>
                                 <Switch size="sm" isSelected={option.isActive} aria-label={`${option.isActive ? 'Désactiver' : 'Activer'} ${option.name}`} onChange={(isActive) => {
                                     if (!isActive) router.put(`/finance/settings/architect-fee-options/${option.id}/deactivate`, {}, { preserveScroll: true });
                                     else router.put(`/finance/settings/architect-fee-options/${option.id}`, { name: option.name, calculation_type: option.calculationType, percentage_rate: option.percentageRate, is_default: option.isDefault, is_active: true }, { preserveScroll: true });

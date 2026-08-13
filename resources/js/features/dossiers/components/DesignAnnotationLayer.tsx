@@ -16,6 +16,7 @@ interface AnnotationShape {
     width?: number;
     height?: number;
     points?: number[];
+    text?: string;
     color?: string;
     style?: Record<string, unknown> | null;
     viewport?: Record<string, unknown> | null;
@@ -425,7 +426,9 @@ export function DesignAnnotationLayer({
     const [stageSize, setStageSize] = useState({ width: 1, height: 1 });
     const [drawing, setDrawing] = useState(false);
     const [currentShape, setCurrentShape] = useState<AnnotationShape | null>(null);
+    const [textDraft, setTextDraft] = useState<{ x: number; y: number; value: string } | null>(null);
     const stageRef = useRef<Konva.Stage>(null);
+    const textInputRef = useRef<HTMLInputElement>(null);
 
     const selectedAnnotation = selectedId
         ? annotations.find((annotation) => annotation.id === selectedId) ?? null
@@ -461,6 +464,12 @@ export function DesignAnnotationLayer({
         return () => observer.disconnect();
     }, [containerRef, updateSize]);
 
+    useEffect(() => {
+        if (!textDraft) return;
+        const frame = window.requestAnimationFrame(() => textInputRef.current?.focus());
+        return () => window.cancelAnimationFrame(frame);
+    }, [textDraft]);
+
     const toDoc = useCallback(() => {
         const position = stageRef.current?.getPointerPosition();
         if (!position) return { x: 0, y: 0 };
@@ -478,6 +487,10 @@ export function DesignAnnotationLayer({
         }
 
         const position = toDoc();
+        if (activeTool === 'text') {
+            setTextDraft({ ...position, value: '' });
+            return;
+        }
         setDrawing(true);
         setCurrentShape({
             id: 'drawing',
@@ -492,7 +505,7 @@ export function DesignAnnotationLayer({
         if (!drawing || !currentShape) return;
 
         const position = toDoc();
-        if (activeTool === 'pin' || activeTool === 'text') return;
+        if (activeTool === 'pin') return;
 
         if (activeTool === 'rectangle' || activeTool === 'highlight' || activeTool === 'ellipse') {
             setCurrentShape((current) => current ? {
@@ -519,7 +532,7 @@ export function DesignAnnotationLayer({
         setDrawing(false);
         const hasArea = Math.abs(currentShape.width ?? 0) >= 2 && Math.abs(currentShape.height ?? 0) >= 2;
         const hasLine = (currentShape.points?.length ?? 0) >= 4;
-        const isPoint = currentShape.type === 'pin' || currentShape.type === 'text';
+        const isPoint = currentShape.type === 'pin';
 
         if (isPoint || hasArea || hasLine) {
             onAnnotationCreated({ ...currentShape, id: crypto.randomUUID() });
@@ -605,13 +618,29 @@ export function DesignAnnotationLayer({
 
         if (shape.type === 'text') {
             const point = docToScreen(shape.x, shape.y, frame);
-            return <Text x={point.x} y={point.y} text="Text" fontSize={14} fill={stroke} rotation={normalizeRotation(frame.rotation)} />;
+            return <Text x={point.x} y={point.y} text={shape.text || 'Text'} fontSize={14} fill={stroke} rotation={normalizeRotation(frame.rotation)} />;
         }
 
         return null;
     }, [selectedId, viewerFrame]);
 
     const clip = useMemo(() => pageBounds(viewerFrame), [viewerFrame]);
+    const textDraftPosition = textDraft ? docToScreen(textDraft.x, textDraft.y, viewerFrame) : null;
+    const commitText = useCallback(() => {
+        if (!textDraft) return;
+        const text = textDraft.value.trim();
+        if (text) {
+            onAnnotationCreated({
+                id: crypto.randomUUID(),
+                type: 'text',
+                x: textDraft.x,
+                y: textDraft.y,
+                text,
+                color: '#eab308',
+            });
+        }
+        setTextDraft(null);
+    }, [onAnnotationCreated, textDraft]);
     const cursor = isPanning
         ? 'grabbing'
         : spaceHeld || activeTool === 'pan'
@@ -646,6 +675,29 @@ export function DesignAnnotationLayer({
                     {currentShape ? renderShape(currentShape) : null}
                 </Layer>
             </Stage>
+            {textDraft && textDraftPosition ? (
+                <input
+                    ref={textInputRef}
+                    value={textDraft.value}
+                    onChange={(event) => setTextDraft((current) => current ? { ...current, value: event.target.value } : null)}
+                    onBlur={commitText}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            commitText();
+                        }
+                        if (event.key === 'Escape') {
+                            event.preventDefault();
+                            setTextDraft(null);
+                        }
+                    }}
+                    maxLength={500}
+                    aria-label="Annotation text"
+                    placeholder="Write annotation…"
+                    className="pointer-events-auto absolute z-20 h-8 w-52 rounded-md border border-[var(--accent)]/60 bg-[var(--surface)] px-2 text-xs text-[var(--foreground)] shadow-xl outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                    style={{ left: textDraftPosition.x, top: textDraftPosition.y - 4 }}
+                />
+            ) : null}
             {selectedAnnotation && selectedPopupPosition ? (
                 <AnnotationInfoPopup
                     annotation={selectedAnnotation}
