@@ -40,6 +40,8 @@ class FinanceDocumentResource extends JsonResource
                 'landSurface' => $this->dossier->land_surface ?? null,
             ] : null,
             'sourceDocumentId' => $this->source_document_id,
+            'convertedToDocumentId' => $this->converted_to_document_id,
+            'isInternal' => $this->isInternalInvoice(),
             'issueDate' => $this->issue_date?->toDateString(),
             'dueDate' => $this->due_date?->toDateString(),
             'validUntil' => $this->valid_until?->toDateString(),
@@ -88,7 +90,7 @@ class FinanceDocumentResource extends JsonResource
             'acceptUrl' => $this->isQuote() ? route('finance.documents.accept', $this) : null,
             'rejectUrl' => $this->isQuote() ? route('finance.documents.reject', $this) : null,
             'cancelUrl' => route('finance.documents.cancel', $this),
-            'convertToInvoiceUrl' => $this->isQuote() ? route('finance.documents.convert-to-invoice', $this) : null,
+            'convertToInvoiceUrl' => $this->canConvertToInvoice() ? route('finance.documents.convert-to-invoice', $this) : null,
             'generateUrl' => route('finance.documents.generate', $this),
             'hasPdf' => (bool) $this->pdf_path,
             'hasExcel' => (bool) $this->excel_path,
@@ -97,7 +99,7 @@ class FinanceDocumentResource extends JsonResource
             'downloadUrl' => $this->excel_path ? route('finance.documents.download', $this) : null,
             'excelDownloadUrl' => $this->excel_path ? route('finance.documents.download-excel', $this) : null,
             'pdfDownloadUrl' => $this->pdf_path ? route('finance.documents.download-pdf', $this) : null,
-            'paymentUrl' => $this->isInvoice() ? route('finance.payments.store') : null,
+            'paymentUrl' => $this->canRecordPayment() ? route('finance.payments.store') : null,
         ];
     }
 }

@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { IconArrowRight, IconCoin, IconBuilding, IconCircleCheck, IconEye, IconEyeOff, IconFileCheck, IconFolder, IconLock, IconShieldCheck } from '@tabler/icons-react';
+import { IconArrowRight, IconCoin, IconBuilding, IconCircleCheck, IconEye, IconEyeOff, IconFileCheck, IconFolder, IconLock, IconMoon, IconShieldCheck, IconSun } from '@tabler/icons-react';
 
 import { FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { Button, Checkbox, FieldError, Input, Label, TextField } from '@heroui/r
 import { useTranslation } from '@/lib/i18n';
 import { useBranding } from '@/hooks/useBranding';
 import { cn } from '@/lib/cn';
+import { useTheme } from '@/providers/ThemeProvider';
 
 const FORCE_LOGIN_REDESIGN_53L = true;
 
@@ -38,7 +39,11 @@ const checks = [
 export default function Login({ errors = {}, status }: PageProps) {
     const { t } = useTranslation();
     const branding = useBranding();
+    const { theme, toggleTheme } = useTheme();
     const appName = branding.appName || 'ARCHI LBO OS';
+    const mobileLogoUrl = theme === 'dark'
+        ? (branding.logoDarkUrl ?? branding.logoLightUrl)
+        : (branding.logoLightUrl ?? branding.logoDarkUrl);
 
     useEffect(() => {
         document.documentElement.classList.add('login-no-scroll');
@@ -85,7 +90,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                 data-ui-marker={FORCE_LOGIN_REDESIGN_53L ? 'FORCE_LOGIN_REDESIGN_53L' : undefined}
             >
                 <div className="grid h-[100dvh] overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(560px,640px)]">
-                    <section className="relative hidden h-[100dvh] overflow-hidden border-r border-[var(--crm-border)] bg-[#110e09] p-8 lg:block xl:p-10">
+                    <section className="login-visual-panel relative hidden h-[100dvh] overflow-hidden bg-[#110e09] p-8 text-white lg:block xl:p-10">
                         <img
                             src="/images/login-architecture-workspace.png"
                             alt=""
@@ -94,7 +99,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,7,5,0.92)_0%,rgba(8,7,5,0.66)_42%,rgba(8,7,5,0.17)_100%)]" />
                         <div className="absolute inset-x-0 bottom-0 h-[48%] bg-[linear-gradient(0deg,rgba(8,7,5,0.94)_0%,rgba(8,7,5,0.52)_56%,transparent_100%)]" />
                         <div className="relative z-10 flex h-full flex-col">
-                            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 backdrop-blur-sm">
+                            <div className="login-visual-frame flex items-center gap-3 rounded-2xl bg-black/25 px-4 py-3 backdrop-blur-sm">
                                 <div className={cn(
                                     'flex size-11 items-center justify-center',
                                     branding.logoDarkUrl ? 'bg-transparent' : 'rounded-xl bg-[var(--crm-accent)] text-black shadow-[0_10px_24px_rgba(234,179,8,0.18)]',
@@ -113,11 +118,11 @@ export default function Login({ errors = {}, status }: PageProps) {
                                             appName
                                         )}
                                     </p>
-                                    <p className="mt-0.5 text-xs leading-4 text-[var(--crm-muted)]">{t('auth.login.leftPanelTagline')}</p>
+                                    <p className="mt-0.5 text-xs leading-4 text-[var(--login-visual-muted)]">{t('auth.login.leftPanelTagline')}</p>
                                 </div>
                             </div>
 
-                            <div className="mt-auto max-w-4xl rounded-[28px] border border-white/10 bg-black/30 p-6 shadow-2xl backdrop-blur-md xl:p-8">
+                            <div className="login-visual-frame mt-auto max-w-4xl rounded-[28px] bg-black/30 p-6 shadow-2xl backdrop-blur-md xl:p-8">
                                 <p className="crm-eyebrow">{t('auth.login.secureWorkspace')}</p>
                                 <h1 className="mt-3 max-w-2xl text-[2.5rem] font-semibold leading-[1.04] tracking-[-0.052em] xl:text-[3.25rem]">
                                     {t('auth.login.headline')}
@@ -131,14 +136,14 @@ export default function Login({ errors = {}, status }: PageProps) {
                                         const Icon = module.icon;
 
                                         return (
-                                            <div key={module.labelKey} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 backdrop-blur-sm">
+                                            <div key={module.labelKey} className="login-visual-frame rounded-2xl bg-black/20 px-4 py-3 backdrop-blur-sm">
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex size-9 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-[var(--crm-accent)]">
                                                         <Icon size={18} />
                                                     </div>
                                                     <div>
                                                         <p className="text-[12px] font-semibold tracking-[-0.015em]">{t(module.labelKey)}</p>
-                                                        <p className="mt-0.5 text-xs leading-4 text-[var(--crm-muted)]">{t(module.valueKey)}</p>
+                                                        <p className="mt-0.5 text-xs leading-4 text-[var(--login-visual-muted)]">{t(module.valueKey)}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -148,7 +153,7 @@ export default function Login({ errors = {}, status }: PageProps) {
 
                                 <div className="mt-6 flex flex-wrap gap-2">
                                     {checks.map((check) => (
-                                        <span key={check} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-medium tracking-[-0.01em] text-[var(--crm-text-muted)]">
+                                        <span key={check} className="login-visual-frame inline-flex items-center gap-2 rounded-full bg-black/20 px-3 py-2 text-[10px] font-medium tracking-[-0.01em] text-[var(--login-visual-muted)]">
                                             <IconCircleCheck size={14} className="text-emerald-300" />
                                             {t(check)}
                                         </span>
@@ -163,10 +168,10 @@ export default function Login({ errors = {}, status }: PageProps) {
                             <div className="mb-8 flex items-center gap-3 lg:hidden">
                                 <div className={cn(
                                     'flex size-11 items-center justify-center',
-                                    branding.logoLightUrl ? 'bg-transparent' : 'rounded-2xl bg-[var(--crm-accent)] text-black',
+                                    mobileLogoUrl ? 'bg-transparent' : 'rounded-2xl bg-[var(--crm-accent)] text-black',
                                 )}>
-                                    {branding.logoLightUrl ? (
-                                        <img src={branding.logoLightUrl} alt="" className="size-11 object-contain p-1" />
+                                    {mobileLogoUrl ? (
+                                        <img src={mobileLogoUrl} alt="" className="size-11 object-contain p-1" />
                                     ) : (
                                         <IconBuilding size={22} />
                                     )}
@@ -183,7 +188,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                 </div>
                             </div>
 
-                            <div className="crm-panel overflow-hidden shadow-[0_24px_70px_rgba(0,0,0,0.28)]">
+                            <div className="crm-panel overflow-hidden shadow-[0_24px_70px_color-mix(in_srgb,var(--foreground)_18%,transparent)]">
                                 <div className="border-b border-[var(--crm-border)] p-6 sm:p-7">
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
@@ -193,13 +198,26 @@ export default function Login({ errors = {}, status }: PageProps) {
                                                 {branding.description || t('auth.login.subtitle')}
                                             </p>
                                         </div>
-                                        <div className="flex size-11 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-[var(--crm-accent)]">
-                                            <IconLock size={20} />
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                isIconOnly
+                                                aria-label={theme === 'dark' ? 'Activer le mode clair' : 'Activer le mode sombre'}
+                                                onPress={toggleTheme}
+                                                className="size-10 min-w-0 rounded-xl border border-[var(--crm-border)] bg-[var(--crm-elevated)] text-[var(--crm-muted)] hover:border-[color-mix(in_srgb,var(--crm-accent)_42%,var(--crm-border))] hover:text-[var(--crm-accent)]"
+                                            >
+                                                {theme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+                                            </Button>
+                                            <div className="flex size-11 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--crm-accent)_16%,transparent)] text-[var(--crm-accent)]">
+                                                <IconLock size={20} />
+                                            </div>
                                         </div>
                                     </div>
 
                                     {status ? (
-                                        <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+                                        <div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--success)_28%,var(--crm-border))] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] px-3 py-2 text-sm text-[var(--success)]">
                                             {status}
                                         </div>
                                     ) : null}
@@ -266,7 +284,7 @@ export default function Login({ errors = {}, status }: PageProps) {
                                     </Checkbox>
 
                                     <a href="/forgot-password" className="-mt-2 text-right text-xs font-medium text-[var(--crm-accent)] hover:underline">
-                                        Forgot password?
+                                        {t('auth.login.forgotPassword')}
                                     </a>
 
                                     <Button

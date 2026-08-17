@@ -5,13 +5,14 @@ type FinanceTotalsBoxProps = {
     subtotalHt: number;
     discountTotal: number;
     taxTotal: number;
+    tvaRate: number;
     totalTtc: number;
     paidTotal?: number;
     remainingTotal?: number;
     currency: string;
 };
 
-export function FinanceTotalsBox({ subtotalHt, discountTotal, taxTotal, totalTtc, paidTotal = 0, remainingTotal, currency }: FinanceTotalsBoxProps) {
+export function FinanceTotalsBox({ subtotalHt, discountTotal, taxTotal, tvaRate, totalTtc, paidTotal = 0, remainingTotal, currency }: FinanceTotalsBoxProps) {
     const remaining = remainingTotal ?? Math.max(0, totalTtc - paidTotal);
 
     return (
@@ -19,7 +20,7 @@ export function FinanceTotalsBox({ subtotalHt, discountTotal, taxTotal, totalTtc
             <div className="space-y-2 text-xs">
                 <Row label="Sous-total HT" value={formatCompactMoney(subtotalHt, currency)} />
                 <Row label="Remise document" value={`-${formatCompactMoney(discountTotal, currency)}`} muted />
-                <Row label="TVA" value={formatCompactMoney(taxTotal, currency)} />
+                <Row label={`TVA (${tvaRate}%)`} value={formatCompactMoney(taxTotal, currency)} />
                 <div className="my-2 border-t" />
                 <Row label="Total TTC" value={formatCompactMoney(totalTtc, currency)} strong />
                 <Row label="Paye" value={formatCompactMoney(paidTotal, currency)} />

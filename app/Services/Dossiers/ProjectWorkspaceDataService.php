@@ -22,6 +22,7 @@ use App\Services\Documents\WorkflowDocumentTemplateResolver;
 use App\Services\Finance\DossierFinanceEligibilityService;
 use App\Services\Finance\FinanceReceivablesService;
 use App\Services\Finance\FinanceSettingsService;
+use App\Services\Finance\FinanceDocumentMetricsService;
 use App\Services\PermissionRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -36,6 +37,7 @@ class ProjectWorkspaceDataService
         private readonly DossierWorkflowStepperService $workflowStepper,
         private readonly DossierFinanceEligibilityService $financeEligibility,
         private readonly FinanceReceivablesService $receivables,
+        private readonly FinanceDocumentMetricsService $financeMetrics,
         private readonly ProjectActivityService $activity,
         private readonly ProjectDocumentExplorerService $documentExplorer,
     ) {
@@ -394,6 +396,7 @@ class ProjectWorkspaceDataService
         $payments = $dossier->payments
             ->sortByDesc(fn ($payment) => $payment->paid_at ?? $payment->created_at)
             ->values();
+        $metrics = $this->financeMetrics->forDocuments($documents, $payments);
 
         $paymentPayload = $payments->map(fn ($payment) => [
             'id' => $payment->id,
@@ -446,11 +449,14 @@ class ProjectWorkspaceDataService
                 'documentsCount' => $documents->count(),
                 'quotesCount' => $documents->where('type', 'quote')->count(),
                 'activeInvoicesCount' => $activeInvoices->count(),
-                'totalTtc' => (float) $activeInvoices->sum('total_ttc'),
-                'paidTotal' => (float) $invoiceReceivables->sum('paid'),
-                'remainingTotal' => (float) $invoiceReceivables->sum('outstanding'),
-                'collectionProgress' => (float) $activeInvoices->sum('total_ttc') > 0
-                    ? round(((float) $invoiceReceivables->sum('paid') / (float) $activeInvoices->sum('total_ttc')) * 100, 2)
+                'expectedTotal' => $metrics['expectedTotal'],
+                'expectedPaidTotal' => $metrics['expectedPaidTotal'],
+                'expectedRemainingTotal' => $metrics['expectedRemainingTotal'],
+                'totalTtc' => $metrics['officialInvoicedTotal'],
+                'paidTotal' => $metrics['officialPaidTotal'],
+                'remainingTotal' => $metrics['officialBalanceTotal'],
+                'collectionProgress' => $metrics['officialInvoicedTotal'] > 0
+                    ? round(($metrics['officialPaidTotal'] / $metrics['officialInvoicedTotal']) * 100, 2)
                     : 0,
                 'nextDue' => $nextDue ? [
                     'date' => $nextDue->due_date->toDateString(),

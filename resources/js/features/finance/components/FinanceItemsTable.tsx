@@ -24,11 +24,12 @@ const lineColumns = [
 type FinanceItemsTableProps = {
     items: FinanceDocumentItem[];
     currency: string;
+    tvaRate: number;
     onChange: (items: FinanceDocumentItem[]) => void;
     disabled?: boolean;
 };
 
-export function FinanceItemsTable({ items, currency, onChange, disabled = false }: FinanceItemsTableProps) {
+export function FinanceItemsTable({ items, currency, tvaRate, onChange, disabled = false }: FinanceItemsTableProps) {
     const pagination = useFinanceTablePagination(items);
     function updateItem(index: number, field: keyof FinanceDocumentItem, value: string) {
         const next = items.map((item, itemIndex) => {
@@ -40,7 +41,7 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
                 ? normalizeNumber(value)
                 : value;
 
-            return calculateItem({ ...item, [field]: nextValue });
+            return calculateItem({ ...item, [field]: nextValue }, tvaRate);
         });
 
         onChange(next.map((item, position) => ({ ...item, position: position + 1 })));
@@ -49,7 +50,7 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
     function addItem() {
         const nextItems = [
             ...items,
-            calculateItem({ position: items.length + 1, quantity: 1, unitPrice: 0 }),
+            calculateItem({ position: items.length + 1, quantity: 1, unitPrice: 0 }, tvaRate),
         ];
         onChange(nextItems);
         pagination.goToLastPage(nextItems.length);
@@ -58,7 +59,7 @@ export function FinanceItemsTable({ items, currency, onChange, disabled = false 
     function duplicateItem(index: number) {
         const item = items[index];
         const next = [...items];
-        next.splice(index + 1, 0, calculateItem({ ...item, id: undefined, position: index + 2 }));
+        next.splice(index + 1, 0, calculateItem({ ...item, id: undefined, position: index + 2 }, tvaRate));
         onChange(next.map((row, position) => ({ ...row, position: position + 1 })));
     }
 

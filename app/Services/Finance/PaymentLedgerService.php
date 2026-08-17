@@ -10,7 +10,6 @@ use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 class PaymentLedgerService
 {
@@ -18,6 +17,7 @@ class PaymentLedgerService
         private readonly DossierFinanceEligibilityService $eligibility,
         private readonly FinancePaymentReminderService $reminders,
         private readonly FinancePaymentPromiseService $promises,
+        private readonly FinanceDocumentSequenceService $sequences,
     ) {
     }
 
@@ -30,12 +30,17 @@ class PaymentLedgerService
 
             $this->assertCanReceivePayment($invoice);
             $this->assertPaymentAmountIsValid($invoice, $amount);
+            $receiptItems = $this->receiptItems(
+                $data['receipt_items'] ?? null,
+                $amount,
+                'Paiement recu - Facture ' . $invoice->number,
+            );
 
             $payment = Payment::create([
                 'company_id' => $invoice->company_id,
                 'branch_id' => $invoice->branch_id,
                 'finance_document_id' => $invoice->id,
-                'payment_kind' => PaymentKind::Invoice,
+                'payment_kind' => $invoice->isInternalInvoice() ? PaymentKind::InternalInvoice : PaymentKind::Invoice,
                 'client_id' => $invoice->client_id,
                 'dossier_id' => $invoice->dossier_id,
                 'payment_number' => FinanceNumberService::nextPaymentNumber(),
@@ -47,11 +52,13 @@ class PaymentLedgerService
                 'created_by' => $data['created_by'] ?? null,
             ]);
 
-            $invoice = $this->recalculateInvoice($invoice);
-            $this->reminders->completeForInvoice($invoice);
-            $this->promises->reconcileForInvoice($invoice);
+            $invoice = $this->recalculateDocument($invoice);
+            if ($invoice->isInvoice()) {
+                $this->reminders->completeForInvoice($invoice);
+                $this->promises->reconcileForInvoice($invoice);
+            }
 
-            $receipt = $this->createOrUpdateReceiptForPayment($invoice, $payment->fresh());
+            $receipt = $this->createOrUpdateReceiptForPayment($invoice, $payment->fresh(), $receiptItems);
 
             $payment->forceFill([
                 'receipt_document_id' => $receipt->id,
@@ -73,6 +80,11 @@ class PaymentLedgerService
                     'amount' => 'Le montant du paiement doit etre superieur a zero.',
                 ]);
             }
+            $receiptItems = $this->receiptItems(
+                $data['receipt_items'] ?? null,
+                $amount,
+                'Avance recue - Dossier ' . $dossier->dossier_number,
+            );
 
             $payment = Payment::create([
                 'company_id' => $scope['company_id'],
@@ -90,7 +102,7 @@ class PaymentLedgerService
                 'created_by' => $data['created_by'] ?? null,
             ]);
 
-            $receipt = $this->createReceiptForAdvance($dossier, $scope, $payment->fresh());
+            $receipt = $this->createReceiptForAdvance($dossier, $scope, $payment->fresh(), $receiptItems);
             $payment->forceFill(['receipt_document_id' => $receipt->id])->save();
 
             return $payment->fresh(['document', 'receiptDocument', 'dossier.client']);
@@ -173,18 +185,24 @@ class PaymentLedgerService
     public function updatePayment(Payment $payment, array $data): Payment
     {
         return DB::transaction(function () use ($payment, $data) {
-            $payment = $payment->fresh(['document']);
+            $payment = $payment->fresh(['document', 'receiptDocument.items']);
 
             $oldInvoice = $payment->document;
             $newInvoiceId = $data['finance_document_id'] ?? $payment->finance_document_id;
             $newInvoice = FinanceDocument::query()
                 ->where('company_id', $payment->company_id)
-                ->when($payment->branch_id, fn ($query, $branchId) => $query->where('branch_id', $branchId))
+                ->when($payment->branch_id, fn ($query, $branchId) => $query->where('branch_id', $branchId), fn ($query) => $query->whereNull('branch_id'))
                 ->findOrFail($newInvoiceId);
             $amount = $this->normalizeAmount($data['amount'] ?? $payment->amount);
 
             $this->assertCanReceivePayment($newInvoice);
             $this->assertPaymentAmountIsValid($newInvoice, $amount, $payment);
+            $receiptItems = $this->receiptItems(
+                $data['receipt_items'] ?? null,
+                $amount,
+                'Paiement recu - Facture ' . $newInvoice->number,
+                $payment->receiptDocument?->items,
+            );
 
             $payment->update([
                 'finance_document_id' => $newInvoice->id,
@@ -205,7 +223,7 @@ class PaymentLedgerService
             $this->reminders->completeForInvoice($newInvoice);
             $this->promises->reconcileForInvoice($newInvoice);
 
-            $receipt = $this->createOrUpdateReceiptForPayment($newInvoice, $payment->fresh());
+            $receipt = $this->createOrUpdateReceiptForPayment($newInvoice, $payment->fresh(), $receiptItems);
 
             $payment->forceFill([
                 'receipt_document_id' => $receipt->id,
@@ -244,12 +262,17 @@ class PaymentLedgerService
         });
     }
 
-    public function recalculateInvoice(FinanceDocument $invoice): FinanceDocument
+    public function recalculateDocument(FinanceDocument $invoice): FinanceDocument
     {
         FinanceCalculator::updateInvoicePaymentTotals($invoice);
         $invoice->save();
 
         return $invoice->fresh();
+    }
+
+    public function recalculateInvoice(FinanceDocument $invoice): FinanceDocument
+    {
+        return $this->recalculateDocument($invoice);
     }
 
     private function assertCanReceivePayment(FinanceDocument $invoice): void
@@ -282,7 +305,7 @@ class PaymentLedgerService
         }
     }
 
-    private function createOrUpdateReceiptForPayment(FinanceDocument $invoice, Payment $payment): FinanceDocument
+    private function createOrUpdateReceiptForPayment(FinanceDocument $invoice, Payment $payment, array $receiptItems): FinanceDocument
     {
         $receipt = $payment->receipt_document_id
             ? FinanceDocument::find($payment->receipt_document_id)
@@ -294,7 +317,7 @@ class PaymentLedgerService
         if (! $receipt) {
             $receipt = new FinanceDocument();
             $receipt->type = 'receipt';
-            $receipt->number = $this->nextReceiptNumber();
+            $receipt->number = $this->sequences->allocate('receipt', (int) $invoice->company_id, $paymentDate);
             $receipt->status = 'issued';
             $receipt->created_by = $payment->created_by;
         }
@@ -318,19 +341,19 @@ class PaymentLedgerService
             'terms' => $this->receiptTerms($payment),
         ])->save();
 
-        $this->syncReceiptItem($receipt, $invoice, $payment);
+        $this->syncReceiptItems($receipt, $receiptItems);
 
         return $receipt->fresh();
     }
 
-    private function createReceiptForAdvance(Dossier $dossier, array $scope, Payment $payment): FinanceDocument
+    private function createReceiptForAdvance(Dossier $dossier, array $scope, Payment $payment, array $receiptItems): FinanceDocument
     {
         $receipt = new FinanceDocument();
         $receipt->forceFill([
             'company_id' => $scope['company_id'],
             'branch_id' => $scope['branch_id'] ?? null,
             'type' => 'receipt',
-            'number' => $this->nextReceiptNumber(),
+            'number' => $this->sequences->allocate('receipt', (int) $scope['company_id'], $payment->paid_at ?: now()),
             'status' => 'issued',
             'client_id' => $dossier->client_id,
             'dossier_id' => $dossier->id,
@@ -353,33 +376,90 @@ class PaymentLedgerService
             'created_by' => $payment->created_by,
         ])->save();
 
-        $item = new FinanceDocumentItem([
-            'position' => 1,
-            'title' => 'Avance recue - Dossier ' . $dossier->dossier_number,
-            'quantity' => 1,
-            'unit' => 'payment',
-            'unit_price' => (float) $payment->amount,
-        ]);
-        $item->calculateTotals();
-        $receipt->items()->save($item);
+        $this->syncReceiptItems($receipt, $receiptItems);
 
         return $receipt->fresh();
     }
 
-    private function syncReceiptItem(FinanceDocument $receipt, FinanceDocument $invoice, Payment $payment): void
+    /** @param array<int, array{title: string, description: ?string, quantity: float, unit: ?string, unit_price: float}> $receiptItems */
+    private function syncReceiptItems(FinanceDocument $receipt, array $receiptItems): void
     {
         $receipt->items()->delete();
 
-        $item = new FinanceDocumentItem([
-            'position' => 1,
-            'title' => 'Paiement recu - Facture ' . $invoice->number,
-            'quantity' => 1,
-            'unit' => 'payment',
-            'unit_price' => (float) $payment->amount,
-        ]);
+        foreach ($receiptItems as $position => $receiptItem) {
+            $item = new FinanceDocumentItem([
+                'position' => $position + 1,
+                'title' => $receiptItem['title'],
+                'description' => $receiptItem['description'],
+                'quantity' => $receiptItem['quantity'],
+                'unit' => $receiptItem['unit'],
+                'unit_price' => $receiptItem['unit_price'],
+            ]);
+            $item->calculateTotals();
+            $receipt->items()->save($item);
+        }
+    }
 
-        $item->calculateTotals();
-        $receipt->items()->save($item);
+    /**
+     * @param array<int, array<string, mixed>>|null $input
+     * @param \Illuminate\Support\Collection<int, FinanceDocumentItem>|null $existingItems
+     * @return array<int, array{title: string, description: ?string, quantity: float, unit: ?string, unit_price: float}>
+     */
+    private function receiptItems(?array $input, float $amount, string $fallbackTitle, $existingItems = null): array
+    {
+        if ($input === null && $existingItems?->isNotEmpty()) {
+            $input = $existingItems->map(fn (FinanceDocumentItem $item) => [
+                'title' => $item->title,
+                'description' => $item->description,
+                'quantity' => $item->quantity,
+                'unit' => $item->unit,
+                'unit_price' => $item->unit_price,
+            ])->all();
+        }
+
+        if (empty($input)) {
+            return [[
+                'title' => $fallbackTitle,
+                'description' => null,
+                'quantity' => 1.0,
+                'unit' => 'payment',
+                'unit_price' => $amount,
+            ]];
+        }
+
+        $items = array_map(function (array $item): array {
+            $quantity = round((float) ($item['quantity'] ?? 0), 3);
+            $unitPrice = $this->normalizeAmount($item['unit_price'] ?? 0);
+
+            return [
+                'title' => trim((string) ($item['title'] ?? '')),
+                'description' => filled($item['description'] ?? null) ? trim((string) $item['description']) : null,
+                'quantity' => $quantity,
+                'unit' => filled($item['unit'] ?? null) ? trim((string) $item['unit']) : null,
+                'unit_price' => $unitPrice,
+            ];
+        }, $input);
+
+        foreach ($items as $item) {
+            if ($item['title'] === '' || $item['quantity'] <= 0 || $item['unit_price'] < 0) {
+                throw ValidationException::withMessages([
+                    'receipt_items' => 'Chaque ligne du recu doit comporter un titre, une quantite positive et un prix valide.',
+                ]);
+            }
+        }
+
+        $linesTotal = $this->normalizeAmount(array_sum(array_map(
+            fn (array $item): float => $item['quantity'] * $item['unit_price'],
+            $items,
+        )));
+
+        if (abs($linesTotal - $amount) > 0.01) {
+            throw ValidationException::withMessages([
+                'receipt_items' => 'Le total des lignes du reçu doit être égal au montant du paiement.',
+            ]);
+        }
+
+        return $items;
     }
 
     private function receiptNotes(FinanceDocument $invoice, Payment $payment): string
@@ -402,21 +482,6 @@ class PaymentLedgerService
             'Reference: ' . ($payment->reference ?: null),
             'Numero paiement: ' . $payment->payment_number,
         ]));
-    }
-
-    private function nextReceiptNumber(): string
-    {
-        try {
-            return FinanceNumberService::nextDocumentNumber('receipt');
-        } catch (Throwable) {
-            $year = now()->format('Y');
-            $next = FinanceDocument::withTrashed()
-                ->where('type', 'receipt')
-                ->whereYear('created_at', now()->year)
-                ->count() + 1;
-
-            return 'REC-' . $year . '-' . str_pad((string) $next, 4, '0', STR_PAD_LEFT);
-        }
     }
 
     private function normalizeAmount(mixed $amount): float

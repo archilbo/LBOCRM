@@ -218,6 +218,9 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
         financeDocumentsCount: 0,
         paymentsCount: 0,
         quotesTotal: 0,
+        expectedTotal: 0,
+        expectedPaidTotal: 0,
+        expectedRemainingTotal: 0,
         invoicesTotal: 0,
         paidTotal: 0,
         remainingTotal: 0,
@@ -1329,7 +1332,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                         setPaymentDrawerOpen(open);
                         if (!open) setPaymentInvoice(null);
                     }}
-                    invoices={selectedProject?.financeDocuments.filter((document) => document.type === 'invoice') ?? []}
+                    invoices={selectedProject?.financeDocuments.filter((document) => document.type === 'invoice' || document.type === 'internal_invoice') ?? []}
                     invoice={paymentInvoice}
                     clients={[{ id: String(client.id), label: client.fullName, cin: client.cin, address: client.address }]}
                     dossiers={dossierOptions}

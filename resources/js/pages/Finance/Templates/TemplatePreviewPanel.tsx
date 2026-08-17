@@ -93,7 +93,7 @@ export function TemplatePreviewPanel({
 
     const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
     const [zoom, setZoom] = useState(0.85);
-    const [sideScale, setSideScale] = useState(0.45);
+    const [sideScale, setSideScale] = useState(0.6);
 
     const dims = PAPER_DIMS[paperSize] ?? PAPER_DIMS.A4;
     const paperWidth = orientation === 'landscape' ? dims.height : dims.width;
@@ -105,22 +105,26 @@ export function TemplatePreviewPanel({
     }, [html, paperWidth, paperHeight]);
 
     useEffect(() => {
-        const node = sideContainerRef.current;
-        if (!node) return;
-
         function updateScale() {
-            const width = node?.clientWidth ?? 0;
-            const maxHeight = node?.clientHeight ?? 0;
-            if (width <= 0) return;
+            const pane = sideContainerRef.current;
+            if (!pane) return;
 
-            const scaleByWidth = (width - 24) / paperWidth;
-            const scaleByHeight = maxHeight / paperHeight;
-            setSideScale(Math.min(1, Math.max(0.2, Math.min(scaleByWidth, scaleByHeight))));
+            const width = pane.clientWidth;
+            const maxHeight = pane.clientHeight;
+            if (width <= 0 || maxHeight <= 0) return;
+
+            // Measure the stable pane, not the scaled document wrapper. Measuring
+            // the wrapper feeds the previous scale back into the next calculation
+            // and progressively shrinks the preview toward its minimum size.
+            const scaleByWidth = (width - 32) / paperWidth;
+            const scaleByHeight = (maxHeight - 32) / paperHeight;
+            setSideScale(Math.min(1, Math.max(0.35, Math.min(scaleByWidth, scaleByHeight))));
         }
 
         updateScale();
         const observer = new ResizeObserver(updateScale);
-        observer.observe(node);
+        const pane = sideContainerRef.current;
+        if (pane) observer.observe(pane);
         return () => observer.disconnect();
     }, [paperWidth, paperHeight]);
 
@@ -229,7 +233,7 @@ export function TemplatePreviewPanel({
 
     return (
         <>
-            <aside className="flex w-[420px] 2xl:w-[480px] shrink-0 flex-col border-l border-[var(--border)] bg-[var(--surface)]">
+            <aside className="flex w-[460px] 2xl:w-[540px] shrink-0 flex-col border-l border-[var(--border)] bg-[var(--surface)]">
                 <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-2">
                     <div className="flex min-w-0 items-center gap-2">
                         <IconDeviceDesktop size={14} className="shrink-0 text-[var(--accent)]" />
@@ -251,10 +255,9 @@ export function TemplatePreviewPanel({
                     </div>
                 </div>
 
-                <div className="flex min-h-0 flex-1 items-start overflow-y-auto bg-[var(--surface-2)] p-2">
+                <div ref={sideContainerRef} className="flex min-h-0 flex-1 items-start justify-center overflow-auto bg-[var(--surface-2)] p-4">
                     <div
-                        ref={sideContainerRef}
-                        className="flex items-start justify-center overflow-hidden rounded-lg border bg-neutral-200 p-2 shadow-inner"
+                        className="flex items-start justify-center rounded-lg border bg-neutral-200 p-2 shadow-inner"
                         style={{ minHeight: scaledHeight, minWidth: paperWidth * sideScale }}
                     >
                         <div className="overflow-hidden rounded-lg bg-white shadow-md" style={sideFrameWrapStyle}>

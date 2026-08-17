@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Branch extends Model
 {
@@ -14,5 +15,20 @@ class Branch extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function financeDocuments(): HasMany
+    {
+        return $this->hasMany(FinanceDocument::class);
+    }
+
+    public function internalInvoices(): HasMany
+    {
+        return $this->financeDocuments()->where('type', 'internal_invoice');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 }

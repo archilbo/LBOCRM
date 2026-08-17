@@ -185,7 +185,7 @@ class FinanceTemplatePlaceholderRegistry
                 'types' => $all,
                 'trusted' => false,
                 'sample' => 'DEV-2026-0001',
-                'aliases' => ['document_number', 'quote_number', 'invoice_number', 'receipt_number', 'reference'],
+                'aliases' => ['document_number', 'quote_number', 'invoice_number', 'receipt_number', 'reference', 'invoice.reference'],
             ],
             'document.type_label' => [
                 'key' => 'document.type_label',
@@ -481,7 +481,7 @@ class FinanceTemplatePlaceholderRegistry
                 'types' => ['invoice', 'receipt'],
                 'trusted' => false,
                 'sample' => 'Virement bancaire',
-                'aliases' => ['payment_method', 'mode_paiement'],
+                'aliases' => ['payment_method', 'mode_paiement', 'invoice.payment_method'],
             ],
             'payment.reference' => [
                 'key' => 'payment.reference',

@@ -59,6 +59,8 @@ function addDays(date: string, days: number): string {
 function createForm(type: FinanceDocumentType, settings: FinanceSettings, document?: FinanceDocument | null, defaultClientId?: string, defaultDossierId?: string, templates?: TemplateOption[], defaultFinanceTtc?: number | null): BuilderForm {
     const issueDate = document?.issueDate || today();
     if (document) {
+        const tvaRate = normalizeNumber(document.tvaRate ?? settings.defaultTvaRate);
+
         return {
             type: document.type,
             clientId: document.client ? String(document.client.id) : '',
@@ -67,14 +69,14 @@ function createForm(type: FinanceDocumentType, settings: FinanceSettings, docume
             dueDate: document.dueDate || '',
             validUntil: document.validUntil || '',
             currency: normalizeCurrency(document.currency || settings.defaultCurrency),
-            tvaRate: normalizeNumber(document.tvaRate || settings.defaultTvaRate),
+            tvaRate,
             discountTotal: normalizeNumber(document.discountTotal),
             notes: document.notes || '',
             terms: document.terms || '',
             templateId: document.templateId ? String(document.templateId) : '',
             items: document.items.length > 0
-                ? document.items.map((item, index) => calculateItem({ ...item, position: index + 1 }))
-                : [createEmptyItem()],
+                ? document.items.map((item, index) => calculateItem({ ...item, position: index + 1 }, tvaRate))
+                : [calculateItem(createEmptyItem(), tvaRate)],
         };
     }
     const defaultTemplate = (templates || []).find((t) => t.type === type || t.type === 'finance');
@@ -85,8 +87,8 @@ function createForm(type: FinanceDocumentType, settings: FinanceSettings, docume
         currency: normalizeCurrency(settings.defaultCurrency), tvaRate: settings.defaultTvaRate, discountTotal: 0,
         notes: '', terms: '', templateId: defaultTemplate ? String(defaultTemplate.id) : '',
         items: defaultFinanceTtc && defaultFinanceTtc > 0
-            ? [calculateItem({ position: 1, title: 'Honoraires architecte', quantity: 1, unit: 'forfait', unitPrice: defaultFinanceTtc })]
-            : [createEmptyItem()],
+            ? [calculateItem({ position: 1, title: 'Honoraires architecte', quantity: 1, unit: 'forfait', unitPrice: defaultFinanceTtc }, settings.defaultTvaRate)]
+            : [calculateItem(createEmptyItem(), settings.defaultTvaRate)],
     };
 }
 
@@ -146,7 +148,7 @@ export function FinanceDocumentBuilderDrawer({
                 discount_total: form.discountTotal,
                 notes: form.notes,
                 terms: form.terms,
-                items: form.items.map((item) => ({
+                items: calculateTotals(form.items, form.discountTotal, form.tvaRate).items.map((item) => ({
                     title: item.title,
                     description: item.description,
                     quantity: item.quantity,
@@ -189,12 +191,15 @@ export function FinanceDocumentBuilderDrawer({
     const isBlocked = mode === 'create' && (hasNoDossiers || isDossierRestricted);
     const canAdvanceStep0 = Boolean(form.clientId && form.dossierId) && !isBlocked;
 
-    const totals = useMemo(() => calculateTotals(form.items, form.discountTotal), [form.discountTotal, form.items]);
+    const totals = useMemo(
+        () => calculateTotals(form.items, form.discountTotal, form.tvaRate),
+        [form.discountTotal, form.items, form.tvaRate],
+    );
     const selectedClient = clients.find((c) => c.id === form.clientId);
     const selectedDossier = dossiers.find((d) => d.id === form.dossierId);
     const title = mode === 'edit'
         ? `Modifier ${document?.number || 'document'}`
-        : form.type === 'quote' ? 'Nouveau devis' : form.type === 'invoice' ? 'Nouvelle facture' : 'Nouveau recu';
+        : form.type === 'quote' ? 'Nouveau devis' : form.type === 'invoice' ? 'Nouvelle facture' : form.type === 'internal_invoice' ? 'Nouvelle facture interne' : 'Nouveau reçu';
 
     function update<K extends keyof BuilderForm>(key: K, value: BuilderForm[K]) {
         setForm((prev) => ({ ...prev, [key]: value }));
@@ -243,6 +248,11 @@ export function FinanceDocumentBuilderDrawer({
             }
         >
             <div className="finance-builder-container">
+                {form.type === 'internal_invoice' ? (
+                    <div className="mb-4 rounded-lg border border-[color-mix(in_srgb,var(--accent)_35%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] px-3 py-2 text-xs text-[var(--foreground)]">
+                        Facture interne — suivi prévisionnel uniquement. Elle ne compte pas dans le chiffre d’affaires facturé officiel et peut être convertie une seule fois.
+                    </div>
+                ) : null}
                 {/* Step indicators */}
                 <div className="mb-4 flex items-center gap-1">
                     {steps.map((s, i) => {
@@ -297,7 +307,7 @@ export function FinanceDocumentBuilderDrawer({
                                                     && current.items[0].totalTtc === 0;
 
                                                 return isEmptySingleLine
-                                                    ? { ...current, items: [calculateItem({ position: 1, title: 'Honoraires architecte', quantity: 1, unit: 'forfait', unitPrice: financeTtc })] }
+                                                    ? { ...current, items: [calculateItem({ position: 1, title: 'Honoraires architecte', quantity: 1, unit: 'forfait', unitPrice: financeTtc }, current.tvaRate)] }
                                                     : current;
                                             });
                                         }
@@ -320,10 +330,10 @@ export function FinanceDocumentBuilderDrawer({
 
                         {step === 1 ? (
                             <>
-                                <FinanceItemsTable items={totals.items} currency={form.currency} onChange={(items) => update('items', items)} disabled={isBlocked} />
+                                <FinanceItemsTable items={totals.items} currency={form.currency} tvaRate={form.tvaRate} onChange={(items) => update('items', items)} disabled={isBlocked} />
 
                                 <FinanceTotalsBox
-                                    subtotalHt={totals.subtotalHt} discountTotal={totals.discountTotal} taxTotal={totals.taxTotal}
+                                    subtotalHt={totals.subtotalHt} discountTotal={totals.discountTotal} taxTotal={totals.taxTotal} tvaRate={form.tvaRate}
                                     totalTtc={totals.totalTtc} paidTotal={document?.paidTotal || 0}
                                     remainingTotal={document ? Math.max(0, totals.totalTtc - document.paidTotal) : totals.totalTtc}
                                     currency={form.currency}
@@ -400,7 +410,7 @@ export function FinanceDocumentBuilderDrawer({
                                         </div>
                                     </div>
                                     <FinanceTotalsBox
-                                        subtotalHt={totals.subtotalHt} discountTotal={totals.discountTotal} taxTotal={totals.taxTotal}
+                                        subtotalHt={totals.subtotalHt} discountTotal={totals.discountTotal} taxTotal={totals.taxTotal} tvaRate={form.tvaRate}
                                         totalTtc={totals.totalTtc} paidTotal={document?.paidTotal || 0}
                                         remainingTotal={document ? Math.max(0, totals.totalTtc - document.paidTotal) : totals.totalTtc}
                                         currency={form.currency}

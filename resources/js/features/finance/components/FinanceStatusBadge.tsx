@@ -46,7 +46,7 @@ export function financeStatusLabel(status: string, translate: (key: string) => s
 
 export function financeDocumentTypeLabel(type: string, translate: (key: string) => string = t): string {
     const keys: Record<string, string> = {
-        quote: 'finance.types.quote', invoice: 'finance.types.invoice', receipt: 'finance.types.receipt',
+        quote: 'finance.types.quote', invoice: 'finance.types.invoice', internal_invoice: 'finance.types.internalInvoice', receipt: 'finance.types.receipt',
     };
 
     return keys[type] ? translate(keys[type]) : type;

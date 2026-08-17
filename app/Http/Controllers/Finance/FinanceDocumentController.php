@@ -20,10 +20,12 @@ use App\Models\User;
 use App\Services\Finance\FinanceExcelExporter;
 use App\Services\Finance\FinanceActivityService;
 use App\Services\Finance\FinanceContextService;
+use App\Services\Finance\FinanceCalculator;
 use App\Services\Finance\FinanceDocumentLockGuard;
 use App\Services\Finance\FinanceDocumentQueryService;
+use App\Services\Finance\FinanceDocumentSequenceService;
 use App\Services\Finance\FinanceFileStorageService;
-use App\Services\Finance\FinanceNumberService;
+use App\Services\Finance\InternalInvoiceConversionService;
 use App\Services\Finance\FinancePdfGenerator;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\Finance\FinanceMonthlySummaryService;
@@ -158,13 +160,14 @@ class FinanceDocumentController extends Controller
         StoreFinanceDocumentRequest $request,
         DossierFinanceEligibilityService $eligibility,
         PaymentLedgerService $ledger,
+        FinanceDocumentSequenceService $sequences,
     ): RedirectResponse
     {
         $this->authorize('create', FinanceDocument::class);
         $data = $request->validated();
         $scope = app(FinanceContextService::class)->payload($request->user());
 
-        $document = DB::transaction(function () use ($data, $request, $scope, $eligibility, $ledger) {
+        $document = DB::transaction(function () use ($data, $request, $scope, $eligibility, $ledger, $sequences) {
             $eligibility->assertCanCreateDocument(
                 $scope,
                 $data['type'],
@@ -172,7 +175,8 @@ class FinanceDocumentController extends Controller
                 null,
                 isset($data['client_id']) ? (int) $data['client_id'] : null,
             );
-            $number = FinanceNumberService::nextDocumentNumber($data['type']);
+            $issueDate = $data['issue_date'] ?? now();
+            $number = $sequences->allocate($data['type'], (int) $scope['company_id'], $issueDate);
 
             $document = FinanceDocument::create([
                 ...$scope,
@@ -182,7 +186,7 @@ class FinanceDocumentController extends Controller
                 'client_id' => $data['client_id'] ?? null,
                 'dossier_id' => $data['dossier_id'] ?? null,
                 'active_invoice_dossier_key' => $eligibility->invoiceGuardKey($scope, $data['type'], $data['dossier_id'] ?? null, 'draft'),
-                'issue_date' => $data['issue_date'] ?? now(),
+                'issue_date' => $issueDate,
                 'due_date' => $data['due_date'] ?? now()->addDays(FinanceSettingsService::getDefaultPaymentDays()),
                 'valid_until' => $data['valid_until'] ?? now()->addDays(30),
                 'currency' => $data['currency'] ?? FinanceSettingsService::getCurrency(),
@@ -204,7 +208,7 @@ class FinanceDocumentController extends Controller
                         'unit' => $itemData['unit'] ?? null,
                         'unit_price' => $itemData['unit_price'] ?? 0,
                     ]);
-                    $item->calculateTotals();
+                    $item->calculateTotals((float) $document->tva_rate);
                     $document->items()->save($item);
                 }
             }
@@ -303,9 +307,13 @@ class FinanceDocumentController extends Controller
                         'unit' => $itemData['unit'] ?? null,
                         'unit_price' => $itemData['unit_price'] ?? 0,
                     ]);
-                    $item->calculateTotals();
+                    $item->calculateTotals((float) $financeDocument->tva_rate);
                     $financeDocument->items()->save($item);
                 }
+            } elseif (array_key_exists('tva_rate', $data)) {
+                $financeDocument->items()->each(function (FinanceDocumentItem $item) use ($financeDocument) {
+                    $item->calculateTotals((float) $financeDocument->tva_rate, true);
+                });
             }
 
             $financeDocument->recalculateTotals()->save();
@@ -612,21 +620,26 @@ class FinanceDocumentController extends Controller
         $dossier = $data['dossier_id'] ? Dossier::find($data['dossier_id']) : null;
         $currency = $data['currency'] ?: FinanceSettingsService::getCurrency();
 
-        $items = collect($data['items'] ?? [])->values()->map(fn ($item, $i) => [
+        $tvaRate = (float) ($data['tva_rate'] ?? FinanceSettingsService::getTvaRate());
+        $items = collect($data['items'] ?? [])->values()->map(function ($item, $i) use ($currency, $tvaRate) {
+            $totals = FinanceCalculator::calculateItemTotals($item, $tvaRate);
+
+            return [
             'position' => $i + 1,
             'title' => $item['title'] ?? '',
             'description' => $item['description'] ?? '',
-            'quantity' => (float) ($item['quantity'] ?? 1),
+            'quantity' => $totals['quantity'],
             'unit' => $item['unit'] ?? '',
-            'unit_price' => (float) ($item['unit_price'] ?? 0),
-            'unit_price_display' => number_format((float) ($item['unit_price'] ?? 0), 2, '.', ' ') . ' ' . $currency,
-            'total_ht' => (float) ($item['total_ht'] ?? 0),
-            'total_ht_display' => number_format((float) ($item['total_ht'] ?? 0), 2, '.', ' ') . ' ' . $currency,
-            'total_tva' => (float) ($item['total_tva'] ?? 0),
-            'total_tva_display' => number_format((float) ($item['total_tva'] ?? 0), 2, '.', ' ') . ' ' . $currency,
-            'total_ttc' => (float) ($item['total_ttc'] ?? 0),
-            'total_ttc_display' => number_format((float) ($item['total_ttc'] ?? 0), 2, '.', ' ') . ' ' . $currency,
-        ])->all();
+            'unit_price' => $totals['unit_price'],
+            'unit_price_display' => number_format($totals['unit_price'], 2, '.', ' ') . ' ' . $currency,
+            'total_ht' => $totals['total_ht'],
+            'total_ht_display' => number_format($totals['total_ht'], 2, '.', ' ') . ' ' . $currency,
+            'total_tva' => $totals['total_tva'],
+            'total_tva_display' => number_format($totals['total_tva'], 2, '.', ' ') . ' ' . $currency,
+            'total_ttc' => $totals['total_ttc'],
+            'total_ttc_display' => number_format($totals['total_ttc'], 2, '.', ' ') . ' ' . $currency,
+        ];
+        })->all();
 
         $formatMoney = fn (float $v) => number_format($v, 2, '.', ' ') . ' ' . $currency;
         $discountRaw = (float) ($data['discount_total'] ?? 0);
@@ -759,6 +772,8 @@ class FinanceDocumentController extends Controller
         FinanceDocument $financeDocument,
         DossierFinanceEligibilityService $eligibility,
         PaymentLedgerService $ledger,
+        FinanceDocumentSequenceService $sequences,
+        InternalInvoiceConversionService $internalConversion,
     ): RedirectResponse
     {
         $this->authorize('convert', $financeDocument);
@@ -768,8 +783,22 @@ class FinanceDocumentController extends Controller
 
         $data = $request->validated();
 
+        if ($financeDocument->isInternalInvoice()) {
+            $invoice = $internalConversion->convert($financeDocument, $request->user(), $data);
+            app(FinanceActivityService::class)->log($financeDocument->fresh(), $request->user(), 'finance.internal_invoice.converted', [], [
+                'converted_to_document_id' => $invoice->id,
+                'number' => $invoice->number,
+            ]);
+            app(FinanceActivityService::class)->log($invoice, $request->user(), 'finance.invoice.created_from_internal', [], [
+                'source_document_id' => $financeDocument->id,
+            ]);
+
+            return redirect()->route('finance.documents.show', $invoice)
+                ->with('success', "Facture {$invoice->number} creee a partir de {$financeDocument->number}.");
+        }
+
         $scope = app(FinanceContextService::class)->payload($request->user());
-        $invoice = DB::transaction(function () use ($financeDocument, $data, $scope, $eligibility, $ledger) {
+        $invoice = DB::transaction(function () use ($financeDocument, $data, $scope, $eligibility, $ledger, $sequences) {
             $eligibility->assertCanCreateDocument(
                 $scope,
                 'invoice',
@@ -777,7 +806,8 @@ class FinanceDocumentController extends Controller
                 null,
                 $financeDocument->client_id,
             );
-            $invoiceNumber = FinanceNumberService::nextDocumentNumber('invoice');
+            $issueDate = $data['issue_date'] ?? now();
+            $invoiceNumber = $sequences->allocate('invoice', (int) $scope['company_id'], $issueDate);
 
             $invoice = FinanceDocument::create([
                 ...$scope,
@@ -788,7 +818,7 @@ class FinanceDocumentController extends Controller
                 'dossier_id' => $financeDocument->dossier_id,
                 'active_invoice_dossier_key' => $eligibility->invoiceGuardKey($scope, 'invoice', $financeDocument->dossier_id, 'issued'),
                 'source_document_id' => $financeDocument->id,
-                'issue_date' => $data['issue_date'] ?? now(),
+                'issue_date' => $issueDate,
                 'due_date' => $data['due_date'] ?? now()->addDays(FinanceSettingsService::getDefaultPaymentDays()),
                 'valid_until' => $financeDocument->valid_until,
                 'currency' => $financeDocument->currency,

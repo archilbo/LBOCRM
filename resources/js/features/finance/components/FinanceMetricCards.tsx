@@ -1,10 +1,12 @@
-import { IconCoin, IconFileText, IconReceipt2, IconWallet } from '@tabler/icons-react';
+import { IconCoin, IconFileInvoice, IconFileText, IconReceipt2, IconWallet } from '@tabler/icons-react';
 
 import { FinanceKpiCard } from '@/features/finance/components/FinanceKpiCard';
 import { formatCompactMoney } from '@/features/finance/utils/calculations';
 
 export type FinanceMetrics = {
     totalQuotes: number;
+    expectedTotal: number;
+    expectedRemainingTotal: number;
     totalInvoices: number;
     paidTotal: number;
     remainingTotal: number;
@@ -21,7 +23,8 @@ type FinanceMetricCardsProps = {
 export function FinanceMetricCards({ metrics }: FinanceMetricCardsProps) {
     const cards = [
         { label: 'Total Devis', value: formatCompactMoney(metrics.totalQuotes, metrics.currency), icon: <IconFileText size={18} />, metricTypeSemantic: 'revenue' as const },
-        { label: 'Total Factures', value: formatCompactMoney(metrics.totalInvoices, metrics.currency), icon: <IconReceipt2 size={18} />, metricTypeSemantic: 'revenue' as const },
+        { label: 'Prévision interne', value: formatCompactMoney(metrics.expectedTotal, metrics.currency), icon: <IconFileInvoice size={18} />, metricTypeSemantic: 'revenue' as const },
+        { label: 'Factures officielles', value: formatCompactMoney(metrics.totalInvoices, metrics.currency), icon: <IconReceipt2 size={18} />, metricTypeSemantic: 'revenue' as const },
         { label: 'Encaisse', value: formatCompactMoney(metrics.paidTotal, metrics.currency), icon: <IconWallet size={18} />, metricTypeSemantic: 'revenue' as const },
         { label: 'Restant', value: formatCompactMoney(metrics.remainingTotal, metrics.currency), icon: <IconCoin size={18} />, metricTypeSemantic: 'revenue' as const },
         { label: 'En retard', value: formatCompactMoney(metrics.overdueTotal, metrics.currency), icon: <IconCoin size={18} />, metricTypeSemantic: 'overdue' as const },

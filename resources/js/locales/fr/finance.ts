@@ -17,7 +17,7 @@ export const frFinance = {
             methodReference: 'Mode / référence', noReference: 'Sans référence', referenceLabel: 'Référence :',
             noPaymentsTitle: 'Aucun paiement trouvé', noPaymentsDescription: 'Enregistrez un paiement depuis une facture.', pageTotal: 'Total de la page',
         },
-        types: { quote: 'Devis', invoice: 'Facture', receipt: 'Reçu' },
+        types: { quote: 'Devis', invoice: 'Facture', internalInvoice: 'Facture interne', receipt: 'Reçu' },
         paymentMethods: { cash: 'Espèces', bankTransfer: 'Virement bancaire', check: 'Chèque', card: 'Carte bancaire', other: 'Autre' },
         statuses: { all: 'Tous', draft: 'Brouillon', issued: 'Émis', sent: 'Envoyé', accepted: 'Accepté', partiallyPaid: 'Partiel', paid: 'Payé', overdue: 'En retard', rejected: 'Refusé', converted: 'Converti', cancelled: 'Annulé' },
         expenses: { administrative: 'Administratif', travel: 'Déplacement', supplies: 'Fournitures', equipment: 'Équipement', utilities: 'Services publics', professionalFees: 'Honoraires professionnels', taxes: 'Impôts et taxes', other: 'Autre' },

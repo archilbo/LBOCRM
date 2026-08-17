@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Finance\FinanceCalculator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,13 +38,16 @@ class FinanceDocumentItem extends Model
         return $this->belongsTo(FinanceDocument::class, 'finance_document_id');
     }
 
-    public function calculateTotals(bool $save = false): static
+    public function calculateTotals(float $tvaRate = 0, bool $save = false): static
     {
-        $ht = $this->quantity * $this->unit_price;
+        $totals = FinanceCalculator::calculateItemTotals([
+            'quantity' => $this->quantity,
+            'unit_price' => $this->unit_price,
+        ], $tvaRate);
 
-        $this->total_ht = $ht;
-        $this->total_tva = 0;
-        $this->total_ttc = $ht;
+        $this->total_ht = $totals['total_ht'];
+        $this->total_tva = $totals['total_tva'];
+        $this->total_ttc = $totals['total_ttc'];
 
         if ($save) {
             $this->save();

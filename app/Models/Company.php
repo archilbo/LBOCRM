@@ -18,4 +18,19 @@ class Company extends Model
     {
         return $this->hasMany(Branch::class);
     }
+
+    public function financeDocuments(): HasMany
+    {
+        return $this->hasMany(FinanceDocument::class);
+    }
+
+    public function internalInvoices(): HasMany
+    {
+        return $this->financeDocuments()->where('type', 'internal_invoice');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
 }

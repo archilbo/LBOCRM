@@ -28,6 +28,7 @@ class FinanceDocumentQueryService
         $tabType = match ($request->string('tab')->toString()) {
             'quotes' => 'quote',
             'invoices' => 'invoice',
+            'internals' => 'internal_invoice',
             default => null,
         };
         $type = $request->string('type')->toString() ?: $tabType;
@@ -222,14 +223,32 @@ class FinanceDocumentQueryService
         $documents = fn () => $this->context->apply(FinanceDocument::query(), $user);
         $expenses = $this->context->apply(Expense::query(), $user);
 
-        $invoices = $documents()->where('type', 'invoice');
+        $activeDocuments = fn () => $documents()->where('status', '!=', 'cancelled');
+        $invoices = $activeDocuments()->where('type', 'invoice');
+        $internalInvoices = $activeDocuments()->where('type', 'internal_invoice');
+        $internalInvoiceIds = $activeDocuments()->where('type', 'internal_invoice')->select('id');
+        $expectedPayments = $this->context->apply(Payment::query(), $user)
+            ->where(function ($query) use ($internalInvoiceIds): void {
+                $query->whereIn('finance_document_id', $internalInvoiceIds)
+                    ->orWhereHas('document', fn ($document) => $document
+                        ->where('type', 'invoice')
+                        ->where('status', '!=', 'cancelled')
+                        ->whereIn('source_document_id', $internalInvoiceIds));
+            });
         $today = now()->toDateString();
+        $expectedTotal = (float) (clone $internalInvoices)->sum('total_ttc');
+        $expectedPaidTotal = min($expectedTotal, (float) $expectedPayments->sum('amount'));
+        $officialInvoicedTotal = (float) (clone $invoices)->sum('total_ttc');
+        $officialPaidTotal = (float) (clone $invoices)->sum('paid_total');
 
         return [
             'totalQuotes' => (float) $documents()->where('type', 'quote')->sum('total_ttc'),
-            'totalInvoices' => (float) (clone $invoices)->sum('total_ttc'),
-            'paidTotal' => (float) (clone $invoices)->sum('paid_total'),
-            'remainingTotal' => (float) (clone $invoices)->sum('remaining_total'),
+            'expectedTotal' => $expectedTotal,
+            'expectedPaidTotal' => $expectedPaidTotal,
+            'expectedRemainingTotal' => max(0, round($expectedTotal - $expectedPaidTotal, 2)),
+            'totalInvoices' => $officialInvoicedTotal,
+            'paidTotal' => $officialPaidTotal,
+            'remainingTotal' => max(0, round($officialInvoicedTotal - $officialPaidTotal, 2)),
             'overdueTotal' => (float) (clone $invoices)
                 ->where('due_date', '<', $today)
                 ->where('remaining_total', '>', 0)

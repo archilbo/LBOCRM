@@ -6,7 +6,20 @@ export type TemplateValidationResult = {
     unsupported: string[];
 };
 
+const legacyPlaceholderAliases: ReadonlyArray<readonly [RegExp, string]> = [
+    [/{{\s*invoice\.reference\s*}}/g, '{{document.number}}'],
+    [/{{\s*invoice\.payment_method\s*}}/g, '{{payment.method}}'],
+];
+
+export function normalizeLegacyTemplatePlaceholders(content: string): string {
+    return legacyPlaceholderAliases.reduce(
+        (normalizedContent, [placeholder, replacement]) => normalizedContent.replace(placeholder, replacement),
+        content,
+    );
+}
+
 export function validateTemplateContent(type: FinanceDocumentType, bodyHtml: string, allPlaceholders: TemplatePlaceholder[]): TemplateValidationResult {
+    bodyHtml = normalizeLegacyTemplatePlaceholders(bodyHtml);
     const errors: string[] = [];
     const warnings: string[] = [];
     const supported = new Set(allPlaceholders.flatMap((group) => group.items));

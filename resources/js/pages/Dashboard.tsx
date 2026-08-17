@@ -116,9 +116,9 @@ export default function Dashboard({ commandCenter }: PageProps) {
                     </header>
 
                     {focusAction ? (
-                        <Card className="gap-0 overflow-hidden border border-[color-mix(in_srgb,var(--accent)_34%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface))] shadow-sm">
+                        <Card className="gap-0 overflow-hidden border border-[color-mix(in_srgb,var(--accent)_26%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] shadow-sm">
                             <Card.Content className="grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.6fr)]">
-                                <AppButton variant="ghost" className="h-auto min-h-24 justify-start rounded-none px-4 py-3 text-left hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))]" onPress={() => navigate(focusAction.href)}>
+                                <AppButton variant="ghost" className="h-auto min-h-24 justify-start rounded-none px-4 py-3 text-left hover:bg-[color-mix(in_srgb,var(--accent)_7%,transparent)]" onPress={() => navigate(focusAction.href)}>
                                     <span className="flex min-w-0 items-center gap-3">
                                         <DashboardIcon icon={focusAction.icon} tone={focusAction.tone} className="size-10" size={19} />
                                         <span className="min-w-0 flex-1">
@@ -130,8 +130,8 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                     </span>
                                 </AppButton>
 
-                                <div className="flex min-w-0 flex-col border-t border-[color-mix(in_srgb,var(--accent)_22%,var(--border))] lg:border-l lg:border-t-0">
-                                    <div className="grid flex-1 grid-cols-2 divide-x divide-[var(--border)]">
+                                <div className="flex min-w-0 flex-col border-t border-[color-mix(in_srgb,var(--accent)_18%,var(--border))] lg:border-l lg:border-t-0">
+                                    <div className="grid flex-1 grid-cols-2 divide-x divide-[color-mix(in_srgb,var(--accent)_14%,var(--border))]">
                                         {signalKpis.map((kpi) => (
                                             <AppButton key={kpi.key} variant="ghost" className="h-auto min-w-0 justify-center rounded-none px-2 py-2 text-center hover:bg-[var(--surface-2)]" onPress={() => navigate(kpi.href)}>
                                                 <span className="min-w-0"><span className={`block text-base font-semibold ${tones[kpi.tone].text}`}>{kpi.value}</span><span className="mt-0.5 block truncate text-[9px] font-medium text-[var(--text-muted)]">{t(`dashboard.kpis.${kpi.key}`)}</span></span>
@@ -139,7 +139,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                         ))}
                                     </div>
                                     {quickLinks.length > 0 ? (
-                                        <div className="flex items-center justify-between border-t border-[var(--border)] px-2 py-1.5">
+                                    <div className="flex items-center justify-between border-t border-[color-mix(in_srgb,var(--accent)_14%,var(--border))] px-2 py-1.5">
                                             <span className="px-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('dashboard.sections.quickActions')}</span>
                                             <div className="flex items-center gap-1">
                                                 {quickLinks.map((link) => {
@@ -207,7 +207,7 @@ export default function Dashboard({ commandCenter }: PageProps) {
                                         className="h-auto w-full justify-start py-2 text-left hover:bg-[var(--surface-3)] bg-[var(--surface-2)] rounded-[10px]"
                                         onPress={() => navigate(project.href)}
                                     >
-                                        <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><span className="min-w-0"><span className="truncate text-xs font-semibold text-[var(--foreground)]">{project.project}</span><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{project.dossierNumber} / {project.client}</span></span><span className="flex shrink-0 items-center gap-2"><Chip size="sm" variant="soft" color={project.missingDocs > 0 ? 'warning' : 'success'}>{project.missingDocs} {t('dashboard.states.documents')}</Chip><IconChevronRight size={14} className="text-[var(--text-muted)]" /></span></span>
+                                        <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><span className="min-w-0"><Tooltip delay={450}><Tooltip.Trigger className="block min-w-0"><span className="block truncate text-xs font-semibold text-[var(--foreground)]">{project.project}</span></Tooltip.Trigger><Tooltip.Content className="max-w-80 border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-xl">{project.project}</Tooltip.Content></Tooltip><span className="mt-0.5 block truncate text-[9px] text-[var(--text-muted)]">{project.dossierNumber} / {project.client}</span></span><span className="flex shrink-0 items-center gap-2"><Chip size="sm" variant="soft" color={project.missingDocs > 0 ? 'warning' : 'success'}>{project.missingDocs} {t('dashboard.states.documents')}</Chip><IconChevronRight size={14} className="text-[var(--text-muted)]" /></span></span>
                                     </AppButton>
                                 )) : <div className="px-4 py-9 text-center text-sm text-[var(--text-muted)]">{t('dashboard.states.noRecentProject')}</div>}
                             </Card.Content>

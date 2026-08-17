@@ -19,7 +19,7 @@ export function AppTopbar() {
     const { t } = useTranslation();
 
     return (
-        <header className="relative z-[100] flex h-16 shrink-0 items-center border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-3 backdrop-blur-[18px] lg:px-6">
+        <header className="relative z-40 flex h-16 shrink-0 items-center border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_92%,transparent)] px-3 backdrop-blur-[18px] lg:px-6">
             <div className="flex min-w-0 flex-1 items-center gap-1.5 lg:gap-3">
                 <AppGlobalSearch />
 

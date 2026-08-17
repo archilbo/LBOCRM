@@ -1,11 +1,12 @@
+import { ScrollShadow } from '@heroui/react';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
 import { closeBrackets } from '@codemirror/autocomplete';
+import { useTheme } from '@/providers/ThemeProvider';
 
 type TemplateCodeEditorProps = {
     value: string;
@@ -17,7 +18,10 @@ type TemplateCodeEditorProps = {
 };
 
 const archilboEditorTheme = EditorView.theme({
-    '&': { backgroundColor: 'var(--surface)', color: 'var(--text)' },
+    '&': {
+        backgroundColor: 'var(--surface)',
+        color: 'var(--text)',
+    },
     '.cm-content': {
         caretColor: 'var(--accent)',
         fontFamily: 'var(--font-mono)',
@@ -35,7 +39,7 @@ const archilboEditorTheme = EditorView.theme({
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
         backgroundColor: 'color-mix(in srgb, var(--accent) 22%, transparent)',
     },
-}, { dark: true });
+});
 
 export type TemplateCodeEditorHandle = {
     insertAtCursor: (text: string) => void;
@@ -48,6 +52,7 @@ export const TemplateCodeEditor = forwardRef<TemplateCodeEditorHandle, TemplateC
     ) {
         const cmRef = useRef<ReactCodeMirrorRef>(null);
         const onSaveRef = useRef(onSave);
+        const { theme } = useTheme();
 
         useEffect(() => {
             onSaveRef.current = onSave;
@@ -65,7 +70,6 @@ export const TemplateCodeEditor = forwardRef<TemplateCodeEditorHandle, TemplateC
         }));
 
         const extensions = useMemo(() => [
-            oneDark,
             archilboEditorTheme,
             EditorView.lineWrapping,
             closeBrackets(),
@@ -80,25 +84,31 @@ export const TemplateCodeEditor = forwardRef<TemplateCodeEditorHandle, TemplateC
         ], [language]);
 
         return (
-            <CodeMirror
-                ref={cmRef}
-                value={value}
-                onChange={(val) => onChange(val)}
-                extensions={extensions}
-                height="100%"
-                minHeight={minHeight === '0' ? undefined : minHeight}
-                placeholder={placeholder}
-                theme="dark"
-                indentWithTab={false}
-                basicSetup={{
-                    lineNumbers: true,
-                    foldGutter: true,
-                    bracketMatching: true,
-                    closeBrackets: true,
-                    autocompletion: true,
-                    highlightActiveLine: true,
-                }}
-            />
+            <ScrollShadow
+                orientation="vertical"
+                className="h-full min-h-0"
+                size={16}
+            >
+                <CodeMirror
+                    ref={cmRef}
+                    value={value}
+                    onChange={(val) => onChange(val)}
+                    extensions={extensions}
+                    className="min-h-full"
+                    minHeight={minHeight === '0' ? undefined : minHeight}
+                    placeholder={placeholder}
+                    theme={theme}
+                    indentWithTab={false}
+                    basicSetup={{
+                        lineNumbers: true,
+                        foldGutter: true,
+                        bracketMatching: true,
+                        closeBrackets: true,
+                        autocompletion: true,
+                        highlightActiveLine: true,
+                    }}
+                />
+            </ScrollShadow>
         );
     },
 );

@@ -17,7 +17,7 @@ class DossierFinanceEligibilityService
         ?int $clientId = null,
     ): void
     {
-        if (! $dossierId || ! in_array($type, ['quote', 'invoice'], true)) {
+        if (! $dossierId || ! in_array($type, ['quote', 'invoice', 'internal_invoice'], true)) {
             return;
         }
 

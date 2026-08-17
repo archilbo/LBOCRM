@@ -81,6 +81,9 @@ export type ClientProjectSummary = {
     financeDocumentsCount: number;
     paymentsCount: number;
     quotesTotal: number;
+    expectedTotal: number;
+    expectedPaidTotal: number;
+    expectedRemainingTotal: number;
     invoicesTotal: number;
     paidTotal: number;
     remainingTotal: number;

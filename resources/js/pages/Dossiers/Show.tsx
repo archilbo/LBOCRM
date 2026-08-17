@@ -68,6 +68,15 @@ type PageProps = {
     explorerDocuments: ExplorerDocumentPayload[];
     contract: ContractSummary;
     financeRecords: FinanceSummary[];
+    finance?: {
+        summary: {
+            expectedTotal: number;
+            expectedRemainingTotal: number;
+            totalTtc: number;
+            paidTotal: number;
+            remainingTotal: number;
+        };
+    } | null;
     archiveRecord: ArchiveSummary;
     cahier: CahierSummary;
     clients: ClientOption[];
@@ -139,7 +148,7 @@ function dossierStatusLabel(status: string, t: (key: string) => string) {
 }
 
 export default function DossierShow({
-    dossier, workflow, explorerDocuments, contract, financeRecords, archiveRecord, cahier,
+    dossier, workflow, explorerDocuments, contract, financeRecords, finance, archiveRecord, cahier,
     clients,
     intermediaries,
     cities,
@@ -272,9 +281,10 @@ export default function DossierShow({
     const contractStatusLabels: Record<string, string> = { draft: t('dossiers.show.contractStatus.draft'), generated: t('dossiers.show.contractStatus.generated'), signed: t('dossiers.show.contractStatus.signed') };
     const contractStatusColors: Record<string, string> = { draft: 'text-amber-500', generated: 'text-blue-500', signed: 'text-emerald-500' };
     const resolvedContractStatus = contractSigned ? 'signed' : (contract?.status ?? 'none');
-    const totalFinance = financeRecords.reduce((s, r) => s + r.totalTtc, 0);
-    const paidFinance = financeRecords.reduce((s, r) => s + r.paid, 0);
-    const remainingFinance = financeRecords.reduce((s, r) => s + r.remaining, 0);
+    const totalFinance = finance?.summary.totalTtc ?? financeRecords.filter((record) => record.type === 'invoice' && record.status !== 'cancelled').reduce((sum, record) => sum + record.totalTtc, 0);
+    const paidFinance = finance?.summary.paidTotal ?? financeRecords.filter((record) => record.type === 'invoice' && record.status !== 'cancelled').reduce((sum, record) => sum + record.paid, 0);
+    const remainingFinance = finance?.summary.remainingTotal ?? financeRecords.filter((record) => record.type === 'invoice' && record.status !== 'cancelled').reduce((sum, record) => sum + record.remaining, 0);
+    const expectedFinance = finance?.summary.expectedTotal ?? financeRecords.filter((record) => record.type === 'internal_invoice' && record.status !== 'cancelled').reduce((sum, record) => sum + record.totalTtc, 0);
 
     const selectedStep = useMemo(
         () => workflow.steps.find((s) => s.key === selectedStepKey) ?? null,
@@ -600,7 +610,7 @@ export default function DossierShow({
                                 />
                             )}
                             {activeTab === 'contract' && contract && <ContractTab contract={contract} dossierId={dossier.id} contractSigned={contractSigned} onSignedChange={setContractSigned} onEdit={(c) => { setEditContract(c); setContractDrawerOpen(true); }} onShowDocuments={() => handleTabChange('documents')} />}
-                            {activeTab === 'finance' && <FinanceTab records={financeRecords} total={totalFinance} paid={paidFinance} remaining={remainingFinance} />}
+                            {activeTab === 'finance' && <FinanceTab records={financeRecords} expected={expectedFinance} total={totalFinance} paid={paidFinance} remaining={remainingFinance} />}
                             {activeTab === 'notes' && <NotesTab dossier={dossier} />}
                             {activeTab === 'activity' && <ActivityTab />}
                         </div>
@@ -1178,8 +1188,8 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
 }
 
 /* ── Finance tab ── */
-function FinanceTab({ records, total, paid, remaining }: {
-    records: FinanceSummary[]; total: number; paid: number; remaining: number;
+function FinanceTab({ records, expected, total, paid, remaining }: {
+    records: FinanceSummary[]; expected: number; total: number; paid: number; remaining: number;
 }) {
     const { t } = useTranslation();
     return (
@@ -1193,7 +1203,8 @@ function FinanceTab({ records, total, paid, remaining }: {
                     <IconCoin size={14} />
                 </AppButton>
             </div>
-            <div className="mb-4 grid gap-3 sm:grid-cols-3">
+            <div className="mb-4 grid gap-3 sm:grid-cols-4">
+                <InfoField icon={IconCoin} label="Prévision interne" value={money(expected)} />
                 <InfoField icon={IconReceipt2} label={t('dossiers.show.finance.totalTtc')} value={money(total)} />
                 <InfoField icon={IconCircleCheck} label={t('dossiers.show.finance.paid')} value={money(paid)} />
                 <InfoField icon={IconArrowRight} label={t('dossiers.show.finance.remaining')} value={money(remaining)} />

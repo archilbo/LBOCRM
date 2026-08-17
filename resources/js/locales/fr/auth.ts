@@ -28,6 +28,7 @@ export const frAuth = {
             showPassword: 'Afficher le mot de passe',
             hidePassword: 'Masquer le mot de passe',
             rememberSession: 'Garder ma session',
+            forgotPassword: 'Mot de passe oublié ?',
             signingIn: 'Connexion en cours…',
             enterWorkspace: 'Entrer dans l’espace de travail',
             successToast: 'Connecté.',

@@ -1,4 +1,4 @@
-import { IconCoin, IconPlus, IconReceipt2, IconShoppingCart, IconWallet } from '@tabler/icons-react';
+import { IconCoin, IconFileInvoice, IconPlus, IconReceipt2, IconShoppingCart, IconWallet } from '@tabler/icons-react';
 
 import { AppButton } from '@/components/ui/AppButton';
 import type { FinanceMetrics } from '@/features/finance/components/FinanceMetricCards';
@@ -10,6 +10,7 @@ type Props = {
     documentsCount: number;
     onCreateQuote: () => void;
     onCreateInvoice: () => void;
+    onCreateInternalInvoice: () => void;
     onCreatePayment: () => void;
     onCreateExpense: () => void;
     canCreateDocument: boolean;
@@ -23,6 +24,7 @@ export function FinanceWorkspaceHeader({
     documentsCount,
     onCreateQuote,
     onCreateInvoice,
+    onCreateInternalInvoice,
     onCreatePayment,
     onCreateExpense,
     canCreateDocument,
@@ -41,6 +43,7 @@ export function FinanceWorkspaceHeader({
                         <h1 className="mt-0.5 text-xl font-bold text-[var(--text)]">Finance</h1>
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-[var(--text-muted)]">
                             <span><strong className="text-[var(--text)]">{documentsCount}</strong> documents</span>
+                            <span>Prévu <strong className="text-[var(--accent)]">{formatCompactMoney(metrics.expectedTotal, currency)}</strong></span>
                             <span>Reste <strong className="text-amber-300">{formatCompactMoney(metrics.remainingTotal, currency)}</strong></span>
                             <span>En retard <strong className="text-rose-300">{formatCompactMoney(metrics.overdueTotal, currency)}</strong></span>
                             <span className="uppercase tracking-wide">{currency}</span>
@@ -51,6 +54,7 @@ export function FinanceWorkspaceHeader({
                 <div className="flex flex-wrap items-center gap-1.5 xl:justify-end">
                     {canCreatePayment ? <AppButton isIconOnly compact variant="quiet" tooltip="Paiement" aria-label="Paiement" onPress={onCreatePayment}><IconWallet size={14} /></AppButton> : null}
                     {canCreateExpense ? <AppButton isIconOnly compact variant="quiet" tooltip="Depense" aria-label="Depense" onPress={onCreateExpense}><IconShoppingCart size={14} /></AppButton> : null}
+                    {canCreateDocument ? <AppButton isIconOnly compact variant="quiet" tooltip="Facture interne" aria-label="Facture interne" onPress={onCreateInternalInvoice}><IconFileInvoice size={14} /></AppButton> : null}
                     {canCreateDocument ? <AppButton isIconOnly compact variant="quiet" tooltip="Facture" aria-label="Facture" onPress={onCreateInvoice}><IconReceipt2 size={14} /></AppButton> : null}
                     {canCreateDocument ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Nouveau devis" aria-label="Nouveau devis" onPress={onCreateQuote}><IconPlus size={14} /></AppButton> : null}
                 </div>

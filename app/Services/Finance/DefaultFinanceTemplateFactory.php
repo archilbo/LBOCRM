@@ -107,7 +107,7 @@ HTML,
 </div>
 </div>
 HTML,
-            'css' => $this->css() . $this->portraitCss(),
+            'css' => $this->css().$this->portraitCss(),
             'settings' => ['accent_color' => '#D6B000', 'design' => 'archi-lbo', 'version' => '7'],
             'logo_path' => '',
         ];
@@ -117,80 +117,63 @@ HTML,
     {
         return [
             'type' => 'invoice',
-            'name' => 'ARCHI LBO â€” Facture',
+            'name' => 'ARCHI LBO — Facture',
             'slug' => 'archi-lbo-facture',
             'is_default' => true,
             'paper_size' => 'A4',
             'orientation' => 'portrait',
             'header_html' => <<<'HTML'
-<div class="finance-page">
-<div class="brand-header brand-header-invoice">
-  <table class="hdr-row"><tr>
-    <td class="hdr-logo-cell">{{company.logo_html}}</td>
-    <td class="hdr-info-cell">
-      <h1 class="doc-title doc-title-facture">Facture</h1>
-      <p class="doc-meta-right"><span class="doc-meta-label">REF :</span> {{document.number}}<br><span class="doc-meta-label">DATE :</span> {{document.issue_date}}</p>
-    </td>
-  </tr></table>
-  <div class="hdr-zone">
-    <div class="hdr-wedge"></div>
-    <div class="hdr-diag-gold"></div>
-    <div class="hdr-diag-black"></div>
-    <div class="hdr-black-line"></div>
-    <div class="hdr-cut"></div>
-  </div>
-</div>
+<main class="invoice">
+  <header class="top-banner">
+    <div class="gold-sweep"></div>
+    <div class="brand" aria-label="{{company.name}}">{{company.logo_html}}</div>
+    <div class="invoice-heading">
+      <h1>FACTURE</h1>
+      <div class="invoice-meta"><span>REF : {{document.number}}</span><span>DATE : {{document.issue_date}}</span></div>
+    </div>
+  </header>
 HTML,
             'body_html' => <<<'HTML'
-<div class="finance-content">
-  <table class="info-row"><tr>
-    <td class="info-left">
-      <div class="accent-bar"></div>
-      <p class="info-line"><span class="info-label">ARCHITECTE :</span> {{company.representative}}</p>
-      <p class="info-sub">{{company.address}}</p>
-    </td>
-    <td class="info-right">
-      <p class="info-line"><span class="info-label">CLIENT :</span> {{client.name}}</p>
-      <p class="info-line"><span class="info-label">PROJET :</span> {{dossier.project_object}}</p>
-      <p class="info-line"><span class="info-label">ADDRESSE :</span> {{dossier.address}}</p>
-      <p class="info-line"><span class="info-label">CIN / ICE :</span> {{client.identifier}}</p>
-    </td>
-  </tr></table>
+  <section class="content">
+    <table class="parties"><tr>
+      <td class="seller">
+        <div class="seller-name">ARCHITECTE : {{company.representative}}</div>
+        <div>{{company.address}}</div>
+      </td>
+      <td class="client-cell">
+        <table class="client-grid">
+          <tr><td class="label">CLIENT</td><td>:</td><td>{{client.name}}</td></tr>
+          <tr><td class="label">PROJET</td><td>:</td><td>{{dossier.project_object}}</td></tr>
+          <tr><td class="label">ADRESSE</td><td>:</td><td>{{dossier.address}}</td></tr>
+          <tr><td class="label">CIN/ICE</td><td>:</td><td>{{client.identifier}}</td></tr>
+        </table>
+      </td>
+    </tr></table>
 
-  {{items_table}}
+    {{items_table}}
 
-  <div class="totals-zone">
     <table class="totals">
-      <tr><td class="totals-label">Prix total HT</td><td class="totals-value">{{totals.subtotal_ht}}</td></tr>
-      <tr><td class="totals-label">TVA {{totals.tax_rate}} %</td><td class="totals-value">{{totals.tax_total}}</td></tr>
-      <tr><td class="totals-label">Prix total TTC</td><td class="totals-value">{{totals.total_ttc}}</td></tr>
+      <tr><th>Prix total HT</th><td>{{totals.subtotal_ht}}</td></tr>
+      <tr><th>TVA {{totals.tax_rate}}%</th><td>{{totals.tax_total}}</td></tr>
+      <tr><th>Prix total TTC</th><td>{{totals.total_ttc}}</td></tr>
     </table>
-    <p class="totals-secondary">Montant payÃ© : {{totals.paid_total}}&nbsp;&nbsp;Â·&nbsp;&nbsp;Reste Ã  payer : {{totals.remaining_total}}</p>
-  </div>
 
-  <div class="words">
-    <p class="words-label">La prÃ©sente facture est arrÃªtÃ©e Ã  la somme de :</p>
-    <p class="words-value">{{totals.amount_in_words}}</p>
-  </div>
-
-  <div class="words words-payment">
-    <p class="words-label">Mode de paiement :</p>
-    <p class="words-value-small">{{payment.method}} Â· {{payment.reference}}</p>
-  </div>
-
-  <div class="footer-spacer"></div>
-</div>
+    <div class="notes">
+      <div class="note">La présente facture est arrêtée à la somme de :<br>{{totals.amount_in_words}}</div>
+      <div class="note">Mode de paiement : {{payment.method}}</div>
+    </div>
+  </section>
 HTML,
             'footer_html' => <<<'HTML'
-<div class="finance-footer">
-  <p class="ftr-legal">{{company.legal_line}}</p>
-  <p class="ftr-contact">{{company.contact_line}}</p>
-  <div class="footer-gold-line"></div>
-</div>
-</div>
+  <footer class="footer">
+    <div>{{company.legal_line}}</div>
+    <div>{{company.contact_line}}</div>
+    <div class="footer-line"></div>
+  </footer>
+</main>
 HTML,
-            'css' => $this->css() . $this->portraitCss(),
-            'settings' => ['accent_color' => '#D6B000', 'design' => 'archi-lbo', 'version' => '7'],
+            'css' => $this->suppliedInvoiceCss(),
+            'settings' => ['accent_color' => '#E0AE19', 'design' => 'archi-lbo-facture-classic', 'version' => '8'],
             'logo_path' => '',
         ];
     }
@@ -251,7 +234,7 @@ HTML,
 </div>
 </div>
 HTML,
-            'css' => $this->css() . $this->landscapeCss(),
+            'css' => $this->css().$this->landscapeCss(),
             'settings' => ['accent_color' => '#D6B000', 'design' => 'archi-lbo', 'version' => '7'],
             'logo_path' => '',
         ];
@@ -350,6 +333,39 @@ p{margin:0}
 .logo-mark{display:inline-block;width:15px;height:15px;background:#D6B000;margin-right:8px;vertical-align:middle}
 .logo-mark span{display:none}
 .logo-text{display:inline-block;font-weight:bold;font-size:15px;color:#050505;letter-spacing:0.1em;vertical-align:middle}
+CSS;
+    }
+
+    /**
+     * The supplied invoice artwork is intentionally self-contained so the
+     * document preview and Dompdf use the same A4 geometry.
+     */
+    private function suppliedInvoiceCss(): string
+    {
+        return <<<'CSS'
+@page{size:A4;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;width:210mm;min-height:297mm;color:#231f20;font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.invoice{position:relative;width:210mm;min-height:297mm;overflow:hidden;background:#fff}
+.top-banner{position:relative;height:46mm;background:#f1f1f1;overflow:hidden}
+.top-banner:after{content:"";position:absolute;left:-4%;right:-4%;bottom:-13mm;height:25mm;border-radius:50% 50% 0 0/35% 35% 0 0;background:#fff;transform:rotate(-1.1deg);z-index:2}
+.gold-sweep{position:absolute;z-index:1;right:-8mm;bottom:5px;width:900%;height:11mm;background:linear-gradient(90deg,#a97600,#e0ae19,#ffd96b);clip-path:polygon(0 52%,100% 0,100% 100%)}
+.brand{position:absolute;z-index:3;top:13mm;left:15mm;width:25mm;color:#e0ae19;text-align:center}
+.brand .company-logo-img{display:block;max-width:19mm;max-height:19mm;margin:0 auto 2mm}
+.brand .logo-mark{display:inline-block;width:19mm;height:19mm;background:#e0ae19;margin:0 auto 2mm}
+.brand .logo-text{display:block;font-size:9pt;font-weight:900;white-space:nowrap}
+.invoice-heading{position:absolute;z-index:3;top:10mm;right:14mm;text-align:right}
+.invoice-heading h1{margin:0;font-size:31pt;line-height:.9;letter-spacing:-.6pt;font-weight:900}
+.invoice-meta{margin-top:1.3mm;font-size:9.5pt;font-weight:700;white-space:nowrap}.invoice-meta span+span{margin-left:2mm}
+.content{padding:18mm 15mm 0}.parties{width:100%;min-height:31mm;border-collapse:collapse}.parties>tbody>tr>td{vertical-align:top;padding:0}.seller{width:52%;border-left:.7mm solid #e0ae19;padding-left:3mm!important;padding-right:27mm!important;font-size:9.7pt;font-weight:700;line-height:1.25;text-transform:uppercase}.seller-name{margin-bottom:1.5mm;font-size:10.6pt;font-weight:900}.client-cell{width:48%}
+.client-grid{width:100%;border-collapse:collapse;font-size:9.6pt;font-weight:700;text-transform:uppercase}.client-grid td{padding:0 0 1.1mm;vertical-align:top}.client-grid td:first-child{width:23mm;white-space:nowrap}.client-grid td:nth-child(2){width:3mm}.client-grid .label{white-space:nowrap}
+.items-table{width:100%;margin-top:8mm;border-collapse:collapse;table-layout:fixed;font-size:10pt}.items-table th:nth-child(1){width:38%}.items-table th:nth-child(2){width:14%}.items-table th:nth-child(3){width:24%}.items-table th:nth-child(4){width:24%}
+.items-table thead th{height:13mm;padding:3mm;background:#231f20;color:#ffbf00;text-align:center;text-transform:uppercase;font-weight:900}.items-table thead th:first-child{text-align:left}
+.items-table tbody tr:nth-child(odd){background:#f1f1f1}.items-table tbody tr:nth-child(even){background:#fafafa}.items-table tbody td{height:13mm;padding:3mm 6mm;font-weight:700;text-align:center;vertical-align:middle}.items-table tbody td:first-child{text-align:left;text-transform:uppercase}.items-table .description,.items-table .unit{font-size:8pt;color:#555;text-transform:none}
+.totals{width:93mm;margin:3mm 0 0 auto;border-collapse:collapse;table-layout:fixed;font-size:10pt;font-weight:900;text-transform:uppercase}.totals th{width:50%;height:10mm;padding:2.5mm 7mm;background:#231f20;color:#ffbf00;text-align:left}.totals td{height:10mm;padding:2.2mm 4mm;border:.5mm solid #231f20;text-align:center;background:#fff}
+.notes{margin-top:15mm;text-transform:uppercase}.note{border-left:.7mm solid #ffd96b;padding-left:3mm;font-size:10pt;line-height:1.24;font-weight:900}.note+.note{margin-top:7mm}
+.footer{position:absolute;left:15mm;right:15mm;bottom:15mm;text-align:center;font-size:8.8pt;line-height:1.35;font-weight:700;text-transform:uppercase}.footer-line{width:86mm;height:.6mm;margin:6mm auto 0;background:#e0ae19}
+@media print{html,body{background:#fff}.invoice{margin:0;page-break-after:always}}
 CSS;
     }
 

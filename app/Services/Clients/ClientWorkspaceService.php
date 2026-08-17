@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Dossiers\DossierWorkflowStepperService;
 use App\Services\Documents\DossierDocumentFileService;
 use App\Services\Finance\FinanceSettingsService;
+use App\Services\Finance\FinanceDocumentMetricsService;
 use App\Services\Finance\DossierFinanceEligibilityService;
 use App\Services\Finance\FinanceReceivablesService;
 use App\Services\PermissionRegistry;
@@ -22,6 +23,7 @@ class ClientWorkspaceService
         private readonly DossierDocumentFileService $documentFiles,
         private readonly DossierFinanceEligibilityService $financeEligibility,
         private readonly FinanceReceivablesService $receivables,
+        private readonly FinanceDocumentMetricsService $financeMetrics,
         private readonly PermissionRegistry $permissions,
         private readonly ClientDocumentExplorerService $clientExplorer,
     ) {
@@ -94,8 +96,9 @@ class ClientWorkspaceService
     public function projectSummary(Dossier $dossier, bool $includeFinance = true): array
     {
         $financeDocuments = $includeFinance ? $dossier->financeDocuments : collect();
-        $invoices = $financeDocuments->where('type', 'invoice');
         $payments = $includeFinance ? $dossier->payments : collect();
+        $metrics = $this->financeMetrics->forDocuments($financeDocuments, $payments);
+        $invoices = $financeDocuments->where('type', 'invoice')->where('status', '!=', 'cancelled');
         $receivables = $invoices->map(fn ($invoice) => $this->receivables->forInvoice($invoice));
 
         return [
@@ -114,9 +117,12 @@ class ClientWorkspaceService
             'financeDocumentsCount' => $financeDocuments->count(),
             'paymentsCount' => $payments->count(),
             'quotesTotal' => (float) $financeDocuments->where('type', 'quote')->sum('total_ttc'),
-            'invoicesTotal' => (float) $invoices->sum('total_ttc'),
-            'paidTotal' => (float) $receivables->sum('paid'),
-            'remainingTotal' => (float) $receivables->sum('outstanding'),
+            'expectedTotal' => $metrics['expectedTotal'],
+            'expectedPaidTotal' => $metrics['expectedPaidTotal'],
+            'expectedRemainingTotal' => $metrics['expectedRemainingTotal'],
+            'invoicesTotal' => $metrics['officialInvoicedTotal'],
+            'paidTotal' => $metrics['officialPaidTotal'],
+            'remainingTotal' => $metrics['officialBalanceTotal'],
             'overdueTotal' => (float) $invoices
                 ->filter(fn ($invoice) => $this->receivables->forInvoice($invoice)['dueState'] === 'overdue')
                 ->map(fn ($invoice) => $this->receivables->forInvoice($invoice)['outstanding'])

@@ -93,6 +93,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
         const acc = {
             quotesCount: 0, quotesTotal: 0,
             invoicesCount: 0, invoicesTotal: 0,
+            internalInvoicesCount: 0, internalInvoicesTotal: 0,
             receiptsCount: 0, receiptsTotal: 0,
             paymentsCount: 0, paidTotal: 0,
             expensesTotal: 0,
@@ -103,6 +104,8 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
             acc.quotesTotal += m.quotesTotalTtc;
             acc.invoicesCount += m.invoicesCount;
             acc.invoicesTotal += m.invoicesTotalTtc;
+            acc.internalInvoicesCount += m.internalInvoicesCount;
+            acc.internalInvoicesTotal += m.internalInvoicesTotalTtc;
             acc.receiptsCount += m.receiptsCount;
             acc.receiptsTotal += m.receiptsTotalTtc;
             acc.paymentsCount += m.paymentsCount;
@@ -175,7 +178,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
 
     const typeCounts = useMemo(() => {
         const counts: Record<string, number> = { all: rows.length };
-        for (const type of ['quote', 'invoice', 'receipt', 'payment']) {
+        for (const type of ['quote', 'invoice', 'internal_invoice', 'receipt', 'payment']) {
             counts[type] = type === 'payment'
                 ? rows.filter((r) => r._type === 'payment').length
                 : rows.filter((r) => r._type === 'document' && r.type === type).length;
@@ -187,6 +190,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
         { id: 'all', label: 'Tous', icon: IconFiles, color: 'text-[var(--text)]', activeColor: 'text-[var(--accent)]', bg: 'bg-[var(--surface-2)]' },
         { id: 'quote', label: 'Devis', icon: IconFileText, color: 'text-sky-300', activeColor: 'text-sky-300', bg: 'bg-sky-400/10' },
         { id: 'invoice', label: 'Factures', icon: IconReceipt, color: 'text-violet-300', activeColor: 'text-violet-300', bg: 'bg-violet-400/10' },
+        { id: 'internal_invoice', label: 'Internes', icon: IconReceipt, color: 'text-cyan-300', activeColor: 'text-cyan-300', bg: 'bg-cyan-400/10' },
         { id: 'receipt', label: 'Recus', icon: IconFileText, color: 'text-emerald-300', activeColor: 'text-emerald-300', bg: 'bg-emerald-400/10' },
         { id: 'payment', label: 'Paiements', icon: IconWallet, color: 'text-amber-300', activeColor: 'text-amber-300', bg: 'bg-amber-400/10' },
     ];
@@ -303,8 +307,9 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
 
             {/* Aggregated KPIs */}
             {selectedMonths.length > 0 ? (
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-7">
                     <AppKpiCard stacked keepCurrencyAttached label="Devis" value={formatCompactMoney(aggregated.quotesTotal, currency)} detail={`${aggregated.quotesCount} doc(s)`} valueClassName="text-sky-300" />
+                    <AppKpiCard stacked keepCurrencyAttached label="Prévision interne" value={formatCompactMoney(aggregated.internalInvoicesTotal, currency)} detail={`${aggregated.internalInvoicesCount} doc(s)`} valueClassName="text-cyan-300" />
                     <AppKpiCard stacked keepCurrencyAttached label="Factures" value={formatCompactMoney(aggregated.invoicesTotal, currency)} detail={`${aggregated.invoicesCount} doc(s)`} valueClassName="text-violet-300" />
                     <AppKpiCard stacked keepCurrencyAttached label="Encaisse" value={formatCompactMoney(aggregated.paidTotal, currency)} detail={`${aggregated.paymentsCount} paiement(s)`} valueClassName="text-emerald-300" />
                     <AppKpiCard stacked keepCurrencyAttached label="Depenses" value={formatCompactMoney(aggregated.expensesTotal, currency)} detail={`sur ${selectedMonths.length} mois`} valueClassName="text-rose-300" />

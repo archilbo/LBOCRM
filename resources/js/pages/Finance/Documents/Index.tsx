@@ -138,6 +138,7 @@ function statusClass(status: string | undefined | null) {
 function typeLabel(type: string) {
     if (type === 'quote') return 'Devis';
     if (type === 'invoice') return 'Facture';
+    if (type === 'internal_invoice') return 'Facture interne';
     if (type === 'receipt') return 'Recu';
     return type;
 }
@@ -305,7 +306,7 @@ function FinanceDocumentDetailPanel({
                         </div>
                     ) : null}
 
-                    {can('finance.payments.create') && document.type === 'invoice' ? (
+                    {can('finance.payments.create') && (document.type === 'invoice' || document.type === 'internal_invoice') ? (
                         <AppButton variant="flat" className="w-full" size="sm" onPress={() => actions.onPayment(document)}>
                             <IconWallet size={13} />
                             Register payment
@@ -1149,6 +1150,7 @@ export default function FinanceDocumentsIndex({
         'overview',
         'quotes',
         'invoices',
+        'internals',
         ...(can('finance.collections.view') ? ['collections'] : []),
         'monthly',
         ...(can('finance.payments.view') ? ['payments'] : []),
@@ -1187,6 +1189,7 @@ export default function FinanceDocumentsIndex({
 
     const quotes = useMemo(() => documents.filter((doc) => doc.type === 'quote'), [documents]);
     const invoices = useMemo(() => documents.filter((doc) => doc.type === 'invoice'), [documents]);
+    const internalInvoices = useMemo(() => documents.filter((doc) => doc.type === 'internal_invoice'), [documents]);
 
     const totalExpenses = useMemo(() =>
         expenses.reduce((sum, e) => sum + e.amount, 0),
@@ -1194,6 +1197,8 @@ export default function FinanceDocumentsIndex({
 
     const metrics: FinanceMetrics = {
         totalQuotes: rawMetrics?.totalQuotes ?? quotes.reduce((sum, doc) => sum + doc.totalTtc, 0),
+        expectedTotal: rawMetrics?.expectedTotal ?? internalInvoices.reduce((sum, doc) => sum + doc.totalTtc, 0),
+        expectedRemainingTotal: rawMetrics?.expectedRemainingTotal ?? internalInvoices.reduce((sum, doc) => sum + doc.remainingTotal, 0),
         totalInvoices: rawMetrics?.totalInvoices ?? invoices.reduce((sum, doc) => sum + doc.totalTtc, 0),
         paidTotal: rawMetrics?.paidTotal ?? invoices.reduce((sum, doc) => sum + doc.paidTotal, 0),
         remainingTotal: rawMetrics?.remainingTotal ?? invoices.reduce((sum, doc) => sum + doc.remainingTotal, 0),
@@ -1352,6 +1357,7 @@ export default function FinanceDocumentsIndex({
                     onCreatePayment={() => openPayment()}
                     onCreateExpense={() => { setSelectedExpense(null); setExpenseDrawerMode('create'); setExpenseDrawerOpen(true); }}
                     onCreateInvoice={() => openCreate('invoice')}
+                    onCreateInternalInvoice={() => openCreate('internal_invoice')}
                     onCreateQuote={() => openCreate('quote')}
                     canCreateDocument={can('finance.documents.create')}
                     canCreatePayment={can('finance.payments.create')}
@@ -1365,6 +1371,7 @@ export default function FinanceDocumentsIndex({
                     counts={{
                         quotes: quotes.length,
                         invoices: invoices.length,
+                        internals: internalInvoices.length,
                         collections: receivablePagination.total,
                         payments: paymentPagination.total,
                         expenses: expensePagination.total,
@@ -1383,7 +1390,7 @@ export default function FinanceDocumentsIndex({
                             collectionMetrics={collectionMetrics ?? null}
                             onSelect={(document) => {
                                 setSelectedDocument(document);
-                                setActiveTab(document.type === 'invoice' ? 'invoices' : 'quotes');
+                                setActiveTab(document.type === 'invoice' ? 'invoices' : document.type === 'internal_invoice' ? 'internals' : 'quotes');
                             }}
                         />
                     </TabPanel>
@@ -1411,6 +1418,21 @@ export default function FinanceDocumentsIndex({
                             onSelect={setSelectedDocument}
                             actions={commonActions}
                             searchPlaceholder={t('finance.table.searchDocuments')}
+                            pagination={documentPagination}
+                            filters={filters}
+                            activeTab={activeTab}
+                            onBulkDelete={setBulkDeleteDocumentIds}
+                        />
+                    </TabPanel>
+
+                    <TabPanel id="internals" className="outline-none">
+                        <FinanceDocumentWorkspace
+                            documents={internalInvoices}
+                            currency={settings.defaultCurrency}
+                            selected={selectedDocument}
+                            onSelect={setSelectedDocument}
+                            actions={commonActions}
+                            searchPlaceholder="Rechercher une facture interne"
                             pagination={documentPagination}
                             filters={filters}
                             activeTab={activeTab}
@@ -1503,13 +1525,13 @@ export default function FinanceDocumentsIndex({
                 dossiers={dossiers}
                 templates={templates}
                 settings={settings}
-                onSaved={(savedType) => setActiveTab(savedType === 'quote' ? 'quotes' : savedType === 'invoice' ? 'invoices' : 'overview')}
+                onSaved={(savedType) => setActiveTab(savedType === 'quote' ? 'quotes' : savedType === 'invoice' ? 'invoices' : savedType === 'internal_invoice' ? 'internals' : 'overview')}
             />
 
             <PaymentDrawer
                 isOpen={paymentOpen}
                 onOpenChange={setPaymentOpen}
-                invoices={invoices}
+                invoices={[...invoices, ...internalInvoices]}
                 invoice={paymentInvoice}
                 clients={clients}
                 dossiers={dossiers}

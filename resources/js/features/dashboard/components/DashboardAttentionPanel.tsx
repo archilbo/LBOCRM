@@ -34,12 +34,10 @@ export function DashboardAttentionPanel({ items, onOpen }: Props) {
     const intlLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
 
     return (
-        <Card className="relative isolate gap-0 overflow-hidden border border-[color-mix(in_srgb,var(--danger)_38%,var(--border))] bg-[linear-gradient(120deg,color-mix(in_srgb,var(--danger)_22%,var(--surface)),color-mix(in_srgb,var(--danger)_9%,var(--surface))_55%,var(--surface-2))] shadow-sm">
-            <span aria-hidden className="pointer-events-none absolute -right-16 -top-24 size-56 rounded-full bg-[color-mix(in_srgb,var(--danger)_20%,transparent)] blur-3xl" />
-            <span aria-hidden className="pointer-events-none absolute -bottom-24 left-1/4 size-48 rounded-full bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] blur-3xl" />
+        <Card className="relative isolate gap-0 overflow-hidden border border-[color-mix(in_srgb,var(--danger)_26%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_10%,var(--surface))] shadow-sm">
 
-            <Card.Header className="relative !flex-row !flex-nowrap min-w-0 items-center gap-3 border-b border-[color-mix(in_srgb,var(--danger)_24%,var(--border))] px-4 py-3 text-left">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--danger)_34%,transparent)] bg-[color-mix(in_srgb,var(--danger)_16%,transparent)] text-[var(--danger)]">
+            <Card.Header className="relative !flex-row !flex-nowrap min-w-0 items-center gap-3 border-b border-[color-mix(in_srgb,var(--danger)_18%,var(--border))] px-4 py-3 text-left">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--danger)_28%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_12%,var(--surface))] text-[var(--danger)]">
                     <IconAlertTriangle size={17} />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -87,9 +85,9 @@ export function DashboardAttentionPanel({ items, onOpen }: Props) {
                                     <AppButton
                                         variant="ghost"
                                         onPress={() => onOpen(item.href)}
-                                        className="group h-auto min-h-[68px] w-full justify-start rounded-xl border border-[color-mix(in_srgb,var(--danger)_20%,var(--border))] bg-[color-mix(in_srgb,var(--surface)_84%,transparent)] p-0 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--danger)_44%,var(--border))] hover:bg-[color-mix(in_srgb,var(--surface)_94%,transparent)]">
+                                        className="group h-auto min-h-[68px] w-full justify-start rounded-xl border border-[color-mix(in_srgb,var(--danger)_16%,var(--border))] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] p-0 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--danger)_34%,var(--border))] hover:bg-[color-mix(in_srgb,var(--danger)_5%,var(--surface))]">
                                         <span className="flex w-full min-w-0 items-center gap-2 p-2">
-                                            <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg border border-current/10 bg-[color-mix(in_srgb,var(--danger)_9%,transparent)] ${styles.accent}`}><Icon size={15} /></span>
+                                        <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] ${styles.accent}`}><Icon size={15} /></span>
                                             <span className="min-w-0 flex-1">
                                                 <span className="flex min-w-0 items-center gap-1.5">
                                                     <span className={`truncate text-[9px] font-semibold uppercase tracking-[0.1em] ${styles.accent}`}>{t(`dashboard.attention.${item.kind}`)}</span>
@@ -118,7 +116,7 @@ export function DashboardAttentionPanel({ items, onOpen }: Props) {
                         })}
                     </motion.div>
                 ) : (
-                    <div className="flex min-h-[72px] items-center justify-center rounded-xl border border-dashed border-[color-mix(in_srgb,var(--danger)_32%,var(--border))] bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] px-4 text-center text-xs text-[var(--text-muted)]">
+                    <div className="flex min-h-[72px] items-center justify-center rounded-xl border border-dashed border-[color-mix(in_srgb,var(--danger)_22%,var(--border))] bg-[color-mix(in_srgb,var(--surface)_78%,transparent)] px-4 text-center text-xs text-[var(--text-muted)]">
                         {t('dashboard.attention.empty')}
                     </div>
                 )}

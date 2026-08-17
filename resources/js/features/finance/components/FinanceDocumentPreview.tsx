@@ -61,6 +61,7 @@ function FinanceDocumentLockInlineNotice({ document }: { document: UiLockAwareFi
 const typeLabels: Record<FinanceDocumentType, string> = {
     quote: 'DEVIS',
     invoice: 'FACTURE',
+    internal_invoice: 'FACTURE INTERNE',
     receipt: 'RECU',
 };
 
@@ -173,4 +174,3 @@ function PreviewRow({ label, value, strong = false }: { label: string; value: st
         </div>
     );
 }
-

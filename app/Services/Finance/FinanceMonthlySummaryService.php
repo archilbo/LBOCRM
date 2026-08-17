@@ -80,7 +80,8 @@ class FinanceMonthlySummaryService
     {
         [$year, $month] = array_map('intval', explode('-', $key));
         $quotes = $documents->where('type', 'quote');
-        $invoices = $documents->where('type', 'invoice');
+        $invoices = $documents->where('type', 'invoice')->where('status', '!=', 'cancelled');
+        $internalInvoices = $documents->where('type', 'internal_invoice')->where('status', '!=', 'cancelled');
         $receipts = $documents->where('type', 'receipt');
 
         return [
@@ -91,10 +92,12 @@ class FinanceMonthlySummaryService
             'currency' => FinanceSettingsService::getCurrency(),
             'quotesCount' => $quotes->count(),
             'invoicesCount' => $invoices->count(),
+            'internalInvoicesCount' => $internalInvoices->count(),
             'receiptsCount' => $receipts->count(),
             'paymentsCount' => $payments->count(),
             'quotesTotalTtc' => (float) $quotes->sum('total_ttc'),
             'invoicesTotalTtc' => (float) $invoices->sum('total_ttc'),
+            'internalInvoicesTotalTtc' => (float) $internalInvoices->sum('total_ttc'),
             'receiptsTotalTtc' => (float) $receipts->sum('total_ttc'),
             'paidTotal' => (float) $payments->sum('amount'),
             'expensesTotal' => (float) $expenses->sum('amount'),

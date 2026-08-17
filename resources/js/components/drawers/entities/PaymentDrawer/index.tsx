@@ -7,9 +7,10 @@ import { AppAutocomplete } from '@/components/ui/AppAutocomplete';
 import { toast } from 'sonner';
 import { AppDrawer } from '@/components/ui/AppDrawer';
 import { DateField } from '@/features/archives/components/DateField';
+import { FinanceItemsTable } from '@/features/finance/components/FinanceItemsTable';
 import { strToDate, dateToStr } from '@/lib/dateUtils';
-import type { ClientOption, DossierOption, FinanceDocument } from '@/features/finance/types';
-import { formatCompactMoney, normalizeNumber } from '@/features/finance/utils/calculations';
+import type { ClientOption, DossierOption, FinanceDocument, FinanceDocumentItem } from '@/features/finance/types';
+import { calculateItem, calculateTotals, formatCompactMoney, normalizeNumber } from '@/features/finance/utils/calculations';
 
 type PaymentDrawerProps = {
     isOpen: boolean;
@@ -66,9 +67,25 @@ function makeForm(selectedInvoice?: FinanceDocument | null, defaultDossierId?: s
     };
 }
 
+function makeReceiptItems(amount: number, invoice?: FinanceDocument | null): FinanceDocumentItem[] {
+    const documentLabel = invoice
+        ? `Paiement recu - ${invoice.type === 'internal_invoice' ? 'Facture interne' : 'Facture'} ${invoice.number}`
+        : 'Avance recue';
+
+    return [calculateItem({
+        position: 1,
+        title: documentLabel,
+        description: '',
+        quantity: 1,
+        unit: 'payment',
+        unitPrice: amount,
+    })];
+}
+
 export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients = [], dossiers = [], defaultClientId, defaultDossierId, lockClientContext = false, lockDossierContext = false, allowAdvancePayment = false, returnTo }: PaymentDrawerProps) {
     const [form, setForm] = useState<PaymentForm>(() => makeForm(invoice, defaultDossierId));
     const [selectedClientId, setSelectedClientId] = useState(defaultClientId || '');
+    const [receiptItems, setReceiptItems] = useState<FinanceDocumentItem[]>(() => makeReceiptItems(invoice?.remainingTotal || 0, invoice));
     const [receiptPrompt, setReceiptPrompt] = useState<PaymentReceiptFlash | null>(null);
     const clientOptions = useMemo(() => {
         if (!invoice?.client || clients.some((client) => client.id === String(invoice.client?.id))) return clients;
@@ -95,8 +112,8 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
     }, [dossiers, invoice]);
     const payableInvoices = useMemo(
         () => {
-            const payable = invoices.filter((item) => item.type === 'invoice' && item.status !== 'cancelled' && item.remainingTotal > 0);
-            if (!invoice || payable.some((item) => item.id === invoice.id) || invoice.type !== 'invoice' || invoice.status === 'cancelled' || invoice.remainingTotal <= 0) {
+            const payable = invoices.filter((item) => (item.type === 'invoice' || item.type === 'internal_invoice') && item.status !== 'cancelled' && item.remainingTotal > 0);
+            if (!invoice || payable.some((item) => item.id === invoice.id) || (invoice.type !== 'invoice' && invoice.type !== 'internal_invoice') || invoice.status === 'cancelled' || invoice.remainingTotal <= 0) {
                 return payable;
             }
 
@@ -105,7 +122,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
         [invoices, invoice],
     );
     const activeInvoices = useMemo(
-        () => invoices.filter((item) => item.type === 'invoice' && item.status !== 'cancelled'),
+        () => invoices.filter((item) => (item.type === 'invoice' || item.type === 'internal_invoice') && item.status !== 'cancelled'),
         [invoices],
     );
     const filteredInvoices = useMemo(
@@ -133,25 +150,60 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
     const remainingAfter = Math.max(0, remainingBefore - amount);
     const isOverpayment = amount > remainingBefore && remainingBefore > 0;
     const isFullPayment = activeInvoice ? amount === remainingBefore && amount > 0 : false;
-    const canSubmit = (Boolean(activeInvoice) && amount > 0 && !isOverpayment) || (canRecordAdvance && amount > 0);
+    const receiptTotal = calculateTotals(receiptItems, 0, 0).totalTtc;
+    const receiptLinesMatchAmount = Math.abs(receiptTotal - amount) <= 0.01;
+    const receiptLinesAreComplete = receiptItems.every((item) => item.title.trim() !== '' && item.quantity > 0 && item.unitPrice >= 0);
+    const canSubmit = ((Boolean(activeInvoice) && amount > 0 && !isOverpayment) || (canRecordAdvance && amount > 0)) && receiptLinesMatchAmount && receiptLinesAreComplete;
 
     useEffect(() => {
         if (!isOpen) return;
 
         setForm(makeForm(invoice, defaultDossierId));
         setSelectedClientId(invoice?.client?.id ? String(invoice.client.id) : (defaultClientId || ''));
+        setReceiptItems(makeReceiptItems(invoice?.remainingTotal || 0, invoice));
     }, [defaultClientId, defaultDossierId, invoice, isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        setReceiptItems(makeReceiptItems(activeInvoice?.remainingTotal || 0, activeInvoice));
+    }, [activeInvoice?.id, isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || receiptItems.length !== 1) return;
+
+        setReceiptItems(([item]) => [calculateItem({ ...item, unitPrice: amount }, 0)]);
+    }, [amount, isOpen, receiptItems.length]);
 
     function update<K extends keyof PaymentForm>(key: K, value: PaymentForm[K]) { setForm((p) => ({ ...p, [key]: value })); }
 
     function submit() {
-        if (!canSubmit) { toast.error(isOverpayment ? 'Le montant depasse le reste a payer.' : 'Choisissez une facture ou un dossier pour l avance.'); return; }
+        if (!canSubmit) {
+            toast.error(
+                isOverpayment
+                    ? 'Le montant depasse le reste a payer.'
+                    : !receiptLinesAreComplete
+                        ? 'Completez chaque ligne du recu.'
+                        : !receiptLinesMatchAmount
+                            ? 'Le total des lignes du recu doit correspondre au montant du paiement.'
+                            : 'Choisissez une facture ou un dossier pour l avance.',
+            );
+            return;
+        }
         router.post('/finance/payments', {
             finance_document_id: activeInvoice ? form.financeDocumentId : null,
             client_id: activeInvoice ? null : (selectedClientId || null),
             dossier_id: canRecordAdvance ? form.dossierId : null,
             amount, method: form.method || null,
-            reference: form.reference || null, paid_at: form.paidAt || null, notes: form.notes || null, return_to: returnTo || null,
+            reference: form.reference || null, paid_at: form.paidAt || null, notes: form.notes || null,
+            receipt_items: receiptItems.map((item) => ({
+                title: item.title,
+                description: item.description || null,
+                quantity: item.quantity,
+                unit: item.unit || null,
+                unit_price: item.unitPrice,
+            })),
+            return_to: returnTo || null,
         }, {
             preserveScroll: true, preserveState: true,
             onSuccess: (page) => {
@@ -171,7 +223,10 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
             <AppDrawer
                 isOpen={isOpen} onOpenChange={onOpenChange}
                 title="Enregistrer un paiement"
-                                description="Reglez une facture ou enregistrez une avance avant la creation des documents financiers."
+                                description="Réglez une facture ou une facture interne, ou enregistrez une avance avant la création des documents financiers."
+                size="full"
+                panelClassName="max-w-[min(96vw,1120px)]"
+                contentClassName="px-4 sm:px-5 lg:px-6"
                 footer={
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" size="sm" onPress={() => onOpenChange(false)}>Annuler</Button>
@@ -190,6 +245,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                     onChange={(v) => {
                                         setSelectedClientId(v);
                                         setForm((prev) => ({ ...prev, financeDocumentId: '', dossierId: '' }));
+                                        setReceiptItems(makeReceiptItems(0));
                                     }}
                                     options={clientOptions}
                                     placeholder="Tous les clients"
@@ -204,6 +260,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                     value={form.dossierId}
                                     onChange={(v) => {
                                         setForm((prev) => ({ ...prev, dossierId: v, financeDocumentId: '' }));
+                                        setReceiptItems(makeReceiptItems(0));
                                     }}
                                     options={filteredDossiers}
                                     placeholder="Choisir un dossier"
@@ -212,7 +269,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                             </div>
                         ) : null}
                         <div className="flex min-w-0 flex-col gap-1">
-                            <label className={labelCls}>Facture</label>
+                            <label className={labelCls}>Document à régler</label>
                             <Select
                                 placeholder={selectedClientId && filteredInvoices.length === 0 ? 'Aucune facture impayee disponible' : 'Choisir une facture'}
                                 selectedKey={form.financeDocumentId || null}
@@ -227,6 +284,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                         dossierId: selected?.dossier?.id ? String(selected.dossier.id) : '',
                                         amount: selected ? String(selected.remainingTotal) : '',
                                     }));
+                                    setReceiptItems(makeReceiptItems(selected?.remainingTotal || 0, selected));
                                 }}
                             >
                                 <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
@@ -299,6 +357,19 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                             <Input className={compactInput} value={form.reference} onChange={(e) => update('reference', e.target.value)} />
                         </div>
                     </div>
+
+                    <Card className="p-3">
+                        <FinanceItemsTable
+                            items={receiptItems}
+                            currency={activeInvoice?.currency || 'MAD'}
+                            tvaRate={0}
+                            onChange={setReceiptItems}
+                        />
+                        <div className={`mt-3 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-3 text-xs ${receiptLinesMatchAmount ? 'text-[var(--text-muted)]' : 'text-[var(--danger)]'}`}>
+                            <span>{receiptLinesMatchAmount ? 'Le total des lignes correspond au paiement.' : 'Le total des lignes doit correspondre au paiement.'}</span>
+                            <strong className="shrink-0 tabular-nums">{formatCompactMoney(receiptTotal, activeInvoice?.currency || 'MAD')}</strong>
+                        </div>
+                    </Card>
 
                     {activeInvoice ? (
                         <Card className={`p-3 ${isOverpayment ? 'border-red-300' : ''}`}>

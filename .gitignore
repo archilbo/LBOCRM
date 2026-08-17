@@ -37,3 +37,4 @@ tessdata/
 /deployment
 *.ps1*
 *.sql*
+/DEPLOYER

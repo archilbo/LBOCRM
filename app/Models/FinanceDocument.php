@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FinanceDocument extends Model
@@ -22,6 +23,7 @@ class FinanceDocument extends Model
         'dossier_id',
         'active_invoice_dossier_key',
         'source_document_id',
+        'converted_to_document_id',
         'issue_date',
         'due_date',
         'valid_until',
@@ -99,6 +101,16 @@ class FinanceDocument extends Model
         return $this->hasMany(__CLASS__, 'source_document_id');
     }
 
+    public function convertedToDocument(): BelongsTo
+    {
+        return $this->belongsTo(__CLASS__, 'converted_to_document_id');
+    }
+
+    public function convertedFromDocument(): HasOne
+    {
+        return $this->hasOne(__CLASS__, 'converted_to_document_id');
+    }
+
     public function template(): BelongsTo
     {
         return $this->belongsTo(FinanceTemplate::class, 'template_id');
@@ -119,6 +131,16 @@ class FinanceDocument extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function outgoingPaymentTransfers(): HasMany
+    {
+        return $this->hasMany(PaymentDocumentTransfer::class, 'from_finance_document_id');
+    }
+
+    public function incomingPaymentTransfers(): HasMany
+    {
+        return $this->hasMany(PaymentDocumentTransfer::class, 'to_finance_document_id');
+    }
+
     public function paymentScheduleItems(): HasMany
     {
         return $this->hasMany(FinancePaymentScheduleItem::class)->orderBy('position');
@@ -137,6 +159,11 @@ class FinanceDocument extends Model
     public function isInvoice(): bool
     {
         return $this->type === 'invoice';
+    }
+
+    public function isInternalInvoice(): bool
+    {
+        return $this->type === 'internal_invoice';
     }
 
     public function isReceipt(): bool
@@ -186,11 +213,17 @@ class FinanceDocument extends Model
 
     public function canConvertToInvoice(): bool
     {
-        return $this->isQuote() && !$this->childDocuments()->where('type', 'invoice')->exists();
+        if ($this->isInternalInvoice()) {
+            return ! in_array($this->status, ['cancelled', 'converted'], true)
+                && $this->converted_to_document_id === null;
+        }
+
+        return $this->isQuote() && ! $this->childDocuments()->where('type', 'invoice')->exists();
     }
 
     public function canRecordPayment(): bool
     {
-        return $this->isInvoice() && !in_array($this->status, ['cancelled']);
+        return ($this->isInvoice() || $this->isInternalInvoice())
+            && ! in_array($this->status, ['cancelled', 'converted'], true);
     }
 }

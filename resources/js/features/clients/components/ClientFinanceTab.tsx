@@ -1,4 +1,4 @@
-import { IconCashBanknote, IconExternalLink, IconFileText, IconPlus, IconReceipt2, IconTrash, IconWallet } from '@tabler/icons-react';
+import { IconCashBanknote, IconExternalLink, IconFileInvoice, IconFileText, IconPlus, IconReceipt2, IconTrash, IconWallet } from '@tabler/icons-react';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
@@ -45,6 +45,7 @@ export function ClientFinanceTab({ project, onCreateDocument, onCreatePayment, d
     const currency = project.currency || 'MAD';
     const metricCards = [
         { label: t('clients.finance.quotes'), value: formatCompactMoney(project.quotesTotal, currency), detail: t('clients.finance.documentsCount', { count: project.financeDocuments.filter((document) => document.type === 'quote').length }), icon: <IconFileText size={16} className="text-sky-400" />, accentColor: '#38bdf8', valueClassName: 'text-sky-300' },
+        { label: 'Prévision interne', value: formatCompactMoney(project.expectedTotal, currency), detail: `Reste prévisionnel ${formatCompactMoney(project.expectedRemainingTotal, currency)}`, icon: <IconFileInvoice size={16} className="text-cyan-400" />, accentColor: '#22d3ee', valueClassName: 'text-cyan-300' },
         { label: t('clients.finance.invoiced'), value: formatCompactMoney(project.invoicesTotal, currency), detail: t('clients.finance.invoicesTotal'), icon: <IconReceipt2 size={16} className="text-violet-400" />, accentColor: '#a78bfa', valueClassName: 'text-violet-300' },
         { label: t('clients.finance.paid'), value: formatCompactMoney(project.paidTotal, currency), detail: t('clients.finance.paymentsCount', { count: project.paymentsCount }), icon: <IconWallet size={16} className="text-emerald-400" />, accentColor: '#34d399', valueClassName: 'text-emerald-300' },
         { label: t('clients.finance.remaining'), value: formatCompactMoney(project.remainingTotal, currency), detail: t('clients.finance.invoiceBalance'), icon: <IconCashBanknote size={16} className="text-amber-400" />, accentColor: '#fbbf24', valueClassName: 'text-amber-300' },
@@ -63,13 +64,23 @@ export function ClientFinanceTab({ project, onCreateDocument, onCreatePayment, d
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
                     <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.finance.openFinance')} aria-label={t('clients.finance.openFinance')} onPress={onOpenFinance}><IconExternalLink size={14} /></AppButton>
                     {can('finance.payments.create') ? <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.finance.recordPayment')} aria-label={t('clients.finance.recordPayment')} onPress={onCreatePayment}><IconWallet size={14} /></AppButton> : null}
+                    {can('finance.documents.create') ? <AppButton isIconOnly compact variant="quiet" tooltip="Nouvelle facture interne" aria-label="Nouvelle facture interne" onPress={() => onCreateDocument('internal_invoice')}><IconFileInvoice size={14} /></AppButton> : null}
                     {can('finance.documents.create') ? <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.finance.newInvoice')} aria-label={t('clients.finance.newInvoice')} onPress={() => onCreateDocument('invoice')} isDisabled={!project.financeEligibility.canCreateInvoice}><IconReceipt2 size={14} /></AppButton> : null}
                     {can('finance.documents.create') ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip={t('clients.finance.newQuote')} aria-label={t('clients.finance.newQuote')} onPress={() => onCreateDocument('quote')} isDisabled={!project.financeEligibility.canCreateQuote}><IconPlus size={14} /></AppButton> : null}
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                {metricCards.map((metric) => <AppKpiCard key={metric.label} {...metric} />)}
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+                {metricCards.map((metric) => (
+                    <AppKpiCard
+                        key={metric.label}
+                        {...metric}
+                        stacked
+                        keepCurrencyAttached
+                        className="min-h-[104px]"
+                        valueClassName={`${metric.valueClassName} text-lg @[220px]:text-xl`}
+                    />
+                ))}
             </div>
 
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]">

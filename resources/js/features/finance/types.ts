@@ -10,7 +10,7 @@ export type FinanceDocumentLockState = {
     canGeneratePdf: boolean;
     canGenerateExcel: boolean;
 };
-export type FinanceDocumentType = 'quote' | 'invoice' | 'receipt';
+export type FinanceDocumentType = 'quote' | 'invoice' | 'internal_invoice' | 'receipt';
 
 export type FinanceDocumentStatus =
     | 'draft'
@@ -69,6 +69,8 @@ export type FinanceDocument = {
         landSurface?: number | string | null;
     } | null;
     sourceDocumentId: number | null;
+    convertedToDocumentId?: number | null;
+    isInternal?: boolean;
     issueDate: string | null;
     dueDate: string | null;
     validUntil: string | null;
@@ -361,10 +363,12 @@ export type FinanceMonthSummary = {
     currency: string;
     quotesCount: number;
     invoicesCount: number;
+    internalInvoicesCount: number;
     receiptsCount: number;
     paymentsCount: number;
     quotesTotalTtc: number;
     invoicesTotalTtc: number;
+    internalInvoicesTotalTtc: number;
     receiptsTotalTtc: number;
     paidTotal: number;
     expensesTotal: number;

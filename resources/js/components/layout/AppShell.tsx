@@ -22,7 +22,7 @@ export function AppShell({ eyebrowKey, titleKey, subtitleKey, action, children, 
 
     return (
         <div className="flex h-screen w-screen overflow-hidden bg-[var(--background)]">
-            <div className="hidden shrink-0 md:flex flex-col p-3">
+            <div className="hidden shrink-0 lg:flex flex-col p-3">
                 <AppSidebar />
             </div>
 

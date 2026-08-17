@@ -9,13 +9,23 @@ import {
 
 export { normalizeNumber, normalizeCurrency, formatMoney, formatCompactMoney, formatFullMoney };
 
+function roundMoney(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function normalizeTvaRate(value: number | string | null | undefined): number {
+    return Math.min(100, Math.max(0, normalizeNumber(value)));
+}
+
 export function calculateItem(
     item: Partial<FinanceDocumentItem>,
+    tvaRate = 0,
 ): FinanceDocumentItem {
     const quantity = normalizeNumber(item.quantity || 1) || 1;
     const unitPrice = normalizeNumber(item.unitPrice);
 
-    const totalHt = Math.max(0, quantity * unitPrice);
+    const totalHt = roundMoney(Math.max(0, quantity * unitPrice));
+    const totalTva = roundMoney(totalHt * normalizeTvaRate(tvaRate) / 100);
 
     return {
         id: item.id,
@@ -26,20 +36,21 @@ export function calculateItem(
         unit: item.unit || '',
         unitPrice,
         totalHt,
-        totalTva: 0,
-        totalTtc: totalHt,
+        totalTva,
+        totalTtc: roundMoney(totalHt + totalTva),
     };
 }
 
 export function calculateTotals(
     items: Partial<FinanceDocumentItem>[],
     discountTotal = 0,
+    tvaRate = 0,
 ) {
-    const calculatedItems = items.map((item, index) => calculateItem({ ...item, position: index + 1 }));
-    const subtotalHt = calculatedItems.reduce((sum, item) => sum + item.totalHt, 0);
-    const taxTotal = calculatedItems.reduce((sum, item) => sum + item.totalTva, 0);
-    const safeDiscount = Math.max(0, normalizeNumber(discountTotal));
-    const totalTtc = Math.max(0, subtotalHt - safeDiscount + taxTotal);
+    const calculatedItems = items.map((item, index) => calculateItem({ ...item, position: index + 1 }, tvaRate));
+    const subtotalHt = roundMoney(calculatedItems.reduce((sum, item) => sum + item.totalHt, 0));
+    const taxTotal = roundMoney(calculatedItems.reduce((sum, item) => sum + item.totalTva, 0));
+    const safeDiscount = roundMoney(Math.max(0, normalizeNumber(discountTotal)));
+    const totalTtc = roundMoney(Math.max(0, subtotalHt - safeDiscount + taxTotal));
 
     return {
         subtotalHt,

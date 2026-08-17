@@ -3,23 +3,23 @@
 namespace App\Services\Finance;
 
 use App\Models\FinanceDocument;
-use App\Models\FinanceDocumentItem;
-use App\Services\Finance\FinanceSettingsService;
 
 class FinanceCalculator
 {
-    public static function calculateItemTotals(array $item): array
+    public static function calculateItemTotals(array $item, float $tvaRate = 0): array
     {
-        $quantity = $item['quantity'] ?? 1;
-        $unitPrice = $item['unit_price'] ?? 0;
-        $totalHt = $quantity * $unitPrice;
+        $quantity = (float) ($item['quantity'] ?? 1);
+        $unitPrice = (float) ($item['unit_price'] ?? 0);
+        $totalHt = round(max(0, $quantity * $unitPrice), 2);
+        $tvaRate = min(100, max(0, $tvaRate));
+        $totalTva = round($totalHt * $tvaRate / 100, 2);
 
         return [
             'quantity' => $quantity,
             'unit_price' => $unitPrice,
             'total_ht' => $totalHt,
-            'total_tva' => 0,
-            'total_ttc' => $totalHt,
+            'total_tva' => $totalTva,
+            'total_ttc' => round($totalHt + $totalTva, 2),
         ];
     }
 

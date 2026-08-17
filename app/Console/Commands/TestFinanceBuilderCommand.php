@@ -126,7 +126,7 @@ class TestFinanceBuilderCommand extends Command
             'unit' => 'hrs',
             'unit_price' => 1000,
         ]);
-        $item1->calculateTotals();
+        $item1->calculateTotals((float) $document->tva_rate);
         $document->items()->save($item1);
 
         $item2 = new FinanceDocumentItem([
@@ -136,7 +136,7 @@ class TestFinanceBuilderCommand extends Command
             'unit' => 'hrs',
             'unit_price' => 500,
         ]);
-        $item2->calculateTotals();
+        $item2->calculateTotals((float) $document->tva_rate);
         $document->items()->save($item2);
 
         FinanceCalculator::recalculateDocument($document);

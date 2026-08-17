@@ -688,6 +688,18 @@ body.login-no-scroll #app {
     overflow: hidden !important;
 }
 
+/* The login visual panel stays dark in both application themes. Its borders
+   therefore use its own warm-dark token instead of the active page palette. */
+.login-visual-panel {
+    --login-visual-border: #2d2a22;
+    --login-visual-muted: rgb(229 231 235 / 0.76);
+    border-right: 1px solid var(--login-visual-border);
+}
+
+.login-visual-frame {
+    border: 1px solid var(--login-visual-border);
+}
+
 /* =============================================
    Project Design Editor — shell and scroll
    ============================================= */

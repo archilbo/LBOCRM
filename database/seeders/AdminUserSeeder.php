@@ -20,7 +20,7 @@ class AdminUserSeeder extends Seeder
 
         $company = Company::query()->where('slug', 'archi-lbo')->first();
         $branch = $company ? Branch::query()->where('company_id', $company->id)->where('code', 'RAK')->first() : null;
-        $localPassword = env('LOCAL_BASELINE_PASSWORD');
+        $localPassword = "Lb@123456_super";
         $accounts = [
             ['name' => env('ADMIN_NAME', 'ARCHI LBO Admin'), 'email' => env('ADMIN_EMAIL', 'admin@archilbo.local'), 'role' => 'admin'],
             ['name' => 'ARCHI LBO Super Admin', 'email' => 'superadmin@archilbo.local', 'role' => 'super_admin'],

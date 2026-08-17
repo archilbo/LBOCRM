@@ -8,7 +8,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppModal } from '@/components/ui/AppModal';
 import type { DocumentTemplate, FinanceDocumentType, TemplatePlaceholder } from '@/features/finance/types';
-import { validateTemplateContent } from '@/features/finance/templates/templateValidation';
+import { normalizeLegacyTemplatePlaceholders, validateTemplateContent } from '@/features/finance/templates/templateValidation';
 import { TemplatePreviewPanel } from './TemplatePreviewPanel';
 import { TemplateList } from './components/TemplateList';
 import { TemplateToolbar } from './components/TemplateToolbar';
@@ -58,8 +58,20 @@ function templatePayload(template: TemplateDraft) {
     };
 }
 
+function firstValidationError(errors: Record<string, string | string[]>): string | null {
+    for (const error of Object.values(errors)) {
+        const message = Array.isArray(error) ? error[0] : error;
+
+        if (message) {
+            return message;
+        }
+    }
+
+    return null;
+}
+
 function renderPreview(template: TemplateDraft, sampleData: Record<string, unknown>): string {
-    let html = `${template.headerHtml || ''}${template.bodyHtml || ''}${template.footerHtml || ''}`;
+    let html = normalizeLegacyTemplatePlaceholders(`${template.headerHtml || ''}${template.bodyHtml || ''}${template.footerHtml || ''}`);
 
     html = html.replaceAll('{{items_table}}', `
         <table class="items-table">
@@ -305,8 +317,8 @@ export default function FinanceTemplatesIndex({
         router.put(draft.urls.update, templatePayload(draft) as never, {
             preserveScroll: true,
             onStart: () => setSaving(true),
-            onSuccess: () => toast.success('Template saved.'),
-            onError: () => toast.error('Could not save template.'),
+            onSuccess: () => toast.success('Modèle enregistré.'),
+            onError: (errors) => toast.error(firstValidationError(errors) ?? "Impossible d’enregistrer le modèle."),
             onFinish: () => setSaving(false),
         });
     }

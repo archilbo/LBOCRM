@@ -48,13 +48,8 @@ const statusOptions: SelectOption[] = [
 ];
 
 const calculationModeOptions: SelectOption[] = [
-    { id: 'percentage', label: 'Pourcentage 0.5% / 2%' },
-    { id: 'forfait', label: 'FORFAIT - saisir TTC' },
-];
-
-const feeRateOptions: SelectOption[] = [
-    { id: '0.5', label: '0.5%' },
-    { id: '2', label: '2%' },
+    { id: 'percentage', label: 'Pourcentage' },
+    { id: 'forfait', label: 'Forfait' },
 ];
 
 const createSteps = [
@@ -73,8 +68,8 @@ const fieldToStep: Record<string, number> = {
 function isStepValid(step: number, form: ContractFormPayload, selectedClientId: string | null, isForfait: boolean): boolean {
     if (step === 0) return Boolean(selectedClientId && form.dossier_id);
     if (step === 1) {
-        if (isForfait) return Boolean(form.forfait_ttc);
-        return Boolean(form.surface && form.price_per_square_meter && form.fee_rate_percent);
+        if (isForfait) return Boolean(form.forfait_ttc && form.architect_fee_option_id);
+        return Boolean(form.surface && form.price_per_square_meter && form.fee_rate_percent && form.architect_fee_option_id);
     }
     return true;
 }
@@ -89,12 +84,15 @@ function getStepHints(step: number, form: ContractFormPayload, selectedClientId:
     }
     if (step === 1) {
         if (isForfait) {
-            if (!form.forfait_ttc) return ['Saisissez le montant FORFAIT TTC'];
+            const hints: string[] = [];
+            if (!form.architect_fee_option_id) hints.push('Aucun forfait actif configure');
+            if (!form.forfait_ttc) hints.push('Saisissez le montant FORFAIT TTC');
+            return hints;
         } else {
             const hints: string[] = [];
+            if (!form.architect_fee_option_id) hints.push("Selectionnez le taux d'honoraires");
             if (!form.surface) hints.push('Saisissez la surface (m2)');
             if (!form.price_per_square_meter) hints.push('Saisissez le prix / m2');
-            if (!form.fee_rate_percent) hints.push("Selectionnez le taux d'honoraires");
             return hints;
         }
     }
@@ -209,24 +207,32 @@ type CalculationSectionProps = {
     mode: 'create' | 'edit';
     architectFeeOptions: ArchitectFeeOption[];
     onArchitectFeeOptionChange: (id: string) => void;
+    onCalculationModeChange: (mode: 'percentage' | 'forfait') => void;
 };
 
 function CalculationSection({
-    form, errors, updateField, isForfait, estimation, ht, tva, ttc, lockProject, mode, architectFeeOptions, onArchitectFeeOptionChange,
+    form, errors, updateField, isForfait, estimation, ht, tva, ttc, lockProject, mode, architectFeeOptions, onArchitectFeeOptionChange, onCalculationModeChange,
 }: CalculationSectionProps) {
     const surfaceDisabled = lockProject && mode === 'create';
+    const percentageOptions = architectFeeOptions
+        .filter((option) => option.isActive && option.calculationType === 'percentage')
+        .map((option) => ({
+            id: option.id,
+            label: option.isDefault ? `${option.percentageRate ?? option.name}% - Par defaut` : `${option.percentageRate ?? option.name}%`,
+        }));
+    const hasForfaitOption = architectFeeOptions.some((option) => option.isActive && option.calculationType === 'forfait');
+
     return (
         <>
             <div className={drawerStyles.fieldGroup}>
                 <label className={drawerStyles.label}>Taux architecte</label>
-                <DrawerSelect value={form.architect_fee_option_id} onChange={onArchitectFeeOptionChange}
-                    options={architectFeeOptions.map((option) => ({ id: option.id, label: option.isDefault ? `${option.name} · Par défaut` : option.name }))} />
-                {form.architect_fee_option_id ? (
-                    <p className="text-[9px] text-[var(--text-muted)]">
-                        Modèle appliqué : {architectFeeOptions.find((option) => option.id === form.architect_fee_option_id)?.contractTemplateName ?? 'Aucun modèle associé'}
-                    </p>
-                ) : <p className="text-[9px] text-[var(--danger)]">Aucun taux architecte configuré.</p>}
+                <DrawerSelect
+                    value={form.calculation_mode}
+                    onChange={(value) => onCalculationModeChange(value as 'percentage' | 'forfait')}
+                    options={calculationModeOptions}
+                />
             </div>
+
             {isForfait ? (
                 <div className={drawerStyles.fieldGroup}>
                     <label className={drawerStyles.label}>Forfait TTC</label>
@@ -236,12 +242,14 @@ function CalculationSection({
                         className={drawerStyles.input}
                         placeholder="ex: 1500,50" />
                     <p className="text-[9px] text-[var(--text-muted)]">Saisissez le montant TTC final. HT et TVA sont calcules automatiquement.</p>
+                    {!hasForfaitOption ? <p className="mt-1 text-[9px] text-[var(--danger)]">Aucun forfait actif configure.</p> : null}
                 </div>
             ) : (
                 <>
                     <div className={drawerStyles.fieldGroup}>
-                        <label className={drawerStyles.label}>Taux honoraires</label>
-                        <DrawerSelect value={form.fee_rate_percent} onChange={(v) => updateField('fee_rate_percent', v)} options={feeRateOptions} />
+                        <label className={drawerStyles.label}>Taux (%)</label>
+                        <DrawerSelect value={form.architect_fee_option_id} onChange={onArchitectFeeOptionChange} options={percentageOptions} />
+                        {percentageOptions.length === 0 ? <p className="text-[9px] text-[var(--danger)]">Aucun taux en pourcentage actif configure.</p> : null}
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                         <div className={drawerStyles.fieldGroup}>
@@ -264,6 +272,7 @@ function CalculationSection({
                     </div>
                 </>
             )}
+
             <CalculationSummary estimation={!isForfait ? estimation : undefined} ht={ht} tva={tva} ttc={ttc} />
             <div className={drawerStyles.fieldGroup}>
                 <label className={drawerStyles.label}>Montant TTC pour la finance (facultatif)</label>
@@ -273,7 +282,7 @@ function CalculationSection({
                     className={drawerStyles.input}
                     placeholder="Utiliser le TTC du contrat" />
                 <p className="text-[9px] text-[var(--text-muted)]">
-                    Laissez vide pour utiliser le TTC du contrat ({formatCompactMoney(ttc)}). Ce montant n&apos;apparaît pas dans le contrat.
+                    Laissez vide pour utiliser le TTC du contrat ({formatCompactMoney(ttc)}). Ce montant n&apos;apparait pas dans le contrat.
                 </p>
             </div>
         </>
@@ -352,6 +361,7 @@ type EditFormProps = {
     visibleStatusOptions: SelectOption[];
     architectFeeOptions: ArchitectFeeOption[];
     onArchitectFeeOptionChange: (id: string) => void;
+    onCalculationModeChange: (mode: 'percentage' | 'forfait') => void;
 };
 
 function EditForm({
@@ -359,7 +369,7 @@ function EditForm({
     selectedClientId, clientOptions,
     onClientSelect, dossier_id, dossierOptions, onDossierSelect,
     visibleStatusOptions,
-    architectFeeOptions, onArchitectFeeOptionChange,
+    architectFeeOptions, onArchitectFeeOptionChange, onCalculationModeChange,
 }: EditFormProps) {
     return (
         <div className="flex flex-col gap-3">
@@ -389,6 +399,7 @@ function EditForm({
                 mode={mode}
                 architectFeeOptions={architectFeeOptions}
                 onArchitectFeeOptionChange={onArchitectFeeOptionChange}
+                onCalculationModeChange={onCalculationModeChange}
             />
             <div className={drawerStyles.fieldGroup}>
                 <label className={drawerStyles.label}>Notes</label>
@@ -577,6 +588,22 @@ export function ContractDrawer({
         }));
     }, [architectFeeOptions]);
 
+    const handleCalculationModeChange = useCallback((calculationMode: 'percentage' | 'forfait') => {
+        const matchingOptions = architectFeeOptions.filter((option) => option.isActive && option.calculationType === calculationMode);
+        setForm((previous) => {
+            const selectedOption = matchingOptions.find((option) => option.id === previous.architect_fee_option_id)
+                ?? matchingOptions.find((option) => option.isDefault)
+                ?? matchingOptions[0];
+
+            return {
+                ...previous,
+                calculation_mode: calculationMode,
+                architect_fee_option_id: selectedOption?.id ?? '',
+                fee_rate_percent: selectedOption?.percentageRate ?? '',
+            };
+        });
+    }, [architectFeeOptions]);
+
     const handleStepBack = useCallback(() => setStep((s) => s - 1), []);
     const handleStepForward = useCallback(() => setStep((s) => s + 1), []);
 
@@ -603,6 +630,7 @@ export function ContractDrawer({
             visibleStatusOptions={visibleStatusOptions}
             architectFeeOptions={architectFeeOptions}
             onArchitectFeeOptionChange={handleArchitectFeeOptionChange}
+            onCalculationModeChange={handleCalculationModeChange}
         />
     ) : (
         <>
@@ -631,6 +659,7 @@ export function ContractDrawer({
                     mode={mode}
                     architectFeeOptions={architectFeeOptions}
                     onArchitectFeeOptionChange={handleArchitectFeeOptionChange}
+                    onCalculationModeChange={handleCalculationModeChange}
                 />
             )}
             {(step === 2 || step === 3) && (
