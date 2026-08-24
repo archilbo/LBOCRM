@@ -21,7 +21,7 @@ class MigrateFinanceFilesToDossierFoldersCommand extends Command
         $missing = 0;
 
         FinanceDocument::query()
-            ->with(['dossier.city', 'dossier.client'])
+            ->with(['dossier.city', 'dossier.primaryClient'])
             ->where(fn ($query) => $query->whereNotNull('pdf_path')->orWhereNotNull('excel_path'))
             ->chunkById(100, function ($documents) use ($storage, $dryRun, &$moved, &$skipped, &$missing) {
                 foreach ($documents as $document) {

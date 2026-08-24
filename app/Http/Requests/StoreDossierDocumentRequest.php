@@ -143,6 +143,13 @@ class StoreDossierDocumentRequest extends FormRequest
             );
 
             if ($resolver->isCinTemplate($template)) {
+                if (! $this->filled('client_id')) {
+                    $validator->errors()->add(
+                        'client_id',
+                        'Sélectionnez le client concerné par cette CIN.'
+                    );
+                }
+
                 if (! $this->hasFile('file_front')) {
                     $validator->errors()->add(
                         'file_front',

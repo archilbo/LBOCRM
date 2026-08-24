@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 
 class FinanceDocumentSequenceService
 {
-    private const SUPPORTED_TYPES = ['quote', 'invoice', 'receipt', 'internal_invoice', 'credit_note'];
+    private const SUPPORTED_TYPES = ['quote', 'invoice', 'receipt', 'credit_note'];
 
     public function allocate(string $documentType, int $companyId, Carbon|string|null $date = null): string
     {
@@ -57,8 +57,6 @@ class FinanceDocumentSequenceService
     {
         $sequence = str_pad((string) $number, 3, '0', STR_PAD_LEFT);
 
-        return $documentType === 'internal_invoice'
-            ? "INT-{$sequence}/{$year}"
-            : "{$sequence}/{$year}";
+        return "{$sequence}/{$year}";
     }
 }

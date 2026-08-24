@@ -41,7 +41,7 @@ class ArchiveController extends Controller
     {
         $this->authorize('viewAny', ArchiveRecord::class);
 
-        $query = $this->scopedRecords($request->user())->with(['dossier.client', 'dossier.city']);
+        $query = $this->scopedRecords($request->user())->with(['dossier.primaryClient', 'dossier.city']);
 
         // Status filter
         if ($statuses = $request->input('status')) {
@@ -111,7 +111,7 @@ class ArchiveController extends Controller
                     ->orWhere('notes', 'like', $like)
                     ->orWhereHas('dossier', fn ($d) => $d->where('dossier_number', 'like', $like)
                         ->orWhere('project_object', 'like', $like)
-                        ->orWhereHas('client', fn ($c) => $c->where('full_name', 'like', $like)
+                        ->orWhereHas('primaryClient', fn ($c) => $c->where('full_name', 'like', $like)
                             ->orWhere('cin', 'like', $like)
                         )
                     );
@@ -270,7 +270,7 @@ class ArchiveController extends Controller
     public function show(Request $request, ArchiveRecord $archiveRecord): Response
     {
         $this->authorize('view', $archiveRecord);
-        $archiveRecord->load(['dossier.client', 'events.actor']);
+        $archiveRecord->load(['dossier.primaryClient', 'events.actor']);
 
         $tree = Room::with('shelves.boxes')->get()->map(fn ($room) => [
             'id' => $room->id,
@@ -729,7 +729,7 @@ class ArchiveController extends Controller
         $this->authorize('viewAny', ArchiveRecord::class);
 
         $records = $this->scopedRecords($request->user())->where('box', $box)
-            ->with(['dossier.city', 'dossier.client'])
+            ->with(['dossier.city', 'dossier.primaryClient'])
             ->orderBy('archive_number')
             ->get();
 
@@ -759,7 +759,7 @@ class ArchiveController extends Controller
                     'archiveNumber' => $r->archive_number,
                     'status' => $r->status,
                     'projectObject' => $r->dossier?->project_object,
-                    'clientName' => $r->dossier?->client?->full_name,
+                    'clientName' => $r->dossier?->primaryClient?->full_name,
                     'inDate' => optional($r->in_date)->format('Y-m-d'),
                     'dueAt' => optional($r->due_at)->format('Y-m-d'),
                     'isOverdue' => $r->isOverdue(),
@@ -826,12 +826,12 @@ class ArchiveController extends Controller
 
     private function reportPayload(User $user): array
     {
-        $overdue = $this->scopedRecords($user)->with('dossier.client')
+        $overdue = $this->scopedRecords($user)->with('dossier.primaryClient')
             ->overdue()->orderBy('due_at')->get()
             ->map(fn ($r) => [
                 'id' => $r->id, 'archiveNumber' => $r->archive_number,
                 'dossierNumber' => $r->dossier?->dossier_number ?? '-', 'projectObject' => $r->dossier?->project_object ?? '-',
-                'clientName' => $r->dossier?->client?->full_name ?? '-', 'requestedBy' => $r->requested_by,
+                'clientName' => $r->dossier?->primaryClient?->full_name ?? '-', 'requestedBy' => $r->requested_by,
                 'dueAt' => optional($r->due_at)->format('Y-m-d'), 'overdueDays' => (int) max(0, Carbon::parse($r->due_at)->diffInDays(now(), false)),
             ]);
 
@@ -839,7 +839,7 @@ class ArchiveController extends Controller
             ->where('created_at', '>=', now()->subMonths(12))->groupBy('period')->orderBy('period')->get()
             ->map(fn ($r) => ['period' => $r->period, 'total' => (int) $r->total]);
 
-        $lost = $this->scopedRecords($user)->with('dossier.client')->where('is_lost', true)->orderByDesc('updated_at')->get()
+        $lost = $this->scopedRecords($user)->with('dossier.primaryClient')->where('is_lost', true)->orderByDesc('updated_at')->get()
             ->map(fn ($r) => [
                 'id' => $r->id, 'archiveNumber' => $r->archive_number, 'dossierNumber' => $r->dossier?->dossier_number ?? '-',
                 'projectObject' => $r->dossier?->project_object ?? '-', 'lostReason' => $r->lost_reason,
@@ -868,13 +868,14 @@ class ArchiveController extends Controller
     private function dossierOptions(User $user): array
     {
         return $this->scopedDossiers($user)
-            ->with(['client', 'archiveRecord'])
+            ->with(['primaryClient', 'clients:clients.id', 'archiveRecord'])
             ->orderByDesc('created_at')
             ->get()
             ->map(fn (Dossier $dossier) => [
                 'id' => (string) $dossier->id,
                 'label' => $dossier->dossier_number . ($dossier->project_object ? ' - ' . $dossier->project_object : ''),
                 'clientId' => (string) $dossier->client_id,
+                'clientIds' => $dossier->clients->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
                 'hasArchiveRecord' => $dossier->archiveRecord !== null,
             ])
             ->values()

@@ -18,6 +18,7 @@ use App\Models\Room;
 use App\Models\Shelf;
 use App\Models\User;
 use App\Services\CompanyContext;
+use App\Services\Contracts\ContractClientIdentityService;
 use App\Services\Documents\WorkflowDocumentTemplateResolver;
 use App\Services\Finance\DossierFinanceEligibilityService;
 use App\Services\Finance\FinanceReceivablesService;
@@ -40,6 +41,7 @@ class ProjectWorkspaceDataService
         private readonly FinanceDocumentMetricsService $financeMetrics,
         private readonly ProjectActivityService $activity,
         private readonly ProjectDocumentExplorerService $documentExplorer,
+        private readonly DossierLocationOptionsService $locationOptions,
     ) {
     }
 
@@ -48,7 +50,8 @@ class ProjectWorkspaceDataService
         $capabilities = $this->capabilities($dossier, $user);
 
         $relations = [
-            'client',
+            'clients',
+            'primaryClient',
             'intermediary',
             'city',
             'cahier',
@@ -57,6 +60,7 @@ class ProjectWorkspaceDataService
 
         if ($capabilities['canViewDocuments']) {
             $relations[] = 'documents.template';
+            $relations[] = 'documents.client';
         }
 
         if ($capabilities['canViewContract']) {
@@ -73,6 +77,7 @@ class ProjectWorkspaceDataService
             $relations[] = 'payments.document';
             $relations[] = 'payments.receiptDocument';
             $relations[] = 'payments.creator';
+            $relations[] = 'negotiatedPaymentLines.payments';
         }
 
         if ($capabilities['canViewArchive']) {
@@ -167,6 +172,7 @@ class ProjectWorkspaceDataService
                     'summary' => $finance['summary'],
                     'eligibility' => $finance['eligibility'],
                     'advances' => $finance['advances'],
+                    'negotiatedPaymentLines' => $finance['negotiatedPaymentLines'],
                 ]
                 : null,
             'activity' => $this->activity->forDossier($dossier, [
@@ -186,6 +192,9 @@ class ProjectWorkspaceDataService
                     ->orderBy('name')
                     ->get(['id', 'name', 'code', 'color'])
                 : [],
+            'locationOptions' => $canMutateProject
+                ? $this->locationOptions->forUser($user)
+                : ['provinces' => [], 'communes' => []],
             'intermediaries' => $canMutateProject
                 ? $this->intermediaryOptions($user)
                 : [],
@@ -303,6 +312,11 @@ class ProjectWorkspaceDataService
                             ->document_template_id,
                     'templateCode' =>
                         $document->template?->code,
+                    'clientId' => $document->client_id
+                        ? (string) $document->client_id
+                        : null,
+                    'clientName' => $document->client?->full_name
+                        ?? $dossier->primaryClient?->full_name,
                 ];
             });
     }
@@ -419,6 +433,32 @@ class ProjectWorkspaceDataService
             ->filter(fn (array $payment) => $payment['kind'] === PaymentKind::Advance->value)
             ->values();
 
+        $negotiatedPaymentLines = $dossier->negotiatedPaymentLines
+            ->filter(fn ($line) => $this->sameFinanceScope($dossier, $line))
+            ->map(function ($line): array {
+                $payments = $line->payments
+                    ->filter(fn ($payment) => $payment->cancelled_at === null)
+                    ->sortBy(fn ($payment) => $payment->paid_at ?? $payment->created_at)
+                    ->values();
+                $paidAmount = (float) $payments->sum('amount');
+
+                return [
+                    'id' => (string) $line->id,
+                    'designation' => $line->designation,
+                    'negotiatedAmount' => (float) $line->negotiated_amount,
+                    'paidAmount' => $paidAmount,
+                    'remainingAmount' => max(0, round((float) $line->negotiated_amount - $paidAmount, 2)),
+                    'payments' => $payments->map(fn ($payment) => [
+                        'id' => (string) $payment->id,
+                        'amount' => (float) $payment->amount,
+                        'method' => $payment->method,
+                        'paidAt' => optional($payment->paid_at)->format('Y-m-d'),
+                        'reference' => $payment->reference,
+                    ])->all(),
+                ];
+            })
+            ->values();
+
         $activeInvoices = $documents
             ->filter(fn (FinanceDocument $document) => $document->isInvoice() && $document->status !== 'cancelled');
 
@@ -442,6 +482,7 @@ class ProjectWorkspaceDataService
             'documents' => $documentPayload,
             'payments' => $paymentPayload,
             'advances' => $advances,
+            'negotiatedPaymentLines' => $negotiatedPaymentLines,
             'legacyRecords' => $legacyRecords,
             'eligibility' => $this->financeEligibility->stateForDocuments($documents),
             'summary' => [
@@ -490,8 +531,8 @@ class ProjectWorkspaceDataService
             'clientId' => (string) ($dossier->client_id ?? ''),
             'dossierNumber' => $dossier->dossier_number,
             'projectObject' => $dossier->project_object,
-            'clientName' => $dossier->client?->full_name ?? '',
-            'clientCin' => $dossier->client?->cin ?? '',
+            'clientName' => $dossier->primaryClient?->full_name ?? '',
+            'clientCin' => $dossier->primaryClient?->cin ?? '',
             'archiveNumber' => $archive->archive_number,
             'displaySequence' => str_pad((string) $archive->archive_sequence, 4, '0', STR_PAD_LEFT),
             'status' => $archive->status,
@@ -568,12 +609,14 @@ class ProjectWorkspaceDataService
     private function dossierOptions(User $user): Collection
     {
         return $this->companyContext->applyTo(Dossier::query(), $user)
+            ->with('clients:clients.id')
             ->latest('created_at')
             ->get(['id', 'client_id', 'dossier_number', 'project_object'])
             ->map(fn (Dossier $dossier) => [
                 'id' => (string) $dossier->id,
                 'label' => $dossier->dossier_number . ($dossier->project_object ? ' - ' . $dossier->project_object : ''),
                 'clientId' => (string) $dossier->client_id,
+                'clientIds' => $dossier->clients->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
             ])
             ->values();
     }
@@ -596,11 +639,16 @@ class ProjectWorkspaceDataService
 
     private function contractClientOptions(User $user): Collection
     {
+        $clientIdentity = app(ContractClientIdentityService::class);
+
         return $this->companyContext->applyTo(Client::query(), $user)
             ->with([
                 'dossiers' => fn ($query) => $this->companyContext
-                    ->applyTo($query->getQuery(), $user)
-                    ->with('contract')
+                    ->applyTo($query->wherePivot('is_primary', true)->getQuery(), $user)
+                    // Contracts remain dossier-level. Their templates use the
+                    // project's primary client, so only primary memberships
+                    // are exposed as contract choices.
+                    ->with(['contract', 'primaryClient', 'clients'])
                     ->latest('created_at'),
             ])
             ->orderBy('full_name')
@@ -611,11 +659,14 @@ class ProjectWorkspaceDataService
                 'cin' => $client->cin,
                 'dossiers' => $client->dossiers->map(fn (Dossier $dossier) => [
                     'id' => (string) $dossier->id,
-                    'label' => $dossier->dossier_number.' - '.$dossier->project_object,
+                    'label' => $dossier->project_object
+                        ? $dossier->project_object . ' — ' . $dossier->dossier_number
+                        : $dossier->dossier_number,
                     'floorArea' => $dossier->floor_area !== null
                         ? (float) $dossier->floor_area
                         : null,
                     'hasContract' => $dossier->contract !== null,
+                    'clients' => $clientIdentity->forDossier($dossier)['clients'],
                 ])->values()->all(),
             ])
             ->values();
@@ -637,7 +688,7 @@ class ProjectWorkspaceDataService
     private function financeDossierOptions(User $user): Collection
     {
         return $this->companyContext->applyTo(Dossier::query(), $user)
-            ->with('client:id,full_name')
+            ->with(['primaryClient:clients.id,clients.full_name', 'clients:clients.id'])
             ->latest('created_at')
             ->get(['id', 'client_id', 'dossier_number', 'project_object'])
             ->map(fn (Dossier $dossier) => [
@@ -645,9 +696,11 @@ class ProjectWorkspaceDataService
                 'label' => trim(implode(' - ', array_filter([
                     $dossier->dossier_number,
                     $dossier->project_object,
-                    $dossier->client?->full_name,
+                    $dossier->primaryClient?->full_name,
                 ]))),
-                'clientName' => $dossier->client?->full_name ?? '-',
+                'clientName' => $dossier->primaryClient?->full_name ?? '-',
+                'clientId' => $dossier->client_id ? (string) $dossier->client_id : null,
+                'clientIds' => $dossier->clients->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
             ])
             ->values();
     }

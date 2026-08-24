@@ -38,13 +38,22 @@ class ClientController extends Controller
         $limit = max(1, min(100, $request->integer('limit', 20)));
 
         $dossiers = $companyContext->applyTo(Dossier::query(), $request->user())
-            ->where('client_id', $client->id)
+            ->whereHas('clients', fn (Builder $query) => $query->whereKey($client->id))
             ->when($q !== '', fn (Builder $query) => $query->where(fn (Builder $search) => $search
                 ->where('project_object', 'like', "%{$q}%")
                 ->orWhere('dossier_number', 'like', "%{$q}%")))
             ->orderByDesc('created_at')
             ->limit($limit)
-            ->get(['id', 'project_object as name', 'dossier_number as code', 'client_id']);
+            ->with('primaryClient:clients.id,clients.full_name')
+            ->get(['id', 'project_object as name', 'dossier_number as code', 'client_id'])
+            ->map(fn (Dossier $dossier) => [
+                'id' => $dossier->id,
+                'name' => $dossier->name,
+                'code' => $dossier->code,
+                'client_id' => $dossier->client_id,
+                'primary_client_name' => $dossier->primaryClient?->full_name,
+            ])
+            ->values();
 
         return response()->json(['data' => $dossiers]);
     }

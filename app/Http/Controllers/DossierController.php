@@ -12,7 +12,9 @@ use App\Models\Dossier;
 use App\Models\Intermediary;
 use App\Models\User;
 use App\Services\CompanyContext;
+use App\Services\Dossiers\DossierClientService;
 use App\Services\Dossiers\DossierLocationGroupingService;
+use App\Services\Dossiers\DossierLocationOptionsService;
 use App\Services\Dossiers\DossierNumberService;
 use App\Services\Dossiers\ProjectWorkspaceDataService;
 use App\Services\PermissionRegistry;
@@ -28,6 +30,7 @@ class DossierController extends Controller
     public function index(
         Request $request,
         DossierLocationGroupingService $locationGroupingService,
+        DossierLocationOptionsService $locationOptions,
         CompanyContext $companyContext,
         PermissionRegistry $permissions,
     ): Response {
@@ -41,7 +44,7 @@ class DossierController extends Controller
         $canViewArchive = $permissions->allows($user, 'archive.view');
 
         $query = $companyContext->applyTo(Dossier::query(), $user)
-            ->with(['client', 'city', 'intermediary']);
+            ->with(['client', 'clients', 'primaryClient', 'city', 'intermediary']);
 
         if ($canViewDocuments) {
             $query->withCount('documents');
@@ -61,6 +64,7 @@ class DossierController extends Controller
 
         $dossiers = $query
             ->latest('updated_at')
+            ->orderByDesc('id')
             ->get();
 
         $monthExpression = match (DB::connection()->getDriverName()) {
@@ -88,6 +92,9 @@ class DossierController extends Controller
         return Inertia::render('Dossiers/Index', [
             'dossiers' => DossierResource::collection($dossiers)->resolve($request),
             'locationGroups' => $locationGroupingService->groups($user),
+            'locationOptions' => $canMutateProjects
+                ? $locationOptions->forUser($user)
+                : ['provinces' => [], 'communes' => []],
             'clients' => $canMutateProjects
                 ? $this->clientOptions($user, $companyContext)
                 : [],
@@ -142,13 +149,17 @@ class DossierController extends Controller
     public function store(
         StoreDossierRequest $request,
         DossierNumberService $numberService,
-        CompanyContext $companyContext,
+        DossierClientService $clientService,
     ): RedirectResponse {
         $this->authorize('create', Dossier::class);
 
-        $client = $companyContext->applyTo(Client::query(), $request->user())
-            ->whereKey($request->integer('client_id'))
-            ->firstOrFail();
+        $clientIds = array_map('intval', $request->validated()['client_ids']);
+        $primaryClientId = (int) $request->validated()['primary_client_id'];
+
+        // Tenant-scoped resolution — a foreign/unknown id aborts with 404
+        // before anything is created.
+        $clients = $clientService->resolveClients($clientIds, $request->user());
+        $primaryClient = $clients->firstWhere('id', $primaryClientId) ?? $clients->first();
 
         $city = City::query()
             ->where('is_active', true)
@@ -161,27 +172,37 @@ class DossierController extends Controller
         $data['city_id'] = $city->id;
         $data['sequence_number'] = $numbering['sequence'];
         $data['period'] = $numbering['period'];
-        $data['company_id'] = $client->company_id;
-        $data['branch_id'] = $client->branch_id;
+        $data['company_id'] = $primaryClient->company_id;
+        $data['branch_id'] = $primaryClient->branch_id;
+        $data['client_id'] = $primaryClient->id;
 
-        $dossier = Dossier::query()->create($data);
+        $dossier = DB::transaction(function () use ($data, $request, $primaryClient, $clientService, $clientIds, $primaryClientId): Dossier {
+            $dossier = Dossier::query()->create($data);
 
-        AuditLog::query()->create([
-            'user_id' => $request->user()?->id,
-            'action' => 'dossier.created',
-            'description' => "Created dossier {$dossier->dossier_number}",
-            'metadata' => [
-                'project_object' => $dossier->project_object,
-                'client_id' => $dossier->client_id,
-                'city_id' => $dossier->city_id,
-            ],
-            'auditable_type' => Dossier::class,
-            'auditable_id' => $dossier->id,
-            'created_at' => now(),
-        ]);
+            // Attach membership + mark primary + mirror the legacy column.
+            $clientService->sync($dossier, $clientIds, $primaryClientId, $request->user());
+
+            AuditLog::query()->create([
+                'user_id' => $request->user()?->id,
+                'action' => 'dossier.created',
+                'description' => "Created dossier {$dossier->dossier_number}",
+                'metadata' => [
+                    'project_object' => $dossier->project_object,
+                    'client_ids' => array_map('strval', $clientIds),
+                    'primary_client_id' => (string) $primaryClient->id,
+                    'city_id' => $dossier->city_id,
+                ],
+                'auditable_type' => Dossier::class,
+                'auditable_id' => $dossier->id,
+                'created_at' => now(),
+            ]);
+
+            return $dossier;
+        });
 
         return $this->redirectAfterMutation(
             $request->input('return_to'),
+            $dossier,
             'Project created successfully.',
         );
     }
@@ -189,13 +210,16 @@ class DossierController extends Controller
     public function update(
         UpdateDossierRequest $request,
         Dossier $dossier,
-        CompanyContext $companyContext,
+        DossierClientService $clientService,
     ): RedirectResponse {
         $this->authorize('update', $dossier);
 
-        $client = $companyContext->applyTo(Client::query(), $request->user())
-            ->whereKey($request->integer('client_id'))
-            ->firstOrFail();
+        $clientIds = array_map('intval', $request->validated()['client_ids']);
+        $primaryClientId = (int) $request->validated()['primary_client_id'];
+
+        // Tenant-scoped resolution — a foreign/unknown id aborts with 404.
+        $clients = $clientService->resolveClients($clientIds, $request->user());
+        $primaryClient = $clients->firstWhere('id', $primaryClientId) ?? $clients->first();
 
         $data = $this->prepareDossierData($request->validated());
 
@@ -218,30 +242,36 @@ class DossierController extends Controller
             'notes',
         ]);
 
-        $dossier->fill([
-            ...$data,
-            'company_id' => $client->company_id,
-            'branch_id' => $client->branch_id,
-        ]);
+        DB::transaction(function () use ($data, $dossier, $request, $primaryClient, $clientService, $clientIds, $primaryClientId, $original): void {
+            $dossier->fill([
+                ...$data,
+                'company_id' => $primaryClient->company_id,
+                'branch_id' => $primaryClient->branch_id,
+            ]);
 
-        $changes = $dossier->getDirty();
-        $dossier->save();
+            $changes = $dossier->getDirty();
+            $dossier->save();
 
-        AuditLog::query()->create([
-            'user_id' => $request->user()?->id,
-            'action' => 'dossier.updated',
-            'description' => "Updated dossier {$dossier->dossier_number}",
-            'metadata' => [
-                'before' => array_intersect_key($original, $changes),
-                'changes' => $changes,
-            ],
-            'auditable_type' => Dossier::class,
-            'auditable_id' => $dossier->id,
-            'created_at' => now(),
-        ]);
+            // Membership sync (add/remove/primary) with detach protection.
+            $clientService->sync($dossier, $clientIds, $primaryClientId, $request->user());
+
+            AuditLog::query()->create([
+                'user_id' => $request->user()?->id,
+                'action' => 'dossier.updated',
+                'description' => "Updated dossier {$dossier->dossier_number}",
+                'metadata' => [
+                    'before' => array_intersect_key($original, $changes),
+                    'changes' => $changes,
+                ],
+                'auditable_type' => Dossier::class,
+                'auditable_id' => $dossier->id,
+                'created_at' => now(),
+            ]);
+        });
 
         return $this->redirectAfterMutation(
             $request->input('return_to'),
+            $dossier,
             'Project updated successfully.',
         );
     }
@@ -284,12 +314,25 @@ class DossierController extends Controller
             $data['opened_at'] = $data['opened_at'] ?? now()->toDateString();
         }
 
-        unset($data['return_to']);
+        // Membership is managed atomically by DossierClientService. Never let
+        // request payload compatibility fields overwrite the primary mirror.
+        unset($data['return_to'], $data['client_id'], $data['client_ids'], $data['primary_client_id']);
 
         foreach (['land_surface', 'floor_area'] as $field) {
             if (($data[$field] ?? null) === '') {
                 $data[$field] = null;
             }
+        }
+
+        foreach (['province', 'commune'] as $field) {
+            if (! is_string($data[$field] ?? null)) {
+                continue;
+            }
+
+            $value = trim($data[$field]);
+            $data[$field] = $value === ''
+                ? null
+                : mb_strtoupper($value, 'UTF-8');
         }
 
         return $data;
@@ -323,7 +366,7 @@ class DossierController extends Controller
             ->all();
     }
 
-    private function redirectAfterMutation(mixed $requestedPath, string $message): RedirectResponse
+    private function redirectAfterMutation(mixed $requestedPath, Dossier $dossier, string $message): RedirectResponse
     {
         $safePath = $this->safeLocalPath($requestedPath);
 
@@ -334,7 +377,7 @@ class DossierController extends Controller
         }
 
         return redirect()
-            ->route('dossiers.index')
+            ->route('dossiers.show', $dossier)
             ->with('success', $message);
     }
 

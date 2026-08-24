@@ -17,6 +17,7 @@ export type DossierDocumentRow = {
     dossierNumber: string | null;
     projectObject: string | null;
     clientName: string | null;
+    clientId?: string | null;
     templateName: string | null;
     templateBaseName?: string | null;
     templateCode?: string | null;
@@ -38,6 +39,7 @@ export type DossierOption = {
     id: string;
     label: string;
     clientId: string;
+    clientIds?: string[];
 };
 
 export type ClientOption = {
@@ -59,6 +61,7 @@ export type DocumentTemplateOption = {
 };
 
 export type DocumentUploadPayload = {
+    clientId: string;
     dossierId: string;
     documentTemplateId: string;
     status: string;

@@ -52,7 +52,7 @@ class FinanceNumberingQaCommand extends Command
             }
         }
 
-        $this->line('âœ“ Config document types found.');
+        $this->line('✓ Config document types found.');
     }
 
     protected function checkPreview(FinanceDocumentNumberingService $numbering): void
@@ -63,7 +63,7 @@ class FinanceNumberingQaCommand extends Command
             throw new \RuntimeException("Invoice preview has invalid format: {$preview}");
         }
 
-        $this->line("âœ“ Preview works: {$preview}");
+        $this->line("✓ Preview works: {$preview}");
     }
 
     protected function checkReserveSequence(FinanceDocumentNumberingService $numbering): void
@@ -91,7 +91,7 @@ class FinanceNumberingQaCommand extends Command
             throw new \RuntimeException("Second reserved number invalid: {$second}");
         }
 
-        $this->line('âœ“ Sequential reservation works.');
+        $this->line('✓ Sequential reservation works.');
     }
 
     protected function checkYearlyReset(FinanceDocumentNumberingService $numbering): void
@@ -119,6 +119,6 @@ class FinanceNumberingQaCommand extends Command
             throw new \RuntimeException("2027 yearly reset number invalid: {$number2027}");
         }
 
-        $this->line('âœ“ Yearly reset works.');
+        $this->line('✓ Yearly reset works.');
     }
 }

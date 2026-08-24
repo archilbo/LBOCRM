@@ -259,7 +259,7 @@ class ProjectEfficiencySheetController extends Controller
         $company = app(FinanceSettingsService::class)->companyInfo();
 
         $projectAddress = (string) ($dossier->project_address ?? '');
-        $clientAddress = (string) ($dossier->client?->address ?? '');
+        $clientAddress = (string) ($dossier->primaryClient?->address ?? '');
         $representative = (string) ($company['companyLegalRepresentative'] ?? '');
         $enterpriseAddress = (string) ($company['companyAddress'] ?? '');
         $phone = (string) ($company['companyPhone'] ?? '');

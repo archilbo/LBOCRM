@@ -30,13 +30,46 @@ class DossierResource extends JsonResource
             ? (int) $attributes['finance_documents_count']
             : 0;
 
+        // Primary client: prefer the eager-loaded primaryClient relation
+        // (includes soft-deleted clients), fall back to the is_primary pivot
+        // flag on the active members list.
+        $primaryClient = ($this->relationLoaded('primaryClient') ? $this->primaryClient : null)
+            ?? ($this->relationLoaded('clients')
+                ? ($this->clients->firstWhere('pivot.is_primary', true) ?? $this->clients->first())
+                : null)
+            ?? ($this->relationLoaded('client') ? $this->client : null);
+
+        $clients = $this->relationLoaded('clients') && $this->clients->isNotEmpty()
+            ? $this->clients->map(fn ($client) => [
+                'id' => (string) $client->id,
+                'fullName' => $client->full_name,
+                'clientNumber' => $client->client_number,
+                'cin' => $client->cin,
+                'phone' => $client->phone,
+                'isPrimary' => (bool) $client->pivot->is_primary,
+            ])->values()->all()
+            : ($primaryClient ? [[
+                'id' => (string) $primaryClient->id,
+                'fullName' => $primaryClient->full_name,
+                'clientNumber' => $primaryClient->client_number,
+                'cin' => $primaryClient->cin,
+                'phone' => $primaryClient->phone,
+                'isPrimary' => true,
+            ]] : []);
+
         return [
             'id' => $this->id,
-            'clientId' => $this->client_id ? (string) $this->client_id : '',
-            'clientName' => $this->client?->full_name ?? '-',
-            'clientNumber' => $this->client?->client_number ?? '-',
-            'clientCin' => $this->client?->cin ?? '-',
-            'clientPhone' => $this->client?->phone ?? '-',
+            // Legacy single-client aliases (Phase A compatibility for the
+            // current frontend); they resolve to the PRIMARY client and will
+            // be removed once the UI consumes `clients` + `primaryClient`.
+            'clientId' => $primaryClient?->id ? (string) $primaryClient->id : ($this->client_id ? (string) $this->client_id : ''),
+            'clientName' => $primaryClient?->full_name ?? '-',
+            'clientNumber' => $primaryClient?->client_number ?? '-',
+            'clientCin' => $primaryClient?->cin ?? '-',
+            'clientPhone' => $primaryClient?->phone ?? '-',
+
+            'clients' => $clients,
+            'primaryClientId' => $primaryClient?->id ? (string) $primaryClient->id : '',
             'intermediaryId' => $this->intermediary_id ? (string) $this->intermediary_id : '',
             'intermediaryName' => $this->intermediary?->name ?? null,
             'cityId' => $this->city_id ? (string) $this->city_id : '',
@@ -56,6 +89,7 @@ class DossierResource extends JsonResource
             'openedAt' => optional($this->opened_at)->format('Y-m-d'),
             'closedAt' => optional($this->closed_at)->format('Y-m-d'),
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
+            'updatedAtSort' => optional($this->updated_at)->toIso8601String(),
             'createdAt' => optional($this->created_at)->format('Y-m-d'),
             'notes' => $this->notes,
             'documentsCount' => $documentsCount,

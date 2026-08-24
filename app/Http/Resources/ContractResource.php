@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\Contracts\ContractClientIdentityService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -11,14 +12,15 @@ class ContractResource extends JsonResource
     {
         $hasGeneratedDocument = filled($this->generated_document_path);
         $hasPdf = filled($this->pdf_path);
+        $clientIdentity = app(ContractClientIdentityService::class)->forDossier($this->dossier);
 
         return [
             'id' => $this->id,
             'dossierId' => $this->dossier_id ? (string) $this->dossier_id : '',
             'dossierNumber' => $this->dossier?->dossier_number ?? '-',
             'projectObject' => $this->dossier?->project_object ?? '-',
-            'clientName' => $this->dossier?->client?->full_name ?? '-',
-            'clientCin' => $this->dossier?->client?->cin ?? '-',
+            'clientName' => $clientIdentity['identity'],
+            'clientCin' => $clientIdentity['cins'],
 
             'contractNumber' => $this->contract_number,
             'status' => $this->status,

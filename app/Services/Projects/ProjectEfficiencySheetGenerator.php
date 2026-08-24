@@ -44,7 +44,7 @@ class ProjectEfficiencySheetGenerator
      */
     public function placeholderMap(ProjectEfficiencySheet $sheet): array
     {
-        $sheet->loadMissing(['dossier.client']);
+        $sheet->loadMissing(['dossier.primaryClient']);
         $company = app(FinanceSettingsService::class)->companyInfo();
 
         return [
@@ -52,7 +52,7 @@ class ProjectEfficiencySheetGenerator
             'NOM_PROJET' => (string) ($sheet->dossier?->project_object ?? ''),
             'PROJET_ADDRESS' => (string) ($sheet->dossier?->project_address ?? ''),
             'NOM_PRENOM_DOUVRAGE' => (string) ($sheet->owner_name ?? ''),
-            'CLIENT_ADDRESS' => (string) ($sheet->dossier?->client?->address ?? ''),
+            'CLIENT_ADDRESS' => (string) ($sheet->dossier?->primaryClient?->address ?? ''),
             'ENTREPRISE_PHONE' => (string) ($company['companyPhone'] ?? ''),
             'ENTREPRISE_FAX' => (string) ($company['companyFax'] ?? ''),
             'ENTREPRISE_CEO' => (string) ($company['companyLegalRepresentative'] ?? ''),

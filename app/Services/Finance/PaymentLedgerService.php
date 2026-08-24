@@ -4,6 +4,7 @@ namespace App\Services\Finance;
 
 use App\Enums\PaymentKind;
 use App\Models\Dossier;
+use App\Models\DossierNegotiatedPaymentLine;
 use App\Models\FinanceDocument;
 use App\Models\FinanceDocumentItem;
 use App\Models\Payment;
@@ -40,7 +41,7 @@ class PaymentLedgerService
                 'company_id' => $invoice->company_id,
                 'branch_id' => $invoice->branch_id,
                 'finance_document_id' => $invoice->id,
-                'payment_kind' => $invoice->isInternalInvoice() ? PaymentKind::InternalInvoice : PaymentKind::Invoice,
+                'payment_kind' => PaymentKind::Invoice,
                 'client_id' => $invoice->client_id,
                 'dossier_id' => $invoice->dossier_id,
                 'payment_number' => FinanceNumberService::nextPaymentNumber(),
@@ -71,7 +72,7 @@ class PaymentLedgerService
     public function recordAdvancePayment(Dossier $dossier, array $scope, array $data): Payment
     {
         return DB::transaction(function () use ($dossier, $scope, $data) {
-            $dossier = $dossier->fresh(['client']);
+            $dossier = $dossier->fresh(['primaryClient']);
             $this->eligibility->assertCanRecordAdvance($scope, $dossier, isset($data['client_id']) ? (int) $data['client_id'] : null);
 
             $amount = $this->normalizeAmount($data['amount'] ?? 0);
@@ -86,12 +87,16 @@ class PaymentLedgerService
                 'Avance recue - Dossier ' . $dossier->dossier_number,
             );
 
+            // Finance records keep ONE explicit client: the submitted member
+            // client, or the project's primary client as fallback.
+            $paymentClientId = isset($data['client_id']) ? (int) $data['client_id'] : $dossier->client_id;
+
             $payment = Payment::create([
                 'company_id' => $scope['company_id'],
                 'branch_id' => $scope['branch_id'] ?? null,
                 'finance_document_id' => null,
                 'payment_kind' => PaymentKind::Advance,
-                'client_id' => $dossier->client_id,
+                'client_id' => $paymentClientId,
                 'dossier_id' => $dossier->id,
                 'payment_number' => FinanceNumberService::nextPaymentNumber(),
                 'amount' => $amount,
@@ -105,7 +110,69 @@ class PaymentLedgerService
             $receipt = $this->createReceiptForAdvance($dossier, $scope, $payment->fresh(), $receiptItems);
             $payment->forceFill(['receipt_document_id' => $receipt->id])->save();
 
-            return $payment->fresh(['document', 'receiptDocument', 'dossier.client']);
+            return $payment->fresh(['document', 'receiptDocument', 'dossier.primaryClient']);
+        });
+    }
+
+    /**
+     * Records one advance against a negotiated project line. The outstanding
+     * amount is always calculated from the ledger while the line is locked.
+     */
+    public function recordNegotiatedPayment(Dossier $dossier, array $scope, array $data): Payment
+    {
+        return DB::transaction(function () use ($dossier, $scope, $data): Payment {
+            $dossier = $dossier->fresh(['primaryClient']);
+            $this->assertDossierClient($dossier, $scope, isset($data['client_id']) ? (int) $data['client_id'] : null);
+
+            $line = $this->resolveNegotiatedLine($dossier, $scope, $data);
+            $amount = $this->normalizeAmount($data['amount'] ?? 0);
+
+            if ($amount <= 0) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Le montant de l avance doit etre superieur a zero.',
+                ]);
+            }
+
+            $paid = $this->normalizeAmount((float) $line->payments()
+                ->lockForUpdate()
+                ->sum('amount'));
+            $remaining = $this->normalizeAmount((float) $line->negotiated_amount - $paid);
+
+            if ($amount > $remaining) {
+                throw ValidationException::withMessages([
+                    'amount' => 'L avance depasse le reste negocie pour cette ligne.',
+                ]);
+            }
+
+            $receiptItems = $this->receiptItems(
+                $data['receipt_items'] ?? null,
+                $amount,
+                'Avance recue - ' . $line->designation,
+            );
+
+            $paymentClientId = isset($data['client_id']) ? (int) $data['client_id'] : $dossier->client_id;
+
+            $payment = Payment::create([
+                'company_id' => $scope['company_id'],
+                'branch_id' => $scope['branch_id'] ?? null,
+                'finance_document_id' => null,
+                'payment_kind' => PaymentKind::NegotiatedAdvance,
+                'client_id' => $paymentClientId,
+                'dossier_id' => $dossier->id,
+                'dossier_negotiated_payment_line_id' => $line->id,
+                'payment_number' => FinanceNumberService::nextPaymentNumber(),
+                'amount' => $amount,
+                'method' => $data['method'] ?? null,
+                'reference' => $data['reference'] ?? null,
+                'paid_at' => $data['paid_at'] ?? now(),
+                'notes' => $data['notes'] ?? null,
+                'created_by' => $data['created_by'] ?? null,
+            ]);
+
+            $receipt = $this->createReceiptForNegotiatedPayment($dossier, $scope, $line, $payment->fresh(), $receiptItems);
+            $payment->forceFill(['receipt_document_id' => $receipt->id])->save();
+
+            return $payment->fresh(['document', 'receiptDocument', 'dossier.primaryClient', 'negotiatedPaymentLine']);
         });
     }
 
@@ -185,7 +252,13 @@ class PaymentLedgerService
     public function updatePayment(Payment $payment, array $data): Payment
     {
         return DB::transaction(function () use ($payment, $data) {
-            $payment = $payment->fresh(['document', 'receiptDocument.items']);
+            $payment = $payment->fresh(['document', 'receiptDocument.items', 'negotiatedPaymentLine']);
+
+            if ($payment->negotiatedPaymentLine) {
+                throw ValidationException::withMessages([
+                    'payment' => 'Une avance negociee ne peut pas etre modifiee. Annulez-la puis enregistrez une nouvelle avance.',
+                ]);
+            }
 
             $oldInvoice = $payment->document;
             $newInvoiceId = $data['finance_document_id'] ?? $payment->finance_document_id;
@@ -355,7 +428,7 @@ class PaymentLedgerService
             'type' => 'receipt',
             'number' => $this->sequences->allocate('receipt', (int) $scope['company_id'], $payment->paid_at ?: now()),
             'status' => 'issued',
-            'client_id' => $dossier->client_id,
+            'client_id' => $payment->client_id,
             'dossier_id' => $dossier->id,
             'source_document_id' => null,
             'issue_date' => $payment->paid_at ?: now(),
@@ -370,6 +443,47 @@ class PaymentLedgerService
             'notes' => implode(PHP_EOL, array_filter([
                 'Recu d avance pour le dossier ' . $dossier->dossier_number . '.',
                 'Montant recu: ' . number_format((float) $payment->amount, 2, '.', ' ') . ' ' . FinanceSettingsService::getCurrency() . '.',
+                $payment->notes,
+            ])),
+            'terms' => $this->receiptTerms($payment),
+            'created_by' => $payment->created_by,
+        ])->save();
+
+        $this->syncReceiptItems($receipt, $receiptItems);
+
+        return $receipt->fresh();
+    }
+
+    private function createReceiptForNegotiatedPayment(
+        Dossier $dossier,
+        array $scope,
+        DossierNegotiatedPaymentLine $line,
+        Payment $payment,
+        array $receiptItems,
+    ): FinanceDocument {
+        $receipt = new FinanceDocument();
+        $receipt->forceFill([
+            'company_id' => $scope['company_id'],
+            'branch_id' => $scope['branch_id'] ?? null,
+            'type' => 'receipt',
+            'number' => $this->sequences->allocate('receipt', (int) $scope['company_id'], $payment->paid_at ?: now()),
+            'status' => 'issued',
+            'client_id' => $payment->client_id,
+            'dossier_id' => $dossier->id,
+            'source_document_id' => null,
+            'issue_date' => $payment->paid_at ?: now(),
+            'currency' => FinanceSettingsService::getCurrency(),
+            'tva_rate' => 0,
+            'subtotal_ht' => $payment->amount,
+            'discount_total' => 0,
+            'tax_total' => 0,
+            'total_ttc' => $payment->amount,
+            'paid_total' => $payment->amount,
+            'remaining_total' => 0,
+            'notes' => implode(PHP_EOL, array_filter([
+                'Recu d avance negociee pour ' . $line->designation . '.',
+                'Montant negocie: ' . number_format((float) $line->negotiated_amount, 2, '.', ' ') . ' ' . FinanceSettingsService::getCurrency() . '.',
+                'Avance recue: ' . number_format((float) $payment->amount, 2, '.', ' ') . ' ' . FinanceSettingsService::getCurrency() . '.',
                 $payment->notes,
             ])),
             'terms' => $this->receiptTerms($payment),
@@ -487,5 +601,61 @@ class PaymentLedgerService
     private function normalizeAmount(mixed $amount): float
     {
         return round((float) $amount, 2);
+    }
+
+    private function assertDossierClient(Dossier $dossier, array $scope, ?int $requestedClientId): void
+    {
+        if ((int) $dossier->company_id !== (int) $scope['company_id']
+            || $dossier->branch_id !== ($scope['branch_id'] ?? null)) {
+            abort(404);
+        }
+
+        if ($requestedClientId && ! $dossier->hasClientMembership($requestedClientId)) {
+            throw ValidationException::withMessages([
+                'client_id' => 'Le client selectionne ne correspond pas au projet.',
+            ]);
+        }
+    }
+
+    private function resolveNegotiatedLine(Dossier $dossier, array $scope, array $data): DossierNegotiatedPaymentLine
+    {
+        if (! empty($data['dossier_negotiated_payment_line_id'])) {
+            return DossierNegotiatedPaymentLine::query()
+                ->whereKey($data['dossier_negotiated_payment_line_id'])
+                ->where('company_id', $scope['company_id'])
+                ->when($scope['branch_id'] ?? null, fn ($query, $branchId) => $query->where('branch_id', $branchId), fn ($query) => $query->whereNull('branch_id'))
+                ->where('dossier_id', $dossier->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+        }
+
+        $line = $data['negotiated_line'] ?? [];
+        $designation = trim((string) ($line['designation'] ?? ''));
+        $negotiatedAmount = $this->normalizeAmount($line['negotiated_amount'] ?? 0);
+
+        if ($designation === '' || $negotiatedAmount <= 0) {
+            throw ValidationException::withMessages([
+                'negotiated_line' => 'Renseignez l objet et le montant negocie de la nouvelle ligne.',
+            ]);
+        }
+
+        $position = (int) DossierNegotiatedPaymentLine::query()
+            ->where('company_id', $scope['company_id'])
+            ->when($scope['branch_id'] ?? null, fn ($query, $branchId) => $query->where('branch_id', $branchId), fn ($query) => $query->whereNull('branch_id'))
+            ->where('dossier_id', $dossier->id)
+            ->lockForUpdate()
+            ->max('position') + 1;
+
+        return DossierNegotiatedPaymentLine::create([
+            'company_id' => $scope['company_id'],
+            'branch_id' => $scope['branch_id'] ?? null,
+            'client_id' => isset($data['client_id']) ? (int) $data['client_id'] : $dossier->client_id,
+            'dossier_id' => $dossier->id,
+            'designation' => $designation,
+            'negotiated_amount' => $negotiatedAmount,
+            'position' => $position,
+            'notes' => filled($line['notes'] ?? null) ? trim((string) $line['notes']) : null,
+            'created_by' => $data['created_by'] ?? null,
+        ]);
     }
 }

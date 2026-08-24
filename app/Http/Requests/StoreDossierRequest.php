@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\HasIntermediaryPayloadRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreDossierRequest extends FormRequest
 {
@@ -14,10 +15,30 @@ class StoreDossierRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Phase A compatibility: the legacy single client_id payload is
+     * normalized into the many-to-many client_ids + primary_client_id shape.
+     * Tenant-scoped resolution happens in DossierClientService (foreign ids
+     * never succeed).
+     */
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('client_ids') && $this->filled('client_id')) {
+            $clientId = (int) $this->input('client_id');
+            $this->merge([
+                'client_ids' => [$clientId],
+                'primary_client_id' => $clientId,
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
-            'client_id' => ['required', 'exists:clients,id'],
+            'client_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'client_ids.*' => ['required', 'integer', 'distinct'],
+            'primary_client_id' => ['required', 'integer', Rule::in((array) $this->input('client_ids', []))],
+            'client_id' => ['sometimes', 'nullable', 'integer', 'exists:clients,id'],
             'intermediary_id' => $this->intermediaryPayloadRule(),
             'city_id' => ['required', 'exists:cities,id'],
             'project_object' => ['required', 'string', 'max:255'],

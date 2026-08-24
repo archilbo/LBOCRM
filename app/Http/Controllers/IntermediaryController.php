@@ -122,7 +122,7 @@ class IntermediaryController extends Controller
             'id' => $dossier->id,
             'dossierNumber' => $dossier->dossier_number,
             'projectObject' => $dossier->project_object,
-            'clientName' => $dossier->client?->full_name,
+            'clientName' => $dossier->primaryClient?->full_name,
             'status' => $dossier->status,
             'workflowStep' => $dossier->workflow_step,
             'commune' => $dossier->commune,

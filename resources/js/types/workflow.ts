@@ -9,6 +9,15 @@ export type WorkflowRequirement = {
     actionLabel: string | null;
     actionUrl: string | null;
     hasFile: boolean;
+    clientCins?: Array<{
+        clientId: string;
+        fullName: string;
+        cin: string | null;
+        isPrimary: boolean;
+        hasFront: boolean;
+        hasBack: boolean;
+        complete: boolean;
+    }>;
 };
 
 export type WorkflowStep = {

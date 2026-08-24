@@ -10,21 +10,12 @@ use Tests\TestCase;
 
 class FinanceDocumentMetricsServiceTest extends TestCase
 {
-    public function test_conversion_keeps_expected_and_official_metrics_separate_without_duplicate_payment(): void
+    public function test_invoice_metrics_use_the_single_official_invoice_ledger(): void
     {
-        $internal = new FinanceDocument([
-            'id' => 10,
-            'type' => 'internal_invoice',
-            'status' => 'converted',
-            'total_ttc' => 1200,
-        ]);
-        $internal->setAttribute('id', 10);
-
         $official = new FinanceDocument([
             'id' => 11,
             'type' => 'invoice',
             'status' => 'partially_paid',
-            'source_document_id' => 10,
             'total_ttc' => 1200,
         ]);
         $official->setAttribute('id', 11);
@@ -35,7 +26,7 @@ class FinanceDocumentMetricsServiceTest extends TestCase
         ]);
 
         $metrics = app(FinanceDocumentMetricsService::class)->forDocuments(
-            new Collection([$internal, $official]),
+            new Collection([$official]),
             new Collection([$payment]),
         );
 

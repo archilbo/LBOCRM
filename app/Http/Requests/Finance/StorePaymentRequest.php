@@ -16,9 +16,15 @@ class StorePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'finance_document_id' => ['nullable', 'exists:finance_documents,id'],
+            'payment_mode' => ['nullable', Rule::in(['invoice', 'negotiated'])],
+            'finance_document_id' => [Rule::requiredIf(fn (): bool => $this->input('payment_mode') === 'invoice'), 'nullable', 'exists:finance_documents,id'],
             'client_id' => ['nullable', 'required_without:finance_document_id', 'exists:clients,id'],
             'dossier_id' => ['nullable', 'required_without:finance_document_id', 'exists:dossiers,id'],
+            'dossier_negotiated_payment_line_id' => ['nullable', 'exists:dossier_negotiated_payment_lines,id'],
+            'negotiated_line' => ['nullable', 'array'],
+            'negotiated_line.designation' => [Rule::requiredIf(fn (): bool => $this->input('payment_mode') === 'negotiated' && ! $this->filled('dossier_negotiated_payment_line_id')), 'nullable', 'string', 'max:255'],
+            'negotiated_line.negotiated_amount' => [Rule::requiredIf(fn (): bool => $this->input('payment_mode') === 'negotiated' && ! $this->filled('dossier_negotiated_payment_line_id')), 'nullable', 'numeric', 'min:0.01', 'max:999999999.99'],
+            'negotiated_line.notes' => ['nullable', 'string', 'max:2000'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'method' => ['nullable', Rule::enum(PaymentMethod::class)],
             'reference' => ['nullable', 'string', 'max:255'],

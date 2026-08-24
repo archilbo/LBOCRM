@@ -122,13 +122,14 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
         if (!can('documents.create')) return;
         setIsUploading(true);
         const formData = new FormData();
+        formData.append('client_id', payload.clientId);
         formData.append('dossier_id', payload.dossierId);
         formData.append('document_template_id', payload.documentTemplateId || '');
         formData.append('status', payload.status || 'uploaded');
         formData.append('notes', payload.notes || '');
         if (payload.cinFrontFile && payload.cinBackFile) {
-            formData.append('cin_front_file', payload.cinFrontFile);
-            formData.append('cin_back_file', payload.cinBackFile);
+            formData.append('file_front', payload.cinFrontFile);
+            formData.append('file_back', payload.cinBackFile);
         } else if (payload.file) {
             formData.append('file', payload.file);
         }
@@ -411,7 +412,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                         <button key={doc.id} type="button" onClick={() => router.visit(`/dossiers/${doc.dossierId}`)}
                                             className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]">
                                             <IconAlertTriangle size={12} className="shrink-0 text-amber-600" />
-                                            <span className="truncate">{doc.dossierNumber} â€” {doc.templateName || doc.originalFilename}</span>
+                                            <span className="truncate">{doc.dossierNumber} — {doc.templateName || doc.originalFilename}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -425,7 +426,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                     </div>
                 )}
 
-                {/* â”€â”€ Tab bar â”€â”€ */}
+                {/* ── Tab bar ── */}
                 <div className="flex items-center gap-6 border-b border-[var(--border)]">
                     {(['workspace', 'grouped'] as const).map((mode) => (
                         <button key={mode} type="button" onClick={() => setViewMode(mode)}
@@ -604,7 +605,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                                         <img src={previewDoc.downloadUrl} alt={previewDoc.originalFilename || ''}
                                             className="max-h-[240px] w-full object-contain bg-[var(--surface-2)]" />
                                     ) : previewDoc.mimeType === 'application/pdf' ? (
-                                        <iframe src={previewDoc.downloadUrl} title="AperÃ§u PDF"
+                                        <iframe src={previewDoc.downloadUrl} title="Aperçu PDF"
                                             className="h-[240px] w-full bg-[var(--surface-2)]" />
                                     ) : (
                                         <div className="flex h-32 items-center justify-center bg-[var(--surface-2)]">
@@ -694,7 +695,7 @@ export default function DocumentsIndex({ documents, documentGroups, clients, dos
                     <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 mb-4">
                         <IconAlertTriangle size={18} className="shrink-0 text-red-600" />
                         <p className="text-xs text-[var(--text-muted)]">
-                            Cette action est <span className="font-semibold text-red-600">irrÃ©versible</span>.
+                            Cette action est <span className="font-semibold text-red-600">irréversible</span>.
                         </p>
                     </div>
                     <p className="mb-5 text-sm text-[var(--text-muted)]">

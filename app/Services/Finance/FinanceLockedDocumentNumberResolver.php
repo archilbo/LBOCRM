@@ -60,7 +60,7 @@ class FinanceLockedDocumentNumberResolver
             'credit_note' => ['credit_note', 'credit note', 'avoir'],
             'invoice' => ['invoice', 'facture'],
             'quote' => ['quote', 'devis'],
-            'receipt' => ['receipt', 'recu', 'reÃ§u'],
+            'receipt' => ['receipt', 'recu', 'reçu'],
         ];
 
         foreach ($aliases as $type => $needles) {

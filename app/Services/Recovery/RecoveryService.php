@@ -4,6 +4,7 @@ namespace App\Services\Recovery;
 
 use App\Models\AuditLog;
 use App\Models\RecoveryRecord;
+use App\Models\Client;
 use App\Models\User;
 use App\Services\CompanyContext;
 use App\Services\PermissionRegistry;
@@ -84,6 +85,14 @@ class RecoveryService
             }
 
             abort_unless($user->can('delete', $entity), 403);
+
+            // A force-delete must never silently erase a shared project's
+            // membership or leave it without a primary client. The operator
+            // must first detach/reassign the client through the project UI.
+            if ($entity instanceof Client && $entity->dossiers()->exists()) {
+                throw new ConflictHttpException('Ce client est encore lié à un ou plusieurs projets. Retirez ou réattribuez ces liens avant la suppression définitive.');
+            }
+
             $entity->forceDelete();
             $record->update(['purged_by' => $user->id, 'purged_at' => now()]);
             $this->audit($record, $user, 'recovery.purged', 'Permanently purged '.$record->display_label);

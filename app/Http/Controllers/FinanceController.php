@@ -22,7 +22,7 @@ class FinanceController extends Controller
     public function index(): Response
     {
         $records = FinanceRecord::query()
-            ->with(['dossier.client', 'client'])
+            ->with(['dossier.primaryClient', 'client'])
             ->latest()
             ->get();
 
@@ -204,7 +204,7 @@ class FinanceController extends Controller
 
     private function prepareFinanceData(array $data): array
     {
-        $dossier = Dossier::query()->with('client')->findOrFail($data['dossier_id']);
+        $dossier = Dossier::query()->with('primaryClient')->findOrFail($data['dossier_id']);
 
         $totalTtc = (float) ($data['total_ttc'] ?? 0);
         $ht = (float) ($data['ht'] ?? 0);
@@ -279,13 +279,13 @@ class FinanceController extends Controller
     private function dossierOptions(): array
     {
         return Dossier::query()
-            ->with('client')
+            ->with('primaryClient')
             ->orderByDesc('created_at')
             ->get()
             ->map(fn (Dossier $dossier) => [
                 'id' => (string) $dossier->id,
                 'label' => $dossier->dossier_number . ($dossier->project_object ? ' - ' . $dossier->project_object : ''),
-                'clientName' => $dossier->client?->full_name ?? '-',
+                'clientName' => $dossier->primaryClient?->full_name ?? '-',
             ])
             ->values()
             ->all();

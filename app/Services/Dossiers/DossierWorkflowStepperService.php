@@ -12,7 +12,16 @@ class DossierWorkflowStepperService
 {
     public function evaluate(Dossier $dossier): array
     {
-        $dossier->loadMissing(['client', 'documents.template', 'contract', 'cahier', 'workflowRequirements.checkedBy']);
+        $dossier->loadMissing([
+            'client',
+            'clients',
+            'primaryClient',
+            'documents.template',
+            'documents.client',
+            'contract',
+            'cahier',
+            'workflowRequirements.checkedBy',
+        ]);
 
         $steps = collect($this->stepsForClient($dossier))
             ->map(fn (array $step, int $index) => $this->evaluateStep($dossier, $step, $index))
@@ -39,6 +48,7 @@ class DossierWorkflowStepperService
             ->map(function (array $requirement) use ($dossier, $step) {
                 $manualRecord = $this->manualRequirement($dossier, (string) $step['key'], (string) $requirement['key']);
                 $isManualConfig = $requirement['manual'] ?? false;
+                $isCinRequirement = $step['key'] === 'documents' && $requirement['key'] === 'cin';
 
                 return [
                     ...$requirement,
@@ -50,6 +60,12 @@ class DossierWorkflowStepperService
                     'actionLabel' => $this->requirementActionLabel($dossier, (string) $step['key'], (string) $requirement['key']),
                     'actionUrl' => $this->requirementActionUrl($dossier, (string) $step['key'], (string) $requirement['key']),
                     'hasFile' => $this->requirementHasFile($dossier, (string) $step['key'], (string) $requirement['key']),
+                    // One pair belongs to one linked client. Keeping this in
+                    // the workflow payload makes missing identity files clear
+                    // without exposing document paths or binary data.
+                    'clientCins' => $isCinRequirement
+                        ? $this->cinStatuses($dossier)->all()
+                        : [],
                 ];
             })
             ->values();
@@ -176,7 +192,7 @@ class DossierWorkflowStepperService
      */
     private function stepsForClient(Dossier $dossier): array
     {
-        $clientType = $dossier->client?->client_type === 'company'
+        $clientType = $dossier->primaryClient?->client_type === 'company'
             ? 'company'
             : 'person';
 
@@ -202,59 +218,68 @@ class DossierWorkflowStepperService
             ->all();
     }
 
-    private function hasCompleteCin(
-        Dossier $dossier
-    ): bool {
-        $cinDocuments =
-            $dossier->documents->filter(
-                function (
-                    DossierDocument $document
-                ): bool {
-                    if (
-                        ! filled(
-                            $document->stored_path
-                        )
-                        && ! filled(
-                            $document
-                                ->original_filename
-                        )
-                    ) {
-                        return false;
-                    }
+    private function hasCompleteCin(Dossier $dossier): bool
+    {
+        $statuses = $this->cinStatuses($dossier);
 
-                    $templateText =
-                        $this->normalize(
-                            implode(
-                                ' ',
-                                array_filter([
-                                    $document
-                                        ->template
-                                        ?->name,
-                                    $document
-                                        ->template
-                                        ?->code,
-                                ])
-                            )
-                        );
+        return $statuses->isNotEmpty()
+            && $statuses->every(fn (array $status): bool => $status['complete']);
+    }
 
-                    return Str::contains(
-                        $templateText,
-                        [
-                            'cin',
-                            'cni',
-                            'carte nationale',
-                        ]
-                    );
-                }
-            );
+    /**
+     * @return Collection<int, array{clientId: string, fullName: string, cin: string|null, isPrimary: bool, hasFront: bool, hasBack: bool, complete: bool}>
+     */
+    private function cinStatuses(Dossier $dossier): Collection
+    {
+        $clients = $dossier->clients;
 
-        return $cinDocuments->contains(
-            'document_side',
-            DossierDocument::SIDE_FRONT
-        ) && $cinDocuments->contains(
-            'document_side',
-            DossierDocument::SIDE_BACK
+        // Legacy rows that have not yet been backfilled still have a single
+        // primary client. Do not accidentally make their CIN satisfy future
+        // co-client requirements.
+        if ($clients->isEmpty() && $dossier->primaryClient) {
+            $clients = collect([$dossier->primaryClient]);
+        }
+
+        $cinDocuments = $dossier->documents->filter(
+            fn (DossierDocument $document): bool => $this->isStoredCinDocument($document),
         );
+
+        return $clients
+            ->map(function ($client) use ($cinDocuments, $dossier): array {
+                $isPrimary = (int) $client->id === (int) $dossier->primaryClient?->id;
+                $documents = $cinDocuments->filter(
+                    fn (DossierDocument $document): bool => (int) $document->client_id === (int) $client->id
+                        || ($document->client_id === null && $isPrimary),
+                );
+
+                $hasFront = $documents->contains('document_side', DossierDocument::SIDE_FRONT);
+                $hasBack = $documents->contains('document_side', DossierDocument::SIDE_BACK);
+
+                return [
+                    'clientId' => (string) $client->id,
+                    'fullName' => $client->full_name,
+                    'cin' => $client->cin,
+                    'isPrimary' => $isPrimary,
+                    'hasFront' => $hasFront,
+                    'hasBack' => $hasBack,
+                    'complete' => $hasFront && $hasBack,
+                ];
+            })
+            ->values();
+    }
+
+    private function isStoredCinDocument(DossierDocument $document): bool
+    {
+        if (! filled($document->stored_path) && ! filled($document->original_filename)) {
+            return false;
+        }
+
+        $templateText = $this->normalize(implode(' ', array_filter([
+            $document->template?->name,
+            $document->template?->code,
+        ])));
+
+        return Str::contains($templateText, ['cin', 'cni', 'carte nationale']);
     }
 
     private function hasDocument(Dossier $dossier, array $aliases): bool

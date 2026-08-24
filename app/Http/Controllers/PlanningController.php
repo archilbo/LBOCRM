@@ -14,7 +14,7 @@ class PlanningController extends Controller
     {
         abort_unless($permissions->allows($request->user(), 'tasks.view'), 403);
 
-        $tasks = Task::with(['dossier.client', 'assignees', 'creator'])
+        $tasks = Task::with(['dossier.primaryClient', 'assignees', 'creator'])
             ->orderBy('due_date')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -22,7 +22,7 @@ class PlanningController extends Controller
         $rows = $tasks->map(function (Task $task) {
             $assignee = $task->assignees->first();
             $dossier = $task->dossier;
-            $client = $dossier?->client;
+            $client = $dossier?->primaryClient;
 
             $dueDate = $task->due_date?->format('Y-m-d') ?? 'No date';
             $startsAt = $task->start_date?->diffForHumans() ?? 'Pending';

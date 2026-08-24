@@ -99,7 +99,7 @@ class ClientDocumentExplorerService
 
         $projects = $client->dossiers()
             ->whereIn('dossiers.id', $projectIds)
-            ->get(['id', 'dossier_number', 'project_object'])
+            ->get(['dossiers.id', 'dossiers.dossier_number', 'dossiers.project_object'])
             ->keyBy('id');
 
         return DossierDocument::query()
@@ -167,7 +167,7 @@ class ClientDocumentExplorerService
 
         $projects = $client->dossiers()
             ->whereIn('dossiers.id', $projectIds)
-            ->get(['id', 'dossier_number', 'project_object'])
+            ->get(['dossiers.id', 'dossiers.dossier_number', 'dossiers.project_object'])
             ->keyBy('id');
 
         $files = collect();
@@ -263,7 +263,7 @@ class ClientDocumentExplorerService
 
         $projects = $client->dossiers()
             ->whereIn('dossiers.id', $projectIds)
-            ->get(['id', 'dossier_number', 'project_object'])
+            ->get(['dossiers.id', 'dossiers.dossier_number', 'dossiers.project_object'])
             ->keyBy('id');
 
         $files = collect();

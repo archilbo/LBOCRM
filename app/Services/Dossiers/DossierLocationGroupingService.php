@@ -16,7 +16,7 @@ class DossierLocationGroupingService
     public function groups(User $user): array
     {
         $dossiers = $this->companyContext->applyTo(Dossier::query(), $user)
-            ->with(['client', 'documents', 'financeDocuments', 'payments'])
+            ->with(['primaryClient', 'documents', 'financeDocuments', 'payments'])
             ->latest()
             ->get();
 
@@ -65,8 +65,8 @@ class DossierLocationGroupingService
         return [
             'id' => $dossier->id,
             'clientId' => $dossier->client_id,
-            'ownerName' => $dossier->client?->full_name,
-            'clientNumber' => $dossier->client?->client_number,
+            'ownerName' => $dossier->primaryClient?->full_name,
+            'clientNumber' => $dossier->primaryClient?->client_number,
             'dossierNumber' => $dossier->dossier_number,
             'projectObject' => $dossier->project_object,
             'projectAddress' => $dossier->project_address,

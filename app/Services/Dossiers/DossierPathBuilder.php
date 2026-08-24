@@ -17,7 +17,7 @@ class DossierPathBuilder
             'DATA',
             static::folderSafe($dossier->city?->name ?? 'INCONNU'),
             static::folderSafe($dossier->commune ?? 'INCONNU'),
-            static::folderSafe($dossier->client?->full_name ?? 'INCONNU'),
+            static::folderSafe($dossier->primaryClient?->full_name ?? 'INCONNU'),
             $this->dossierFolderName($dossier),
         ]));
     }
@@ -87,7 +87,7 @@ class DossierPathBuilder
 
     private function contractPath(Contract $contract, Dossier $dossier, string $ext): string
     {
-        $client = $dossier->client;
+        $client = $dossier->primaryClient;
         $civility = $client?->civility ?? 'M';
         $name = $client?->full_name ?? 'contrat';
 

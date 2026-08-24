@@ -100,7 +100,35 @@ function getStepHints(step: number, form: ContractFormPayload, selectedClientId:
 }
 
 function parseAmount(value: string): number {
-    return Number(String(value || '0').replace(',', '.')) || 0;
+    return Number(String(value || '0').replace(/\s/g, '').replace(',', '.')) || 0;
+}
+
+function formatPricePerSquareMeter(value: string | number | null | undefined): string {
+    if (value === null || value === undefined || value === '') return '';
+
+    return String(parseAmount(String(value)));
+}
+
+function formatFeeRate(value: string | null | undefined, fallback = ''): string {
+    const normalized = String(value ?? '').trim().replace(',', '.');
+    if (!normalized) return fallback;
+
+    const rate = Number(normalized);
+
+    return Number.isFinite(rate) ? String(rate) : fallback;
+}
+
+function preferredArchitectFeeOption(
+    options: ArchitectFeeOption[],
+    calculationType: ArchitectFeeOption['calculationType'],
+): ArchitectFeeOption | undefined {
+    const activeOptions = options.filter((option) => option.isActive && option.calculationType === calculationType);
+
+    return activeOptions.find((option) => option.isDefault)
+        ?? (calculationType === 'percentage'
+            ? activeOptions.find((option) => Number(option.percentageRate?.replace(',', '.')) === 0.5)
+            : undefined)
+        ?? activeOptions[0];
 }
 
 function FormErrorSummary({ errors }: { errors?: Record<string, string> }) {
@@ -137,7 +165,7 @@ function CalculationSummary({ estimation, ht, tva, ttc }: { estimation?: number;
     return (
         <Card className="mt-4 border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Resume</p>
-            <div className={cn('grid gap-2', estimation != null ? 'grid-cols-4' : 'grid-cols-3')}>
+            <div className="grid grid-cols-2 gap-2">
                 {items.map((item) => (
                     <Card key={item.label} className={cn(
                         'rounded-lg p-3 shadow-none',
@@ -161,12 +189,35 @@ type ClientFieldsProps = {
     dossier_id: string;
     dossierOptions: { id: string; label: string }[];
     onDossierSelect: (key: string) => void;
+    projectClients: ContractDossierOption['clients'];
     disabled?: boolean;
 };
 
+function ProjectClientsSummary({ clients }: { clients: ContractDossierOption['clients'] }) {
+    if (clients.length === 0) return null;
+
+    const primaryClient = clients.find((client) => client.isPrimary) ?? clients[0];
+    const names = clients
+        .map((client) => [client.civility, client.fullName].filter(Boolean).join(' '))
+        .filter(Boolean)
+        .join(' / ');
+    const cins = clients.map((client) => client.cin).filter(Boolean).join(' / ') || '-';
+
+    return (
+        <Card className="border border-[var(--border)] bg-[var(--surface-2)] p-3 shadow-none">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">Identite du contrat</p>
+            <div className="mt-2 space-y-1.5 text-xs">
+                <p className="break-words font-medium text-[var(--foreground)]">{names || '-'}</p>
+                <p className="break-words text-[var(--text-muted)]">CIN : {cins}</p>
+                <p className="break-words text-[var(--text-muted)]">Adresse principale : {primaryClient?.address || '-'}</p>
+            </div>
+        </Card>
+    );
+}
+
 function ClientFields({
     selectedClientId, clientOptions, onClientSelect,
-    dossier_id, dossierOptions, onDossierSelect, disabled,
+    dossier_id, dossierOptions, onDossierSelect, projectClients, disabled,
 }: ClientFieldsProps) {
     return (
         <>
@@ -190,6 +241,7 @@ function ClientFields({
                     isDisabled={!selectedClientId || disabled}
                 />
             </div>
+            <ProjectClientsSummary clients={projectClients} />
         </>
     );
 }
@@ -218,7 +270,9 @@ function CalculationSection({
         .filter((option) => option.isActive && option.calculationType === 'percentage')
         .map((option) => ({
             id: option.id,
-            label: option.isDefault ? `${option.percentageRate ?? option.name}% - Par defaut` : `${option.percentageRate ?? option.name}%`,
+            label: option.isDefault
+                ? `${formatFeeRate(option.percentageRate, option.name)}% - Par defaut`
+                : `${formatFeeRate(option.percentageRate, option.name)}%`,
         }));
     const hasForfaitOption = architectFeeOptions.some((option) => option.isActive && option.calculationType === 'forfait');
 
@@ -265,9 +319,10 @@ function CalculationSection({
                             <label className={drawerStyles.label}>Prix / m2</label>
                             <Input type="text" inputMode="decimal" value={form.price_per_square_meter}
                                 onChange={(e) => updateField('price_per_square_meter', e.target.value)}
+                                onBlur={() => updateField('price_per_square_meter', formatPricePerSquareMeter(form.price_per_square_meter))}
                                 aria-invalid={firstError(errors, 'price_per_square_meter') ? true : undefined}
                                 className={drawerStyles.input}
-                                placeholder="ex: 900" />
+                                placeholder="ex: 900.5" />
                         </div>
                     </div>
                 </>
@@ -302,16 +357,26 @@ type ReviewStepProps = {
 };
 
 function ReviewStep({ form, dossiers, isForfait, estimation, ht, tva, ttc, updateField }: ReviewStepProps) {
+    const selectedDossier = dossiers.find((dossier) => dossier.id === form.dossier_id);
+    const contractClients = selectedDossier?.clients ?? [];
+    const contractClientNames = contractClients
+        .map((client) => [client.civility, client.fullName].filter(Boolean).join(' '))
+        .filter(Boolean)
+        .join(' / ');
+    const contractClientCins = contractClients.map((client) => client.cin).filter(Boolean).join(' / ');
+
     const summaryRows = [
-        { label: 'Projet', value: dossiers.find((d) => d.id === form.dossier_id)?.label || form.dossier_id || '-' },
+        { label: 'Projet', value: selectedDossier?.label || form.dossier_id || '-' },
+        { label: 'Clients', value: contractClientNames || '-' },
+        { label: 'CIN', value: contractClientCins || '-' },
         { label: 'Statut', value: form.status, capitalize: true },
         { label: 'Mode de calcul', value: isForfait ? 'Forfait' : 'Pourcentage' },
         ...(isForfait
             ? [{ label: 'Forfait TTC', value: form.forfait_ttc ? formatCompactMoney(Number(form.forfait_ttc)) : '-' }]
             : [
-                { label: 'Taux honoraires', value: `${form.fee_rate_percent}%` },
+                { label: 'Taux honoraires', value: `${formatFeeRate(form.fee_rate_percent)}%` },
                 { label: 'Surface', value: form.surface ? `${form.surface} m²` : '-' },
-                { label: 'Prix / m²', value: form.price_per_square_meter ? formatCompactMoney(Number(form.price_per_square_meter)) : '-' },
+                { label: 'Prix / m²', value: form.price_per_square_meter ? `${formatPricePerSquareMeter(form.price_per_square_meter)} MAD/m²` : '-' },
             ]
         ),
         ...(form.finance_ttc
@@ -358,6 +423,7 @@ type EditFormProps = {
     dossier_id: string;
     dossierOptions: { id: string; label: string }[];
     onDossierSelect: (key: string) => void;
+    projectClients: ContractDossierOption['clients'];
     visibleStatusOptions: SelectOption[];
     architectFeeOptions: ArchitectFeeOption[];
     onArchitectFeeOptionChange: (id: string) => void;
@@ -367,7 +433,7 @@ type EditFormProps = {
 function EditForm({
     form, errors, updateField, isForfait, estimation, ht, tva, ttc, lockProject, mode,
     selectedClientId, clientOptions,
-    onClientSelect, dossier_id, dossierOptions, onDossierSelect,
+    onClientSelect, dossier_id, dossierOptions, onDossierSelect, projectClients,
     visibleStatusOptions,
     architectFeeOptions, onArchitectFeeOptionChange, onCalculationModeChange,
 }: EditFormProps) {
@@ -380,6 +446,7 @@ function EditForm({
                 dossier_id={dossier_id}
                 dossierOptions={dossierOptions}
                 onDossierSelect={onDossierSelect}
+                projectClients={projectClients}
                 disabled
             />
             <div className={drawerStyles.fieldGroup}>
@@ -467,9 +534,19 @@ export function ContractDrawer({
         return client?.dossiers ?? [];
     }, [clients, selectedClientId]);
 
+    const selectedDossier = useMemo(
+        () => dossiers.find((dossier) => dossier.id === form.dossier_id)
+            ?? clientDossiers.find((dossier) => dossier.id === form.dossier_id),
+        [clientDossiers, dossiers, form.dossier_id],
+    );
+
+    const projectClients = selectedDossier?.clients ?? [];
+
     const dossierOptions = useMemo(() => {
-        return clientDossiers.map((d) => ({ id: d.id, label: d.label }));
-    }, [clientDossiers]);
+        return clientDossiers
+            .filter((d) => mode === 'edit' || !d.hasContract)
+            .map((d) => ({ id: d.id, label: d.label }));
+    }, [clientDossiers, mode]);
 
     useEffect(() => {
         if (!isOpen) { setStep(0); setSelectedClientId(null); return; }
@@ -482,7 +559,7 @@ export function ContractDrawer({
                 dossier_id: contract.dossierId || '',
                 status: contract.status || 'draft',
                 surface: contract.surface != null ? String(contract.surface) : '',
-                price_per_square_meter: contract.pricePerSquareMeter != null ? String(contract.pricePerSquareMeter) : '',
+                price_per_square_meter: formatPricePerSquareMeter(contract.pricePerSquareMeter),
                 calculation_mode: contract.calculationMode || 'percentage',
                 architect_fee_option_id: contract.architectFeeOptionId ?? '',
                 fee_rate_percent: contract.feeRatePercent != null ? String(contract.feeRatePercent) : '',
@@ -499,19 +576,20 @@ export function ContractDrawer({
             setSelectedClientId(client?.id ?? null);
 
             const floorArea = initialFloorArea ?? client?.dossiers.find((d) => d.id === initialDossierId)?.floorArea;
+            const defaultOption = preferredArchitectFeeOption(architectFeeOptions, 'percentage');
 
             setForm({
                 ...emptyForm,
                 dossier_id: initialDossierId,
                 surface: floorArea != null ? String(floorArea) : '',
-                architect_fee_option_id: architectFeeOptions.find((option) => option.isDefault && option.isActive)?.id ?? '',
-                calculation_mode: architectFeeOptions.find((option) => option.isDefault && option.isActive)?.calculationType ?? 'percentage',
-                fee_rate_percent: architectFeeOptions.find((option) => option.isDefault && option.isActive)?.percentageRate ?? '',
+                architect_fee_option_id: defaultOption?.id ?? '',
+                calculation_mode: defaultOption?.calculationType ?? 'percentage',
+                fee_rate_percent: defaultOption?.percentageRate ?? '',
             });
             return;
         }
         setSelectedClientId(null);
-        const defaultOption = architectFeeOptions.find((option) => option.isDefault && option.isActive);
+        const defaultOption = preferredArchitectFeeOption(architectFeeOptions, 'percentage');
         setForm({
             ...emptyForm,
             architect_fee_option_id: defaultOption?.id ?? '',
@@ -592,8 +670,7 @@ export function ContractDrawer({
         const matchingOptions = architectFeeOptions.filter((option) => option.isActive && option.calculationType === calculationMode);
         setForm((previous) => {
             const selectedOption = matchingOptions.find((option) => option.id === previous.architect_fee_option_id)
-                ?? matchingOptions.find((option) => option.isDefault)
-                ?? matchingOptions[0];
+                ?? preferredArchitectFeeOption(architectFeeOptions, calculationMode);
 
             return {
                 ...previous,
@@ -627,6 +704,7 @@ export function ContractDrawer({
             dossier_id={form.dossier_id}
             dossierOptions={dossierOptions}
             onDossierSelect={handleDossierSelect}
+            projectClients={projectClients}
             visibleStatusOptions={visibleStatusOptions}
             architectFeeOptions={architectFeeOptions}
             onArchitectFeeOptionChange={handleArchitectFeeOptionChange}
@@ -642,6 +720,7 @@ export function ContractDrawer({
                     dossier_id={form.dossier_id}
                     dossierOptions={dossierOptions}
                     onDossierSelect={handleDossierSelect}
+                    projectClients={projectClients}
                     disabled={lockProject}
                 />
             )}

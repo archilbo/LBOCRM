@@ -5,7 +5,6 @@ namespace App\Services\Finance;
 use App\Models\FinanceDocument;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class FinanceDocumentIssuanceService
 {
@@ -18,12 +17,6 @@ class FinanceDocumentIssuanceService
 
     public function issue(FinanceDocument $document, ?User $user = null): FinanceDocument
     {
-        if ($document->isInternalInvoice()) {
-            throw ValidationException::withMessages([
-                'finance_document' => 'Une facture interne ne peut pas etre emise ou exportee avant la mise en place de son modele non comptable dedie.',
-            ]);
-        }
-
         if ($document->issued_at && $document->rendered_html_snapshot) {
             return $document;
         }

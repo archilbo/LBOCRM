@@ -17,7 +17,7 @@ import { useTranslation } from '@/lib/i18n';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { ClientFormPayload, ClientProjectPayment, ClientRow, ClientStatus, ClientWorkspace } from '@/features/clients/types';
 import type { ExplorerDocument } from '@/features/documents/explorer/documentExplorerTypes';
-import type { DossierFormPayload } from '@/features/dossiers/types';
+import type { DossierFormPayload, DossierLocationOptions } from '@/features/dossiers/types';
 import type { FinanceDocument, FinanceDocumentType, FinanceSettings, TemplateOption } from '@/features/finance/types';
 import { ClientDrawer } from '@/components/drawers';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
@@ -28,6 +28,8 @@ import { DocumentDrawer } from '@/components/drawers';
 import type { DocumentTemplateOption, DocumentUploadPayload } from '@/features/documents/types';
 import { ContractDrawer } from '@/components/drawers';
 import type { ArchitectFeeOption, ContractFormPayload, ContractClientOption, ContractDossierOption } from '@/features/contracts/types';
+import { ContractActions } from '@/features/contracts/components/ContractActions';
+import { ContractSummaryCard } from '@/features/contracts/components/ContractSummaryCard';
 import { formatDate } from '@/lib/formatters';
 import { formatMoney } from '@/lib/currency';
 import { ClientArchivesCard } from '@/features/clients/components/ClientArchivesCard';
@@ -58,6 +60,7 @@ type DossierSummary = {
     workflowStep: string;
     updatedAt: string | null;
     floorArea?: number | string | null;
+    clients: ContractDossierOption['clients'];
 };
 
 type PageProps = {
@@ -71,6 +74,7 @@ type PageProps = {
     financeSettings: FinanceSettings;
     architectFeeOptions: ArchitectFeeOption[];
     cities: { id: number; name: string; code?: string; color?: string }[];
+    locationOptions: DossierLocationOptions;
     tab?: string;
 };
 
@@ -108,7 +112,7 @@ function isClientTab(value: string | undefined): value is TabId {
     return validTabs.includes(value as TabId);
 }
 
-export default function ClientShow({ client, dossiers, workspace, cities, intermediaries, documentTemplates, workflowTemplateMap, financeTemplates, financeSettings, architectFeeOptions, tab }: PageProps) {
+export default function ClientShow({ client, dossiers, workspace, cities, locationOptions, intermediaries, documentTemplates, workflowTemplateMap, financeTemplates, financeSettings, architectFeeOptions, tab }: PageProps) {
     const { t } = useTranslation();
     const { can } = usePermissions();
 
@@ -224,6 +228,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
         invoicesTotal: 0,
         paidTotal: 0,
         remainingTotal: 0,
+        negotiatedPaymentLines: [],
         updatedAt: d.updatedAt,
     }));
 
@@ -280,11 +285,14 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
         address: null,
         floorArea: d.floorArea ?? null,
         landSurface: null,
-    })), [client.id, dossiers]);
+        negotiatedPaymentLines: projects.find((project) => String(project.id) === String(d.id))?.negotiatedPaymentLines ?? [],
+    })), [client.id, dossiers, projects]);
 
     function toDossierBackendPayload(payload: DossierFormPayload, clientId: number) {
+    const clientIds = payload.clientIds.length > 0 ? payload.clientIds : [String(clientId)];
     return {
-        client_id: payload.clientId || String(clientId),
+        client_ids: clientIds,
+        primary_client_id: payload.primaryClientId || clientIds[0],
         intermediary_id: payload.intermediaryId || null,
         city_id: payload.cityId || null,
         project_object: payload.projectObject || null,
@@ -440,18 +448,20 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
         cin: client.cin ?? '',
         dossiers: dossiers.map((d) => ({
             id: String(d.id),
-            label: d.dossierNumber,
+            label: d.projectObject ? `${d.projectObject} — ${d.dossierNumber}` : d.dossierNumber,
             floorArea: d.floorArea ?? undefined,
             hasContract: !!workspace.selectedProject?.contract && String(workspace.selectedProject.id) === String(d.id),
+            clients: d.clients,
         })),
     }], [client, dossiers, workspace.selectedProject]);
 
     const contractDossiers: ContractDossierOption[] = useMemo(() =>
         dossiers.map((d) => ({
             id: String(d.id),
-            label: d.dossierNumber,
+            label: d.projectObject ? `${d.projectObject} — ${d.dossierNumber}` : d.dossierNumber,
             floorArea: d.floorArea ?? undefined,
             hasContract: !!workspace.selectedProject?.contract && String(workspace.selectedProject.id) === String(d.id),
+            clients: d.clients,
         })),
     [dossiers, workspace.selectedProject]);
 
@@ -518,7 +528,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
             formData.append('document_template_id', payload.documentTemplateId || '');
             // Client ownership guard: backend verifies the chosen Project
             // belongs to this Client before storing.
-            formData.append('client_id', String(client.id));
+            formData.append('client_id', payload.clientId || String(client.id));
             if (uploadStepKey) formData.append('workflow_step_key', uploadStepKey);
             if (uploadRequirementKey) formData.append('workflow_req_key', uploadRequirementKey);
         }
@@ -985,6 +995,23 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                             </div>
 
                             {workspace.contracts.length > 0 ? (
+                                <>
+                                    <div className="grid gap-3 lg:grid-cols-2">
+                                        {workspace.contracts.map((contract) => (
+                                            <ContractSummaryCard
+                                                key={contract.id}
+                                                contract={contract}
+                                                context={contract.projectObject ? `${contract.projectObject} · ${contract.dossierNumber}` : contract.dossierNumber}
+                                                headerActions={<ContractActions
+                                                    contract={contract}
+                                                    returnTo={clientWorkspacePath('contracts')}
+                                                    onEdit={() => { setEditContract(contract); setContractFormErrors({}); setContractDrawerOpen(true); }}
+                                                    onOpenDocuments={() => router.visit(`/dossiers/${contract.dossierId}?tab=documents`)}
+                                                />}
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="hidden" aria-hidden="true">
                                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                     {workspace.contracts.map((contract) => (
                                         <div key={contract.id}
@@ -1094,6 +1121,8 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                                         </div>
                                     ))}
                                 </div>
+                                    </div>
+                                </>
                             ) : (
                                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
                                     <AppEmptyState
@@ -1299,6 +1328,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     clients={[{ id: String(client.id), label: client.fullName }]}
                     intermediaries={intermediaries}
                     cities={cities.map((city) => ({ ...city, code: city.code ?? '', color: city.color ?? '' }))}
+                    locationOptions={locationOptions}
                     initialClientId={String(client.id)}
                     onOpenChange={setProjectDrawerOpen}
                     onSubmit={handleProjectSubmit}
@@ -1332,7 +1362,7 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                         setPaymentDrawerOpen(open);
                         if (!open) setPaymentInvoice(null);
                     }}
-                    invoices={selectedProject?.financeDocuments.filter((document) => document.type === 'invoice' || document.type === 'internal_invoice') ?? []}
+                    invoices={selectedProject?.financeDocuments.filter((document) => document.type === 'invoice') ?? []}
                     invoice={paymentInvoice}
                     clients={[{ id: String(client.id), label: client.fullName, cin: client.cin, address: client.address }]}
                     dossiers={dossierOptions}
@@ -1340,7 +1370,6 @@ export default function ClientShow({ client, dossiers, workspace, cities, interm
                     defaultDossierId={selectedProject ? String(selectedProject.id) : undefined}
                     lockClientContext
                     lockDossierContext
-                    allowAdvancePayment={selectedProject?.financeEligibility.canRecordAdvance ?? false}
                     returnTo={financeReturnTo}
                 />
 

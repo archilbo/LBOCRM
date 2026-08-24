@@ -53,7 +53,7 @@ final class LegacyExcelDryRunCommand extends Command
         }
 
         $clients = Client::query()->where('company_id', $companyId)->when($branchId, fn ($q) => $q->where('branch_id', $branchId))->get();
-        $dossiers = Dossier::query()->with(['archiveRecord', 'cahier'])->where('company_id', $companyId)->when($branchId, fn ($q) => $q->where('branch_id', $branchId))->get();
+        $dossiers = Dossier::query()->with(['archiveRecord', 'cahier', 'clients:clients.id'])->where('company_id', $companyId)->when($branchId, fn ($q) => $q->where('branch_id', $branchId))->get();
         $cities = City::query()->get();
         $documents = FinanceDocument::query()->where('company_id', $companyId)->when($branchId, fn ($q) => $q->where('branch_id', $branchId))->get();
         $payments = Payment::query()->where('company_id', $companyId)->when($branchId, fn ($q) => $q->where('branch_id', $branchId))->get();
@@ -182,8 +182,13 @@ final class LegacyExcelDryRunCommand extends Command
     private function matchDossier($dossiers, ?int $clientId, string $project, string $address): ?Dossier
     {
         $normal = fn (string $value) => Str::upper(preg_replace('/[^\pL\pN]/u', '', Str::ascii($value)) ?? '');
-        return $dossiers->first(fn (Dossier $dossier) => $clientId && $dossier->client_id === $clientId && $normal((string) $dossier->project_object) === $normal($project))
-            ?? $dossiers->first(fn (Dossier $dossier) => $clientId && $address !== '' && $dossier->client_id === $clientId && $normal((string) $dossier->project_address) === $normal($address));
+        return $dossiers->first(fn (Dossier $dossier) => $clientId && $this->hasClientMembership($dossier, $clientId) && $normal((string) $dossier->project_object) === $normal($project))
+            ?? $dossiers->first(fn (Dossier $dossier) => $clientId && $address !== '' && $this->hasClientMembership($dossier, $clientId) && $normal((string) $dossier->project_address) === $normal($address));
+    }
+
+    private function hasClientMembership(Dossier $dossier, int $clientId): bool
+    {
+        return $dossier->clients->contains('id', $clientId) || (int) $dossier->client_id === $clientId;
     }
 
     private function finance(Worksheet $sheet, int $row, string $project, $documents, $payments, ?int $dossierId): array

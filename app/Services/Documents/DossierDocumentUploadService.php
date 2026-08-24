@@ -3,6 +3,7 @@
 namespace App\Services\Documents;
 
 use App\Models\DocumentTemplate;
+use App\Models\Client;
 use App\Models\Dossier;
 use App\Models\DossierDocument;
 use App\Services\Dossiers\DossierPathBuilder;
@@ -30,6 +31,7 @@ final class DossierDocumentUploadService
         array $filesBySide,
         string $status,
         ?string $notes,
+        ?Client $client = null,
     ): Collection {
         $newPaths = [];
         $oldPaths = [];
@@ -42,6 +44,7 @@ final class DossierDocumentUploadService
                     $filesBySide,
                     $status,
                     $notes,
+                    $client,
                     &$newPaths,
                     &$oldPaths,
                 ): Collection {
@@ -54,6 +57,7 @@ final class DossierDocumentUploadService
                             $template,
                             $status,
                             $notes,
+                            $client,
                             &$newPaths,
                             &$oldPaths,
                         ): DossierDocument {
@@ -70,11 +74,17 @@ final class DossierDocumentUploadService
                                     'document_side',
                                     $side
                                 )
+                                ->when(
+                                    $client !== null,
+                                    fn ($query) => $query->where('client_id', $client->id),
+                                    fn ($query) => $query->whereNull('client_id'),
+                                )
                                 ->lockForUpdate()
                                 ->first();
 
                             $clientName = mb_strtoupper(
-                                $dossier->client?->full_name
+                                $client?->full_name
+                                    ?? $dossier->primaryClient?->full_name
                                     ?? 'CLIENT'
                             );
 
@@ -134,6 +144,7 @@ final class DossierDocumentUploadService
 
                             $payload = [
                                 'dossier_id' => $dossier->id,
+                                'client_id' => $client?->id,
                                 'document_template_id' =>
                                     $template->id,
                                 'document_side' => $side,

@@ -20,9 +20,7 @@ import { AppDatePicker } from '@/components/ui/AppDatePicker';
 import {
     CinScannerPanel,
 } from '@/features/clients/cin-scanner/CinScannerPanel';
-import {
-    applyVerifiedCinScan,
-} from '@/features/clients/cin-scanner/applyCinScan';
+import { applyCinScan } from '@/features/clients/cin-scanner/applyCinScan';
 import type {
     CinScanResult,
 } from '@/features/clients/cin-scanner/types';
@@ -51,6 +49,21 @@ const minimumPersonalCniExpiry = today(getLocalTimeZone())
   .add({ months: 3, days: 1 })
   .toString();
 
+function importedNameParts(client: ClientRow): Pick<ClientFormPayload, 'firstName' | 'lastName'> {
+  if (client.firstName || client.lastName) {
+    return {
+      firstName: client.firstName ?? '',
+      lastName: client.lastName ?? '',
+    };
+  }
+
+  const [firstName = '', ...lastNameParts] = client.fullName.trim().split(/\s+/);
+
+  return {
+    firstName,
+    lastName: lastNameParts.join(' '),
+  };
+}
 
 export function ClientDrawer({ isOpen, mode, client, onOpenChange, onSubmit, errors = {}, isSubmitting = false }: ClientDrawerProps) {
   const { t } = useTranslation();
@@ -78,11 +91,13 @@ export function ClientDrawer({ isOpen, mode, client, onOpenChange, onSubmit, err
     setLastScan(null);
     setCniExpiryTouched(false);
     if (mode === 'edit' && client) {
+      const name = importedNameParts(client);
+
       setForm({
         clientType: client.clientType ?? 'person',
         civility: client.civility ?? 'Mr',
-        firstName: client.firstName ?? '',
-        lastName: client.lastName ?? '',
+        firstName: name.firstName,
+        lastName: name.lastName,
         companyName: client.companyName ?? '',
         cin: client.cin ?? '',
         ice: client.ice ?? '',
@@ -163,7 +178,7 @@ export function ClientDrawer({ isOpen, mode, client, onOpenChange, onSubmit, err
   function handleCinAutoFill(
     result: CinScanResult,
   ): void {
-    const applied = applyVerifiedCinScan(
+    const applied = applyCinScan(
       form,
       result,
       {
@@ -202,7 +217,7 @@ export function ClientDrawer({ isOpen, mode, client, onOpenChange, onSubmit, err
             {t('clients.cancel')}
           </AppButton>
           <AppButton variant="solid" color="primary" type="submit" form="client-form"
-            isDisabled={mode === 'create' && inputMode === 'scan'}>
+            isDisabled={inputMode === 'scan'}>
             {mode === 'create' ? t('clients.create') : t('clients.save')}
           </AppButton>
         </>
@@ -218,7 +233,7 @@ export function ClientDrawer({ isOpen, mode, client, onOpenChange, onSubmit, err
           />
         </DrawerSection>
 
-        {mode === 'create' && form.clientType === 'person' && (
+        {form.clientType === 'person' && (
           <div className="flex overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <button type="button" onClick={() => setInputMode('manual')}
               className={cn(
@@ -243,17 +258,15 @@ export function ClientDrawer({ isOpen, mode, client, onOpenChange, onSubmit, err
           </div>
         )}
 
-        {inputMode === 'scan' && form.clientType === 'person' ? (
-    <CinScannerPanel
-        onAutoFill={handleCinAutoFill}
-        onContinue={() =>
-            setInputMode('manual')
-        }
-        onCancel={() =>
-            setInputMode('manual')
-        }
-    />
-) : null}
+        {isOpen && form.clientType === 'person' && canScanCin ? (
+          <div className={cn(inputMode !== 'scan' && 'hidden')}>
+            <CinScannerPanel
+              onApply={handleCinAutoFill}
+              onContinue={() => setInputMode('manual')}
+              onCancel={() => setInputMode('manual')}
+            />
+          </div>
+        ) : null}
 
         {inputMode === 'manual' ? (
           <>
@@ -274,6 +287,16 @@ export function ClientDrawer({ isOpen, mode, client, onOpenChange, onSubmit, err
                       ? ` · ${lastScan.reviewCount} valeur(s) doivent être vérifiées manuellement`
                       : ''}
                   </p>
+                  <AppButton
+                    compact
+                    size="sm"
+                    variant="quiet"
+                    onPress={() => setInputMode('scan')}
+                    className="mt-1.5"
+                  >
+                    <IconScan size={13} />
+                    Voir ou copier les données scannées
+                  </AppButton>
                 </div>
               </div>
             ) : null}

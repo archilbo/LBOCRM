@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { IconAlertCircle, IconArchive, IconArrowLeft, IconArrowRight, IconCoin, IconBuilding, IconCalculator, IconCalendar, IconCheck, IconCircleCheck, IconCircle, IconCircleDot, IconClipboardCheck, IconContract, IconDownload, IconExternalLink, IconFileCheck, IconFileDownload, IconFileText, IconFileUpload, IconFiles, IconFolder, IconHistory, IconBuildingBank, IconLayoutDashboard, IconListCheck, IconMap, IconMapPin, IconNotes, IconDots, IconPencil, IconPercentage, IconPrinter, IconReceipt2, IconRuler, IconTrash, IconUserCircle } from '@tabler/icons-react';
+import { IconAlertCircle, IconArrowLeft, IconArrowRight, IconCoin, IconBuilding, IconCalculator, IconCalendar, IconCheck, IconCircleCheck, IconCircle, IconCircleDot, IconClipboardCheck, IconContract, IconDownload, IconFileCheck, IconFileDownload, IconFileText, IconFileUpload, IconFiles, IconFolder, IconHistory, IconBuildingBank, IconLayoutDashboard, IconListCheck, IconMap, IconMapPin, IconNotes, IconDots, IconPencil, IconPercentage, IconPrinter, IconReceipt2, IconRuler, IconTrash, IconUserCircle } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 
 
@@ -12,7 +12,6 @@ import { AppButton } from '@/components/ui/AppButton';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/cn';
 import { EntityTabs } from '@/components/navigation/entity-tabs';
-import { archiveVisualStatus } from '@/config/statuses';
 import { formatDate } from '@/lib/formatters';
 import { ProjectWorkflowStepper } from '@/features/dossiers/components/ProjectWorkflowStepper';
 import { WorkflowTab } from '@/features/dossiers/components/WorkflowTab';
@@ -23,9 +22,11 @@ import { DocumentDrawer } from '@/components/drawers';
 import { ContractDrawer } from '@/components/drawers';
 import { FinanceDrawer } from '@/components/drawers';
 import { ArchiveDrawer } from '@/features/archives/drawers/ArchiveDrawer';
-import type { DossierFormPayload, DossierRow, ClientOption, City } from '@/features/dossiers/types';
+import type { DossierFormPayload, DossierLocationOptions, DossierRow, ClientOption, City } from '@/features/dossiers/types';
 import type { DossierOption, DocumentTemplateOption, DocumentUploadPayload } from '@/features/documents/types';
 import type { ArchitectFeeOption, ContractClientOption, ContractFormPayload, ContractRow } from '@/features/contracts/types';
+import { ContractSummaryCard } from '@/features/contracts/components/ContractSummaryCard';
+import { ArchiveSummaryCard } from '@/features/archives/components/ArchiveSummaryCard';
 import type { ArchiveFormPayload, BoxOption, ShelfOption } from '@/features/archives/types';
 import type { FinanceDossierOption, FinanceFormPayload } from '@/features/finance/types';
 import type { FormErrors } from '@/lib/formErrors';
@@ -82,6 +83,7 @@ type PageProps = {
     clients: ClientOption[];
     intermediaries: ClientOption[];
     cities: City[];
+    locationOptions: DossierLocationOptions;
     dossiers: DossierOption[];
     templates: DocumentTemplateOption[];
     workflowTemplateMap: Record<string, string>;
@@ -152,6 +154,7 @@ export default function DossierShow({
     clients,
     intermediaries,
     cities,
+    locationOptions,
     dossiers: dossiersOptions,
     templates,
     workflowTemplateMap,
@@ -220,6 +223,7 @@ export default function DossierShow({
 
     const [editDrawerOpen, setEditDrawerOpen] = useState(false);
     const [documentDrawerOpen, setDocumentDrawerOpen] = useState(false);
+    const [initialDocumentClientId, setInitialDocumentClientId] = useState(dossier.primaryClientId || dossier.clientId);
     const [initialTemplateId, setInitialTemplateId] = useState('');
     const [pendingStepKey, setPendingStepKey] = useState('');
     const [pendingReqKey, setPendingReqKey] = useState('');
@@ -235,6 +239,7 @@ export default function DossierShow({
         (
             stepKey?: string,
             reqKey?: string,
+            clientId?: string,
         ) => {
             const resolvedTemplateId =
                 reqKey
@@ -255,6 +260,10 @@ export default function DossierShow({
                 resolvedTemplateId
             );
 
+            setInitialDocumentClientId(
+                clientId || dossier.primaryClientId || dossier.clientId,
+            );
+
             if (
                 reqKey
                 && ! resolvedTemplateId
@@ -266,7 +275,7 @@ export default function DossierShow({
 
             setDocumentDrawerOpen(true);
         },
-        [workflowTemplateMap, t],
+        [workflowTemplateMap, t, dossier.primaryClientId, dossier.clientId],
     );
 
     function handleArchiveSubmit(payload: ArchiveFormPayload) {
@@ -284,7 +293,7 @@ export default function DossierShow({
     const totalFinance = finance?.summary.totalTtc ?? financeRecords.filter((record) => record.type === 'invoice' && record.status !== 'cancelled').reduce((sum, record) => sum + record.totalTtc, 0);
     const paidFinance = finance?.summary.paidTotal ?? financeRecords.filter((record) => record.type === 'invoice' && record.status !== 'cancelled').reduce((sum, record) => sum + record.paid, 0);
     const remainingFinance = finance?.summary.remainingTotal ?? financeRecords.filter((record) => record.type === 'invoice' && record.status !== 'cancelled').reduce((sum, record) => sum + record.remaining, 0);
-    const expectedFinance = finance?.summary.expectedTotal ?? financeRecords.filter((record) => record.type === 'internal_invoice' && record.status !== 'cancelled').reduce((sum, record) => sum + record.totalTtc, 0);
+    const expectedFinance = finance?.summary.expectedTotal ?? financeRecords.filter((record) => record.type === 'invoice' && record.status !== 'cancelled').reduce((sum, record) => sum + record.totalTtc, 0);
 
     const selectedStep = useMemo(
         () => workflow.steps.find((s) => s.key === selectedStepKey) ?? null,
@@ -298,7 +307,8 @@ export default function DossierShow({
 
     function handleProjectSubmit(payload: DossierFormPayload) {
         router.put(`/dossiers/${dossier.id}`, {
-            client_id: payload.clientId,
+            client_ids: payload.clientIds,
+            primary_client_id: payload.primaryClientId,
             intermediary_id: payload.intermediaryId || null,
             city_id: payload.cityId || null,
             project_object: payload.projectObject,
@@ -335,6 +345,10 @@ export default function DossierShow({
             'dossier_id',
             payload.dossierId
         );
+
+        if (payload.clientId) {
+            formData.append('client_id', payload.clientId);
+        }
 
         formData.append(
             'document_template_id',
@@ -416,6 +430,7 @@ export default function DossierShow({
                     );
 
                     setInitialTemplateId('');
+                    setInitialDocumentClientId(dossier.primaryClientId || dossier.clientId);
                     setPendingStepKey('');
                     setPendingReqKey('');
                     setFormErrors({});
@@ -509,6 +524,20 @@ export default function DossierShow({
                             <p className="mt-0.5 text-sm text-[var(--text-muted)]">
                                 {dossier.dossierNumber} / {dossier.clientName}
                             </p>
+                            {dossier.clients.length > 1 ? (
+                                <div className="mt-2 flex flex-wrap gap-1" aria-label="Clients du projet">
+                                    {dossier.clients.map((client) => (
+                                        <button
+                                            key={client.id}
+                                            type="button"
+                                            onClick={() => router.visit(`/clients/${client.id}`)}
+                                            className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--foreground)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                                        >
+                                            {client.fullName}{client.isPrimary ? ' · principal' : ''}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : null}
                         </div>
 
                     </div>
@@ -606,7 +635,10 @@ export default function DossierShow({
                                     dossierNumber={dossier.dossierNumber}
                                     projectLabel={dossier.projectObject || dossier.dossierNumber}
                                     canCreateDocuments={capabilities?.canCreateDocuments ?? false}
-                                    onUpload={() => setDocumentDrawerOpen(true)}
+                                    onUpload={() => {
+                                        setInitialDocumentClientId(dossier.primaryClientId || dossier.clientId);
+                                        setDocumentDrawerOpen(true);
+                                    }}
                                 />
                             )}
                             {activeTab === 'contract' && contract && <ContractTab contract={contract} dossierId={dossier.id} contractSigned={contractSigned} onSignedChange={setContractSigned} onEdit={(c) => { setEditContract(c); setContractDrawerOpen(true); }} onShowDocuments={() => handleTabChange('documents')} />}
@@ -626,6 +658,7 @@ export default function DossierShow({
                     clients={clients}
                     intermediaries={intermediaries}
                     cities={cities}
+                    locationOptions={locationOptions}
                     onOpenChange={setEditDrawerOpen}
                     onSubmit={handleProjectSubmit}
                     errors={formErrors}
@@ -635,11 +668,19 @@ export default function DossierShow({
                     clients={clients}
                     dossiers={dossiersOptions}
                     templates={templates}
-                    initialClientId={String(dossier.clientId)}
+                    initialClientId={initialDocumentClientId}
                     initialDossierId={String(dossier.id)}
                     initialTemplateId={initialTemplateId}
                     lockProject
-                    onOpenChange={(open) => { if (!open) { setInitialTemplateId(''); setPendingStepKey(''); setPendingReqKey(''); } setDocumentDrawerOpen(open); }}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setInitialTemplateId('');
+                            setInitialDocumentClientId(dossier.primaryClientId || dossier.clientId);
+                            setPendingStepKey('');
+                            setPendingReqKey('');
+                        }
+                        setDocumentDrawerOpen(open);
+                    }}
                     onSubmit={handleDocumentSubmit}
                     errors={formErrors}
                 />
@@ -729,6 +770,48 @@ function InfoField({ icon: Icon, label, value }: { icon: Icon; label: string; va
     );
 }
 
+function ProjectClientsInfo({ clients, fallbackClient, label }: {
+    clients: DossierRow['clients'];
+    fallbackClient: DossierRow['clients'][number];
+    label: string;
+}) {
+    const linkedClients = clients.length > 0 ? clients : [fallbackClient];
+
+    return (
+        <div className="min-w-0 px-3.5 py-2.5 sm:col-span-2 xl:col-span-3">
+            <div className="mb-1.5 flex items-center gap-2">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)] text-[var(--text-muted)]">
+                    <IconUserCircle size={14} />
+                </div>
+                <div>
+                    <p className="text-[9px] font-medium text-[var(--text-muted)]">{label}</p>
+                    <p className="text-[9px] text-[var(--text-subtle)]">
+                        {linkedClients.length === 1 ? '1 client lié' : `${linkedClients.length} clients liés`}
+                    </p>
+                </div>
+            </div>
+            <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
+                {linkedClients.map((client) => (
+                    <button
+                        key={client.id}
+                        type="button"
+                        onClick={() => router.visit(`/clients/${client.id}`)}
+                        className="group min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-left transition hover:border-[var(--accent)]/45 hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40"
+                    >
+                        <div className="flex items-center gap-1.5">
+                            <p className="truncate text-[11px] font-semibold text-[var(--foreground)]">{client.fullName || '-'}</p>
+                            {client.isPrimary ? <span className="rounded-full bg-[var(--accent)]/10 px-1.5 py-0.5 text-[8px] font-semibold text-[var(--accent)]">Principal</span> : null}
+                        </div>
+                        <p className="mt-0.5 truncate text-[9px] text-[var(--text-muted)]">
+                            {[client.clientNumber, client.cin].filter(Boolean).join(' · ') || 'Informations client'}
+                        </p>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function SideCard({ icon: Icon, title, children, color = 'text-[var(--accent)]', className }: {
     icon: Icon; title: string; children: React.ReactNode; color?: string; className?: string;
 }) {
@@ -767,7 +850,14 @@ function OverviewTab({ dossier, workflow, contract, archiveRecord, canViewArchiv
             <div className="min-w-0">
                 <h3 className="border-b border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--foreground)]">{t('dossiers.show.overview.title')}</h3>
                 <div className="grid gap-x-2 p-1 sm:grid-cols-2 xl:grid-cols-3">
-                        <InfoField icon={IconUserCircle} label={t('dossiers.show.overview.client')} value={dossier.clientName} />
+                        <ProjectClientsInfo clients={dossier.clients} fallbackClient={{
+                            id: dossier.clientId,
+                            fullName: dossier.clientName,
+                            clientNumber: dossier.clientNumber,
+                            cin: dossier.clientCin,
+                            phone: dossier.clientPhone,
+                            isPrimary: true,
+                        }} label={t('dossiers.show.overview.client')} />
                         <InfoField icon={IconFolder} label={t('dossiers.show.overview.dossierNumber')} value={dossier.dossierNumber} />
                         <InfoField icon={IconListCheck} label={t('dossiers.show.overview.workflowStep')} value={workflowLabel(dossier.workflowStep, t)} />
                         <InfoField icon={IconMap} label={t('dossiers.show.overview.province')} value={dossier.province} />
@@ -790,25 +880,19 @@ function OverviewTab({ dossier, workflow, contract, archiveRecord, canViewArchiv
                         </div>
                     ) : <p className="text-[11px] text-[var(--text-muted)]">{t('dossiers.show.overview.noContract')}</p>}
                 </SideCard>
-                <SideCard className="border-t border-[var(--border)]" icon={IconArchive} title={t('dossiers.show.overview.archive')} color="text-violet-500">
-                    {archiveRecord ? (
-                        <div className="min-w-0">
-                            <ArchiveChip archive={archiveRecord} canView={canViewArchive} t={t} />
-                            <p className="mt-1 truncate text-[10px] text-[var(--text-muted)]">{archiveStatusLabel(archiveRecord, t)}</p>
-                        </div>
-                    ) : <p className="text-[11px] text-[var(--text-muted)]">{t('dossiers.show.overview.notArchived')}</p>}
-                </SideCard>
+                <ArchiveSummaryCard
+                    archive={archiveRecord}
+                    canView={canViewArchive}
+                    title={t('dossiers.show.overview.archive')}
+                    emptyLabel={t('dossiers.show.overview.notArchived')}
+                    embedded
+                />
             </div>
         </div>
     );
 }
 
 /* ── Archive chip (city-colored, clickable when permitted) ── */
-function archiveStatusLabel(archive: NonNullable<ArchiveSummary>, t: (key: string) => string) {
-    const key = archiveVisualStatus(archive.status, archive.isOverdue ?? false).key;
-    return t(`archives.status.${key}`);
-}
-
 function ArchiveChip({ archive, canView, t }: {
     archive: NonNullable<ArchiveSummary>;
     canView: boolean;
@@ -852,17 +936,6 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
     const [generatingId, setGeneratingId] = useState<number | null>(null);
 
     const resolvedStatus = contractSigned ? 'signed' : contract?.status ?? 'draft';
-    const statusStyles: Record<string, string> = {
-        draft: 'bg-amber-400/10 text-amber-400 border-amber-400/20',
-        generated: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
-        signed: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
-    };
-    const statusLabels: Record<string, string> = {
-        draft: t('dossiers.show.contractStatus.draft'),
-        generated: t('dossiers.show.contractStatus.generated'),
-        signed: t('dossiers.show.contractStatus.signed'),
-    };
-
     function generateDocument(contractId: number, type: 'pdf' | 'docx') {
         setGeneratingId(contractId);
         const label = type === 'pdf' ? 'PDF' : 'DOCX';
@@ -1062,102 +1135,7 @@ function ContractTab({ contract, dossierId, contractSigned, onSignedChange, onEd
                 </div>
             </div>
 
-            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                        <IconFileText size={18} className="text-[var(--accent)]" />
-                        <div>
-                            <p className="text-sm font-semibold text-[var(--foreground)]">{contract.contractNumber}</p>
-                            {contract.notes ? (
-                                <p className="mt-0.5 text-[10px] text-[var(--text-muted)] leading-tight line-clamp-1">{contract.notes}</p>
-                            ) : null}
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                        {generatingId === contract.id ? (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-blue-400/20 bg-blue-400/10 px-2 py-0.5 text-[9px] font-semibold text-blue-400">
-                                <span className="inline-block size-1.5 animate-ping rounded-full bg-blue-400" />
-                                {t('dossiers.show.contract.generating')}
-                            </span>
-                        ) : null}
-                        {[
-                            { key: 'draft', label: statusLabels.draft, show: resolvedStatus === 'draft', color: 'bg-amber-400/10 text-amber-400 border-amber-400/20' },
-                            { key: 'generated', label: statusLabels.generated, show: !!(contract.generatedAt || contract.hasGeneratedDoc || resolvedStatus === 'signed'), color: 'bg-blue-400/10 text-blue-400 border-blue-400/20' },
-                            { key: 'signed', label: statusLabels.signed, show: resolvedStatus === 'signed', color: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20' },
-                        ].filter((b) => b.show).map((b, i) => (
-                            <span key={b.key} className={cn(
-                                'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                                b.color,
-                                i > 0 && 'ml-0.5',
-                            )}>
-                                {b.key === 'draft' ? <IconCircle size={8} /> : <IconCheck size={10} />} {b.label}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Detail grid */}
-                <div className="grid grid-cols-2 gap-px bg-[var(--border)]">
-                    {detailRows.map((r) => (
-                        <div key={r.label} className="flex items-center gap-2 bg-[var(--surface)] px-4 py-2.5">
-                            <r.icon size={13} className="text-[var(--text-muted)] shrink-0" />
-                            <div className="min-w-0">
-                                <p className="text-[9px] font-medium uppercase tracking-wide text-[var(--text-muted)]">{r.label}</p>
-                                <p className="text-xs font-semibold text-[var(--foreground)]">{r.value}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Financial summary */}
-                <div className="border-t border-[var(--border)] px-4 py-3">
-                    <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('dossiers.show.contract.amounts')}</p>
-                    <div className="space-y-1.5">
-                        {finRows.map((r) => (
-                            <div key={r.label} className="flex items-center justify-between">
-                                <span className="text-[10px] text-[var(--text-muted)]">{r.label}</span>
-                                <span className={cn('text-xs font-semibold', r.highlight ? 'text-[var(--accent)]' : 'text-[var(--foreground)]')}>{r.value}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Timeline */}
-                <div className="border-t border-[var(--border)] px-4 py-3">
-                    <p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">{t('dossiers.show.contract.timeline')}</p>
-                    <div className="flex items-center gap-0">
-                        {[
-                            { key: 'created', icon: IconCalendar, label: t('dossiers.show.contract.created'), date: contract.createdAt, done: true },
-                            { key: 'generated', icon: IconFileText, label: t('dossiers.show.contract.generated'), date: contract.generatedAt, done: !!contract.generatedAt },
-                            { key: 'signed', icon: IconCircleCheck, label: t('dossiers.show.contract.signed'), date: contract.signedAt, done: resolvedStatus === 'signed' },
-                        ].map((step, idx) => (
-                            <div key={step.key} className="flex-1 flex flex-col items-center relative min-w-0">
-                                <div className={cn(
-                                    'flex size-7 items-center justify-center rounded-full border-2 shrink-0',
-                                    step.done ? 'border-emerald-400 bg-emerald-400/10 text-emerald-400' : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]',
-                                )}>
-                                    {step.key === 'created' ? <IconCalendar size={12} /> : step.key === 'generated' && step.done ? <IconCheck size={12} /> : step.key === 'generated' ? <IconFileText size={12} /> : step.done ? <IconCheck size={12} /> : <IconCircle size={12} />}
-                                </div>
-                                <p className={cn('mt-1 text-[9px] font-medium text-center leading-tight', step.done ? 'text-emerald-400' : 'text-[var(--text-muted)]')}>{step.label}</p>
-                                {step.date ? <p className="text-[9px] text-[var(--text-muted)] text-center leading-tight">{step.date}</p> : null}
-                                {idx < 2 ? (
-                                    <div className={cn(
-                                        'absolute top-3 h-px w-full z-0',
-                                        step.done ? 'bg-emerald-400/40' : 'bg-[var(--border)]',
-                                    )} style={{ left: 'calc(50% + 14px)', width: 'calc(100% - 28px)' }} />
-                                ) : null}
-                            </div>
-                        ))}
-                    </div>
-                    {generatingId === contract.id ? (
-                        <div className="mt-2 flex items-center justify-center gap-1.5">
-                            <span className="inline-block size-2 animate-ping rounded-full bg-blue-400" />
-                            <span className="text-[9px] text-blue-400 font-medium">{t('dossiers.show.contract.generating')}</span>
-                        </div>
-                    ) : null}
-                </div>
-            </div>
+            <ContractSummaryCard contract={contract} statusOverride={resolvedStatus} />
 
             {/* Delete confirmation modal */}
             <AppModal

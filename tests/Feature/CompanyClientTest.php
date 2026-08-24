@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Client;
 use App\Models\Company;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -71,5 +72,65 @@ class CompanyClientTest extends TestCase
         } finally {
             CarbonImmutable::setTestNow();
         }
+    }
+
+    public function test_client_number_skips_a_soft_deleted_number(): void
+    {
+        CarbonImmutable::setTestNow('2026-08-17 10:00:00');
+
+        try {
+            $company = Company::factory()->create();
+            $user = User::factory()->create(['company_id' => $company->id]);
+            Permission::query()->firstOrCreate(['name' => 'clients.create', 'guard_name' => 'web']);
+            $user->givePermissionTo('clients.create');
+
+            $deletedClient = Client::factory()->create([
+                'company_id' => $company->id,
+                'client_number' => 'CL-2026-0001',
+            ]);
+            $deletedClient->delete();
+
+            $this->actingAs($user)->post(route('clients.store'), [
+                'client_type' => 'person',
+                'first_name' => 'Amina',
+                'last_name' => 'Nouvelle',
+                'cni_expiration_date' => '2027-01-01',
+            ])->assertRedirect(route('clients.index'));
+
+            $this->assertDatabaseHas('clients', [
+                'company_id' => $company->id,
+                'client_number' => 'CL-2026-0002',
+            ]);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_updating_a_legacy_client_preserves_its_imported_full_name(): void
+    {
+        $company = Company::factory()->create();
+        $user = User::factory()->create(['company_id' => $company->id]);
+        Permission::query()->firstOrCreate(['name' => 'clients.update', 'guard_name' => 'web']);
+        $user->givePermissionTo('clients.update');
+        $client = Client::factory()->create([
+            'company_id' => $company->id,
+            'first_name' => null,
+            'last_name' => null,
+            'full_name' => 'Client archive historique',
+        ]);
+
+        $this->actingAs($user)->put(route('clients.update', $client), [
+            'client_type' => 'person',
+            'civility' => 'Mr',
+            'first_name' => null,
+            'last_name' => null,
+            'phone' => '+212600000000',
+        ])->assertRedirect(route('clients.index'));
+
+        $this->assertDatabaseHas('clients', [
+            'id' => $client->id,
+            'full_name' => 'Client archive historique',
+            'phone' => '+212600000000',
+        ]);
     }
 }

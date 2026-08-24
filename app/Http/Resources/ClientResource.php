@@ -32,6 +32,7 @@ class ClientResource extends JsonResource
             'status' => $this->status,
             'projectsCount' => $this->dossiers_count ?? $this->dossiers()->count(),
             'updatedAt' => optional($this->updated_at)->diffForHumans(),
+            'updatedAtSort' => optional($this->updated_at)->toIso8601String(),
             'createdAt' => optional($this->created_at)->format('Y-m-d'),
             'notes' => $this->notes,
             'capabilities' => [

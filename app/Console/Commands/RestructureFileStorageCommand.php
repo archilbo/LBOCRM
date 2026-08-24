@@ -27,7 +27,7 @@ class RestructureFileStorageCommand extends Command
 
         // ── Migrate dossier documents ──
         $documents = DossierDocument::query()
-            ->with(['dossier.city', 'dossier.client', 'template'])
+            ->with(['dossier.city', 'dossier.primaryClient', 'template'])
             ->whereNotNull('stored_path')
             ->get();
 
@@ -78,7 +78,7 @@ class RestructureFileStorageCommand extends Command
 
         // ── Migrate contract files ──
         $contracts = Contract::query()
-            ->with(['dossier.city', 'dossier.client'])
+            ->with(['dossier.city', 'dossier.primaryClient'])
             ->where(function ($q) {
                 $q->whereNotNull('generated_document_path')
                   ->orWhereNotNull('pdf_path');

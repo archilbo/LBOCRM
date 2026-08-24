@@ -23,7 +23,6 @@ class FinanceDocumentFoundationRelationsTest extends TestCase
 
         foreach ([new Company, new Branch, new Client, new Dossier] as $model) {
             $this->assertInstanceOf(HasMany::class, $model->financeDocuments());
-            $this->assertInstanceOf(HasMany::class, $model->internalInvoices());
         }
     }
 }

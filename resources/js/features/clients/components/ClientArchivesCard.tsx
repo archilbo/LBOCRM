@@ -1,8 +1,6 @@
-import { router } from '@inertiajs/react';
-import { IconArchive, IconExternalLink } from '@tabler/icons-react';
-
-import { AppButton } from '@/components/ui/AppButton';
+import { ArchiveSummaryCard } from '@/features/archives/components/ArchiveSummaryCard';
 import type { ClientSelectedProjectWorkspace } from '@/features/clients/types';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from '@/lib/i18n';
 
 type Props = {
@@ -11,39 +9,16 @@ type Props = {
 
 export function ClientArchivesCard({ project }: Props) {
     const { t } = useTranslation();
+    const { can } = usePermissions();
 
     if (!project) return null;
 
-    const archive = project.archiveRecord;
-
     return (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <IconArchive size={16} className="text-[var(--accent)]" />
-                    <span className="text-sm font-semibold text-[var(--foreground)]">{t('clients.archives.title')}</span>
-                </div>
-            </div>
-
-            {archive ? (
-                <div className="mt-2 space-y-1 text-xs text-[var(--text-muted)]">
-                    <p><span className="font-medium text-[var(--foreground)]">{archive.archiveNumber}</span> &middot; {archive.status}</p>
-                </div>
-            ) : (
-                <p className="mt-2 text-xs text-[var(--text-muted)]">{t('clients.archives.empty')}</p>
-            )}
-
-            <div className="mt-3 flex justify-end">
-                {archive ? (
-                    <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.archives.view')} aria-label={t('clients.archives.view')} onPress={() => router.visit(`/archives/${archive.id}`)}>
-                        <IconExternalLink size={14} />
-                    </AppButton>
-                ) : (
-                    <AppButton isIconOnly compact variant="quiet" tooltip={t('clients.archives.create')} aria-label={t('clients.archives.create')} onPress={() => router.visit('/archives')}>
-                        <IconExternalLink size={14} />
-                    </AppButton>
-                )}
-            </div>
-        </div>
+        <ArchiveSummaryCard
+            archive={project.archiveRecord}
+            canView={can('archive.view')}
+            title={t('clients.archives.title')}
+            emptyLabel={t('clients.archives.empty')}
+        />
     );
 }

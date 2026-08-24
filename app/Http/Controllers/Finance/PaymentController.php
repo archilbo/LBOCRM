@@ -37,8 +37,9 @@ class PaymentController extends Controller
         $context = app(FinanceContextService::class);
         $scope = $context->payload($request->user());
         $financeDocument = null;
+        $mode = $data['payment_mode'] ?? (! empty($data['finance_document_id']) ? 'invoice' : 'negotiated');
 
-        if (! empty($data['finance_document_id'])) {
+        if ($mode === 'invoice') {
             $financeDocument = $context
                 ->apply(FinanceDocument::query(), $request->user())
                 ->findOrFail($data['finance_document_id']);
@@ -46,16 +47,17 @@ class PaymentController extends Controller
         } else {
             $dossier = $context
                 ->apply(Dossier::query(), $request->user())
-                ->with('client')
+                ->with('primaryClient')
                 ->findOrFail($data['dossier_id']);
-            $payment = $ledger->recordAdvancePayment($dossier, $scope, $data);
+            $payment = $ledger->recordNegotiatedPayment($dossier, $scope, $data);
         }
 
-        app(FinanceActivityService::class)->log($payment, $request->user(), $financeDocument ? 'finance.payment.created' : 'finance.payment.advance_created', [], [
+        app(FinanceActivityService::class)->log($payment, $request->user(), $financeDocument ? 'finance.payment.created' : 'finance.payment.negotiated_advance_created', [], [
             'payment_number' => $payment->payment_number,
             'amount' => $payment->amount,
             'finance_document_id' => $financeDocument?->id,
             'dossier_id' => $payment->dossier_id,
+            'dossier_negotiated_payment_line_id' => $payment->dossier_negotiated_payment_line_id,
         ]);
 
         $notificationDocument = $financeDocument ?? $payment->receiptDocument;
@@ -65,7 +67,7 @@ class PaymentController extends Controller
                 'payment_received',
                 $financeDocument
                     ? 'Payment received: ' . number_format((float) ($data['amount'] ?? 0), 2) . ' for ' . $financeDocument->number
-                    : 'Advance payment received: ' . number_format((float) ($data['amount'] ?? 0), 2)
+                    : 'Negotiated advance received: ' . number_format((float) ($data['amount'] ?? 0), 2)
             ));
         }
 
@@ -115,7 +117,7 @@ class PaymentController extends Controller
 
     private function receiptFlashPayload(Payment $payment): ?array
     {
-        $payment->loadMissing(['document.client', 'receiptDocument']);
+        $payment->loadMissing(['document.client', 'client', 'receiptDocument', 'negotiatedPaymentLine.payments']);
         $receipt = $payment->receiptDocument;
 
         if (! $receipt) {
@@ -125,10 +127,12 @@ class PaymentController extends Controller
         return [
             'paymentNumber' => $payment->payment_number,
             'number' => $receipt->number,
-            'clientName' => $payment->document?->client?->full_name,
+            'clientName' => $payment->document?->client?->full_name ?? $payment->client?->full_name,
             'amount' => (float) $payment->amount,
             'currency' => $payment->document?->currency ?? $receipt->currency,
-            'remainingTotal' => (float) ($payment->document?->remaining_total ?? 0),
+            'remainingTotal' => $payment->negotiatedPaymentLine
+                ? max(0, (float) $payment->negotiatedPaymentLine->negotiated_amount - (float) $payment->negotiatedPaymentLine->payments->sum('amount'))
+                : (float) ($payment->document?->remaining_total ?? 0),
             'showUrl' => route('finance.documents.show', $receipt),
             'printUrl' => route('finance.documents.print', $receipt),
             'generatePdfUrl' => route('finance.documents.generate-pdf', $receipt),

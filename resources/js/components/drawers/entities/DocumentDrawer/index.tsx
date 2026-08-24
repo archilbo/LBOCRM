@@ -33,6 +33,7 @@ const CIN_ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.
 const SINGLE_FILE_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx';
 
 const emptyForm: DocumentUploadPayload = {
+  clientId: '',
   dossierId: '',
   documentTemplateId: '',
   status: 'verified',
@@ -72,6 +73,7 @@ export function DocumentDrawer({
     if (isOpen) {
       setForm({
         ...emptyForm,
+        clientId: initialClientId,
         dossierId: initialDossierId,
         documentTemplateId: initialTemplateId,
         status: initialStatus,
@@ -100,7 +102,7 @@ export function DocumentDrawer({
 
   const filteredDossiers = useMemo(() => {
     if (!selectedClientId) return [];
-    return dossiers.filter((d) => d.clientId === selectedClientId);
+    return dossiers.filter((d) => d.clientIds?.includes(selectedClientId) ?? (d.clientId === selectedClientId));
   }, [dossiers, selectedClientId]);
 
   const dossierSelectDisabled = !selectedClientId;
@@ -112,9 +114,10 @@ export function DocumentDrawer({
   function handleClientChange(value: string) {
     const clientId = value || '';
     setSelectedClientId(clientId);
+    setForm((current) => ({ ...current, clientId }));
     if (clientId !== selectedClientId) {
       const currentDossierBelongsToClient = clientId
-        ? dossiers.some((d) => d.id === form.dossierId && d.clientId === clientId)
+        ? dossiers.some((d) => d.id === form.dossierId && (d.clientIds?.includes(clientId) ?? (d.clientId === clientId)))
         : false;
       if (!currentDossierBelongsToClient) {
         setForm((current) => ({ ...current, dossierId: '' }));

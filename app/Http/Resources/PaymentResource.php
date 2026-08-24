@@ -15,7 +15,8 @@ class PaymentResource extends JsonResource
         $document = $this->whenLoaded('document');
         $client = $this->whenLoaded('client');
         $dossier = $this->whenLoaded('dossier');
-        foreach (['document', 'client', 'dossier', 'receipt'] as $relationVariable) {
+        $negotiatedPaymentLine = $this->whenLoaded('negotiatedPaymentLine');
+        foreach (['document', 'client', 'dossier', 'receipt', 'negotiatedPaymentLine'] as $relationVariable) {
             if (isset(${$relationVariable}) && ${$relationVariable} instanceof MissingValue) {
                 ${$relationVariable} = null;
             }
@@ -36,6 +37,7 @@ class PaymentResource extends JsonResource
             'financeDocumentId' => $this->finance_document_id,
             'clientId' => $this->client_id,
             'dossierId' => $this->dossier_id,
+            'dossierNegotiatedPaymentLineId' => $this->dossier_negotiated_payment_line_id,
             'receiptDocumentId' => $this->receipt_document_id,
 
             'document' => $this->when($this->relationLoaded('document') && $document, [
@@ -56,6 +58,12 @@ class PaymentResource extends JsonResource
             'dossier' => $this->when($this->relationLoaded('dossier') && $dossier, [
                 'id' => $dossier?->id,
                 'number' => $dossier?->dossier_number ?? $dossier?->number ?? null,
+            ]),
+
+            'negotiatedPaymentLine' => $this->when($this->relationLoaded('negotiatedPaymentLine') && $negotiatedPaymentLine, [
+                'id' => $negotiatedPaymentLine?->id,
+                'designation' => $negotiatedPaymentLine?->designation,
+                'negotiatedAmount' => (float) ($negotiatedPaymentLine?->negotiated_amount ?? 0),
             ]),
 
             'receipt' => $this->whenLoaded('receiptDocument', function () {

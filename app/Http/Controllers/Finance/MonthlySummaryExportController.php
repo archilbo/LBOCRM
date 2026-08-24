@@ -128,7 +128,7 @@ class MonthlySummaryExportController extends Controller
             $fh = fopen('php://output', 'wb');
             fputs($fh, "\xEF\xBB\xBF"); // BOM for UTF-8 Excel compat
 
-            fputcsv($fh, ['Type', 'NÂ°', 'Client', 'Date', 'Statut', 'Total', 'Restant'], ';');
+            fputcsv($fh, ['Type', 'N°', 'Client', 'Date', 'Statut', 'Total', 'Restant'], ';');
 
             foreach ($data['rows'] as $row) {
                 fputcsv($fh, [
@@ -263,8 +263,8 @@ class MonthlySummaryExportController extends Controller
                 $rows[] = [
                     'type' => $typeFilter === 'all' ? $doc['type'] : $typeFilter,
                     'number' => $doc['number'],
-                    'client' => $doc['clientName'] ?? 'â€”',
-                    'date' => $doc['issueDate'] ?? 'â€”',
+                    'client' => $doc['clientName'] ?? '—',
+                    'date' => $doc['issueDate'] ?? '—',
                     'status' => $doc['status'],
                     'total' => $totalRaw,
                     'amount' => $amountRaw,
@@ -279,13 +279,13 @@ class MonthlySummaryExportController extends Controller
                     $rows[] = [
                         'type' => 'payment',
                         'number' => $pay['paymentNumber'],
-                        'client' => $pay['clientName'] ?? 'â€”',
-                        'date' => $pay['paidAt'] ?? 'â€”',
+                        'client' => $pay['clientName'] ?? '—',
+                        'date' => $pay['paidAt'] ?? '—',
                         'status' => 'Paye',
                         'total' => $amountRaw,
                         'amount' => 0,
                         'totalFmt' => $this->compactMoney($amountRaw, $currency),
-                        'amountFmt' => 'â€”',
+                        'amountFmt' => '—',
                     ];
                 }
             }

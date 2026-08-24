@@ -16,7 +16,7 @@ class DocumentGroupingService
     public function groups(User $user): array
     {
         $documents = DossierDocument::query()
-            ->with(['dossier.client', 'template'])
+            ->with(['dossier.primaryClient', 'client', 'template'])
             ->whereHas('dossier', fn ($query) => $this->companyContext->applyTo($query, $user))
             ->latest()
             ->get();
@@ -32,7 +32,7 @@ class DocumentGroupingService
                         'commune' => $commune,
                         'stats' => $this->stats($communeDocuments),
                         'clients' => $communeDocuments
-                            ->groupBy(fn (DossierDocument $document) => $document->dossier?->client?->full_name ?: 'Client non renseigne')
+                            ->groupBy(fn (DossierDocument $document) => $document->client?->full_name ?: $document->dossier?->primaryClient?->full_name ?: 'Client non renseigne')
                             ->map(fn (Collection $clientDocuments, string $clientName) => [
                                 'clientName' => $clientName,
                                 'stats' => $this->stats($clientDocuments),
@@ -83,7 +83,7 @@ class DocumentGroupingService
             'dossierId' => $document->dossier_id,
             'dossierNumber' => $document->dossier?->dossier_number,
             'projectObject' => $document->dossier?->project_object,
-            'clientName' => $document->dossier?->client?->full_name,
+            'clientName' => $document->client?->full_name ?? $document->dossier?->primaryClient?->full_name,
             'templateName' => $document->template?->name,
             'documentType' => $document->template?->document_type,
             'documentNumber' => $document->document_number,

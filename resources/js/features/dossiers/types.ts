@@ -7,13 +7,21 @@ export type City = {
     color: string;
 };
 
+export type DossierLocationOptions = {
+    provinces: string[];
+    communes: string[];
+};
+
 export type DossierRow = {
     id: number;
+    /** Deprecated compatibility aliases for the primary client. */
     clientId: string;
     clientName: string;
     clientNumber: string;
     clientCin: string;
     clientPhone: string;
+    clients: DossierClientSummary[];
+    primaryClientId: string;
     intermediaryId: string;
     intermediaryName: string | null;
 
@@ -36,6 +44,7 @@ export type DossierRow = {
     openedAt: string | null;
     closedAt: string | null;
     updatedAt: string | null;
+    updatedAtSort: string | null;
     createdAt: string | null;
     notes: string | null;
 
@@ -47,13 +56,23 @@ export type DossierRow = {
     city: City | null;
 };
 
+export type DossierClientSummary = {
+    id: string;
+    fullName: string;
+    clientNumber: string | null;
+    cin: string | null;
+    phone: string | null;
+    isPrimary: boolean;
+};
+
 export type ClientOption = {
     id: string;
     label: string;
 };
 
 export type DossierFormPayload = {
-    clientId: string;
+    clientIds: string[];
+    primaryClientId: string;
     intermediaryId: string;
     cityId: string;
     projectObject: string;

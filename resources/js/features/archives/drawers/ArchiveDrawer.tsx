@@ -114,7 +114,7 @@ export function ArchiveDrawer({
 
     const filteredDossiers = useMemo(() => {
         if (!clientId) return [];
-        return dossiers.filter((d) => d.clientId === clientId);
+        return dossiers.filter((d) => d.clientIds?.includes(clientId) ?? (d.clientId === clientId));
     }, [dossiers, clientId]);
 
     useEffect(() => {

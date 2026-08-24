@@ -176,6 +176,22 @@ export const frDossiers = {
             },
         },
 
+        preview: {
+            title: 'Aperçu du projet',
+            details: 'Informations du projet',
+            client: 'Client',
+            workflow: 'Workflow',
+            city: 'Ville',
+            location: 'Localisation',
+            surface: 'Surface',
+            status: 'Statut',
+            readiness: 'État de préparation',
+            readinessDescription: '{completed} élément(s) finalisé(s) sur {total}',
+            readinessProgress: '{completed} élément(s) finalisé(s) sur {total}',
+            open: 'Ouvrir le projet',
+            archive: 'Archiver',
+        },
+
         drawer: {
             createTitle: 'Nouveau projet',
             editTitle: 'Modifier le projet',

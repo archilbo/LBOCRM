@@ -26,15 +26,15 @@ export type ApplyCinScanResult = {
     reviewFields: string[];
 };
 
-function verifiedValue(
+function scannedValue(
     field: CinScannedField,
 ): string | null {
-    return field.status === 'verified'
+    return field.status !== 'unreadable'
         ? field.value
         : null;
 }
 
-export function applyVerifiedCinScan(
+export function applyCinScan(
     current: ClientFormPayload,
     scan: CinScanResult,
     options: ApplyCinScanOptions = {},
@@ -76,34 +76,34 @@ export function applyVerifiedCinScan(
 
     apply(
         'firstName',
-        verifiedValue(scan.fields.firstName),
+        scannedValue(scan.fields.firstName),
     );
     apply(
         'lastName',
-        verifiedValue(scan.fields.lastName),
+        scannedValue(scan.fields.lastName),
     );
     apply(
         'cin',
-        verifiedValue(scan.fields.cinNumber),
+        scannedValue(scan.fields.cinNumber),
     );
     apply(
         'address',
-        verifiedValue(scan.fields.address),
+        scannedValue(scan.fields.address),
     );
     apply(
         'fatherName',
-        verifiedValue(scan.fields.fatherName),
+        scannedValue(scan.fields.fatherName),
     );
     apply(
         'motherName',
-        verifiedValue(scan.fields.motherName),
+        scannedValue(scan.fields.motherName),
     );
     apply(
         'cniExpirationDate',
-        verifiedValue(scan.fields.expiryDate),
+        scannedValue(scan.fields.expiryDate),
     );
 
-    const sex = verifiedValue(scan.fields.sex);
+    const sex = scannedValue(scan.fields.sex);
 
     if (sex === 'M') {
         apply('civility', 'Mr');

@@ -131,16 +131,6 @@ class FinanceDocument extends Model
         return $this->hasMany(Payment::class);
     }
 
-    public function outgoingPaymentTransfers(): HasMany
-    {
-        return $this->hasMany(PaymentDocumentTransfer::class, 'from_finance_document_id');
-    }
-
-    public function incomingPaymentTransfers(): HasMany
-    {
-        return $this->hasMany(PaymentDocumentTransfer::class, 'to_finance_document_id');
-    }
-
     public function paymentScheduleItems(): HasMany
     {
         return $this->hasMany(FinancePaymentScheduleItem::class)->orderBy('position');
@@ -159,11 +149,6 @@ class FinanceDocument extends Model
     public function isInvoice(): bool
     {
         return $this->type === 'invoice';
-    }
-
-    public function isInternalInvoice(): bool
-    {
-        return $this->type === 'internal_invoice';
     }
 
     public function isReceipt(): bool
@@ -213,17 +198,12 @@ class FinanceDocument extends Model
 
     public function canConvertToInvoice(): bool
     {
-        if ($this->isInternalInvoice()) {
-            return ! in_array($this->status, ['cancelled', 'converted'], true)
-                && $this->converted_to_document_id === null;
-        }
-
         return $this->isQuote() && ! $this->childDocuments()->where('type', 'invoice')->exists();
     }
 
     public function canRecordPayment(): bool
     {
-        return ($this->isInvoice() || $this->isInternalInvoice())
+        return $this->isInvoice()
             && ! in_array($this->status, ['cancelled', 'converted'], true);
     }
 }

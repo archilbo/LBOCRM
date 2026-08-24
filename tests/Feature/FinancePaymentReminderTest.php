@@ -16,6 +16,7 @@ use App\Services\Finance\FinanceDocumentQueryService;
 use App\Services\Finance\PaymentLedgerService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class FinancePaymentReminderTest extends TestCase
@@ -203,5 +204,50 @@ class FinancePaymentReminderTest extends TestCase
             'cancellation_reason' => 'Saisie à corriger',
         ]);
         $this->assertSame(10000.0, (float) $this->invoice->fresh()->remaining_total);
+    }
+
+    public function test_negotiated_project_advances_are_scoped_to_one_line_and_cannot_exceed_its_remaining_amount(): void
+    {
+        $dossier = $this->invoice->dossier;
+        $scope = ['company_id' => $dossier->company_id, 'branch_id' => $dossier->branch_id];
+        $ledger = app(PaymentLedgerService::class);
+
+        $firstAdvance = $ledger->recordNegotiatedPayment($dossier, $scope, [
+            'client_id' => $dossier->client_id,
+            'amount' => 3000,
+            'method' => 'cash',
+            'paid_at' => now()->toDateString(),
+            'created_by' => $this->user->id,
+            'negotiated_line' => [
+                'designation' => 'Etude architecturale',
+                'negotiated_amount' => 8000,
+            ],
+        ]);
+
+        $line = $firstAdvance->negotiatedPaymentLine;
+        $this->assertNotNull($line);
+        $this->assertSame('negotiated_advance', $firstAdvance->payment_kind->value);
+        $this->assertSame(3000.0, (float) $line->payments()->sum('amount'));
+
+        $ledger->recordNegotiatedPayment($dossier, $scope, [
+            'client_id' => $dossier->client_id,
+            'dossier_negotiated_payment_line_id' => $line->id,
+            'amount' => 5000,
+            'method' => 'cash',
+            'paid_at' => now()->toDateString(),
+            'created_by' => $this->user->id,
+        ]);
+
+        $this->assertSame(8000.0, (float) $line->payments()->sum('amount'));
+
+        $this->expectException(ValidationException::class);
+        $ledger->recordNegotiatedPayment($dossier, $scope, [
+            'client_id' => $dossier->client_id,
+            'dossier_negotiated_payment_line_id' => $line->id,
+            'amount' => 0.01,
+            'method' => 'cash',
+            'paid_at' => now()->toDateString(),
+            'created_by' => $this->user->id,
+        ]);
     }
 }

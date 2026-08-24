@@ -58,6 +58,16 @@ export type ContractDossierOption = {
     label: string;
     floorArea?: number | string;
     hasContract: boolean;
+    clients: ContractDossierClient[];
+};
+
+export type ContractDossierClient = {
+    id: string;
+    civility: string;
+    fullName: string;
+    cin: string;
+    address: string;
+    isPrimary: boolean;
 };
 
 export type ContractClientOption = {

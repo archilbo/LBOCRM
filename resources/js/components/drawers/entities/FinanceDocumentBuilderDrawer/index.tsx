@@ -183,7 +183,7 @@ export function FinanceDocumentBuilderDrawer({
     }, [previewOpen, fetchPreview]);
 
     const userDossiers = useMemo(
-        () => (form.clientId ? dossiers.filter((d) => d.clientId === form.clientId) : dossiers),
+        () => (form.clientId ? dossiers.filter((d) => d.clientIds?.includes(form.clientId) ?? (d.clientId === form.clientId)) : dossiers),
         [dossiers, form.clientId],
     );
     const hasNoDossiers = Boolean(form.clientId) && userDossiers.length === 0;
@@ -199,7 +199,7 @@ export function FinanceDocumentBuilderDrawer({
     const selectedDossier = dossiers.find((d) => d.id === form.dossierId);
     const title = mode === 'edit'
         ? `Modifier ${document?.number || 'document'}`
-        : form.type === 'quote' ? 'Nouveau devis' : form.type === 'invoice' ? 'Nouvelle facture' : form.type === 'internal_invoice' ? 'Nouvelle facture interne' : 'Nouveau reçu';
+        : form.type === 'quote' ? 'Nouveau devis' : form.type === 'invoice' ? 'Nouvelle facture' : 'Nouveau reçu';
 
     function update<K extends keyof BuilderForm>(key: K, value: BuilderForm[K]) {
         setForm((prev) => ({ ...prev, [key]: value }));
@@ -248,11 +248,6 @@ export function FinanceDocumentBuilderDrawer({
             }
         >
             <div className="finance-builder-container">
-                {form.type === 'internal_invoice' ? (
-                    <div className="mb-4 rounded-lg border border-[color-mix(in_srgb,var(--accent)_35%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] px-3 py-2 text-xs text-[var(--foreground)]">
-                        Facture interne — suivi prévisionnel uniquement. Elle ne compte pas dans le chiffre d’affaires facturé officiel et peut être convertie une seule fois.
-                    </div>
-                ) : null}
                 {/* Step indicators */}
                 <div className="mb-4 flex items-center gap-1">
                     {steps.map((s, i) => {

@@ -1003,7 +1003,7 @@ body {
     box-shadow: 0 0 0 3px rgb(246 183 37 / 0.08);
 }
 
-/* â”€â”€ Sidebar â€“ Compact Expanded â”€â”€ */
+/* ── Sidebar – Compact Expanded ── */
 .crm-sidebar {
     border-right: 1px solid var(--crm-border);
     background: var(--crm-bg-2);
@@ -1025,7 +1025,7 @@ body {
     }
 }
 
-/* â”€â”€ Sidebar Nav Item â”€â”€ */
+/* ── Sidebar Nav Item ── */
 .crm-nav-item {
     display: flex;
     align-items: center;
@@ -1071,7 +1071,7 @@ body {
     color: var(--crm-gold);
 }
 
-/* â”€â”€ Sidebar Section Label â”€â”€ */
+/* ── Sidebar Section Label ── */
 .crm-sidebar-section {
     font-size: 9px;
     font-weight: 700;
@@ -1083,7 +1083,7 @@ body {
     margin-top: 4px;
 }
 
-/* â”€â”€ Sidebar Tooltip â”€â”€ */
+/* ── Sidebar Tooltip ── */
 .crm-sidebar-tooltip {
     position: absolute;
     left: calc(100% + 8px);
@@ -1108,7 +1108,7 @@ body {
     opacity: 1;
 }
 
-/* â”€â”€ Sidebar Popover â”€â”€ */
+/* ── Sidebar Popover ── */
 .crm-popover-card {
     min-width: 200px;
     border: 1px solid var(--crm-border);
@@ -1148,7 +1148,7 @@ body {
     margin: 4px 0;
 }
 
-/* â”€â”€ Sidebar Search â”€â”€ */
+/* ── Sidebar Search ── */
 .crm-sb-search {
     height: 28px;
     border: 1px solid var(--crm-border);
@@ -1169,7 +1169,7 @@ body {
     border-color: rgba(246,183,37,0.5);
 }
 
-/* â”€â”€ Workspace Dot â”€â”€ */
+/* ── Workspace Dot ── */
 .crm-ws-dot {
     width: 8px;
     height: 8px;
@@ -1851,7 +1851,7 @@ body {
     display: none;
 }
 
-/* Bottom nav â€” mobile only < 768px */
+/* Bottom nav — mobile only < 768px */
 #app-bottom-nav {
     position: fixed;
     bottom: 0;
@@ -5467,7 +5467,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
             <Head title="Messages" />
             <AppShell fullBleed hideMobileNav={selectedConv !== null}>
                 <div className="flex h-full min-h-0 w-full overflow-hidden">
-                    {/* Conversation sidebar â€” mobile: full width when list, hidden when chat; md+: fixed width */}
+                    {/* Conversation sidebar — mobile: full width when list, hidden when chat; md+: fixed width */}
                     <div className={`${mobileView === 'chat' ? 'hidden' : 'flex'} h-full min-w-0 w-full flex-col border-r border-[var(--crm-border)] bg-[var(--crm-elevated)] lg:flex lg:w-[360px] xl:w-[380px] ${mobileView === 'list' ? 'app-safe-bottom lg:pb-0' : ''}`}>
                         <ConversationList
                             conversations={filteredConvs}
@@ -5483,7 +5483,7 @@ export default function InboxIndex({ conversations: _conversations, users, curre
                         />
                     </div>
 
-                    {/* Chat area â€” mobile: full width when chat, hidden when list; md+: flex */}
+                    {/* Chat area — mobile: full width when chat, hidden when list; md+: flex */}
                     <div className={`${mobileView === 'list' ? 'hidden' : 'flex'} min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex`}>
                         {selectedConv ? (
                             <>
@@ -7153,7 +7153,7 @@ export default function FinanceIndex({
                                             {selectedRecord.recordNumber}
                                         </p>
                                         <p className="mt-1 text-xs text-[var(--text-muted)]">
-                                            {selectedRecord.dossierNumber} Â· {selectedRecord.clientName}
+                                            {selectedRecord.dossierNumber} · {selectedRecord.clientName}
                                         </p>
                                     </div>
 
@@ -10139,7 +10139,7 @@ export function MessageThread({ conversation, conversations, messages, loading, 
         if (isGroup) {
             const pc = conversation.participantsCount ?? parts.length;
             const oc = conversation.onlineCount ?? parts.filter((p) => p?.user?.lastSeenAt && Date.now() - new Date(p.user.lastSeenAt).getTime() < 300000).length;
-            return `${pc} member${pc !== 1 ? 's' : ''}${oc > 0 ? ` Â· ${oc} online` : ''}`;
+            return `${pc} member${pc !== 1 ? 's' : ''}${oc > 0 ? ` · ${oc} online` : ''}`;
         }
         const other = others[0];
         if (!other) return '';
@@ -11585,7 +11585,7 @@ export function FinanceFocusPanel({ record }: FinanceFocusPanelProps) {
                         <div className="min-w-0">
                             <p className="text-sm font-semibold">{record.recordNumber}</p>
                             <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
-                                {record.dossierNumber} Â· {record.client}
+                                {record.dossierNumber} · {record.client}
                             </p>
                         </div>
                     </div>
@@ -11918,8 +11918,8 @@ function DocumentList({ title, icon, documents, currency }: { title: string; ico
                     <div key={document.id} className="grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 lg:grid-cols-[minmax(0,1fr)_160px_auto]">
                         <div className="min-w-0">
                             <p className="truncate text-sm font-semibold">{document.number}</p>
-                            <p className="truncate text-xs text-[var(--text-muted)]">{document.clientName || '-'} Â· {document.dossierNumber || '-'}</p>
-                            <p className="truncate text-xs text-[var(--text-muted)]">{document.commune || '-'} {document.province ? `Â· ${document.province}` : ''}</p>
+                            <p className="truncate text-xs text-[var(--text-muted)]">{document.clientName || '-'} · {document.dossierNumber || '-'}</p>
+                            <p className="truncate text-xs text-[var(--text-muted)]">{document.commune || '-'} {document.province ? `· ${document.province}` : ''}</p>
                         </div>
 
                         <div>
@@ -11962,8 +11962,8 @@ function PaymentList({ payments, currency }: { payments: FinanceMonthPaymentRow[
                     <div key={payment.id} className="grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 md:grid-cols-[minmax(0,1fr)_160px]">
                         <div className="min-w-0">
                             <p className="truncate text-sm font-semibold">{payment.paymentNumber}</p>
-                            <p className="truncate text-xs text-[var(--text-muted)]">{payment.clientName || '-'} Â· {payment.documentNumber || '-'}</p>
-                            <p className="truncate text-xs text-[var(--text-muted)]">{payment.dossierNumber || '-'} Â· {payment.method || '-'}</p>
+                            <p className="truncate text-xs text-[var(--text-muted)]">{payment.clientName || '-'} · {payment.documentNumber || '-'}</p>
+                            <p className="truncate text-xs text-[var(--text-muted)]">{payment.dossierNumber || '-'} · {payment.method || '-'}</p>
                         </div>
                         <div className="text-left md:text-right">
                             <p className="text-sm font-semibold text-emerald-300">{money(payment.amount, currency)}</p>
@@ -12026,7 +12026,7 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
                             <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--text-muted)]">
                                 <span>Devis: {money(month.quotesTotalTtc, month.currency || currency)}</span>
                                 <span>Factures: {money(month.invoicesTotalTtc, month.currency || currency)}</span>
-                                <span>PayÃ©: {money(month.paidTotal, month.currency || currency)}</span>
+                                <span>Payé: {money(month.paidTotal, month.currency || currency)}</span>
                                 <span>Reste: {money(month.remainingTotal, month.currency || currency)}</span>
                             </div>
                         </button>
@@ -12035,10 +12035,10 @@ export function FinanceMonthlySummary({ months, currency }: Props) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <SummaryStat label="Devis" value={`${selected.quotesCount} Â· ${money(selected.quotesTotalTtc, selected.currency || currency)}`} />
-                <SummaryStat label="Factures" value={`${selected.invoicesCount} Â· ${money(selected.invoicesTotalTtc, selected.currency || currency)}`} />
-                <SummaryStat label="Recus" value={`${selected.receiptsCount} Â· ${money(selected.receiptsTotalTtc, selected.currency || currency)}`} />
-                <SummaryStat label="Paiements" value={`${selected.paymentsCount} Â· ${money(selected.paidTotal, selected.currency || currency)}`} tone="success" />
+                <SummaryStat label="Devis" value={`${selected.quotesCount} · ${money(selected.quotesTotalTtc, selected.currency || currency)}`} />
+                <SummaryStat label="Factures" value={`${selected.invoicesCount} · ${money(selected.invoicesTotalTtc, selected.currency || currency)}`} />
+                <SummaryStat label="Recus" value={`${selected.receiptsCount} · ${money(selected.receiptsTotalTtc, selected.currency || currency)}`} />
+                <SummaryStat label="Paiements" value={`${selected.paymentsCount} · ${money(selected.paidTotal, selected.currency || currency)}`} tone="success" />
                 <SummaryStat label="Restant" value={money(selected.remainingTotal, selected.currency || currency)} tone="warning" />
                 <SummaryStat label="En retard" value={money(selected.overdueTotal, selected.currency || currency)} tone="danger" />
                 <SummaryStat label="HT" value={money(selected.subtotalHt, selected.currency || currency)} />
@@ -13002,7 +13002,7 @@ export function FinanceDocumentDrawer({
     const typeOptions = [
         { id: 'quote', label: 'Devis' },
         { id: 'invoice', label: 'Facture' },
-        { id: 'receipt', label: 'ReÃ§u' },
+        { id: 'receipt', label: 'Reçu' },
     ];
 
     const clientOptions = clients.map((c) => ({ id: c.id, label: c.label }));
@@ -15518,7 +15518,7 @@ export function DocumentGroupedExplorer({ groups }: Props) {
                                 active={selectedProvinceGroup?.province === group.province}
                                 icon={<MapPinned size={14} />}
                                 title={group.province}
-                                subtitle={`${group.communes.length} communes Â· ${group.stats.documentsCount} docs`}
+                                subtitle={`${group.communes.length} communes · ${group.stats.documentsCount} docs`}
                                 onClick={() => chooseProvince(group)}
                             />
                         ))}
@@ -15537,7 +15537,7 @@ export function DocumentGroupedExplorer({ groups }: Props) {
                                 key={`${selectedProvinceGroup?.province}-${commune.commune}`}
                                 active={selectedCommuneGroup?.commune === commune.commune}
                                 title={commune.commune}
-                                subtitle={`${commune.clients.length} clients Â· ${commune.stats.documentsCount} docs`}
+                                subtitle={`${commune.clients.length} clients · ${commune.stats.documentsCount} docs`}
                                 onClick={() => chooseCommune(commune)}
                             />
                         ))}
@@ -15560,7 +15560,7 @@ export function DocumentGroupedExplorer({ groups }: Props) {
                                 active={level === 'clients' && activeClient?.clientName === client.clientName}
                                 icon={<UserRound size={14} />}
                                 title={client.clientName}
-                                subtitle={`${client.projects.length} projects Â· ${client.stats.documentsCount} docs`}
+                                subtitle={`${client.projects.length} projects · ${client.stats.documentsCount} docs`}
                                 onClick={() => chooseClient(client)}
                             />
                         ))}
@@ -15576,7 +15576,7 @@ export function DocumentGroupedExplorer({ groups }: Props) {
                                         active={level === 'projects' && activeProject?.dossierNumber === project.dossierNumber}
                                         icon={<FolderKanban size={14} />}
                                         title={project.projectObject || project.dossierNumber}
-                                        subtitle={`${project.types.length} types Â· ${project.stats.documentsCount} docs`}
+                                        subtitle={`${project.types.length} types · ${project.stats.documentsCount} docs`}
                                         onClick={() => chooseProject(project)}
                                     />
                                 ))}

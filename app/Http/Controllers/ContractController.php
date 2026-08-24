@@ -11,10 +11,10 @@ use App\Models\Contract;
 use App\Models\Dossier;
 use App\Notifications\ContractNotification;
 use App\Services\ContractDocumentGenerator;
+use App\Services\ContractPdfGenerator;
+use App\Services\Contracts\ContractClientIdentityService;
 use App\Services\Contracts\ContractTemplateNamingService;
-use App\Services\Dossiers\DossierPathBuilder;
 use App\Support\DecimalMoney;
-use App\Services\WordDocumentConverter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -35,7 +35,7 @@ class ContractController extends Controller
         );
 
         $contracts = (clone $scope)
-            ->with(['dossier.client'])
+            ->with(['dossier.primaryClient', 'dossier.clients'])
             ->latest()
             ->get();
 
@@ -165,16 +165,13 @@ class ContractController extends Controller
     {
         $this->authorize('generate', $contract);
         try {
-            $contract->loadMissing(['dossier.city', 'dossier.client']);
+            $contract->loadMissing(['dossier.city', 'dossier.primaryClient']);
 
             $paths = app(ContractDocumentGenerator::class)->generate($contract);
-
-            $absoluteDocx = Storage::disk('local')->path($paths['docx_path']);
-            $pathBuilder = app(DossierPathBuilder::class);
-            $pdfRelative = $pathBuilder->contractPdfPath($contract, $contract->dossier);
-            $absolutePdf = Storage::disk('local')->path($pdfRelative);
-
-            app(WordDocumentConverter::class)->convertDocxToPdf($absoluteDocx, $absolutePdf);
+            // The PDF converter renders this exact generated DOCX; keep the
+            // path on the in-memory model until both artifacts are persisted.
+            $contract->generated_document_path = $paths['docx_path'];
+            $pdfRelative = app(ContractPdfGenerator::class)->generate($contract);
 
             $contract->update([
                 'status' => $contract->status === 'signed' ? 'signed' : 'generated',
@@ -191,12 +188,17 @@ class ContractController extends Controller
                 ->route('contracts.index')
                 ->with('success', 'PDF exporte avec succes.');
         } catch (\Throwable $e) {
+            report($e);
+            $message = str_contains($e->getMessage(), 'requiert LibreOffice')
+                ? 'Le PDF doit etre converti depuis le modele Word. Activez LibreOffice sur le serveur puis reessayez.'
+                : 'Echec de l\'export PDF. Reessayez ou contactez un administrateur.';
+
             if ($request->filled('return_to')) {
-                return redirect()->to($request->string('return_to')->toString())->with('error', 'Echec de l\'export PDF: ' . $e->getMessage());
+                return redirect()->to($request->string('return_to')->toString())->with('error', $message);
             }
             return redirect()
                 ->route('contracts.index')
-                ->with('error', 'Echec de l\'export PDF: ' . $e->getMessage());
+                ->with('error', $message);
         }
     }
 
@@ -266,7 +268,7 @@ class ContractController extends Controller
     public function downloadGenerated(Contract $contract): StreamedResponse|RedirectResponse
     {
         $this->authorize('download', $contract);
-        $contract->loadMissing(['dossier.city', 'dossier.client']);
+        $contract->loadMissing(['dossier.city', 'dossier.primaryClient']);
 
         if (!$contract->generated_document_path || !Storage::disk('local')->exists($contract->generated_document_path)) {
             $paths = app(ContractDocumentGenerator::class)->generate($contract);
@@ -295,7 +297,7 @@ class ContractController extends Controller
     public function downloadPdf(Contract $contract): StreamedResponse|RedirectResponse
     {
         $this->authorize('download', $contract);
-        $contract->loadMissing(['dossier.city', 'dossier.client']);
+        $contract->loadMissing(['dossier.city', 'dossier.primaryClient']);
 
         if (!$contract->generated_document_path || !Storage::disk('local')->exists($contract->generated_document_path)) {
             $paths = app(ContractDocumentGenerator::class)->generate($contract);
@@ -310,12 +312,7 @@ class ContractController extends Controller
         }
 
         if (!$contract->pdf_path || !Storage::disk('local')->exists($contract->pdf_path)) {
-            $absoluteDocx = Storage::disk('local')->path($contract->generated_document_path);
-            $pathBuilder = app(DossierPathBuilder::class);
-            $pdfRelative = $pathBuilder->contractPdfPath($contract, $contract->dossier);
-            $absolutePdf = Storage::disk('local')->path($pdfRelative);
-
-            app(WordDocumentConverter::class)->convertDocxToPdf($absoluteDocx, $absolutePdf);
+            $pdfRelative = app(ContractPdfGenerator::class)->generate($contract);
 
             $contract->update([
                 'pdf_path' => $pdfRelative,
@@ -353,7 +350,7 @@ class ContractController extends Controller
 
     private function ensurePdfExists(Contract $contract): bool
     {
-        $contract->loadMissing(['dossier.city', 'dossier.client']);
+        $contract->loadMissing(['dossier.city', 'dossier.primaryClient']);
 
         if (!$contract->generated_document_path || !Storage::disk('local')->exists($contract->generated_document_path)) {
             $paths = app(ContractDocumentGenerator::class)->generate($contract);
@@ -368,12 +365,7 @@ class ContractController extends Controller
         }
 
         if (!$contract->pdf_path || !Storage::disk('local')->exists($contract->pdf_path)) {
-            $absoluteDocx = Storage::disk('local')->path($contract->generated_document_path);
-            $pathBuilder = app(DossierPathBuilder::class);
-            $pdfRelative = $pathBuilder->contractPdfPath($contract, $contract->dossier);
-            $absolutePdf = Storage::disk('local')->path($pdfRelative);
-
-            app(WordDocumentConverter::class)->convertDocxToPdf($absoluteDocx, $absolutePdf);
+            $pdfRelative = app(ContractPdfGenerator::class)->generate($contract);
 
             $contract->update([
                 'pdf_path' => $pdfRelative,
@@ -391,7 +383,7 @@ class ContractController extends Controller
             return;
         }
 
-        $contract->loadMissing(['dossier.city', 'dossier.client']);
+        $contract->loadMissing(['dossier.city', 'dossier.primaryClient']);
 
         if ($contract->generated_document_path && Storage::disk('local')->exists($contract->generated_document_path)) {
             Storage::disk('local')->delete($contract->generated_document_path);
@@ -509,44 +501,66 @@ class ContractController extends Controller
 
     private function clientOptions(\App\Models\User $user, \App\Services\CompanyContext $companyContext): array
     {
+        $clientIdentity = app(ContractClientIdentityService::class);
+
         return $companyContext->applyTo(Client::query(), $user)
-            ->with(['dossiers' => fn ($query) => $companyContext->applyTo($query->getQuery(), $user)->with('contract')->orderByDesc('created_at')])
+            ->with(['dossiers' => fn ($query) => $companyContext
+                ->applyTo($query->wherePivot('is_primary', true)->getQuery(), $user)
+                // Contracts are dossier-level and their templates render the
+                // primary project client. Do not present co-clients as
+                // contract owners without an explicit contract client field.
+                ->with(['contract', 'primaryClient', 'clients'])
+                ->orderByDesc('created_at')])
             ->orderBy('full_name')
             ->get()
-            ->map(fn (Client $client) => [
+            ->map(function (Client $client) use ($clientIdentity): array {
+                return [
                 'id' => (string) $client->id,
                 'fullName' => $client->full_name,
                 'cin' => $client->cin,
-                'dossiers' => $client->dossiers->map(fn (Dossier $dossier) => [
-                    'id' => (string) $dossier->id,
-                    'label' => $dossier->dossier_number . ' - ' . $dossier->project_object,
-                    'floorArea' => $dossier->floor_area !== null ? (float) $dossier->floor_area : null,
-                    'hasContract' => $dossier->contract !== null,
-                ])->values()->all(),
-            ])
+                'dossiers' => $client->dossiers->map(function (Dossier $dossier) use ($clientIdentity): array {
+                    return [
+                        'id' => (string) $dossier->id,
+                        'label' => $dossier->project_object
+                            ? $dossier->project_object . ' — ' . $dossier->dossier_number
+                            : $dossier->dossier_number,
+                        'floorArea' => $dossier->floor_area !== null ? (float) $dossier->floor_area : null,
+                        'hasContract' => $dossier->contract !== null,
+                        'clients' => $clientIdentity->forDossier($dossier)['clients'],
+                    ];
+                })->values()->all(),
+                ];
+            })
             ->values()
             ->all();
     }
 
     private function dossierOptions(\App\Models\User $user, \App\Services\CompanyContext $companyContext): array
     {
+        $clientIdentity = app(ContractClientIdentityService::class);
+
         return $companyContext->applyTo(Dossier::query(), $user)
-            ->with(['client', 'contract'])
+            ->with(['primaryClient', 'clients', 'contract'])
             ->orderByDesc('created_at')
             ->get()
-            ->map(fn (Dossier $dossier) => [
-                'id' => (string) $dossier->id,
-                'label' => $dossier->dossier_number . ($dossier->project_object ? ' - ' . $dossier->project_object : ''),
-                'floorArea' => $dossier->floor_area !== null ? (float) $dossier->floor_area : null,
-                'hasContract' => $dossier->contract !== null,
-            ])
+            ->map(function (Dossier $dossier) use ($clientIdentity): array {
+                return [
+                    'id' => (string) $dossier->id,
+                    'label' => $dossier->project_object
+                        ? $dossier->project_object . ' — ' . $dossier->dossier_number
+                        : $dossier->dossier_number,
+                    'floorArea' => $dossier->floor_area !== null ? (float) $dossier->floor_area : null,
+                    'hasContract' => $dossier->contract !== null,
+                    'clients' => $clientIdentity->forDossier($dossier)['clients'],
+                ];
+            })
             ->values()
             ->all();
     }
 
     private function contractDownloadFilename(Contract $contract, string $ext): string
     {
-        $client = $contract->dossier?->client;
+        $client = $contract->dossier?->primaryClient;
         $civility = $client?->civility ?? 'M';
         $name = $client?->full_name ?? 'client';
 

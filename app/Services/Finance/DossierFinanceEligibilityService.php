@@ -17,13 +17,13 @@ class DossierFinanceEligibilityService
         ?int $clientId = null,
     ): void
     {
-        if (! $dossierId || ! in_array($type, ['quote', 'invoice', 'internal_invoice'], true)) {
+        if (! $dossierId || ! in_array($type, ['quote', 'invoice'], true)) {
             return;
         }
 
         $dossier = $this->scopedDossier($scope, $dossierId);
 
-        if ($clientId && $clientId !== (int) $dossier->client_id) {
+        if ($clientId && ! $dossier->hasClientMembership((int) $clientId)) {
             throw ValidationException::withMessages([
                 'client_id' => 'Le client selectionne ne correspond pas au dossier.',
             ]);
@@ -46,7 +46,7 @@ class DossierFinanceEligibilityService
     {
         $this->scopedDossier($scope, $dossier->id);
 
-        if ($requestedClientId && $requestedClientId !== (int) $dossier->client_id) {
+        if ($requestedClientId && ! $dossier->hasClientMembership((int) $requestedClientId)) {
             throw ValidationException::withMessages([
                 'client_id' => 'Le client selectionne ne correspond pas au dossier.',
             ]);

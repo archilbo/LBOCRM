@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 
 class OfficeDocumentConverter
@@ -21,6 +23,10 @@ class OfficeDocumentConverter
         $candidates = [
             'C:\Program Files\LibreOffice\program\soffice.exe',
             'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
+            '/usr/bin/soffice',
+            '/usr/bin/libreoffice',
+            '/usr/local/bin/soffice',
+            '/usr/local/bin/libreoffice',
         ];
 
         foreach ($candidates as $candidate) {
@@ -55,38 +61,59 @@ class OfficeDocumentConverter
         }
 
         $outputDir = dirname($absolutePdfPath);
+        $workspace = storage_path('app/.office-conversion/' . Str::uuid()->toString());
+        $sourceDocx = $workspace . DIRECTORY_SEPARATOR . 'source.docx';
+        $expectedPdf = $workspace . DIRECTORY_SEPARATOR . 'source.pdf';
+        $profileDir = $workspace . DIRECTORY_SEPARATOR . 'profile';
 
-        if (!is_dir($outputDir)) {
-            mkdir($outputDir, 0755, true);
+        File::ensureDirectoryExists($workspace);
+        File::ensureDirectoryExists($profileDir);
+
+        try {
+            File::copy($absoluteDocxPath, $sourceDocx);
+
+            // A separate profile and workspace prevent LibreOffice locks and
+            // output collisions when multiple contracts are generated at once.
+            $process = new Process([
+                $this->libreOfficePath,
+                '--headless',
+                '--nologo',
+                '--nodefault',
+                '--nofirststartwizard',
+                '-env:UserInstallation=' . $this->fileUri($profileDir),
+                '--convert-to',
+                'pdf:writer_pdf_Export',
+                '--outdir',
+                $workspace,
+                $sourceDocx,
+            ]);
+
+            $process->setTimeout(120);
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                throw new \RuntimeException(
+                    trim($process->getErrorOutput()) ?: trim($process->getOutput()) ?: 'LibreOffice returned an unknown error.'
+                );
+            }
+
+            if (!is_file($expectedPdf) || filesize($expectedPdf) < 5 || file_get_contents($expectedPdf, false, null, 0, 5) !== '%PDF-') {
+                throw new \RuntimeException('LibreOffice did not create a valid PDF.');
+            }
+
+            File::ensureDirectoryExists($outputDir);
+            File::copy($expectedPdf, $absolutePdfPath);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('LibreOffice PDF conversion failed: ' . $e->getMessage(), previous: $e);
+        } finally {
+            File::deleteDirectory($workspace);
         }
+    }
 
-        $process = new Process([
-            $this->libreOfficePath,
-            '--headless',
-            '--convert-to',
-            'pdf',
-            '--outdir',
-            $outputDir,
-            $absoluteDocxPath,
-        ]);
+    private function fileUri(string $path): string
+    {
+        $normalizedPath = str_replace('\\', '/', $path);
 
-        $process->setTimeout(120);
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException(
-                'LibreOffice PDF conversion failed: ' . $process->getErrorOutput()
-            );
-        }
-
-        $expectedPdf = $outputDir . '/' . pathinfo($absoluteDocxPath, PATHINFO_FILENAME) . '.pdf';
-
-        if (file_exists($expectedPdf) && $expectedPdf !== $absolutePdfPath) {
-            rename($expectedPdf, $absolutePdfPath);
-        }
-
-        if (!file_exists($absolutePdfPath)) {
-            throw new \RuntimeException('PDF was not created by LibreOffice.');
-        }
+        return 'file:///' . ltrim($normalizedPath, '/');
     }
 }

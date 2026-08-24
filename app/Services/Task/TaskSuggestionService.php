@@ -105,7 +105,7 @@ class TaskSuggestionService
 
     private function isCinExpiringSoon(Dossier $dossier): bool
     {
-        $client = $dossier->client;
+        $client = $dossier->primaryClient;
         if (! $client || ! $client->cni_expiration_date) return false;
         return Carbon::parse($client->cni_expiration_date)->diffInDays(now()) <= 30;
     }

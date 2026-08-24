@@ -23,7 +23,7 @@ class FinanceFileStorageService
 
     public function directory(FinanceDocument $document): string
     {
-        $document->loadMissing(['dossier.city', 'dossier.client']);
+        $document->loadMissing(['dossier.city', 'dossier.primaryClient']);
 
         if (! $document->dossier) {
             throw new RuntimeException('Un dossier est requis pour stocker les fichiers financiers.');

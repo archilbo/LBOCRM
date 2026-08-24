@@ -13,7 +13,7 @@ import { Input } from '@heroui/react';
 type CahierSummary = { number: string; receivedAt: string; deliveredAt: string | null } | null;
 
 export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId, cahier, canUpdateWorkflow, onOpenUpload, onOpenDocuments, onOpenArchive }: {
-    workflow: WorkflowData; selectedStepKey?: string | null; onSelectStep?: (key: string) => void; dossierId: number; cahier: CahierSummary; canUpdateWorkflow: boolean; onOpenUpload?: (stepKey: string, reqKey: string) => void; onOpenDocuments?: () => void; onOpenArchive?: () => void;
+    workflow: WorkflowData; selectedStepKey?: string | null; onSelectStep?: (key: string) => void; dossierId: number; cahier: CahierSummary; canUpdateWorkflow: boolean; onOpenUpload?: (stepKey: string, reqKey: string, clientId?: string) => void; onOpenDocuments?: () => void; onOpenArchive?: () => void;
 }) {
     const [modalState, setModalState] = useState<{
         stepKey: string; reqKey: string; isDone: boolean; notes: string;
@@ -290,7 +290,7 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                                             <IconEye size={13} />
                                                                         </AppButton>
                                                                     ) : null}
-                                                                    {req.actionUrl && req.actionLabel ? (
+                                                                    {req.actionUrl && req.actionLabel && !req.clientCins?.length ? (
                                                                         <AppButton size="sm" compact isIconOnly className="size-7 min-h-7 min-w-7" variant="toolbar" tooltip={req.actionLabel} aria-label={req.actionLabel} onPress={() => openAction(req.actionUrl, req.actionLabel === 'Televerser', req.key, activeStep.key, req.actionLabel)}>
                                                                             <IconUpload size={13} />
                                                                         </AppButton>
@@ -325,6 +325,40 @@ export function WorkflowTab({ workflow, selectedStepKey, onSelectStep, dossierId
                                                         <p className="mt-1 text-[10px] text-[var(--text-muted)]">
                                                             N° {cahier.number} · Recu le {cahier.receivedAt}{cahier.deliveredAt ? ` · Delivre le ${cahier.deliveredAt}` : ''}
                                                         </p>
+                                                    ) : null}
+                                                    {req.clientCins?.length ? (
+                                                        <div className="mt-2 space-y-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2">
+                                                            <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">
+                                                                CIN requise pour chaque client
+                                                            </p>
+                                                            {req.clientCins.map((client) => (
+                                                                <div key={client.clientId} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-[var(--surface-2)] px-2 py-1.5">
+                                                                    <div className="min-w-0">
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <p className="truncate text-[10px] font-medium text-[var(--foreground)]">{client.fullName}</p>
+                                                                            {client.isPrimary ? <span className="rounded-full bg-[var(--accent)]/10 px-1.5 py-0.5 text-[8px] font-semibold text-[var(--accent)]">Principal</span> : null}
+                                                                        </div>
+                                                                        <p className="text-[9px] text-[var(--text-muted)]">
+                                                                            {client.cin || 'CIN non renseignée'} · Recto {client.hasFront ? '✓' : '—'} · Verso {client.hasBack ? '✓' : '—'}
+                                                                        </p>
+                                                                    </div>
+                                                                    {client.complete ? (
+                                                                        <span className="text-[9px] font-semibold text-emerald-500">Complète</span>
+                                                                    ) : req.actionLabel && onOpenUpload ? (
+                                                                        <AppButton
+                                                                            size="sm"
+                                                                            compact
+                                                                            variant="toolbar"
+                                                                            className="h-6 min-h-6 px-2 text-[9px]"
+                                                                            onPress={() => onOpenUpload(activeStep.key, req.key, client.clientId)}
+                                                                        >
+                                                                            <IconUpload size={11} />
+                                                                            Téléverser
+                                                                        </AppButton>
+                                                                    ) : null}
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     ) : null}
                                                 </div>
                                             </div>

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -56,9 +57,12 @@ class Client extends Model
         return $this->belongsTo(Branch::class);
     }
 
-    public function dossiers(): HasMany
+    public function dossiers(): BelongsToMany
     {
-        return $this->hasMany(Dossier::class);
+        return $this->belongsToMany(Dossier::class, 'client_dossier')
+            ->withPivot(['is_primary', 'role'])
+            ->withTimestamps()
+            ->using(ClientDossier::class);
     }
 
     public function financeRecords(): HasMany
@@ -69,11 +73,6 @@ class Client extends Model
     public function financeDocuments(): HasMany
     {
         return $this->hasMany(FinanceDocument::class);
-    }
-
-    public function internalInvoices(): HasMany
-    {
-        return $this->financeDocuments()->where('type', 'internal_invoice');
     }
 
     public function payments(): HasMany

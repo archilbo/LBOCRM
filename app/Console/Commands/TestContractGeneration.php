@@ -17,7 +17,7 @@ class TestContractGeneration extends Command
     public function handle(): int
     {
         $contractId = $this->argument('contract_id');
-        $contract = Contract::with(['dossier.client'])->find($contractId);
+        $contract = Contract::with(['dossier.primaryClient'])->find($contractId);
 
         if (!$contract) {
             $this->error("Contract #{$contractId} not found.");
@@ -56,7 +56,7 @@ class TestContractGeneration extends Command
 
         $absoluteDocx = Storage::disk('local')->path($paths['docx_path']);
         $pathBuilder = app(\App\Services\Dossiers\DossierPathBuilder::class);
-        $contract->loadMissing(['dossier.city', 'dossier.client']);
+        $contract->loadMissing(['dossier.city', 'dossier.primaryClient']);
         $pdfRelative = $pathBuilder->contractPdfPath($contract, $contract->dossier);
         $absolutePdf = Storage::disk('local')->path($pdfRelative);
 

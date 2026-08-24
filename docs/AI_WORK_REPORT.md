@@ -18,7 +18,7 @@ Create a fresh Laravel + React project without old broken UI.
 
 ---
 
-## Step 2 â€” Local language file + SaaS AppShell
+## Step 2 — Local language file + SaaS AppShell
 
 ### Goal
 
@@ -47,7 +47,7 @@ Move UI text into a local editable language file and create a reusable SaaS layo
 
 ---
 
-## Step 3 â€” Projects / Dossiers SaaS UI Prototype
+## Step 3 — Projects / Dossiers SaaS UI Prototype
 
 ### Goal
 
@@ -77,7 +77,7 @@ Create a clean SaaS CRM-style projects/dossiers page using shared components, lo
 
 ---
 
-## Step 3 â€” Projects / Dossiers SaaS UI Prototype
+## Step 3 — Projects / Dossiers SaaS UI Prototype
 
 ### Goal
 

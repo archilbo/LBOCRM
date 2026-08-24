@@ -144,7 +144,7 @@ class GlobalSearchController extends Controller
     private function dossiers(array $tokens, Request $request, CompanyContext $companyContext, bool $canViewArchive): Collection
     {
         return $companyContext->applyTo(Dossier::query(), $request->user())
-            ->with(['client', 'cahier', ...$canViewArchive ? ['archiveRecord', 'city'] : []])
+            ->with(['primaryClient', 'cahier', ...$canViewArchive ? ['archiveRecord', 'city'] : []])
             ->where(function (Builder $builder) use ($tokens) {
                 foreach ($tokens as $token) {
                     $builder->where(function (Builder $tokenQuery) use ($token) {
@@ -157,7 +157,9 @@ class GlobalSearchController extends Controller
                         $tokenQuery->orWhereHas('cahier', function (Builder $cahierQuery) use ($token) {
                             $this->whereToken($cahierQuery, 'cahier_number', $token);
                         });
-                        $tokenQuery->orWhereHas('client', function (Builder $clientQuery) use ($token) {
+                        // Search through every attached client, not only the
+                        // legacy primary-client mirror.
+                        $tokenQuery->orWhereHas('clients', function (Builder $clientQuery) use ($token) {
                             $this->whereToken($clientQuery, 'full_name', $token);
                             $this->orWhereToken($clientQuery, 'client_number', $token);
                             $this->orWhereToken($clientQuery, 'cin', $token);
@@ -172,7 +174,7 @@ class GlobalSearchController extends Controller
                 'id' => 'dossier-' . $dossier->id,
                 'type' => 'Project',
                 'title' => $dossier->project_object,
-                'subtitle' => $dossier->dossier_number . ' · ' . ($dossier->client?->full_name ?? '-'),
+                'subtitle' => $dossier->dossier_number . ' · ' . ($dossier->primaryClient?->full_name ?? '-'),
                 'meta' => $this->mergeMeta([
                     $dossier->commune ?: null,
                     $dossier->province ?: null,
@@ -208,7 +210,7 @@ class GlobalSearchController extends Controller
     private function documents(array $tokens, Request $request, CompanyContext $companyContext): Collection
     {
         return DossierDocument::query()
-            ->with(['dossier.client', 'template'])
+            ->with(['dossier.primaryClient', 'template'])
             ->whereHas('dossier', fn ($query) => $companyContext->applyTo($query, $request->user()))
             ->where(function (Builder $builder) use ($tokens) {
                 foreach ($tokens as $token) {
@@ -247,7 +249,7 @@ class GlobalSearchController extends Controller
     private function contracts(array $tokens, Request $request, CompanyContext $companyContext): Collection
     {
         return Contract::query()
-            ->with(['dossier.client'])
+            ->with(['dossier.primaryClient'])
             ->whereHas('dossier', fn ($query) => $companyContext->applyTo($query, $request->user()))
             ->where(function (Builder $builder) use ($tokens) {
                 foreach ($tokens as $token) {
@@ -258,7 +260,7 @@ class GlobalSearchController extends Controller
                             $this->whereToken($dossierQuery, 'dossier_number', $token);
                             $this->orWhereToken($dossierQuery, 'project_object', $token);
                         });
-                        $tokenQuery->orWhereHas('dossier.client', function (Builder $clientQuery) use ($token) {
+                        $tokenQuery->orWhereHas('dossier.primaryClient', function (Builder $clientQuery) use ($token) {
                             $this->whereToken($clientQuery, 'full_name', $token);
                             $this->orWhereToken($clientQuery, 'cin', $token);
                         });
@@ -272,7 +274,7 @@ class GlobalSearchController extends Controller
                 'id' => 'contract-' . $contract->id,
                 'type' => 'Contract',
                 'title' => $contract->contract_number,
-                'subtitle' => ($contract->dossier?->dossier_number ?? '-') . ' · ' . ($contract->dossier?->client?->full_name ?? '-'),
+                'subtitle' => ($contract->dossier?->dossier_number ?? '-') . ' · ' . ($contract->dossier?->primaryClient?->full_name ?? '-'),
                 'meta' => $this->mergeMeta([
                     $contract->dossier?->project_object ?: null,
                 ]),
@@ -322,7 +324,7 @@ class GlobalSearchController extends Controller
     private function archives(array $tokens, Request $request, CompanyContext $companyContext): Collection
     {
         return ArchiveRecord::query()
-            ->with(['dossier.client', 'dossier.city'])
+            ->with(['dossier.primaryClient', 'dossier.city'])
             ->whereHas('dossier', fn ($query) => $companyContext->applyTo($query, $request->user()))
             ->where(function (Builder $builder) use ($tokens) {
                 foreach ($tokens as $token) {

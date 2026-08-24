@@ -1,4 +1,4 @@
-import { IconCoin, IconFileInvoice, IconPlus, IconReceipt2, IconShoppingCart, IconWallet } from '@tabler/icons-react';
+import { IconCoin, IconPlus, IconReceipt2, IconShoppingCart, IconWallet } from '@tabler/icons-react';
 
 import { AppButton } from '@/components/ui/AppButton';
 import type { FinanceMetrics } from '@/features/finance/components/FinanceMetricCards';
@@ -10,7 +10,6 @@ type Props = {
     documentsCount: number;
     onCreateQuote: () => void;
     onCreateInvoice: () => void;
-    onCreateInternalInvoice: () => void;
     onCreatePayment: () => void;
     onCreateExpense: () => void;
     canCreateDocument: boolean;
@@ -24,7 +23,6 @@ export function FinanceWorkspaceHeader({
     documentsCount,
     onCreateQuote,
     onCreateInvoice,
-    onCreateInternalInvoice,
     onCreatePayment,
     onCreateExpense,
     canCreateDocument,
@@ -54,7 +52,6 @@ export function FinanceWorkspaceHeader({
                 <div className="flex flex-wrap items-center gap-1.5 xl:justify-end">
                     {canCreatePayment ? <AppButton isIconOnly compact variant="quiet" tooltip="Paiement" aria-label="Paiement" onPress={onCreatePayment}><IconWallet size={14} /></AppButton> : null}
                     {canCreateExpense ? <AppButton isIconOnly compact variant="quiet" tooltip="Depense" aria-label="Depense" onPress={onCreateExpense}><IconShoppingCart size={14} /></AppButton> : null}
-                    {canCreateDocument ? <AppButton isIconOnly compact variant="quiet" tooltip="Facture interne" aria-label="Facture interne" onPress={onCreateInternalInvoice}><IconFileInvoice size={14} /></AppButton> : null}
                     {canCreateDocument ? <AppButton isIconOnly compact variant="quiet" tooltip="Facture" aria-label="Facture" onPress={onCreateInvoice}><IconReceipt2 size={14} /></AppButton> : null}
                     {canCreateDocument ? <AppButton isIconOnly compact variant="solid" color="primary" tooltip="Nouveau devis" aria-label="Nouveau devis" onPress={onCreateQuote}><IconPlus size={14} /></AppButton> : null}
                 </div>

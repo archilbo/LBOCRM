@@ -41,7 +41,6 @@ class FinanceDocumentResource extends JsonResource
             ] : null,
             'sourceDocumentId' => $this->source_document_id,
             'convertedToDocumentId' => $this->converted_to_document_id,
-            'isInternal' => $this->isInternalInvoice(),
             'issueDate' => $this->issue_date?->toDateString(),
             'dueDate' => $this->due_date?->toDateString(),
             'validUntil' => $this->valid_until?->toDateString(),

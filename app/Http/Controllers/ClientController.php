@@ -11,17 +11,20 @@ use App\Http\Resources\ClientResource;
 use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\DocumentTemplate;
+use App\Models\Dossier;
 use App\Models\FinanceTemplate;
 use App\Models\Intermediary;
 use App\Models\User;
 use App\Enums\ClientStatus;
 use App\Services\Clients\ClientWorkspaceService;
 use App\Services\CompanyContext;
+use App\Services\Contracts\ContractClientIdentityService;
 use App\Services\Finance\FinanceContextService;
 use App\Services\PermissionRegistry;
 use App\Services\Recovery\RecoveryService;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\Documents\WorkflowDocumentTemplateResolver;
+use App\Services\Dossiers\DossierLocationOptionsService;
 use App\Exceptions\CinScanException;
 use App\Services\Cin\CinScanner;
 use Illuminate\Http\JsonResponse;
@@ -31,6 +34,8 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\City;
+use Illuminate\Database\QueryException;
+use Illuminate\Validation\ValidationException;
 
 class ClientController extends Controller
 {
@@ -41,7 +46,8 @@ class ClientController extends Controller
         $clients = $companyContext->applyTo(Client::query(), $request->user())
             ->with('intermediary')
             ->withCount('dossiers')
-            ->latest()
+            ->latest('updated_at')
+            ->orderByDesc('id')
             ->get();
 
         $clientScope = fn () => $companyContext->applyTo(Client::query(), $request->user());
@@ -65,11 +71,13 @@ class ClientController extends Controller
         FinanceContextService $financeContext,
         CompanyContext $companyContext,
         WorkflowDocumentTemplateResolver $workflowTemplateResolver,
+        DossierLocationOptionsService $locationOptions,
     ): Response
     {
         $this->authorize('view', $client);
 
         $canViewFinance = app(PermissionRegistry::class)->allows($request->user(), 'finance.view');
+        $contractClientIdentity = app(ContractClientIdentityService::class);
 
         $client->load(['intermediary', 'dossiers'])->loadCount('dossiers');
         $selectedDossierId = $request->integer('dossier_id') ?: null;
@@ -78,6 +86,9 @@ class ClientController extends Controller
             'tab' => $request->query('tab', 'overview'),
             'client' => ClientResource::make($client)->resolve(),
             'cities' => City::all(),
+            'locationOptions' => $request->user()->can('create', Dossier::class)
+                ? $locationOptions->forUser($request->user())
+                : ['provinces' => [], 'communes' => []],
             'workspace' => $workspaceService->forClient($client, $selectedDossierId, $request->user()),
             'documentTemplates' => DocumentTemplate::query()
                 ->where('is_active', true)
@@ -115,17 +126,21 @@ class ClientController extends Controller
             ] : null,
             'architectFeeOptions' => FinanceSettingsService::architectFeeOptions(true),
             'dossiers' => $client->dossiers()
+                ->with(['primaryClient', 'clients'])
                 ->latest()
                 ->get()
-                ->map(fn ($dossier) => [
-                    'id' => $dossier->id,
-                    'dossierNumber' => $dossier->dossier_number,
-                    'projectObject' => $dossier->project_object,
-                    'status' => $dossier->status,
-                    'workflowStep' => $dossier->workflow_step,
-                    'floorArea' => $dossier->floor_area,
-                    'updatedAt' => optional($dossier->updated_at)->diffForHumans(),
-                ])
+                ->map(function (Dossier $dossier) use ($contractClientIdentity): array {
+                    return [
+                        'id' => $dossier->id,
+                        'dossierNumber' => $dossier->dossier_number,
+                        'projectObject' => $dossier->project_object,
+                        'status' => $dossier->status,
+                        'workflowStep' => $dossier->workflow_step,
+                        'floorArea' => $dossier->floor_area,
+                        'updatedAt' => optional($dossier->updated_at)->diffForHumans(),
+                        'clients' => $contractClientIdentity->forDossier($dossier)['clients'],
+                    ];
+                })
                 ->values(),
             'intermediaries' => $this->intermediaryOptions($request->user(), $companyContext),
         ]);
@@ -137,9 +152,7 @@ class ClientController extends Controller
 
         $data = $this->prepareClientData($request->validated());
         $data = [...$financeContext->payload($request->user()), ...$data];
-        $data['client_number'] = $this->nextClientNumber($data['company_id']);
-
-        $client = Client::create($data);
+        $client = $this->createClientWithGeneratedNumber($data);
 
         AuditLog::create([
             'user_id' => $request->user()?->id,
@@ -163,7 +176,7 @@ class ClientController extends Controller
         $returnTo = $data['return_to'] ?? null;
         unset($data['return_to']);
 
-        $client->update($this->prepareClientData($data));
+        $client->update($this->prepareClientData($data, $client));
 
         AuditLog::create([
             'user_id' => $request->user()?->id,
@@ -273,7 +286,7 @@ class ClientController extends Controller
         }
     }
 
-    private function prepareClientData(array $data): array
+    private function prepareClientData(array $data, ?Client $existing = null): array
     {
         $data['client_type'] = $data['client_type'] ?? 'person';
         $data['status'] = $data['status'] ?? ClientStatus::Active->value;
@@ -302,11 +315,8 @@ class ClientController extends Controller
         $firstName = trim((string) ($data['first_name'] ?? ''));
         $lastName = trim((string) ($data['last_name'] ?? ''));
 
-        $data['full_name'] = trim($firstName . ' ' . $lastName);
-
-        if ($data['full_name'] === '') {
-            $data['full_name'] = 'Unnamed client';
-        }
+        $data['full_name'] = trim($firstName . ' ' . $lastName)
+            ?: ($existing?->full_name ?: 'Unnamed client');
 
         $data['company_name'] = null;
         $data['ice'] = null;
@@ -322,14 +332,41 @@ class ClientController extends Controller
     private function nextClientNumber(int $companyId): string
     {
         $year = now()->format('Y');
-        $next = Client::query()->where('company_id', $companyId)->count() + 1;
+        $next = Client::withTrashed()->where('company_id', $companyId)->count() + 1;
 
         do {
             $number = sprintf('CL-%s-%04d', $year, $next);
             $next++;
-        } while (Client::where('client_number', $number)->exists());
+        } while (Client::withTrashed()->where('client_number', $number)->exists());
 
         return $number;
+    }
+
+    /**
+     * The database keeps client numbers unique even after a soft delete.
+     * Retry a number collision so concurrent requests cannot become a 500.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function createClientWithGeneratedNumber(array $data): Client
+    {
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            try {
+                return DB::transaction(function () use ($data): Client {
+                    $data['client_number'] = $this->nextClientNumber((int) $data['company_id']);
+
+                    return Client::create($data);
+                });
+            } catch (QueryException $exception) {
+                if (! str_contains($exception->getMessage(), 'clients_client_number_unique')) {
+                    throw $exception;
+                }
+            }
+        }
+
+        throw ValidationException::withMessages([
+            'client_number' => 'Impossible de générer un numéro client unique. Veuillez réessayer.',
+        ]);
     }
 
     private function intermediaryOptions(User $user, CompanyContext $companyContext): array

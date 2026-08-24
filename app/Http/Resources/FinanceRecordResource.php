@@ -16,8 +16,8 @@ class FinanceRecordResource extends JsonResource
 
             'dossierNumber' => $this->dossier?->dossier_number ?? '-',
             'projectObject' => $this->dossier?->project_object ?? '-',
-            'clientName' => $this->client?->full_name ?? $this->dossier?->client?->full_name ?? '-',
-            'clientCin' => $this->client?->cin ?? $this->dossier?->client?->cin ?? '-',
+            'clientName' => $this->client?->full_name ?? $this->dossier?->primaryClient?->full_name ?? '-',
+            'clientCin' => $this->client?->cin ?? $this->dossier?->primaryClient?->cin ?? '-',
 
             'recordNumber' => $this->record_number,
             'type' => $this->type,

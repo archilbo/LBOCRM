@@ -28,7 +28,6 @@ class FinanceDocumentQueryService
         $tabType = match ($request->string('tab')->toString()) {
             'quotes' => 'quote',
             'invoices' => 'invoice',
-            'internals' => 'internal_invoice',
             default => null,
         };
         $type = $request->string('type')->toString() ?: $tabType;
@@ -63,7 +62,7 @@ class FinanceDocumentQueryService
     public function payments(Request $request, User $user)
     {
         $query = $this->context->apply(
-            Payment::query()->with(['document', 'client', 'dossier', 'receiptDocument']),
+            Payment::query()->with(['document', 'client', 'dossier', 'receiptDocument', 'negotiatedPaymentLine']),
             $user,
         );
 
@@ -225,27 +224,15 @@ class FinanceDocumentQueryService
 
         $activeDocuments = fn () => $documents()->where('status', '!=', 'cancelled');
         $invoices = $activeDocuments()->where('type', 'invoice');
-        $internalInvoices = $activeDocuments()->where('type', 'internal_invoice');
-        $internalInvoiceIds = $activeDocuments()->where('type', 'internal_invoice')->select('id');
-        $expectedPayments = $this->context->apply(Payment::query(), $user)
-            ->where(function ($query) use ($internalInvoiceIds): void {
-                $query->whereIn('finance_document_id', $internalInvoiceIds)
-                    ->orWhereHas('document', fn ($document) => $document
-                        ->where('type', 'invoice')
-                        ->where('status', '!=', 'cancelled')
-                        ->whereIn('source_document_id', $internalInvoiceIds));
-            });
         $today = now()->toDateString();
-        $expectedTotal = (float) (clone $internalInvoices)->sum('total_ttc');
-        $expectedPaidTotal = min($expectedTotal, (float) $expectedPayments->sum('amount'));
         $officialInvoicedTotal = (float) (clone $invoices)->sum('total_ttc');
         $officialPaidTotal = (float) (clone $invoices)->sum('paid_total');
 
         return [
             'totalQuotes' => (float) $documents()->where('type', 'quote')->sum('total_ttc'),
-            'expectedTotal' => $expectedTotal,
-            'expectedPaidTotal' => $expectedPaidTotal,
-            'expectedRemainingTotal' => max(0, round($expectedTotal - $expectedPaidTotal, 2)),
+            'expectedTotal' => $officialInvoicedTotal,
+            'expectedPaidTotal' => $officialPaidTotal,
+            'expectedRemainingTotal' => max(0, round($officialInvoicedTotal - $officialPaidTotal, 2)),
             'totalInvoices' => $officialInvoicedTotal,
             'paidTotal' => $officialPaidTotal,
             'remainingTotal' => max(0, round($officialInvoicedTotal - $officialPaidTotal, 2)),

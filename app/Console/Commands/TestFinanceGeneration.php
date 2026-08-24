@@ -17,7 +17,7 @@ class TestFinanceGeneration extends Command
     public function handle(): int
     {
         $recordId = $this->argument('finance_record_id');
-        $record = FinanceRecord::with(['dossier.client'])->find($recordId);
+        $record = FinanceRecord::with(['dossier.primaryClient'])->find($recordId);
 
         if (!$record) {
             $this->error("Finance record #{$recordId} not found.");

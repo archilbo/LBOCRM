@@ -125,6 +125,7 @@ PROMPT;
                 }
 
                 usleep(500_000 * ($attempt + 1));
+
                 continue;
             } catch (Throwable $exception) {
                 throw CinScanException::providerUnavailable($exception);
@@ -134,13 +135,16 @@ PROMPT;
                 break;
             }
 
-            if ($response->status() === 429 && $attempt < $retries) {
-                usleep(750_000 * ($attempt + 1));
-                continue;
+            // A quota response is account-wide, not a transient per-request
+            // failure. Retrying immediately only spends more provider calls
+            // and cannot make the next document succeed.
+            if ($response->status() === 429) {
+                break;
             }
 
             if ($response->serverError() && $attempt < $retries) {
                 usleep(750_000 * ($attempt + 1));
+
                 continue;
             }
 
@@ -188,14 +192,12 @@ PROMPT;
         $text = collect($body['steps'] ?? [])
             ->where('type', 'model_output')
             ->flatMap(
-                fn (array $step): array =>
-                    is_array($step['content'] ?? null)
+                fn (array $step): array => is_array($step['content'] ?? null)
                         ? $step['content']
                         : []
             )
             ->first(
-                fn (mixed $content): bool =>
-                    is_array($content)
+                fn (mixed $content): bool => is_array($content)
                     && ($content['type'] ?? null) === 'text'
                     && is_string($content['text'] ?? null)
             );

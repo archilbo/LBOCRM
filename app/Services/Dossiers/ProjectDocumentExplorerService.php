@@ -75,6 +75,11 @@ class ProjectDocumentExplorerService
                     'version' => null,
                     'extension' => null,
                     'name' => $this->documentDisplayName($document),
+                    'clientId' => $document->client_id
+                        ? (string) $document->client_id
+                        : null,
+                    'clientName' => $document->client?->full_name
+                        ?? $dossier->primaryClient?->full_name,
                     'status' => $document->status,
                     'documentNumber' => $document->document_number,
                     'originalFilename' => $document->original_filename,

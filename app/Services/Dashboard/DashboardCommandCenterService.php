@@ -321,7 +321,7 @@ class DashboardCommandCenterService
         $actions = collect();
 
         $this->dossierDocuments($user)
-            ->with(['dossier.client'])
+            ->with(['dossier.primaryClient'])
             ->where('status', 'missing')
             ->latest()
             ->limit(3)
@@ -330,7 +330,7 @@ class DashboardCommandCenterService
                 $actions->push([
                     'id' => 'document-'.$document->id,
                     'kind' => 'missingDocument',
-                    'context' => trim(($document->dossier?->dossier_number ?? '-').' - '.($document->dossier?->client?->full_name ?? '-')),
+                    'context' => trim(($document->dossier?->dossier_number ?? '-').' - '.($document->dossier?->primaryClient?->full_name ?? '-')),
                     'dueKey' => 'today',
                     'tone' => 'red',
                     'icon' => 'upload',
@@ -375,7 +375,7 @@ class DashboardCommandCenterService
     private function recentProjects(User $user): array
     {
         return $this->dossiers($user)
-            ->with('client:id,full_name')
+            ->with('primaryClient:clients.id,clients.full_name')
             ->withCount([
                 'documents as missing_documents_count' => fn (Builder $query) => $query->where('status', 'missing'),
             ])
@@ -390,7 +390,7 @@ class DashboardCommandCenterService
                 'id' => (string) $dossier->id,
                 'dossierNumber' => $dossier->dossier_number,
                 'project' => $dossier->project_object ?? $dossier->dossier_number,
-                'client' => $dossier->client?->full_name ?? '-',
+                'client' => $dossier->primaryClient?->full_name ?? '-',
                 'location' => trim(($dossier->province ?? '-').' / '.($dossier->commune ?? '-')),
                 'step' => $dossier->workflow_step ?? '-',
                 'status' => $dossier->status ?? '-',
@@ -503,7 +503,7 @@ class DashboardCommandCenterService
         $stepLabels = collect($config)->pluck('label', 'key')->all();
 
         return $this->dossiers($user)
-            ->with('client:id,full_name')
+            ->with('primaryClient:clients.id,clients.full_name')
             ->withCount([
                 'documents as missing_documents_count' => fn (Builder $query) => $query->where('status', 'missing'),
             ])
@@ -516,7 +516,7 @@ class DashboardCommandCenterService
                 'id' => (string) $dossier->id,
                 'dossierNumber' => $dossier->dossier_number,
                 'project' => $dossier->project_object ?? $dossier->dossier_number,
-                'client' => $dossier->client?->full_name ?? '-',
+                'client' => $dossier->primaryClient?->full_name ?? '-',
                 'step' => $stepLabels[$dossier->workflow_step] ?? $dossier->workflow_step ?? '-',
                 'stepKey' => $dossier->workflow_step ?? '-',
                 'daysStuck' => (int) $dossier->updated_at->diffInDays(now()),

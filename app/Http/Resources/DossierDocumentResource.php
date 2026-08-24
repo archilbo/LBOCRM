@@ -49,8 +49,12 @@ class DossierDocumentResource extends JsonResource
                 $this->dossier?->project_object
                 ?? '-',
             'clientName' =>
-                $this->dossier?->client?->full_name
+                $this->client?->full_name
+                ?? $this->dossier?->primaryClient?->full_name
                 ?? '-',
+            'clientId' => $this->client_id
+                ? (string) $this->client_id
+                : null,
             'documentTemplateId' =>
                 $this->document_template_id
                     ? (string)

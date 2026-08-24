@@ -10,7 +10,7 @@ export type FinanceDocumentLockState = {
     canGeneratePdf: boolean;
     canGenerateExcel: boolean;
 };
-export type FinanceDocumentType = 'quote' | 'invoice' | 'internal_invoice' | 'receipt';
+export type FinanceDocumentType = 'quote' | 'invoice' | 'receipt';
 
 export type FinanceDocumentStatus =
     | 'draft'
@@ -70,7 +70,6 @@ export type FinanceDocument = {
     } | null;
     sourceDocumentId: number | null;
     convertedToDocumentId?: number | null;
-    isInternal?: boolean;
     issueDate: string | null;
     dueDate: string | null;
     validUntil: string | null;
@@ -184,12 +183,30 @@ export type ClientOption = {
 export type DossierOption = {
     id: string;
     label: string;
+    /** Primary client kept for old consumers; clientIds is the membership source of truth. */
     clientId: string;
+    clientIds?: string[];
     projectObject?: string | null;
     financeTtc?: number | null;
     address?: string | null;
     floorArea?: number | string | null;
     landSurface?: number | string | null;
+    negotiatedPaymentLines?: NegotiatedPaymentLine[];
+};
+
+export type NegotiatedPaymentLine = {
+    id: string;
+    designation: string;
+    negotiatedAmount: number;
+    paidAmount: number;
+    remainingAmount: number;
+    payments: Array<{
+        id: string;
+        amount: number;
+        method: string | null;
+        paidAt: string | null;
+        reference: string | null;
+    }>;
 };
 
 export type TemplateOption = {
@@ -227,8 +244,9 @@ export type PaymentReceipt = {
 export type Payment = {
     id: number;
     paymentNumber: string;
-    paymentKind?: 'invoice' | 'advance' | string;
+    paymentKind?: 'invoice' | 'advance' | 'negotiated_advance' | string;
     financeDocumentId?: number | null;
+    dossierNegotiatedPaymentLineId?: number | null;
     amount: number;
     method: string | null;
     reference: string | null;
@@ -245,6 +263,7 @@ export type Payment = {
     } | null;
     client?: { id: number; name: string } | null;
     dossier?: { id: number; number: string } | null;
+    negotiatedPaymentLine?: { id: number; designation: string; negotiatedAmount: number } | null;
     receiptDocumentId?: number | null;
     receipt?: PaymentReceipt | null;
     createdAt?: string | null;
@@ -297,6 +316,7 @@ export type FinanceDossierOption = {
     label: string;
     clientName: string;
     clientId?: string;
+    clientIds?: string[];
 };
 
 export type FinanceFormPayload = {
@@ -363,12 +383,10 @@ export type FinanceMonthSummary = {
     currency: string;
     quotesCount: number;
     invoicesCount: number;
-    internalInvoicesCount: number;
     receiptsCount: number;
     paymentsCount: number;
     quotesTotalTtc: number;
     invoicesTotalTtc: number;
-    internalInvoicesTotalTtc: number;
     receiptsTotalTtc: number;
     paidTotal: number;
     expensesTotal: number;

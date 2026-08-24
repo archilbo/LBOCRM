@@ -88,7 +88,7 @@ class IntermediaryPaymentService
     {
         $projects = $this->context->apply(Dossier::query(), $user)
             ->where('intermediary_id', $intermediary->id)
-            ->with(['client:id,full_name'])
+            ->with(['primaryClient:clients.id,clients.full_name'])
             ->latest()
             ->get();
         $invoices = $this->allInvoices($intermediary, $user)->groupBy('dossier_id');
@@ -102,7 +102,7 @@ class IntermediaryPaymentService
                 $total = (float) $projectInvoices->sum('total_ttc');
                 $paid = (float) $projectInvoices->sum('paid_total');
                 $remaining = (float) $projectInvoices->sum('remaining_total');
-                return ['id' => $project->id, 'number' => $project->dossier_number, 'name' => $project->project_object, 'clientName' => $project->client?->full_name, 'invoicesCount' => $projectInvoices->count(), 'total' => $total, 'paid' => $paid, 'remaining' => $remaining, 'status' => $projectInvoices->isEmpty() ? 'no_invoice' : ($remaining <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'))];
+                return ['id' => $project->id, 'number' => $project->dossier_number, 'name' => $project->project_object, 'clientName' => $project->primaryClient?->full_name, 'invoicesCount' => $projectInvoices->count(), 'total' => $total, 'paid' => $paid, 'remaining' => $remaining, 'status' => $projectInvoices->isEmpty() ? 'no_invoice' : ($remaining <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'))];
             })->values(),
             'batches' => $batches->map(fn (IntermediaryPaymentBatch $b) => ['id' => $b->id, 'amount' => (float) $b->amount, 'paidAt' => $b->paid_at?->format('Y-m-d'), 'method' => $b->method, 'reference' => $b->reference, 'cancelledAt' => $b->cancelled_at?->toIso8601String(), 'canCancel' => ! $b->cancelled_at, 'allocations' => $b->allocations->map(fn ($a) => ['id' => $a->id, 'amount' => (float) $a->amount, 'invoiceNumber' => $a->document?->number, 'projectName' => $a->dossier?->project_object ?: $a->dossier?->dossier_number, 'receiptUrl' => $a->payment?->receiptDocument ? route('finance.documents.view', $a->payment->receiptDocument) : null])->values()])->values(),
         ];

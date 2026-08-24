@@ -9,10 +9,12 @@ import { AppGlobalSearch } from '@/components/layout/AppGlobalSearch';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
 const QUICK_ACTIONS = [
-    { labelKey: 'topbar.newProject', icon: IconFolder, href: '/projects/create' },
-    { labelKey: 'topbar.newClient', icon: IconUserPlus, href: '/clients/create' },
-    { labelKey: 'topbar.finance', icon: IconFileText, href: '/finance/expenses/create' },
-    { labelKey: 'topbar.createTask', icon: IconClipboardList, href: '/tasks/create' },
+    // Creation is handled by the index-page drawers. There are intentionally
+    // no standalone /create pages for these resources.
+    { labelKey: 'topbar.newProject', icon: IconFolder, href: '/dossiers?command=create' },
+    { labelKey: 'topbar.newClient', icon: IconUserPlus, href: '/clients?command=create' },
+    { labelKey: 'topbar.finance', icon: IconFileText, href: '/finance/documents?tab=invoices&command=create-invoice' },
+    { labelKey: 'topbar.createTask', icon: IconClipboardList, href: '/tasks?command=create' },
 ];
 
 export function AppTopbar() {

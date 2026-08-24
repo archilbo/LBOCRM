@@ -120,7 +120,7 @@ export default function ClientsIndex({ clients, metrics }: PageProps) {
                 else if (sortField === 'cin') cmp = (a.cin ?? '').localeCompare(b.cin ?? '');
                 else if (sortField === 'projectsCount') cmp = a.projectsCount - b.projectsCount;
                 else if (sortField === 'status') cmp = a.status.localeCompare(b.status);
-                else if (sortField === 'updatedAt') cmp = (a.updatedAt ?? '').localeCompare(b.updatedAt ?? '');
+                else if (sortField === 'updatedAt') cmp = (a.updatedAtSort ?? '').localeCompare(b.updatedAtSort ?? '');
                 return sortDir === 'asc' ? cmp : -cmp;
             });
     }, [clients, query, statusFilter, sortField, sortDir]);
@@ -259,12 +259,12 @@ export default function ClientsIndex({ clients, metrics }: PageProps) {
             : [];
 
         return (
-            <div className="flex items-center gap-0.5 shrink-0">
-                {client.capabilities.view ? <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label={t('clients.view')} onClick={() => router.visit(`/clients/${client.id}`)}><IconEye size={13} /></button> : null}
-                {client.capabilities.update ? <button type="button" className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label={t('clients.edit')} onClick={() => openEditDrawer(client)}><IconPencil size={13} /></button> : null}
+            <div className="flex shrink-0 items-center justify-end gap-1">
+                {client.capabilities.view ? <button type="button" className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label={t('clients.view')} onClick={() => router.visit(`/clients/${client.id}`)}><IconEye size={14} /></button> : null}
+                {client.capabilities.update ? <button type="button" className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" aria-label={t('clients.edit')} onClick={() => openEditDrawer(client)}><IconPencil size={14} /></button> : null}
                 {items.length ? <Dropdown>
-                    <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]" aria-label={t('clients.actions')}>
-                        <IconDots size={13} />
+                    <Dropdown.Trigger className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]" aria-label={t('clients.actions')}>
+                        <IconDots size={14} />
                     </Dropdown.Trigger>
                     <Dropdown.Popover placement="bottom end" className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
                         <Dropdown.Menu aria-label={t('clients.actions')} onAction={(key) => items.find((item) => item.id === key)?.action()}>
@@ -294,6 +294,7 @@ export default function ClientsIndex({ clients, metrics }: PageProps) {
             ) : null,
             headerClassName: 'w-10',
             cellClassName: 'w-10',
+            defaultWidth: 44,
             fixedPosition: 'start',
             reorderable: false,
             render: (client) => client.capabilities.delete ? (
@@ -312,50 +313,61 @@ export default function ClientsIndex({ clients, metrics }: PageProps) {
             id: 'avatar',
             label: '',
             headerClassName: 'w-8',
+            defaultWidth: 42,
             reorderable: false,
-            render: (client) => <span className={cn('flex size-6 shrink-0 items-center justify-center rounded text-[9px] font-bold', avatarColor(client.id))}>{initials(client)}</span>,
+            render: (client) => <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold', avatarColor(client.id))}>{initials(client)}</span>,
         },
         {
             id: 'client',
             label: <ColumnHeader label={t('clients.table.client')} icon={IconUserCircle} field="fullName" />,
-            render: (client) => <div className="min-w-0"><p className="max-w-[180px] truncate font-medium text-[var(--text)]">{client.fullName}</p><p className="max-w-[180px] truncate text-[var(--text-muted)]">{client.clientNumber}</p></div>,
+            defaultWidth: 240,
+            render: (client) => <div className="min-w-0 w-full"><p className="w-full truncate font-medium text-[var(--text)]">{client.fullName}</p><p className="w-full truncate text-[var(--text-muted)]">{client.clientNumber}</p></div>,
         },
         {
             id: 'cin',
             label: <ColumnHeader label={t('clients.table.cin')} icon={IconCreditCard} field="cin" />,
+            defaultWidth: 140,
             render: (client) => <span className="text-[var(--text-muted)]">{client.cin || '-'}</span>,
         },
         {
             id: 'contact',
             label: <ColumnHeader label={t('clients.table.contact')} icon={IconPhone} />,
-            render: (client) => <div className="grid gap-0.5"><span className="text-[var(--text)]">{formatContact(client.phone)}</span><span className="max-w-[160px] truncate text-[10px] text-[var(--text-muted)]">{formatContact(client.email)}</span></div>,
-        },
-        {
-            id: 'intermediary',
-            label: <ColumnHeader label={t('clients.table.intermediary')} icon={IconBriefcase} />,
-            render: (client) => <span className="max-w-[150px] truncate text-[var(--text-muted)]">{client.intermediaryName && client.intermediaryName !== 'None' ? client.intermediaryName : '-'}</span>,
+            defaultWidth: 210,
+            render: (client) => <div className="grid min-w-0 w-full gap-0.5"><span className="text-[var(--text)]">{formatContact(client.phone)}</span><span className="w-full truncate text-[10px] text-[var(--text-muted)]">{formatContact(client.email)}</span></div>,
         },
         {
             id: 'projects',
             label: <ColumnHeader label={t('clients.table.projects')} icon={IconShieldCheck} field="projectsCount" />,
+            defaultWidth: 90,
             render: (client) => <span className="inline-flex min-w-6 items-center justify-center rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text)]">{client.projectsCount}</span>,
+        },
+        {
+            id: 'intermediary',
+            label: <ColumnHeader label={t('clients.table.intermediary')} icon={IconBriefcase} />,
+            defaultWidth: 175,
+            render: (client) => <span className="block w-full truncate text-[var(--text-muted)]">{client.intermediaryName && client.intermediaryName !== 'None' ? client.intermediaryName : '-'}</span>,
         },
         {
             id: 'status',
             label: <ColumnHeader label={t('clients.table.status')} icon={IconCircleCheck} field="status" />,
+            defaultWidth: 105,
             render: (client) => <StatusPill label={t(`clients.status.${client.status}`)} color={client.status === 'active' ? 'success' : client.status === 'inactive' ? 'warning' : 'default'} size="sm" />,
         },
         {
             id: 'updated',
             label: <ColumnHeader label={t('clients.table.updated')} icon={IconClockHour3} field="updatedAt" />,
+            defaultWidth: 135,
             render: (client) => <span className="whitespace-nowrap text-[var(--text-muted)]">{client.updatedAt || '-'}</span>,
         },
         {
             id: 'actions',
             label: '',
-            headerClassName: 'w-10',
+            headerClassName: 'w-32',
+            cellClassName: 'pr-5',
+            defaultWidth: 128,
+            fixedPosition: 'end',
             reorderable: false,
-            render: (client) => <div onClick={(event) => event.stopPropagation()}><RowMenu client={client} /></div>,
+            render: (client) => <div className="flex justify-end" onClick={(event) => event.stopPropagation()}><RowMenu client={client} /></div>,
         },
     ];
 
@@ -401,8 +413,10 @@ export default function ClientsIndex({ clients, metrics }: PageProps) {
                     <AppWorkspaceTable
                         ariaLabel={t('clients.title')}
                         columns={clientColumns}
-                        columnOrderStorageKey="archilbo.clients.table.columns.v1"
+                        columnOrderStorageKey="archilbo.clients.table.columns.v2"
                         columnOrderHint={t('clients.table.reorderHint')}
+                        resizableColumns
+                        columnResizeHint="Glisser pour élargir ou réduire une colonne"
                         data={pageClients}
                         rowKey={(client) => client.id}
                         minTableWidthClassName="min-w-[860px]"

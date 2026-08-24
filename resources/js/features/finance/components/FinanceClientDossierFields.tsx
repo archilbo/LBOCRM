@@ -18,6 +18,10 @@ type FinanceClientDossierFieldsProps = {
 
 const labelCls = 'text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]';
 
+function dossierIncludesClient(dossier: DossierOption, clientId: string): boolean {
+    return dossier.clientIds?.includes(clientId) ?? dossier.clientId === clientId;
+}
+
 export function FinanceClientDossierFields({
     clientId, dossierId, clients, dossiers, onClientChange, onDossierChange, disabled = false, restrictedDossierIds = [],
 }: FinanceClientDossierFieldsProps) {
@@ -27,7 +31,10 @@ export function FinanceClientDossierFields({
     );
 
     useEffect(() => {
-        if (selectedDossier?.clientId && selectedDossier.clientId !== clientId) {
+        // Preserve an explicitly selected co-client. If no client is
+        // selected, or it is not attached to this project, default to the
+        // project's primary client.
+        if (selectedDossier?.clientId && (!clientId || !dossierIncludesClient(selectedDossier, clientId))) {
             onClientChange(selectedDossier.clientId);
         }
     }, [clientId, onClientChange, selectedDossier]);
@@ -36,7 +43,7 @@ export function FinanceClientDossierFields({
     const isDossierRestricted = Boolean(dossierId) && restrictedDossierIds.includes(dossierId);
 
     useEffect(() => {
-        if (clientId && dossierId && !dossiers.some((d) => d.id === dossierId && d.clientId === clientId)) {
+        if (clientId && dossierId && !dossiers.some((d) => d.id === dossierId && dossierIncludesClient(d, clientId))) {
             onDossierChange('');
         }
     }, [clientId, dossierId, dossiers, onDossierChange]);

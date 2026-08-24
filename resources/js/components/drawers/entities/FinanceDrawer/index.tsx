@@ -52,7 +52,7 @@ export function FinanceDrawer({ isOpen, mode, record, dossiers, clients = [], on
     }, [isOpen, mode, record]);
 
     const filteredDossiers = useMemo(
-        () => (selectedClientId ? dossiers.filter((d) => d.clientId === selectedClientId) : dossiers),
+        () => (selectedClientId ? dossiers.filter((d) => d.clientIds?.includes(selectedClientId) ?? (d.clientId === selectedClientId)) : dossiers),
         [dossiers, selectedClientId],
     );
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { IconAlertTriangle, IconCircleCheck, IconPrinter, IconReceipt2 } from '@tabler/icons-react';
 
@@ -23,11 +23,11 @@ type PaymentDrawerProps = {
     defaultDossierId?: string;
     lockClientContext?: boolean;
     lockDossierContext?: boolean;
-    allowAdvancePayment?: boolean;
     returnTo?: string;
 };
 
-type PaymentForm = { financeDocumentId: string; dossierId: string; amount: string; method: string; reference: string; paidAt: string; notes: string; };
+type PaymentForm = { financeDocumentId: string; dossierId: string; method: string; reference: string; paidAt: string; notes: string; };
+type PaymentMode = 'invoice' | 'negotiated';
 
 type PaymentReceiptFlash = {
     paymentNumber: string;
@@ -62,14 +62,13 @@ function makeForm(selectedInvoice?: FinanceDocument | null, defaultDossierId?: s
     return {
         financeDocumentId: selectedInvoice ? String(selectedInvoice.id) : '',
         dossierId: selectedInvoice?.dossier?.id ? String(selectedInvoice.dossier.id) : (defaultDossierId || ''),
-        amount: selectedInvoice ? String(selectedInvoice.remainingTotal) : '',
         method: 'cash', reference: '', paidAt: new Date().toISOString().slice(0, 10), notes: '',
     };
 }
 
 function makeReceiptItems(amount: number, invoice?: FinanceDocument | null): FinanceDocumentItem[] {
     const documentLabel = invoice
-        ? `Paiement recu - ${invoice.type === 'internal_invoice' ? 'Facture interne' : 'Facture'} ${invoice.number}`
+        ? `Paiement recu - Facture ${invoice.number}`
         : 'Avance recue';
 
     return [calculateItem({
@@ -82,9 +81,25 @@ function makeReceiptItems(amount: number, invoice?: FinanceDocument | null): Fin
     })];
 }
 
-export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients = [], dossiers = [], defaultClientId, defaultDossierId, lockClientContext = false, lockDossierContext = false, allowAdvancePayment = false, returnTo }: PaymentDrawerProps) {
+function makeNegotiatedReceiptItems(amount: number, designation: string): FinanceDocumentItem[] {
+    return [calculateItem({
+        position: 1,
+        title: designation.trim() || 'Avance negociee',
+        description: '',
+        quantity: 1,
+        unit: 'payment',
+        unitPrice: amount,
+    })];
+}
+
+export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients = [], dossiers = [], defaultClientId, defaultDossierId, lockClientContext = false, lockDossierContext = false, returnTo }: PaymentDrawerProps) {
     const [form, setForm] = useState<PaymentForm>(() => makeForm(invoice, defaultDossierId));
     const [selectedClientId, setSelectedClientId] = useState(defaultClientId || '');
+    const [paymentMode, setPaymentMode] = useState<PaymentMode>(invoice ? 'invoice' : 'negotiated');
+    const [negotiatedLineId, setNegotiatedLineId] = useState('');
+    const [newDesignation, setNewDesignation] = useState('');
+    const [newNegotiatedAmount, setNewNegotiatedAmount] = useState('');
+    const [advanceAmount, setAdvanceAmount] = useState('');
     const [receiptItems, setReceiptItems] = useState<FinanceDocumentItem[]>(() => makeReceiptItems(invoice?.remainingTotal || 0, invoice));
     const [receiptPrompt, setReceiptPrompt] = useState<PaymentReceiptFlash | null>(null);
     const clientOptions = useMemo(() => {
@@ -112,8 +127,8 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
     }, [dossiers, invoice]);
     const payableInvoices = useMemo(
         () => {
-            const payable = invoices.filter((item) => (item.type === 'invoice' || item.type === 'internal_invoice') && item.status !== 'cancelled' && item.remainingTotal > 0);
-            if (!invoice || payable.some((item) => item.id === invoice.id) || (invoice.type !== 'invoice' && invoice.type !== 'internal_invoice') || invoice.status === 'cancelled' || invoice.remainingTotal <= 0) {
+            const payable = invoices.filter((item) => item.type === 'invoice' && item.status !== 'cancelled' && item.remainingTotal > 0);
+            if (!invoice || payable.some((item) => item.id === invoice.id) || invoice.type !== 'invoice' || invoice.status === 'cancelled' || invoice.remainingTotal <= 0) {
                 return payable;
             }
 
@@ -122,7 +137,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
         [invoices, invoice],
     );
     const activeInvoices = useMemo(
-        () => invoices.filter((item) => (item.type === 'invoice' || item.type === 'internal_invoice') && item.status !== 'cancelled'),
+        () => invoices.filter((item) => item.type === 'invoice' && item.status !== 'cancelled'),
         [invoices],
     );
     const filteredInvoices = useMemo(
@@ -135,31 +150,46 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
         [form.dossierId, payableInvoices, selectedClientId],
     );
     const filteredDossiers = useMemo(
-        () => dossierOptions.filter((dossier) => !selectedClientId || dossier.clientId === selectedClientId),
+        () => dossierOptions.filter((dossier) => !selectedClientId || (dossier.clientIds?.includes(selectedClientId) ?? dossier.clientId === selectedClientId)),
         [dossierOptions, selectedClientId],
     );
     const settledInvoiceCount = useMemo(
         () => activeInvoices.filter((item) => (!selectedClientId || String(item.client?.id) === selectedClientId) && item.remainingTotal <= 0).length,
         [activeInvoices, selectedClientId],
     );
-    const activeInvoice = filteredInvoices.find((item) => String(item.id) === form.financeDocumentId) || (invoice && String(invoice.id) === form.financeDocumentId ? invoice : null);
+    const activeInvoice = paymentMode === 'invoice'
+        ? filteredInvoices.find((item) => String(item.id) === form.financeDocumentId) || (invoice && String(invoice.id) === form.financeDocumentId ? invoice : null)
+        : null;
     const selectedDossier = filteredDossiers.find((dossier) => dossier.id === form.dossierId) || null;
-    const canRecordAdvance = allowAdvancePayment && !activeInvoice && Boolean(selectedDossier);
-    const amount = normalizeNumber(form.amount);
+    const selectedNegotiatedLine = selectedDossier?.negotiatedPaymentLines?.find((line) => line.id === negotiatedLineId) || null;
+    const negotiatedLimit = selectedNegotiatedLine?.remainingAmount ?? normalizeNumber(newNegotiatedAmount);
+    const receiptTotal = calculateTotals(receiptItems, 0, 0).totalTtc;
+    const amount = receiptTotal;
     const remainingBefore = activeInvoice?.remainingTotal || 0;
     const remainingAfter = Math.max(0, remainingBefore - amount);
-    const isOverpayment = amount > remainingBefore && remainingBefore > 0;
+    const isOverpayment = paymentMode === 'invoice'
+        ? amount > remainingBefore && remainingBefore > 0
+        : amount > negotiatedLimit && negotiatedLimit > 0;
     const isFullPayment = activeInvoice ? amount === remainingBefore && amount > 0 : false;
-    const receiptTotal = calculateTotals(receiptItems, 0, 0).totalTtc;
-    const receiptLinesMatchAmount = Math.abs(receiptTotal - amount) <= 0.01;
     const receiptLinesAreComplete = receiptItems.every((item) => item.title.trim() !== '' && item.quantity > 0 && item.unitPrice >= 0);
-    const canSubmit = ((Boolean(activeInvoice) && amount > 0 && !isOverpayment) || (canRecordAdvance && amount > 0)) && receiptLinesMatchAmount && receiptLinesAreComplete;
+    const canSubmit = paymentMode === 'invoice'
+        ? Boolean(activeInvoice) && amount > 0 && !isOverpayment && receiptLinesAreComplete
+        : Boolean(selectedDossier)
+            && Boolean(selectedNegotiatedLine || (newDesignation.trim() && normalizeNumber(newNegotiatedAmount) > 0))
+            && amount > 0
+            && !isOverpayment
+            && receiptLinesAreComplete;
 
     useEffect(() => {
         if (!isOpen) return;
 
         setForm(makeForm(invoice, defaultDossierId));
         setSelectedClientId(invoice?.client?.id ? String(invoice.client.id) : (defaultClientId || ''));
+        setPaymentMode(invoice ? 'invoice' : 'negotiated');
+        setNegotiatedLineId('');
+        setNewDesignation('');
+        setNewNegotiatedAmount('');
+        setAdvanceAmount('');
         setReceiptItems(makeReceiptItems(invoice?.remainingTotal || 0, invoice));
     }, [defaultClientId, defaultDossierId, invoice, isOpen]);
 
@@ -169,13 +199,21 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
         setReceiptItems(makeReceiptItems(activeInvoice?.remainingTotal || 0, activeInvoice));
     }, [activeInvoice?.id, isOpen]);
 
-    useEffect(() => {
-        if (!isOpen || receiptItems.length !== 1) return;
-
-        setReceiptItems(([item]) => [calculateItem({ ...item, unitPrice: amount }, 0)]);
-    }, [amount, isOpen, receiptItems.length]);
-
     function update<K extends keyof PaymentForm>(key: K, value: PaymentForm[K]) { setForm((p) => ({ ...p, [key]: value })); }
+
+    function updateAdvance(value: string) {
+        setAdvanceAmount(value);
+        const designation = selectedNegotiatedLine?.designation || newDesignation;
+        setReceiptItems(makeNegotiatedReceiptItems(normalizeNumber(value), designation));
+    }
+
+    function selectPaymentMode(mode: PaymentMode) {
+        setPaymentMode(mode);
+        setForm((previous) => ({ ...previous, financeDocumentId: '' }));
+        setNegotiatedLineId('');
+        setAdvanceAmount('');
+        setReceiptItems(makeReceiptItems(0));
+    }
 
     function submit() {
         if (!canSubmit) {
@@ -184,16 +222,22 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                     ? 'Le montant depasse le reste a payer.'
                     : !receiptLinesAreComplete
                         ? 'Completez chaque ligne du recu.'
-                        : !receiptLinesMatchAmount
-                            ? 'Le total des lignes du recu doit correspondre au montant du paiement.'
-                            : 'Choisissez une facture ou un dossier pour l avance.',
+                        : paymentMode === 'negotiated'
+                            ? 'Choisissez un client, un projet et une ligne negociee.'
+                            : 'Choisissez une facture.',
             );
             return;
         }
         router.post('/finance/payments', {
+            payment_mode: paymentMode,
             finance_document_id: activeInvoice ? form.financeDocumentId : null,
-            client_id: activeInvoice ? null : (selectedClientId || null),
-            dossier_id: canRecordAdvance ? form.dossierId : null,
+            client_id: paymentMode === 'negotiated' ? (selectedClientId || null) : null,
+            dossier_id: paymentMode === 'negotiated' ? form.dossierId : null,
+            dossier_negotiated_payment_line_id: paymentMode === 'negotiated' && selectedNegotiatedLine ? selectedNegotiatedLine.id : null,
+            negotiated_line: paymentMode === 'negotiated' && !selectedNegotiatedLine ? {
+                designation: newDesignation.trim(),
+                negotiated_amount: normalizeNumber(newNegotiatedAmount),
+            } : null,
             amount, method: form.method || null,
             reference: form.reference || null, paid_at: form.paidAt || null, notes: form.notes || null,
             receipt_items: receiptItems.map((item) => ({
@@ -223,7 +267,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
             <AppDrawer
                 isOpen={isOpen} onOpenChange={onOpenChange}
                 title="Enregistrer un paiement"
-                                description="Réglez une facture ou une facture interne, ou enregistrez une avance avant la création des documents financiers."
+                description="Réglez une facture ou enregistrez des avances négociées pour un projet."
                 size="full"
                 panelClassName="max-w-[min(96vw,1120px)]"
                 contentClassName="px-4 sm:px-5 lg:px-6"
@@ -237,6 +281,16 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                 <div className="space-y-3">
                     <Card className="p-3 space-y-3">
                         <div className="flex items-center gap-1.5 mb-2"><IconReceipt2 size={13} className="text-[var(--text-subtle)]" /><p className={labelCls}>Paiement</p></div>
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <label className={labelCls}>Type de paiement</label>
+                            <Select selectedKey={paymentMode} onSelectionChange={(key) => selectPaymentMode(String(key) as PaymentMode)}>
+                                <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
+                                <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
+                                    <ListBox.Item id="invoice" textValue="Paiement facture" className={compactItem}>Paiement facture</ListBox.Item>
+                                    <ListBox.Item id="negotiated" textValue="Paiement negocie du projet" className={compactItem}>Paiement negocie du projet</ListBox.Item>
+                                </ListBox></Select.Popover>
+                            </Select>
+                        </div>
                         {clientOptions.length > 0 ? (
                             <div className="flex min-w-0 flex-col gap-1">
                                 <label className={labelCls}>Client</label>
@@ -245,6 +299,8 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                     onChange={(v) => {
                                         setSelectedClientId(v);
                                         setForm((prev) => ({ ...prev, financeDocumentId: '', dossierId: '' }));
+                                        setNegotiatedLineId('');
+                                        setAdvanceAmount('');
                                         setReceiptItems(makeReceiptItems(0));
                                     }}
                                     options={clientOptions}
@@ -260,6 +316,8 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                     value={form.dossierId}
                                     onChange={(v) => {
                                         setForm((prev) => ({ ...prev, dossierId: v, financeDocumentId: '' }));
+                                        setNegotiatedLineId('');
+                                        setAdvanceAmount('');
                                         setReceiptItems(makeReceiptItems(0));
                                     }}
                                     options={filteredDossiers}
@@ -271,9 +329,10 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                         <div className="flex min-w-0 flex-col gap-1">
                             <label className={labelCls}>Document à régler</label>
                             <Select
+                                className={paymentMode === 'invoice' ? '' : 'hidden'}
                                 placeholder={selectedClientId && filteredInvoices.length === 0 ? 'Aucune facture impayee disponible' : 'Choisir une facture'}
                                 selectedKey={form.financeDocumentId || null}
-                                isDisabled={Boolean(invoice && lockClientContext)}
+                                isDisabled={paymentMode !== 'invoice' || Boolean(invoice && lockClientContext)}
                                 onSelectionChange={(key) => {
                                     const id = key != null ? String(key) : '';
                                     const selected = filteredInvoices.find((item) => String(item.id) === id);
@@ -282,7 +341,6 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                         ...prev,
                                         financeDocumentId: id,
                                         dossierId: selected?.dossier?.id ? String(selected.dossier.id) : '',
-                                        amount: selected ? String(selected.remainingTotal) : '',
                                     }));
                                     setReceiptItems(makeReceiptItems(selected?.remainingTotal || 0, selected));
                                 }}
@@ -296,7 +354,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                                     ))}
                                 </ListBox></Select.Popover>
                             </Select>
-                            {selectedClientId && filteredInvoices.length === 0 && !canRecordAdvance ? (
+                            {paymentMode === 'invoice' && selectedClientId && filteredInvoices.length === 0 ? (
                                 <p className="flex items-start gap-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
                                     <IconAlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-400" />
                                     {settledInvoiceCount > 0
@@ -307,10 +365,70 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                         </div>
                     </Card>
 
-                    {canRecordAdvance ? (
-                        <Card className="border border-[color-mix(in_srgb,var(--accent)_35%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] p-3 text-xs text-[var(--foreground)]">
-                            <p className="font-semibold">Avance dossier</p>
-                            <p className="mt-1 leading-5 text-[var(--text-muted)]">Aucun devis ni facture active ne bloque ce paiement. Un reçu sera créé et l'avance sera rattachée automatiquement à la prochaine facture.</p>
+                    {paymentMode === 'negotiated' ? (
+                        <Card className="space-y-3 p-3">
+                            <div>
+                                <p className="text-xs font-semibold">Lignes negociees du projet</p>
+                                <p className="mt-1 text-[10px] text-[var(--text-muted)]">Chaque avance est enregistree sur une ligne et diminue son reste. Les avances existantes restent visibles et auditees.</p>
+                            </div>
+
+                            {selectedDossier?.negotiatedPaymentLines?.length ? (
+                                <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border)]">
+                                    <table className="min-w-[760px] w-full text-left text-xs">
+                                        <thead className="bg-[var(--surface-2)] text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
+                                            <tr><th className="px-3 py-2">Date</th><th className="px-3 py-2">Designation / objet</th><th className="px-3 py-2 text-right">Montant negocie</th><th className="px-3 py-2 text-right">Avance</th><th className="px-3 py-2">Mode</th><th className="px-3 py-2 text-right">Reste</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedDossier.negotiatedPaymentLines.map((line) => (
+                                                <Fragment key={line.id}>
+                                                    <tr className="border-t border-[var(--border)] bg-[var(--surface-2)]/35">
+                                                        <td className="px-3 py-2 text-[var(--text-muted)]">—</td><td className="px-3 py-2 font-semibold">{line.designation}</td><td className="px-3 py-2 text-right tabular-nums">{formatCompactMoney(line.negotiatedAmount, 'MAD')}</td><td className="px-3 py-2 text-right tabular-nums">{formatCompactMoney(line.paidAmount, 'MAD')}</td><td className="px-3 py-2 text-[var(--text-muted)]">—</td><td className="px-3 py-2 text-right font-semibold tabular-nums">{formatCompactMoney(line.remainingAmount, 'MAD')}</td>
+                                                    </tr>
+                                                    {line.payments.map((payment) => (
+                                                        <tr key={payment.id} className="border-t border-[var(--border)]">
+                                                            <td className="px-3 py-2">{payment.paidAt || '—'}</td><td className="px-3 py-2 pl-6 text-[var(--text-muted)]">Avance</td><td className="px-3 py-2 text-right text-[var(--text-muted)]">—</td><td className="px-3 py-2 text-right tabular-nums text-emerald-500">{formatCompactMoney(payment.amount, 'MAD')}</td><td className="px-3 py-2">{paymentMethods.find((method) => method.id === payment.method)?.label || payment.method || '—'}</td><td className="px-3 py-2 text-right text-[var(--text-muted)]">—</td>
+                                                        </tr>
+                                                    ))}
+                                                </Fragment>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : <p className="rounded-[var(--radius-md)] border border-dashed border-[var(--border)] p-3 text-xs text-[var(--text-muted)]">Aucune ligne negociee pour ce projet. Creez la premiere ligne ci-dessous.</p>}
+
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                <div className="flex min-w-0 flex-col gap-1">
+                                    <label className={labelCls}>Ligne existante</label>
+                                    <Select selectedKey={negotiatedLineId || null} onSelectionChange={(key) => {
+                                        const id = key != null ? String(key) : '';
+                                        const line = selectedDossier?.negotiatedPaymentLines?.find((item) => item.id === id);
+                                        setNegotiatedLineId(id);
+                                        setNewDesignation('');
+                                        setNewNegotiatedAmount('');
+                                        setReceiptItems(makeNegotiatedReceiptItems(normalizeNumber(advanceAmount), line?.designation || ''));
+                                    }}>
+                                        <Select.Trigger className={compactTrigger}><Select.Value className="flex-1 text-xs text-[var(--foreground)]" /><Select.Indicator /></Select.Trigger>
+                                        <Select.Popover className={compactPopover}><ListBox className="p-1 gap-0">
+                                            {(selectedDossier?.negotiatedPaymentLines || []).filter((line) => line.remainingAmount > 0).map((line) => <ListBox.Item key={line.id} id={line.id} textValue={line.designation} className={compactItem}>{line.designation} · reste {formatCompactMoney(line.remainingAmount, 'MAD')}</ListBox.Item>)}
+                                        </ListBox></Select.Popover>
+                                    </Select>
+                                </div>
+                                <div className="flex min-w-0 flex-col gap-1">
+                                    <label className={labelCls}>Avance</label>
+                                    <Input className={compactInput} type="number" min="0" step="0.01" value={advanceAmount} onChange={(event) => updateAdvance(event.target.value)} aria-invalid={isOverpayment} />
+                                    {isOverpayment ? <p className="text-[10px] text-[var(--danger)]">L avance depasse le reste negocie.</p> : null}
+                                </div>
+                            </div>
+
+                            {!selectedNegotiatedLine ? <div className="grid gap-2 sm:grid-cols-2">
+                                <div className="flex min-w-0 flex-col gap-1"><label className={labelCls}>Nouvelle designation / objet</label><Input className={compactInput} value={newDesignation} onChange={(event) => { setNewDesignation(event.target.value); setReceiptItems(makeNegotiatedReceiptItems(normalizeNumber(advanceAmount), event.target.value)); }} placeholder="Etude architecturale" /></div>
+                                <div className="flex min-w-0 flex-col gap-1"><label className={labelCls}>Montant negocie</label><Input className={compactInput} type="number" min="0" step="0.01" value={newNegotiatedAmount} onChange={(event) => setNewNegotiatedAmount(event.target.value)} /></div>
+                            </div> : null}
+
+                            <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-3 text-xs">
+                                <span className="text-[var(--text-muted)]">Reste apres cette avance</span>
+                                <strong className="tabular-nums">{formatCompactMoney(Math.max(0, negotiatedLimit - amount), 'MAD')}</strong>
+                            </div>
                         </Card>
                     ) : null}
 
@@ -325,15 +443,7 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                         </Card>
                     ) : null}
 
-                    <div className="grid gap-2 sm:grid-cols-2">
-                        <div className="flex min-w-0 flex-col gap-1">
-                            <label className={labelCls}>Montant paye</label>
-                            <Input className={compactInput} type="number" min="0" step="0.01" value={form.amount}
-                                onChange={(e) => update('amount', e.target.value)}
-                                aria-invalid={isOverpayment}
-                            />
-                            {isOverpayment ? <p className="text-[10px] text-[var(--danger)]">Dépasse le reste à payer.</p> : null}
-                        </div>
+                    <div className="max-w-md">
                         <DateField label="Date paiement" value={strToDate(form.paidAt)} onChange={(d) => update('paidAt', dateToStr(d))} />
                     </div>
 
@@ -358,18 +468,20 @@ export function PaymentDrawer({ isOpen, onOpenChange, invoices, invoice, clients
                         </div>
                     </div>
 
-                    <Card className="p-3">
-                        <FinanceItemsTable
-                            items={receiptItems}
-                            currency={activeInvoice?.currency || 'MAD'}
-                            tvaRate={0}
-                            onChange={setReceiptItems}
-                        />
-                        <div className={`mt-3 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-3 text-xs ${receiptLinesMatchAmount ? 'text-[var(--text-muted)]' : 'text-[var(--danger)]'}`}>
-                            <span>{receiptLinesMatchAmount ? 'Le total des lignes correspond au paiement.' : 'Le total des lignes doit correspondre au paiement.'}</span>
-                            <strong className="shrink-0 tabular-nums">{formatCompactMoney(receiptTotal, activeInvoice?.currency || 'MAD')}</strong>
-                        </div>
-                    </Card>
+                    {paymentMode === 'invoice' ? (
+                        <Card className="p-3">
+                            <FinanceItemsTable
+                                items={receiptItems}
+                                currency={activeInvoice?.currency || 'MAD'}
+                                tvaRate={0}
+                                onChange={setReceiptItems}
+                            />
+                            <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-3 text-xs text-[var(--text-muted)]">
+                                <span>Le total des lignes sera utilisé pour le paiement.</span>
+                                <strong className="shrink-0 tabular-nums">{formatCompactMoney(receiptTotal, activeInvoice?.currency || 'MAD')}</strong>
+                            </div>
+                        </Card>
+                    ) : null}
 
                     {activeInvoice ? (
                         <Card className={`p-3 ${isOverpayment ? 'border-red-300' : ''}`}>

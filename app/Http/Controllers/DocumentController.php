@@ -81,16 +81,31 @@ class DocumentController extends Controller
             )
             ->with([
                 'city',
-                'client',
+                'primaryClient',
+                'clients',
             ])
             ->findOrFail(
                 $data['dossier_id']
             );
 
+        // Resolve an upload client only through this dossier's membership.
+        // A submitted id can never attach another company's client record.
+        $client = null;
+
+        if (filled($data['client_id'] ?? null)) {
+            $client = $dossier->clients()
+                ->whereKey((int) $data['client_id'])
+                ->first();
+
+            if (! $client && (int) $dossier->client_id === (int) $data['client_id']) {
+                $client = $dossier->primaryClient;
+            }
+        }
+
         // Client-context uploads must never target another Client's Project:
-        // the optional client_id claim is checked against the resolved
-        // Project's real owner, not trusted as-is.
-        if (filled($data['client_id'] ?? null) && (int) $dossier->client_id !== (int) $data['client_id']) {
+        // the optional client_id claim must be an attached member of the
+        // Project (pivot membership), never a bare column comparison.
+        if (filled($data['client_id'] ?? null) && ! $client) {
             abort(403, 'Le projet sélectionné n\'appartient pas à ce client.');
         }
 
@@ -100,9 +115,12 @@ class DocumentController extends Controller
                 $data['document_template_id']
             );
 
+        $isCinTemplate = $templateResolver->isCinTemplate($template);
+
+        abort_if($isCinTemplate && ! $client, 422, 'Le client de la CIN est obligatoire.');
+
         $filesBySide =
-            $templateResolver
-                ->isCinTemplate($template)
+            $isCinTemplate
             ? [
                 DossierDocument::SIDE_FRONT =>
                     $request->file('file_front'),
@@ -127,6 +145,7 @@ class DocumentController extends Controller
             $filesBySide,
             $data['status'] ?? 'uploaded',
             $data['notes'] ?? null,
+            $isCinTemplate ? $client : null,
         );
 
         $firstDocument =
@@ -211,7 +230,7 @@ class DocumentController extends Controller
 
     private function generateDocumentName(Dossier $dossier, ?DocumentTemplate $template): string
     {
-        $clientName = $dossier->client?->full_name ?? 'CLIENT';
+        $clientName = $dossier->primaryClient?->full_name ?? 'CLIENT';
         $typeName = $template?->name ?? 'DOCUMENT';
 
         return mb_strtoupper($typeName) . ' - ' . mb_strtoupper($clientName);
@@ -254,14 +273,16 @@ class DocumentController extends Controller
     ): RedirectResponse {
         $this->authorize('replace', $dossierDocument);
 
-        $dossierDocument->loadMissing(['dossier.city', 'dossier.client', 'template']);
+        $dossierDocument->loadMissing(['dossier.city', 'dossier.primaryClient', 'client', 'template']);
         $dossier = $dossierDocument->dossier;
         abort_unless($dossier, 404, 'Le dossier du document est introuvable.');
 
         $file = $request->file('file');
         
         $clientName = mb_strtoupper(
-            $dossier->client?->full_name ?? 'CLIENT'
+            $dossierDocument->client?->full_name
+                ?? $dossier->primaryClient?->full_name
+                ?? 'CLIENT'
         );
 
         $typeName = mb_strtoupper(
@@ -414,13 +435,14 @@ class DocumentController extends Controller
     private function dossierOptions(Request $request, CompanyContext $companyContext): array
     {
         return $companyContext->applyTo(Dossier::query(), $request->user())
-            ->with('client')
+            ->with(['primaryClient', 'clients:clients.id'])
             ->orderByDesc('created_at')
             ->get()
             ->map(fn (Dossier $dossier) => [
                 'id' => (string) $dossier->id,
                 'label' => $dossier->dossier_number . ($dossier->project_object ? ' - ' . $dossier->project_object : ''),
-                'clientId' => (string) ($dossier->client_id ?? $dossier->client?->id ?? ''),
+                'clientId' => (string) ($dossier->client_id ?? $dossier->primaryClient?->id ?? ''),
+                'clientIds' => $dossier->clients->pluck('id')->map(fn ($id) => (string) $id)->values()->all(),
             ])
             ->values()
             ->all();
@@ -461,7 +483,7 @@ class DocumentController extends Controller
     private function scopedDocumentQuery(Request $request, CompanyContext $companyContext): Builder
     {
         return DossierDocument::query()
-            ->with(['dossier.client', 'template'])
+            ->with(['dossier.primaryClient', 'client', 'template'])
             ->whereHas('dossier', fn (Builder $dossierQuery) => $companyContext->applyTo($dossierQuery, $request->user()));
     }
 }

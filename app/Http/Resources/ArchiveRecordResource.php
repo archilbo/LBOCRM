@@ -21,8 +21,8 @@ class ArchiveRecordResource extends JsonResource
 
             'dossierNumber' => $this->dossier?->dossier_number ?? '-',
             'projectObject' => $this->dossier?->project_object ?? '-',
-            'clientName' => $this->dossier?->client?->full_name ?? '-',
-            'clientCin' => $this->dossier?->client?->cin ?? '-',
+            'clientName' => $this->dossier?->primaryClient?->full_name ?? '-',
+            'clientCin' => $this->dossier?->primaryClient?->cin ?? '-',
 
             'archiveNumber' => $this->archive_number,
             'legacyReference' => $this->legacy_reference,

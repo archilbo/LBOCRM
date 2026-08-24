@@ -1,21 +1,21 @@
-import { router } from '@inertiajs/react';
-import { IconAlertTriangle, IconCircleCheck, IconChevronDown, IconArrowsSort, IconChevronUp, IconEye, IconFolder, IconFilter, IconMapPin, IconDots, IconPencil, IconPlus, IconRefresh, IconSearch, IconAdjustmentsHorizontal, IconTrash, IconX, IconUserCircle, IconMap2, IconGitBranch, IconClockHour3, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { Link, router } from '@inertiajs/react';
+import { IconAlertTriangle, IconCircleCheck, IconChevronDown, IconArrowsSort, IconChevronUp, IconEye, IconBuildingCommunity, IconFolder, IconFilter, IconMapPin, IconDots, IconPencil, IconPlus, IconRefresh, IconSearch, IconAdjustmentsHorizontal, IconTrash, IconX, IconUserCircle, IconMap2, IconGitBranch, IconClockHour3, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import type { Icon } from '@tabler/icons-react';
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Avatar, Button, Card, Chip, Dropdown } from '@heroui/react';
+import { Button, Card, Chip, Dropdown } from '@heroui/react';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppDrawer } from '@/components/ui/AppDrawer';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppWorkspaceTable, type AppWorkspaceTableColumn } from '@/components/ui/AppWorkspaceTable';
 import { AppEmptyState } from '@/components/ui/AppEmptyState';
 import { cn } from '@/lib/cn';
-import type { City, DossierFormPayload, DossierLocationGroup, DossierRow } from '@/features/dossiers/types';
+import type { City, DossierFormPayload, DossierLocationGroup, DossierLocationOptions, DossierRow } from '@/features/dossiers/types';
 import type { FormErrors } from '@/lib/formErrors';
 import { ProjectDrawer } from '@/features/dossiers/drawers/ProjectDrawer';
 import { DossierLocationExplorer } from '@/features/dossiers/components/DossierLocationExplorer';
+import { ProjectPreviewDrawer } from '@/features/dossiers/components/ProjectPreviewDrawer';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
     dossierWorkflowOptions, getDossierReadiness, getDossierWorkflowLabel,
@@ -28,6 +28,7 @@ type PageProps = {
     clients: { id: string; label: string }[];
     intermediaries: { id: string; label: string }[];
     cities: City[];
+    locationOptions: DossierLocationOptions;
     monthlyProjects: MonthlyCount[];
     metrics: { total: number; active: number; opened: number; closed: number; documentsTotal: number };
 };
@@ -35,7 +36,8 @@ type PageProps = {
 function toBackendPayload(payload: DossierFormPayload) {
     const current = payload as DossierFormPayload & { address?: string; projectAddress?: string; notes?: string };
     return {
-        client_id: payload.clientId,
+        client_ids: payload.clientIds,
+        primary_client_id: payload.primaryClientId,
         intermediary_id: payload.intermediaryId || null,
         city_id: payload.cityId,
         project_object: payload.projectObject,
@@ -59,7 +61,7 @@ function formatNumber(value: number) {
 type SortField = 'projectObject' | 'clientName' | 'status' | 'documentsCount' | 'updatedAt';
 type SortDir = 'asc' | 'desc';
 
-export default function DossiersIndex({ dossiers, locationGroups, clients, intermediaries, cities, metrics }: PageProps) {
+export default function DossiersIndex({ dossiers, locationGroups, clients, intermediaries, cities, locationOptions, metrics }: PageProps) {
     const { can, canAny } = usePermissions();
 
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -92,8 +94,8 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
                     .filter(Boolean).join(' ').toLowerCase().includes(q);
             })
             .sort((a, b) => {
-                const va = String(a[sortField] ?? '').toLowerCase();
-                const vb = String(b[sortField] ?? '').toLowerCase();
+                const va = sortField === 'updatedAt' ? (a.updatedAtSort ?? '') : String(a[sortField] ?? '').toLowerCase();
+                const vb = sortField === 'updatedAt' ? (b.updatedAtSort ?? '') : String(b[sortField] ?? '').toLowerCase();
                 return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
             });
     }, [dossiers, query, workflowFilter, sortField, sortDir]);
@@ -138,36 +140,90 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
         );
     }
 
+    function OtherClientsBadge({ dossier }: { dossier: DossierRow }) {
+        const otherClients = dossier.clients.filter((client) => client.id !== dossier.clientId);
+
+        if (otherClients.length === 0) return null;
+
+        return (
+            <Dropdown>
+                <Dropdown.Trigger
+                    aria-label={`Voir les ${otherClients.length} autres clients du projet`}
+                    onClick={(event) => event.stopPropagation()}
+                    className="inline-flex h-4 shrink-0 items-center rounded-full bg-[var(--surface-3)] px-1 text-[9px] font-semibold text-[var(--text-muted)] outline-none transition hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                    +{otherClients.length}
+                </Dropdown.Trigger>
+                <Dropdown.Popover placement="bottom start" className="z-[80] min-w-52 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xl">
+                    <Dropdown.Menu
+                        aria-label="Autres clients du projet"
+                        onAction={(key) => router.visit(`/clients/${String(key)}`)}
+                    >
+                        {otherClients.map((client) => (
+                            <Dropdown.Item
+                                key={client.id}
+                                id={client.id}
+                                textValue={client.fullName}
+                                className="rounded-lg px-2 py-1.5 text-[var(--text)] transition data-[hover]:bg-[var(--surface-2)]"
+                            >
+                                <div className="min-w-0">
+                                    <p className="truncate text-[11px] font-semibold">{client.fullName}</p>
+                                    <p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{client.cin || 'CIN non renseigné'}</p>
+                                </div>
+                            </Dropdown.Item>
+                        ))}
+                    </Dropdown.Menu>
+                </Dropdown.Popover>
+            </Dropdown>
+        );
+    }
+
     const dossierColumns: AppWorkspaceTableColumn<DossierRow>[] = [
         {
             id: 'folder',
             label: '',
             headerClassName: 'w-8',
+            defaultWidth: 42,
             reorderable: false,
-            render: () => (
-                <span className="flex size-5 items-center justify-center rounded bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[9px] font-bold text-[var(--accent)]">
-                    <IconFolder size={10} />
-                </span>
+    render: () => (
+      <span className="flex size-6 items-center justify-center text-[var(--accent)]">
+        <IconBuildingCommunity aria-hidden="true" size={13} strokeWidth={1.8} />
+      </span>
+    ),
+  },
+  {
+    id: 'project',
+    label: <ColumnHeader label="Projet" icon={IconBuildingCommunity} field="projectObject" />,
+            defaultWidth: 300,
+            render: (dossier) => (
+                <Link
+                    href={`/dossiers/${dossier.id}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className="block min-w-0 w-full rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                    <p className="w-full truncate font-medium text-[var(--text)] underline-offset-2 transition hover:text-[var(--accent)] hover:underline">{dossier.projectObject}</p>
+                    <p className="w-full truncate text-[var(--text-muted)]">{dossier.dossierNumber}</p>
+                </Link>
             ),
-        },
-        {
-            id: 'project',
-            label: <ColumnHeader label="Projet" icon={IconFolder} field="projectObject" />,
-            render: (dossier) => <div className="min-w-0"><p className="max-w-[180px] truncate font-medium text-[var(--text)]">{dossier.projectObject}</p><p className="max-w-[180px] truncate text-[var(--text-muted)]">{dossier.dossierNumber}</p></div>,
         },
         {
             id: 'client',
             label: <ColumnHeader label="Client" icon={IconUserCircle} field="clientName" />,
-            render: (dossier) => (
-                <div className="flex items-center gap-2">
-                    <Avatar size="sm" className="shrink-0 size-6 bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[9px] font-bold text-[var(--accent)]"><Avatar.Fallback>{dossier.clientName || '?'}</Avatar.Fallback></Avatar>
-                    <span className="truncate text-[var(--text)]">{dossier.clientName || '-'}</span>
+            defaultWidth: 240,
+            render: (dossier) => dossier.clientId ? (
+                <div className="min-w-0 w-full" onClick={(event) => event.stopPropagation()}>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                        <Link href={`/clients/${dossier.clientId}`} className="min-w-0 truncate rounded-sm text-[var(--text)] underline-offset-2 transition hover:text-[var(--accent)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--accent)]">{dossier.clientName || '-'}</Link>
+                        <OtherClientsBadge dossier={dossier} />
+                    </span>
+                    <span className="mt-0.5 block truncate text-[10px] text-[var(--text-muted)]">{dossier.clientCin || 'CIN non renseigné'}</span>
                 </div>
-            ),
+            ) : <span className="block truncate text-[var(--text)]">{dossier.clientName || '-'}</span>,
         },
         {
             id: 'city',
             label: <ColumnHeader label="Ville" icon={IconMapPin} />,
+            defaultWidth: 90,
             render: (dossier) => dossier.city ? (
                 <span className="inline-flex items-center gap-1.5">
                     <span className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10" style={{ backgroundColor: dossier.city.color }} />
@@ -178,34 +234,41 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
         {
             id: 'location',
             label: <ColumnHeader label="Localisation" icon={IconMap2} />,
+            defaultWidth: 190,
             render: (dossier) => (
                 <div className="min-w-0">
-                    <p className="max-w-[120px] truncate text-[var(--text-muted)]">{dossier.province || '-'}</p>
-                    <p className="max-w-[120px] truncate text-[var(--text-muted)]">{dossier.commune || ''}</p>
+                    <p className="w-full truncate text-[var(--text-muted)]">{dossier.province || '-'}</p>
+                    <p className="w-full truncate text-[var(--text-muted)]">{dossier.commune || ''}</p>
                 </div>
             ),
         },
         {
             id: 'workflow',
             label: <ColumnHeader label="Workflow" icon={IconGitBranch} />,
+            defaultWidth: 115,
             render: (dossier) => <Chip variant="soft" size="sm" color={workflowChipColor[dossier.workflowStep] || 'default'}>{getDossierWorkflowLabel(dossier.workflowStep)}</Chip>,
         },
         {
             id: 'status',
             label: <ColumnHeader label="Statut" icon={IconCircleCheck} field="status" />,
+            defaultWidth: 110,
             render: (dossier) => <Chip variant="soft" size="sm" color={statusChipColor[dossier.status] || 'default'}>{statusLabel[dossier.status] || dossier.status}</Chip>,
         },
         {
             id: 'updated',
             label: <ColumnHeader label="Modifie" icon={IconClockHour3} field="updatedAt" />,
+            defaultWidth: 135,
             render: (dossier) => <span className="whitespace-nowrap text-[var(--text-muted)]">{dossier.updatedAt || '-'}</span>,
         },
         {
             id: 'actions',
             label: '',
-            headerClassName: 'w-24',
+            headerClassName: 'w-32',
+            cellClassName: 'pr-5',
+            defaultWidth: 128,
+            fixedPosition: 'end',
             reorderable: false,
-            render: (dossier) => <div onClick={(event) => event.stopPropagation()}><RowMenu dossier={dossier} /></div>,
+            render: (dossier) => <div className="flex justify-end" onClick={(event) => event.stopPropagation()}><RowMenu dossier={dossier} /></div>,
         },
     ];
 
@@ -274,18 +337,18 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
     function RowMenu({ dossier }: { dossier: DossierRow }) {
         const hasMenuActions = canAny(['documents.view', 'finance.view', 'archive.view', 'dossiers.delete']);
         return (
-            <div className="flex items-center gap-0.5">
+            <div className="flex items-center justify-end gap-1">
                 <button type="button" onClick={() => setPreviewDossier(dossier)}
-                    className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Apercu">
-                    <IconEye size={12} />
+                    className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Apercu">
+                    <IconEye size={13} />
                 </button>
                 {can('dossiers.update') ? <button type="button" onClick={() => openEditDrawer(dossier)}
-                    className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Modifier">
-                    <IconPencil size={12} />
+                    className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]" title="Modifier">
+                    <IconPencil size={13} />
                 </button> : null}
                 {hasMenuActions ? <Dropdown>
-                    <Dropdown.Trigger className="flex size-6 items-center justify-center rounded text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]">
-                        <span className="contents"><IconDots size={12} /></span>
+                    <Dropdown.Trigger className="flex size-7 items-center justify-center rounded-md text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] data-[open]:text-[var(--accent)]">
+                        <span className="contents"><IconDots size={13} /></span>
                     </Dropdown.Trigger>
                     <Dropdown.Popover placement="bottom end"
                         className="min-w-40 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-0.5 shadow-xl">
@@ -401,6 +464,8 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
                             columns={dossierColumns}
                             columnOrderStorageKey="archilbo.dossiers.table.columns.v1"
                             columnOrderHint="Glisser pour reordonner les colonnes"
+                            resizableColumns
+                            columnResizeHint="Glisser pour élargir ou réduire une colonne"
                             data={pageDossiers}
                             rowKey={(dossier) => dossier.id}
                             minTableWidthClassName="min-w-[860px]"
@@ -477,18 +542,17 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
                             }
                         />
 
-                        {/* ── Preview drawer ── */}
-                        <AppDrawer
+                        <ProjectPreviewDrawer
+                            dossier={previewDossier}
                             isOpen={!!previewDossier}
+                            canEdit={can('dossiers.update')}
+                            canDelete={can('dossiers.delete')}
+                            canArchive={can('archive.view')}
                             onOpenChange={(open) => { if (!open) setPreviewDossier(null); }}
-                            title={previewDossier?.projectObject || ''}
-                            size="md"
-                        >
-                            {previewDossier ? (
-                                <PreviewContent dossier={previewDossier} canEdit={can('dossiers.update')} canDelete={can('dossiers.delete')} canArchive={can('archive.view')} onEdit={openEditDrawer}
-                                    onDelete={() => { setDeleteTarget(previewDossier); setPreviewDossier(null); }} />
-                            ) : null}
-                        </AppDrawer>
+                            onEdit={(dossier) => { setPreviewDossier(null); openEditDrawer(dossier); }}
+                            onDelete={(dossier) => { setDeleteTarget(dossier); setPreviewDossier(null); }}
+                            onArchive={() => router.visit('/archives')}
+                        />
 
                         {/* ── Create/Edit drawer ── */}
                         <ProjectDrawer
@@ -498,6 +562,7 @@ export default function DossiersIndex({ dossiers, locationGroups, clients, inter
                             clients={clients}
                             intermediaries={intermediaries}
                             cities={cities}
+                            locationOptions={locationOptions}
                             onOpenChange={setDrawerOpen}
                             onSubmit={handleSubmit}
                             errors={formErrors}

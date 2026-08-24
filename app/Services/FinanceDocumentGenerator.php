@@ -12,7 +12,7 @@ class FinanceDocumentGenerator
 {
     public function generate(FinanceRecord $record): array
     {
-        $record->loadMissing(['dossier.client', 'client']);
+        $record->loadMissing(['dossier.primaryClient', 'client']);
 
         $templatePath = $this->templatePathForType($record->type);
         $relativeDirectory = 'finance/' . $record->record_number;
@@ -129,7 +129,7 @@ class FinanceDocumentGenerator
     private function buildRecordValues(FinanceRecord $record): array
     {
         $dossier = $record->dossier;
-        $client = $record->client ?? $dossier?->client;
+        $client = $record->client ?? $dossier?->primaryClient;
 
         $ht = (float) $record->ht;
         $tva = (float) $record->tva;

@@ -32,15 +32,21 @@ class ClientWorkspaceService
     public function forClient(Client $client, ?int $selectedDossierId = null, ?User $viewer = null): array
     {
         $canViewFinance = $viewer === null || $this->permissions->allows($viewer, 'finance.view');
+        $canViewArchive = $viewer === null || $this->permissions->allows($viewer, 'archive.view');
 
         $relations = [
             'intermediary',
+            'dossiers.primaryClient',
+            'dossiers.city',
             'dossiers.documents.template',
             'dossiers.contract',
             'dossiers.cahier',
             'dossiers.workflowRequirements.checkedBy',
-            'dossiers.archiveRecord',
         ];
+
+        if ($canViewArchive) {
+            $relations[] = 'dossiers.archiveRecord.city';
+        }
 
         if ($canViewFinance) {
             $relations = array_merge($relations, [
@@ -55,6 +61,7 @@ class ClientWorkspaceService
                 'dossiers.financeDocuments.payments.creator',
                 'dossiers.payments.document',
                 'dossiers.payments.creator',
+                'dossiers.negotiatedPaymentLines.payments',
             ]);
         }
 
@@ -83,9 +90,10 @@ class ClientWorkspaceService
                 'intermediaryName' => $client->intermediary?->name,
             ],
             'projects' => $projects,
-            'selectedProject' => $selectedDossier ? $this->projectWorkspace($selectedDossier, $canViewFinance) : null,
+            'selectedProject' => $selectedDossier ? $this->projectWorkspace($selectedDossier, $canViewFinance, $canViewArchive) : null,
             'contracts' => $client->dossiers
                 ->filter(fn (Dossier $dossier) => $dossier->contract !== null)
+                ->sortByDesc(fn (Dossier $dossier) => $dossier->contract?->created_at?->getTimestamp() ?? 0)
                 ->map(fn (Dossier $dossier) => $this->contractSummary($dossier->contract, $dossier))
                 ->values()
                 ->all(),
@@ -100,11 +108,38 @@ class ClientWorkspaceService
         $metrics = $this->financeMetrics->forDocuments($financeDocuments, $payments);
         $invoices = $financeDocuments->where('type', 'invoice')->where('status', '!=', 'cancelled');
         $receivables = $invoices->map(fn ($invoice) => $this->receivables->forInvoice($invoice));
+        $negotiatedPaymentLines = $includeFinance
+            ? $dossier->negotiatedPaymentLines
+                ->map(function ($line): array {
+                    $payments = $line->payments
+                        ->filter(fn ($payment) => $payment->cancelled_at === null)
+                        ->sortBy(fn ($payment) => $payment->paid_at ?? $payment->created_at)
+                        ->values();
+                    $paidAmount = (float) $payments->sum('amount');
+
+                    return [
+                        'id' => (string) $line->id,
+                        'designation' => $line->designation,
+                        'negotiatedAmount' => (float) $line->negotiated_amount,
+                        'paidAmount' => $paidAmount,
+                        'remainingAmount' => max(0, round((float) $line->negotiated_amount - $paidAmount, 2)),
+                        'payments' => $payments->map(fn ($payment) => [
+                            'id' => (string) $payment->id,
+                            'amount' => (float) $payment->amount,
+                            'method' => $payment->method,
+                            'paidAt' => optional($payment->paid_at)->format('Y-m-d'),
+                            'reference' => $payment->reference,
+                        ])->all(),
+                    ];
+                })
+                ->values()
+                ->all()
+            : [];
 
         return [
             'id' => $dossier->id,
             'clientId' => $dossier->client_id,
-            'clientName' => $dossier->client?->full_name,
+            'clientName' => $dossier->primaryClient?->full_name,
             'dossierNumber' => $dossier->dossier_number,
             'projectObject' => $dossier->project_object,
             'projectAddress' => $dossier->project_address,
@@ -123,6 +158,7 @@ class ClientWorkspaceService
             'invoicesTotal' => $metrics['officialInvoicedTotal'],
             'paidTotal' => $metrics['officialPaidTotal'],
             'remainingTotal' => $metrics['officialBalanceTotal'],
+            'negotiatedPaymentLines' => $negotiatedPaymentLines,
             'overdueTotal' => (float) $invoices
                 ->filter(fn ($invoice) => $this->receivables->forInvoice($invoice)['dueState'] === 'overdue')
                 ->map(fn ($invoice) => $this->receivables->forInvoice($invoice)['outstanding'])
@@ -131,10 +167,12 @@ class ClientWorkspaceService
         ];
     }
 
-    private function projectWorkspace(Dossier $dossier, bool $includeFinance): array
+    private function projectWorkspace(Dossier $dossier, bool $includeFinance, bool $includeArchive): array
     {
         $financeDocuments = $includeFinance ? $dossier->financeDocuments->sortByDesc('issue_date')->values() : collect();
         $payments = $includeFinance ? $dossier->payments->sortByDesc('paid_at')->values() : collect();
+        $archive = $includeArchive ? $dossier->archiveRecord : null;
+        $archiveCity = $archive?->city ?? $dossier->city;
 
         return [
             ...$this->projectSummary($dossier, $includeFinance),
@@ -195,13 +233,18 @@ class ClientWorkspaceService
                 'deleteUrl' => route('finance.payments.destroy', $payment),
             ])->all() : [],
             'financeEligibility' => $includeFinance ? $this->financeEligibility->stateForDocuments($financeDocuments) : null,
-            'archiveRecord' => $dossier->archiveRecord ? [
-                'id' => $dossier->archiveRecord->id,
-                'archiveNumber' => $dossier->archiveRecord->archive_number,
-                'status' => $dossier->archiveRecord->status,
-                'inDate' => optional($dossier->archiveRecord->in_date)->toISOString(),
-                'outDate' => optional($dossier->archiveRecord->out_date)->toISOString(),
-                'returnedAt' => optional($dossier->archiveRecord->returned_at)->toISOString(),
+            'archiveRecord' => $archive ? [
+                'id' => $archive->id,
+                'archiveNumber' => $archive->archive_number,
+                'status' => $archive->status,
+                'city' => $archiveCity ? [
+                    'id' => (int) $archiveCity->id,
+                    'name' => (string) $archiveCity->name,
+                    'color' => (string) ($archiveCity->color ?? '#64748B'),
+                ] : null,
+                'inDate' => optional($archive->in_date)->toISOString(),
+                'outDate' => optional($archive->out_date)->toISOString(),
+                'returnedAt' => optional($archive->returned_at)->toISOString(),
             ] : null,
             // The client workspace always exposes the currently selected
             // project's Cahier. It never aggregates Cahiers from the client's
@@ -212,11 +255,11 @@ class ClientWorkspaceService
                 'deliveredAt' => optional($dossier->cahier->delivered_at)->toDateString(),
             ] : null,
             'workflow' => $this->workflowStepper->evaluate($dossier),
-            'timeline' => $this->buildTimeline($dossier, $includeFinance),
+            'timeline' => $this->buildTimeline($dossier, $includeFinance, $includeArchive),
         ];
     }
 
-    private function buildTimeline(Dossier $dossier, bool $includeFinance = true): array
+    private function buildTimeline(Dossier $dossier, bool $includeFinance = true, bool $includeArchive = true): array
     {
         $events = [];
 
@@ -282,7 +325,7 @@ class ClientWorkspaceService
             }
         }
 
-        if ($dossier->archiveRecord) {
+        if ($includeArchive && $dossier->archiveRecord) {
             $events[] = [
                 'date' => optional($dossier->archiveRecord->created_at)->toISOString(),
                 'type' => 'archive',
@@ -319,9 +362,12 @@ class ClientWorkspaceService
             'contractNumber' => $contract->contract_number,
             'status' => $contract->status,
             'surface' => (float) $contract->surface,
+            'pricePerSquareMeter' => $contract->price_per_square_meter !== null ? (float) $contract->price_per_square_meter : null,
             'feeRatePercent' => (float) ($contract->fee_rate_percent ?? 0),
             'calculationMode' => $contract->calculation_mode,
             'forfaitTtc' => $contract->forfait_ttc !== null ? (float) $contract->forfait_ttc : null,
+            'ht' => (float) $contract->ht,
+            'tva' => (float) $contract->tva,
             'ttc' => (float) $contract->ttc,
             'financeTtc' => $contract->effectiveFinanceTtc(),
             'customFinanceTtc' => $contract->finance_ttc !== null ? (float) $contract->finance_ttc : null,

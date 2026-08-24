@@ -158,7 +158,7 @@ This will be replaced by backend document generation.`,
 
                                     <p className="text-sm font-semibold">{query}</p>
                                     <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
-                                        {first ? `${first.title} Â· ${first.subtitle}` : 'No result'}
+                                        {first ? `${first.title} · ${first.subtitle}` : 'No result'}
                                     </p>
 
                                     <AppButton

@@ -27,7 +27,7 @@ class DocumentStorageSecurityQaCommand extends Command
         $failures = 0;
 
         $documents = DossierDocument::query()
-            ->with(['dossier.client', 'template'])
+            ->with(['dossier.primaryClient', 'template'])
             ->latest()
             ->limit(25)
             ->get();

@@ -1,4 +1,5 @@
 import {
+    type ClipboardEvent as ReactClipboardEvent,
     useEffect,
     useId,
     useRef,
@@ -21,7 +22,7 @@ import type {
 } from '@/features/clients/cin-scanner/types';
 
 type CinScannerPanelProps = {
-    onAutoFill: (result: CinScanResult) => void;
+    onApply: (result: CinScanResult) => void;
     onContinue: () => void;
     onCancel: () => void;
 };
@@ -250,7 +251,7 @@ function FieldStatus({ field }: { field: CinScannedField }) {
 }
 
 export function CinScannerPanel({
-    onAutoFill,
+    onApply,
     onContinue,
     onCancel,
 }: CinScannerPanelProps) {
@@ -366,6 +367,48 @@ export function CinScannerPanel({
         setRequestError(null);
     }
 
+    async function handlePaste(event: ReactClipboardEvent<HTMLDivElement>): Promise<void> {
+        if (isScanning) {
+            return;
+        }
+
+        const clipboardFiles = Array.from(event.clipboardData.files);
+        const itemFiles = Array.from(event.clipboardData.items)
+            .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+            .map((item) => item.getAsFile())
+            .filter((file): file is File => file !== null);
+        const images = (clipboardFiles.length > 0 ? clipboardFiles : itemFiles)
+            .filter((file) => file.type.startsWith('image/'))
+            .slice(0, 2);
+
+        if (images.length === 0) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const targets: Array<'front' | 'back'> = [];
+        if (!front.file) {
+            targets.push('front');
+        }
+        if (!back.file) {
+            targets.push('back');
+        }
+
+        if (targets.length === 0) {
+            setRequestError('Les deux faces sont déjà renseignées. Supprimez une image pour la remplacer.');
+            return;
+        }
+
+        await Promise.all(
+            images.slice(0, targets.length).map((file, index) => setImage(targets[index], file)),
+        );
+
+        if (images.length > targets.length) {
+            setRequestError('Seules les images recto et verso sont utilisées.');
+        }
+    }
+
     async function scan(): Promise<void> {
         if (
             ! front.file
@@ -424,7 +467,6 @@ export function CinScannerPanel({
             }
 
             setResult(body);
-            onAutoFill(body);
         } catch (error) {
             if (error instanceof DOMException && error.name === 'AbortError') {
                 return;
@@ -550,7 +592,10 @@ export function CinScannerPanel({
                     <AppButton
                         variant="solid"
                         color="primary"
-                        onPress={onContinue}
+                        onPress={() => {
+                            onApply(result);
+                            onContinue();
+                        }}
                     >
                         <IconCircleCheck size={14} />
                         Continuer avec les données
@@ -561,9 +606,16 @@ export function CinScannerPanel({
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4" onPaste={(event) => void handlePaste(event)}>
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-[10px] leading-5 text-[var(--text-muted)]">
                 Photographiez toute la carte à plat, sans couper les bords. Évitez les reflets, les ombres et le flou.
+            </div>
+
+            <div
+                tabIndex={0}
+                className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-center text-[10px] text-[var(--text-muted)] outline-none transition focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
+            >
+                Collez une image ici : le premier collage remplit le recto, le second le verso.
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">

@@ -3,7 +3,7 @@
 namespace App\Services\Finance;
 
 /**
- * ARCHI LBO default Finance templates â€” v6, built from the textual
+ * ARCHI LBO default Finance templates — v6, built from the textual
  * reference specification (ARCHI LBO brand language).
  *
  * Design tokens (fixed, document-level, NOT the app accent):
@@ -14,8 +14,8 @@ namespace App\Services\Finance;
  *   row gray    #F5F5F5 / #ECECEC (alternating table rows)
  *
  * Page geometry (physical mm, Dompdf native):
- *   A4 portrait     210Ã—297mm   content inset 15mm
- *   A5 landscape    210Ã—148mm   content inset 12mm
+ *   A4 portrait     210×297mm   content inset 15mm
+ *   A5 landscape    210×148mm   content inset 12mm
  *
  * Composition rules:
  *   - `.finance-page` opens in header_html, closes at the end of footer_html
@@ -44,7 +44,7 @@ class DefaultFinanceTemplateFactory
     {
         return [
             'type' => 'quote',
-            'name' => 'ARCHI LBO â€” Devis',
+            'name' => 'ARCHI LBO — Devis',
             'slug' => 'archi-lbo-devis',
             'is_default' => true,
             'paper_size' => 'A4',
@@ -94,7 +94,7 @@ HTML,
   </div>
 
   <div class="words">
-    <p class="words-label">Le prÃ©sent devis est arrÃªtÃ© Ã  la somme de :</p>
+    <p class="words-label">Le présent devis est arrêté à la somme de :</p>
     <p class="words-value">{{totals.amount_in_words}}</p>
   </div>
 
@@ -182,7 +182,7 @@ HTML,
     {
         return [
             'type' => 'receipt',
-            'name' => 'ARCHI LBO â€” ReÃ§u de paiement',
+            'name' => 'ARCHI LBO — Reçu de paiement',
             'slug' => 'archi-lbo-recu',
             'is_default' => true,
             'paper_size' => 'A5',
@@ -209,7 +209,7 @@ HTML,
 HTML,
             'body_html' => <<<'HTML'
 <div class="finance-content">
-  <h1 class="doc-title doc-title-recu">ReÃ§u de paiement</h1>
+  <h1 class="doc-title doc-title-recu">Reçu de paiement</h1>
 
   <table class="recu-info"><tr>
     <td class="recu-info-left">
@@ -243,7 +243,7 @@ HTML,
     private function css(): string
     {
         return <<<'CSS'
-/* â”€â”€ base â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── base ─────────────────────────────────────────────── */
 body{font-family:Arial,Helvetica,sans-serif;font-size:9pt;color:#050505;margin:0;padding:0}
 @page{margin:0}
 p{margin:0}
@@ -252,7 +252,7 @@ p{margin:0}
 .finance-content{padding:0 15mm}
 .finance-footer{position:absolute;bottom:0;left:0;right:0;text-align:center;padding-bottom:8mm}
 
-/* â”€â”€ brand header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── brand header ─────────────────────────────────────── */
 /* height = total box height; padding-top included via content-box sums */
 .brand-header{position:relative;height:30mm;padding:7mm 15mm 0}
 .hdr-row{width:100%;border-collapse:collapse}
@@ -269,7 +269,7 @@ p{margin:0}
 .hdr-diag-gold{position:absolute;right:26mm;bottom:1.6mm;width:0;height:0;border-left:40mm solid transparent;border-bottom:1.2mm solid #D6B000}
 .hdr-wedge{position:absolute;right:0;top:0;width:0;height:0;border-bottom:11mm solid #FFD51A;border-left:16mm solid transparent}
 
-/* â”€â”€ titles / meta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── titles / meta ────────────────────────────────────── */
 .doc-title{font-size:17pt;font-weight:bold;color:#050505;text-transform:uppercase;letter-spacing:0.02em;margin:0}
 .doc-head{width:100%;border-collapse:collapse}
 .doc-head td{vertical-align:top;padding:0;border:none}
@@ -279,7 +279,7 @@ p{margin:0}
 .doc-meta-right{font-size:8pt;color:#050505;margin-top:2mm;line-height:1.6}
 .doc-meta-label{font-weight:bold;color:#D6B000;font-size:7.5pt}
 
-/* â”€â”€ info blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── info blocks ──────────────────────────────────────── */
 .info-row{width:100%;border-collapse:collapse}
 .info-row td{vertical-align:top;padding:0;border:none}
 .info-left{width:48%;padding-right:8mm}
@@ -290,7 +290,7 @@ p{margin:0}
 .info-label{font-weight:bold;color:#D6B000;font-size:7.5pt;text-transform:uppercase;letter-spacing:0.05em}
 .info-line .info-label{margin-right:1.5mm}
 
-/* â”€â”€ items table (renderer-generated) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── items table (renderer-generated) ─────────────────── */
 .finance-items-table{width:100%;border-collapse:collapse}
 .finance-items-table__head th{background:#050505;color:#D6B000;font-size:8pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em;padding:3mm 2mm;text-align:left;border:none;vertical-align:middle}
 .finance-items-table__head th.text-right{text-align:right}
@@ -308,7 +308,7 @@ p{margin:0}
 .finance-items-empty{padding:3mm;color:#888;font-size:8.5pt;border:0.35pt dashed #CCC;margin:6mm 0}
 .receipt-empty{color:#888;font-style:italic;text-align:center;padding:3mm}
 
-/* â”€â”€ totals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── totals ───────────────────────────────────────────── */
 .totals-zone{text-align:right}
 .totals{margin-left:auto;width:87mm;border-collapse:collapse}
 .totals td{padding:2.1mm 2.6mm;font-size:8.5pt}
@@ -318,17 +318,17 @@ p{margin:0}
 .totals-discount{font-size:7.5pt;color:#777;margin-bottom:1mm;text-align:right}
 .totals-secondary{font-size:7.5pt;color:#777;margin-top:2mm;text-align:right}
 
-/* â”€â”€ amount in words / payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── amount in words / payment ────────────────────────── */
 .words{border-left:1.2mm solid #D6B000;padding:0.7mm 0 0.7mm 3.5mm}
 .words-label{font-size:7.5pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.06em;color:#D6B000;margin-bottom:1.5mm}
 .words-value{font-size:10pt;font-weight:bold;color:#050505;line-height:1.35}
 .words-value-small{font-size:8.5pt;font-weight:bold;color:#050505}
 
-/* â”€â”€ footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── footer ───────────────────────────────────────────── */
 .ftr-legal,.ftr-contact{font-size:7pt;color:#444;letter-spacing:0.02em;margin-bottom:1mm}
 .footer-gold-line{width:65mm;border-top:0.6pt solid #D6B000;margin:3mm auto 0}
 
-/* â”€â”€ logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── logo ─────────────────────────────────────────────── */
 .company-logo-img{max-width:22mm;max-height:13mm}
 .logo-mark{display:inline-block;width:15px;height:15px;background:#D6B000;margin-right:8px;vertical-align:middle}
 .logo-mark span{display:none}
@@ -372,7 +372,7 @@ CSS;
     private function portraitCss(): string
     {
         return <<<'CSS'
-/* â”€â”€ A4 portrait vertical geometry (mm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── A4 portrait vertical geometry (mm) ────────────────── */
 .brand-header-invoice{height:35mm}
 .doc-title-facture{font-size:27pt;letter-spacing:0}
 .doc-head{margin-top:15mm}
@@ -388,7 +388,7 @@ CSS;
     private function landscapeCss(): string
     {
         return <<<'CSS'
-/* â”€â”€ A5 landscape: dense geometry (mm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── A5 landscape: dense geometry (mm) ─────────────────── */
 .finance-page{min-height:148mm}
 .finance-content{padding:0 12mm}
 .brand-header{height:22mm;padding:4mm 12mm 0}

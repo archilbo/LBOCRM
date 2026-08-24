@@ -24,6 +24,7 @@ export type ClientRow = {
     status: ClientStatus;
     projectsCount: number;
     updatedAt: string | null;
+    updatedAtSort: string | null;
     createdAt?: string | null;
     notes: string | null;
     capabilities: {
@@ -87,6 +88,7 @@ export type ClientProjectSummary = {
     invoicesTotal: number;
     paidTotal: number;
     remainingTotal: number;
+    negotiatedPaymentLines: import('@/features/finance/types').NegotiatedPaymentLine[];
     updatedAt: string | null;
 };
 
@@ -113,7 +115,7 @@ export type ClientProjectFinanceDocument = import('@/features/finance/types').Fi
 export type ClientProjectPayment = {
     id: number;
     paymentNumber: string;
-    paymentKind: 'invoice' | 'advance' | string;
+    paymentKind: 'invoice' | 'advance' | 'negotiated_advance' | string;
     financeDocumentId: number | null;
     documentNumber: string | null;
     amount: number;
@@ -134,6 +136,15 @@ export type DossierWorkflowRequirement = {
     actionLabel: string | null;
     actionUrl: string | null;
     hasFile: boolean;
+    clientCins?: Array<{
+        clientId: string;
+        fullName: string;
+        cin: string | null;
+        isPrimary: boolean;
+        hasFront: boolean;
+        hasBack: boolean;
+        complete: boolean;
+    }>;
 };
 
 export type DossierWorkflowStep = {
@@ -166,9 +177,12 @@ export type ClientContractSummary = {
     contractNumber: string;
     status: string;
     surface: number | null;
+    pricePerSquareMeter: number | null;
     feeRatePercent: number | null;
     calculationMode: string | null;
     forfaitTtc: number | null;
+    ht: number;
+    tva: number;
     ttc: number;
     financeTtc: number;
     customFinanceTtc: number | null;
@@ -205,6 +219,11 @@ export type ClientProjectArchiveRecord = {
     id: number;
     archiveNumber: string;
     status: string;
+    city: {
+        id: number;
+        name: string;
+        color: string;
+    } | null;
     inDate: string | null;
     outDate: string | null;
     returnedAt: string | null;

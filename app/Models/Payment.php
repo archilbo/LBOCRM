@@ -6,7 +6,6 @@ use App\Enums\PaymentKind;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
@@ -20,6 +19,7 @@ class Payment extends Model
         'payment_kind',
         'client_id',
         'dossier_id',
+        'dossier_negotiated_payment_line_id',
         'payment_number',
         'amount',
         'method',
@@ -58,6 +58,11 @@ class Payment extends Model
         return $this->belongsTo(Dossier::class);
     }
 
+    public function negotiatedPaymentLine(): BelongsTo
+    {
+        return $this->belongsTo(DossierNegotiatedPaymentLine::class, 'dossier_negotiated_payment_line_id');
+    }
+
     public function receiptDocument(): BelongsTo
     {
         return $this->belongsTo(FinanceDocument::class, 'receipt_document_id');
@@ -68,8 +73,4 @@ class Payment extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function documentTransfers(): HasMany
-    {
-        return $this->hasMany(PaymentDocumentTransfer::class);
-    }
 }

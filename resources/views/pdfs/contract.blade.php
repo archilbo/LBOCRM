@@ -23,10 +23,9 @@
 
     <h2>Client Information</h2>
     <table>
-        <tr><td>Civility</td><td>{{ $civility }}</td></tr>
-        <tr><td>Name</td><td>{{ $clientName }}</td></tr>
+        <tr><td>Client(s)</td><td>{{ $clientName }}</td></tr>
         <tr><td>CIN</td><td>{{ $cin }}</td></tr>
-        <tr><td>Address</td><td>{{ $clientAddress }}</td></tr>
+        <tr><td>Primary address</td><td>{{ $clientAddress }}</td></tr>
     </table>
 
     <h2>Project Information</h2>

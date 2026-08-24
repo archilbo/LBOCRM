@@ -60,6 +60,7 @@ export type ArchiveDossierOption = {
     id: string;
     label: string;
     clientId: string;
+    clientIds?: string[];
     hasArchiveRecord: boolean;
 };
 

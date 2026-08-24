@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Contract;
+use App\Services\Contracts\ContractClientIdentityService;
 use App\Services\Dossiers\DossierPathBuilder;
 use App\Services\Documents\DocxPlaceholderReplacer;
 use App\Services\Contracts\ContractTemplateNamingService;
@@ -13,7 +14,7 @@ class ContractDocumentGenerator
 {
     public function generate(Contract $contract): array
     {
-        $contract->loadMissing(['dossier.client', 'dossier.city']);
+        $contract->loadMissing(['dossier.primaryClient', 'dossier.clients', 'dossier.city']);
 
         $templatePath = $this->templatePath($contract);
 
@@ -58,7 +59,7 @@ class ContractDocumentGenerator
     private function values(Contract $contract): array
     {
         $dossier = $contract->dossier;
-        $client = $dossier?->client;
+        $clientIdentity = app(ContractClientIdentityService::class)->forDossier($dossier);
 
         $rate = (float) ($contract->fee_rate_percent ?? config('archilbo_templates.contracts.default_rate', 0.5));
         $unitPrice = (float) ($contract->price_per_square_meter ?: config('archilbo_templates.contracts.construction_unit_price', 900));
@@ -80,10 +81,13 @@ class ContractDocumentGenerator
 
         return [
             'DATE' => now()->format('d/m/Y'),
-            'CIVILITY' => $client?->civility ?? 'M',
-            'CLIENT_NAME' => $client?->full_name ?? '-',
-            'CIN' => $client?->cin ?? '-',
-            'CLIENT_ADD' => $client?->address ?? '-',
+            // Templates render "[CIVILITY]. [CLIENT_NAME]". Keeping the
+            // principal civility separate preserves the existing wording,
+            // while secondary clients carry their own civility in the name.
+            'CIVILITY' => $clientIdentity['civility'],
+            'CLIENT_NAME' => $clientIdentity['names'],
+            'CIN' => $clientIdentity['cins'],
+            'CLIENT_ADD' => $clientIdentity['address'],
 
             'PROJECT_OBJECT' => $dossier?->project_object ?? '-',
             'PROJECT_ADD' => $dossier?->project_address ?? '-',

@@ -148,6 +148,7 @@ export const frArchives = {
         clearAll: 'Tout effacer',
         createRoom: 'Creer salle',
         newArchive: 'Nouvelle archive',
+        view: 'Voir l\'archive',
         openCitySidebar: 'Ouvrir la barre laterale des villes',
     },
     modals: {

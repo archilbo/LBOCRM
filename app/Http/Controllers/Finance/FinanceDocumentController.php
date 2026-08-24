@@ -25,7 +25,6 @@ use App\Services\Finance\FinanceDocumentLockGuard;
 use App\Services\Finance\FinanceDocumentQueryService;
 use App\Services\Finance\FinanceDocumentSequenceService;
 use App\Services\Finance\FinanceFileStorageService;
-use App\Services\Finance\InternalInvoiceConversionService;
 use App\Services\Finance\FinancePdfGenerator;
 use App\Services\Finance\FinanceSettingsService;
 use App\Services\Finance\FinanceMonthlySummaryService;
@@ -108,18 +107,45 @@ class FinanceDocumentController extends Controller
                     'address' => $c->address,
                 ]),
             'dossiers' => $context->apply(Dossier::query()->select('id', 'client_id', 'dossier_number', 'project_object', 'project_address', 'floor_area', 'land_surface'), $user)
-                ->with('contract:id,dossier_id,ttc,finance_ttc')
+                ->with(['contract:id,dossier_id,ttc,finance_ttc', 'negotiatedPaymentLines.payments', 'clients:clients.id,clients.full_name,clients.client_number,clients.cin,clients.phone'])
                 ->orderBy('dossier_number')
                 ->get()
                 ->map(fn ($d) => [
                     'id' => (string) $d->id,
                     'label' => trim($d->dossier_number . ' - ' . ($d->project_object ?? '')),
+                    // Primary client (Phase A legacy alias; frontend should
+                    // prefer `clients` for membership filtering).
                     'clientId' => (string) $d->client_id,
+                    'clientIds' => $d->clients->pluck('id')->map(fn ($id) => (string) $id)->values(),
+                    'clients' => $d->clients->map(fn ($client) => [
+                        'id' => (string) $client->id,
+                        'fullName' => $client->full_name,
+                        'isPrimary' => (bool) $client->pivot->is_primary,
+                    ])->values(),
                     'projectObject' => $d->project_object,
                     'address' => $d->project_address,
                     'floorArea' => $d->floor_area,
                     'landSurface' => $d->land_surface,
                     'financeTtc' => $d->contract?->effectiveFinanceTtc(),
+                    'negotiatedPaymentLines' => $d->negotiatedPaymentLines->map(function ($line): array {
+                        $payments = $line->payments->filter(fn ($payment) => $payment->cancelled_at === null)->values();
+                        $paidAmount = (float) $payments->sum('amount');
+
+                        return [
+                            'id' => (string) $line->id,
+                            'designation' => $line->designation,
+                            'negotiatedAmount' => (float) $line->negotiated_amount,
+                            'paidAmount' => $paidAmount,
+                            'remainingAmount' => max(0, round((float) $line->negotiated_amount - $paidAmount, 2)),
+                            'payments' => $payments->map(fn ($payment) => [
+                                'id' => (string) $payment->id,
+                                'amount' => (float) $payment->amount,
+                                'method' => $payment->method,
+                                'paidAt' => optional($payment->paid_at)->format('Y-m-d'),
+                                'reference' => $payment->reference,
+                            ])->values(),
+                        ];
+                    })->values(),
                 ]),
             'templates' => $financeTemplates->map(fn ($template) => [
                     'id' => (string) $template->id,
@@ -773,7 +799,6 @@ class FinanceDocumentController extends Controller
         DossierFinanceEligibilityService $eligibility,
         PaymentLedgerService $ledger,
         FinanceDocumentSequenceService $sequences,
-        InternalInvoiceConversionService $internalConversion,
     ): RedirectResponse
     {
         $this->authorize('convert', $financeDocument);
@@ -782,20 +807,6 @@ class FinanceDocumentController extends Controller
         }
 
         $data = $request->validated();
-
-        if ($financeDocument->isInternalInvoice()) {
-            $invoice = $internalConversion->convert($financeDocument, $request->user(), $data);
-            app(FinanceActivityService::class)->log($financeDocument->fresh(), $request->user(), 'finance.internal_invoice.converted', [], [
-                'converted_to_document_id' => $invoice->id,
-                'number' => $invoice->number,
-            ]);
-            app(FinanceActivityService::class)->log($invoice, $request->user(), 'finance.invoice.created_from_internal', [], [
-                'source_document_id' => $financeDocument->id,
-            ]);
-
-            return redirect()->route('finance.documents.show', $invoice)
-                ->with('success', "Facture {$invoice->number} creee a partir de {$financeDocument->number}.");
-        }
 
         $scope = app(FinanceContextService::class)->payload($request->user());
         $invoice = DB::transaction(function () use ($financeDocument, $data, $scope, $eligibility, $ledger, $sequences) {

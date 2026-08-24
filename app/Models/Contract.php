@@ -38,7 +38,7 @@ class Contract extends Model
 
     protected $casts = [
         'surface' => 'decimal:2',
-        'price_per_square_meter' => 'decimal:2',
+        'price_per_square_meter' => 'decimal:4',
         'fee_rate_percent' => 'decimal:2',
         'architect_fee_rate' => 'decimal:4',
         'architect_fee_amount' => 'decimal:2',

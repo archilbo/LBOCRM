@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { IconGripVertical } from '@tabler/icons-react';
 import { cn } from '@/lib/cn';
 
 export type AppWorkspaceTableColumn<T> = {
@@ -8,6 +9,7 @@ export type AppWorkspaceTableColumn<T> = {
     render: (row: T) => ReactNode;
     headerClassName?: string;
     cellClassName?: string;
+    defaultWidth?: number;
     reorderable?: boolean;
     fixedPosition?: 'start' | 'end';
 };
@@ -22,6 +24,8 @@ type AppWorkspaceTableProps<T> = {
     minTableWidthClassName?: string;
     columnOrderStorageKey?: string;
     columnOrderHint?: string;
+    resizableColumns?: boolean;
+    columnResizeHint?: string;
     onRowPress?: (row: T) => void;
     renderMobileRow?: (row: T) => ReactNode;
     rowKey?: (row: T) => string | number;
@@ -41,6 +45,8 @@ export function AppWorkspaceTable<T>({
     minTableWidthClassName = 'min-w-[800px]',
     columnOrderStorageKey,
     columnOrderHint,
+    resizableColumns = false,
+    columnResizeHint = 'Glisser pour redimensionner la colonne',
     onRowPress,
     renderMobileRow,
     rowKey,
@@ -52,6 +58,9 @@ export function AppWorkspaceTable<T>({
     const columnIds = useMemo(() => (columnSignature ? columnSignature.split('|') : []), [columnSignature]);
     const [columnOrder, setColumnOrder] = useState<string[]>([]);
     const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
+    const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+    const resizingColumnRef = useRef<{ id: string; startX: number; startWidth: number } | null>(null);
+    const columnResizeStorageKey = columnOrderStorageKey ? `${columnOrderStorageKey}.widths.v2` : undefined;
 
     useEffect(() => {
         if (!columnOrderStorageKey || typeof window === 'undefined') {
@@ -82,6 +91,37 @@ export function AppWorkspaceTable<T>({
         if (!columnOrderStorageKey || columnOrder.length === 0 || typeof window === 'undefined') return;
         window.localStorage.setItem(columnOrderStorageKey, JSON.stringify(columnOrder));
     }, [columnOrder, columnOrderStorageKey]);
+
+    useEffect(() => {
+        if (!resizableColumns || !columnResizeStorageKey || typeof window === 'undefined') {
+            setColumnWidths({});
+            return;
+        }
+
+        try {
+            const stored = window.localStorage.getItem(columnResizeStorageKey);
+            const parsed = stored ? JSON.parse(stored) : {};
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                setColumnWidths({});
+                return;
+            }
+
+            const widths: Record<string, number> = {};
+            for (const [id, width] of Object.entries(parsed)) {
+                if (columnIds.includes(id) && typeof width === 'number' && Number.isFinite(width)) {
+                    widths[id] = Math.max(120, Math.min(720, Math.round(width)));
+                }
+            }
+            setColumnWidths(widths);
+        } catch {
+            setColumnWidths({});
+        }
+    }, [columnIds, columnResizeStorageKey, resizableColumns]);
+
+    useEffect(() => {
+        if (!resizableColumns || !columnResizeStorageKey || typeof window === 'undefined') return;
+        window.localStorage.setItem(columnResizeStorageKey, JSON.stringify(columnWidths));
+    }, [columnResizeStorageKey, columnWidths, resizableColumns]);
 
     const resolvedColumns = useMemo(() => {
         const byId = new Map(baseColumns.map((column) => [column.id, column]));
@@ -114,6 +154,42 @@ export function AppWorkspaceTable<T>({
         setDraggedColumnId(null);
     }
 
+    function startColumnResize(event: ReactPointerEvent<HTMLButtonElement>, columnId: string) {
+        const header = event.currentTarget.closest('th');
+        if (!header) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        resizingColumnRef.current = {
+            id: columnId,
+            startX: event.clientX,
+            startWidth: header.getBoundingClientRect().width,
+        };
+    }
+
+    function resizeColumn(event: ReactPointerEvent<HTMLButtonElement>) {
+        const resize = resizingColumnRef.current;
+        if (!resize) return;
+
+        event.preventDefault();
+        const width = Math.max(120, Math.min(720, Math.round(resize.startWidth + event.clientX - resize.startX)));
+        setColumnWidths((current) => current[resize.id] === width ? current : { ...current, [resize.id]: width });
+    }
+
+    function stopColumnResize(event: ReactPointerEvent<HTMLButtonElement>) {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        resizingColumnRef.current = null;
+    }
+
+    function columnStyle(column: AppWorkspaceTableColumn<T>) {
+        const width = columnWidths[column.id] ?? (resizableColumns ? column.defaultWidth : undefined);
+
+        return width ? { width, minWidth: width } : undefined;
+    }
+
     if (children) {
         return (
             <div className={cn('rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm', className)}>
@@ -129,31 +205,50 @@ export function AppWorkspaceTable<T>({
             {toolbar ? <div className="border-b border-[var(--border)]">{toolbar}</div> : null}
 
             <div className={cn('flex-1 min-h-0 overflow-x-auto overflow-y-auto', desktopHiddenClassName)}>
-                <table aria-label={ariaLabel} className={cn('w-full text-xs', minTableWidthClassName)}>
+                <table aria-label={ariaLabel} className={cn('w-full text-xs', resizableColumns && 'table-fixed', minTableWidthClassName)}>
                     <thead>
                         <tr className="border-b border-[var(--border)] bg-[var(--surface-2)]/55 text-left text-[10px] font-semibold tracking-[0.04em] text-[var(--text-muted)]">
-                            {resolvedColumns.map((column) => (
-                                <th
+                            {resolvedColumns.map((column) => {
+                                const canResize = resizableColumns && column.reorderable !== false;
+                                const canReorder = Boolean(columnOrderStorageKey && column.reorderable !== false);
+
+                                return <th
                                     key={column.id}
-                                    draggable={Boolean(columnOrderStorageKey && column.reorderable !== false)}
-                                    onDragStart={() => setDraggedColumnId(column.id)}
-                                    onDragOver={(event) => { if (columnOrderStorageKey && column.reorderable !== false) event.preventDefault(); }}
-                                    onDrop={() => { if (column.reorderable !== false) reorderColumns(column.id); }}
-                                    onDragEnd={() => setDraggedColumnId(null)}
-                                    title={columnOrderStorageKey && column.reorderable !== false ? columnOrderHint : undefined}
+                                    onDragOver={(event) => { if (canReorder) event.preventDefault(); }}
+                                    onDrop={() => { if (canReorder) reorderColumns(column.id); }}
                                     className={cn(
-                                        'px-3 py-3 align-middle',
-                                        columnOrderStorageKey && column.reorderable !== false ? 'cursor-grab select-none active:cursor-grabbing' : '',
+                                        'relative px-3 py-3 align-middle',
                                         draggedColumnId === column.id ? 'opacity-45' : '',
                                         column.headerClassName,
                                     )}
+                                    style={columnStyle(column)}
                                 >
-                                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                                        {column.icon ? <span className="text-[var(--accent)]/85">{column.icon}</span> : null}
-                                        {column.label}
-                                    </span>
+                                    <div className={cn('flex min-w-0 items-center gap-1', canResize ? 'pr-3' : '')}>
+                                        {canReorder ? <span
+                                            draggable
+                                            title={columnOrderHint}
+                                            aria-hidden="true"
+                                            className="inline-flex shrink-0 cursor-grab touch-none text-[var(--text-muted)]/75 transition hover:text-[var(--accent)] active:cursor-grabbing"
+                                            onDragStart={() => setDraggedColumnId(column.id)}
+                                            onDragEnd={() => setDraggedColumnId(null)}
+                                        ><IconGripVertical size={13} strokeWidth={1.8} /></span> : null}
+                                        <span className="inline-flex min-w-0 items-center gap-1.5 whitespace-nowrap">
+                                            {column.icon ? <span className="shrink-0 text-[var(--accent)]/85">{column.icon}</span> : null}
+                                            {column.label}
+                                        </span>
+                                    </div>
+                                    {canResize ? <button
+                                        type="button"
+                                        aria-label={`${columnResizeHint}: ${column.id}`}
+                                        title={columnResizeHint}
+                                        className="absolute inset-y-0 right-0 z-10 w-3 !cursor-ew-resize touch-none focus-visible:outline-none after:absolute after:inset-y-2 after:left-1/2 after:w-px after:-translate-x-1/2 after:bg-transparent hover:after:bg-[var(--accent)] focus-visible:after:bg-[var(--accent)]"
+                                        onPointerDown={(event) => startColumnResize(event, column.id)}
+                                        onPointerMove={resizeColumn}
+                                        onPointerUp={stopColumnResize}
+                                        onLostPointerCapture={() => { resizingColumnRef.current = null; }}
+                                    /> : null}
                                 </th>
-                            ))}
+                            })}
                         </tr>
                     </thead>
                     <tbody>
@@ -163,7 +258,9 @@ export function AppWorkspaceTable<T>({
                                 className={cn('border-b border-[var(--border)] transition last:border-0', onRowPress ? 'cursor-pointer hover:bg-[var(--surface-2)]' : '')}
                                 onClick={() => onRowPress?.(row)}
                             >
-                                {resolvedColumns.map((column) => <td key={column.id} className={cn('px-3 py-2', column.cellClassName)}>{column.render(row)}</td>)}
+                                {resolvedColumns.map((column) => {
+                                    return <td key={column.id} className={cn('px-3 py-2', column.cellClassName)} style={columnStyle(column)}>{column.render(row)}</td>;
+                                })}
                             </tr>
                         )) : (
                             <tr><td colSpan={resolvedColumns.length} className="px-3 py-8 text-center text-xs text-[var(--text-muted)]">{emptyContent}</td></tr>

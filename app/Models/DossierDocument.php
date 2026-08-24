@@ -18,6 +18,7 @@ class DossierDocument extends Model
 
     protected $fillable = [
         'dossier_id',
+        'client_id',
         'document_template_id',
         'document_side',
         'document_number',
@@ -40,6 +41,12 @@ class DossierDocument extends Model
     public function dossier(): BelongsTo
     {
         return $this->belongsTo(Dossier::class);
+    }
+
+    /** CIN rows belong to one linked client; other documents stay project-level. */
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
     }
 
     public function template(): BelongsTo
